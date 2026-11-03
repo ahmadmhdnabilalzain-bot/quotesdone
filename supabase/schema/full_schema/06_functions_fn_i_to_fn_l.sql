@@ -137,15 +137,40 @@ CREATE OR REPLACE FUNCTION public.fn_inbox_send(p_id bigint, p_body text, p_by t
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare m public.inbound_messages%rowtype;
+declare
+  m public.inbound_messages%rowtype;
+  v_mailbox text; v_to text; v_known text; v_role text; v_lead bigint; v_kind text; v_name text;
 begin
   select * into m from public.inbound_messages where id=p_id;
   if m.id is null then return jsonb_build_object('error','message not found'); end if;
   if m.from_email is null then return jsonb_build_object('error','no sender address'); end if;
   if coalesce(trim(p_body),'')='' then return jsonb_build_object('error','empty reply'); end if;
 
-  insert into public.notifications(type,to_email,to_role,channel,subject,body,in_reply_to)
-    values('inbound_reply', m.from_email, null, 'email',
+  -- Which mailbox the message came into, and who wrote it.
+  select lower(btrim(value)) into v_mailbox from public.app_secrets where key = 'invite_m365_mailbox';
+  v_mailbox := coalesce(nullif(v_mailbox, ''), 'supplier@quotesdone.com');
+  v_to := lower(btrim(coalesce(substring(m.to_email from '<([^>]+)>'), m.to_email, '')));
+  v_known := public.fn_mail_sender_known(m.from_email);
+  if coalesce(v_known, '') not in ('staff', 'customer') then
+    if m.lead_id is not null or v_known = 'supplier' then
+      v_role := 'supplier';
+      v_lead := coalesce(m.lead_id, (select l.id from public.leads l
+                                       where lower(btrim(l.email)) = lower(btrim(m.from_email))
+                                          or lower(btrim(l.claimed_by)) = lower(btrim(m.from_email))
+                                       order by l.id limit 1));
+    end if;
+    if v_to = v_mailbox then v_kind := 'supplier_mailbox_reply'; end if;
+  end if;
+  -- a supplier is answered in English: an Arabic letter in the body (the lead's own name set aside) is never sent
+  if v_role = 'supplier' then
+    select nullif(btrim(l.company_name), '') into v_name from public.leads l where l.id = v_lead;
+    if replace(p_body, coalesce(v_name, ''), '') ~ '[؀-ۿ]' then
+      return jsonb_build_object('error', 'a supplier is always answered in English: this reply carries Arabic, so it was not sent');
+    end if;
+  end if;
+
+  insert into public.notifications(type,to_email,to_role,lead_id,kind,channel,subject,body,in_reply_to)
+    values('inbound_reply', m.from_email, v_role, v_lead, v_kind, 'email',
            case when coalesce(m.subject,'') ilike 're:%' then m.subject else 'Re: '||coalesce(nullif(m.subject,''),'your message') end,
            p_body, nullif(btrim(m.raw->>'message_id'), ''));
 
@@ -153,7 +178,7 @@ begin
   update public.agent_actions set status='approved', decided_by=coalesce(p_by,'founder'), decided_at=now()
    where target_table='inbound_messages' and target_id=p_id::text
      and status in ('pending','held_for_review','proposed','open');
-  return jsonb_build_object('ok',true, 'to', m.from_email);
+  return jsonb_build_object('ok',true, 'to', m.from_email, 'to_role', v_role, 'lead_id', v_lead);
 end $function$
 
 
@@ -662,6 +687,143 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_invite_open_arm(p_key text, p_share integer)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_share, 0) > 0 and coalesce(p_key, '') <> ''
+     and (('x' || substr(md5('invite_open:' || p_key), 1, 7))::bit(28)::int % 100) < least(coalesce(p_share, 0), 100)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_open_funnel(p_from timestamp with time zone, p_to timestamp with time zone DEFAULT now())
+ RETURNS TABLE(day date, arm text, sent integer, delivered integer, bounced integer, complained integer, opened_any integer, opened_human integer, opened_machine_only integer, replied integer, registered integer, approved integer, unsubscribed integer)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with inv as (
+    select n.id, n.lead_id, n.to_email, n.sent_at, l.invite_status,
+           (l.registration_submitted_at is not null or coalesce(l.claimed, false)) as reg,
+           coalesce(l.approval_status = 'approved', false) as appr,
+           exists (select 1 from public.email_open_token t where t.notification_id = n.id) as tracked
+      from public.notifications n
+      join public.leads l on l.id = n.lead_id
+     where n.type = 'supplier_invite' and n.sent_at is not null and n.sent_at > p_from and n.sent_at <= coalesce(p_to, now())
+       and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email)),
+  opens as (
+    select i.id, count(e.id) as any_n, count(e.id) filter (where e.classification = 'likely_human') as human_n
+      from inv i
+      join public.email_open_token t on t.lead_id = i.lead_id
+      join public.email_open_event e on e.token = t.token and e.opened_at >= i.sent_at
+     group by i.id)
+  select (i.sent_at at time zone 'Asia/Dubai')::date, case when i.tracked then 'tracked' else 'untracked' end,
+         count(*)::int,
+         (count(*) filter (where i.invite_status is distinct from 'bounced'))::int,
+         (count(*) filter (where i.invite_status = 'bounced'))::int,
+         (count(*) filter (where i.invite_status = 'complained'))::int,
+         (count(o.id) filter (where o.any_n > 0))::int,
+         (count(o.id) filter (where o.human_n > 0))::int,
+         (count(o.id) filter (where o.any_n > 0 and o.human_n = 0))::int,
+         (count(*) filter (where exists (select 1 from public.inbound_messages m
+                                          where (m.lead_id = i.lead_id or lower(m.from_email) = lower(btrim(i.to_email)))
+                                            and m.created_at > i.sent_at)))::int,
+         (count(*) filter (where i.reg))::int,
+         (count(*) filter (where i.appr))::int,
+         (count(*) filter (where exists (select 1 from public.email_suppressions s
+                                          where s.email = lower(btrim(i.to_email)) and s.reason = 'unsubscribe')))::int
+    from inv i left join opens o on o.id = i.id
+   group by 1, 2
+   order by 1, 2
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_open_share()
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when v ~ '^\s*\d{1,3}\s*%?\s*$' then least(100, btrim(replace(v, '%', ''))::int) else 0 end
+    from (select coalesce((select value from public.app_secrets where key = 'invite_open_tracking'), 'off') as v) s
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_open_summary(p_from timestamp with time zone, p_to timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_arms jsonb;
+begin
+  select coalesce(jsonb_object_agg(a.arm, to_jsonb(a) - 'arm'), '{}'::jsonb) into v_arms from (
+    select f.arm, sum(f.sent)::int as sent, sum(f.delivered)::int as delivered, sum(f.bounced)::int as bounced,
+           sum(f.complained)::int as complained, sum(f.opened_any)::int as opened_any, sum(f.opened_human)::int as opened_human,
+           sum(f.opened_machine_only)::int as opened_machine_only, sum(f.replied)::int as replied,
+           sum(f.registered)::int as registered, sum(f.approved)::int as approved, sum(f.unsubscribed)::int as unsubscribed,
+           round(sum(f.bounced)::numeric / nullif(sum(f.sent), 0), 4) as bounce_rate,
+           round(sum(f.complained)::numeric / nullif(sum(f.sent), 0), 4) as complaint_rate,
+           round(sum(f.replied)::numeric / nullif(sum(f.sent), 0), 4) as reply_rate,
+           round(sum(f.unsubscribed)::numeric / nullif(sum(f.sent), 0), 4) as unsubscribe_rate,
+           round(sum(f.registered)::numeric / nullif(sum(f.sent), 0), 4) as registered_rate,
+           round(sum(f.opened_human)::numeric / nullif(sum(f.sent), 0), 4) as human_open_rate
+      from public.fn_invite_open_funnel(p_from, p_to) f group by f.arm) a;
+  return jsonb_build_object(
+    'from', p_from, 'to', coalesce(p_to, now()), 'share_pct', public.fn_invite_open_share(), 'by_arm', v_arms,
+    'opened_by_a_person_not_registered_after_3_days', (select count(*) from public.fn_invite_opened_not_registered(3)),
+    'basis', 'supplier_invite rows sent in the window (ZZ DEMO and reserved addresses excluded), split by arm: tracked = the email carried the image (email_open_token). bounced and complained are leads.invite_status, the same as fn_invite_send_health; delivered = sent less bounced (the Microsoft 365 lane has no delivery receipt); opened counts a lead once, from any of its tracked emails, after this invitation; replied = inbound_messages from the lead after the send; registered = registration_submitted_at or claimed; unsubscribed = email_suppressions reason unsubscribe. The follow-up list is fn_invite_opened_not_registered(days).',
+    'limits', 'An open is a load of the image, never a read receipt. Outlook and most corporate mail block remote images from an unknown sender, so a person can read the email and leave no open: opened is a floor. Apple Mail Privacy Protection and mail scanners load images without a person; the rules mark the known ones machine_prefetch, not all. The untracked arm has no opens by construction; compare the arms on bounce, complaint, reply, unsubscribe and registered rates, and on inbox placement.');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_open_token(p_notification_id bigint)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n record; v_share int; v_tok text;
+begin
+  select id, type, to_role, to_email, lead_id, kind, lang into n from public.notifications where id = p_notification_id;
+  if not found or n.to_role is distinct from 'supplier' or n.type not in ('supplier_invite', 'supplier_invite_nudge')
+     or coalesce(n.lang, 'en') = 'ar' or public.fn_is_demo_email(n.to_email) then return null; end if;
+  select token into v_tok from public.email_open_token where notification_id = n.id;
+  if found then return v_tok; end if;
+  v_share := public.fn_invite_open_share();
+  if not public.fn_invite_open_arm(coalesce(n.lead_id::text, lower(btrim(n.to_email))), v_share) then return null; end if;
+  insert into public.email_open_token (token, notification_id, lead_id, share_pct)
+  values (replace(gen_random_uuid()::text, '-', ''), n.id, n.lead_id, v_share)
+  on conflict (notification_id) do nothing;
+  select token into v_tok from public.email_open_token where notification_id = n.id;
+  return v_tok;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_opened_not_registered(p_min_days integer DEFAULT 3)
+ RETURNS TABLE(lead_id bigint, company_name text, email text, invited_at timestamp with time zone, first_human_open_at timestamp with time zone, human_opens integer, days_since_first_open integer, replied boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select l.id, l.company_name, l.email, l.invited_at, min(e.opened_at), count(*)::int,
+         floor(extract(epoch from (now() - min(e.opened_at))) / 86400)::int,
+         exists (select 1 from public.inbound_messages m where m.lead_id = l.id or lower(m.from_email) = lower(btrim(l.email)))
+    from public.email_open_event e
+    join public.email_open_token t on t.token = e.token
+    join public.leads l on l.id = t.lead_id
+   where e.classification = 'likely_human'
+     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
+     and l.registration_submitted_at is null and not coalesce(l.claimed, false)
+     and not exists (select 1 from public.email_suppressions s where s.email = lower(btrim(l.email)))
+   group by l.id
+  having min(e.opened_at) <= now() - make_interval(days => greatest(0, coalesce(p_min_days, 3)))
+   order by min(e.opened_at)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_invite_placement_class_verdicts(p_now timestamp with time zone DEFAULT now())
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1039,7 +1201,12 @@ begin
     return v_cur;
   end if;
 
-  select count(*), max(invited_at) into v_sent_total, v_last_sent from leads where invited_at is not null and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+  -- ISSUED MEANS SENT, AND WHEN IT WAS SENT (3 Nov 2026): the same rows fn_invite_send_health reads, from the lane's stamp.
+  select count(distinct n.lead_id), max(n.sent_at), max((n.sent_at at time zone 'Asia/Dubai')::date)
+    into v_sent_total, v_last_sent, v_last_day
+    from public.notifications n join public.leads l on l.id = n.lead_id
+   where n.type = 'supplier_invite' and n.status = 'sent' and n.sent_at >= v_since
+     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email);
   -- THE 48 h HEALTH READ IS NOT LANE-SCOPED (review of #963): complaints and bounces reflect the list and the
   -- copy, not the domain, so switching the lane on must never hide yesterday's complaints from the pause.
   select h.sent, h.bounced, h.complained into v_s48, v_b48, v_c48
@@ -1095,11 +1262,19 @@ begin
     v_new := v_cur;
     v_note := 'hold: 48 h bounce ' || round(v_br * 100, 1) || '% (' || v_b48 || '/' || v_s48 || '), complaint ' || round(v_cr * 100, 2)
               || '% — growth needs bounce < ' || round(v_ok_b * 100, 1) || '% and complaint < ' || round(v_ok_c * 100, 2) || '%.';
+  elsif v_s48 < v_back_n then
+    -- NO GROWTH ON AN EMPTY WINDOW (3 Nov 2026). A Monday is no longer a restart, and its 48 h window holds the weekend's
+    -- zero sends: "0 bounces of 0" is not health. It holds until the window carries enough sends to judge.
+    v_new := v_cur;
+    v_note := 'hold: ' || v_s48 || ' invitation(s) sent in 48 h, too few to judge health; growth needs ' || v_back_n || '.';
   else
     -- GROW ON VOLUME ISSUED, ONCE PER SEND DAY. Weekends and holidays run no batch, so a calendar-based
     -- ladder would ratchet on days the domain sent nothing.
-    select max((invited_at at time zone 'Asia/Dubai')::date) into v_last_day from leads where invited_at is not null and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
-    select count(*) into v_last_day_sent from leads where (invited_at at time zone 'Asia/Dubai')::date = v_last_day and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+    select count(*) into v_last_day_sent
+      from public.notifications n join public.leads l on l.id = n.lead_id
+     where n.type = 'supplier_invite' and n.status = 'sent' and n.sent_at >= v_since
+       and (n.sent_at at time zone 'Asia/Dubai')::date = v_last_day
+       and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email);
     select exists (select 1 from agent_runs a where a.agent = 'invite_ramp' and a.finished_at > v_last_sent
                      and (a.counts->>'new_cap')::int > (a.counts->>'old_cap')::int) into v_grew_since;
     if v_grew_since then
