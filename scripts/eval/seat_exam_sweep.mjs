@@ -29,7 +29,7 @@
 //   node scripts/eval/seat_exam_sweep.mjs audit                                   # the knowledge vs the canon, code only
 //   node scripts/eval/seat_exam_sweep.mjs prepare --dir D [--wordings w.json] [--only ids.json]
 //   node scripts/eval/seat_exam_sweep.mjs grade --dir D                           # D/answers/*.json -> D/code.json, D/judge/*.md
-//   node scripts/eval/seat_exam_sweep.mjs score --dir D                           # D/judged/*.json -> D/score.json + table
+//   node scripts/eval/seat_exam_sweep.mjs score --dir D [--carry D0]               # D/judged/*.json -> D/score.json + table
 //   node scripts/eval/seat_exam_sweep.mjs rejudge --dir D [--prefix rejudge]      # the judge's failures, after a rule fix
 //   node scripts/eval/seat_exam_sweep.mjs calibrate-prepare --dir D               # the labelled cases as a blind judge batch
 //   node scripts/eval/seat_exam_sweep.mjs calibrate --dir D                       # D/calibration_verdicts.json vs the labels
@@ -286,13 +286,32 @@ const pct = (x) => `${(100 * x).toFixed(1)}%`;
 export const tableMd = (rows) => ['| seat | asked | passed | rate | money/terms | by code | by judge | bar (98%, 100% money/terms) |', '|---|---|---|---|---|---|---|---|',
   ...rows.map((r) => `| ${r.seat} | ${r.asked} | ${r.passed} | ${pct(r.rate)} | ${r.mt_passed}/${r.mt_asked} | ${r.by_code} | ${r.by_judge} | ${r.meets_bar ? 'MET' : 'NOT MET'} |`)].join('\n');
 
-function score(dir) {
-  const code = json(join(dir, 'code.json'));
-  const judged = Object.assign({}, ...readdirSync(join(dir, 'judged')).filter((f) => f.endsWith('.json')).map((f) => json(join(dir, 'judged', f))));
-  const final = finalVerdicts(code, judged);
+const judgedIn = (dir) => Object.assign({}, ...readdirSync(join(dir, 'judged')).filter((f) => f.endsWith('.json')).sort().map((f) => json(join(dir, 'judged', f))));
+
+/** --carry D0 (a re-ask round): an item not asked in this round keeps its verdict from round D0, marked 'carried', so the
+ *  table covers every item. The round's own items are reported apart as well, with the regression sample (items that
+ *  passed in D0 and were re-asked only to see whether they still pass). */
+function score(dir, carry) {
+  const own = finalVerdicts(json(join(dir, 'code.json')), judgedIn(dir));
+  let final = own;
+  if (carry) {
+    const asked = new Set(own.map((r) => r.id));
+    const prior = finalVerdicts(json(join(carry, 'code.json')), judgedIn(carry));
+    final = [...own, ...prior.filter((r) => !asked.has(r.id)).map((r) => ({ ...r, by: r.pass ? 'carried' : r.by, carried: true }))];
+  }
   const rows = scoreTable(final);
-  writeFileSync(join(dir, 'score.json'), JSON.stringify({ rows, failing: final.filter((r) => !r.pass).map(({ id, seat, money_terms, by, reason, note, canon, missing, unsupported, wording, answer }) => ({ id, seat, money_terms, by, reason, note, canon, missing, unsupported, wording, answer })) }, null, 1));
+  const failing = final.filter((r) => !r.pass).map(({ id, seat, money_terms, by, reason, note, canon, missing, unsupported, wording, answer, carried }) => ({ id, seat, money_terms, by, reason, note, canon, missing, unsupported, wording, answer, carried: !!carried }));
+  const out = { rows, failing };
+  if (carry) {
+    const priorPass = new Set(finalVerdicts(json(join(carry, 'code.json')), judgedIn(carry)).filter((r) => r.pass).map((r) => r.id));
+    const sample = own.filter((r) => priorPass.has(r.id));
+    out.reasked = { items: own.length, passed: own.filter((r) => r.pass).length, previously_passing: sample.length, still_passing: sample.filter((r) => r.pass).length,
+      newly_failing: sample.filter((r) => !r.pass).map((r) => r.id) };
+    out.carried = final.filter((r) => r.carried).length;
+  }
+  writeFileSync(join(dir, 'score.json'), JSON.stringify(out, null, 1));
   console.log(tableMd(rows));
+  if (out.reasked) console.log(`\nre-asked ${out.reasked.items} (passed ${out.reasked.passed}); of those that passed before, ${out.reasked.still_passing}/${out.reasked.previously_passing} still pass${out.reasked.newly_failing.length ? `; newly failing: ${out.reasked.newly_failing.join(', ')}` : ''}; carried ${out.carried}`);
   const unj = final.filter((r) => r.by === 'unjudged').length;
   if (unj) console.log(`\n${unj} items sent to the judge have no verdict yet: the score is PARTIAL.`);
 }
@@ -344,7 +363,7 @@ async function main() {
     process.exit(f.length ? 1 : 0);
   } else if (cmd === 'prepare') prepare(dir, at('--wordings'), at('--only'));
   else if (cmd === 'grade') grade(dir);
-  else if (cmd === 'score') score(dir);
+  else if (cmd === 'score') score(dir, at('--carry'));
   else if (cmd === 'rejudge') rejudge(dir, at('--prefix') || 'rejudge');
   else if (cmd === 'calibrate-prepare') calibratePrepare(dir);
   else if (cmd === 'calibrate') calibrate(dir);
