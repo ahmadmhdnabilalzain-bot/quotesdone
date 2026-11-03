@@ -63,7 +63,8 @@
     "squawk-cli": "2.66.0",
     "tailwindcss": "4.3.3",
     "tailwindcss-animate": "1.0.7",
-    "typescript": "5.5.4"
+    "typescript": "7.0.2",
+    "typescript-js-api": "npm:typescript@5.5.4"
   },
   "overrides": {
     "sharp": "^0.35.5",
