@@ -1460,6 +1460,8 @@ export async function teardown(run) {
     ['company_event (lead)', `delete from public.company_event where entity_type='lead' and entity_id in ${LEAD_T}`],
     ['company_event (inquiry)', `delete from public.company_event where entity_type='inquiry' and entity_id in ${INQ_T}`],
     ['inquiry_supplier_brief', `delete from public.inquiry_supplier_brief where inquiry_id in ${INQ}`],
+    // a held Arabic comparison of a demo request waits on its inquiry id (text key): it goes with the request (2 Nov 2026)
+    ['arabic_compare_waiter', `delete from public.arabic_compare_waiter where inquiry_id in ${INQ_T}`],
     ['inquiries_unhire', `update public.inquiries set hired_supplier_id=null where hired_supplier_id in ${LEAD}`],
     ['inquiries', `delete from public.inquiries where id in ${INQ}`],
     ['doc_reviews', `delete from public.doc_reviews where lead_id in ${LEAD}`],
