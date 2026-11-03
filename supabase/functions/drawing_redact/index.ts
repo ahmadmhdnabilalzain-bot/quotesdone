@@ -32,7 +32,7 @@ import { MAXW, b64ToBytes, bytesToB64, cadPage, cleanBoxes, repaintJpeg, serverB
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { notReached } from '../_shared/not_reached.ts';
-import { pageTextInstructs, verifyVerdict } from './verify_verdict.ts';
+import { instructingRuns, verifyVerdict } from './verify_verdict.ts';
 
 // ── DETERMINISTIC REDACTION, 14 Sep 2026 ─────────────────────────────────────────────────────────
 // Every model route is held, so detection below fails and no drawing page has reached a supplier
@@ -498,8 +498,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
           }
         };
         // Identity the text layer locates is boxed as well as what the model named; the verifier
-        // below still decides whether the page is published.
-        paint(img, [...regions, ...textBoxes(i).boxes]);
+        // below still decides whether the page is published. So is text-layer text that instructs the checker
+        // (verify_verdict.ts instructingRuns): covered before any model reads the page.
+        paint(img, [...regions, ...textBoxes(i).boxes, ...instructingRuns(pdf[pageOffset + i]?.runs ?? [])]);
         let jpg = await img.encodeJPEG(82);
         // One base64 per page version: the verify, the retry and the repaint all read the same string.
         let jpgB64 = bytesToB64(jpg);
@@ -512,11 +513,6 @@ Deno.serve(observe('drawing_redact', async (req) => {
         // out a third of a drawing for no measured gain, so it is not here. What the verifier
         // actually still reports on the two refused pages is a logo in a corner and a REVISIONS
         // block — not the title strip. Anything that replaces this should be aimed there.
-        // A page whose own text layer tells the checker what to answer, or vouches for itself, is refused before any
-        // model reads it (verify_verdict.ts): code, not the model it is aimed at, decides this one.
-        if (pageTextInstructs((pdf[pageOffset + i]?.runs ?? []).map((r) => r.text).join(' '))) {
-          verifyFailed++; skipped++; verifyDetail.push({ page: i, attempts: 0, found: ['the page\'s own text addresses the checker'] }); continue;
-        }
         let vr = await verifyPage(key, jpgB64, findModel);
         let attempt = 1;
         if (!vr.clean) {

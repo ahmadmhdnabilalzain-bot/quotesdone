@@ -44,7 +44,7 @@ import { defaultDeps, type ThinkDeps } from '../_shared/think.ts';
 import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_shared/reasoned_books.ts';
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 import { fromDomainAuthenticated, replyStopRefusal, senderAuthenticated } from '../_shared/suppression_policy.ts';
-import { classifyPrompt, licenceWritable } from './supplier_doc_gate.ts';
+import { classifyPrompt, leadWritable } from './supplier_doc_gate.ts';
 import { approvalTokenOf, calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 import { registerRowsFor } from '../_shared/expense_mailbox.ts';
 import { M365_INBOUND_PREFIX } from '../_shared/m365_reply_inbox.ts';
@@ -800,7 +800,7 @@ export const handler = observe('resend_inbound', async (req) => {
       const cat = String(ai.category||'other');
       let extracted:any = null; const fields:string[] = [];
       if (lead && inbSecret) {
-        if (cat === 'trade_license' && licenceWritable(lead, senderAuth)) {
+        if (cat === 'trade_license' && leadWritable(lead, senderAuth)) {
           const ex = await extractDoc('license', bytes, mime, fname, inbSecret);
           if (!ex?.doc) unreadDocs.push(fname);   // ruling 1177: nothing read at all -> ask for a clearer copy (a low-confidence read WAS read; it goes to review)
           if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
@@ -823,7 +823,7 @@ export const handler = observe('resend_inbound', async (req) => {
             if (w.licenceSetAside) { const i = fields.findIndex((f) => f.startsWith('licence no ')); if (i >= 0) fields[i] = 'licence no set aside for review (held by another claimed company)'; }
             if (w.error) { console.error('resend_inbound: licence readings not saved —', String(w.error.message ?? '')); fields.length = 0; }
           }
-        } else if (cat === 'company_profile' || cat === 'catalogue') {
+        } else if ((cat === 'company_profile' || cat === 'catalogue') && leadWritable(lead, senderAuth)) {
           const ex = await extractDoc('profile', bytes, mime, fname, inbSecret);
           if (!ex?.profile) unreadDocs.push(fname);
           const u:any = { doc_extracted_at: new Date().toISOString() };

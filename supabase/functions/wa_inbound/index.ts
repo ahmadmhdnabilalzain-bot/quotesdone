@@ -1059,7 +1059,7 @@ async function handleInbound(req: Request): Promise<Response> {
       const cm = String((cj as { content?: string })?.content || '').match(/\{[\s\S]*\}/);
       return cm ? JSON.parse(cm[0]) : null;
     })().catch(() => null));   // a classifier failure must never swallow their message: it reads as "not a change"
-    if (audience === 'supplier' && typedQuestion) directiveRead();
+    if (supplierDirectiveAllowed({ audience, internalCaller }) && typedQuestion) directiveRead();   // never read for a turn it cannot apply
     const m = await menuTurn(menuDeps, menuIn);
     if (m.handled) {
       specAbort.abort();
@@ -1116,9 +1116,9 @@ async function handleInbound(req: Request): Promise<Response> {
         // through to the deterministic answer below rather than being guessed at. Money, refunds and the
         // three go-live switches are not in the registry and are refused BY NAME, with the list of
         // what can be changed, so a refusal teaches instead of stonewalling.
-        // Only a signature-verified webhook from his number may change a setting (directive_gate.ts, 3 Nov 2026); any
-        // other turn from his number is answered as a question below.
-        if (founderDirectiveAllowed({ audience, signatureVerified })) try {
+        // Only a signature-verified webhook from his number may CHANGE a setting (directive_gate.ts, 3 Nov 2026). Any
+        // other turn is still read, so an instruction that is not applied is told so, never answered as a question.
+        try {
           const { data: settings } = await admin.rpc('fn_founder_settings');
           const rows: any[] = Array.isArray(settings) ? settings : [];
           if (rows.length) {
@@ -1148,7 +1148,10 @@ async function handleInbound(req: Request): Promise<Response> {
             const cj = await cr.json().catch(() => ({} as any));
             const m = String(cj?.content || '').match(/\{[\s\S]*\}/);
             const parsed = m ? JSON.parse(m[0]) : null;
-            if (parsed?.directive === true && parsed?.key) {
+            if (parsed?.directive === true && parsed?.key && !founderDirectiveAllowed({ audience, signatureVerified })) {
+              directive = { ok: false, key: String(parsed.key), refusal: 'not applied: this message did not arrive with a verified Twilio signature, so it cannot change a setting' };
+              reply = (await sayFor('founder')('He asked to change the setting ' + String(parsed.key) + ' to ' + String(parsed.value ?? '') + '. It was NOT changed: this message did not arrive with a verified Twilio signature, and only a verified message from his number may change a setting. Nothing else was done; he can send it again.')) || ' ';
+            } else if (parsed?.directive === true && parsed?.key) {
               const { data: applied } = await admin.rpc('fn_founder_apply_setting', {
                 p_key: String(parsed.key), p_value: String(parsed.value ?? ''),
                 p_inbound: question, p_actor: String(known?.name || 'founder'), p_channel: 'whatsapp',

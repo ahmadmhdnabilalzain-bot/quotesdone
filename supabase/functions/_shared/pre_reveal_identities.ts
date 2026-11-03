@@ -11,16 +11,20 @@ type Db = { from(t: string): any };
 export type Party = { leadId: number } | { customerId: string };
 
 const LEGAL = /\b(?:l\.?\s?l\.?\s?c\.?|fz-?llc|fzc|fze|trading|contracting|establishment|est\.?|general|co\.?|company|group)\b/gi;
-const CAP = 500;
+// ponytail: 150 ids per .in() list keeps the PostgREST URL short (uuids are 36 characters); a party with more jobs has
+// 150 of them read. Paging is the upgrade if a party ever passes that.
+const CAP = 150;
+const NAMES_A_PARTY = (v: string, person: boolean) => v.split(/\s+/).length >= 2 || (!person && v.length >= 6);
 
-/** The words a reply must not carry for these counterpart rows: the name as stored, the company name without its legal
- *  suffix (when that still names something: 2+ words or 6+ letters), each e-mail, and each web domain. */
+/** The words a reply must not carry for these counterpart rows: a person's name when it is a full name (a bare "Ahmed"
+ *  would refuse every reply to another Ahmed, review of #1836), a company name when it names something (2+ words or 6+
+ *  letters), the company name without its legal suffix on the same rule, each e-mail, and each web domain. */
 export function identityTerms(rows: Record<string, unknown>[]): string[] {
   const out = new Set<string>();
   for (const r of rows) {
     for (const k of ['full_name', 'company_name', 'contact_name', 'signatory_name']) {
-      const v = String(r[k] ?? '').trim();
-      if (v.length < 3) continue;
+      const v = String(r[k] ?? '').trim().replace(/\s+/g, ' ');
+      if (v.length < 3 || !NAMES_A_PARTY(v, k !== 'company_name')) continue;
       out.add(v);
       const core = v.replace(LEGAL, ' ').replace(/\s+/g, ' ').trim();
       if (core !== v && (core.split(' ').length >= 2 || core.length >= 6)) out.add(core);
@@ -45,7 +49,7 @@ export async function preRevealIdentities(db: Db, party: Party): Promise<string[
         db.from('inquiry_matches').select('inquiry_id').eq('supplier_id', id).limit(CAP),
         db.from('transactions').select('customer_id').eq('supplier_id', id).not('revealed_at', 'is', null).limit(CAP),
       ]) as Res[];
-      const inq = [...new Set([...col(q, 'inquiry_id'), ...col(m, 'inquiry_id')])];
+      const inq = [...new Set([...col(q, 'inquiry_id'), ...col(m, 'inquiry_id')])].slice(0, CAP);
       if (!inq.length) return [];
       const owners = col(await db.from('inquiries').select('customer_id').in('id', inq) as Res, 'customer_id');
       const revealed = new Set(col(rev, 'customer_id'));
@@ -65,7 +69,7 @@ export async function preRevealIdentities(db: Db, party: Party): Promise<string[
       db.from('inquiry_matches').select('supplier_id').in('inquiry_id', inq).limit(CAP),
     ]) as Res[];
     const revealed = new Set(col(rev, 'supplier_id'));
-    const hidden = [...new Set([...col(q, 'supplier_id'), ...col(m, 'supplier_id')])].filter((s) => !revealed.has(s));
+    const hidden = [...new Set([...col(q, 'supplier_id'), ...col(m, 'supplier_id')])].filter((s) => !revealed.has(s)).slice(0, CAP);
     if (!hidden.length) return [];
     return identityTerms((await db.from('leads').select('company_name,contact_name,signatory_name,email,website').in('id', hidden) as Res).data ?? []);
   } catch (_e) {

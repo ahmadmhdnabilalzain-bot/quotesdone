@@ -151,10 +151,14 @@ const LICENCE_LIKE = /\b(?:licen[cs]e|trade licen[cs]e|رخصة)\b[^.\n؟?]{0,20
 const digits = (s: string) => s.replace(/\D/g, '');
 
 /** Whether `text` carries one of `forbidden` (another party's identity before a reveal, pre_reveal_identities.ts) as a
- *  whole word, any case. Whole-word since 3 Nov 2026, when callers began passing the list: a substring match refused
- *  "quality" for a customer named Ali. */
+ *  whole word, any case, whatever punctuation joins its words. Whole-word since 3 Nov 2026, when callers began passing
+ *  the list: a substring match refused "quality" for a customer named Ali. */
 export function namesForbidden(text: string, forbidden: string[]): boolean {
-  return forbidden.some((f) => f.trim() && new RegExp('(?<![\\p{L}\\p{N}])' + f.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+') + '(?![\\p{L}\\p{N}])', 'iu').test(text));
+  // the term's words in order with any punctuation or none between them: "Al Noor" also finds "Al-Noor" and "AlNoor"
+  return forbidden.some((f) => {
+    const parts = f.split(/[^\p{L}\p{N}@]+/u).filter(Boolean).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    return parts.length > 0 && new RegExp('(?<![\\p{L}\\p{N}])' + parts.join('[^\\p{L}\\p{N}]*') + '(?![\\p{L}\\p{N}])', 'iu').test(text);
+  });
 }
 
 /** What is wrong with a reply. `allowed` is the brief and the facts: details found there may be repeated. */

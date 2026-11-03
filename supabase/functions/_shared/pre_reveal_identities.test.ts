@@ -27,7 +27,7 @@ const TABLES = {
   customers: [{ id: 'c1', full_name: 'ZZ DEMO Ahmed Khan', email: 'ahmed@example.invalid' }, { id: 'c2', full_name: 'ZZ DEMO Revealed Person', email: 'r@example.invalid' },
     { id: 'c3', full_name: 'ZZ DEMO Sara Ali', email: 'sara@example.invalid' }],
   leads: [{ id: 10, company_name: 'ZZ DEMO Al Noor Contracting LLC', email: 'sales@alnoor.example.invalid', website: 'https://www.alnoor-demo.invalid/about' },
-    { id: 11, company_name: 'ZZ DEMO Gulf Glass', contact_name: 'Omar' }],
+    { id: 11, company_name: 'ZZ DEMO Gulf Glass', contact_name: 'Omar Saeed' }],
 };
 
 Deno.test('a supplier may not be told the customers of jobs it quoted or was matched to, until a reveal', async () => {
@@ -49,6 +49,11 @@ Deno.test('a failed read gives an empty list, never a thrown turn', async () => 
 Deno.test('the match is whole-word: a name is refused, a word containing it is not', () => {
   assert(namesForbidden('Your supplier is Al Noor Contracting, ready to start.', identityTerms([{ company_name: 'Al Noor Contracting LLC' }])));
   assertEquals(namesForbidden('The quality of the finish matters.', ['Ali']), false);   // a substring match refused this
+  assert(namesForbidden('Al-Noor will start Sunday.', ['Al Noor']) && namesForbidden('ALNOOR', ['Al Noor']), 'punctuation between the words');
+  assert(namesForbidden('mail sales@alnoor.example.invalid', ['sales@alnoor.example.invalid']));
+  // a bare first name or a short company word is not a party's identity (review of #1836)
+  assertEquals(identityTerms([{ contact_name: 'Ahmed', full_name: 'Omar', company_name: 'Gulf' }]), []);
+  assertEquals(identityTerms([{ full_name: 'Ahmed Khan', company_name: 'Alnoorco' }]), ['Ahmed Khan', 'Alnoorco']);
   assert(replyProblems('Ahmed Khan asked for the tiles.', new Set(), { forbidden: ['Ahmed Khan'] }).some((p) => p.includes("another party's identity")));
 });
 

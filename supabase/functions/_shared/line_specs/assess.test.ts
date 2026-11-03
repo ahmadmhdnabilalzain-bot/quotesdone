@@ -80,11 +80,16 @@ Deno.test('"no material" in the supplier\'s own words skips the specs only when 
     aq({ category: 'joinery', lines: [L(1, description, x)], read: { 1: { [READ.notMaterial]: words } }, terms: { lead_time: '3 weeks' }, requirements: NONE_NEEDED });
   const tiles = said('Wardrobe MDF carcass labour only no material', 'labour only no material');
   assertEquals([tiles.lines[0].material, codes(tiles)], [true, ['1:material', '1:thickness_mm', '1:finish']]);
-  assert(said('Installation labour', 'Installation labour', { unit: 'm2' }).lines[0].material, 'a material unit');
   assert(said('Installation labour 2400x600', 'Installation labour').lines[0].material, 'a dimension');
   assert(said('Fixing labour', 'labour', { notes: 'x', spec: { material: 'MDF' }, spec_source: { material: 'supplier_portal' } }).lines[0].material, 'a stated value');
   assert(said('Wardrobe', 'labour only').lines[0].material, 'words the line does not carry');
+  assert(said('Installation of ceramic tiles - labour only', 'labour only').lines[0].material, 'more than the words, and not priced as labour');
+  // ordinary labour and transport lines are not material (review of #1836): the unit says nothing either way
   assertEquals(said('Transport to site', 'Transport').lines[0].material, false);
+  assertEquals(said('Tile laying labour', 'Tile laying labour', { unit: 'm2' }).lines[0].material, false);
+  assertEquals(said('Labour charges for fixing', 'Labour charges for fixing', { unit: 'nos' }).lines[0].material, false);
+  assertEquals(said('Installation of ceramic tiles - labour only', 'labour only', { unit: 'm2', labour: 1500 }).lines[0].material, false);
+  assertEquals(said('Site supervision and labour', 'Site supervision and labour').lines[0].material, false);
 });
 
 Deno.test('(1) a line whose reading did not find a detail holds the quote and names the line and the detail', () => {

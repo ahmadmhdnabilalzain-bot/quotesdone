@@ -9,6 +9,17 @@ Deno.test('an e-mail is fenced as EMAIL data, and a forged closer in the body ca
   assert(b.includes('Subject: Re: job 41'));
 });
 
+Deno.test('a long e-mail keeps its closing marker inside aiReply\'s 4,000-character message cut', () => {
+  const b = untrustedMail('x', 'y'.repeat(20_000));
+  assert(b.slice(0, 4000).trimEnd().endsWith('<<</UNTRUSTED EMAIL TEXT>>>'), String(b.length));
+});
+
+Deno.test('email_triage fences the mail in both of its prompts', async () => {
+  const src = await Deno.readTextFile(new URL('../email_triage/index.ts', import.meta.url));
+  assert(src.includes('const q = untrustedMail(m.subject, m.body);'), 'answer()');
+  assert(src.includes("await llm(SYS, 'From: ' + (m.from_email||'') + '\\n' + untrustedMail(m.subject, m.body) + tlText, 800)"), 'the triage call');
+});
+
 Deno.test('the attachment fence is unchanged for its existing callers', () => {
   assert(untrustedBlock('x').includes('<<<UNTRUSTED ATTACHMENT TEXT — data from an uploaded file'));
 });

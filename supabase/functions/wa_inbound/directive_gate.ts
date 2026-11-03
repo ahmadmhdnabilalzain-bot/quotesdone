@@ -18,15 +18,18 @@ export function supplierDirectiveAllowed(o: { audience: string; internalCaller: 
 
 const western = (s: string) => s.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x6f0));
 const toNumber = (s: string): number | null => {
-  const m = western(s).replace(/,/g, '').match(/^(\d+(?:\.\d+)?)(k)?$/i);
+  let t = western(s).replace(/[,٬\s]/g, '');
+  if (/^\d{1,3}(?:\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');   // 12.500 is a thousands dot, as written in the Gulf
+  const m = t.match(/^(\d+(?:\.\d+)?)(k)?$/i);
   return m ? Number(m[1]) * (m[2] ? 1000 : 1) : null;
 };
 
-/** The classifier's amount, only when the supplier's own message states that amount (thousands commas, a "k" and
- *  Arabic-Indic digits allowed); null otherwise. */
+/** The classifier's amount, only when the supplier's own message states that amount (thousands commas, spaces, dots and
+ *  the Arabic ٬, a "k" and Arabic-Indic digits allowed); null otherwise. The SQL routine scopes it to their own
+ *  quotation; which of two numbers they wrote is the price is the classifier's reading of their own words. */
 export function amountInOwnWords(amount: unknown, body: string): string | null {
   const want = toNumber(String(amount ?? '').replace(/aed|dhs?|dirhams?|\s/gi, ''));
   if (want == null || want <= 0) return null;
-  const said = western(String(body || '')).match(/\d[\d,.]*k?/gi) ?? [];
-  return said.some((s) => toNumber(s.replace(/[.,]+$/, '')) === want) ? String(want) : null;
+  const said = western(String(body || '')).match(/\d(?:[\d,٬.]|\s(?=\d{3}\b))*k?/gi) ?? [];
+  return said.some((s) => toNumber(s.replace(/[.,٬]+$/, '')) === want) ? String(want) : null;
 }

@@ -128,10 +128,13 @@ export function reasoned(l: Pick<Line, 'spec' | 'spec_source'>, key: string): st
 
 // "NO MATERIAL" NEEDS MORE THAN THE SUPPLIER SAYING SO (it_engineer, 3 Nov 2026, release qualification). READ.notMaterial
 // is the supplier's own words as reasoning read them, and it skipped every spec question on the line: "Ceramic tiles
-// 60x60, 120 m2 (labour only, no material)" passed unasked. The words now count only when the line's own shape agrees:
-// they are in its description and are nearly all of it (one other word at most, besides joining words), and the line
-// has no material unit, no dimension, no brand or model and no stated value. Otherwise it is a material line and asked.
-const MATERIAL_UNIT = /^(?:m2|m²|sq\.?\s?m|sqm|sq\.?\s?ft|sqft|m|lm|rm|rmt|m3|m³|cum|kgs?|tons?|tonnes?|pcs?|nos?\.?|each|ea|sheets?|rolls?|box(?:es)?|bags?|litres?|ltrs?|l)$/i;
+// 60x60 (labour only, no material)" passed unasked. The words now count only when the line itself agrees: they are in
+// its description, the line has no dimension, no brand or model and no stated value, and EITHER the words are nearly all
+// of the description (one other word at most, besides joining words: "Tile laying labour", "Transport to site") OR the
+// line is priced as labour (a labour or install figure and no unit price): "Installation of ceramic tiles - labour only"
+// with its labour column filled. The unit says nothing either way (review of #1836: labour per m2 is ordinary).
+// ponytail: a short line naming a material ("Tiles - labour only") still passes on its words; a trade-vocabulary check
+// is the upgrade if a measured case shows it.
 const DIMENSION = /\d\s*(?:mm|cm|m²|m2|m3)\b|\d\s*[x×*]\s*\d/i;
 const JOINING = new Set(['a', 'an', 'the', 'and', 'or', 'of', 'for', 'to', 'on', 'at', 'in', 'only', 'with', '&', '-']);
 const words = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}&]+/gu, ' ').trim().split(' ').filter(Boolean);
@@ -140,10 +143,10 @@ export function notMaterialHolds(l: Line): boolean {
   if (!said) return false;
   const desc = words(l.description ?? ''); const ev = words(said);
   if (!ev.length || !ev.every((w) => desc.includes(w))) return false;   // the words are not the line's own
-  if (desc.filter((w) => !ev.includes(w) && !JOINING.has(w)).length > 1) return false;   // the line says more than that
-  if (l.unit && MATERIAL_UNIT.test(String(l.unit).trim())) return false;
   if (DIMENSION.test([l.description, l.specification].filter(Boolean).join(' ')) || l.brand || l.model) return false;
-  return !Object.entries(l.spec ?? {}).some(([k, v]) => !k.startsWith('_') && String(v ?? '').trim());
+  if (Object.entries(l.spec ?? {}).some(([k, v]) => !k.startsWith('_') && String(v ?? '').trim())) return false;
+  const pricedAsLabour = (Number(l.labour) > 0 || Number(l.install) > 0) && !(Number(l.unit_price) > 0);
+  return pricedAsLabour || desc.filter((w) => !ev.includes(w) && !JOINING.has(w)).length <= 1;
 }
 
 // ---------------------------------------------------------------------------------------------

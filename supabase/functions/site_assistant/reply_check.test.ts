@@ -18,3 +18,8 @@ Deno.test('a phone number or email that is in neither the brief nor the prompt i
 Deno.test('a clean reply that repeats the brief and the published contact passes', () => {
   assertEquals(siteReplyCheck(BRIEF, SYS, 'en')('The reveal fee is 3.00% of the quotation you select. For a person, WhatsApp +1 218 316 6814 or write to management@quotesdone.com.'), []);
 });
+
+Deno.test('site_assistant hands this check to answerFromBrief', async () => {
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  assert(src.includes('check: siteReplyCheck(brief, sys, replyLang),'));
+});
