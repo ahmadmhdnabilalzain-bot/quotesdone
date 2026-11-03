@@ -26,9 +26,13 @@ export const INVOICE_FOOTER =
 
 export type Priced = { basis: FeeBasis; charge: RevealCharge };
 
-/** The hosted Checkout Session's Idempotency-Key: one per quote, customer and amount (gap #7, 3 Nov 2026). */
-export const checkoutSessionKey = (quoteId: string, customerId: string, totalFils: number) =>
-  'qd-cs-' + quoteId + '-' + customerId + '-' + totalFils;
+/**
+ * The hosted Checkout Session's Idempotency-Key: one per quote, customer, amount and return site (gap #7, 3 Nov
+ * 2026). The return site is in the session's parameters, so tabs on .com and .ae get their own keys instead of an
+ * idempotency_error (review of #1835); Stripe still pays each session once.
+ */
+export const checkoutSessionKey = (quoteId: string, customerId: string, totalFils: number, returnBase = '') =>
+  'qd-cs-' + quoteId + '-' + customerId + '-' + totalFils + (returnBase ? '-' + returnBase.replace(/^https?:\/\//, '').replace(/[^A-Za-z0-9.]/g, '_') : '');
 
 export async function priceToken(stripe: StripeCall, ct: string, quoteAmount: number, rate: number):
   Promise<{ ok: true; priced: Priced } | { ok: false; error: string; status: number }> {

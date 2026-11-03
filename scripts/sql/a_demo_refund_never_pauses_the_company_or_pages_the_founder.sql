@@ -32,8 +32,11 @@ declare v jsonb; v_inc bigint;
 begin
   -- A demo payment is checked and the verdict returned, but it never opens an incident: the incident pauses every
   -- refund and supplier charge in the company and pages the founder (3 Nov 2026, gap #8).
+  -- DEMO MEANS THE IDENTITY THAT PICKS THE STRIPE TEST KEY: the e-mail (isDemoEmail in stripe_checkout,
+  -- fn_is_demo_email here). customers.is_demo is also true by NAME or phone, and a name is typed freely at sign-up,
+  -- so a real customer who calls himself "ZZ DEMO ..." pays LIVE money and must still open the incident (review of #1835).
   if exists (select 1 from public.transactions t join public.customers c on c.id = t.customer_id
-              where t.id = p_transaction_id and c.is_demo) then
+              where t.id = p_transaction_id and public.fn_is_demo_email(c.email)) then
     return public.fn_ceo_refund_checklist(p_transaction_id, 'verify', true) || jsonb_build_object('demo', true, 'incident', null);
   end if;
   -- An incident already open on this payment owns the re-verification: it re-runs the checklist and
@@ -51,7 +54,7 @@ end $function$;
 -- The repair. Demo incidents go, as the teardown removes them; the breaker comes off only when nothing real holds it.
 delete from public.refund_incident i
  using public.transactions t, public.customers c
- where t.id = i.transaction_id and c.id = t.customer_id and c.is_demo;
+ where t.id = i.transaction_id and c.id = t.customer_id and public.fn_is_demo_email(c.email);
 
 update public.decision_policy set value = 'false'::jsonb, updated_at = now()
  where key = 'refunds_and_supplier_charges_paused'

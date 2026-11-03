@@ -166,7 +166,10 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
         // The invoice must be this customer's reveal of THIS quote before anything is recorded.
         if (!r.ok || inv.metadata?.quote_id !== qid || inv.metadata?.customer_id !== String(cust.id)) { await logRun('error', { quote_id: qid, invoice: invId }, 'element_settle refused - invoice is not this customer\'s reveal of this quote'); return J({ error: 'Not your payment' }, 403); }
         if (inv.status !== 'paid') return J({ ok: false, pending: true });
-        const pi = String(inv.payments?.data?.[0]?.payment?.payment_intent || invId);
+        // No PaymentIntent readable yet: pending, never the invoice id as a payment reference (review of #1835);
+        // stripe_webhook's invoice.paid records it once Stripe names the payment.
+        const pi = String(inv.payments?.data?.[0]?.payment?.payment_intent || '');
+        if (!/^pi_/.test(pi)) return J({ ok: false, pending: true });
         const sale = await recordRevealSale(admin, { quoteId: qid, customerId: String(cust.id), baseFee: Number(inv.metadata.base_fee),
           processingFee: Number(inv.metadata.processing_fee), totalCharged: Number(inv.amount_paid) / 100, paymentRef: pi, invoiceId: invId });
         await logRun('error' in sale ? 'error' : 'ok', { quote_id: qid, invoice: invId, sale }, '');
@@ -244,7 +247,7 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     // get the SAME hosted session, and a Checkout Session can be paid once. Before, each press made a new session
     // and each could be paid. Stripe keeps a key 24 hours, the life of a session.
     const r = await timedFetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded',
-      'Idempotency-Key': checkoutSessionKey(qid, String(cust.id), Math.round(ch.total_charged * 100)) }, body: form.toString() });
+      'Idempotency-Key': checkoutSessionKey(qid, String(cust.id), Math.round(ch.total_charged * 100), portal) }, body: form.toString() });
     const sj = await r.json();
     if (!r.ok && (r.status === 409 || sj?.error?.type === 'idempotency_error')) {
       await logRun('ok', { quote_id: qid, payment_in_progress: true, http: r.status }, 'a reveal checkout for this quote is already open in another window');

@@ -9,10 +9,12 @@
 --   1. fn_ceo_refund_verify on a demo reveal whose checklist fails answers demo:true and opens NO refund_incident;
 --   2. the company-wide breaker reads the same before and after, and no founder_alert was written;
 --   3. no incident on a demo transaction is left open or paused (the file's repair);
---   4. anon and authenticated still cannot execute fn_ceo_refund_verify (CREATE OR REPLACE kept the ACL).
+--   4. anon and authenticated still cannot execute fn_ceo_refund_verify (CREATE OR REPLACE kept the ACL);
+--   5. the same reveal on a customer who is "ZZ DEMO" by NAME but has a real e-mail (so paid with the live key) DOES
+--      open the incident. Its pause and its founder alert are rolled back with everything else.
 do $probe$
 declare
-  c uuid := gen_random_uuid(); l bigint; i uuid; q uuid; t uuid; v jsonb; b0 jsonb; b1 jsonb; a0 bigint; fails text := '';
+  c uuid := gen_random_uuid(); l bigint; i uuid; q uuid; t uuid; v jsonb; v2 jsonb; b0 jsonb; b1 jsonb; a0 bigint; fails text := '';
 begin
   select value into b0 from public.decision_policy where key = 'refunds_and_supplier_charges_paused';
   select count(*) into a0 from public.notifications where type = 'founder_alert';
@@ -38,12 +40,22 @@ begin
   if (select count(*) from public.notifications where type = 'founder_alert') <> a0 then fails := fails || ' 2:founder_paged'; end if;
 
   if exists (select 1 from public.refund_incident ri join public.transactions tr on tr.id = ri.transaction_id
-              join public.customers cu on cu.id = tr.customer_id where cu.is_demo and ri.status in ('open', 'paused')) then
+              join public.customers cu on cu.id = tr.customer_id where public.fn_is_demo_email(cu.email) and ri.status in ('open', 'paused')) then
     fails := fails || ' 3:demo_incident_left'; end if;
 
   if has_function_privilege('anon', 'public.fn_ceo_refund_verify(uuid)', 'execute')
      or has_function_privilege('authenticated', 'public.fn_ceo_refund_verify(uuid)', 'execute') then
     fails := fails || ' 4:client_can_execute'; end if;
+
+  -- 5. A NAME IS NOT A TEST KEY (review of #1835). The same reveal on a customer who TYPED "ZZ DEMO" as his name but
+  -- signed up with a real mailbox: customers.is_demo is true by name, yet stripe_checkout charged him with the LIVE
+  -- key, so a failing verdict must still open the incident. (Its pause and founder alert are rolled back here.)
+  update public.customers set email = 'probe.realname.verify@quotesdone-probe-real-mailbox.com' where id = c;
+  if not (select is_demo from public.customers where id = c) then fails := fails || ' 5:fixture_not_demo_by_name'; end if;
+  if public.fn_is_demo_email((select email from public.customers where id = c)) then fails := fails || ' 5:fixture_email_is_demo'; end if;
+  v2 := public.fn_ceo_refund_verify(t);
+  if coalesce((v2->>'demo')::boolean, false) then fails := fails || ' 5:live_payer_treated_as_demo'; end if;
+  if not exists (select 1 from public.refund_incident where transaction_id = t) then fails := fails || ' 5:no_incident_for_a_live_payer'; end if;
 
   raise exception 'CHK<<%>>', case when fails = '' then 'PROBE OK demo verdict=' || coalesce(v->>'ok', 'null') || ' breaker=' || coalesce(b1::text, 'null')
                                     else 'PROBE FAILED:' || fails end;

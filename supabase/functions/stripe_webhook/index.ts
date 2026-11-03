@@ -4,6 +4,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS, DISPUTE_EVENTS, stripeEventMode, signingSecretFor, refundsInEvent, unfinishedRevealIsNews } from '../_shared/stripe_events.ts';
 import { handleRevealInvoiceEvent } from './invoice_event.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
+import { checkoutSaleArgs, elementSaleArgs } from '../_shared/reveal_args.ts';
 import { absorbedStripeCost } from '../_shared/reveal_fee.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -334,13 +335,9 @@ Deno.serve(observe('stripe_webhook', async (req) => {
           // found no row, the second lost the unique insert, logged "PAID BUT NOT RECORDED" for a sale that WAS
           // recorded and answered Stripe 500. recordRevealSale (_shared/reveal_sale.ts) is the insert every other
           // path uses: the loser reads the winner, and a different payment for the same quote is flagged, not merged.
-          const fee = Number(md.reveal_fee || (s.amount_total ? s.amount_total / 100 : 0));
-          const payRef = String(s.payment_intent || s.id);
-          // total_charged is what a refund returns (founder, 14 Sep 2026): everything the customer paid.
-          const totalCharged = s.amount_total ? s.amount_total / 100 : Number(md.total_charged || fee);
-          const processing = md.processing_fee != null ? Number(md.processing_fee) : Math.round((totalCharged - fee) * 100) / 100;
-          const sale = await recordRevealSale(admin, { quoteId: qid, customerId: md.customer_id || null, baseFee: fee,
-            processingFee: processing, totalCharged, paymentRef: payRef, invoiceId: String(s.invoice || '') });
+          const args = checkoutSaleArgs(s);
+          const fee = args.baseFee; const payRef = args.paymentRef; const totalCharged = args.totalCharged;
+          const sale = await recordRevealSale(admin, args);
           if ('error' in sale && /^quote not found/.test(sale.error)) {
             // Money taken at Stripe but the quote row is gone - previously silent.
             await logRun('error', { quote_id: qid, amount_total: s.amount_total }, 'PAID BUT NOT RECORDED - quote_id not found in quotes: ' + qid);
@@ -469,10 +466,18 @@ Deno.serve(observe('stripe_webhook', async (req) => {
         const ip = await timedFetch('https://api.stripe.com/v1/invoice_payments?invoice=' + encodeURIComponent(String(inv.id)), { headers: { Authorization: 'Bearer ' + invKey } })
           .then((r) => r.json()).catch(() => ({}));
         const pi = String(ip?.data?.[0]?.payment?.payment_intent || '');
-        const sale = await recordRevealSale(admin, { quoteId: String(md.quote_id), customerId: md.customer_id || null,
-          baseFee: Number(md.base_fee), processingFee: Number(md.processing_fee), totalCharged: Number(inv.amount_paid) / 100,
-          paymentRef: pi || String(inv.id), invoiceId: String(inv.id) });
-        if ('error' in sale) await logRun('error', { invoice: String(inv.id), quote_id: md.quote_id }, 'PAID BUT NOT RECORDED - element invoice.paid: ' + sale.error);
+        const elementArgs = elementSaleArgs(inv, pi);
+        if (!elementArgs) {
+          // The sale may already stand under this invoice (element_pay recorded it); otherwise Stripe sends it again.
+          const { data: under } = await admin.from('transactions').select('id').eq('stripe_invoice_id', String(inv.id)).maybeSingle();
+          if (!under) {
+            await logRun('error', { invoice: String(inv.id), quote_id: md.quote_id }, 'element invoice.paid: the PaymentIntent behind the invoice could not be read, so nothing was recorded; answered 500 so Stripe delivers it again');
+            return new Response('payment intent not readable yet', { status: 500 });
+          }
+        }
+        const sale = elementArgs ? await recordRevealSale(admin, elementArgs) : { id: '', created: false, skipped: true } as const;
+        if ('skipped' in sale) { /* already recorded under this invoice */ }
+        else if ('error' in sale) await logRun('error', { invoice: String(inv.id), quote_id: md.quote_id }, 'PAID BUT NOT RECORDED - element invoice.paid: ' + sale.error);
         else if (sale.other_payment) await logRun('error', { invoice: String(inv.id), quote_id: md.quote_id, transaction: sale.id, second_payment: sale.other_payment },
           'SECOND PAYMENT FOR A REVEALED QUOTE - recorded once; the second payment is filed as reveal:second_payment:' + sale.other_payment + ' for a CEO-approved refund');
         // The fee of THIS payment belongs to this sale only when this payment is the sale (it was read for the second too).

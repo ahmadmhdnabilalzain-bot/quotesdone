@@ -73,3 +73,19 @@ Deno.test('something that is not a Stripe invoice id is never stored', async () 
   await recordRevealSale(a, { ...args, invoiceId: 'pi_notaninvoice' });
   assertEquals(a.writes.find((w) => w.op === 'insert').v.stripe_invoice_id, null);
 });
+
+// Review of #1835: a path that could not read the PaymentIntent used to record the invoice id instead, and the real
+// pi_ arriving next (or before) was flagged as a second payment to refund. Same invoice = same sale, both orders.
+Deno.test('an invoice-id fallback and the real PaymentIntent of the same invoice are one sale, in either order', async () => {
+  for (const [recorded, incoming] of [['in_1ABC', 'pi_x'], ['pi_x', 'in_1ABC']]) {
+    const a: any = fakeAdmin({ id: 'tx1', stripe_invoice_id: 'in_1ABC', payment_ref: recorded });
+    const calls: string[] = []; a.rpc = async (fn: string) => { calls.push(fn); return { data: null }; };
+    const r: any = await recordRevealSale(a, { ...args, paymentRef: incoming, invoiceId: 'in_1ABC' });
+    assertEquals([r.other_payment, calls], [undefined, []], `${recorded} recorded, ${incoming} arrives`);
+  }
+  // A checkout session id (cs_) is not a PaymentIntent either: never compared as one.
+  const b: any = fakeAdmin({ id: 'tx1', stripe_invoice_id: null, payment_ref: 'cs_test_1' });
+  const callsB: string[] = []; b.rpc = async (fn: string) => { callsB.push(fn); return { data: null }; };
+  const rb: any = await recordRevealSale(b, { ...args, paymentRef: 'pi_x', invoiceId: '' });
+  assertEquals([rb.other_payment, callsB], [undefined, []]);
+});

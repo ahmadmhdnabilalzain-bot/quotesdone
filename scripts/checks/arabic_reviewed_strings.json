@@ -7393,5 +7393,22 @@
  ],
  "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
   "ac6c63ab5f9f"
+ ],
+ "scripts/sql/a_refund_request_after_a_partial_stripe_refund_is_answered_not_a_500.sql": [
+  "2dc8d6b31c47",
+  "2f07e86bbe56",
+  "526918cbaf63",
+  "536351e77319",
+  "6e39a7adaa59",
+  "7523ab70af3b",
+  "799abd6ef0a9",
+  "8cfe854d116a",
+  "9832034b6a97",
+  "9eb884eeab87",
+  "b261e2b8d708",
+  "b61e2128537d",
+  "cb1e99b7d7b5",
+  "dd05d5c3d65f",
+  "eef8ff7a9b46"
  ]
 }

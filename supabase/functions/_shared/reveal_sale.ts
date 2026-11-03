@@ -57,12 +57,17 @@ export async function recordRevealSale(admin: any, a: SaleArgs): Promise<SaleRes
 async function sameOrSecond(admin: any, existing: any, a: SaleArgs, inv: string | null): Promise<SaleResult> {
   const id = String(existing.id);
   const recorded = String(existing.payment_ref || '');
-  if (recorded && a.paymentRef && recorded !== a.paymentRef) {
+  // A SECOND PAYMENT IS TWO DIFFERENT PaymentIntents, nothing less (review of #1835). A path that could not read the
+  // PaymentIntent used to fall back to the invoice id (in_...) or the session id (cs_...), so comparing it with a pi_
+  // flagged the ONLY payment as one to refund. Same invoice = same sale; only pi_ against a different pi_ is flagged.
+  const isPi = (r: string) => /^pi_[A-Za-z0-9_]+$/.test(r);
+  const sameInvoice = Boolean(inv && existing.stripe_invoice_id && inv === existing.stripe_invoice_id);
+  if (!sameInvoice && isPi(recorded) && isPi(a.paymentRef) && recorded !== a.paymentRef) {
     try {
       await admin.rpc('fn_it_engineer_finding_upsert', {
         p_issue_key: 'reveal:second_payment:' + a.paymentRef,
         p_title: 'A revealed quote was paid a second time: the second payment must be refunded',
-        p_where: 'recordRevealSale (stripe_checkout element_pay/element_settle, stripe_webhook, stripe_confirm)',
+        p_where: 'recordRevealSale (stripe_checkout element_pay/element_settle, stripe_webhook checkout and invoice.paid, stripe_confirm)',
         p_blast: 'customer_facing', p_affected: 1,
         p_evidence: { quote_id: a.quoteId, transaction_id: id, recorded_payment: recorded, second_payment: a.paymentRef,
           second_invoice: inv, amount_aed: a.totalCharged, owner_seat: 'ceo', fix: 'a CEO-approved refund of the second payment' },
