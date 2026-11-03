@@ -259,3 +259,12 @@ Deno.test("a reply's rewrites do not count against the sender's rate bucket: onl
   assertEquals(s.opts[0].rateKey, 'wa:whatsapp:+971500000031');
   assert(s.opts.slice(1).every((o) => o.rateKey === undefined), 'no later call of the same reply counts again');
 });
+
+// Run 41554788700: a supplier's Arabic question was answered in Arabic by the other-family rung, and sent. Fails on 52d5d156.
+Deno.test('a supplier reply written in Arabic is rewritten in English, never sent', async () => {
+  const ar = String.fromCharCode(0x0647, 0x0644) + ' ' + String.fromCharCode(0x062A, 0x0642, 0x0635, 0x062F) + '؟';
+  const s = mkRec([JSON.stringify({ answer: ar, escalate: false }), JSON.stringify({ answer: 'Do you mean the supplier subscription, or the fee a customer pays to reveal a supplier?', escalate: false })]);
+  const r = await aiReply(s.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'supplier', lang: 'ar', message: 'ZZ DEMO ' + ar, askEscalate: true });
+  assert(r.reply.startsWith('Do you mean'), r.attempts.join(' | '));
+  assert(r.attempts.some((a) => a.includes('not in English')), r.attempts.join(' | '));
+});

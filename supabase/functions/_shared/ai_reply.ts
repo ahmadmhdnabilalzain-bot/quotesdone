@@ -194,9 +194,12 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const allowed = figureSource(brief) + '\n' + (r.facts ?? '') + '\n' + aiSystem(r, replyLang);   // the published contact is in the rules
   const known = briefNumbers(allowed);
   const must = (r.must ?? []).map((m) => String(m || '').trim()).filter(Boolean);
-  const check = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []),
+  // A SUPPLIER IS ANSWERED IN ENGLISH, CHECKED, NOT ONLY ASKED (ruling 1008). Run 41554788700: a supplier's Arabic question got
+  // two Sonnet drafts and then an other-family reply written in Arabic, and it was sent (47.8 s). Prevented by: ai_reply.test.ts.
+  const english = (t: string) => r.audience === 'supplier' && /[؀-ۿ]/.test(t) ? ['it is not in English (a supplier is always answered in English)'] : [];
+  const check = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []), ...english(t),
     ...must.filter((m) => !t.includes(m)).map((m) => 'it leaves out "' + m + '", which must appear exactly as given')];
-  const sentenceCheck = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? [])];
+  const sentenceCheck = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []), ...english(t)];
   // THE WHOLE CONVERSATION (chat_history.ts, 18 Oct 2026): it was cut to the last 8 turns here. Every turn now rides as a
   // real message before this one, cached by the gateway; the facts, which can change per turn, follow the history so the
   // cached prefix (brief, rules, earlier turns) stays byte-identical from one turn to the next.
