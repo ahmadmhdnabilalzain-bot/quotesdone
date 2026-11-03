@@ -2745,6 +2745,7 @@ begin
   -- only fan out plain email rows; never recurse on whatsapp rows
   if coalesce(new.channel, 'email') <> 'email' or new.to_email is null or coalesce(new.to_role, '') not in ('customer', 'supplier') then return new; end if;
   -- a reply answers on the channel the message came in on (3 Nov 2026, sales_engineer): never twinned
+  -- (kept from a_supplier_reply_goes_back_from_its_own_mailbox.sql, which this file follows in MANIFEST)
   if new.type = 'inbound_reply' then return new; end if;
   v_dest := public.fn_whatsapp_destination(new.to_role, null, new.lead_id, new.to_email);
   if v_dest is null then
@@ -2754,7 +2755,10 @@ begin
       select l.whatsapp_opt into v_opt from public.leads l where l.id = new.lead_id or (new.lead_id is null and lower(l.claimed_by) = lower(new.to_email)) order by l.id limit 1;
     end if;
     -- 'none' is recorded (a03 marks the twin skipped with the reason); unanswered makes no twin.
-    if v_opt is distinct from 'none' then return new; end if;
+    -- 3 Nov 2026 (customer_support): the confirmations the founder asked for on both channels always get their twin,
+    -- so a missing confirmed number is recorded by a03 with its reason instead of leaving no trace.
+    if v_opt is distinct from 'none'
+       and new.type not in ('customer_account_active', 'supplier_approved', 'reveal_receipt', 'invoice_ready') then return new; end if;
   end if;
   insert into public.notifications (type, to_email, to_role, to_phone, lead_id, inquiry_id, quote_id, subject, body, channel, status)
   values (new.type, new.to_email, new.to_role, v_dest, new.lead_id, new.inquiry_id, new.quote_id, new.subject, new.body, 'whatsapp', 'queued');
