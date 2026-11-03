@@ -38,3 +38,12 @@ Deno.test('a charge.refunded without an embedded refunds list is looked up by ch
   assertEquals(refundsInEvent('refund.created', { object: 'refund', id: 're_2' }), { refunds: [{ object: 'refund', id: 're_2' }] });
   assertEquals(refundsInEvent('refund.updated', { object: 'charge' }), { none: true });
 });
+
+Deno.test('an expired tab of a quote already paid elsewhere is not news to the customer', async () => {
+  const { unfinishedRevealIsNews } = await import('./stripe_events.ts');
+  const expired = { id: 'cs_tab2', payment_status: 'unpaid', metadata: { quote_id: 'q1' } };
+  assertEquals(unfinishedRevealIsNews(expired, true), false);   // paid in the other tab: say nothing
+  assertEquals(unfinishedRevealIsNews(expired, false), true);   // nothing paid anywhere: tell them nothing was charged
+  assertEquals(unfinishedRevealIsNews({ ...expired, payment_status: 'paid' }, false), false);
+  assertEquals(unfinishedRevealIsNews({ payment_status: 'unpaid', metadata: {} }, false), false);
+});

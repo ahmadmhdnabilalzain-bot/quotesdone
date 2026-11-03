@@ -50,3 +50,13 @@ export function stripeEventMode(event: any): StripeMode | null {
 export function signingSecretFor(mode: StripeMode | null, secrets: { live: string; test: string }): string {
   return mode === 'live' ? secrets.live : mode === 'test' ? secrets.test : '';
 }
+
+// WHETHER AN UNFINISHED REVEAL CHECKOUT IS NEWS TO THE CUSTOMER (3 Nov 2026, accountant, gap #7). An expired session
+// took no money, but the customer may have paid the same quote in ANOTHER session or tab, or the Payment Element, and
+// Stripe expires the abandoned one up to a day later. Measured 3 of 3 runs (acpay01-03): a quote already revealed and
+// paid got a checkout.session.expired for its other tab, and the customer was written "Your reveal payment did not
+// complete ... nothing was charged". A quote that has a recorded sale is told nothing about a session it did not need.
+// deno-lint-ignore no-explicit-any
+export function unfinishedRevealIsNews(session: any, quoteAlreadyPaid: boolean): boolean {
+  return Boolean(session?.metadata?.quote_id) && session?.payment_status !== 'paid' && !quoteAlreadyPaid;
+}

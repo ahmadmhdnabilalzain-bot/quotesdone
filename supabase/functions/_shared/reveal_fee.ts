@@ -47,8 +47,6 @@ export type FeeBasis = {
   reason: string;
 };
 
-const fils = (aed: number) => Math.round(aed * 100);
-
 /** The percentage of the total that Stripe takes for this card basis, VAT on the fees included. */
 export function stripePctFor(basis: FeeBasis['basis']): number {
   const card = basis === 'domestic' ? STRIPE_DOMESTIC_PCT : STRIPE_CARD_PCT;
@@ -65,11 +63,23 @@ export function stripeCostFor(totalAed: number, basis: FeeBasis['basis']): numbe
 /** Never true: Cabinet Res. 66/2023 Art. 5(3). reveal_fee.test.ts fails if a charge ever carries a card fee. */
 export const CARD_FEE_CHARGED_TO_BUYER = false as const;
 
+/**
+ * rate x quote in fils, rounded half-up EXACTLY as public.reveal_fee() rounds numeric (3 Nov 2026, accountant).
+ * Math.round(amount * rate * 100) is binary floating point: AED 33.50 x 3% = 1.005 lands just under 100.5 fils,
+ * so the card was charged AED 1.00 where the database says AED 1.01. The quote is whole fils and the rate has at
+ * most six places, so integers carry the product exactly.
+ */
+export function revealFeeFils(quoteAmount: number, rate: number): number {
+  const amount = Number(quoteAmount), r = Number(rate);
+  if (!(amount > 0) || !(r > 0)) return 0;
+  const n = BigInt(Math.round(amount * 100)) * BigInt(Math.round(r * 1e6));
+  const q = n / 1_000_000n;
+  return Number((n % 1_000_000n) * 2n >= 1_000_000n ? q + 1n : q);
+}
+
 /** base = round(rate x quote) to the fils; that is the whole charge. processing_fee is always 0. */
 export function revealCharge(quoteAmount: number, rate: number): RevealCharge {
-  const amount = Number(quoteAmount), r = Number(rate);
-  if (!(amount > 0) || !(r > 0)) return { base_fee: 0, processing_fee: 0, total_charged: 0 };
-  const baseF = fils(amount * r);
+  const baseF = revealFeeFils(quoteAmount, rate);
   return { base_fee: baseF / 100, processing_fee: 0, total_charged: baseF / 100 };
 }
 
