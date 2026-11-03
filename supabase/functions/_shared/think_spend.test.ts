@@ -2,7 +2,7 @@
 // decided by code when every figure is printed in the sources. No network.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import type { GateAnswer } from './llm_hold.ts';
-import { EASY_DUTY_SURFACE, easyClass, figuresGrounded, figuresOf, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
+import { EASY_DUTY_SURFACE, INTERNAL_DUTY_SURFACE, easyClass, figuresGrounded, figuresOf, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
 
 const J = (x: unknown) => JSON.stringify(x);
 function mock(answer: string) {
@@ -37,31 +37,37 @@ Deno.test("a seat's own high-stakes answer whose every figure is in the settled 
     assert(m.calls.some((c) => c.phase === 'verify')); }
 });
 
-Deno.test("an easy run asks its judgement on the routine route; only a DECLARED duty for an internal audience counts as internal", async () => {
+Deno.test("an easy run asks its judgement on the routine route; only a DECLARED duty for an internal audience is internal", async () => {
   const m = mock('Done.');
   await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.knowledge_refresh', question: 'q', easy: true, internalDuty: true });
   const synth = m.calls.find((c) => c.phase === 'synthesise')!;
   assertEquals(synth.o.taskClass, 'routine_employee_reasoning');
   assertEquals(synth.o.internal, true);
-  // an internal judgement about a real supplier (no declaration) is never counted (review of this PR, finding 1)
+  // an internal judgement about a real supplier (no declaration) is never an internal duty (review of this PR, finding 1)
   const s = mock('Done.');
   await think(s.deps, { context: { audience: 'internal' }, seat: 'sales_engineer', surface: 'sql.fn_supplier_twin', question: 'q' });
   assert(s.calls.every((x) => x.o.internal === false));
-  // a declaration for an outside audience is never counted either
+  // a declaration for an outside audience is never an internal duty either
   const c = mock('Done.');
   await think(c.deps, { context: { audience: 'customer' }, seat: 'customer_support', surface: 'x', question: 'q', internalDuty: true });
   assert(c.calls.every((x) => x.o.internal === false));
 });
 
-Deno.test('a daily-ceiling skip holds the question as the hold does, so it keeps its tries', async () => {
-  const deps = mock('x').deps;
-  const held: string[] = [];
-  const d: ThinkDeps = { ...deps,
-    llm: () => Promise.resolve({ content: null, error: 'gateway_http_503:daily_ceiling:the internal model spend today is USD 2.01' } as LlmReply),
-    rpc: (fn, a) => { if (fn === 'fn_reason_hold') held.push(String(a.p_reason)); return Promise.resolve({ data: fn === 'fn_case_recall' ? { cases: [] } : 1, error: null }); } };
-  const r = await think(d, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.knowledge_refresh', question: 'q', internalDuty: true });
-  assertEquals(r.status, 'held');
-  assertEquals(held, ['model_hold']);
+Deno.test("only a seat's own scheduled work is an internal duty; a person's case never is", () => {
+  for (const s of ['ceo.knowledge_refresh', 'it_engineer.postmortem', 'sales_engineer.root_cause', 'marketing.ceo_revision']) assert(INTERNAL_DUTY_SURFACE.test(s), s);
+  for (const s of ['wa_inbound.unwritten_reply', 'sql.fn_supplier_twin', 'sales_engineer.document_arabic', 'site_assistant.person', 'supplier_documents.subject', 'wa_inbound.needs_a_person']) assert(!INTERNAL_DUTY_SURFACE.test(s), s);
+});
+
+Deno.test('our own duty is not asked again after a paid empty answer; a customer turn keeps its retry', async () => {
+  const empty = 'gateway_http_502:empty_completion:all_models_failed';
+  const run = async (audience: 'internal' | 'customer', internalDuty: boolean) => {
+    const deps = mock('x').deps; let n = 0;
+    const d: ThinkDeps = { ...deps, llm: () => { n++; return Promise.resolve({ content: null, error: empty } as LlmReply); } };
+    await think(d, { context: { audience }, seat: 'ceo', surface: 's', question: 'q', internalDuty, plan: { steps: [{ id: 's1', goal: 'g', query: 'q', needs_knowledge: false }] } });
+    return n;
+  };
+  assertEquals(await run('internal', true), 1);    // the synthesis is asked once
+  assertEquals(await run('customer', false), 2);   // asked, then retried once
 });
 
 Deno.test("the CEO's quarterly knowledge re-check is an easy duty: its judgement goes on the routine route, nothing else moves", () => {

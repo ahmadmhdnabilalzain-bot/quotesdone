@@ -33,7 +33,6 @@
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
 import { cacheTokens, generationUsage, tapUsage } from './stream_usage.ts';
-import { ceilingVerdict, INTERNAL_MARKER, spendClassOf } from '../_shared/spend_ceiling.ts';
 import { sendWithTtlFallback, systemMessage, withHistoryBreakpoint } from './system_message.ts';
 import { withDataDeny } from './provider_privacy.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -176,7 +175,7 @@ interface Body {
   effort?: string;                        // Claude reasoning effort; request_shape.ts defaults it to medium
   require_caps?: string[];                // override; normally inferred from the payload
   want_message?: boolean;                 // return the whole assistant message (tool_calls included)
-  spend_class?: string;                   // 'internal': an internal duty, counted against its daily ceiling (spend_ceiling.ts)
+  internal_duty?: boolean;                // a seat's own scheduled duty (think.ts internalDuty): a paid empty answer is not re-asked
   cache_exact?: boolean;                  // replay only a byte-identical prompt (no semantic match): the public site's memo
 }
 
@@ -568,33 +567,11 @@ async function handle(req: Request): Promise<Response> {
       if (inWindow) route.why = route.why + ' | TEST RUN (ruling 1260): run tag ' + runTag + (ownWork ? ' | ' + ownWork : '');
     }
 
-    // ---- THE DAILY CEILING ON SPEND NO CUSTOMER IS PART OF (it_engineer, 3 Nov 2026; _shared/spend_ceiling.ts) ---------
-    // A proven test run, or a duty its internal caller declared, is counted against its own daily ceiling
-    // (fn_ai_spend_ceiling, it_threshold). Past it the call is SKIPPED: a no-spend row is logged and the run row reads
-    // 'skipped', never 'error'. A request that is neither is a customer's, a supplier's or a visitor's and is never
-    // counted or refused. The rehearsal window's own cap still applies to a test run (fn_kernel_paid_provider_gate).
-    const spendClass = spendClassOf(e2eRunTag(), body.spend_class);
-    {
-      if (spendClass) {
-        let cv: unknown = null; let ce: unknown = null;
-        try { const res = await admin.rpc('fn_ai_spend_ceiling', { p_class: spendClass }); cv = res.data; ce = res.error; }
-        catch (e) { ce = e; }
-        const v = ceilingVerdict(cv, ce);
-        if (!v.allowed) {
-          await llmLog({
-            p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
-            p_task_class: route.task_class ?? null, p_model: 'none',
-            p_because: route.why + ' | SKIPPED: ' + v.reason + ' - no provider call was made',
-            p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
-            p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
-          });
-          return annotate(J({ ok: false, used_llm: false, outcome: 'daily_ceiling', error: v.reason,
-            task_class: route.task_class, cost_usd: 0 }, 503), { skipped: true, outcome: 'daily_ceiling' });
-        }
-        if (v.reason) console.warn('ai_gateway: ' + v.reason);
-        if (spendClass === 'internal') route.why = String(route.why ?? '') + INTERNAL_MARKER;
-      }
-    }
+    // OUR OWN WORK (it_engineer, 3 Nov 2026): a proven test run, or a seat's own scheduled duty its internal caller
+    // declared (think.ts internalDuty -> llm.ts internal_duty). Used for one thing only: a paid empty completion of our own
+    // work is never asked again of the same model (the attempt loop below). Nothing is refused or capped on it (founder,
+    // 24 Sep 2026: "I don't want caps"). A customer's, supplier's or visitor's request is never own work.
+    const ownWorkCall = !!e2eRunTag() || body.internal_duty === true;
 
     // ---- 7. THE CALL --------------------------------------------------------------------
     const key = await sec('openrouter_api_key');
@@ -999,7 +976,7 @@ async function handle(req: Request): Promise<Response> {
           // asked again (that was the second payment on 3 Nov); the next model on the ladder may be. A customer's,
           // supplier's or visitor's request keeps its retry: an empty reply is sometimes a blip, and their answer matters more.
           if (r.ok && !j?.error) {
-            emptyPaid = spendClass !== null; anyEmptyPaid = true;
+            emptyPaid = ownWorkCall; anyEmptyPaid = true;
             await logFailedAttempt(m, j?.usage ?? null, j?.id, lastErr, Date.now() - attemptStartedAt);
           }
         } catch (e) {

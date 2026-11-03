@@ -137,10 +137,10 @@ export interface ThinkRequest {
   // HARD tasks only). Every internal_judgement step of this run is asked as routine_employee_reasoning, which fn_ai_route
   // gives every seat on its cheap model. Set by replayHeld for EASY_DUTY_SURFACES; a caller may set it for its own duty.
   easy?: boolean;
-  // AN INTERNAL DUTY (it_engineer, 3 Nov 2026; spend_ceiling.ts): the seat's own scheduled work, counted against the daily
-  // internal-duty ceiling. DECLARED, never inferred from the audience: an internal-audience judgement about a real supplier
-  // or visitor (a held supplier-profile read, a routing decision) is not a duty and is never counted or skipped. Set by
-  // replayHeld for INTERNAL_DUTY_SURFACE only.
+  // AN INTERNAL DUTY (it_engineer, 3 Nov 2026): the seat's own scheduled work. A model it PAID for an empty answer is not
+  // asked again (the CEO's Opus replays, 3 Nov: every second attempt empty at 35-38 s, paid twice). DECLARED, never inferred
+  // from the audience: an internal-audience judgement about a real supplier or visitor (a held supplier-profile read, a
+  // routing decision) is not a duty and keeps every retry. Set by replayHeld for INTERNAL_DUTY_SURFACE only.
   internalDuty?: boolean;
 }
 /** The held-question surfaces that are a seat's own scheduled work about the company, never about a person's case. */
@@ -153,8 +153,6 @@ export function easyClass(taskClass: string, easy: boolean | undefined): string 
  *  confirms an entry against its source. Measured on the CEO's (ceo.knowledge_refresh): Opus, about USD 0.6 a day, and on
  *  3 Nov every second attempt came back an empty completion at 35-38 s, paid twice. prevented by: _shared/think_spend.test.ts */
 export const EASY_DUTY_SURFACE = /\.knowledge_refresh$/;
-/** A daily-ceiling skip held as the founder's hold is held: it keeps its tries and is asked again tomorrow. */
-const CEILING_HOLD = 'daily_ceiling';
 /** Arabic-Indic and Eastern Arabic-Indic digits as ASCII, so a figure written either way is the same figure. */
 const asciiDigits = (s: string) => s.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
 /** Lower case, ASCII digits, no thousands commas, split into words, numbers and '%'. */
@@ -579,7 +577,7 @@ export function readerOfTheirOwnText(goal: string): Pick<ThinkRequest, 'plan' | 
 /** The planner ran out of time or the provider failed (not a hold): answer from a one-step plan instead. */
 export function planTimedOut(error: unknown): boolean {
   const e = String(error ?? '');
-  return !/circuit_open|open-circuit|founder_hold|model_hold|daily_ceiling/.test(e) && /gateway_deadline|gateway_http_5\d\d|timeout|aborted/i.test(e);
+  return !/circuit_open|open-circuit|founder_hold|model_hold/.test(e) && /gateway_deadline|gateway_http_5\d\d|timeout|aborted/i.test(e);
 }
 
 export function isFixtureRequest(req: Pick<ThinkRequest, 'subject'>): boolean {
@@ -655,8 +653,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     steps.push({ id: 'fixture', kind: 'hold', goal: 'our own test traffic is never sent to a paid model', status: 'skipped', detail: 'subject.fixture' });
     return await hold('fixture_no_spend', {});
   }
-  // internal: a DECLARED internal duty asked for an internal audience, so the live deps count it against the internal-duty
-  // ceiling (defaultDeps, spend_ceiling.ts); anything else - every customer's, supplier's or visitor's case - never is.
+  // internal: a DECLARED internal duty asked for an internal audience (defaultDeps tells ai_gateway, which then never
+  // re-asks the same model after a paid empty answer); anything else - every customer's, supplier's or visitor's case - is not.
   const internalDuty = req.internalDuty === true && INTERNAL_AUDIENCES.has(audience);
   { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, taskClass: easyClass(o.taskClass, req.easy), subject: req.subject ?? null, internal: internalDuty, ...(req.temperature != null ? { temperature: req.temperature } : {}) }) }; }
   // A PROVIDER BLIP IS RETRIED ONCE (ceo, ledger 1003 stage 2, 19 Oct 2026). Measured on the real-model seat exam: 27 of
@@ -665,11 +663,11 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   { const base = deps; deps = { ...base, llm: async (p, s, i, o) => {
     const r = await base.llm(p, s, i, o);
     const e = String(r.error ?? '');
-    // ...but never after a daily ceiling skipped the call, and never for our own work (an internal duty or a test run) after
-    // a model was PAID for an empty answer (it_engineer, 3 Nov 2026): asking again bought the same nothing twice (the CEO's
-    // Opus replays, 3 Nov). A customer's, supplier's or visitor's turn keeps its second chance.
+    // ...but never for our own work (an internal duty or a test run) after a model was PAID for an empty answer (it_engineer,
+    // 3 Nov 2026): asking again bought the same nothing twice (the CEO's Opus replays, 3 Nov). A customer's, supplier's or
+    // visitor's turn keeps its second chance.
     const ownWork = internalDuty || !!e2eRunTag();
-    if (r.content || p === 'verify' || !TRANSIENT_MODEL_ERROR.test(e) || SLOW_MODEL_ERROR.test(e) || /circuit_open|open-circuit|founder_hold|daily_ceiling/.test(e) || (ownWork && /empty_completion/.test(e))) return r;
+    if (r.content || p === 'verify' || !TRANSIENT_MODEL_ERROR.test(e) || SLOW_MODEL_ERROR.test(e) || /circuit_open|open-circuit|founder_hold/.test(e) || (ownWork && /empty_completion/.test(e))) return r;
     steps.push({ id: p + '.retry', kind: p, goal: 'one retry after a provider error', status: 'done', detail: r.error });
     return await base.llm(p, s, i, o);
   } }; }
@@ -710,8 +708,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
   if (!plan || !Array.isArray(plan.steps)) {
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: d0.error ?? 'no plan' });
-    // daily_ceiling (spend_ceiling.ts) is a hold too: the row waits for tomorrow and keeps its tries (fn_reason_held_resolve)
-    return await hold(/circuit_open|open-circuit|founder_hold|daily_ceiling/.test(String(d0.error ?? '')) ? 'model_hold' : 'model_failed: decompose', {});
+    return await hold(/circuit_open|open-circuit|founder_hold/.test(String(d0.error ?? '')) ? 'model_hold' : 'model_failed: decompose', {});
   }
   const planSteps = plan.steps.slice(0, MAX_STEPS).map((s, i) => ({ id: String(s.id || 's' + (i + 1)), goal: String(s.goal || ''), query: String(s.query || s.goal || req.question), needs: s.needs_knowledge !== false }));
   // UNDERSTAND THE QUESTION FIRST: the caller's trade wins, else the planner's reading of the question. Either is only
@@ -831,13 +828,13 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
       const dropped = keepProvenFields(draft, req.decision, textOf(ctx) + '\n' + req.question);
       if (dropped.length) steps.push({ id: 'synthesise.' + pass + '.fields', kind: 'synthesise', goal: 'keep only the fields the person\'s own words prove', status: 'done', detail: { dropped } });
     }
-    if (!r.content) { steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: 'failed', detail: r.error }); refusal = /daily_ceiling/.test(String(r.error ?? '')) ? CEILING_HOLD : 'no reply'; break; }
+    if (!r.content) { steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: 'failed', detail: r.error }); refusal = 'no reply'; break; }
     groundDraft(draft, missing);
     refusal = refuse(draft, { allowDecline: req.allowDecline === true, missing, sourceIds: citable(sourceIds, facts0, draft), decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true, ...(req.reader ? { minEvidence: READER_MIN_EVIDENCE } : {}) });
     steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: refusal ? 'refused' : 'done', detail: refusal ?? undefined });
     if (!refusal) break;
   }
-  if (refusal || !draft) return await hold(refusal === CEILING_HOLD ? 'model_hold' : 'model_failed: ' + (refusal ?? 'no draft'), { plan: planSteps, facts, sources: sources.map((s) => s.id) });
+  if (refusal || !draft) return await hold('model_failed: ' + (refusal ?? 'no draft'), { plan: planSteps, facts, sources: sources.map((s) => s.id) });
 
   // f. VERIFY — high stakes, by a model of another family (#877)
   let verified: ThinkResult['verified'] = { status: 'not_needed', by: null, notes: '' };
@@ -961,9 +958,8 @@ export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement; e
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      // A declared internal duty (think: req.internalDuty for an internal audience) is counted as one (spend_ceiling.ts).
-      const spendClass = o.internal === true ? 'internal' as const : undefined;
-      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: o.timeoutMs ?? 45_000, cacheTtlMin: memoMin, ...(memoMin > 0 ? { cacheExact: true } : {}), ...(spendClass ? { spendClass } : {}), json: true, temperature: o.temperature ?? (phase === 'verify' ? 0 : 0.2), ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
+      // A declared internal duty (think: req.internalDuty for an internal audience) tells ai_gateway so (internal_duty).
+      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: o.timeoutMs ?? 45_000, cacheTtlMin: memoMin, ...(memoMin > 0 ? { cacheExact: true } : {}), ...(o.internal === true ? { internalDuty: true } : {}), json: true, temperature: o.temperature ?? (phase === 'verify' ? 0 : 0.2), ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
       // A photo or drawing the person sent rides as image parts; the gateway routes it to a vision-capable model.
       const last = o.images?.length ? { role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] } : { role: 'user', content: input };
       // history (chat_history.ts): the conversation so far as real turns before this one, cached by the gateway
