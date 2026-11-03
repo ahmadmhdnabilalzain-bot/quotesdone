@@ -34,6 +34,8 @@ import { openRun, closeRun, leftovers, makeDemoCustomer, read, write, call } fro
 import { dxfBinaryFrom, dxfFixture, dxfFixturePairs } from '../../supabase/functions/_shared/doc_read/cad.fixtures.ts';
 import { boqNoteAr } from '../../src/lib/boqNotes.ts';
 import { cadRedactionShape } from './cad_redacted_paths.mjs';
+import { rasterise } from './portal_raster.mjs';
+import { neutralCadName } from '../../supabase/functions/_shared/cad_identity.ts';
 import { CFB } from '../../supabase/functions/_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 import { zzDxf, zzDxfBinary, zzPdfSheet, zzScanRgba, zzScanText, CAD_COUNTS, PDF_COUNTS } from '../../supabase/functions/_shared/doc_read/zz_demo_drawings.fixtures.ts';
 
@@ -68,6 +70,20 @@ function score(format, r, truth, how) {
   check(`elements understood: ${format} ${row.exact}`, els.every((e) => e.exact), els.map((e) => `${e.element} ${e.read ?? '-'}/${e.truth}`).join(', '));
   return row;
 }
+/** Score elements that are each ONE line: description (case-insensitive), unit and quantity exact; each line used once. */
+function scoreLines(format, r, truth, how) {
+  const left = [...lines(r)];
+  const els = Object.entries(truth).map(([el, { desc, qty, unit }]) => {
+    const i = left.findIndex((l) => String(l.description || '').trim().toLowerCase() === desc.toLowerCase() && String(l.unit || '').toLowerCase() === unit && Number(l.qty ?? l.estimate) === qty);
+    return { element: el, truth: qty, read: i >= 0 ? Number(left.splice(i, 1)[0].qty ?? qty) : null, exact: i >= 0 };
+  });
+  const row = { format, how, http: r.status, read: r.json?.ok === true && lines(r).length > 0, lines: lines(r).length, elements: els,
+    exact: `${els.filter((e) => e.exact).length}/${els.length}`, models: r.json?.boq?.author_model || r.json?.boq?.method || null };
+  SCORE.push(row);
+  if (!els.every((e) => e.exact)) console.log(`INFO  ${format} lines: ${JSON.stringify(lines(r).map((l) => [l.description, l.qty ?? l.estimate, l.unit])).slice(0, 900)}`);
+  check(`elements understood: ${format} ${row.exact}`, els.every((e) => e.exact), els.map((e) => `${e.element} ${e.read ?? '-'}/${e.truth} (${truth[e.element].desc})`).join(', '));
+  return row;
+}
 // The ZZ DEMO scan with its tags, as scan_takeoff.check.ts draws it: FD-1 x7, WC-1 x5, FCU-1..3.
 const SCAN_FD = [[160, 230], [330, 300], [520, 230], [650, 560], [900, 280], [1100, 560], [1420, 280]];
 const SCAN_WC = [[160, 600], [420, 600], [1000, 230], [1200, 600], [1500, 560]];
@@ -98,7 +114,14 @@ try {
   custId = cust.customerId;
   check('a ZZ DEMO customer with a complete account', !!cust.customerId, cust.email);
   const doc = (buf, file_name) => call('customer_api', cust.jwt, { action: 'analyze_document', file_b64: buf.toString('base64'), mime: '', file_name, hint: 'ZZ DEMO fit-out' }, 150000);
-  const drawing = (buf, name) => call('customer_api', cust.jwt, { action: 'analyze_drawing', images: [], original_b64: buf.toString('base64'), mime: '', drawing_file_name: name, hint: 'ZZ DEMO fit-out' }, 280000);
+  const drawing = (buf, name, images = [], mime = '') => call('customer_api', cust.jwt, { action: 'analyze_drawing', images, original_b64: buf.toString('base64'), mime, drawing_file_name: name, hint: 'ZZ DEMO fit-out' }, 280000);
+  // THE PORTAL'S OWN DOOR (3 Nov 2026). NewRequest.tsx sends a PDF and a photo to analyze_drawing (only DOC_RE files go to
+  // analyze_document, and a PDF or an image is not one): a PDF with its pages rasterised (pdfRaster.ts), a photo as JPEG
+  // pages (ocrClient toJpegPages, a PNG included). Until today the element score sent them to analyze_document, a door
+  // the portal never uses for them, and read 0/3 there every night (27 Oct report: "the drawing-set reader does not run
+  // on this path"). No browser OCR is sent with a photo or a scan: what the server reads is what is scored.
+  const asPdfDrawing = async (pdf, name) => drawing(pdf, name, (await rasterise(pdf)).map(({ mime, data }) => ({ mime, data })), 'application/pdf');
+  const asPhoto = (jpeg, name) => drawing(jpeg, name, [{ mime: 'image/jpeg', data: jpeg.toString('base64') }], 'image/jpeg');
 
   // DXF, ASCII and binary: the same plan must give the same lines.
   const asc = await doc(Buffer.from(dxfFixture()), 'ZZ DEMO plan.dxf');
@@ -151,18 +174,24 @@ try {
   score('DXF binary', await doc(Buffer.from(zzDxfBinary()), 'ZZ DEMO E-101 binary.dxf'), cadTruth, 'analyze_document');
   // DWG: the truth is the AutoCAD DXF of the same drawing (dwg_samples.check.ts pins it): blocks 8 + 2, layer lengths.
   const ex18 = await drawing(await sample('example_2018.dwg', '7bc7721224003062'), 'ZZ DEMO example_2018.dwg');
-  score('DWG (AutoCAD 2018)', ex18, { 'block CIRKLO_PUNKTOJ': { re: /CIRKLO_PUNKTOJ/i, qty: 8 }, 'block bloko': { re: /\bbloko\b/i, qty: 2 },
-    'Tavolo 3 sqm': { re: /Tavolo 3/i, qty: 129.36, unit: 'sqm' }, 'Tavolo 3 m': { re: /Tavolo 3/i, qty: 80.56, unit: 'm' }, 'Tavolo 2 m': { re: /Tavolo 2/i, qty: 12.64, unit: 'm' } }, 'analyze_drawing');
-  score('PDF vector', await doc(Buffer.from(zzPdfSheet()), 'ZZ DEMO P-101.pdf'), pdfTruth, 'analyze_document');
+  // 3 Nov 2026: the customer's take-off carries every CAD name through neutralCadName (cad_identity.ts: a layer or block
+  // name keeps only CAD vocabulary, because a name can identify the job), so 'CIRKLO_PUNKTOJ' and 'bloko' both read
+  // 'block unnamed' and 'Tavolo 3' reads 'layer 3'. The old score looked for the raw names and read 0/5 while all five
+  // quantities were exact (27 Oct report). Each element is now ONE line: the anonymised name the product must print, its
+  // unit and its exact quantity, each line used once. A raw name on the line fails it, and so does a wrong quantity.
+  const cadLine = (kind, name, qty, unit) => ({ desc: kind === 'block' ? `block ${neutralCadName(name)}` : `${kind} on layer ${neutralCadName(name)}`, qty, unit });
+  scoreLines('DWG (AutoCAD 2018)', ex18, { 'block CIRKLO_PUNKTOJ': cadLine('block', 'CIRKLO_PUNKTOJ', 8, 'nos'), 'block bloko': cadLine('block', 'bloko', 2, 'nos'),
+    'Tavolo 3 sqm': cadLine('closed outlines', 'Tavolo 3', 129.36, 'sqm'), 'Tavolo 3 m': cadLine('linework', 'Tavolo 3', 80.56, 'm'), 'Tavolo 2 m': cadLine('linework', 'Tavolo 2', 12.64, 'm') }, 'analyze_drawing');
+  score('PDF vector', await asPdfDrawing(Buffer.from(zzPdfSheet()), 'ZZ DEMO P-101.pdf'), pdfTruth, 'analyze_drawing, pages rasterised as the portal does');
   const scan = await zzScanJpeg();
-  const sc = await doc(jpegPdf(scan), 'ZZ DEMO P-101 scan.pdf');
-  score('PDF scanned (no text layer, model reads it)', sc, pdfTruth, 'analyze_document, no ocr_text');
+  const sc = await asPdfDrawing(jpegPdf(scan), 'ZZ DEMO P-101 scan.pdf');
+  score('PDF scanned (no text layer, model reads it)', sc, pdfTruth, 'analyze_drawing, pages rasterised as the portal does, no ocr_text');
   // A photo or a picture of the sheet: no extension refusal applies to images (drawing_format.ts refuses BIM formats),
   // so it is read like the scan (ruling 1177) and scored the same way; a refusal is recorded as what it is.
   for (const [buf, name] of [[scan.jpeg, 'ZZ DEMO P-101 photo.jpg'], [await (await import('sharp')).default(scan.jpeg).png().toBuffer(), 'ZZ DEMO P-101.png']]) {
-    const x = await doc(buf, name);
+    const x = await asPhoto(name.endsWith('.png') ? await (await import('sharp')).default(buf).jpeg({ quality: 92 }).toBuffer() : buf, name);
     const fmt = `image ${name.split('.').pop().toUpperCase()}`;
-    if (x.json?.ok === true) score(fmt, x, pdfTruth, 'analyze_document, no ocr_text');
+    if (x.json?.ok === true) score(fmt, x, pdfTruth, 'analyze_drawing as JPEG pages (the portal converts a PNG too), no ocr_text');
     else { SCORE.push({ format: fmt, how: 'analyze_document', http: x.status, read: false, error: x.json?.error || null, elements: [], exact: `refused: ${x.json?.error || x.status}` });
       check(`${fmt} is read`, false, `HTTP ${x.status} ${x.json?.error || ''} ${x.json?.detail || ''}`); }
   }

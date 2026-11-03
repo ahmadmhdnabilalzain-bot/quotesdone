@@ -74,7 +74,7 @@ export const norm = (s: string) => normMap(String(s ?? '')).n.trim();
 // every general note that says "drawings". A ZZ DEMO customer's "demo" did the same to every
 // "DEMO AND REMOVE" demolition note. These words name what is drawn, never who it is for.
 const GENERIC = new Set(norm(`villa villas project projects residence residential building buildings tower towers house home
-  office company group trading contracting contractor contractors consult consultant consultants consultancy engineering
+  office company group trading contracting contractor contractors consult consulting consultant consultants consultancy engineering
   engineer engineers architect architects interior interiors design designs general services solutions systems works
   supply supplies technical tech llc fzco fzllc establishment dubai sharjah ajman abudhabi abu dhabi fujairah umm quwain
   khaimah emirates emirate uae united arab street road avenue phase block unit floor ground first plot area community city

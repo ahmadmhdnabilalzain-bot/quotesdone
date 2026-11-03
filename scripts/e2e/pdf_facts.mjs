@@ -21,13 +21,14 @@ export const isArabic = (ch) => /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-
 export const languageOf = (f) => (f.arabicShare >= 0.3 ? 'ar' : f.arabicShare < 0.2 ? 'en' : 'mixed');
 
 /** Facts about PDF bytes. `bytes` in the result is the caller's data, intact. */
-export async function pdfFactsFromBytes(input) {
+/** @param {any} [pdfjsModule] a caller that cannot resolve the bare package (a Deno test run with DENO_NO_PACKAGE_JSON) passes its own. */
+export async function pdfFactsFromBytes(input, pdfjsModule = /** @type {any} */ (null)) {
   const bytes = new Uint8Array(input);   // our own copy: the caller's buffer is never handed to pdfjs
   if (bytes.length < 5 || Buffer.from(bytes.subarray(0, 5)).toString() !== '%PDF-') {
     return { ok: false, why: `not a PDF (${Buffer.from(bytes.subarray(0, 12)).toString().replace(/\W+/g, ' ')})` };
   }
   const sha256 = createHash('sha256').update(bytes).digest('hex');
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjs = pdfjsModule || await import('pdfjs-dist/legacy/build/pdf.mjs');
   // The LOADING TASK is what is destroyed: pdfjs-dist 6 removed PDFDocumentProxy.destroy (4.x had both).
   const task = pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false, verbosity: 0 });
   const doc = await task.promise;
@@ -39,7 +40,7 @@ export async function pdfFactsFromBytes(input) {
     text += items.map((x) => x.str).join(' ') + '\n';
     // Where each run sits, so the money can be read in the page's reading order (moneyOf below).
     // pdfjs's y grows upward; it is negated so lines sort top to bottom.
-    for (const x of items) if (x.str && x.transform) runs.push({ text: x.str, page: i, x: x.transform[4], y: -x.transform[5], w: Number(x.width) || 0 });
+    for (const x of items) if (x.str && x.transform) runs.push({ text: x.str, page: i, x: x.transform[4], y: -x.transform[5], w: Number(x.width) || 0, dir: x.dir });
   }
   await task.destroy().catch(() => {});
   const letters = text.match(/\p{L}/gu) || [];
@@ -88,7 +89,10 @@ export function amountsInReadingOrder(runs, rtl, tol = 2) {
   const hits = [];
   for (const r of runs || []) {
     const t = String(r.text || '');
-    for (const m of t.matchAll(/\d[\d,]*\.\d\d/g)) hits.push({ v: m[0], page: r.page ?? 0, y: r.y, x: r.x + (t.length ? (m.index / t.length) * (r.w || 0) : 0) });
+    // pdfjs hands a right-to-left item back in LOGICAL order (first-written figure first) with x at its LEFT edge,
+    // so inside such an item the first figure sits at the RIGHT: its share of the width is counted from the right.
+    // 3 Nov 2026: without this the Arabic note "add up to X; the quoted total is Y" read Y, X (nightly since 20 Oct).
+    for (const m of t.matchAll(/\d[\d,]*\.\d\d/g)) { const share = t.length ? m.index / t.length : 0; hits.push({ v: m[0], page: r.page ?? 0, y: r.y, x: r.x + (r.dir === 'rtl' ? 1 - share : share) * (r.w || 0) }); }
   }
   hits.sort((a, b) => a.page - b.page || a.y - b.y);
   const lines = [];
