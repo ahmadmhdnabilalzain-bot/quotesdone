@@ -37,7 +37,9 @@ test('a vector is written only to a row still NULL whose text is what was sent, 
 test('a row is never sent twice at once, and stops after 5 failed attempts on the same text', () => {
   assert.match(code, /v_tries\s+constant int := 5;/);
   assert.match(code, /not exists \(select 1 from public\.kb_embed_inflight f where f\.chunk_id = k\.id and f\.failed_at is null\)/);
-  assert.match(code, new RegExp(`f\\.failed_at is not null\\s+and f\\.text_md5 = ${TEXT}\\) < v_tries`));
+  // the bound counts only the last day's failures, so an outage never strands a row for good (review of #1817)
+  assert.match(code, new RegExp(`f\\.failed_at is not null and f\\.failed_at > now\\(\\) - interval '24 hours'\\s+and f\\.text_md5 = ${TEXT}\\) < v_tries`));
+  assert.match(code, /delete from public\.kb_embed_inflight f\s+where f\.failed_at is not null and f\.failed_at < now\(\) - interval '24 hours';/);
   assert.match(code, /set failed_at = now\(\)\s+where failed_at is null and queued_at < now\(\) - interval '1 hour'/);
 });
 
