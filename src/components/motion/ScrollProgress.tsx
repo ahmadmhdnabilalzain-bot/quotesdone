@@ -32,7 +32,7 @@ export function ScrollProgress() {
     <div
       ref={ref}
       aria-hidden
-      className="absolute inset-x-0 bottom-[-1px] z-50 h-0.5 origin-left bg-gradient-to-r from-teal via-teal-light to-gold transition-transform duration-150 ease-out motion-reduce:hidden rtl:origin-right"
+      className="absolute inset-x-0 -bottom-px z-50 h-0.5 origin-left bg-linear-to-r from-teal via-teal-light to-gold transition-transform duration-150 ease-out motion-reduce:hidden rtl:origin-right"
       style={{ transform: 'scaleX(0)', boxShadow: '0 0 16px rgba(110,231,212,.7)' }}
     />
   );

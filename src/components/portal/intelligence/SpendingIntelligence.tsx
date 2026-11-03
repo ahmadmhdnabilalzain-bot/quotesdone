@@ -372,7 +372,7 @@ export function QuoteSpreadChart({
               position={lang === 'ar' ? 'left' : 'right'}
               className="fill-foreground"
               fontSize={12}
-              formatter={(v: number) => aed(num(v), lang)}
+              formatter={(v) => aed(num(v), lang)}
             />
           </Bar>
         </BarChart>

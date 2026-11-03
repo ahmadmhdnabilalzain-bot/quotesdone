@@ -91,7 +91,10 @@ test('static: an open review is decided by the heartbeat, on another family, and
 });
 
 test('static: WhatsApp, site chat and e-mail person requests enter the path', () => {
-  assert.match(read('supabase/functions/wa_inbound/index.ts'), /if \(needsPerson === true\) \{\s+await fileReviewRequest\(admin, defaultDeps\(admin, 'wa_inbound'\), \{ channel: 'whatsapp'/);
+  // 3 Nov 2026 (customer_support): started beside the reply and awaited in the turn's finally, no longer before the reply.
+  const wa = read('supabase/functions/wa_inbound/index.ts');
+  assert.match(wa, /\breviewP = needsPerson === true\s+\? fileReviewRequest\(admin, defaultDeps\(admin, 'wa_inbound'\), \{ channel: 'whatsapp'/);
+  assert.match(wa, /\n\s+await reviewP;/, 'the review of a decision is still awaited before the turn ends');
   assert.match(read('supabase/functions/email_triage/index.ts'), /how = 'person';\s+(\/\/.*\s+)?await fileReviewRequest\(admin, deps, \{ channel: 'email'/);
   const shared = read('supabase/functions/_shared/review_request.ts');
   assert.ok(shared.includes("admin.rpc('fn_review_request_open', {"), 'the shared entry no longer files through the one door');

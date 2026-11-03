@@ -441,7 +441,7 @@ function ConversationView({
           <div className="flex items-end gap-2 border-t border-border px-3 py-2.5">
             <textarea
               rows={1}
-              className="flex-1 resize-none rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[13.5px] text-foreground outline-none focus:border-primary/60"
+              className="flex-1 resize-none rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[13.5px] text-foreground outline-hidden focus:border-primary/60"
               placeholder={w.compose_ph}
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -460,7 +460,7 @@ function ConversationView({
             <div className="mt-2 flex items-end gap-2">
               <textarea
                 rows={2}
-                className="flex-1 resize-none rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[13.5px] text-foreground outline-none focus:border-primary/60"
+                className="flex-1 resize-none rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[13.5px] text-foreground outline-hidden focus:border-primary/60"
                 placeholder={w.ask_ph}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
@@ -573,7 +573,7 @@ export function CommunicationCenter({ token, lang = 'en', onOpenRfq, refreshKey 
               // "non-clickable": no role, no keyboard path, no control that says what happens. The
               // whole row is a real button and carries the explicit action beneath it.
               <Card key={k} role="button" tabIndex={0} aria-label={`${w.open_conv}: ${t.counterpart}`}
-                className="cursor-pointer p-4 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="cursor-pointer p-4 transition-colors hover:border-primary/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={() => setOpenKey(k)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenKey(k); } }}>
                 <div className="flex flex-wrap items-start justify-between gap-2">

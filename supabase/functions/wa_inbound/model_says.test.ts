@@ -131,3 +131,78 @@ Deno.test('1339: modelSays reports an outage only when no call reached a model',
   assertEquals((await modelSays(mk({ content: null, error: 'gateway_http_502' }), { audience: 'visitor', lang: 'en', message: 'x', situation: 'y' })).outage, true);
   assertEquals((await modelSays(mk({ content: JSON.stringify({ answer: 'openrouter circuit_open' }), model: 'm' }), { audience: 'visitor', lang: 'en', message: 'x', situation: 'y' })).outage, false);
 });
+
+// Run 41530397323 (main), the lean "scam" turn: the model was up, nothing it wrote inside the budget could be used, and the
+// person got no reply for the turn. Here every call that carries the company brief answers something unusable (an object cut off
+// mid-answer); the one brief-less last-chance ask answers properly and IS the reply. On the pre-fix modelSays the text is ''.
+Deno.test('the model is up but nothing passes in the budget: one brief-less last chance writes the reply', async () => {
+  const calls: Record<string, unknown>[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null),
+    llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => {
+      calls.push(o);
+      return Promise.resolve((o.sysStable ? { content: '{"answer":"I am sorry to hear that, let me', model: 'stub' }
+        : { content: A('I am sorry this happened. Please reach our team directly on +1 218 316 6814 and we will look into your payment.'), model: 'stub' }) as LlmReply);
+    },
+    embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: null, error: null }),
+  } as unknown as ThinkDeps;
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money and vanished, this is a scam', situation: 'They need a person.', situationAnswers: true });
+  assert(r.text.includes('+1 218 316 6814'), 'the last chance wrote the reply: ' + r.attempts.join(' | '));
+  assert(calls.some((o) => !o.sysStable && !o.sysShared), 'the last chance carried no brief');
+  assert(r.attempts.some((a) => a.startsWith('last-chance')), 'and is named in the attempts: ' + r.attempts.join(' | '));
+  assert(r.attempts.some((a) => a.includes('unparseable')), 'the unusable answer is recorded with what it said: ' + r.attempts.join(' | '));
+});
+
+Deno.test('control: an outage gets no last chance (the held notice owns that), and a speculative draft gets none', async () => {
+  const s = stub([]);   // every call: error 'down' -> no; use a real outage error below
+  const deps = { ...s.deps, llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => { s.calls.push({ system: '', input: '', o }); return Promise.resolve({ content: null, error: 'gateway_http_503 upstream unavailable' } as LlmReply); } } as unknown as ThinkDeps;
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'hi', situation: 'greet them' });
+  assertEquals(r.text, '');
+  assertEquals(r.outage, true);
+  assert(!r.attempts.some((a) => a.startsWith('last-chance')), 'no last chance in an outage: ' + r.attempts.join(' | '));
+  const spec = stub(['prose', 'prose', 'prose', 'prose', 'prose', 'prose']);
+  const r2 = await modelSays(spec.deps, { audience: 'customer', lang: 'en', message: 'hi', situation: 'greet them', signal: new AbortController().signal });
+  assert(!r2.attempts.some((a) => a.startsWith('last-chance')), 'no last chance for a speculative draft');
+});
+
+Deno.test('a reply object with a real line break inside the answer string is read, not dropped', async () => {
+  const s = stub(['{"answer":"Call us on\n+1 218 316 6814\nor write to management@quotesdone.com","escalate":true}']);
+  const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO I want to speak to a person please', situation: 'They need a person.' });
+  assert(r.text.includes('+1 218 316 6814'), 'read: ' + r.attempts.join(' | '));
+  assertEquals(s.calls.length, 1, 'the first answer was used; no second rung');
+  assertEquals(r.escalate, true);
+});
+
+// Review of #1816: without the brief a company question can only be answered from memory. A fact question whose first ask
+// produced nothing usable gets NO brief-less answer: the caller did not say the facts answer the turn. Fails on fe852ccd.
+Deno.test('a company fact question whose first ask failed gets no brief-less answer (the facts do not answer it)', async () => {
+  const calls: Record<string, unknown>[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null),
+    llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => {
+      calls.push(o);
+      return Promise.resolve((o.sysStable ? { content: '{"answer":"We vet suppliers by', model: 'stub' }
+        : { content: A('We vet every supplier with a site visit and three references.'), model: 'stub' }) as LlmReply);
+    },
+    embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: null, error: null }),
+  } as unknown as ThinkDeps;
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO how do you vet suppliers?', situation: 'No intent row fits.' });
+  assertEquals(r.text, '', 'nothing invented: ' + r.attempts.join(' | '));
+  assert(calls.every((o) => o.sysStable), 'no call went without the brief');
+  assert(!r.attempts.some((a) => a.startsWith('last-chance')));
+});
+
+// Re-review of #1816: a spent sender bucket gets no last chance either (it carries no key, so it would be unchecked spend).
+Deno.test('a spent sender bucket: one model call, no last chance, no text, not an outage', async () => {
+  const calls: Record<string, unknown>[] = [];
+  const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
+    llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => { calls.push(o);
+      return Promise.resolve((o.rateKey ? { content: null, error: 'rate_limited' } : { content: A('Please reach our team on +1 218 316 6814.'), model: 'stub' }) as LlmReply); } } as unknown as ThinkDeps;
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money', situation: 'They need a person.', situationAnswers: true, rateKey: 'wa:whatsapp:+971500000031' });
+  assertEquals(calls.length, 1, r.attempts.join(' | '));
+  assert(!r.attempts.some((a) => a.startsWith('last-chance')));
+  assertEquals(r.text, '');
+  assertEquals(r.outage, false);
+});

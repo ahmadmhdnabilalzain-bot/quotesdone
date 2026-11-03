@@ -19,8 +19,8 @@ const sheetVariants = cva('osx fixed z-50 flex flex-col gap-4 border-line2 bg-po
     bottom: 'inset-x-0 bottom-0 rounded-t-frame border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
     left: 'inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm',
     right: 'inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-md',
-    start: 'inset-y-0 start-0 h-full w-3/4 border-e data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left rtl:data-[state=closed]:slide-out-to-right rtl:data-[state=open]:slide-in-from-right sm:max-w-sm',
-    end: 'inset-y-0 end-0 h-full w-3/4 border-s data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right rtl:data-[state=closed]:slide-out-to-left rtl:data-[state=open]:slide-in-from-left sm:max-w-md',
+    start: 'inset-y-0 inset-s-0 h-full w-3/4 border-e data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left rtl:data-[state=closed]:slide-out-to-right rtl:data-[state=open]:slide-in-from-right sm:max-w-sm',
+    end: 'inset-y-0 inset-e-0 h-full w-3/4 border-s data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right rtl:data-[state=closed]:slide-out-to-left rtl:data-[state=open]:slide-in-from-left sm:max-w-md',
   } }, defaultVariants: { side: 'end' },
 });
 interface SheetContentProps extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>, VariantProps<typeof sheetVariants> {}
@@ -29,7 +29,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     <SheetOverlay />
     <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), 'overflow-y-auto p-6', className)} {...props}>
       {children}
-      <SheetPrimitive.Close className='absolute end-4 top-4 grid h-8 w-8 place-items-center rounded-btn text-muted transition-colors hover:bg-teal-light/[0.06] hover:text-foreground'><X className='h-4 w-4' /><span className='sr-only'>Close</span></SheetPrimitive.Close>
+      <SheetPrimitive.Close className='absolute inset-e-4 top-4 grid h-8 w-8 place-items-center rounded-btn text-muted transition-colors hover:bg-teal-light/6 hover:text-foreground'><X className='h-4 w-4' /><span className='sr-only'>Close</span></SheetPrimitive.Close>
     </SheetPrimitive.Content>
   </SheetPortal>
 ));

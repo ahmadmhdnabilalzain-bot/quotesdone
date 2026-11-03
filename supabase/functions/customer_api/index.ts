@@ -394,7 +394,7 @@ async function getCfg(): Promise<Cfg | null> { const r = await readRevealRate(ad
 // 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
 // and NO cap. This copy computes the standard rate and nothing else, the same as public.reveal_fee();
 // pricing_config forbids a promo or a cap by constraint (pricing_config_no_discount_no_cap_ck).
-function revealFee(amount: number, cfg: Cfg | null): number | null { if (!cfg) return null; if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
+function revealFee(amount: number, cfg: Cfg | null): number | null { if (!cfg) return null; if (!amount || amount <= 0) return 0; return revealCharge(amount, Number(cfg.standard_reveal_rate)).base_fee; }
 // A RATING IS EARNED HERE OR IT DOES NOT EXIST (founder, 9 Sep 2026): "supplier rating should be
 // from customers after they tried them", "google review shouldnt be counted". This used to fall
 // back to leads.rating ?? leads.rating_maps — the Google Maps star of a business QuotesDone has
@@ -767,6 +767,12 @@ function compareFinishIO(): CompareFinishIO {
     tellSalesEngineer: async (iid, last) => {
       await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'arabic_comparison_render_failed', status: 'pending', risk: 'medium',
         title: `The Arabic comparison report could not be sent after ${MAX_COMPARE_ATTEMPTS} tries`, detail: { inquiry_id: iid, last }, target_table: 'inquiries', target_id: iid });
+    },
+    overdue: async (iid, hours) => {
+      const { data: open } = await admin.from('agent_actions').select('id').eq('agent', 'sales_engineer').eq('kind', 'arabic_comparison_overdue').eq('target_id', iid).eq('status', 'pending').limit(1);
+      if (open?.length) return;
+      await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'arabic_comparison_overdue', status: 'pending', risk: 'medium',
+        title: `A customer's Arabic comparison report has waited ${hours} h for its Arabic lines`, detail: { inquiry_id: iid, hours }, target_table: 'inquiries', target_id: iid });
     },
   };
 }
