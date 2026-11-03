@@ -318,9 +318,12 @@ begin
                    v_spend_aed, v_asked, coalesce(v_inq::text, 'unmeasured'));
   -- 3 Nov 2026 (marketing): the invitation open measurement over the same window (fn_invite_open_summary).
   v_opens := public.fn_invite_open_summary(p_from, p_to);
-  v_head := v_head || format(' Invitations: %s sent, %s opened by a person (tracked share %s%%), %s opened by a person and not registered after 3 days.',
+  -- Worded so no ratio can be read across the arms: opens exist only for the tracked share, and the last count is all time.
+  v_head := v_head || format(' Invitations: %s sent, %s of them in the tracked share; %s of those %s likely opened by a person; %s (all time) likely opened and not registered after 3 days.',
                              coalesce((v_opens #>> '{by_arm,tracked,sent}')::int, 0) + coalesce((v_opens #>> '{by_arm,untracked,sent}')::int, 0),
-                             coalesce(v_opens #>> '{by_arm,tracked,opened_human}', '0'), v_opens ->> 'share_pct',
+                             coalesce((v_opens #>> '{by_arm,tracked,sent}')::int, 0),
+                             coalesce((v_opens #>> '{by_arm,tracked,opened_human}')::int, 0),
+                             coalesce((v_opens #>> '{by_arm,tracked,sent}')::int, 0),
                              v_opens ->> 'opened_by_a_person_not_registered_after_3_days');
   return jsonb_build_object(
     'headline', v_head,

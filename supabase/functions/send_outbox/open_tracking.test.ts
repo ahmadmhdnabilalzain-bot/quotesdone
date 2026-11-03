@@ -4,7 +4,7 @@
 // the HTML part). The database side (arm, token, classifier, funnel) is proved by
 // scripts/sql/an_invitation_open_is_measured_on_a_tracked_share_and_reaches_the_ceo_probe.sql.
 import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
-import { invitationHtml, openShare, openTracks, pixelBase, pixelUrl, OPEN_TRACKED_TYPES } from './open_tracking.ts';
+import { invitationHtml, openShare, openTracks, pixelBase, pixelUrl, OPEN_TOKEN_MS, OPEN_TRACKED_TYPES } from './open_tracking.ts';
 import { ANY_LINK, M365_SEED_KIND, campaignMail, m365Mime, qpEncode } from './m365_lane.ts';
 import { resendPayload } from './payload.ts';
 
@@ -104,15 +104,16 @@ Deno.test('switch on: multipart/alternative, the identical text part first, the 
   assert(parts[3].startsWith('--'), 'closing delimiter');
   const qpHtml = parts[2].split('\r\n\r\n').slice(1).join('\r\n\r\n').replace(/=\r\n/g, '').replace(/=([0-9A-F]{2})/g, (_m, h) => String.fromCharCode(parseInt(h, 16)));
   assert(qpHtml.includes(PIXEL) && (qpHtml.match(/<img\b/g) || []).length === 1);
-  // the Resend fallback carries the same twin
-  const r = resendPayload({ from: 'a@quotesdone.com', to: 'b@x.example', reply: '', subject: 's', html, text: camp.text, unsub: '', unsubMailto: '' });
-  assertEquals(r.text, camp.text); assertEquals(r.html, html);
 });
 
-Deno.test('send_outbox calls the database only when the share is on, and a failure sends the untracked email', () => {
+Deno.test('send_outbox calls the database only when the share is on, cut short, and a failure sends the untracked email', () => {
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assert(/if \(!openPct \|\| !openBase \|\| !openTracks\(n\)\) return '';/.test(src), 'the off path must return before the rpc');
-  assert(/admin\.rpc\('fn_invite_open_token'/.test(src));
+  assert(/admin\.rpc\('fn_invite_open_token', \{ p_notification_id: n\.id \}\)\.abortSignal\(AbortSignal\.timeout\(OPEN_TOKEN_MS\)\)/.test(src), 'the token call has no deadline');
+  assert(OPEN_TOKEN_MS > 0 && OPEN_TOKEN_MS <= 2000, 'a hung token call must not hold an invitation for long');
   assert(/catch \{ return ''; \}/.test(src), 'an rpc throw must fall back to the untracked email');
-  assert(/html: mHtml \}\)/.test(src) && /html: campHtml, text: camp\.text/.test(src), 'both routes carry the same twin');
+  assert(/html: mHtml \}\)/.test(src), 'the Microsoft 365 lane carries the twin');
+  // the Resend fallback never carries HTML for a campaign row, so Resend's own open/click tracking cannot touch an invitation
+  assert(/camp\s*\? resendPayload\(\{ from, to: n\.to_email, reply, subject: camp\.subject, html: '', text: camp\.text,/.test(src), 'the Resend fallback sends HTML');
+  assertEquals((src.match(/openHtmlFor\(/g) || []).length, 1, 'openHtmlFor is called once, by the Microsoft 365 lane');
 });

@@ -8,9 +8,12 @@
 // Used by: scripts/checks/an_invitation_open_is_measured_on_a_tracked_share.test.mjs and
 //          scripts/checks/the_founders_mobile_is_in_no_current_public_text_and_a_contact_only_version_asks_nobody_to_sign_again.test.mjs
 
+// The address is kept as sha256(secret salt | address): pseudonymous, NOT irreversible (IPv4 has ~2^32 values, so whoever
+// holds the salt can test a guess). The sentence says "made with a secret key" and never "one-way" or "cannot be reversed"
+// (review of #1831, 3 Nov 2026).
 export const OPEN_SENTENCE = {
-  en: ' We measure whether these emails are opened: some carry a tiny image served from our own website, and when it loads we record the time, the description the email program sends and a one-way coded form of the network address, never the address itself.',
-  ar: ' ونقيس ما إذا كانت هذه الرسائل تُفتح، إذ يحمل بعضها صورة صغيرة جدًا يعرضها موقعنا الإلكتروني، وعند ظهورها نسجّل وقت الفتح ووصف برنامج البريد ورمزًا مشتقًّا من عنوان الشبكة لا يمكن الرجوع منه إلى العنوان، ولا نحتفظ بالعنوان نفسه.',
+  en: ' We measure whether these emails are opened: some carry a tiny image served from our own website, and when it loads we record the time, the description the email program sends and a coded form of the network address made with a secret key, never the address itself.',
+  ar: ' ونقيس ما إذا كانت هذه الرسائل تُفتح، إذ يحمل بعضها صورة صغيرة جدًا يعرضها موقعنا الإلكتروني، وعند ظهورها نسجّل وقت الفتح ووصف برنامج البريد وصيغة مرمّزة لعنوان الشبكة نُعدّها بمفتاح سري، ولا نحتفظ بالعنوان نفسه.',
 };
 
 // [text in 1.8, text in 1.9] per language, applied in order.

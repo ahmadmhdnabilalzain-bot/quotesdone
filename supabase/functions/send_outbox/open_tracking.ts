@@ -15,7 +15,11 @@
 // prevented by: supabase/functions/send_outbox/open_tracking.test.ts
 import { M365_SEED_KIND } from './m365_lane.ts';
 
+// Only the Microsoft 365 lane carries the twin. The Resend fallback stays text-only, so a provider's own open or click
+// tracking (Resend tracks only HTML) can never reach an invitation (review of #1831, 3 Nov 2026).
 export const OPEN_TRACKED_TYPES = ['supplier_invite', 'supplier_invite_nudge'] as const;
+/** fn_invite_open_token is cut after this long and the untracked email goes: a hung call never delays an invitation. */
+export const OPEN_TOKEN_MS = 1500;
 export const OPEN_PATH = '/u/o/';
 const TOKEN = /^[0-9a-f]{32}$/;
 /** Our own hosts only: the pixel is never served from the project's supabase.co host or anyone else's. */

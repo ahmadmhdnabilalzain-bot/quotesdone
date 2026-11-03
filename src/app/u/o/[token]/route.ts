@@ -11,6 +11,7 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+import { after } from 'next/server';
 import { SUPA_URL } from '@/lib/supaEnv';
 
 const GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -24,16 +25,18 @@ function gif(): Response {
   });
 }
 
+// The GIF goes first; the open is recorded after the response is sent (next/server after), so the image is instant
+// whatever the database does (review of #1831).
 export async function GET(req: Request, ctx: { params: Promise<{ token: string }> }): Promise<Response> {
   const token = String((await ctx.params).token || '').replace(/\.gif$/i, '');
   const key = serviceKey();
   if (TOKEN.test(token) && key && SUPA_URL) {
-    await fetch(`${SUPA_URL}/rest/v1/rpc/fn_email_open_record`, {
+    const body = JSON.stringify({ p_token: token, p_user_agent: req.headers.get('user-agent') || '', p_ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '' });
+    after(() => fetch(`${SUPA_URL}/rest/v1/rpc/fn_email_open_record`, {
       method: 'POST',
       headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_token: token, p_user_agent: req.headers.get('user-agent') || '', p_ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '' }),
-      signal: AbortSignal.timeout(3000), cache: 'no-store',
-    }).catch(() => null);
+      body, signal: AbortSignal.timeout(5000), cache: 'no-store',
+    }).then(() => undefined, () => undefined));
   }
   return gif();
 }

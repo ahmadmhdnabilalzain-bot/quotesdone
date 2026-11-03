@@ -288,6 +288,7 @@
     "prefixes": { "cred_": "an internal credential between our own functions (internal_credential)" },
     "secrets": {
       "invite_open_tracking": "setting",
+      "email_open_ip_salt": "minted by us: keys the hash of an invitation open's network address (fn_email_open_record)",
       "m365_tenant_mailboxes": "setting",
       "m365_tenant_strangers_from": "setting",
       "m365_financial_domains": "setting",

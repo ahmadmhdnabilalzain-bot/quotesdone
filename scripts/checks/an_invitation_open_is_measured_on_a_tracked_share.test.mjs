@@ -42,8 +42,10 @@ test('privacy 1.9 says, in both languages, that invitation opens are measured an
   const para = (h, start, end) => h.slice(h.indexOf(start), h.indexOf(end, h.indexOf(start)));
   assert.ok(para(en, '<strong>Invitations to businesses.</strong>', '</p>').includes(OPEN_SENTENCE.en.trim() + ' We use this data for nothing else'));
   assert.ok(para(ar, '<strong>دعوة الشركات.</strong>', '</p>').includes(OPEN_SENTENCE.ar.trim() + ' ولا نستخدم هذه البيانات'));
-  assert.match(OPEN_SENTENCE.en, /never the address itself/);
-  assert.match(OPEN_SENTENCE.ar, /ولا نحتفظ بالعنوان نفسه/);
+  assert.match(OPEN_SENTENCE.en, /made with a secret key, never the address itself/);
+  assert.match(OPEN_SENTENCE.ar, /بمفتاح سري، ولا نحتفظ بالعنوان نفسه/);
+  // sha256(salt | address) is pseudonymous, not irreversible: the policy may not promise more (review of #1831)
+  for (const s of [OPEN_SENTENCE.en, OPEN_SENTENCE.ar]) assert.doesNotMatch(s, /one-way|irreversib|cannot be (reversed|traced)|لا يمكن الرجوع|لا يمكن عكس/);
   for (const h of [en, ar]) {
     assert.doesNotMatch(h, /\bAI\b|ذكاء اصطناعي|الذكاء الاصطناعي/, 'never the word AI in a public legal text');
     assert.doesNotMatch(h, /50[ .-]?931[ .-]?9355/);
@@ -86,6 +88,16 @@ test('the open tables are service-role only and exported; every new routine is r
   for (const f of created) assert.match(sql, new RegExp(`revoke execute on function public\\.${f}\\([^)]*\\) from public, anon, authenticated;`), `${f} is not revoked`);
   for (const f of created) assert.match(sql, new RegExp(`function public\\.${f}\\([\\s\\S]*?set search_path to 'public', 'pg_temp'`), `${f} has no pinned search_path`);
   assert.match(sql, /values \('invite_open_tracking', '20', now\(\)\) on conflict \(key\) do nothing;/);
+  // every app_secrets key this file stores is in the integration registry (the production half of
+  // every_external_host_and_secret_is_registered reads app_secrets and fails right after the apply otherwise)
+  const reg = JSON.parse(read('supabase/functions/_shared/integration_registry.json'));
+  const regKeys = new Set([...Object.keys(reg.internal_and_settings.secrets),
+    ...Object.values(reg).flatMap((e) => (Array.isArray(e?.secrets) ? e.secrets : []))]);
+  const stored = [...sql.matchAll(/insert into public\.app_secrets \(key, value, updated_at\) values \('([a-z0-9_]+)'/g)].map((x) => x[1]);
+  assert.deepEqual(stored.sort(), ['email_open_ip_salt', 'invite_open_tracking']);
+  for (const k of stored) assert.ok(regKeys.has(k), `${k} is stored but not in integration_registry.json`);
+  // the headline names the tracked share, so no reader divides opens by every invitation sent (review of #1831)
+  assert.match(sql, /%s of them in the tracked share; %s of those %s likely opened by a person; %s \(all time\) likely opened and not registered after 3 days\./);
   assert.match(sql, /'email_open_ip_salt', encode\(extensions\.gen_random_bytes\(32\), 'hex'\), now\(\)\)\s+on conflict \(key\) do nothing;/);
   // the token is random, never derived from the address or the lead
   assert.match(sql, /values \(replace\(gen_random_uuid\(\)::text, '-', ''\), n\.id, n\.lead_id, v_share\)/);
@@ -110,6 +122,9 @@ test('the pixel route answers a no-store GIF, records only a 32-hex token, never
   assert.match(src, /const TOKEN = \/\^\[0-9a-f\]\{32\}\$\/;/);
   assert.match(get, /if \(TOKEN\.test\(token\) && key && SUPA_URL\)/);
   assert.match(get, /rpc\/fn_email_open_record/);
+  assert.match(get, /after\(\(\) => fetch\(/, 'the open is recorded after the GIF is sent');
+  assert.doesNotMatch(get, /await fetch/, 'the GIF must not wait on the database');
+  assert.match(src, /import \{ after \} from 'next\/server';/);
   assert.match(get, /return gif\(\);/);
   assert.doesNotMatch(head, /fetch|rpc/, 'HEAD must record nothing');
   assert.doesNotMatch(src, /console\.|writeFile|createClient|\/rest\/v1\/(?!rpc\/fn_email_open_record)/, 'the route logs or stores nothing itself');

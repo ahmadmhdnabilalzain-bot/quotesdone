@@ -15,7 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, isStale, ownsChannel, STALE_CEILING_H } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { invitationHtml, openShare, openTracks, pixelBase, pixelUrl } from './open_tracking.ts';
+import { OPEN_TOKEN_MS, invitationHtml, openShare, openTracks, pixelBase, pixelUrl } from './open_tracking.ts';
 import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, conversationReplyTo, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, paceM365, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
@@ -256,13 +256,15 @@ Deno.serve(observe('send_outbox', async (req) => {
     };
     // THE INVITATION OPEN (3 Nov 2026, marketing; open_tracking.ts). Share 0 / 'off' or no first-party base: no call, and
     // the email is exactly the untracked one. Otherwise the database picks the arm and the token; a failed call or no
-    // token sends the untracked email (an open is never worth a held invitation).
+    // token sends the untracked email (an open is never worth a held invitation). The call is cut at OPEN_TOKEN_MS, so a
+    // hung database call cannot delay an invitation. Only the Microsoft 365 lane carries the twin: the Resend fallback stays
+    // text-only, so a provider's own open or click tracking can never be added to an invitation (review of #1831).
     const openPct = openShare(await setting('invite_open_tracking'));
     const openBase = pixelBase(unsubBase);
     const openHtmlFor = async (n: { id: number; type?: unknown; kind?: unknown; to_role?: unknown; lang?: unknown }, text: string): Promise<string> => {
       if (!openPct || !openBase || !openTracks(n)) return '';
       try {
-        const { data, error } = await admin.rpc('fn_invite_open_token', { p_notification_id: n.id });
+        const { data, error } = await admin.rpc('fn_invite_open_token', { p_notification_id: n.id }).abortSignal(AbortSignal.timeout(OPEN_TOKEN_MS));
         const pixel = error ? '' : pixelUrl(openBase, data);
         return pixel ? invitationHtml(text, pixel) : '';
       } catch { return ''; }
@@ -389,7 +391,6 @@ Deno.serve(observe('send_outbox', async (req) => {
       // founder would read "here is this week's report", find no report, and have no way to tell
       // that from a report saying nothing happened. Failing the row keeps it queued for retry and
       // records why in last_error.
-      const campHtml = camp ? await openHtmlFor(n, camp.text) : '';
       const att = await resolveAttachments(n.attachments);
       if (!att.ok) {
         lastErr = att.err.slice(0, 200);
@@ -401,7 +402,7 @@ Deno.serve(observe('send_outbox', async (req) => {
         // the body, the footer and the unsubscribe URL in the recipient's language.
         // payload.ts builds it (22 Sep 2026) so the exact message can be rendered and inbox-linted offline.
         const mail: Record<string, unknown> = camp
-          ? resendPayload({ from, to: n.to_email, reply, subject: camp.subject, html: campHtml, text: camp.text, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX })
+          ? resendPayload({ from, to: n.to_email, reply, subject: camp.subject, html: '', text: camp.text, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX })
           : resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
           // The mailto half goes to the mailbox resend_inbound reads (_shared/unsubscribe_mailbox.ts), not to
           // the reply-to address.
