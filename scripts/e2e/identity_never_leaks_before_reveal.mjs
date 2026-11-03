@@ -315,7 +315,9 @@ function quoteForm(sup) {
  * on commas "found" a P.O. Box in 0.12499999999999999,0.15624999999999997, 3 Nov 2026), each reduced to its digits. */
 function digitRuns(s) { return (norm(s).match(/\d[\d\s.\-()\/+]*\d/g) || []).map((r) => r.replace(/\D/g, '')); }
 function found(tok, text) {
-  if (tok.digitsKey) { const key = tok.digitsKey.replace(/\D/g, ''); return digitRuns(text).some((r) => r.includes(key)) || compact(text).includes(compact(tok.digitsKey)); }
+  // Digits only as a run of their own (never the whole text squashed: "0.0520,0.5104" squashed held a P.O. Box). An
+  // IBAN key keeps its letters out (the AE prefix is dropped when the key is made), so a run is enough there too.
+  if (tok.digitsKey) { const key = tok.digitsKey.replace(/\D/g, ''); return digitRuns(text).some((r) => r.includes(key)); }
   const c = compact(text);
   return tok.words.some((w) => { const k = compact(w); if (k.length < 5) return false; if (c.includes(k)) return true; return false; });
 }
@@ -328,7 +330,9 @@ function foundFuzzy(tok, text) {
 }
 /** Every string a PDF carries: inflated streams, literal and hex strings, /Info, XMP. */
 function pdfStrings(buf) {
-  const s = buf.toString('latin1'); const chunks = [s];
+  // The dictionaries (/Info, annotations) without the raw stream bodies or the xref table: a literal-string match
+  // run across compressed bytes reached "/Size 15" and the offsets and "found" a P.O. Box there (3 Nov 2026).
+  const s = buf.toString('latin1'); const chunks = [s.replace(/stream\r?\n[\s\S]*?endstream/g, 'stream endstream').replace(/\bxref\b[\s\S]*?trailer/g, 'trailer')];
   for (const m of s.matchAll(/stream\r?\n/g)) {
     const start = m.index + m[0].length, end = s.indexOf('endstream', start); if (end < 0) continue;
     const raw = buf.subarray(start, end);
