@@ -2059,6 +2059,70 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_email_open_classify(p_user_agent text, p_ip inet, p_seconds numeric, OUT classification text, OUT rule text)
+ RETURNS record
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare ua text := btrim(coalesce(p_user_agent, '')); ipc text := public.fn_email_open_ip_class(p_ip); c_fast constant numeric := 60;
+begin
+  if p_seconds is null then classification := 'unknown'; rule := 'no send time on the notification'; return; end if;
+  if ua ~* '(bot\M|crawl|spider|scanner|barracuda|mimecast|proofpoint|ppops|forcepoint|symantec|messagelabs|trend ?micro|sophos|fortinet|fortimail|ironport|cisco|zscaler|libwww|python|curl/|wget|go-http|java/|okhttp|axios|node-fetch|undici|headless|phantomjs|link ?check|urlscan|safelinks|existence discovery)' then
+    classification := 'machine_prefetch'; rule := 'scanner or bot user agent'; return; end if;
+  if ua ~* '(googleimageproxy|ggpht\.com|yahoomailproxy)' then
+    if p_seconds < c_fast then classification := 'machine_prefetch'; rule := 'mail image proxy within 60 s of the send';
+    else classification := 'likely_human'; rule := 'mail image proxy fetch after 60 s (fetched when the message is opened)'; end if;
+    return; end if;
+  if ua = 'Mozilla/5.0' or ipc = 'apple' then classification := 'machine_prefetch'; rule := 'Apple Mail Privacy Protection'; return; end if;
+  if ipc = 'microsoft_eop' then classification := 'machine_prefetch'; rule := 'Microsoft Exchange Online Protection address'; return; end if;
+  if p_seconds < c_fast then classification := 'machine_prefetch'; rule := 'loaded within 60 s of the send'; return; end if;
+  if ua ~* '(outlook|microsoft office|thunderbird|windows nt|macintosh|iphone|ipad|android|applewebkit|gecko|chrome|safari)' then
+    classification := 'likely_human'; rule := 'mail client or browser user agent after 60 s'; return; end if;
+  classification := 'unknown'; rule := case when ua = '' then 'no user agent' else 'unrecognised user agent' end;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_open_ip_class(p_ip inet)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_ip is null then null
+    when family(p_ip) = 4 and p_ip << inet '17.0.0.0/8' then 'apple'
+    when (family(p_ip) = 4 and (p_ip << inet '40.92.0.0/15' or p_ip << inet '40.107.0.0/16' or p_ip << inet '52.100.0.0/14' or p_ip << inet '104.47.0.0/17'))
+      or (family(p_ip) = 6 and (p_ip << inet '2a01:111:f400::/48' or p_ip << inet '2a01:111:f403::/48')) then 'microsoft_eop'
+  end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_open_record(p_token text, p_user_agent text DEFAULT NULL::text, p_ip text DEFAULT NULL::text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare t public.email_open_token%rowtype; v_sent timestamptz; v_ip inet; v_secs numeric; v_salt text; c record;
+begin
+  if p_token is null or p_token !~ '^[0-9a-f]{32}$' then return 'bad_token'; end if;
+  select * into t from public.email_open_token where token = p_token;
+  if not found then return 'unknown_token'; end if;
+  if (select count(*) from public.email_open_event where token = p_token) >= 50 then return 'capped'; end if;
+  select sent_at into v_sent from public.notifications where id = t.notification_id;
+  begin v_ip := nullif(btrim(split_part(coalesce(p_ip, ''), ',', 1)), '')::inet; exception when others then v_ip := null; end;
+  v_secs := case when v_sent is null then null else round(extract(epoch from (now() - v_sent))::numeric, 1) end;
+  select * into c from public.fn_email_open_classify(p_user_agent, v_ip, v_secs);
+  v_salt := (select value from public.app_secrets where key = 'email_open_ip_salt');
+  insert into public.email_open_event (token, notification_id, seconds_after_send, user_agent, ip_hash, ip_class, classification, rule)
+  values (p_token, t.notification_id, v_secs, left(p_user_agent, 300),
+          case when v_ip is not null and coalesce(v_salt, '') <> '' then encode(sha256(convert_to(v_salt || '|' || host(v_ip), 'UTF8')), 'hex') end,
+          public.fn_email_open_ip_class(v_ip), c.classification, c.rule);
+  return c.classification;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text)
  RETURNS jsonb
  LANGUAGE plpgsql
