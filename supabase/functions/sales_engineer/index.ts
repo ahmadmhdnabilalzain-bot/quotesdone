@@ -529,7 +529,7 @@ const plain = observe('sales_engineer', async (req) => {
         // the same rules aiReply holds every conversation reply to (figures, policy, reply guard, another party's identity),
         // sentence by sentence; a deferral is a whole-answer judgement (aiReply), never one sentence's, so it is not run here
         check: (t: string) => [...guardSupportReply(t, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
-          ...replyProblems(t, known, { allowed, forbidden }).filter((p) => !/defers/.test(p)), ...wrappedReply(t), ...plainLanguage(t, lang), ...replyLanguageProblems(t, lang)],
+          ...replyProblems(t, known, { allowed, forbidden }).filter((p) => !/defers/.test(p)), ...wrappedReply(t), ...replyLanguageProblems(t, lang), ...plainLanguage(t, lang)],
       }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
       lap('reply');
       const reply = a.reply.trim();
