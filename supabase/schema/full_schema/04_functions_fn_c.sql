@@ -11255,6 +11255,83 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_customer_account_active_compose(p customers)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_site text; v_link text; v_name text := nullif(btrim(coalesce(p.full_name, '')), '');
+  v_ar boolean := public.fn_registered_locale('customer', p.id, null, p.email) = 'ar';
+begin
+  select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
+  v_link := coalesce(v_site, 'https://quotesdone.com') || '/me';
+  if v_ar then
+    return jsonb_build_object('lang', 'ar', 'link', v_link,
+      'subject', 'أصبح حسابكم على QuotesDone مفعّلًا',
+      'body', coalesce('السادة/ ' || v_name || ' المحترمين،', 'السادة المحترمين،') || E'\n\n'
+        || 'مرحبًا بكم في QuotesDone. أصبح حسابكم مفعّلًا الآن.' || E'\n\n'
+        || 'يمكنكم نشر طلبكم الأول في أي وقت: صِفوا ما تحتاجون إليه، ويرسل إليكم موردون موثّقون في الإمارات عروض أسعارهم لتقارنوا بينها.' || E'\n\n'
+        || 'حسابكم: ' || v_link || E'\n\n'
+        || 'للمساعدة، يسعدنا ردّكم على هذه الرسالة أو مراسلتنا عبر واتساب.' || E'\n\n'
+        || 'مع أطيب التحيات،' || E'\n' || 'فريق دعم العملاء في QuotesDone');
+  end if;
+  return jsonb_build_object('lang', 'en', 'link', v_link,
+    'subject', 'Your QuotesDone account is active',
+    'body', coalesce('Dear ' || v_name || ',', 'Dear customer,') || E'\n\n'
+      || 'Welcome to QuotesDone. Your account is now active.' || E'\n\n'
+      || 'You can post your first request at any time: describe what you need, and verified suppliers in the UAE send you their quotes to compare.' || E'\n\n'
+      || 'Your account: ' || v_link || E'\n\n'
+      || 'Need help? Reply to this e-mail or message us on WhatsApp.' || E'\n\n'
+      || 'Kind regards,' || E'\n' || 'QuotesDone Customer Support');
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_account_active_notice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_to text := lower(btrim(coalesce(new.email, ''))); v_why text; m jsonb;
+begin
+  v_why := public.fn_seat_clock_refusal(public.fn_is_demo_email(v_to), v_to, 'customer_account_active');
+  if v_why is null then
+    m := public.fn_customer_account_active_compose(new);
+    -- Queued directly by its own seat: z90_every_send_is_tracked files the delivery and tracks it to delivery.
+    insert into public.notifications (type, kind, channel, to_email, to_role, subject, body, lang, status,
+                                      requested_by, sender, dedupe_key)
+    values ('customer_account_active', 'customer_support_customer_account_active', 'email', v_to, 'customer',
+            m->>'subject', m->>'body', m->>'lang', 'queued', 'customer_support', 'customer_support',
+            'customer_account_active:' || new.id)
+    on conflict (dedupe_key) where dedupe_key is not null do nothing;
+  else
+    -- NOT SENT IS RECORDED, NEVER SILENT.
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    values ('customer_support', 'customer_account_active_notice', 'skipped', 'low',
+            left('Account-active notice not sent (' || v_why || ')', 200),
+            jsonb_build_object('customer_id', new.id, 'to_email', nullif(v_to, ''), 'not_sent', v_why),
+            'customers', new.id::text);
+  end if;
+  return null;
+exception when others then
+  -- The acceptance stands whatever happens here; the failure is on the record for customer_support. The record is
+  -- itself guarded: if even that insert fails, a warning is all that is left, never a refused acceptance.
+  begin
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    values ('customer_support', 'customer_account_active_notice', 'failed', 'medium',
+            left('Account-active notice failed for customer ' || new.id, 200),
+            jsonb_build_object('customer_id', new.id, 'error', left(sqlerrm, 500)), 'customers', new.id::text);
+  exception when others then
+    raise warning 'fn_customer_account_active_notice: customer % not told and not recorded: %', new.id, sqlerrm;
+  end;
+  return null;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_customer_concierge(p_customer uuid, p_category text DEFAULT NULL::text, p_lang text DEFAULT NULL::text, p_inquiry uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
