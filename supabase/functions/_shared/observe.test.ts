@@ -112,3 +112,14 @@ Deno.test('a 5xx the handler annotated held is held; an unannotated 5xx is still
   assertEquals(statusOf(503), 'error');
   assertEquals(statusOf(401, { held: true }), 'warn');
 });
+
+// 19 Oct 2026: fn:marketing_social_inbox read "half its runs failing" -- 4 of 8 were one curl sweep with no
+// signature header. A refusal of a caller with no credential is 'skipped'; a presented-but-wrong one stays 'warn'.
+Deno.test('a 4xx refused for presenting no credential is skipped; any other 4xx stays warn', () => {
+  assertEquals(statusOf(403, { refused_unauthenticated: true }), 'skipped');
+  assertEquals(statusOf(405, { refused_unauthenticated: true }), 'skipped');
+  assertEquals(statusOf(403, {}), 'warn');
+  assertEquals(statusOf(403), 'warn');
+  assertEquals(statusOf(500, { refused_unauthenticated: true }), 'error');
+  assertEquals(statusOf(200, { refused_unauthenticated: true }), 'ok');
+});

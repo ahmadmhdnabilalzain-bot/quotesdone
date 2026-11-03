@@ -151,6 +151,28 @@ const CATALOGUE: Record<string, Catalogue> = {
     sample1_en: 'your supplier registration still needs the trade licence, the company profile and the signed supplier terms',
     url: 'https://quotesdone.com/portal',
   },
+  // 3 NOV 2026 (customer_support) — the customer's account-active confirmation. Founder, 3 Nov 2026: after a customer
+  // registers "he gets a confirmation on email and whatsapp that his account is active". fn_customer_account_active_notice
+  // queues the email when the customer accepts the terms (the last step of sign-up) and fn_wa_fanout its twin to the
+  // confirmed number. UTILITY: a notice about the recipient's own account. {{1}} is the email's subject ("Your QuotesDone
+  // account is active", in the customer's language), {{2}} the account page. Both are bounded by literal text.
+  customer_account_active: {
+    en: 'QuotesDone: {{1}}. You can now post a request and compare quotes from verified suppliers here: {{2}} Thank you.',
+    ar: 'QuotesDone: {{1}}. يمكنكم الآن نشر طلبكم ومقارنة عروض الأسعار من موردين موثّقين عبر الرابط: {{2}} وشكرًا لكم.',
+    sample1_en: 'Your QuotesDone account is active', sample1_ar: 'أصبح حسابكم على QuotesDone مفعّلًا',
+    url: 'https://quotesdone.com/me',
+  },
+  // 3 NOV 2026 (customer_support) — the invoice for a paid reveal, on WhatsApp. Founder, 3 Nov 2026: "an invoice from our
+  // app is shared on email and whatsapp with the customer". The carrier is invoice_ready ("Your invoice is ready", the
+  // invoice.issued handoff): reveal_invoice (action 'attach') renders the QuotesDone invoice, attaches it to that email and
+  // puts the same PDF reference on its WhatsApp twin; send_whatsapp signs a 7-day link to it as it sends. {{1}} is the
+  // notice's subject, {{2}} the invoice link (the account page if no invoice was attached). Both are literal-bounded.
+  customer_reveal_invoice: {
+    en: 'QuotesDone: {{1}}. You can download the invoice for your payment here: {{2}} Thank you.',
+    ar: 'QuotesDone: {{1}}. يمكنكم تنزيل فاتورة دفعتكم عبر الرابط: {{2}} وشكرًا لكم.',
+    sample1_en: 'Your invoice is ready', sample1_ar: 'فاتورتكم جاهزة',
+    url: 'https://quotesdone.com/me',
+  },
   // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
   supplier_quote_accepted: {
     en: 'QuotesDone: a customer has paid to reveal your quote for {{1}}. Please respond within 5 working days. Open your portal here: {{2}} Thank you.',

@@ -639,6 +639,8 @@ ALTER TABLE public.edge_expectation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.edge_health_probe ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_block_pattern ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_domain_mx ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.email_open_event ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.email_open_token ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_platform_domain ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_suppressions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_verifications ENABLE ROW LEVEL SECURITY;
@@ -831,11 +833,14 @@ ALTER TABLE public.marketing_blog_topic ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_calendar_resend_decision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_campaign ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_connection_check ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_duty_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_duty_run ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_fact_watch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_first_touch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_founder_request ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_gap_recruitment_plan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_geo_check ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_geo_fix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_geo_question ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_goal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_insight_day ENABLE ROW LEVEL SECURITY;
@@ -1272,6 +1277,8 @@ CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SE
   WHERE ((r.ref_table = documents.ref_table) AND (r.ref_id = documents.ref_id)))));
 CREATE POLICY duty_pause_service_role_only ON public.duty_pause AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.edge_health_probe AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY email_open_event_service_role_only ON public.email_open_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY email_open_token_service_role_only ON public.email_open_token AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY email_platform_domain_service_role_only ON public.email_platform_domain AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY error_events_service_role_only ON public.error_events AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY expense_bank_match_service_role ON public.expense_bank_match AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -1354,11 +1361,14 @@ CREATE POLICY marketing_blog_topic_service_role_only ON public.marketing_blog_to
 CREATE POLICY marketing_calendar_resend_decision_service_role_only ON public.marketing_calendar_resend_decision AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_campaign_service_role_only ON public.marketing_campaign AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_connection_check_service_role_only ON public.marketing_connection_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_duty_record_service_role_only ON public.marketing_duty_record AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_duty_run_service_role_only ON public.marketing_duty_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_fact_watch_service_role_only ON public.marketing_fact_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_first_touch_service_role_only ON public.marketing_first_touch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_founder_request_service_role_only ON public.marketing_founder_request AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_gap_recruitment_plan_service_role_only ON public.marketing_gap_recruitment_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_geo_check_service_role_only ON public.marketing_geo_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_geo_fix_service_role_only ON public.marketing_geo_fix AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_geo_question_service_role_only ON public.marketing_geo_question AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_goal_service_role_only ON public.marketing_goal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_insight_day_service_role_only ON public.marketing_insight_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1606,6 +1616,13 @@ select cron.schedule('seat_duty:ceo.daily_number','*/5 * * * *',$CRON$set statem
 select cron.schedule('seat_duty:sales_engineer.supplier_onboarding','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.supplier_onboarding');$CRON$);
 select cron.schedule('company_faq_embed','*/10 * * * *',$CRON$select public.fn_company_faq_embed_tick();$CRON$);
 select cron.schedule('kb_embed','*/10 * * * *',$CRON$set statement_timeout = '120s'; select public.fn_kb_embed_scheduled_run();$CRON$);
+select cron.schedule('seat_duty:marketing.geo_fix','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.geo_fix');$CRON$);
+select cron.schedule('seat_duty:marketing.social_publish','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.social_publish');$CRON$);
+select cron.schedule('seat_duty:marketing.social_inbox','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.social_inbox');$CRON$);
+select cron.schedule('seat_duty:marketing.trend_decision','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.trend_decision');$CRON$);
+select cron.schedule('seat_duty:marketing.kpi_scorecard','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.kpi_scorecard');$CRON$);
+select cron.schedule('seat_duty:marketing.fact_register','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.fact_register');$CRON$);
+select cron.schedule('seat_duty:marketing.paid_spend_report','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.paid_spend_report');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
@@ -1757,6 +1774,7 @@ select cron.schedule('kb_embed','*/10 * * * *',$CRON$set statement_timeout = '12
 --   email_from_info
 --   email_from_supplier
 --   email_logo_url
+--   email_open_ip_salt
 --   email_reply_info
 --   email_reply_supplier
 --   email_reply_supplier_docs
@@ -1789,6 +1807,7 @@ select cron.schedule('kb_embed','*/10 * * * *',$CRON$set statement_timeout = '12
 --   invite_m365_enabled
 --   invite_m365_mailbox
 --   invite_max_bounce_rate
+--   invite_open_tracking
 --   invite_preheader
 --   invite_reachable_only
 --   invite_subject
