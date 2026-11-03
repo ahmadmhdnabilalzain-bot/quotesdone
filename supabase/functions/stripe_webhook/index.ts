@@ -345,7 +345,19 @@ Deno.serve(observe('stripe_webhook', async (req) => {
               const totalCharged = s.amount_total ? s.amount_total / 100 : Number(md.total_charged || fee);
               const processing = md.processing_fee != null ? Number(md.processing_fee) : Math.round((totalCharged - fee) * 100) / 100;
               const { data: tx, error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: inq?.customer_id || md.customer_id || null, quote_amount: amount, reveal_fee: fee, app_fee: fee, processing_fee: processing, total_charged: totalCharged, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl }).select('id').single();
-              if (e2) { await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - transaction insert failed: ' + e2.message + ' | payment_ref: ' + payRef); return new Response('insert failed: ' + e2.message, { status: 500 }); }
+              // TWO DELIVERIES AT ONCE (3 Nov 2026, it_engineer, drill D4). Both read "no sale yet", both
+              // insert, and transactions_quote_id_uidx lets exactly one win. The loser used to log
+              // 'PAID BUT NOT RECORDED' at error level and answer 500 for a sale that IS recorded: a false
+              // page to the accountant on every concurrent retry. Measured offline: the drill's two
+              // simultaneous deliveries gave 2 insert attempts, 1 row and that false error. The loser now
+              // re-reads, as _shared/reveal_sale.ts already does, and stands down; the winner files the
+              // invoice. A failure with no row behind it is still the real alarm, unchanged.
+              // prevented by: supabase/functions/stripe_webhook/drill_webhook_replay.test.ts
+              if (e2) {
+                const { data: won } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
+                if (won?.id) { await logRun('ok', { quote_id: qid, duplicate: true, concurrent: true, transaction: String(won.id) }, 'concurrent duplicate delivery: the sale was recorded by the other delivery (' + e2.message + ')'); return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }); }
+                await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - transaction insert failed: ' + e2.message + ' | payment_ref: ' + payRef); return new Response('insert failed: ' + e2.message, { status: 500 });
+              }
               // THE INVOICE (9 Sep 2026). invoice_creation is on for reveal-fee sessions, so a paid
               // session names its Invoice. Awaited rather than fired-and-forgotten, because an edge
               // function that has already returned 200 is a function that may be frozen mid-fetch -
