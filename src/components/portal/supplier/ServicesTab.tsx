@@ -33,7 +33,8 @@ import { blobToWav } from '@/lib/wavEncode';
 import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel } from './serverCopy';
-import { countServices, sc, scCount, VERIFY_COPY } from './servicesCopy';
+import { countServices, profileStateOf, sc, scCount, VERIFY_COPY } from './servicesCopy';
+import { docStateLine, englishLines, isEnglishLine, reloadRoles, reloadSet, reloadText } from './servicesRead';
 
 type Service = { key: string; label_en: string; label_ar: string };
 type Trade = { code: string; label: string; label_ar?: string | null };
@@ -41,7 +42,7 @@ type Role = { code: string; label: string };
 type ChecklistTrade = { code: string; source: 'confirmed' | 'on_file' | 'documents' | 'refine' };
 type Proposal = { code: string; label_en?: string | null; label_ar?: string | null; status: string; mapped_to?: string | null };
 type DocHit = { code: string; snippet?: string };
-type Doc = { path: string; name: string; kind?: string; status?: string; trades?: DocHit[] };
+type Doc = { path: string; name: string; kind?: string; status?: string; source?: string; choice?: string; reason?: string; vision_held?: DocHit[]; trades?: DocHit[] };
 type Voice = { enabled: boolean; max_seconds: number; max_bytes: number };
 type State = {
   ok: boolean; confirmed: boolean; first_run: boolean;
@@ -70,7 +71,7 @@ type Rewrite = {
   model?: { state: string; message_en?: string; message_ar?: string };
 };
 
-const box = 'mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const box = 'mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring';
 const row = 'flex min-h-11 cursor-pointer items-start gap-2.5 rounded-md px-2 py-2.5 text-[13.5px] leading-snug text-foreground hover:bg-muted/40';
 const h3 = 'text-[14.5px] font-bold tracking-[-.012em] text-foreground';
 const sub = 'text-[13px] leading-[1.65] text-muted-foreground max-w-[68ch]';
@@ -108,21 +109,24 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // unmount fires onstop later, and a slow services_state can land after a tab switch.
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  const load = async () => {
+  const load = async (o: { keepText?: boolean } = {}) => {
     setSt((s) => ({ ...s, loading: true, err: '' }));
     const j = await call('supplier_api', { action: 'services_state' }, token).catch(() => null);
     if (!mounted.current) return;
     if (j && j.ok) {
       const d = j as State;
       setTrades(d.checklist.map((c) => c.code));
-      setRemovedTrades(new Set());
-      setTicked(new Set(d.selected_services));
-      setRoles((d.capability && d.capability.roles) || []);
-      setRawText(d.raw_text || '');
+      // keepText = a refresh because the profile finished reading: everything the supplier did meanwhile stays (review of #1796).
+      const keep = !!o.keepText;
+      setRemovedTrades((cur) => reloadSet(cur, [], keep));
+      setTicked((cur) => reloadSet(cur, d.selected_services, keep));
+      setRoles((cur) => reloadRoles(cur, (d.capability && d.capability.roles) || [], keep));
+      // A refresh because the profile finished reading must not take away what the supplier has typed meanwhile.
+      setRawText((cur) => reloadText(cur, d.raw_text || '', keep));
       // `dropped` starts empty on every load and is seeded from the preview instead: the server marks
       // an implication the supplier removed before as `removed: true`, so what was struck out survives
       // without this set having to hold keys the checklist may legitimately tick.
-      setRw(null); setDropped(new Set());
+      if (!keep) { setRw(null); setDropped(new Set()); }   // the rewrite preview the supplier is reading stays on a refresh
       setSt({ loading: false, err: '', data: d });
     } else {
       setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, sc(lang, 'load_failed')) }));
@@ -132,6 +136,25 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // whole load on a language toggle would throw away the supplier's unsaved edits. A retry re-renders
   // the message in the current language.
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // "THIS PAGE UPDATES BY ITSELF WHEN THE READ FINISHES" (VERIFY_COPY.profile_reading) was said and never done: this tab loaded once, so a
+  // supplier who opened it while the profile was being read stayed on "still reading" until it left and came back. While a profile is
+  // being read, ask again every 5 seconds (at most 10 minutes, as the Documents tab does); when it has finished, reload, keeping any text typed.
+  const readingNow = !!st.data?.capability?.source_docs?.docs?.some((x) => x.kind === 'profile' && x.status === 'reading');
+  const polls = useRef(0);
+  useEffect(() => {
+    if (!readingNow) { polls.current = 0; return; }
+    if (polls.current >= 120) return;
+    const id = window.setTimeout(async () => {
+      polls.current += 1;
+      const j = await call('supplier_api', { action: 'services_state' }, token).catch(() => null);
+      if (!mounted.current) return;
+      const going = !!j?.capability?.source_docs?.docs?.some((x: Doc) => x.kind === 'profile' && x.status === 'reading');
+      if (j && j.ok && !going) load({ keepText: true });
+      else setSt((s) => ({ ...s }));   // asks again in 5 seconds
+    }, 5000);
+    return () => window.clearTimeout(id);
+  }, [readingNow, st, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── voice ──────────────────────────────────────────────────────────────────────────────────────
   const rec = useRef<{ mr: MediaRecorder; chunks: Blob[]; stream: MediaStream; timer: number } | null>(null);
@@ -178,7 +201,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       <h2 className={h3}>{sc(lang, 'load_failed')}</h2>
       {/* SP-I-01: `st.err` is the server's own English — a raw code, or a DB message on a 500. */}
       {st.err ? <p className={sub}>{panelErrorText(ar ? 'ar' : 'en', st.err)}</p> : null}
-      <Button className="mt-3" onClick={load}>{sc(lang, 'retry')}</Button>
+      <Button className="mt-3" onClick={() => load()}>{sc(lang, 'retry')}</Button>
     </Card>
   );
   const d = st.data;
@@ -201,11 +224,10 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const profileDocs = allDocs.filter((x) => x.kind === 'profile');
   const profileHits = profileDocs.flatMap((x) => x.trades || []);
   const profileKeywords = [...new Set(profileHits.map((h) => h.code))].map(tradeName);
-  const profileLines = [...new Set(profileHits.map((h) => (h.snippet || '').trim()).filter(Boolean))].slice(0, 3);
-  const profileState = profileHits.length ? 'hits'
-    : profileDocs.some((x) => x.status === 'reading') ? 'reading'
-    : profileDocs.some((x) => x.status === 'needs_ocr' || x.status === 'unreadable') ? 'scan'
-    : profileDocs.length ? 'none' : 'missing';
+  // English only to a supplier (ruling 1008): an Arabic line of the profile reads its trade, but the keyword beside it is the English name and
+  // the Arabic quote is not repeated here; an Arabic-only profile shows its keywords alone.
+  const profileLines = englishLines([...new Set(profileHits.map((h) => (h.snippet || '').trim()))]).slice(0, 3);
+  const profileState = profileStateOf(profileDocs);
   const noPrep = !d.confirmed && d.checklist.length === 0;
   // THE REWRITE CARRIES ITS OWN LABELS and they are read first. services_by_trade only holds the
   // trades the sales engineer PREPARED, so a service recognised from a trade the supplier does not
@@ -341,7 +363,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
       {docs.length === 0 && allDocs.length > 0 && (
         <ul className="mt-2 space-y-1">
-          {allDocs.map((doc) => <li key={doc.path} className="text-[12.5px] text-muted-foreground"><span className="font-medium text-foreground break-all" dir="auto">{doc.name}</span>{' — '}{doc.status === 'read' ? VERIFY_COPY.doc_read_none : doc.status}</li>)}
+          {allDocs.map((doc) => <li key={doc.path} className="text-[12.5px] text-muted-foreground"><span className="font-medium text-foreground break-all" dir="auto">{doc.name}</span>{' — '}{docStateLine(doc)}</li>)}
         </ul>
       )}
 
@@ -353,7 +375,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
               <li key={doc.path} className="text-[12.5px] text-muted-foreground">
                 <span className="font-medium text-foreground break-all" dir="auto">{doc.name}</span>
                 {' — '}{(doc.trades || []).map((h) => tradeName(h.code)).join(ar ? '، ' : ', ')}
-                {doc.trades && doc.trades[0] && doc.trades[0].snippet ? <q className="ms-1.5 opacity-80" dir="auto">{doc.trades[0].snippet}</q> : null}
+                {/* English only (review of #1796): a line read off an Arabic picture is not repeated; the trade names beside it say it */}
+                {doc.trades && doc.trades[0] && isEnglishLine(doc.trades[0].snippet) ? <q className="ms-1.5 opacity-80" dir="auto">{doc.trades[0].snippet}</q> : null}
               </li>
             ))}
           </ul>
@@ -419,7 +442,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           <textarea id={uid + '-raw'} dir="auto" rows={5} maxLength={2000} value={rawText}
                     onChange={(e) => { setRawText(e.target.value); setRwMsg(''); }}
                     aria-describedby={uid + '-describe-help'} placeholder={sc(lang, 'describe_ph')}
-                    className="w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" />
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Button type="submit" className="min-h-11" disabled={rwBusy || rawText.trim().length < 2}>
               {rwBusy ? sc(lang, 'rewriting') : sc(lang, 'rewrite')}

@@ -69,7 +69,7 @@ export function BriefBox() {
     <div className={`${s.shell} text-start`}>
       {/* bg-surf under the panel's translucent gradient: the hero scene sits behind this box and must
           never show through the field or its examples. */}
-      <div className={`qd-panel rounded-[22px] overflow-hidden !bg-surf`}>
+      <div className={`qd-panel rounded-[22px] overflow-hidden bg-surf!`}>
         {/* method="post": handled in JS (preventDefault); the attribute keeps a no-JS submit from
             putting the job description in a GET query string. */}
         <form method="post" onSubmit={(e) => { e.preventDefault(); check(); }}>
@@ -93,9 +93,9 @@ export function BriefBox() {
               if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); check(); }
             }}
             placeholder={t('ph')}
-            className="block w-full resize-none bg-transparent px-5 pb-2 pt-3 text-[16px] leading-relaxed text-paper outline-none placeholder:text-faint/90 focus-visible:placeholder:text-faint/60"
+            className="block w-full resize-none bg-transparent px-5 pb-2 pt-3 text-[16px] leading-relaxed text-paper outline-hidden placeholder:text-faint/90 focus-visible:placeholder:text-faint/60"
           />
-          <div className="flex flex-col gap-3 border-t border-[var(--line)] px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-(--line) px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-1.5 px-2 sm:px-0 sm:ps-2">
               {/* Labelled as examples so three chips never read as the list of what we do. */}
               <span className="text-[12px] text-faint">{t('eg')}</span>
@@ -134,21 +134,21 @@ export function BriefBox() {
         </form>
 
         <div aria-live="polite">
-          {err && <p className="border-t border-[var(--line)] px-5 py-4 text-[13px] text-gold">{err}</p>}
+          {err && <p className="border-t border-(--line) px-5 py-4 text-[13px] text-gold">{err}</p>}
           {res && !res.recognised && (
-            <div className="border-t border-[var(--line)] px-5 py-4 text-[13.5px] leading-relaxed text-muted">
+            <div className="border-t border-(--line) px-5 py-4 text-[13.5px] leading-relaxed text-muted">
               <p>{t('unknown')}</p>
               {res.clarification && <p className="mt-2 text-paper" dir="auto">{t('clarify')} {res.clarification}</p>}
             </div>
           )}
           {res && res.recognised && (
-            <div className="border-t border-[var(--line)] bg-navy-deep/40 px-5 py-5">
+            <div className="border-t border-(--line) bg-navy-deep/40 px-5 py-5">
               <dl className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[12px] bg-teal/[0.06] px-3.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(110,231,212,.2)]">
+                <div className="rounded-panel bg-teal/6 px-3.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(110,231,212,.2)]">
                   <dt className="font-mono text-[12px] uppercase tracking-[0.16em] text-faint rtl:font-sans rtl:tracking-normal">{t('recognised')}</dt>
                   <dd className="mt-1 font-head text-[15px] font-semibold text-white">{res.label}</dd>
                 </div>
-                <div className="rounded-[12px] px-3.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(110,231,212,.1)]">
+                <div className="rounded-panel px-3.5 py-2.5 shadow-[inset_0_0_0_1px_rgba(110,231,212,.1)]">
                   <dt className="font-mono text-[12px] uppercase tracking-[0.16em] text-faint rtl:font-sans rtl:tracking-normal">{t('emirate')}</dt>
                   <dd className="mt-1 text-[14px] text-paper">{res.emirate || t('noEmirate')}</dd>
                 </div>

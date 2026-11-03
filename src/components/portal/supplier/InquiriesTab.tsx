@@ -100,7 +100,7 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
       <h3 className="text-[13px] font-semibold text-foreground">{t.documents}</h3>
       {!d.documents.length ? <p className="mt-1 text-[12.5px] text-muted-foreground">{t.noDocs}</p> : null}
       {(
-        <ul className="mt-2 divide-y divide-[var(--line)] rounded-md border border-[var(--line)]">
+        <ul className="mt-2 divide-y divide-(--line) rounded-md border border-(--line)">
           {pdfRow}
           {d.documents.map((doc, k) => (
             <li key={`${doc.kind}:${doc.name}:${k}`} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
@@ -130,11 +130,11 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
   const load = useCallback(() => qr.inquiry(token, id).then((j) => { if (!alive.current) return; if (failed(j)) setErr(srvMsg(lang, j, t.err)); else setD(j.inquiry); }), [token, id, lang, t.err]);
   useEffect(() => { alive.current = true; load(); return () => { alive.current = false; }; }, [load]);
   if (err) return <p role="alert" className="px-4 pb-4 text-[13px] text-danger-fg">{err}</p>;
-  if (!d) return <div className="space-y-2 px-4 pb-4" aria-busy="true">{[70, 90, 55].map((w) => <div key={w} className="h-3 animate-pulse rounded bg-white/[.06] motion-reduce:animate-none" style={{ width: w + '%' }} />)}</div>;
+  if (!d) return <div className="space-y-2 px-4 pb-4" aria-busy="true">{[70, 90, 55].map((w) => <div key={w} className="h-3 animate-pulse rounded bg-white/6 motion-reduce:animate-none" style={{ width: w + '%' }} />)}</div>;
   const canQuote = !d.concluded && !d.revealed;
   const q = d.quotes[0];
   return (
-    <div className="border-t border-[var(--line)] px-4 pb-5 pt-4 sm:px-5">
+    <div className="border-t border-(--line) px-4 pb-5 pt-4 sm:px-5">
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12.5px] sm:grid-cols-4">
         <div><dt className="text-muted-foreground">{t.job}</dt><dd className="font-mono font-semibold tabular-nums text-foreground"><Ltr>{d.job_no}</Ltr></dd></div>
         <div><dt className="text-muted-foreground">{t.received}</dt><dd className="text-foreground">{day(d.created_at, lang)}</dd></div>
@@ -203,7 +203,7 @@ export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, re
           return (
             <li key={i.id} id={'qd-inq-' + i.id} className={cn('qd-panel overflow-hidden p-0 transition-colors', on && 'border-primary/40')}>
               <button type="button" aria-expanded={on} aria-controls={'qd-inq-d-' + i.id} onClick={() => setOpen(on ? null : i.id)}
-                className="grid w-full grid-cols-[auto_1fr_auto] items-start gap-x-4 gap-y-1 px-4 py-3.5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-5">
+                className="grid w-full grid-cols-[auto_1fr_auto] items-start gap-x-4 gap-y-1 px-4 py-3.5 text-start focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-5">
                 <span className="pt-0.5">
                   <span className="block font-mono text-[10.5px] uppercase text-muted-foreground">{t.job}</span>
                   <span className="block font-mono text-[14px] font-semibold tabular-nums text-primary"><Ltr>{i.job_no}</Ltr></span>

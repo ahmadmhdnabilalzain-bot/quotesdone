@@ -1314,13 +1314,13 @@ AS $function$
       'وصلتني رسالتكم وقد تحوّلت حروفها إلى علامات استفهام، فتعذّرت عليّ قراءة سؤالكم. '
       || 'لا خطأ في سؤالكم، وإنما لم يصل النص سليمًا عبر الاتصال. يُرجى إعادة إرسال الرسالة. '
       || 'وإن تكرر ذلك، يمكنكم الاتصال أو المراسلة عبر واتساب:' || E'\n'
-      || E'‎' || '+971 50 931 9355' || E'\n'
+      || E'‎' || '+1 218 316 6814' || E'\n' || 'أو الاتصال الهاتفي على:' || E'\n' || E'‎' || '+971 56 791 8605' || E'\n'
       || '(من الاثنين إلى الجمعة، من 9 صباحًا حتى 6 مساءً بتوقيت الإمارات)' || E'\n'
       || 'أو البريد الإلكتروني:' || E'\n' || 'management@quotesdone.com'
     else
       'Your message reached me with its characters replaced by question marks, so I cannot read '
       || 'what you asked. Nothing is wrong with your question — it did not survive the connection. '
-      || 'Please send it again. If it keeps happening, call or WhatsApp +971 50 931 9355 '
+      || 'Please send it again. If it keeps happening, call +971 56 791 8605 or WhatsApp +1 218 316 6814 '
       || '(Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.'
   end;
 $function$
@@ -3414,8 +3414,8 @@ begin
 
   -- A complaint gets the number appended, because the escalation and the contact are the same act.
   if v_trouble and not v_asked then
-    v_reply := v_reply || ' If you would rather speak to someone directly, call or message '
-            || '+971 50 931 9355, which is answered by the owner.';
+    v_reply := v_reply || ' If you would rather speak to someone directly, call '
+            || '+971 56 791 8605 or message +1 218 316 6814 on WhatsApp.';
   end if;
 
   v_needs := false; v_why := 'A deterministic answer matched and the message is simple, so this turn costs nothing.';
@@ -3491,6 +3491,26 @@ begin
     'fact_pack', v_pack,
     'model_brief', public.fn_wa_model_brief()
   );
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_route_dry(p_phone text, p_body text, p_needs_person boolean DEFAULT NULL::boolean, p_intent text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_out jsonb;
+begin
+  begin
+    v_out := public.fn_wa_route(p_phone, p_body, false, p_needs_person, p_intent);
+    raise exception 'qd_dry_route';
+  exception when raise_exception then
+    if sqlerrm is distinct from 'qd_dry_route' then raise; end if;
+  end;
+  return v_out;
 end;
 $function$
 

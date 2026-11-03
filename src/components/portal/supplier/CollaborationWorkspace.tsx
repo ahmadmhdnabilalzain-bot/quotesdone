@@ -129,7 +129,7 @@ function WorkspaceComposer({ token, inquiryId, supplierId, lang, onSent }: {
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }}
         placeholder={t(lang, 'composerPlaceholder')}
         rows={2}
-        className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[11.5px] leading-[1.6] outline-none placeholder:opacity-40 focus:border-white/30"
+        className="w-full resize-y rounded-lg border border-white/15 bg-white/4 px-2.5 py-1.5 text-[11.5px] leading-[1.6] outline-hidden placeholder:opacity-40 focus:border-white/30"
       />
       <button
         type="button" disabled={busy || !text.trim()} onClick={() => void send()}
@@ -166,7 +166,7 @@ export default function CollaborationWorkspace({
 
   return (
     <div className="space-y-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'title')}</h3>
           <span className="text-sm tabular-nums">{d.count ?? 0}</span>
@@ -189,7 +189,7 @@ export default function CollaborationWorkspace({
         const pct = w.timeline?.pct;
         const stages = w.timeline?.stages || {};
         return (
-          <section key={w.inquiry_id} className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+          <section key={w.inquiry_id} className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
             <header className="flex items-start justify-between gap-3 mb-3">
               <div className="min-w-0">
                 <div className="text-[13px] font-medium truncate">{w.project?.title}</div>
@@ -212,7 +212,7 @@ export default function CollaborationWorkspace({
               </div>
               {pct != null && (
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                  <div className="h-full rounded-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-all duration-700"
+                  <div className="h-full rounded-full bg-linear-to-r from-sky-400 to-emerald-400 transition-all duration-700"
                        style={{ width: Math.max(2, pct) + '%' }} />
                 </div>
               )}

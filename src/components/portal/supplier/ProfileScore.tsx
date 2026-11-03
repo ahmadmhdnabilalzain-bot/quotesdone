@@ -22,7 +22,7 @@ export default function ProfileScore({ me, eligibility, go }: { me: any; eligibi
           {todo.map((i) => (
             <li key={i.key} className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-copy text-foreground">{i.label} <span className="text-muted-foreground tabular-nums">(+{i.points})</span></span>
-              <button type="button" className="min-h-11 rounded-md border border-border px-3 text-[13px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              <button type="button" className="min-h-11 rounded-md border border-border px-3 text-[13px] font-semibold hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => go(i.tab)}>Go to {TAB_NAME[i.tab]}</button>
             </li>
           ))}

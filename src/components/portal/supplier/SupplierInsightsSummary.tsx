@@ -181,11 +181,11 @@ export default function SupplierInsightsSummary({ token, lang, goTo }: { token: 
         <div className="mt-3 h-[200px] w-full" dir="ltr" aria-hidden>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={series} barGap={2} margin={{ top: 6, right: 6, bottom: 0, left: -18 }}>
-              <CartesianGrid vertical={false} stroke="currentColor" className="text-border" strokeOpacity={0.5} />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'currentColor' }} className="text-muted-foreground" reversed={ar} />
-              <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'currentColor' }} className="text-muted-foreground" orientation={ar ? 'right' : 'left'} domain={[0, (m: number) => Math.max(1, m)]} />
+              <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} reversed={ar} />
+              <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} orientation={ar ? 'right' : 'left'} domain={[0, (m: number) => Math.max(1, m)]} />
               <Tooltip cursor={{ fillOpacity: 0.06 }} contentStyle={{ background: 'var(--card, #111)', border: '1px solid var(--line, #333)', borderRadius: 8, fontSize: 12 }}
-                formatter={(v: number, name: string) => [v, name === 'quotes' ? ws(lang, 'trend_quotes') : ws(lang, 'trend_reveals')]} />
+                formatter={(v, name) => [v, name === 'quotes' ? ws(lang, 'trend_quotes') : ws(lang, 'trend_reveals')]} />
               <Bar dataKey="quotes" radius={[4, 4, 0, 0]} fill="currentColor" className="text-primary" maxBarSize={14} />
               <Bar dataKey="reveals" radius={[4, 4, 0, 0]} fill="currentColor" className="text-primary/40" maxBarSize={14} />
             </BarChart>
@@ -211,7 +211,7 @@ export default function SupplierInsightsSummary({ token, lang, goTo }: { token: 
                 <div className="min-w-0 flex-1">
                   <div className="text-[13.5px] font-semibold text-foreground">{ws(lang, h.code + '_t', h.params)}</div>
                   <p className="mt-0.5 text-[12.5px] leading-[1.6] text-muted-foreground">{ws(lang, h.code + '_b', h.params)}</p>
-                  {tab && goTo && <button type="button" onClick={() => goTo(tab)} className="mt-1.5 inline-flex min-h-11 items-center gap-1 rounded-sm text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {tab && goTo && <button type="button" onClick={() => goTo(tab)} className="mt-1.5 inline-flex min-h-11 items-center gap-1 rounded-sm text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
                     {ws(lang, 'hint_go')}: {ws(lang, tab === 'profile' ? 'acct_profile' : 'tab_' + tab)}<ArrowUpRight aria-hidden className={cn('h-3.5 w-3.5', ar && '-scale-x-100')} />
                   </button>}
                 </div>

@@ -9,10 +9,10 @@ cover a company fact, say exactly who decides it (see conversation_style.md) and
 
 **Source keys** (every fact below carries one; the cited text governs if anything here differs):
 - `CT§n` Customer Terms of Service **v11**, last updated 19 Oct 2026 (quotesdone.com/terms)
-- `SA§n` Supplier Agreement **v16**, last updated 19 Oct 2026 (quotesdone.com/supplier-agreement)
-- `PP§n` Privacy Policy v1.7, 19 Oct 2026 · `DIS§n` Disclaimer v1.4 · `CPL` Complaints & Disputes v1.4
+- `SA§n` Supplier Agreement **v17**, last updated 2 Nov 2026 (quotesdone.com/supplier-agreement)
+- `PP§n` Privacy Policy v1.8, 2 Nov 2026 · `DIS§n` Disclaimer v1.4 · `CPL` Complaints & Disputes v1.4
 - `HWV` How we verify suppliers page · `FAQ` the public FAQ (quotesdone.com/faq) · `CON` Contact page
-- `CF` src/content/company_facts.json v2026-10-19.1 (the one source of truth for every figure)
+- `CF` src/content/company_facts.json v2026-11-02.1 (the one source of truth for every figure)
 - `FI n` the founder's ruling n in public.founder_instruction
 
 In Arabic and English the documents are bilingual; **the Arabic text prevails**, including in court (CT§22, SA§22).
@@ -73,10 +73,15 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
 
 1. **Register** on the supplier portal: claim or create the company listing. (FAQ "How do I register?")
 2. **The mandatory six** must be complete before any match: business name (licensed legal name), mobile
-   (OTP-verified), email (verified), valid UAE trade licence, company profile (trades and emirates), signed
-   Supplier Agreement. (SA§13; HWV)
+   (OTP-verified), email (verified), valid UAE trade licence (uploaded), company profile (uploaded), signed
+   Supplier Agreement. The licence and the profile are the two required documents. (SA§13; HWV)
 3. **Verification** within **3 working days** of complete documents: licence number, issuing authority and
-   expiry date are checked. No supplier is approved automatically. (SA§13; HWV)
+   expiry date are read from the licence and checked. Approval is **automatic** when the six are complete,
+   the licence is read and in date, and the supplier has **confirmed the services it provides** (Services tab); until it
+   confirms them it is held and the portal says what is left (SA "Automated decisions"; ledger 1469). An expired licence must be renewed first; a
+   licence that cannot be read in full is held for review, and the supplier is told what is pending. A licence issued by
+   an authority outside the UAE, or by an authority that cannot be confirmed, is held too (ledger 1442), and the supplier
+   is asked for a current UAE trade licence or to name the UAE authority or free zone that issued it. (SA§13; HWV)
 4. **Receive matched RFQs** anonymised; ignoring an invitation carries no penalty. (FAQ "Can I decline invitations?")
 5. **Quote** itemised: scope, line items with brand/model and specs, quantities, unit prices, materials,
    lead time, validity, warranty, payment terms, exclusions. A quote below the quality bar is held as a
@@ -230,7 +235,7 @@ or subscriptions; a supplier's own quotation may state discounts, which we relay
 
 ## 12. Contact
 
-- **management@quotesdone.com** · **+1 218 316 6814** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
+- **management@quotesdone.com** · WhatsApp **+1 218 316 6814** (messages only, never call it) · calls **+971 56 791 8605** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
 - info@quotesdone.com for questions about the Terms (CT§20); supplier@quotesdone.com to copy on a
   non-response complaint (CT§5); complaints status at quotesdone.com/complaints/status (CT§18).
 - Governing law: UAE; courts of Dubai. (CT§19)

@@ -105,7 +105,6 @@ e2e-reports/
 !/scripts/
 !/src/
 !/supabase/
-!/tailwind.config.ts
 # tests/fixtures/ holds generated benchmark fixtures (28 Sep 2026: the ZZ DEMO drawing take-off set,
 # written by scripts/eval/drawing_takeoff_zz_demo_gen.ts, scored by scripts/eval/drawing_takeoff_benchmark.ts).
 !/tests/

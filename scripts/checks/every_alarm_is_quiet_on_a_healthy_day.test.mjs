@@ -83,6 +83,22 @@ export const KNOWN_LOUD = [
   { alarm: 'fn_it_detect', at: '2026-09-19T06:00:00Z', key: 'run_silent:send_whatsapp' },
 ];
 
+// A HEALTHY instant was chosen for a quiet HOUR (see HEALTHY). An alarm that judges a longer window can see, inside it, a
+// failure that was real and measured; firing on it is the alarm working, not a false alarm. Each entry here MUST fire at
+// its instant (so it is also a known-bad control: the alarm sees a real outage), and its evidence is written down. It is
+// not KNOWN_LOUD: that list is false alarms owed a fix. If an entry stops firing, the alarm went blind to a measured
+// failure, or retention removed the history; the check fails either way and says which entry.
+export const REAL_FAILURE_IN_WINDOW = [
+  // Measured 2 Nov 2026 on production (agent_runs, 12 Sep 06:00Z to 19 Sep 06:00Z, the 7 days fn_it_engineer_run_clusters
+  // judges at the instant): inquiry_intake ran 704 times, all 704 status error with counts.llm_call_ok 0 - "Intake LLM call
+  // failed for every model", every brief built by the keyword fallback (OpenRouter on hold). No ok row was purged: the
+  // same days keep 8,000-16,000 ok rows each, and inquiry_intake's ok rows from the week of 21 Sep are still there.
+  { alarm: 'fn_it_engineer_run_clusters', at: '2026-09-19T06:00:00Z', key: 'duty:run_cluster:inquiry_intake' },
+  // Same window: send_whatsapp 107 runs, 62 error, every one "WhatsApp notification(s) cannot be sent yet because the
+  // matching template is missing or still awaiting Meta approval" - customers' WhatsApp notices were not delivered.
+  { alarm: 'fn_it_engineer_run_clusters', at: '2026-09-19T06:00:00Z', key: 'duty:run_cluster:send_whatsapp' },
+];
+
 export const REGISTER = {
   // ── REPLAYED ──────────────────────────────────────────────────────────────────────────────────
   fn_it_detect: {
@@ -141,7 +157,12 @@ export const REGISTER = {
   fn_customer_support_delivery_health_tick: {
     stub: { 'public.fn_customer_support_duty_send': `'{}'::jsonb` },
     replay: 'pg_temp.qd_replay_fn_customer_support_delivery_health_tick()',
-    asOf: { notifications: 'created_at', agent_runs: 'started_at', email_suppressions: 'created_at', inbound_messages: 'created_at' },
+    // unsubscribe_refusal (2 Nov 2026, it_engineer): its arm counts refusals with at > now() - 24 h and no upper bound, so
+    // without the view every refusal recorded AFTER the instant counted at it. Measured: the table's first real row is
+    // 28 Oct 00:55Z (2 real, 9 example.invalid), and the replay fired delivery_health:unsubscribe_refusals at all four
+    // healthy instants of September, a month before the table existed. Main's database check was red on it from then.
+    asOf: { notifications: 'created_at', agent_runs: 'started_at', email_suppressions: 'created_at', inbound_messages: 'created_at',
+            unsubscribe_refusal: 'at' },
   },
   // 23 Sep 2026 (sales_engineer, #869). Raises two findings: a reminder whose handler failed three times,
   // and a reminder whose delivery never became final in 3 days. Both read handoffs and leads that existed
@@ -309,6 +330,12 @@ export const REGISTER = {
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   trg_high_stakes_review: { relay: 'records the disagreement a second seat recorded with a high-stakes decision that already went ahead; the verdict is the reviewer\'s (seat_deliberation_turn), and a healthy day has none' },
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
+  // 27 Oct 2026 (it_engineer for marketing): the WhatsApp supplier invitation brake (#1634) writes it_watch_finding
+  // directly, and main went red on this check because nobody registered it. It decides nothing itself: its two callers
+  // decide (fn_wa_sender_quality_record on Twilio's own quality reading, fn_wa_supplier_invite_gate on >= 2 STOP replies
+  // and >= 5% of the invitations sent in 7 days), and fn_it_engineer_ingest_watch_findings carries the open row into
+  // the finding ledger. With 0 invitations sent and no reading below HIGH, a healthy day raises nothing.
+  fn_wa_supplier_invite_brake: { relay: 'records the WhatsApp invitation brake that fn_wa_sender_quality_record (a Twilio quality reading below HIGH / ONLINE) or fn_wa_supplier_invite_gate (>= 2 STOPs and >= 5% of 7-day invitations) decided; a healthy day sends no invitation below HIGH and has no STOPs, so it raises nothing' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
   fn_it_engineer_ingest_watch_findings: { relay: 'copies fn_it_detect\'s open it_watch_finding rows into the finding ledger' },
@@ -471,6 +498,13 @@ test('the static gate fails a new, unregistered alarm and a new name smuggled in
   assert.match(bad.join('\n'), /fn_zz_demo_smuggled: BASELINE is frozen/);
 });
 
+test('a real failure in an alarm\'s window names a replayed alarm at a healthy instant, and is not a known false alarm', () => {
+  const at = new Set(HEALTHY.map((h) => h.at));
+  const debt = new Set(KNOWN_LOUD.map((k) => `${k.alarm}@${k.at}@${k.key}`));
+  const bad = REAL_FAILURE_IN_WINDOW.filter((r) => !REGISTER[r.alarm]?.replay || !at.has(r.at) || !r.key || debt.has(`${r.alarm}@${r.at}@${r.key}`));
+  assert.deepEqual(bad, []);
+});
+
 test('every REGISTER entry names a routine that still exists in the canonical source', () => {
   const bodies = canonicalBodies();
   const gone = Object.keys(REGISTER).filter((n) => !bodies.has(n));
@@ -486,13 +520,14 @@ test('production: every replayed alarm is quiet at every healthy instant', { ski
   assert.ok(INSTANTS.length > 0, 'HEALTHY names no instant');
   const loud = [];
   const owed = new Set(KNOWN_LOUD.map((k) => `${k.alarm}@${k.at}@${k.key}`));
+  const real = new Set(REAL_FAILURE_IN_WINDOW.map((k) => `${k.alarm}@${k.at}@${k.key}`));
   for (const [name, entry] of Object.entries(REGISTER).filter(([, e]) => e.replay)) {
     const pending = pendingSource(name);
     for (const { at } of INSTANTS) {
       const out = await replay(sql, name, entry, at, '', pending);
       for (const f of out.fired) {
         const id = `${name}@${at}@${f.split(' -- ')[0]}`;
-        if (owed.delete(id)) continue;
+        if (owed.delete(id) || real.delete(id)) continue;
         loud.push(`${name} at ${at} fired: ${f}`);
       }
     }
@@ -500,6 +535,7 @@ test('production: every replayed alarm is quiet at every healthy instant', { ski
   // The debt list only shrinks: an entry that no longer fires must leave it, or a later regression
   // of the same alarm would pass as "already known".
   if (!process.env.QUIET_DAY_AT) for (const id of owed) loud.push(`KNOWN_LOUD ${id} no longer fires -- delete it from KNOWN_LOUD`);
+  if (!process.env.QUIET_DAY_AT) for (const id of real) loud.push(`REAL_FAILURE_IN_WINDOW ${id} no longer fires -- the alarm is blind to a measured failure, or retention removed that history (measure which)`);
   assert.deepEqual(loud, [], loud.join('\n'));
 });
 

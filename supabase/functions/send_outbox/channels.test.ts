@@ -1,6 +1,24 @@
 import { assert, assertEquals } from 'jsr:@std/assert';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { dueFilter, NOT_OWNED_CHANNELS, OWNED_CHANNEL_FILTER, ownsChannel, selectQueue } from './channels.ts';
+import { dueFilter, isStale, NOT_OWNED_CHANNELS, OWNED_CHANNEL_FILTER, ownsChannel, selectQueue } from './channels.ts';
+
+// The 2 Nov 2026 rows: queued 28 Oct 06:45Z, not_before 2 Nov 07:07Z, claimed 07:16Z. Under the old created_at rule they were
+// 120 h old and held for good; they had been due for 9 minutes.
+Deno.test('an invitation moved on by not_before is stale from when it fell due, not from when it was written', () => {
+  const claimed = new Date('2026-11-02T07:16:27Z');
+  const a = isStale('2026-10-28T06:45:01Z', '2026-11-02T07:07:05Z', true, 72, claimed);
+  assert(!a.stale && a.hours > 0 && a.hours < 1, `due 9 minutes ago, measured ${a.hours} h`);
+  assert(isStale('2026-10-28T06:45:01Z', null, true, 72, claimed).stale, 'a row with no not_before still ages from created_at');
+  assert(isStale('2026-10-28T06:45:01Z', '2026-10-28T06:00:00Z', true, 72, claimed).stale, 'a not_before before created_at does not make a row younger');
+});
+
+// Review of #1787: only the lane's types may be measured from not_before, and nothing goes out more than 14 days after it was written.
+Deno.test('a non-lane row ignores not_before, and every row is stale 14 days after it was written', () => {
+  const now = new Date('2026-11-20T07:00:00Z');
+  assert(isStale('2026-11-15T07:00:00Z', '2026-11-20T06:30:00Z', false, 72, now).stale, 'a notice re-held by not_before went out days late');
+  assert(isStale('2026-11-05T07:00:00Z', '2026-11-20T06:30:00Z', true, 72, now).stale, 'an invitation re-held every 30 minutes went out 15 days late');
+  assert(!isStale('2026-11-07T08:00:00Z', '2026-11-20T06:30:00Z', true, 72, now).stale, 'an invitation due 30 minutes ago and 13 days old is still sent');
+});
 
 Deno.test('send_outbox owns email and NULL-channel rows, never sms or whatsapp', () => {
   assert(ownsChannel(null));

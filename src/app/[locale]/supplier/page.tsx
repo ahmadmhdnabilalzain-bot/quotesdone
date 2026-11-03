@@ -82,7 +82,7 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
             </div>
             <figure className="qd-frame qd-grain relative overflow-hidden">
               <div className="qd-frame-bar"><i /><i /><i /><span className="ms-2 font-mono text-label text-muted">{x.coverage}</span></div>
-              <div className="relative aspect-[16/11] w-full empty:hidden"><EmiratesMap locale={lang} /></div>
+              <div className="relative aspect-16/11 w-full empty:hidden"><EmiratesMap locale={lang} /></div>
               <figcaption className="border-t border-line px-5 py-3.5 text-small text-muted">{x.coverageNote}</figcaption>
             </figure>
           </div>

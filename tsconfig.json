@@ -29,10 +29,9 @@
       ]
     }
   },
-  "//include": "The app's entire tracked TypeScript surface is next-env.d.ts, tailwind.config.ts and src/. A bare **/*.ts also swept up untracked third-party clones vendored into the repo root (vendor/, cad-viewer/, OpenConstructionERP/, ...), which .gitignore marks read-only and 'never built' — 7k files that broke both `tsc --noEmit` and `next build`. Listing the real sources is narrower than blacklisting clone names, and stays correct as more are vendored.",
+  "//include": "The app's entire tracked TypeScript surface is next-env.d.ts and src/ (tailwind.config.ts until the Tailwind 4 move, 5 Oct 2026). A bare **/*.ts also swept up untracked third-party clones vendored into the repo root (vendor/, cad-viewer/, OpenConstructionERP/, ...), which .gitignore marks read-only and 'never built' — 7k files that broke both `tsc --noEmit` and `next build`. Listing the real sources is narrower than blacklisting clone names, and stays correct as more are vendored.",
   "include": [
     "next-env.d.ts",
-    "tailwind.config.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
     ".next/types/**/*.ts",

@@ -23,14 +23,14 @@ export const ARABIC_BATCH_CHARS = 600;
 
 // A script test, not a meaning test: does the string already carry Arabic letters / any Latin letters.
 const arabicScript = (s: string) => /[؀-ۿ]/.test(s);
-const latinScript = (s: string) => /[A-Za-z]/.test(s);
 /** May a reply equal to its source stand as its Arabic-page text? Only when it has the SHAPE of a code: every
  * letter-bearing token is all capitals or carries a digit ("IP65", "BS EN 1090", "FTKF50TV", "SS304"). Any word
  * with a lowercase letter and no digit ("Wardrobe", "Painting of walls", even a brand like "Daikin") is not kept:
  * the model must write it in Arabic script. A case-shape test on our own reply, not a reading of meaning. */
 export const keptAsWritten = (s: string) => /[A-Za-z]/.test(s) && s.split(/[^A-Za-z0-9]+/).every((w) => !/[a-z]/.test(w) || /\d/.test(w));
-/** A line that needs translating: it has Latin letters (a line wholly in Arabic, or only digits, needs none). */
-export const needsArabic = (s: string) => !!s && latinScript(s);
+/** A line that needs translating: mostly Latin letters (Arabic with a label or code in it, or only digits, needs none). */
+import { needsArabic } from './arabic_script.ts';
+export { needsArabic };
 
 /** The question one batch asks. The answer must be ONE JSON object keyed by the line numbers. */
 export function arabicQuestion(texts: string[]): string {

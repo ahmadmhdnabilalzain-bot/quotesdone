@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-02T05:35:27.847Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-03T01:53:29.639Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -223,7 +223,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (775) =====
+-- ===== TABLES (777) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -2213,6 +2213,13 @@ CREATE TABLE IF NOT EXISTS public.company_faq (
   language text DEFAULT 'en'::text NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.company_faq_embed_inflight (
+  request_id bigint NOT NULL,
+  faq_id bigint NOT NULL,
+  text_md5 text NOT NULL,
+  queued_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.company_financial_stance (
   id integer DEFAULT 1 NOT NULL,
   is_profitable boolean DEFAULT false NOT NULL,
@@ -2582,6 +2589,14 @@ CREATE TABLE IF NOT EXISTS public.conversation_archive (
   pdf_path text NOT NULL,
   bytes bigint,
   archived_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.conversation_archive_attempt (
+  source_table text NOT NULL,
+  source_id text NOT NULL,
+  attempts integer DEFAULT 0 NOT NULL,
+  first_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.conversation_retention_log (
@@ -5047,7 +5062,10 @@ CREATE TABLE IF NOT EXISTS public.kb_citation_jurisdiction (
 CREATE TABLE IF NOT EXISTS public.kb_embed_inflight (
   request_id bigint NOT NULL,
   chunk_id bigint NOT NULL,
-  queued_at timestamp with time zone DEFAULT now() NOT NULL
+  queued_at timestamp with time zone DEFAULT now() NOT NULL,
+  text_md5 text,
+  failed_at timestamp with time zone,
+  status_code integer
 );
 
 CREATE TABLE IF NOT EXISTS public.kb_embed_priority (
@@ -10850,6 +10868,7 @@ ALTER TABLE public.company_charter ADD CONSTRAINT company_charter_pkey PRIMARY K
 ALTER TABLE public.company_constitution ADD CONSTRAINT company_constitution_pkey PRIMARY KEY (article_no);
 ALTER TABLE public.company_event ADD CONSTRAINT company_event_pkey PRIMARY KEY (id);
 ALTER TABLE public.company_faq ADD CONSTRAINT company_faq_pkey PRIMARY KEY (id);
+ALTER TABLE public.company_faq_embed_inflight ADD CONSTRAINT company_faq_embed_inflight_pkey PRIMARY KEY (request_id);
 ALTER TABLE public.company_financial_stance ADD CONSTRAINT company_financial_stance_pkey PRIMARY KEY (id);
 ALTER TABLE public.company_goals ADD CONSTRAINT company_goals_pkey PRIMARY KEY (key);
 ALTER TABLE public.company_index ADD CONSTRAINT company_index_pkey PRIMARY KEY (id);
@@ -10878,6 +10897,7 @@ ALTER TABLE public.control_mode_challenge ADD CONSTRAINT control_mode_challenge_
 ALTER TABLE public.control_mode_identity ADD CONSTRAINT control_mode_identity_pkey PRIMARY KEY (admin_email);
 ALTER TABLE public.control_mode_session ADD CONSTRAINT control_mode_session_pkey PRIMARY KEY (id);
 ALTER TABLE public.conversation_archive ADD CONSTRAINT conversation_archive_pkey PRIMARY KEY (source_table, source_id);
+ALTER TABLE public.conversation_archive_attempt ADD CONSTRAINT conversation_archive_attempt_pkey PRIMARY KEY (source_table, source_id);
 ALTER TABLE public.conversation_retention_log ADD CONSTRAINT conversation_retention_log_pkey PRIMARY KEY (source_table, source_id);
 ALTER TABLE public.conversation_retention_pdf ADD CONSTRAINT conversation_retention_pdf_pkey PRIMARY KEY (source_table, source_id);
 ALTER TABLE public.conversation_retention_plan_log ADD CONSTRAINT conversation_retention_plan_log_pkey PRIMARY KEY (decided_for, source_table, source_id);
@@ -13159,6 +13179,7 @@ CREATE INDEX ceo_knowledge_search_idx ON public.ceo_knowledge USING gin (search)
 CREATE INDEX ceo_task_open_idx ON public.ceo_task USING btree (state, created_at) WHERE (state = ANY (ARRAY['open'::text, 'working'::text, 'blocked'::text]));
 CREATE INDEX channel_directive_actor_idx ON public.channel_directive USING btree (actor_type, actor_id, created_at DESC);
 CREATE UNIQUE INDEX company_charter_one_active ON public.company_charter USING btree (active) WHERE active;
+CREATE INDEX company_faq_embed_inflight_faq_idx ON public.company_faq_embed_inflight USING btree (faq_id);
 CREATE INDEX company_review_ask_by_customer ON public.company_review_ask USING btree (customer_id);
 CREATE UNIQUE INDEX company_review_ask_one_per_job ON public.company_review_ask USING btree (transaction_id);
 CREATE INDEX competitor_scan_latest ON public.competitor_scan USING btree (competitor_id, page_kind, requested_at DESC);

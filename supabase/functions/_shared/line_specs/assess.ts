@@ -98,6 +98,8 @@ export type MissingItem = {
 };
 export type LineResult = {
   line_no: number; description: string; trade: string | null; material: boolean;
+  /** The heading this line sits under ("Option 1: standard system", "Ground floor"), or null. */
+  group?: string | null;
   spec: Record<string, string>; source: Record<string, Src>; asked: string[]; missing: string[];
   /** The attributes asked of this line, the trade's plus the customer's (not serialised to clients). */
   defs: Attr[];
@@ -291,6 +293,12 @@ export function lineDefs(trade: string | null, l: Pick<Line, 'spec' | 'spec_sour
   return defs;
 }
 
+const blank = (v: unknown) => v == null || String(v).trim() === '' || Number(v) === 0;
+/** No quantity, no unit price, no amount, no install or labour figure: the line prices nothing. */
+const pricesNothing = (l: Line) => blank(l.qty) && blank(l.unit_price) && blank(l.amount) && blank(l.install) && blank(l.labour);
+/** A heading: it prices nothing and a line after it does, so it labels what follows. Shape only, no words. */
+export const isGroupHeading = (l: Line, after: Line[]) => pricesNothing(l) && after.some((x) => !pricesNothing(x));
+
 export function assessQuote(input: { category: string | null; lines: Line[]; terms: Terms; requirements?: Requirements; checklist?: Attr[] }): Assessment {
   const trade = tradeOfCategory(input.category);
   const req = input.requirements ?? null;
@@ -298,7 +306,16 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
   const missing: MissingItem[] = [];
   const lineTrades = new Set<string>();
   const named = new Set<string>();
-  for (const l of input.lines) {
+  let group: string | null = null;
+  input.lines.forEach((l, i) => {
+    // A GROUP HEADING IS NOT AN ITEM (2 Nov 2026, journey run 41441003027: "Option 1: standard system" was asked its
+    // glass type and held a genuine two-option quotation). By SHAPE, never by its words: a line with no quantity and
+    // no price, with a priced line after it, labels the lines under it. It is asked nothing; its items are asked all.
+    if (isGroupHeading(l, input.lines.slice(i + 1))) {
+      group = String(l.description ?? '').trim() || null;
+      lines.push({ line_no: l.line_no, description: l.description, trade: null, material: false, group: null, spec: {}, source: {}, asked: [], missing: [], defs: [] });
+      return;
+    }
     // A line carries no material only when reasoning read the supplier's words saying so AND the line's shape agrees
     // (notMaterialHolds), or read a composite line as no trade. Unread, every line is a material line: asking is safe,
     // passing it unchecked is not.
@@ -320,8 +337,8 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
     const miss = defs.filter((a) => a.mandatory && !spec[a.code]);
     if (lt) lineTrades.add(lt);
     for (const a of miss) missing.push(lineItem(l, a));
-    lines.push({ line_no: l.line_no, description: l.description, trade: lt, material, spec, source, asked: defs.map((a) => a.code), missing: miss.map((a) => a.code), defs });
-  }
+    lines.push({ line_no: l.line_no, description: l.description, trade: lt, material, group, spec, source, asked: defs.map((a) => a.code), missing: miss.map((a) => a.code), defs });
+  });
   if (!lineTrades.size && !lines.some((x) => x.defs.length) && (TRADES[trade] || COMPOSITE.has(trade))) missing.unshift(termItem('line_items'));
 
   const ts = input.terms.terms_spec ?? {};

@@ -67,10 +67,10 @@ function ServiceIndex({ html }: { html: string }) {
     <ul className="qd-ledger qd-ticks grid lg:grid-cols-2 lg:gap-x-12">
       {links.map((l, i) => (
         <li key={l.href}>
-          <a href={l.href} className="group grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-4 py-4 !text-paper focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-teal md:grid-cols-[4.5rem_minmax(0,1fr)_auto] md:gap-x-6">
+          <a href={l.href} className="group grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-4 py-4 text-paper! focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-teal md:grid-cols-[4.5rem_minmax(0,1fr)_auto] md:gap-x-6">
             <span className="qd-ledger-no" aria-hidden>{String(i + 1).padStart(2, '0')}</span>
             <span className="min-w-0 flex-1 font-head text-[16px] font-semibold leading-snug tracking-snug text-white">{l.label}</span>
-            <span aria-hidden className="text-faint transition-transform duration-base group-hover:translate-x-1 group-hover:text-teal-light rtl:rotate-180 rtl:group-hover:-translate-x-1">→</span>
+            <span aria-hidden className="text-faint transition-transform duration-base group-hover:translate-x-1 group-hover:text-teal-light rtl:rotate-180 group-hover:rtl:-translate-x-1">→</span>
           </a>
         </li>
       ))}
