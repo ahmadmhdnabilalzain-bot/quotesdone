@@ -12,6 +12,11 @@ if (!handler) throw new Error('wa_inbound did not call Deno.serve');
 const SIGNED = cfg.url + '/functions/v1/wa_inbound';
 const REST = { apikey: cfg.service, Authorization: 'Bearer ' + cfg.service };
 let n = 0;
+// EVERY REQUEST NAMES ITS RUN AND PROVES IT (it_engineer, 3 Nov 2026). Measured: 48 exchange runs on 2-3 Nov posted Twilio-signed
+// turns with no tag, so observe() ran them untagged and the window's USD cap never applied. The run tag and the internal secret
+// ride on every request this driver makes: text turns, file turns and the forged control. No run tag, no run.
+if (!cfg.e2e?.tag || !cfg.e2e?.secret) throw new Error('REFUSED: no run tag and secret in the config; an untagged exchange would spend outside its cap');
+const TAG_HEADERS: Record<string, string> = { 'x-qd-e2e-run': cfg.e2e.tag, 'x-qd-e2e-secret': cfg.e2e.secret };
 async function sign(params: Record<string, string>) {
   const data = SIGNED + Object.keys(params).sort().map((k) => k + params[k]).join('');
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(cfg.authToken), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
@@ -28,9 +33,7 @@ async function say(phone: string, body: string) {
   const pending: Promise<unknown>[] = [];
   (globalThis as unknown as { EdgeRuntime: unknown }).EdgeRuntime = { waitUntil: (p: Promise<unknown>) => { pending.push(p); } };
   const t0 = Date.now();
-  // a scripted run (cfg.e2e) names its run and proves it, so its model calls are costed and capped by its window
-  const tagHeaders: Record<string, string> = cfg.e2e ? { 'x-qd-e2e-run': cfg.e2e.tag, 'x-qd-e2e-secret': cfg.e2e.secret } : {};
-  const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': await sign(params), ...tagHeaders }, body: new URLSearchParams(params).toString() }));
+  const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': await sign(params), ...TAG_HEADERS }, body: new URLSearchParams(params).toString() }));
   await Promise.all(pending);
   const rows = await lastRow(from, sid);
   return { status: res.status, ms: Date.now() - t0, rows, reply: rows.map((r) => r.reply).filter(Boolean).join(' | ') };
@@ -47,7 +50,7 @@ async function file(phone: string, mime: string, b64: string, caption: string) {
     const t0 = Date.now();
     const pending: Promise<unknown>[] = [];
     (globalThis as unknown as { EdgeRuntime: unknown }).EdgeRuntime = { waitUntil: (p: Promise<unknown>) => { pending.push(p); } };
-    const res = await handler!(new Request(cfg.url + '/functions/v1/wa_inbound', { method: 'POST', headers: { 'content-type': 'application/json' },
+    const res = await handler!(new Request(cfg.url + '/functions/v1/wa_inbound', { method: 'POST', headers: { 'content-type': 'application/json', ...TAG_HEADERS },
       body: JSON.stringify({ __secret: cfg.internals[c], From: from, Body: caption, MessageSid: sid, NumMedia: '1', MediaUrl0: `data:${mime};base64,${b64}`, MediaContentType0: mime }) }));
     await Promise.all(pending);
     const rows = await lastRow(from, sid);
@@ -89,7 +92,7 @@ if (cfg.script) {
 if (cfg.mediaOnly) { await mediaTurns(); console.log('RESULT=' + JSON.stringify(out)); Deno.exit(0); }
 out.forged = await (async () => { // known-bad control: wrong token, no row, no reply
   const params = { From: 'whatsapp:' + X, To: 'whatsapp:+14155550100', Body: 'ZZ DEMO forged', MessageSid: 'SM' + 'f'.repeat(32), NumMedia: '0' };
-  const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': 'AAAA' }, body: new URLSearchParams(params).toString() }));
+  const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': 'AAAA', ...TAG_HEADERS }, body: new URLSearchParams(params).toString() }));
   await new Promise((r) => setTimeout(r, 1500));
   return { status: res.status, rows: (await lastRow('whatsapp:' + X, 'S'.padEnd(34, 'f'))).length };
 })();

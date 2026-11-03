@@ -62,6 +62,10 @@ export interface LlmDefaults {
   // The caller parses one JSON object. ai_gateway turns this into response_format only where the
   // routed model supports it (_shared/request_shape.ts); the caller's own parser stays the fallback.
   json?: boolean;
+  // A seat's own scheduled duty (think.ts internalDuty): ai_gateway never re-asks the same model after a paid empty answer.
+  internalDuty?: boolean;
+  // Replay only a byte-identical prompt from the cache, never a semantically similar one (public_site's memo).
+  cacheExact?: boolean;
 }
 
 // V3 REMEDIATION (14 Aug 2026) — WHY THIS FILE GREW A SECOND ENTRY POINT.
@@ -293,6 +297,8 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
           // The caller's ladder is recorded for audit but does not override policy.
           caller_ladder: models,
           ...(def.json ? { response_format: { type: 'json_object' } } : {}),
+          ...(def.internalDuty ? { internal_duty: true } : {}),
+          ...(def.cacheExact ? { cache_exact: true } : {}),
           ...(opts.subject ? { subject: opts.subject } : {}),
           // TOOLS. The gateway has always accepted these three; nothing that reached it through
           // this module ever sent them. `tools` makes fn_ai_route require a tools-capable model

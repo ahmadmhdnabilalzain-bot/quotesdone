@@ -22,6 +22,24 @@ const run = newRun({ quiet: true }); const tag = run.tag;
 // the workflow's always() step closes this window by its tag even if the process is killed (close_job_windows.mjs)
 if (process.env.QD_E2E_RUN_TAGS) (await import('node:fs')).appendFileSync(process.env.QD_E2E_RUN_TAGS, tag + '\n');
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
+// ONCE PER CHANGE, NEVER ON A LOOP (it_engineer, 3 Nov 2026). Measured: 48 runs of this exchange on 2-3 Nov, most of
+// them the same code exercised again. The code it exercises is fingerprinted (wa_inbound, _shared, this script and its
+// driver) and written on the run's rehearsal window, marked ':passed' only when every verdict passed; a run of a
+// fingerprint that already PASSED is refused before anything is created or spent (exit 0: that code was exchanged and
+// passed). A failed or crashed run never marks it, so its re-run goes ahead. QD_EXCHANGE_AGAIN=1 runs it anyway (a deliberate re-run, by hand). A scripted run
+// (QD_CONV_SCRIPT) is one conversation of conversation_quality.mjs's sample and is not fingerprinted here.
+const CODE = await (async () => {
+  const { createHash } = await import('node:crypto');
+  const { readdirSync, readFileSync, statSync } = await import('node:fs');
+  const h = createHash('sha256');
+  const walk = (p) => statSync(p).isDirectory() ? readdirSync(p).sort().forEach((f) => walk(join(p, f))) : h.update(p.replace(/\\/g, '/') + '\0').update(readFileSync(p));
+  for (const p of ['supabase/functions/wa_inbound', 'supabase/functions/_shared', 'scripts/e2e/wa_exchange_real.mjs', 'scripts/e2e/wa_exchange_real_driver.ts']) walk(p);
+  return h.digest('hex').slice(0, 16) + (MEDIA_ONLY ? ':media' : ':full');
+})();
+if (!SCRIPT && process.env.QD_EXCHANGE_AGAIN !== '1') {
+  const done = await mgmtRead(REF, `select run_tag, ended_at from public.rehearsal_window where opened_by = 'wa_exchange_real' and note = ${q('code=' + CODE + ':passed')} order by started_at desc limit 1`);
+  if (done.length) { console.log(`REFUSED: this code (${CODE}) was already exchanged and passed in ${done[0].run_tag} (ended ${done[0].ended_at}); QD_EXCHANGE_AGAIN=1 runs it again`); process.exit(0); }
+}
 // A scripted run (QD_CONV_SCRIPT) may run beside another (the before and after jobs of conversation-quality.yml), so its
 // no-account number is a run-allocated fixture number with no conversation on it, never the shared +971500000097.
 const freeFixtureNumber = async (not = '') => {
@@ -46,14 +64,17 @@ try {
   if (!/^\+9715000000\d\d$/.test(phone)) throw new Error('REFUSED: supplier phone ' + phone + ' is not in the fixture block');
   // the supplier chose "same number for WhatsApp" (what the new kyc rule writes after a WhatsApp-delivered code)
   await mgmtFixture(REF, `update public.leads set whatsapp_opt='other', whatsapp_phone=${q(phone)}, whatsapp_verified_at=now(), whatsapp_asked_at=now() where id=${sup.leadId}`, 'fixture WhatsApp confirmed');
-  await mgmtFixture(REF, `insert into public.rehearsal_window (run_tag, opened_by) values ('qd_run:${tag}', 'wa_exchange_real')`, 'rehearsal window');
+  await mgmtFixture(REF, `insert into public.rehearsal_window (run_tag, opened_by, note) values ('qd_run:${tag}', 'wa_exchange_real', ${q(SCRIPT ? 'scripted conversation' : 'code=' + CODE)})`, 'rehearsal window');
   await mgmtFixture(REF, `update public.rehearsal_window set models_allowed = true, cap_usd = ${CAP_USD}, expires_at = now() + interval '1 hour' where run_tag = 'qd_run:${tag}' and ended_at is null`, 'rehearsal window models');
   const sec = Object.fromEntries((await mgmtRead(REF, `select key, value from public.app_secrets where key in ('twilio_auth_token','cred_fn_wa_inbound','cred_ops_wa_replay')`)).map((r) => [r.key, r.value]));
   const { SERVICE } = await keys();
   const dir = mkdtempSync(join(tmpdir(), 'waexch-'));
   const cfg = join(dir, 'cfg.json');
   writeFileSync(cfg, JSON.stringify({ url: `https://${REF}.supabase.co`, service: SERVICE, authToken: sec.twilio_auth_token, mediaOnly: MEDIA_ONLY, internals: [sec.cred_fn_wa_inbound, sec.cred_ops_wa_replay].filter(Boolean),
-    supplier: phone, stranger: STRANGER, ...(SCRIPT ? { script: SCRIPT, e2e: { tag, secret: await internalCred() } } : {}), parityOld: '+971500000094', parityNew: '+971500000095',
+    // EVERY run names its run and proves it (it_engineer, 3 Nov 2026), not only the scripted one: measured 48 exchange runs
+    // on 2-3 Nov whose Twilio-signed turns carried no tag, so ai_gateway saw a stranger's WhatsApp and the window's cap
+    // never applied. The driver puts the tag and the secret on every request it makes (wa_exchange_real_driver.ts).
+    supplier: phone, stranger: STRANGER, e2e: { tag, secret: await internalCred() }, ...(SCRIPT ? { script: SCRIPT } : {}), parityOld: '+971500000094', parityNew: '+971500000095',
     pngB64: demoOfficePlanPng().toString('base64'),
     pdfB64: demoTradeLicence({ company: sup.companyName, licenceNo: 'ZZ-DEMO-000123' }).toString('base64') }));
   const r = spawnSync('deno', ['run', '--no-lock', '--node-modules-dir=auto', '--allow-net', '--allow-env', '--allow-read', 'scripts/e2e/wa_exchange_real_driver.ts', cfg],
@@ -111,6 +132,8 @@ try {
     const cost = (await mgmtRead(REF, `select coalesce(sum(cost_aed),0)::float aed from public.ai_cost_log where occurred_at >= ${q(started)}`))[0];
     console.log('COST_AED_SINCE_START(all callers)=' + cost.aed + ' (USD ' + (cost.aed / 3.6725).toFixed(2) + ')');
   } catch (e) { console.log('cost read failed: ' + String(e).slice(0, 200)); }
+  // Only a run whose every verdict passed marks its code as exchanged: a failed or crashed run never blocks the next one.
+  if (!SCRIPT && !process.exitCode) await mgmtFixture(REF, `update public.rehearsal_window set note = ${q('code=' + CODE + ':passed')} where run_tag = 'qd_run:${tag}'`, 'mark the code exchanged');
 } finally {
   for (const p of [sup && (await mgmtRead(REF, `select phone from public.leads where id=${sup.leadId}`).then((x) => x[0]?.phone).catch(() => null)), STRANGER, '+971500000094', '+971500000095'].filter(Boolean)) {
     const d = p.replace(/\D/g, '');
