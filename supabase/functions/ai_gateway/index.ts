@@ -32,7 +32,7 @@
 //
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
-import { cacheTokens, tapUsage } from './stream_usage.ts';
+import { cacheTokens, generationUsage, tapUsage } from './stream_usage.ts';
 import { sendWithTtlFallback, systemMessage, withHistoryBreakpoint } from './system_message.ts';
 import { withDataDeny } from './provider_privacy.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -175,6 +175,8 @@ interface Body {
   effort?: string;                        // Claude reasoning effort; request_shape.ts defaults it to medium
   require_caps?: string[];                // override; normally inferred from the payload
   want_message?: boolean;                 // return the whole assistant message (tool_calls included)
+  internal_duty?: boolean;                // a seat's own scheduled duty (think.ts internalDuty): a paid empty answer is not re-asked
+  cache_exact?: boolean;                  // replay only a byte-identical prompt (no semantic match): the public site's memo
 }
 
 // What the payload actually needs, read off the payload itself. A caller that has to declare
@@ -462,7 +464,9 @@ async function handle(req: Request): Promise<Response> {
         model, String(maxTok), sysStable, sys, JSON.stringify(convo),
         JSON.stringify(body.plugins ?? null), JSON.stringify(body.response_format ?? null),
       ].join(' '));
-      promptEmb = await embed((sysStable + sys).slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800), 3000);
+      // cache_exact (public_site, 3 Nov 2026): a visitor's price question must never be answered with the reply to a
+      // SIMILAR question, so only the exact prompt hash may replay; no vector, so fn_llm_cache_lookup matches the key only.
+      promptEmb = body.cache_exact === true ? null : await embed((sysStable + sys).slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800), 3000);
       const { data: hit } = await admin.rpc('fn_llm_cache_lookup', {
         p_key: cacheKey, p_embedding: promptEmb,
         p_task_class: route.task_class ?? null, p_min_similarity: 0.95,
@@ -562,6 +566,12 @@ async function handle(req: Request): Promise<Response> {
       }
       if (inWindow) route.why = route.why + ' | TEST RUN (ruling 1260): run tag ' + runTag + (ownWork ? ' | ' + ownWork : '');
     }
+
+    // OUR OWN WORK (it_engineer, 3 Nov 2026): a run-tagged call (e2e_run.ts honours a tag only with its proof), or a seat's own scheduled duty its internal caller
+    // declared (think.ts internalDuty -> llm.ts internal_duty). Used for one thing only: a paid empty completion of our own
+    // work is never asked again of the same model (the attempt loop below). Nothing is refused or capped on it (founder,
+    // 24 Sep 2026: "I don't want caps"). A customer's, supplier's or visitor's request is never own work.
+    const ownWorkCall = !!e2eRunTag() || body.internal_duty === true;
 
     // ---- 7. THE CALL --------------------------------------------------------------------
     const key = await sec('openrouter_api_key');
@@ -762,6 +772,30 @@ async function handle(req: Request): Promise<Response> {
         }});
       } catch (_e) { /* the ledger must not take down the call; its absence shows in the report */ }
     };
+    // A FAILED ATTEMPT THE PROVIDER STILL BILLED GETS ITS OWN LEDGER ROW (it_engineer, 3 Nov 2026). Measured: USD 11.79
+    // billed in 7 days that ai_cost_log never saw. An empty completion carries a usage block (the CEO's Opus replays on
+    // 3 Nov: "empty completion finish_reason=none" at 35-38 s, every second attempt, paid and thrown away); an attempt we
+    // aborted after the provider had been working on it carries none. The first is logged with what the provider
+    // reported; the second with an ESTIMATE (prompt tokens = request characters / 4, no output), flagged as such. The
+    // request's own row below still carries only the attempt that answered, so nothing is counted twice.
+    // deno-lint-ignore no-explicit-any
+    const logFailedAttempt = async (m: string, u: any, gen: unknown, errText: string, ms: number) => {
+      const est = Math.ceil(JSON.stringify(outbound).length / 4);
+      const { cachedIn: fIn, cacheWrite: fWr } = cacheTokens(u ?? null);
+      await llmLog({
+        p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+        p_task_class: route.task_class ?? null, p_model: m,
+        p_because: route.why + ' | FAILED ATTEMPT after ' + ms + ' ms, billed by the provider: ' + String(errText).slice(0, 160)
+                   + (u ? '' : ' | ESTIMATED: no usage came back; prompt tokens estimated from the request size (characters/4), output 0'),
+        p_tier: route.tier ?? null, p_prompt_tokens: u ? (u.prompt_tokens ?? null) : est, p_output_tokens: u ? (u.completion_tokens ?? null) : 0,
+        p_cached: false, p_cached_in: fIn ?? 0, p_cache_write: fWr ?? 0,
+        p_cache_key: null, p_latency_ms: ms, p_ok: false,
+        p_generation_id: typeof gen === 'string' && gen ? gen : null,
+        p_cost_usd_reported: Number.isFinite(Number(u?.cost)) ? Number(u.cost) : null,
+      });
+    };
+    // An aborted attempt is billed only if the provider had started on it: under this it is a refused or dropped request.
+    const ABORT_BILLED_AFTER_MS = 10_000;
     const wantStream = body.stream === true && route.stream === true;
 
     let out: string | null = null;
@@ -796,6 +830,7 @@ async function handle(req: Request): Promise<Response> {
     if (body.response_format != null) loadSupportedParams();
     let sentMaxTok = maxTok;   // what the provider was actually given (Claude adds thinking headroom)
     let pi = 0;
+    let emptyPaid = false, anyEmptyPaid = false;
     attempts: while (pi >= 0 && pi < plan.length) {
       const m = plan[pi];
       let failStatus: number | null = null;
@@ -878,7 +913,8 @@ async function handle(req: Request): Promise<Response> {
               // when the stream ends or is abandoned, with the tokens, cache reads/writes and OpenRouter's charge.
               const startedAt = attemptStartedAt;
               const tapped = tapUsage(r.body, async (s) => {
-                const u = s.usage;
+                // no usage chunk (abandoned or cut short): OpenRouter's own record of the generation prices it
+                const u = s.usage ?? (s.id ? await generationUsage(s.id, key) : null);
                 const { cachedIn: sIn, cacheWrite: sWr } = cacheTokens(u);
                 // Only a real stream error is a failure (it may trip the breaker). A stream that ended or was
                 // abandoned without its usage chunk delivered its words: ok, with the tokens unknown (null).
@@ -890,7 +926,7 @@ async function handle(req: Request): Promise<Response> {
                   p_because: route.why + ' | streamed'
                              + (useCache ? ' | prompt cache on (' + cacheBlock.length + ' stable chars): ' + sIn + ' tokens read from cache, ' + sWr + ' written' : '')
                              + (s.cancelled ? ' | abandoned by the caller' : '')
-                             + (u ? '' : ' | NO USAGE CHUNK: tokens and cost unknown, not zero')
+                             + (u ? (s.usage ? '' : ' | NO USAGE CHUNK: priced from OpenRouter generation ' + s.id) : ' | NO USAGE CHUNK: tokens and cost unknown, not zero')
                              + (s.finish === 'length' ? ' | TRUNCATED at the ' + sentMaxTok + '-token ceiling' : ''),
                   p_tier: route.tier ?? null, p_prompt_tokens: u?.prompt_tokens ?? null, p_output_tokens: u?.completion_tokens ?? null,
                   p_cached: false, p_cached_in: sIn ?? 0, p_cache_write: sWr ?? 0,
@@ -937,13 +973,23 @@ async function handle(req: Request): Promise<Response> {
           // An empty completion IS a failure even though the HTTP call succeeded. This is exactly
           // the 220-of-228 case: a valid chat.completion body carrying no content, which every
           // monitor read as a healthy response.
-          await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr);
+          await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr, String(j?.choices?.[0]?.finish_reason ?? '') || undefined, j?.usage);
+          // A 200 with no content was paid for. For OUR OWN work (a test run or an internal duty) the SAME model is not
+          // asked again (that was the second payment on 3 Nov); the next model on the ladder may be. A customer's,
+          // supplier's or visitor's request keeps its retry: an empty reply is sometimes a blip, and their answer matters more.
+          if (r.ok && !j?.error) {
+            emptyPaid = ownWorkCall; anyEmptyPaid = true;
+            await logFailedAttempt(m, j?.usage ?? null, j?.id, lastErr, Date.now() - attemptStartedAt);
+          }
         } catch (e) {
           lastErr = String((e as Error)?.message || e).slice(0, 200);
-          await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr);
+          const ms = Date.now() - attemptStartedAt;
+          await recordAttempt(m, false, ms, lastErr);
+          if (ms >= ABORT_BILLED_AFTER_MS) await logFailedAttempt(m, null, null, lastErr, ms);
         } finally { clearTimeout(to); }
       }
-      pi = nextAttempt(plan, pi, failureKind(failStatus));
+      pi = nextAttempt(plan, pi, emptyPaid ? 'next' : failureKind(failStatus));
+      emptyPaid = false;
     }
 
     // ---- 8. LOG with real money ---------------------------------------------------------
@@ -1021,7 +1067,9 @@ async function handle(req: Request): Promise<Response> {
       await rpcSafe('fn_review_hold_record', { p_task_class: route.task_class ?? null, p_fn: fnName, p_agent_key: body.agent ?? null,
         p_counterpart_model: counterpart, p_why: 'reviewer call failed: ' + String(lastErr ?? (deadlineHit ? 'deadline' : 'unknown')).slice(0, 500) });
     }
+    // outcome 'empty_completion': a model was PAID and answered nothing, so the caller must not ask again (think.ts).
     if (!outMsg) return J({ ok: false, error: deadlineHit ? 'gateway_deadline' : 'all_models_failed',
+                            ...(anyEmptyPaid && !deadlineHit ? { outcome: 'empty_completion' } : {}),
                             detail: deadlineHit ? ('no model answered within the ' + wallBudgetMs + 'ms budget the caller waits for; last error: ' + lastErr) : lastErr,
                             ladder, caps }, 502);
 
