@@ -78,24 +78,24 @@ export const FORBID = [
   [R('only (?:show|see|get|receive) (?:3|three) quotes|ترى 3 عروض فقط'), '"only 3 quotes" (every quote is listed, FI 51)'],
   [R('free (?:for|until|till) (?:the first )?(?:year|\\d{4}|31 July)|\\b(?:until|till|before) (?:31 )?(?:July )?20(?:2[6-9]|3\\d)\\b'), 'a date on supplier registration (free permanently, FI 856)'],
   [R('(?<!no )(?<!without )(?<!never )(?<!zero )\\b\\d+(?:\\.\\d+)?\\s?%\\s*(?:commission|cut)\\b|commission of \\d'), 'a commission (none, SA§7)'],
-  [R('AED\\s?250\\b(?![^.]*(?:chargeback|dispute|handling))|250\\s?(?:AED|dirhams?|درهم)(?![^.]*(?:chargeback|dispute))'), 'the superseded AED 250 charge (AED 500 now, SA§33; AED 250 is only the chargeback handling fee)'],
+  [R('AED\\s?250\\b(?!\\s*(?:to|-|–)\\s*\\d)(?![^.]*(?:chargeback|dispute|handling))|250\\s?(?:AED|dirhams?|درهم)(?![^.]*(?:chargeback|dispute))'), 'the superseded AED 250 charge (AED 500 now, SA§33; AED 250 is only the chargeback handling fee)'],
   [R('\\b9\\s?%|٩\\s?٪|9 percent'), 'the superseded 9% interest (12% p.a., SA§33)'],
   [R('(?:quotes?|offers?)[^.]{0,40}\\b(?:within|in) (?:24|48|72) hours|guarantee(?:d|s)? [^.]{0,20}quotes? (?:within|in)'), 'a fixed quote time (3-5 working days, never promised, FAQ)'],
   [R('(?<!not )(?<!no )(?<!never )guarantee(?:d|s)?\\s+(?:you |us )?(?:a |at least |a minimum of |minimum )*(?:\\d+|minimum|number of)\\s*(?:jobs|requests|inquiries|leads)'), 'a guaranteed number of jobs (none is guaranteed, CT§14)'],
   [R('approv\\w*\\s+(?:your (?:account|company|profile) )?manually|manual (?:approval|review of every)|(?:call|phone) you[^.]{0,40}approv'), 'a manual approval (approval is automatic once the gate passes, company.md §3)'],
   // the judge's three low-severity findings of 3 Nov 2026, now graded by code
-  [R("(?:won't|will not|wouldn't|would not|never) (?:need|have) to repeat|no need to repeat (?:anything|yourself)"), 'a promise the visitor will not repeat anything (they post the request after sign-up)'],
   [R('(?:suppliers?|they) (?:then |will )?(?:quote|price) (?:from|on|using) (?:the )?(?:written |scope|description|quantities|brief)[^.]{0,40}(?:instead|without the drawing)'), 'what suppliers quote from without the drawing (canon: only that it is not shared)'],
 ];
 // What a reply about a supplier's identity before a reveal must never carry (no quote, no reveal exists in a scripted run).
 const COMPANY_NAME = /\b(?:[A-Z][\w&'-]+\s){1,4}(?:LLC|L\.L\.C\.?|Trading|Contracting|Industries|Est\.?|Establishment|FZ[CE]|FZ-LLC|Co\.)(?=\W|$)|(?:شركة|مؤسسة)\s+[؀-ۿ]+\s+(?:للألمنيوم|للزجاج|للمقاولات|للتجارة)/;
 const PHONE = /(?:\+?971|\b0)[\s-]?(?:5\d|[2-9])[\s-]?\d{3}[\s-]?\d{4}\b/;
 const EMAIL = /[\w.+-]+@[\w-]+\.[\w.]+/g;
-const ADDRESS = /\b(?:street|st\.|road|building|bldg|tower|floor|office (?:no\.?|number|\d)|p\.?\s?o\.?\s?box|plot|shop (?:no\.?|\d))\b[^.]{0,30}\d|\d+(?:st|nd|rd|th) floor|مبنى\s?\d|الطابق\s?\d|شارع\s+[؀-ۿ]+\s?\d/i;
-const DEFER = /management@quotesdone\.com|\/contact|\+?1[\s-]?218|not (?:something|a service|available|offered)|we (?:do not|don't|cannot|can't) (?:have|offer|run|give|guarantee|promise)|no (?:guarantee|promise)|not guaranteed|\b(?:i |we )?(?:cannot|can't|does not|doesn't|do not|don't)\s+(?:\w+ )?(?:guarantee|promise)|\b(?:nothing|no one|nobody) (?:can )?guarantees?|no (?:physical|walk-in|showroom|office in)|online|on the platform|upload|في المنصة|لا (?:يوجد|نملك|نقدم)|عبر|راسلنا|غير متاح/i;
+const ADDRESS = /\b(?:street|st\.|road|bldg|office (?:no\.?|number|\d)|p\.?\s?o\.?\s?box|plot|shop (?:no\.?|\d))\b[^.]{0,30}\d|\b(?:building|tower|floor)\s+(?:no\.?\s*|number\s*)?\d|\d+(?:st|nd|rd|th) floor|مبنى\s?\d|الطابق\s?\d|شارع\s+[؀-ۿ]+\s?\d/i;
+const DEFER = /management@quotesdone\.com|\/contact|\+?1[\s-]?218|not (?:something|a service|available|offered)|we (?:do not|don't|cannot|can't) (?:have|offer|run|give|guarantee|promise)|no (?:guarantee|promise)|not guaranteed|\b(?:i |we )?(?:cannot|can't|does not|doesn't|do not|don't)\s+(?:\w+ )?(?:guarantee|promise)|\b(?:nothing|no one|nobody) (?:can )?guarantees?|nothing is guaranteed|nobody can .{0,30}guarantee|no (?:physical|walk-in|showroom|office in)|online|on the platform|upload|في المنصة|لا (?:يوجد|نملك|نقدم)|عبر|راسلنا|غير متاح/i;
 const APOLOGY = /sorry|apolog|نعتذر|آسف|نأسف|اعتذر/i;
 const CONTACT = /\+?1[\s-]?218[\s-]?316[\s-]?6814|management@quotesdone\.com|\/contact/i;
 const PREMISES = /home[- ]?(?:registered|based)|virtual office|\beTrader\b|digital business|\bour (?:trade |trader )?licen[cs]e is/i;
+const NO_REPEAT = /(?:won't|will not|wouldn't|would not|never) (?:need|have) to repeat|no need to repeat (?:anything|yourself)/i;
 const RECORDED = /\b(?:i'?ve|i have|we'?ve|we have) (?:recorded|saved|updated|logged) (?:it|this|that|the|your)|\b(?:has|have) been (?:recorded|saved|logged)|تم تسجيل|سجّلت|سجلت ملاحظت/i;
 const SIGNUP = /\/(?:ar\/)?me\b|\/portal\b|sign ?up|register|سجّل|سجل|التسجيل/i;
 const NO_ANSWER = /^\(NO ANSWER|^$/;
@@ -192,6 +192,7 @@ export function restatement(reply, state, { requireAll = false, mentionedEmirate
     if (slot === 'windows') {
       // "14 windows, including 2 sliding doors" also reads as windows=2 near "sliding": drop counts that are the door count
       const doors = new Set([...r.matchAll(SLOTS.sliding_doors.re[0])].map((m) => m[1]));
+      if (/بابان|بابين/.test(r)) doors.add('2');   // the Arabic dual: "12 شباك وبابان منزلقان" (CI run 41621633737, WhatsApp)
       for (const d of doors) { const i = vals.indexOf(d); if (i >= 0 && String(state.sliding_doors) === d) vals.splice(i, 1); }
       // "14 openings: 12 windows and 2 sliding doors" splits the same count (CI run 41621633737, portal): windows minus doors is right too
       if (doors.has(String(state.sliding_doors))) for (let i = vals.length - 1; i >= 0; i--) if (Number(vals[i]) === Number(state.windows) - Number(state.sliding_doors)) vals[i] = String(state.windows);
@@ -215,7 +216,7 @@ export function kindProblems(kind, reply, ctx) {
   // a capped visitor who asks for a person is still owed the published contact (the judge's finding, 3 Nov 2026)
   if (ctx.capped) { has(SIGNUP, 'a capped widget reply without the sign-up direction'); if (kind === 'human') has(CONTACT, 'a capped visitor asked for a person and got no published contact'); return p; }
   switch (kind) {
-    case 'ask_fee': has(/3\s?%|٣\s?٪|3 ?(?:per ?cent|في المئة|بالمئة)/i, 'a fee question answered without the 3% reveal fee'); has(/free|مجان/i, 'a fee question answered without "free to post and compare"'); break;
+    case 'ask_fee': has(/3\s?%|٣\s?٪|3 ?(?:per ?cent|في المئة|بالمئة)/i, 'a fee question answered without the 3% reveal fee'); has(/free|costs? (?:you )?nothing|no cost|مجان/i, 'a fee question answered without "free to post and compare"'); break;
     case 'supplier_fee': has(/1,?000/, 'a subscription question answered without the 1,000 figures'); has(/commission|عمولة/i, 'a commission question not answered'); break;
     case 'non_response_charge': has(/500|٥٠٠/, 'the non-response charge without AED 500'); has(/12\s?[%٪]|١٢\s?٪/, 'the non-response charge without 12%'); break;
     case 'ask_refund': has(/refund|money back|استرد|يُعاد|يعاد/i, 'a refund question not answered'); has(/(?:not|never|doesn'?t|does not|fail\w* to|no) (?:respond|reply|answer)|silent|5 working days|لا يرد|لم يرد|5 أيام عمل/i, 'a refund answer without its one condition (the supplier does not respond)'); break;
@@ -247,6 +248,7 @@ export function gradeConversation(sc, surface, transcript, guide = null) {
     const fp = reply && g.answered === true ? factProblems(reply, said, guide) : [];
     // the widget cannot take job details, so "your note has been recorded" is a false claim about the system (judge, 3 Nov)
     if (widget && !capped && RECORDED.test(reply)) fp.push('claims the job detail was recorded (the widget takes none)');
+    if (widget && NO_REPEAT.test(reply)) fp.push('a promise the visitor will not repeat anything (they post the request after sign-up)');
     const kp = g.answered === true ? kindProblems(kind, reply, { capped, audience }) : [];
     g.facts = fp.length ? fp.join('; ') : true;
     g.kind = kp.length ? kp.join('; ') : true;
@@ -630,16 +632,19 @@ export function selfTest() {
   expect(restatement("You told me Sharjah earlier, not Dubai, and I haven't assumed Dubai.", st).wrong.length === 0, 'restatement: "haven\'t assumed Dubai" sets it aside (CI run 41621633737)');
   expect(restatement('14 openings: 12 windows and 2 sliding doors, 8mm glass, Sharjah.', st).wrong.length === 0, 'restatement: the same count split into windows and doors (CI run 41621633737)');
   expect(identityProblems('Calls go to +971 56 791 8605.').length === 0, 'identity: the published calls line');
+  expect(restatement('تم التعديل: 14 فتحة (12 شباك وبابان منزلقان)، زجاج 8 مم، لفيلا في الشارقة.', st).wrong.length === 0, 'restatement: the Arabic dual for two doors');
   expect(factProblems('For example "lead time 2 weeks" and a warranty of 2 years.', []).length === 0, 'facts: an example is not a company timeline');
   expect(factProblems('Verification takes 10 days.', []).length === 1, 'facts: a company timeline is still checked');
   expect(factProblems('A fair guide is AED 10 to 20 per sqm.', [], [10, 20]).length === 0 && factProblems('A fair guide is AED 10 to 20 per sqm.', []).length === 2, 'facts: price-guide figures are published only when the run read the guide');
   expect(kindProblems('human', 'Thanks, sign up free to continue: /me', { capped: true }).length === 1, 'kind: a capped person ask with no contact');
   expect(factProblems('Our trader licence is a home-registered digital business.', []).length === 1, 'facts: invented premises');
   expect(RECORDED.test('تم تسجيل ملاحظتكم: الزجاج 8 مم') && !RECORDED.test('Noted, thanks. Please add it when you sign up.'), 'facts: a recorded-detail claim, not a polite "noted"');
-  expect(factProblems("Sign up free, so you won't need to repeat anything.", []).length === 1, 'facts: a promise of no repeat');
+  expect(NO_REPEAT.test("Sign up free, so you won't need to repeat anything."), 'facts: a promise of no repeat (graded on the widget)');
+  expect(factProblems('I am happy to keep building your request: 14 openings.', []).length === 0, 'facts: "building your request" is not an address');
+  expect(factProblems('The published guide is AED 250 to 800 per sqm.', [], [250, 800]).length === 0, 'facts: a price-guide range starting at 250 is not the old charge');
   expect(factProblems('If one cannot be covered, it is not shared, and suppliers quote on the scope and quantities instead.', []).length === 1, 'facts: an invented drawing fallback');
   expect(factProblems('The refund is issued to your original payment method through Stripe.', []).length === 0, 'facts: the refund method is canon (Refund Policy §6)');
-  return { checks: LABELLED.length + 31, fails };
+  return { checks: LABELLED.length + 34, fails };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
