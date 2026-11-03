@@ -153,3 +153,12 @@ Deno.test('the lam-alef swap pdf.js makes is undone after a one-letter prefix an
   assertEquals(arabicLigatureFix('األساسات'), 'الأساسات');      // the word-start case measured on the BCG brochure, still undone
   assertEquals(arabicLigatureFix('أعمال الحديد'), 'أعمال الحديد');   // a real alef-lam inside a word is left
 });
+
+Deno.test('a scan read on a busy worker is a scan after its probe pages, never "could not be read" (it was held unreadable for good)', async () => {
+  const blank = new Uint8Array(demoPdfPages(Array.from({ length: 20 }, () => [] as [string, number][])));
+  // a budget already spent before the first page: the worst a loaded worker does
+  const r = await pdfjsText(blank, undefined, 0);
+  assertEquals([r.status, r.pages], ['no_text', 3]);
+  const read = await readDocument(blank, 's.pdf', 'application/pdf', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes });
+  assert(read.ok && read.needs === 'ocr', JSON.stringify(read));
+});

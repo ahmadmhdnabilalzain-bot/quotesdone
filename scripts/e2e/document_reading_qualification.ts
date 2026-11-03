@@ -40,7 +40,11 @@ const ONLY = val('--only')?.split(',') ?? null;
 if (!dir || !outPath) { console.error('usage: <corpus dir> <out.json> [--repeats N] [--model] [--only id,id]'); Deno.exit(2); }
 type Gold = { code: string; line: string; page: number };
 // deno-lint-ignore no-explicit-any
-type Item = { id: string; file: string; mime: string; kind: 'profile' | 'licence'; cls: string; pages: number; text_layer: boolean; registered_name: string; trades: Gold[]; forbidden: string[]; licence?: any; expect?: string };
+// allowed: codes the gold accepts but does not require (a real profile's trades_also); strict: every proposed code outside trades and
+// allowed counts as a WRONG keyword (the real corpus, whose truth lists what the company does, not each decoy it prints)
+type Item = { id: string; file: string; mime: string; kind: 'profile' | 'licence' | 'catalogue'; cls: string; pages: number; text_layer: boolean; registered_name: string; trades: Gold[]; forbidden: string[];
+  allowed?: string[]; strict?: boolean; licence?: any; expect?: string };
+const PARALLEL = Math.max(1, Number(val('--parallel') || 1));
 const truth: { items: Item[] } = JSON.parse(await Deno.readTextFile(`${dir}/truth.json`));
 
 // ── the model, when this run may ask it ───────────────────────────────────────────────────────────────
@@ -103,7 +107,7 @@ async function once(it: Item): Promise<Run> {
       if (model?.activities?.length && !code?.activities?.length) d.photo_text = (await import('../../supabase/functions/_shared/supplier_doc_trades.ts')).modelReadText('licence', model.activities);
     }
     lic = DX.mergeLicenceReads(code, model).merged;
-  } else if (!d.refused) {
+  } else if (!d.refused && it.kind === 'profile') {   // supplier_docs_later.readStoredDocsLater runs the profile hook for a profile only
     // 2. a picture or a scan: the same function the upload paths call, its request recorded (and sent, in the model stage)
     await readProfileByModel(d, async (body) => {
       sent = { kind: body.file_b64 ? 'pdf' : 'images', pages: body.file_b64 ? await pagesOf(String(body.file_b64)) : (body.images as unknown[])?.length ?? 0 };
@@ -125,6 +129,7 @@ async function once(it: Item): Promise<Run> {
   if (d.photo_text) given += '\n' + d.photo_text;
   const reach: Record<string, boolean> = {};
   for (const t of it.trades) {
+    if (!t.line) continue;   // a real document's gold names the trade, not the line (reach is measured on the gold corpus)
     if (it.kind === 'licence') reach[t.code] = !!(lic?.activities as string[] | null)?.some((a) => quoteKey(a) === quoteKey(t.line));
     else if (sent) reach[t.code] = (sent as { pages: number | null }).pages != null && t.page <= (sent as { pages: number }).pages;
     else reach[t.code] = inText(t.line, given);
@@ -139,18 +144,19 @@ async function once(it: Item): Promise<Run> {
 const LIC_FIELDS = ['licence_no', 'legal_name_en', 'legal_name_ar', 'authority', 'emirate', 'issue_date', 'expiry_date', 'activities'];
 const norm = (v: unknown) => Array.isArray(v) ? v.map((x) => quoteKey(String(x))).join('|') : v == null ? null : quoteKey(String(v));
 const results: Record<string, unknown>[] = [];
-for (const it of truth.items) {
-  if (ONLY && !ONLY.includes(it.id)) continue;
+const { inPool } = await import('../../supabase/functions/_shared/supplier_trade_choice.ts');
+await inPool(truth.items.filter((it) => !ONLY || ONLY.includes(it.id)), PARALLEL, async (it) => {
   const runs: Run[] = [];
   for (let r = 0; r < REPEATS; r++) runs.push(await once(it));
   // the VERDICT once every run of the read is done: a first pass's page count varies with the machine's load (the budget is time),
   // the ledger then continues it, and what is proposed and what reached the model must not vary
   const fp = (x: Run) => JSON.stringify([x.status, x.codes, x.reach, x.sent_pages, x.licence]);
   const modal = [...runs.map(fp).reduce((m, k) => m.set(k, (m.get(k) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1])[0];
-  const gold = new Set(it.trades.map((t) => t.code)), forb = new Set(it.forbidden);
+  const gold = new Set(it.trades.map((t) => t.code)), forb = new Set(it.forbidden), ok = new Set([...gold, ...(it.allowed ?? [])]);
   const per = runs.map((x) => {
-    const reached = it.trades.filter((t) => x.reach[t.code]).length;
-    const tp = x.codes.filter((c) => gold.has(c)).length;
+    const reached = it.trades.filter((t) => x.reach[t.code]).length, reachGold = it.trades.filter((t) => t.line).length;
+    const tp = x.codes.filter((c) => gold.has(c)).length, right = x.codes.filter((c) => ok.has(c)).length;
+    const unavailable = x.status === 'read' && /could not be chosen|model stage not run/.test(x.reason ?? '');
     // ok: exactly as printed; wrong: a value read that is NOT what the licence prints (worse than unread: it is believed)
     const fields = it.licence ? LIC_FIELDS.map((k) => ({ k, ok: norm(x.licence?.[k]) === norm(it.licence[k] ?? null),
       wrong: norm(x.licence?.[k]) != null && norm(x.licence?.[k]) !== norm(it.licence[k] ?? null) })) : [];
@@ -160,7 +166,8 @@ for (const it of truth.items) {
       : it.expect === 'held_honestly' ? x.status === 'needs_ocr' && !x.codes.length && /larger than|pages/i.test(x.reason ?? '')
       : it.expect === 'needs_model' && !MODEL ? x.status === 'needs_ocr' && !x.codes.length && (it.kind !== 'licence' || x.licence_needs_model === true)
       : it.expect === 'read' ? x.status === 'read' : true;
-    return { reached, gold: gold.size, tp, proposed: x.codes.length, forbidden: x.codes.filter((c) => forb.has(c)), fields, expired, honest,
+    return { reached, reach_gold: reachGold, gold: gold.size, tp, right, proposed: x.codes.length, unavailable,
+      forbidden: x.codes.filter((c) => it.strict ? !ok.has(c) : forb.has(c)), fields, expired, honest,
       // a read that stopped short (the text read's budget or text cap, or a scan cut for the model) must say so on the document
       // the FIRST pass's ledger is what must be on the document while the rest is read
       partial_disclosed: x.pages_read ? !!x.first_pass : x.sent_pages != null && x.sent_pages < it.pages ? x.cut_recorded : null, passes: x.passes };
@@ -169,12 +176,12 @@ for (const it of truth.items) {
     consistent: modal[1] / runs.length, runs, per });
   const r0 = runs[0], p0 = per[0];
   console.log(`${it.id.padEnd(30)} ${r0.status.padEnd(10)} reach ${p0.reached}/${p0.gold}  model_chars ${String(r0.model_chars).padStart(6)}  sent ${r0.sent_kind ?? '-'}:${r0.sent_pages ?? '-'}  pages_read ${r0.pages_read ?? 'all'}  ${it.kind === 'licence' ? 'fields ' + p0.fields.filter((f) => f.ok).length + '/' + p0.fields.length : ''}  codes [${r0.codes.join(',')}]  consistent ${(modal[1] / runs.length * 100).toFixed(0)}%  ${r0.ms} ms  ${(r0.reason ?? '').slice(0, 70)}`);
-}
+});
 await Deno.writeTextFile(outPath, JSON.stringify({ at: new Date().toISOString(), model: MODEL, repeats: REPEATS, results }, null, 1));
 
 // ── the table, per document class (every repeat counted) ─────────────────────────────────────────────
 // deno-lint-ignore no-explicit-any
-const R = results as any[];
+const R = (results as any[]).sort((a, b) => String(a.id).localeCompare(String(b.id)));
 const classes = [...new Set(R.map((r) => r.cls))];
 const pct = (a: number, b: number) => b ? `${(100 * a / b).toFixed(1)}% (${a}/${b})` : 'n/a';
 const rows = classes.map((c) => {
@@ -182,10 +189,11 @@ const rows = classes.map((c) => {
   const sum = (f: (p: any) => number) => per.reduce((n: number, p: any) => n + f(p), 0);
   const fieldsAll = per.flatMap((p: any) => p.fields);
   return { c, items: rs.map((r) => r.id).join(', '), runs: per.length,
-    reach: pct(sum((p) => p.reached), sum((p) => p.gold)),
+    reach: pct(sum((p) => p.reached), sum((p) => p.reach_gold ?? p.gold)),
     recall: MODEL ? pct(sum((p) => p.tp), sum((p) => p.gold)) : 'model stage not run',
-    precision: MODEL ? pct(sum((p) => p.tp), sum((p) => p.proposed)) : 'model stage not run',
-    forbidden: MODEL ? String(sum((p) => p.forbidden.length)) : 'model stage not run',
+    precision: MODEL ? pct(sum((p) => p.right ?? p.tp), sum((p) => p.proposed)) : 'model stage not run',
+    forbidden: MODEL ? `${sum((p) => p.forbidden.length)} of ${sum((p) => p.proposed)} proposed` : 'model stage not run',
+    unavailable: MODEL ? String(per.filter((p: any) => p.unavailable).length) : '-',
     fields: fieldsAll.length ? pct(fieldsAll.filter((f: any) => f.ok).length, fieldsAll.length) : '-',
     wrong: fieldsAll.length ? String(fieldsAll.filter((f: any) => f.wrong).length) : '-',
     honest: pct(per.filter((p: any) => p.honest).length, per.length),
@@ -193,14 +201,14 @@ const rows = classes.map((c) => {
     consistent: pct(rs.filter((r) => r.consistent === 1).length, rs.length) };
 });
 const md = [`# Document-reading qualification: ${MODEL ? 'with the model' : 'code stage (no model spend)'}`, '',
-  `${new Date().toISOString()} · ${R.length} gold items × ${REPEATS} repeats · corpus scripts/e2e/document_reading_qualification_corpus.ts`, '',
-  '| class | items | runs | gold lines reaching the model | trade recall | trade precision | forbidden proposed | licence fields exact | licence fields WRONG | honest outcome | partial read disclosed | same verdict every repeat |',
-  '|---|---|---:|---|---|---|---|---|---|---|---|---|',
-  ...rows.map((r) => `| ${r.c} | ${r.items} | ${r.runs} | ${r.reach} | ${r.recall} | ${r.precision} | ${r.forbidden} | ${r.fields} | ${r.wrong} | ${r.honest} | ${r.partial} | ${r.consistent} |`),
+  `${new Date().toISOString()} · ${R.length} gold items × ${REPEATS} repeats · corpus ${(truth as { builder?: string }).builder ?? dir}`, '',
+  '| class | items | runs | gold lines reaching the model | trade recall | trade precision | forbidden proposed | model unavailable (runs) | licence fields exact | licence fields WRONG | honest outcome | partial read disclosed | same verdict every repeat |',
+  '|---|---|---:|---|---|---|---|---|---|---|---|---|---|',
+  ...rows.map((r) => `| ${r.c} | ${r.items.length > 120 ? r.items.split(', ').length + ' items' : r.items} | ${r.runs} | ${r.reach} | ${r.recall} | ${r.precision} | ${r.forbidden} | ${r.unavailable} | ${r.fields} | ${r.wrong} | ${r.honest} | ${r.partial} | ${r.consistent} |`),
   '', '## Per item (first repeat)', '',
-  '| item | status | reached | sent to the model | pages read (first repeat) | fields wrong | reason |', '|---|---|---|---|---|---|---|',
+  '| item | status | reached | proposed | missed | wrong | sent to the model | pages read (first repeat) | fields wrong | reason |', '|---|---|---|---|---|---|---|---|---|---|',
   ...R.map((r) => { const x = r.runs[0], p = r.per[0];
-    return `| ${r.id} | ${x.status} | ${p.reached}/${p.gold} | ${x.sent_kind ? x.sent_kind + ' ' + x.sent_pages + ' pages' : x.model_chars ? x.model_chars + ' characters' : '-'} | ${x.first_pass ? x.first_pass + ' in run 1, all after ' + x.passes + ' runs' : x.pages_read ?? 'all'} | ${p.fields.filter((f: any) => !f.ok).map((f: any) => f.k + (f.wrong ? ' (WRONG)' : '')).join(', ') || '-'} | ${String(x.reason ?? '').replace(/\|/g, '/').slice(0, 110)} |`; }),
+    return `| ${r.id} | ${x.status} | ${p.reached}/${p.reach_gold} | ${x.codes.join(' ') || '-'} | ${r.gold.filter((c: string) => !x.codes.includes(c)).join(' ') || '-'} | ${p.forbidden.join(' ') || '-'} | ${x.sent_kind ? x.sent_kind + ' ' + x.sent_pages + ' pages' : x.model_chars ? x.model_chars + ' characters' : '-'} | ${x.first_pass ? x.first_pass + ' in run 1, all after ' + x.passes + ' runs' : x.pages_read ?? 'all'} | ${p.fields.filter((f: any) => !f.ok).map((f: any) => f.k + (f.wrong ? ' (WRONG)' : '')).join(', ') || '-'} | ${String(x.reason ?? '').replace(/\|/g, '/').slice(0, 110)} |`; }),
 ].join('\n');
 await Deno.writeTextFile(outPath.replace(/\.json$/, '.md'), md + '\n');
 console.log(md.split('\n').slice(0, 6 + rows.length).join('\n'));

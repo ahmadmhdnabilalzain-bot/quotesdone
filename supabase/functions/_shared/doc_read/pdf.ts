@@ -42,7 +42,7 @@ export const arabicLigatureFix = (t: string) => t.replace(AR_LIGATURE_HAMZA, 'ا
 // 1000 PAGES, NOT 250 (3 Nov 2026, sales_engineer; scripts/e2e/document_reading_qualification.ts). The page cap was a second
 // bound on what the budget and LIMITS.maxTextChars already bound, and it was the one that bit: a 300-page text profile was read
 // to page 250 in 237 ms (locally) and its services on page 270 were never read. The budget and the text cap still stop the read.
-export const PDFJS_MAX_PAGES = 1000, PDFJS_BUDGET_MS = 700;
+export const PDFJS_MAX_PAGES = 1000, PDFJS_BUDGET_MS = 700, SCAN_PROBE_PAGES = 3;
 export type PdfjsRead = { status: 'text' | 'no_text' | 'failed'; text: string; pages: number; of?: number; detail?: string };
 // ABOVE LIMITS.maxBytes THE BUFFER IS HANDED OVER, NOT COPIED (19 Oct 2026, sales_engineer): copying an 85 MB brochure
 // took the read to 265 MB, past the edge's 256 MB; handing it over keeps it at 171 MB (measurements in types.ts LIMITS).
@@ -58,21 +58,27 @@ export async function pdfjsText(bytes: Uint8Array, maxPages = PDFJS_MAX_PAGES, b
     if (bytes.length > maxBytes) throw new Error(`${bytes.length} bytes is over the ${maxBytes} read limit`);
     const pdf = await getDocumentProxy(bytes.length > LIMITS.maxBytes ? bytes : bytes.slice());   // pdf.js takes ownership of the buffer it is given
     const out: string[] = [];
-    let n = 0;
+    let n = 0, words = false;
     for (let i = first; i <= Math.min(pdf.numPages, maxPages) && n < LIMITS.maxTextChars; i++) {
       // a partial read, said so in `pages` / `of`. The first page is always read: on a busy worker, opening a 19 MB profile
       // alone spent the budget, 0 pages were read and the text PDF was reported as a scan with no text layer (N01, 19 Oct 2026).
-      if (pages >= first && now() - t0 > budgetMs) break;
+      // SCAN_PROBE_PAGES are always read (3 Nov 2026): a first page without words under load is not yet a verdict (below).
+      if (pages >= first + (words ? 0 : SCAN_PROBE_PAGES - 1) && now() - t0 > budgetMs) break;
       const tc = await (await pdf.getPage(i)).getTextContent();
       // deno-lint-ignore no-explicit-any
       const page = tc.items.map((it: any) => (typeof it.str === 'string' ? it.str + (it.hasEOL ? '\n' : '') : '')).join('');
-      out.push(page); n += page.length; pages = i;
+      out.push(page); n += page.length; pages = i; words ||= /\p{L}{2}/u.test(page);
     }
     const text = arabicLigatureFix(out.join('\n')).slice(0, LIMITS.maxTextChars);
     // a continuation is never judged a scan: the document's first pages had words, so later pages without any are simply read
     if (/\p{L}{2}/u.test(text) || first > 1) return { status: 'text', text, pages, of: pdf.numPages };
-    // no words on the pages read, but pages left unread: not proven a scan - held unreadable (the caller retries), never 'no_text'
-    if (pages < Math.min(pdf.numPages, maxPages)) return { status: 'failed', text: '', pages, detail: `no text on the first ${pages} of ${pdf.numPages} pages before the reading budget was spent` };
+    // A SCAN UNDER LOAD WAS HELD UNREADABLE FOR GOOD (3 Nov 2026, sales_engineer; scripts/e2e/document_reading_qualification.ts). A
+    // 20-page image-only profile read on a busy worker spent the budget on page 1, came back 'failed' ("The PDF could not be read") and
+    // was never sent to the model; nothing re-reads an unreadable document. Now SCAN_PROBE_PAGES pages are read before the budget may
+    // stop a read that has found no words yet (an image page's text content is cheap: its pixels are not decoded), and that many pages
+    // without one word is a scan. ponytail: a text PDF opening with SCAN_PROBE_PAGES image-only pages is read as a scan (the model reads
+    // its first PROFILE_PDF_PAGES pages; the ledger records the rest as unread). Fewer pages read than that is still held unreadable.
+    if (pages < Math.min(pdf.numPages, maxPages, first + SCAN_PROBE_PAGES - 1)) return { status: 'failed', text: '', pages, detail: `no text on the first ${pages} of ${pdf.numPages} pages before the reading budget was spent` };
     return { status: 'no_text', text, pages, of: pdf.numPages };
   } catch (e) {
     const detail = String((e as Error)?.message || e).slice(0, 200);
