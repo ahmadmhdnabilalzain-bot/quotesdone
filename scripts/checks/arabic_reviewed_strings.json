@@ -7392,5 +7392,10 @@
  ],
  "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
   "ac6c63ab5f9f"
+ ],
+ "scripts/sql/a_supplier_reply_goes_back_from_its_own_mailbox.sql": [
+  "2e6cf0d056d2",
+  "b88134480ab1",
+  "ecfd9d7efd73"
  ]
 }
