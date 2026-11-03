@@ -1415,6 +1415,56 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_invoice_ready_asks_for_its_invoice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_secret text; v_ref text;
+begin
+  select value into v_secret from public.app_secrets where key = 'cred_db_internal';
+  if nullif(btrim(coalesce(v_secret, '')), '') is null then raise exception 'app_secrets.cred_db_internal is missing'; end if;
+  v_ref := public.qd_project_ref();
+  -- pg_net sends only once this transaction commits, so reveal_invoice reads the notice and its twin as written.
+  perform net.http_post(
+    'https://' || v_ref || '.supabase.co/functions/v1/reveal_invoice',
+    jsonb_build_object('__secret', v_secret, 'action', 'attach', 'quote_id', new.quote_id),
+    '{}'::jsonb, '{"Content-Type":"application/json"}'::jsonb, 60000);
+  return null;
+exception when others then
+  -- The notice is never refused for this: it goes at the end of its hold without the invoice, and the failure is filed
+  -- where customer_support reads its work. That record is guarded too, so this trigger can never fail the insert.
+  begin
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    values ('customer_support', 'invoice_ready_attachment', 'failed', 'medium',
+            left('The invoice could not be requested for notification ' || new.id, 200),
+            jsonb_build_object('notification_id', new.id, 'quote_id', new.quote_id, 'error', left(sqlerrm, 500)),
+            'notifications', new.id::text);
+  exception when others then
+    raise warning 'fn_invoice_ready_asks_for_its_invoice: notification % not requested and not recorded: %', new.id, sqlerrm;
+  end;
+  return null;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invoice_ready_waits_for_its_invoice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- Ten minutes is the ceiling, not the wait: reveal_invoice releases both rows the moment the invoice is attached.
+  if coalesce(new.status, 'pending') in ('queued', 'pending') then
+    new.not_before := greatest(coalesce(new.not_before, now()), now() + interval '10 minutes');
+  end if;
+  return new;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_is_demo_email(p_email text)
  RETURNS boolean
  LANGUAGE sql

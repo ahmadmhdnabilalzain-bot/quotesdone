@@ -89,11 +89,34 @@ Deno.test('escalate and the rate bucket ride on the same call', async () => {
 Deno.test('the knowledge block never licenses a fee figure', async () => {
   const { BRIEF_TEXT } = await import('./brief.generated.ts');
   assert(BRIEF_TEXT.includes('5%'), 'precondition: the knowledge block states a 5% figure');
+  // since 3 Nov 2026 a reply carries the ONE playbook of the trade it is about (company_brief.ts): a kitchen question here
   const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
-  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
+  assertEquals((await aiReply(s.deps, { ...req, message: 'What is the reveal fee on my kitchen job?' })).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
   const stable = String(s.calls[0].o.sysShared ?? '') + String(s.calls[0].o.sysStable ?? '');
-  assert(stable.includes('# Conversation playbook:') && stable.includes('How you hold a conversation'), 'the playbooks ride in the cached blocks (sys_shared)');
+  assert(stable.includes('# Conversation playbook:') && stable.includes('## Kitchens (kitchens)') && stable.includes('How you hold a conversation'), 'the playbook rides in the cached blocks');
+  assert(!stable.includes('## HVAC (hvac)'), 'and only that trade\'s');
   assert(!s.calls[0].system.includes('# Conversation playbook:'), 'and not again in the varying sys');
+});
+
+// prevented by: this test (it_engineer, 3 Nov 2026; sticky since the independent review). The pack is the first trade the
+// other party named in its recent turns, an explicit trade wins, null sends none, and a supplier reader alone gets the
+// supplier how-to.
+Deno.test('the one trade pack: the first named trade, the caller\'s own, none, and the supplier part', async () => {
+  const sent = async (r: Partial<typeof req> & Record<string, unknown>) => {
+    const s = stub([A('The reveal fee is 3%, with no card fee and no VAT.')]);
+    await aiReply(s.deps, { ...req, ...r } as typeof req);
+    return String(s.calls[0].o.sysStable ?? '');
+  };
+  const conv = [{ role: 'customer' as const, text: 'I need my AC serviced.' }, { role: 'seat' as const, text: 'Sure, and your kitchen?' }, { role: 'customer' as const, text: 'Also the kitchen cabinets.' }];
+  // two trades named equally recently: the newer one (company_brief.ts conversationTrade weighs each turn)
+  const newer = await sent({ message: 'How long does it take?', conversation: conv });
+  assert(newer.includes('## Kitchens (kitchens)') && !newer.includes('## HVAC (hvac)'), 'the trade the customer is talking about now');
+  assert((await sent({ message: 'How long does it take?', conversation: conv, trade: 'hvac' })).includes('## HVAC (hvac)'), "the caller's own trade wins");
+  assert((await sent({ audience: 'supplier' as never, message: 'Can I add a tiling option?', facts: 'The inquiry: kitchen cabinets, L-shaped, 4 m.' })).includes('## Kitchens (kitchens)'),
+    "a supplier's inquiry trade (the facts) comes before its passing words");
+  assert(!(await sent({ message: 'kitchen?', trade: null })).includes('# Conversation playbook:'), 'null: no pack');
+  assert(!(await sent({})).includes('Supplier how-to'), 'a customer gets no supplier how-to');
+  assert((await sent({ audience: 'supplier' as never })).includes('Supplier how-to'), 'a supplier does');
 });
 
 // prevented by: these tests (review of #1382). The style is sent once (inside BRIEF_TEXT), and nothing written only in

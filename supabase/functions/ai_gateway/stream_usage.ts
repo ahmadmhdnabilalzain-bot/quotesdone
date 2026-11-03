@@ -46,6 +46,33 @@ export function cacheTokens(u: Usage | null): { cachedIn: number | null; cacheWr
   };
 }
 
+/**
+ * A STREAM THAT ENDED WITHOUT ITS USAGE CHUNK IS PRICED FROM OPENROUTER'S OWN RECORD (it_engineer, 3 Nov 2026). Measured:
+ * USD 11.79 billed in 7 days that ai_cost_log never saw; streamed replies abandoned or cut before the last chunk were
+ * part of it ("NO USAGE CHUNK: tokens and cost unknown"). The generation id is kept, and GET /api/v1/generation?id=
+ * answers the tokens and the charge once OpenRouter has written it (a second or two after the stream ends, so it is
+ * asked up to `tries` times). Null when it never answers: unknown stays unknown, never zero.
+ */
+export async function generationUsage(
+  id: string, key: string, f: typeof fetch = fetch, tries = 3, pauseMs = 1500,
+): Promise<Usage | null> {
+  for (let i = 0; i < tries; i++) {
+    if (i) await new Promise((r) => setTimeout(r, pauseMs));
+    try {
+      const r = await f('https://openrouter.ai/api/v1/generation?id=' + encodeURIComponent(id), { headers: { Authorization: 'Bearer ' + key }, signal: AbortSignal.timeout(5000) });
+      if (!r.ok) continue;
+      const d = (await r.json().catch(() => null))?.data;
+      if (!d) continue;
+      const pt = Number(d.native_tokens_prompt ?? d.tokens_prompt), ct = Number(d.native_tokens_completion ?? d.tokens_completion);
+      if (!Number.isFinite(pt) && !Number.isFinite(Number(d.total_cost))) continue;
+      return { prompt_tokens: Number.isFinite(pt) ? pt : null, completion_tokens: Number.isFinite(ct) ? ct : null,
+        cost: Number.isFinite(Number(d.total_cost)) ? Number(d.total_cost) : null,
+        prompt_tokens_details: { cached_tokens: Number(d.native_tokens_cached ?? 0) || 0, cache_write_tokens: 0 }, from_generation: true };
+    } catch (_e) { /* try again */ }
+  }
+  return null;
+}
+
 export function tapUsage(body: ReadableStream<Uint8Array>, done: (s: StreamSeen) => Promise<void> | void): ReadableStream<Uint8Array> {
   const src = body.getReader(); const dec = new TextDecoder();
   const seen: StreamSeen = { usage: null, id: null, finish: null, cancelled: false, error: null };
