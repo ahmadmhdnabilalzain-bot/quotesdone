@@ -252,7 +252,13 @@ async function handle(req: Request): Promise<Response> {
     // shared secret records who claimed to make it. It is read again at fnName below for routing;
     // the audit could not see it, which is why five legacy uses have no attributable caller.
     const __auth = await requireInternal(admin, body?.__secret, 'ai_gateway', body?.fn);
-    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
+    // THE VERIFIER'S OWN STATUS, NOT A FLAT 403 (it_engineer, 3 Nov 2026, drill D12). requireInternal answers 503
+    // credential_check_unavailable when fn_internal_auth cannot be reached, and this line turned it into 403 forbidden:
+    // _shared/llm.ts's verifier_unavailable branch never fired, and a database blip was logged as "ai_gateway REFUSED
+    // the credential ... Check internal_credential_audit", which sends the it_engineer looking for a rotation fault
+    // that is not there. The envelope carries `ok`, so llm.ts reads it as the gateway's answer and never re-asks.
+    // prevented by: ai_gateway/drill_provider_faults.test.ts
+    if (!__auth.ok) return J({ ok: false, error: __auth.error }, __auth.status);
 
     // Utility path: embed text for callers that need a vector (FAQ backfill, semantic search).
     // Free, so it never touches routing or budget. A missing vector is 503 embed_failed, never
@@ -783,6 +789,15 @@ async function handle(req: Request): Promise<Response> {
     // rfq_routing at 300 with 12 candidates, and quote_comparison again at sonnet/3000. Carry the
     // reason out so a too-small budget says so instead of looking like a bad model.
     let finishReason = '';
+    // THE PROVIDER ANSWERED, WITH NOTHING IN IT (it_engineer, 3 Nov 2026, drill "format"). An empty completion (choices
+    // [], content '' or null, finish_reason 'length' with no text, a 200 that is not JSON) left this function as the
+    // same 502 all_models_failed a refused connection or a provider 5xx leaves, so llm.ts built gateway_http_502 and
+    // openrouter_down.isOpenRouterDown called it an outage: aiReply returned outage:true and the caller was licensed to
+    // send its code-written reply while the model was up (founder_instruction 1339). Measured in the drill: all five
+    // shapes, and one rung refused at the network with the other answering empty, read as outages. Set when any attempt
+    // got an HTTP 2xx from OpenRouter that carried no `error` object; the request then fails as 'empty_completion'.
+    // prevented by: ai_gateway/drill_provider_faults.test.ts
+    let providerAnswered = false;
     // AT MOST TWO PAID CALLS PER REQUEST, AND NONE THAT CANNOT CHANGE THE ANSWER (22 Sep 2026).
     // This was `for (m of ladder) for (attempt < 2)`: four provider calls per request on a
     // two-model ladder, the same model retried after a 401/402/400 that no second asking can
@@ -935,6 +950,7 @@ async function handle(req: Request): Promise<Response> {
           // An empty completion IS a failure even though the HTTP call succeeded. This is exactly
           // the 220-of-228 case: a valid chat.completion body carrying no content, which every
           // monitor read as a healthy response.
+          if (r.ok && !j?.error) providerAnswered = true;
           await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr);
         } catch (e) {
           lastErr = String((e as Error)?.message || e).slice(0, 200);
@@ -1019,11 +1035,16 @@ async function handle(req: Request): Promise<Response> {
       await rpcSafe('fn_review_hold_record', { p_task_class: route.task_class ?? null, p_fn: fnName, p_agent_key: body.agent ?? null,
         p_counterpart_model: counterpart, p_why: 'reviewer call failed: ' + String(lastErr ?? (deadlineHit ? 'deadline' : 'unknown')).slice(0, 500) });
     }
-    if (!outMsg) return J({ ok: false, error: deadlineHit ? 'gateway_deadline' : 'all_models_failed',
+    if (!outMsg) return J({ ok: false, error: providerAnswered ? 'empty_completion' : deadlineHit ? 'gateway_deadline' : 'all_models_failed',
                             detail: deadlineHit ? ('no model answered within the ' + wallBudgetMs + 'ms budget the caller waits for; last error: ' + lastErr) : lastErr,
                             ladder, caps }, 502);
 
-    if (cacheable && cacheKey && out) {
+    // A FRAGMENT IS NEVER STORED FOR REPLAY (it_engineer, 3 Nov 2026, drill "format"). A reply cut at the token ceiling
+    // (finish_reason 'length') was stored here like any answer, and a cache hit returns content with no finish_reason
+    // and no truncated flag, so the next identical request got the fragment as a complete answer and llm.ts's one
+    // controlled repair never ran. Measured in the drill: a truncated call plus its repair wrote 2 llm_cache rows.
+    // prevented by: ai_gateway/drill_provider_faults.test.ts
+    if (cacheable && cacheKey && out && finishReason !== 'length') {
       await rpcSafe('fn_llm_cache_store', {
         p_key: cacheKey, p_fn: fnName, p_task_class: route.task_class ?? null, p_model: used,
         // ttlMin, not body.cache_ttl_min: with the route now supplying the default, reading the

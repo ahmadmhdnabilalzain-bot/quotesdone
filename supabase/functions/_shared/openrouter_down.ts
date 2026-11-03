@@ -37,6 +37,11 @@ export const OUTAGE_ERROR = new RegExp([
 /** True when this error (and, if given, this HTTP status) says the model call FAILED rather than answered.
  *  An empty error with no 5xx/0 status is not an outage: something answered. */
 export function isOpenRouterDown(error: unknown, http?: number | null): boolean {
+  // An empty completion is an ANSWER, whatever status carries it (it_engineer, 3 Nov 2026, drill "format"): ai_gateway
+  // fails a request whose provider answered HTTP 2xx with nothing in it as 502 'empty_completion', and llm.ts reads that
+  // as 'gateway_http_502:empty_completion'. The model is up, so it never licenses a code-written reply.
+  // prevented by: ai_gateway/drill_provider_faults.test.ts, _shared/drill_model_faults.test.ts
+  if (/\bempty_completion\b/i.test(String(error ?? ''))) return false;
   if (typeof http === 'number' && (http === 0 || http >= 500)) return true;
   // A 4xx is an answer, never an outage, whatever words follow it: llm.ts appends the gateway's own outcome and error
   // text after 'gateway_http_<status>', and that text can say "timeout", "upstream" or "connection" on a 400
