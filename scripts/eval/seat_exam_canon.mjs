@@ -15,8 +15,10 @@
 //
 // The same detectors run over the knowledge itself (seat packs, seat cards, the briefs, the canon, the exam keys), so
 // a wrong source is found before any model is asked. Pure: no token, no database, no model.
-import { findings, wrongWordings } from '../legal/company_facts.mjs';
+import { findings, wrongWordings, loadFacts } from '../legal/company_facts.mjs';
 
+const LEGACY = /\b(?:v(?:ersion)?\s?(?:9|1[0-3])\b|(?:12|13|thirteen|twelve)\s+or\s+earlier|earlier (?:version|agreement)|older (?:version|agreement)|legacy|signed before)/i;
+const BORNE = /^\s*(?:cost|costs|charges?|fees?)?\s*(?:is|are)\s+(?:booked|borne|absorbed|recorded|expensed|paid by QuotesDone)\b/i;
 const NEG = /\b(?:no|not|never|none|nothing|without|neither|nor|cannot)\b|n't\b/i;
 const num = (s) => Number(String(s).replace(/,/g, ''));
 
@@ -97,8 +99,22 @@ const sentenceTail = (t, i) => {
 export function canonFindings(text) {
   const t = String(text ?? '');
   const out = [];
-  for (const f of findings(t)) out.push({ claim: `company_facts.${f.fact}`, kind: 'value', got: f.got, want: f.want, text: f.text });
-  for (const w of wrongWordings(t)) out.push({ claim: `company_facts.${w.rule}`, kind: 'wording', got: w.text, want: w.say, text: w.text });
+  const facts = loadFacts().facts;
+  for (const f of findings(t)) {
+    // A supplier bound by an earlier signed version owes that version's figure (company_facts.json `legacy`, clause 33
+    // as signed): AED 250 or 9% is right when the same sentence names the earlier version it applies to.
+    const leg = facts[f.fact]?.legacy?.value;
+    // The version may be named in the sentence before ("… v12 or earlier. The interest for such a supplier is 9%").
+    const here = sentenceAround(t, f.at), start = f.at - here.length;
+    if (leg != null && f.got === leg && LEGACY.test(sentenceAround(t, Math.max(0, start - 2)) + here + sentenceTail(t, f.at))) continue;
+    out.push({ claim: `company_facts.${f.fact}`, kind: 'value', got: f.got, want: f.want, text: f.text });
+  }
+  for (const w of wrongWordings(t)) {
+    // "the full fee and the processing cost is booked separately" describes QuotesDone's own cost, not a surcharge.
+    const i = t.indexOf(w.text);
+    if (w.rule === 'no_card_fee' && i >= 0 && BORNE.test(sentenceTail(t, i + w.text.length).slice(0, 60))) continue;
+    out.push({ claim: `company_facts.${w.rule}`, kind: 'wording', got: w.text, want: w.say, text: w.text });
+  }
   for (const c of VALUE_CLAIMS) for (const re of c.re) {
     re.lastIndex = 0;
     for (const m of t.matchAll(re)) {

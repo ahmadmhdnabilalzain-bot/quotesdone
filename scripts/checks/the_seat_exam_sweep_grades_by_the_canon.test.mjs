@@ -38,6 +38,7 @@ test('a contradiction of the canon is found (the control for the test above)', (
   assert.ok(claims('Stripe costs are passed to the customer as a card surcharge.').includes('card_cost_passed_to_customer'));
   assert.ok(claims('QuotesDone runs on 10 departments.').includes('departments_exist'));
   assert.ok(claims('The supplier owes an AED 250 administrative fee.').some((c) => c.startsWith('company_facts.')));
+  assert.ok(claims('Interest runs at 9% per annum simple from the due date.').some((c) => c.startsWith('company_facts.')));
 });
 
 test('a statement the canon makes is not a contradiction', () => {
@@ -49,6 +50,10 @@ test('a statement the canon makes is not a contradiction', () => {
     'An earlier note ("free until 31 July 2027") was superseded; never quote a date.',
     "Stripe's guide says customers usually see the credit in about 5-10 business days, but QuotesDone gives the Terms' 7 to 14 working days.",
     'There are six seats and no departments.',
+    // two correct answers the first grading flagged (3 Nov 2026): a legacy figure with its version named, and the
+    // processor cost described as QuotesDone's own expense
+    'AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier. The interest for such a supplier is 9% per annum simple (12% applies from v14).',
+    'Revenue is recognised gross at the full fee and the processing cost is booked separately to 5000 Payment processing fees.',
   ]) assert.deepEqual(claims(ok), [], ok);
 });
 
