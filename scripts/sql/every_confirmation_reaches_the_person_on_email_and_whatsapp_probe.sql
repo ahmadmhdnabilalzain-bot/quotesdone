@@ -13,7 +13,8 @@
 --      accepting again (cleared, then set) adds nothing;
 --   2. an English customer whose verified mobile is their WhatsApp gets the English email and a twin addressed to it;
 --   3. a supplier_approved email to an address with no WhatsApp answer gets a recorded 'skipped' twin, while a
---      non-confirmation type to the same address still gets no twin (fanout unchanged for it);
+--      non-confirmation type to the same address still gets no twin (fanout unchanged for it), and a reply
+--      (inbound_reply) is never twinned (the rule this file keeps from a_supplier_reply_goes_back_from_its_own_mailbox.sql);
 --   4. a customer's invoice_ready email (written as its real writer writes it: status left to the 'pending' default)
 --      and its twin are both held ~10 minutes (not_before), the attach trigger exists for a waiting email row with a
 --      quote, and the reveal receipt is not held but still gets its twin;
@@ -59,7 +60,11 @@ begin
   -- 3. supplier_approved to an address with no WhatsApp answer, and a non-confirmation to the same address
   insert into public.notifications (type, channel, to_email, to_role, subject, body, status, requested_by)
   values ('supplier_approved', 'email', e_sup, 'supplier', 'ZZ DEMO probe approval', 'ZZ DEMO probe', 'queued', 'sales_engineer'),
-         ('new_inquiry', 'email', e_sup, 'supplier', 'ZZ DEMO probe inquiry', 'ZZ DEMO probe', 'queued', 'sales_engineer');
+         ('new_inquiry', 'email', e_sup, 'supplier', 'ZZ DEMO probe inquiry', 'ZZ DEMO probe', 'queued', 'sales_engineer'),
+         ('inbound_reply', 'email', e_sup, 'supplier', 'Re: ZZ DEMO probe', 'ZZ DEMO probe', 'queued', 'customer_support');
+  -- the reply rule this file keeps from a_supplier_reply_goes_back_from_its_own_mailbox.sql: a reply is never twinned
+  if exists (select 1 from public.notifications where type = 'inbound_reply' and channel = 'whatsapp' and to_email = e_sup) then
+    fails := fails || ' 3:reply_twinned'; end if;
   if (select count(*) from public.notifications where type = 'supplier_approved' and channel = 'whatsapp' and to_email = e_sup
         and status = 'skipped' and last_error like '%no confirmed WhatsApp number%') <> 1 then
     fails := fails || ' 3:approved_twin'; end if;

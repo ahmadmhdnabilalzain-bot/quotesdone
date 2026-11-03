@@ -165,6 +165,9 @@ declare v_dest text; v_opt text;
 begin
   -- only fan out plain email rows; never recurse on whatsapp rows
   if coalesce(new.channel, 'email') <> 'email' or new.to_email is null or coalesce(new.to_role, '') not in ('customer', 'supplier') then return new; end if;
+  -- a reply answers on the channel the message came in on (3 Nov 2026, sales_engineer): never twinned
+  -- (kept from a_supplier_reply_goes_back_from_its_own_mailbox.sql, which this file follows in MANIFEST)
+  if new.type = 'inbound_reply' then return new; end if;
   v_dest := public.fn_whatsapp_destination(new.to_role, null, new.lead_id, new.to_email);
   if v_dest is null then
     if new.to_role = 'customer' then
