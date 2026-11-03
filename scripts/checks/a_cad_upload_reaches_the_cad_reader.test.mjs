@@ -48,7 +48,7 @@ test('a CAD drawing the edge cannot read is queued on both paths, and 546 counts
 });
 
 test('the queue has a worker, a queued job is held for the sales_engineer, and the status is the owner\'s only', () => {
-  // customer_api no longer dispatches the workflow (Actions is off, 27 Oct); the workflow stays runnable by hand.
+  // customer_api dispatches the workflow (startCadWorker); it also stays runnable by hand.
   assert.match(worker, /workflow_dispatch/);
   // The 6-hourly schedule is the last resort for a lost dispatch. Founder, 26 Oct 2026: every automatic
   // trigger is off until the bugs clear, so it may stand commented out, but only under that note.
@@ -59,10 +59,16 @@ test('the queue has a worker, a queued job is held for the sales_engineer, and t
   assert.match(workerTs, /readDwg\(bytes, ctx, Infinity\)/);
   const status = api.slice(api.indexOf("action === 'cad_read_status'"), api.indexOf("action === 'analyze_boq'"));
   assert.match(status, /\.eq\('customer_id', cust\.id\)/);
-  // 27 Oct 2026: GitHub Actions is off, so nothing starts the worker. A queued job raises the hour's
-  // sales_engineer finding at once (one per hour: the worker reads every queued job in one run), and a polled open job tells the screen who holds it.
-  const queue = api.slice(api.indexOf('async function queueCadRead'), api.indexOf('async function cadReadHeld'));
-  assert.match(queue, /await cadReadHeld\(String\(data\.id\), o\.why\)/);
+  // 3 Nov 2026: Actions is on again (ledger 1410), and from 27 Oct nothing started the worker: the nightly's DWG sat
+  // queued 248 s (2 Nov) and 253 s (3 Nov). A queued job DISPATCHES the worker at once, a polled job that has not
+  // started is dispatched again, and a dispatch that does not answer 204 raises the hour's sales_engineer finding
+  // (one per hour: the worker reads every queued job in one run); a polled open job tells the screen who holds it.
+  const queue = api.slice(api.indexOf('async function queueCadRead'), api.indexOf('async function startCadWorker'));
+  assert.match(queue, /await startCadWorker\(String\(data\.id\), o\.why\)/, 'a queued CAD job must start its worker');
+  const start = api.slice(api.indexOf('async function startCadWorker'), api.indexOf('function cadJobNeedsRedispatch'));
+  assert.match(start, /actions\/workflows\/cad-read-worker\.yml\/dispatches/, 'startCadWorker must dispatch the CAD worker workflow');
+  assert.match(start, /r\.status === 204\) return;[\s\S]{0,300}await cadReadHeld\(jobId/, 'a refused dispatch must fall back to the held finding');
+  assert.match(status, /cadJobNeedsRedispatch\(job as any\)\) await startCadWorker\(id/, 'a polled job that has not started is dispatched again');
   const held = api.slice(api.indexOf('async function cadReadHeld'), api.indexOf('// A CAD DRAWING IS DRAWN FOR SUPPLIERS'));
   assert.match(held, /fn_it_engineer_finding_upsert[\s\S]{0,200}sales_engineer:cad_read_held:' \+ new Date\(\)\.toISOString\(\)\.slice\(0, 13\)[\s\S]{0,800}p_raised_by: 'sales_engineer'/);
   assert.match(held, /if \(error\) console\.error\(/, 'a finding that was not written is said, never swallowed');
@@ -89,14 +95,17 @@ test('the portal refuses Revit, IFC and DGN, accepts DWG/DXF and polls a queued 
 });
 
 // 27 Oct 2026: a dispatch to a GitHub workflow while Actions is off reaches nothing, and the job it was meant
-// to start waits forever. No edge function may hand work to a GitHub workflow.
-test('no edge function dispatches a GitHub workflow', () => {
+// to start waits forever. 3 Nov 2026: Actions is on (ledger 1410); the CAD worker is the ONE workflow an edge
+// function may start (customer_api startCadWorker, with the held finding as its fallback). Any other dispatch is a finding.
+test('only customer_api starts a GitHub workflow, and only the CAD worker', () => {
   const dir = new URL('../../supabase/functions/', import.meta.url);
   const hits = [];
   for (const f of readdirSync(dir, { recursive: true })) {
     if (!/\.ts$/.test(String(f))) continue;
     const src = readFileSync(new URL(String(f).replace(/\\/g, '/'), dir), 'utf8');
-    if (/api\.github\.com\/repos\/[^'"`\s]*\/(actions\/workflows\/[^'"`\s]*\/dispatches|dispatches)/.test(src)) hits.push(String(f));
+    for (const m of src.matchAll(/api\.github\.com\/repos\/[^/'"`\s]+\/[^/'"`\s]+\/(?:actions\/workflows\/([^'"`\s/]*)\/dispatches|dispatches)/g)) {
+      if (!(String(f).replace(/\\/g, '/') === 'customer_api/index.ts' && m[1] === 'cad-read-worker.yml')) hits.push(`${f} -> ${m[1] || 'repository_dispatch'}`);
+    }
   }
-  assert.deepEqual(hits, [], 'these edge functions dispatch a GitHub workflow, which does not run: ' + hits.join(', '));
+  assert.deepEqual(hits, [], 'these edge functions dispatch a GitHub workflow nothing is built to be started by: ' + hits.join(', '));
 });
