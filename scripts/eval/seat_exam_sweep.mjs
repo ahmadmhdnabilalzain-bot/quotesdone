@@ -29,7 +29,8 @@
 //   node scripts/eval/seat_exam_sweep.mjs audit                                   # the knowledge vs the canon, code only
 //   node scripts/eval/seat_exam_sweep.mjs prepare --dir D [--wordings w.json] [--only ids.json]
 //   node scripts/eval/seat_exam_sweep.mjs grade --dir D                           # D/answers/*.json -> D/code.json, D/judge/*.md
-//   node scripts/eval/seat_exam_sweep.mjs score --dir D [--prior D0]              # D/judged/*.json -> D/score.json + table
+//   node scripts/eval/seat_exam_sweep.mjs score --dir D                           # D/judged/*.json -> D/score.json + table
+//   node scripts/eval/seat_exam_sweep.mjs rejudge --dir D [--prefix rejudge]      # the judge's failures, after a rule fix
 //   node scripts/eval/seat_exam_sweep.mjs calibrate-prepare --dir D               # the labelled cases as a blind judge batch
 //   node scripts/eval/seat_exam_sweep.mjs calibrate --dir D                       # D/calibration_verdicts.json vs the labels
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
@@ -202,9 +203,12 @@ PASS only when ALL of these hold:
   1. every RUBRIC point is made, in any words or language (a point made in substance passes; a point missing,
      contradicted or made only vaguely fails);
   2. nothing in the answer contradicts the REFERENCE, the rubric or a company fact (fees, deadlines, owners, rules);
-  3. every number the answer states is in the reference or rubric, or is correct arithmetic on numbers given there.
-     A CHECK line names any figure code could not find in what the seat was given: decide whether it is correctly
-     derived (pass) or invented / wrong (fail).
+  3. no figure is invented. The seat was also given the company's SETTLED FACTS (its brief: fees, deadlines, owners,
+     dates, licences, the plan), which you do not see; code has already checked every AED amount and percentage in
+     the answer against everything the seat was given. So do NOT fail an answer merely because a fact, date or number
+     is absent from the REFERENCE; fail it only if that statement contradicts the reference or the rubric. A CHECK
+     line names a figure code could NOT find in anything the seat was given: decide whether it is correct arithmetic
+     on given numbers (pass) or invented / wrong (fail).
 Otherwise FAIL. Being cautious ("not established") about a point the rubric requires is a FAIL. Extra correct detail
 is fine. Judge each case on its own.
 Write {"<case id>": {"pass": true|false, "note": "<one line: what decided it>"}} for every case, as one JSON object,
@@ -212,6 +216,24 @@ to the output path given below. Do not open any other file.`;
 
 export function judgeCase(c) {
   return `### CASE ${c.id}\nQUESTION: ${c.question}\nRUBRIC:\n${c.answer_must.map((m) => `- ${m}`).join('\n')}\nKEY FACTS: ${c.expected_facts.join(' | ')}\nREFERENCE:\n${c.reference}\nANSWER:\n${c.answer}\n${c.check ? `CHECK: ${c.check}\n` : ''}`;
+}
+
+function writeJudgeBatches(dir, queue, prefix, per = 30) {
+  mkdirSync(join(dir, 'judge'), { recursive: true }); mkdirSync(join(dir, 'judged'), { recursive: true });
+  for (let i = 0; i < queue.length; i += per) {
+    const name = `${prefix}-${String(i / per + 1).padStart(2, '0')}`;
+    writeFileSync(join(dir, 'judge', name + '.md'), `# Judge batch ${name}\n\nOutput path: ${join(dir, 'judged', name + '.json')}\n\n## Rules\n${JUDGE_RULES}\n\n## CASES\n${queue.slice(i, i + per).map(judgeCase).join('\n')}`);
+    console.log(`${name}: ${queue.slice(i, i + per).length} cases`);
+  }
+}
+
+/** RE-JUDGE (3 Nov 2026): after a correction to JUDGE_RULES that only removes a reason to fail, the cases the judge
+ *  failed are judged again. Its verdicts are written as <prefix>-NN.json and, sorting after judge-NN.json, replace
+ *  the earlier verdict for those cases only. A pass under the stricter rule stays a pass, so nothing else is re-asked. */
+function rejudge(dir, prefix) {
+  const queue = json(join(dir, 'judge_queue.json'));
+  const judged = Object.assign({}, ...readdirSync(join(dir, 'judged')).filter((f) => /^judge-\d+\.json$/.test(f)).map((f) => json(join(dir, 'judged', f))));
+  writeJudgeBatches(dir, queue.filter((c) => judged[c.id] && !judged[c.id].pass), prefix);
 }
 
 function grade(dir) {
@@ -235,15 +257,11 @@ function grade(dir) {
       answer: answers.get(id), check: g.unsupported.length ? `figures not found in what the seat was given: ${g.unsupported.join(', ')}` : '' });
   }
   writeFileSync(join(dir, 'code.json'), JSON.stringify(results, null, 1));
-  mkdirSync(join(dir, 'judge'), { recursive: true }); mkdirSync(join(dir, 'judged'), { recursive: true });
-  const per = 30;
-  for (let i = 0; i < queue.length; i += per) {
-    const name = `judge-${String(i / per + 1).padStart(2, '0')}`;
-    writeFileSync(join(dir, 'judge', name + '.md'), `# Judge batch ${name}\n\nOutput path: ${join(dir, 'judged', name + '.json')}\n\n## Rules\n${JUDGE_RULES}\n\n## CASES\n${queue.slice(i, i + per).map(judgeCase).join('\n')}`);
-  }
+  writeFileSync(join(dir, 'judge_queue.json'), JSON.stringify(queue, null, 1));
+  writeJudgeBatches(dir, queue, 'judge');
   const n = (v) => results.filter((r) => r.verdict === v).length;
   const noAnswer = results.filter((r) => r.answer == null).map((r) => r.id);
-  console.log(`graded ${results.length}: pass by code ${n('pass')}, fail by code ${n('fail')} (canon), to the judge ${n('judge')} in ${Math.ceil(queue.length / per)} batches${noAnswer.length ? `; NO ANSWER: ${noAnswer.join(', ')}` : ''}`);
+  console.log(`graded ${results.length}: pass by code ${n('pass')}, fail by code ${n('fail')} (canon), to the judge ${n('judge')} in ${Math.ceil(queue.length / 30)} batches${noAnswer.length ? `; NO ANSWER: ${noAnswer.join(', ')}` : ''}`);
 }
 
 // ---- score -------------------------------------------------------------------------------------------------------
@@ -327,6 +345,7 @@ async function main() {
   } else if (cmd === 'prepare') prepare(dir, at('--wordings'), at('--only'));
   else if (cmd === 'grade') grade(dir);
   else if (cmd === 'score') score(dir);
+  else if (cmd === 'rejudge') rejudge(dir, at('--prefix') || 'rejudge');
   else if (cmd === 'calibrate-prepare') calibratePrepare(dir);
   else if (cmd === 'calibrate') calibrate(dir);
   else { console.error('usage: seat_exam_sweep.mjs audit|prepare|grade|score|calibrate-prepare|calibrate (see the header)'); process.exit(2); }
