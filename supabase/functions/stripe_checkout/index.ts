@@ -248,7 +248,7 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     const sj = await r.json();
     if (!r.ok && (r.status === 409 || sj?.error?.type === 'idempotency_error')) {
       await logRun('ok', { quote_id: qid, payment_in_progress: true, http: r.status }, 'a reveal checkout for this quote is already open in another window');
-      return J({ ok: false, error: 'payment_in_progress', code: 'payment_in_progress', message: 'A payment for this supplier is already open in another window. Finish it there, or try again in a minute.', message_ar: 'هناك عملية دفع لهذا المورّد مفتوحة في نافذة أخرى. أكملها هناك أو حاول مجددًا بعد دقيقة.' }, 409);
+      return J({ ok: false, error: 'payment_in_progress', code: 'payment_in_progress', message: 'A payment for this supplier is already open in another window. Finish it there, or try again in a minute.', message_ar: 'توجد عملية دفع لهذا المورّد مفتوحة في نافذة أخرى. يُرجى إكمالها هناك أو المحاولة مجددًا بعد دقيقة.' }, 409);
     }
     if (!r.ok) { await logRun('error', { quote_id: qid, fee, http: r.status }, 'stripe session create failed: ' + String(sj?.error?.message || '').slice(0, 250)); return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502); }
     await logRun('ok', { quote_id: qid, fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, session: String(sj?.id || '') }, '');
