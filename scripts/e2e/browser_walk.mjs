@@ -531,8 +531,10 @@ async function customerJourney(browser, w, lang, view) {
       // THE REVEAL BUTTON ITSELF, THEN ITS CONFIRMATION (run 71b75b60): /reveal|unlock|pay/ first matched the
       // "N quotes to review … reveal the supplier" notice, and the in-page confirm (q_confirm_pay) was never pressed,
       // so nothing navigated and waitForURL timed out. Open the quoted card, press "Reveal & contact", confirm.
-      const card = page.locator('[id^="inq-"]').filter({ hasText: QUOTED_CARD[lang === 'ar' ? 'ar' : 'en'] }).first();
-      if (await card.count()) { const head = card.locator('[role=button][aria-expanded]').first(); if ((await head.getAttribute('aria-expanded')) !== 'true') { await head.click(); await page.waitForTimeout(2000); } }
+      // `quoted`, not `card` (run 12eb1c85, 3 Nov 2026): a request card named `card` shadowed the loop's card NUMBER, so the first run
+      // that found the button typed a Playwright locator into Stripe's card field ("locator.fill: value: expected string, got object").
+      const quoted = page.locator('[id^="inq-"]').filter({ hasText: QUOTED_CARD[lang === 'ar' ? 'ar' : 'en'] }).first();
+      if (await quoted.count()) { const head = quoted.locator('[role=button][aria-expanded]').first(); if ((await head.getAttribute('aria-expanded')) !== 'true') { await head.click(); await page.waitForTimeout(2000); } }
       const btn = page.getByRole('button', { name: lang === 'ar' ? /اكشف وتواصل/ : /Reveal & contact/ }).and(page.locator(':enabled')).first();
       if (!(await btn.count())) return ['SKIP', 'no "Reveal & contact" button visible (needs an unrevealed quote)'];
       await btn.click();

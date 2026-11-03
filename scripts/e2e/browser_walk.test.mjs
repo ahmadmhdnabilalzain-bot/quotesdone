@@ -77,3 +77,13 @@ test('the quoted-card filter matches the card text as the page really joins it',
   assert.doesNotMatch('RevealedAluminium163071Dubai·3 quotesOpen request', /\b[1-9]\d* quotes?\b/, 'known-bad: the old filter missed this card');
   assert.equal((SRC.match(/hasText: QUOTED_CARD\[/g) || []).length, 2, 'the quotes step and the reveal step use the one filter');
 });
+
+// Run 12eb1c85 (3 Nov 2026): inside the reveal loop `const card = page.locator(...)` shadowed the loop's card NUMBER, so the
+// success step typed a locator into Stripe ("locator.fill: value: expected string, got object") the first time the button was found.
+test('the reveal steps never shadow the card number they pay with', () => {
+  const loop = SRC.slice(SRC.indexOf("for (const [name, card] of [['reveal checkout: test card success'"), SRC.indexOf("// 6. Post-reveal supplier details"));
+  assert.ok(loop.length > 100, 'the reveal loop is found');
+  assert.doesNotMatch(loop, /\b(const|let|var)\s+card\s*=/, 'no inner binding named card');
+  assert.doesNotMatch("for (const [name, card] of x) { const card = page.locator('[id^=\"inq-\"]'); }", /^(?![\s\S]*\b(const|let|var)\s+card\s*=)/, 'known-bad: the old loop body redeclared card');
+  assert.match(loop, /fill\(card\)/);
+});
