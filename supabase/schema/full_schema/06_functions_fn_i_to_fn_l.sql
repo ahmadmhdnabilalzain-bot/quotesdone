@@ -310,6 +310,97 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_inquiry_change_from_customer(p_inquiry uuid, p_customer uuid, p_text text, p_source text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.inquiries; v_text text; v_full text; v_note bigint; v_q text; l record; v_prev public.rfq_clarification;
+        v_told int := 0; v_quoted int := 0; v_failed int := 0; v_matched int; v_head text; v_body text; v_ar boolean; v_d jsonb; v_dup boolean;
+begin
+  if p_source not in ('whatsapp') then raise exception 'a customer change comes from whatsapp here, not %', p_source; end if;
+  select * into i from public.inquiries where id = p_inquiry for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'inquiry_not_found'); end if;
+  if i.customer_id is distinct from p_customer then return jsonb_build_object('ok', false, 'error', 'not_your_inquiry'); end if;
+  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed', 'expired', 'lost') then
+    return jsonb_build_object('ok', false, 'error', 'inquiry_closed', 'status', i.status); end if;
+  if coalesce(i.status, '') = 'revealed' or exists (select 1 from public.transactions t where t.inquiry_id = i.id and t.revealed_at is not null) then
+    return jsonb_build_object('ok', false, 'error', 'already_revealed'); end if;
+  -- Every matched supplier reads this: the customer's contact details and name are removed first (5a).
+  v_text := public.fn_scrub_customer_identity(left(btrim(coalesce(p_text, '')), 1500), p_customer);
+  if length(btrim(regexp_replace(coalesce(v_text, ''), '\[(removed|hidden)\]', '', 'g'))) < 2 then
+    return jsonb_build_object('ok', false, 'error', 'text_required'); end if;
+  v_head := 'The customer sent this change to the request on WhatsApp:';
+  v_full := v_head || chr(10) || v_text;
+  v_ar := v_text ~ '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]';
+  select count(*) into v_matched from public.inquiry_matches x where x.inquiry_id = i.id;
+
+  -- THE SAME CHANGE TWICE IS ONE CHANGE: the earlier note is reused and no second note is filed. Its deliveries are
+  -- asked for again under the SAME keys, so a supplier already told is not mailed twice (the delivery door dedupes a
+  -- delivered key) and one whose first delivery failed is retried (a failed key is not deduped).
+  select * into v_prev from public.rfq_clarification r
+   where r.inquiry_id = i.id and r.kind = 'note' and r.source = 'rfq_note'
+     and coalesce(r.answered_at, r.asked_at) > now() - interval '6 hours'
+     and md5(coalesce(r.answer_as_written, r.answer, '')) = md5(v_full)
+   order by r.id desc limit 1;
+  v_dup := v_prev.id is not null;
+  if v_dup then v_note := v_prev.id; end if;
+  -- the portal's own limit on notes (customer_api rfq_note)
+  if not v_dup and (select count(*) from public.rfq_clarification r where r.inquiry_id = i.id and r.kind = 'note' and r.asked_at > now() - interval '1 hour') >= 10 then
+    return jsonb_build_object('ok', false, 'error', 'too_many_notes'); end if;
+
+  if v_dup then
+    null;
+  elsif v_ar then
+    -- Suppliers read English only: the Arabic is kept as written and its supplier copy waits for its English, exactly as
+    -- fn_inquiry_add_missing_specs files it (the supplier_english replay mails every matched supplier when it lands).
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answer_as_written, english_held_at, answered_at, source)
+    values (i.id, null, 'note', null, v_full, now(), now(), 'rfq_note') returning id into v_note;
+    v_q := 'Translate this message from a customer into clear, professional English for the suppliers quoting the job, '
+        || 'as a UAE sales engineer would write it. Keep every measurement, quantity, brand, model and grade code exactly as written. '
+        || 'Add nothing and leave nothing out. Put ONLY the English text in "answer".' || chr(10) || chr(10) || v_full;
+    perform public.fn_reason_hold('sales_engineer', 'sales_engineer.supplier_english', left(v_q, 8000),
+      jsonb_build_object('seat', 'sales_engineer', 'surface', 'sales_engineer.supplier_english', 'question', v_q,
+        'context', jsonb_build_object('audience', 'internal', 'language', 'en'), 'research', false,
+        'subject', jsonb_build_object('clarification_id', v_note), 'dedupeKey', 'supplier_english:' || v_note),
+      '{}'::jsonb, jsonb_build_object('clarification_id', v_note), 'filed_from_a_request_path', 'supplier_english:' || v_note);
+  else
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source)
+    values (i.id, null, 'note', v_full, now(), 'rfq_note') returning id into v_note;
+  end if;
+
+  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email,
+                  exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = le.id
+                           and coalesce(q.status, '') not in ('draft', 'withdrawn', 'rejected', 'expired', 'cancelled')) as quoted
+             from public.inquiry_matches x join public.leads le on le.id = x.supplier_id
+            where x.inquiry_id = i.id and not coalesce(le.banned, false)
+              and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
+    -- held Arabic: only the suppliers who already quoted are written to now; everyone gets the English copy from the replay
+    continue when v_ar and not l.quoted;
+    v_body := case when v_ar
+      then 'The customer changed the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
+           || ' (request ' || coalesce(i.rfq_no::text, '') || ') you already quoted. The change was written in Arabic, and its English copy '
+           || 'reaches you by email shortly. Once you have read it, please confirm your quote still stands, or revise it, in your QuotesDone supplier portal.'
+      else 'The customer changed the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
+           || ' (request ' || coalesce(i.rfq_no::text, '') || ') you were invited to quote:' || chr(10) || chr(10) || v_text || chr(10) || chr(10)
+           || case when l.quoted then 'You have already quoted on this request: please confirm your quote still stands, or revise it, in your QuotesDone supplier portal.'
+                   else 'It is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.' end end;
+    v_d := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', 'rfq_addendum', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
+      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', i.id, 'lang', 'en',
+      'subject', 'The customer changed a request you were invited to quote', 'body', v_body,
+      'dedupe_key', 'customer_change:' || v_note || ':' || l.id)));
+    -- a supplier is counted as told only when the delivery took it (re-review of #1844: the reply claimed every send)
+    if coalesce(v_d->0->>'status', '') not in ('done', 'demo_captured') then v_failed := v_failed + 1; continue; end if;
+    if not v_ar then v_told := v_told + 1; end if;
+    if l.quoted then v_quoted := v_quoted + 1; end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'duplicate', v_dup, 'note_id', v_note, 'held_for_english', v_ar, 'suppliers_told', v_told, 'quoted_told', v_quoted,
+    'delivery_failed', v_failed, 'suppliers_matched', v_matched);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_build(p_inquiry uuid)
  RETURNS jsonb
  LANGUAGE sql
