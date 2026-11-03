@@ -88,6 +88,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 ## Working the estate
 - [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
 - [The otp-race step runs on a throwaway Postgres in the cloud container (28 Oct)](the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container.md) — no Docker daemon, but Postgres 16 is installed; run it as the postgres user and set QD_OTP_RACE_PG
+- [A probe can run locally on a stub built from the mirror (3 Nov)](a-probe-can-run-locally-on-a-stub-built-from-the-mirror.md) — no token: copy the real routine bodies out of full_schema, stub net/roles, run `begin; file; probe; rollback;`; caught a now()-tie defect before the push
 - [npm ci in a worktree empties the shared node_modules (27 Oct)](npm-ci-in-a-worktree-empties-the-shared-node-modules.md) — install only in the main checkout
 - [A branch can silently revert main (27 Oct)](a-branch-can-silently-revert-main.md) — #1672; review the whole diff against main
 - [Diff SQL against live production, not the mirror (27 Oct)](diff-sql-against-live-production-not-the-mirror.md) — #1660 nearly reverted #1644's live code
