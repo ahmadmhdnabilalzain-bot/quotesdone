@@ -83,7 +83,7 @@ out.forged = await (async () => { // known-bad control: wrong token, no row, no 
     'ZZ DEMO my villa air conditioning is broken, who can fix it?', 'ZZ DEMO you took my money and vanished, this is a scam'];
   const read = async (phone: string, lean: boolean) => {
     waLean.on = lean; const res = [];
-    try { for (const m of msgs) { const r = await say(phone, m); const meta = r.rows[0]?.meta ?? {}; res.push({ ms: r.ms, intent: meta.route_intent ?? null, person: meta.asked_for_a_person ?? null, answered: !!r.reply, cls: (meta.timings as Record<string, number> | undefined)?.classified ?? null }); } }
+    try { for (const m of msgs) { const r = await say(phone, m); const meta = r.rows[0]?.meta ?? {}; res.push({ ms: r.ms, intent: meta.route_intent ?? null, person: meta.asked_for_a_person ?? null, answered: !!r.reply, cls: (meta.timings as Record<string, number> | undefined)?.classified ?? null, att: meta.reply_attempts ?? null }); } }
     finally { waLean.on = true; }
     return res;
   };
@@ -106,7 +106,7 @@ for (let i = 1; i <= 10; i++) {
   let r = await say(S, text);
   // the memory question is asked again (new message) if the first answer ran past the 45 s budget and went to the hold queue
   for (let again = 0; i === 10 && !r.reply && again < 2; again++) { ten.push({ i: 10, reply: '(held: ' + JSON.stringify(r.rows[0]?.meta?.send_error ?? null) + ', ' + r.ms + ' ms)' } as never); r = await say(S, text); }
-  ten.push({ i, reply: r.reply, ms: r.ms, t: r.rows[0]?.meta?.timings, why: r.reply ? undefined : (r.rows[0]?.meta?.send_error ?? 'no row') } as never);
+  ten.push({ i, reply: r.reply, ms: r.ms, t: r.rows[0]?.meta?.timings, att: r.rows[0]?.meta?.reply_attempts, why: r.reply ? undefined : (r.rows[0]?.meta?.send_error ?? 'no row') } as never);
 }
 out.ten = ten;
 // grounding

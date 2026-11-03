@@ -402,6 +402,8 @@ async function handleInbound(req: Request): Promise<Response> {
   // Prevented by: arrival_is_stored_first.test.ts.
   let arrivalId: number | null = null;
   let crashed = false, MessageSidSeen = '';
+  // The review of a decision, started beside the reply (below) and awaited in the finally; it never throws (review_request.ts).
+  let reviewP: Promise<unknown> = Promise.resolve(null);
   // RACE WITH THE SWEEP (review of #1457): the arrival row is completed only while it is still 'received'. If
   // fn_wa_arrival_sweep took it first (a turn past 5 minutes), the row stays 'escalated', this turn's record goes on a row
   // of its own, and fn_wa_arrival_turn_finished closes the action and suppresses a holding notice not yet sent.
@@ -572,6 +574,12 @@ async function handleInbound(req: Request): Promise<Response> {
     let sayOutage = false;
     // WHY THE LAST SAY'S DRAFTS WERE REFUSED (aiReply.problems): filed with the turn so the re-ask names them (_shared/reask.ts).
     let sayProblems: string[] = [];
+    // WHAT THE LAST SAY TRIED (aiReply.attempts: each call, each rewrite and the problems that refused it), kept on the turn's
+    // row so a refused or rewritten reply names its reason (customer_support, 3 Nov 2026: 7 Luna rewrites in a run, no record why).
+    let sayAttempts: string[] = [];
+    // THE TURN'S FACTS ALONE SAY WHAT TO TELL THEM (a person is needed): only then may modelSays's brief-less last chance run
+    // (review of #1816). Set just before the main reply is asked; every earlier say runs without it.
+    let factsAnswer = false;
     // THE WHOLE CONVERSATION, EVERY TURN (2 Nov 2026): this number's earlier turns, read once per turn (_shared/wa_history.ts).
     let history: ReturnType<typeof waConversation> | null = null;
     // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
@@ -584,12 +592,15 @@ async function handleInbound(req: Request): Promise<Response> {
         // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
         rateKey: signal ? 'wa-spec:' + From : 'wa:' + From,
         ...(signal ? { signal } : {}), ...(extraCheck ? { extraCheck } : {}),
-        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
+        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}),
+        ...(factsAnswer && !signal ? { situationAnswers: true } : {}) });
     };
     const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
       modelEscalate = modelEscalate || r.escalate;
       sayOutage = !r.text && r.outage;
       sayProblems = r.text ? [] : (r.problems ?? []);
+      const att = (r.attempts ?? []).map((x) => String(x).slice(0, 400));
+      sayAttempts = att.length > 8 ? [...att.slice(0, 4), ...att.slice(-4)] : att;   // the head and the tail (the last chance is at the end)
       return r.text;
     };
     const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], extraCheck?: (t: string) => string[]) =>
@@ -1379,11 +1390,15 @@ async function handleInbound(req: Request): Promise<Response> {
     mark('classified');
     // A person asked to review an automated decision (ledger 1152): it is filed with the seat that owns that decision
     // (review_route), decided by another model family. Only asked when the reasoning above already said a person.
-    if (needsPerson === true) {
-      await fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp', requester: From, message: Body,
-        surface: 'wa_inbound.review_of_decision', dedupeKey: MessageSid || From + ':' + Body.slice(0, 40),
-        audience: audience === 'supplier' ? 'supplier' : 'customer', subjectTable: 'wa_conversation', subjectId: From });
-    }
+    // IT RUNS BESIDE THE REPLY, NOT BEFORE IT (customer_support, 3 Nov 2026). Measured on the real exchange on main (run
+    // 41530397323, ai_cost_log 66624 and 66653): its think() took 19 s and 25 s in series ahead of the reply on the lean "scam"
+    // turn, so the reply started ~65 s after arrival, ran out of its 90 s budget and the person got nothing. The reply reads
+    // nothing it writes; it is awaited in the turn's finally, so a throw after this line still files it. Prevented by: the_whole_exchange.test.ts.
+    reviewP = needsPerson === true
+      ? fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp', requester: From, message: Body,
+          surface: 'wa_inbound.review_of_decision', dedupeKey: MessageSid || From + ':' + Body.slice(0, 40),
+          audience: audience === 'supplier' ? 'supplier' : 'customer', subjectTable: 'wa_conversation', subjectId: From })
+      : Promise.resolve(null);
     // Held is not "no". Until the reasoning runs, the CEO seat SEES the message (visibility, no page), so a
     // complaint is never silently parked; the replay then gives the contact on WhatsApp if a person is needed.
     if (needsPerson === null && Body.trim()) {
@@ -1401,7 +1416,12 @@ async function handleInbound(req: Request): Promise<Response> {
     try {
       // The intent is the REASONED meaning (above), never the body's words: null = held, 'none' = no row fits.
       const meaning = await menuDeps.intent(Body);
-      const intent = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
+      const read = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
+      // A PERSON IS NEEDED AND NO INTENT ROW WAS READ: the row for a person (customer_support, 3 Nov 2026). Run 41544169700: the lean
+      // reading of "I want to speak to a person please" did not settle (intent null, 26 s), its fallback person check said yes, and
+      // the route got no intent where the full shape gave contact_human. Same rule as whatsappReadings, for the case the reading
+      // itself returned nothing. Prevented by: the_whole_exchange.test.ts.
+      const intent = (read === null || read === 'none') && needsPerson === true ? 'contact_human' : read;
       routedIntent = intent;
       const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson, p_intent: intent });
       route = (data || null) as Record<string, unknown> | null;
@@ -1429,6 +1449,8 @@ async function handleInbound(req: Request): Promise<Response> {
     if (!(spec && spec.text)) specAbort.abort();   // discarded: stop paying for it
     const drafted = spec && spec.text ? spec : null;
     timings.speculative = drafted ? 1 : 0;
+    // A person is needed: the facts carry the contact and what to say, so the last chance may answer without the brief.
+    factsAnswer = needsPerson === true || route?.needs_a_person === true || routedIntent === 'contact_human';
     let reply = (drafted ? adopt(drafted) : await say(situation)).slice(0, 1200);
     mark('reply_written');
     const llmFailed = !reply;
@@ -1439,7 +1461,7 @@ async function handleInbound(req: Request): Promise<Response> {
       try { await menuDeps.recordGap(Body, 'no_model_answer'); } catch (_e) { /* */ }
     }
     // The model's reply is checked before it is sent (support_reply_guard.ts): '' = refused after aiReply's own rewrites.
-    if (reply) reply = toContact(reply);
+    if (reply) { reply = toContact(reply); if (!reply) sayAttempts.push('support_reply_guard refused the written reply'); }
 
     const enabled = (await sec('wa_autoreply_enabled')) === 'true';
     let sent = false; let sendErr: string | undefined;
@@ -1447,12 +1469,12 @@ async function handleInbound(req: Request): Promise<Response> {
     if (reply) { if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; } }
     else {
       // The turn is queued for the model's answer; the fixed held notice goes out now only if OpenRouter is down (1339).
-      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, sayOutage ? 'no_model_answer' : 'guard_refused');
+      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, sayOutage ? 'no_model_answer' : sayProblems.length || !llmFailed ? 'guard_refused' : 'no_usable_answer_in_budget');
       reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; heldNotice = !!h.notice;
     }
 
     let rowSaved = true;
-    try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { timings, enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+    try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { timings, enabled, reply_attempts: sayAttempts, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
 
     // A captured fixture send (isDemoPhone: never handed to Twilio) is not a failed delivery: the QA channels run of 19 Oct
@@ -1511,5 +1533,9 @@ async function handleInbound(req: Request): Promise<Response> {
         if (!h.error && (h.data?.length ?? 0) === 0) await admin.rpc('fn_wa_arrival_turn_finished', { p_wa_message_id: arrivalId });
       } catch (_e) { /* the sweep will escalate it: noisy, never silent */ }
     }
+    // The review of a decision (started beside the reply) is filed even when the turn threw after it started.
+    try {
+      await reviewP;
+    } catch (_e) { /* fileReviewRequest never throws; a lost review row must never cost the turn */ }
   }
 }

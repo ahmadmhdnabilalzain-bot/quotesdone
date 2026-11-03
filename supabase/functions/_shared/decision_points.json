@@ -3024,7 +3024,8 @@
     {
      "file": "supabase/functions/wa_inbound/index.ts",
      "must_contain": [
-      "await fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp'"
+      "? fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp'",
+      "await reviewP;"
      ]
     },
     {
