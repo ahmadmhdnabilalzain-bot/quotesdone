@@ -768,6 +768,12 @@ function compareFinishIO(): CompareFinishIO {
       await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'arabic_comparison_render_failed', status: 'pending', risk: 'medium',
         title: `The Arabic comparison report could not be sent after ${MAX_COMPARE_ATTEMPTS} tries`, detail: { inquiry_id: iid, last }, target_table: 'inquiries', target_id: iid });
     },
+    overdue: async (iid, hours) => {
+      const { data: open } = await admin.from('agent_actions').select('id').eq('agent', 'sales_engineer').eq('kind', 'arabic_comparison_overdue').eq('target_id', iid).eq('status', 'pending').limit(1);
+      if (open?.length) return;
+      await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'arabic_comparison_overdue', status: 'pending', risk: 'medium',
+        title: `A customer's Arabic comparison report has waited ${hours} h for its Arabic lines`, detail: { inquiry_id: iid, hours }, target_table: 'inquiries', target_id: iid });
+    },
   };
 }
 
