@@ -42,7 +42,9 @@ Deno.test('a reply in the other script is refused; quoted words and a link are n
 });
 Deno.test('the widget, the portal, aiReply (WhatsApp) and the WhatsApp language all use it', () => {
   const read = (p: string) => Deno.readTextFileSync(new URL(p, import.meta.url));
-  assert(/\.\.\.replyLanguageProblems\(s, replyLang\)/.test(read('../site_assistant/index.ts')), 'site_assistant check');
+  // the widget's check is siteReplyCheck (site_assistant/reply_check.ts, from main), which carries the language check
+  assert(/check: siteReplyCheck\(brief, sys, replyLang\)/.test(read('../site_assistant/index.ts')), 'site_assistant uses siteReplyCheck');
+  assert(/\.\.\.replyLanguageProblems\(s, lang\)/.test(read('../site_assistant/reply_check.ts')), 'siteReplyCheck checks the language');
   assert(/\.\.\.replyLanguageProblems\(t, lang\)/.test(read('../sales_engineer/index.ts')), 'sales_engineer check');
   assert(/replyLanguageProblems\(t, replyLang\)/.test(read('./ai_reply.ts')), 'aiReply check');
   assert(/langGiven \?\? turnLang\(Body/.test(read('../wa_inbound/index.ts')), 'wa_inbound language');
