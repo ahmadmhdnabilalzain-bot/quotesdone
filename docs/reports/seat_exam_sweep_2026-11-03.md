@@ -10,19 +10,20 @@ item's own words, `isMoneyOrTerms` in `scripts/eval/seat_exam_canon.mjs`).
 
 ## Result
 
-**Before**: round 1, on the knowledge merged on `main` at `0ddfd1c`; every item asked once.
+**Before**: round 1, on the knowledge merged on `main` at `0ddfd1c`; every item asked once, graded by the final grader
+(after the independent review's corrections, below).
 
 | seat | asked | passed | rate | money/terms | bar |
 |---|---:|---:|---:|---:|---|
 | ceo | 119 | 112 | 94.1% | 55/58 | not met |
 | customer_support | 96 | 81 | 84.4% | 17/27 | not met |
 | sales_engineer | 130 | 127 | 97.7% | 40/41 | not met |
-| accountant | 109 | 109 | 100.0% | 77/77 | met |
+| accountant | 109 | 108 | 99.1% | 76/77 | not met |
 | it_engineer | 109 | 106 | 97.2% | 18/19 | not met |
 | marketing | 78 | 71 | 91.0% | 16/19 | not met |
-| **all** | **641** | **606** | **94.5%** | **223/241** | 1 of 6 seats |
+| **all** | **641** | **605** | **94.4%** | **222/241** | 0 of 6 seats |
 
-**After**: this branch's knowledge; each item at its latest asking (rounds 2 to 4).
+**After**: this branch's knowledge; each item at its latest asking (rounds 2 to 6).
 
 | seat | asked | passed | rate | money/terms | bar |
 |---|---:|---:|---:|---:|---|
@@ -36,15 +37,26 @@ item's own words, `isMoneyOrTerms` in `scripts/eval/seat_exam_canon.mjs`).
 
 How to read the "after" table:
 
-- **It is a composite, not one run.** Round 2 re-asked 142 items in fresh wordings. Those were every round-1 failure,
-  every item whose expected entry or key changed, and a seeded 15% sample of the other passes. Round 3 re-asked
-  round 2's 10 failures, and round 4 re-asked round 3's single failure. The other 499 items keep their round-1 pass.
-- **The robustness number is the regression sample.** Of the 107 round-1 passes that were re-asked in a new wording,
-  **105 still passed (98.1%)**. ceo-exam-112 and marketing-exam-54 flipped to a fail, then passed again in round 3.
-  Re-asking failures until they pass flatters a score; this sample is the honest estimate. On an unseen wording, a
-  seat drops about 2% of the items it had passed.
-- Round by round: round 2 passed 132/142 (seat tables in `knowledge/exams/judged/2026-11-03-sweep/after.json`); round
-  3 passed 9/10; round 4 passed 1/1.
+- **It is a composite, not one run.** Every re-ask used a fresh wording, written blind to the key.
+  - Round 2 re-asked 142 items: every round-1 failure, every item whose expected entry or key had changed, and a
+    seeded 15% sample of the other passes.
+  - Rounds 3 and 4 re-asked the failures left after the item and entry fixes.
+  - Round 5 re-asked the 11 items the independent review's fixes touched.
+  - Round 6 re-asked accountant-exam-12 after the settled facts were clarified.
+  - Every other item keeps its round-1 pass.
+- **The robustness number is the regression sample.** Of the 106 round-1 passes re-asked in a new wording, **104 still
+  passed (98.1%)**. ceo-exam-112 and marketing-exam-54 flipped to a fail, then passed again in round 3. Re-asking
+  failures until they pass flatters a score; this sample is the honest estimate. On an unseen wording, a seat drops
+  about 2% of the items it had passed.
+- Round by round (composite after each, `knowledge/exams/judged/2026-11-03-sweep/<round>.json`):
+
+  | after round | items asked | passed | composite | money/terms | seats at bar |
+  |---|---:|---:|---:|---:|---:|
+  | 2 | 142 | 131 | 630/641 | 234/241 | 1 |
+  | 3 | 10 | 9 | 638/641 | 239/241 | 4 |
+  | 4 | 1 | 1 | 639/641 | 240/241 | 5 |
+  | 5 | 11 | 11 | 641/641 | 241/241 | 6 |
+  | 6 | 1 | 1 | 641/641 | 241/241 | 6 |
 
 ## How it was run, and its boundary
 
@@ -67,7 +79,7 @@ It was told to answer only from those, in 40–250 words. Each batch file held n
 2. **Facts.** Every expected fact must be present (case, punctuation and hyphens ignored).
 3. **Figures.** Every AED amount and percentage must appear somewhere in what the seat was given.
 
-Code passed 423 of 641 in round 1 and failed 7 on the canon. The other 211 went to the judge.
+Code passed 424 of 641 in round 1 and failed 8 on the canon. The other 209 went to the judge.
 
 **The judge** is an independent model run. It sees the question, the rubric (`answer_must`), the key facts, the
 reference entries and the answer; it never sees the answering prompt. It is used only after passing calibration:
@@ -106,7 +118,8 @@ and 3, and to the code audit of the knowledge itself. Causes:
 
 ### 1. The knowledge contradicted the signed terms (code audit, before any model was asked)
 
-`seat_exam_sweep.mjs audit` found **45 contradictions on main, 0 on this branch**:
+`seat_exam_sweep.mjs audit` found **84 contradictions on main, 0 on this branch** (English and Arabic, with the final
+detectors):
 
 - **"Automatic" refunds.** 22 served seat-pack entries said a silent supplier's refund is "automatic", in English and
   Arabic, across ceo, customer_support, accountant, it_engineer and marketing (for example
@@ -118,6 +131,13 @@ and 3, and to the code audit of the knowledge itself. Causes:
   - All 22 entries now say: refunded in full without the customer asking, decided on the record by the CEO seat, never
     automatic.
   - In round 1, 7 answers repeated the error and failed on the canon.
+- **Interest date.** Two accountant entries (`non-response-charge-accounting`, `company-pricing-and-fee-arithmetic`),
+  and the accountant card, said the non-response interest runs "from the refund date". company.md §5 and Supplier
+  Agreement clauses 31 and 33 say it runs from the due date (payable within 7 days of notice). accountant-exam-12
+  repeated the error in rounds 1 and 2, and passed in rounds 5 and 6.
+- **The v14 boundary.** seats.md and COMPANY_CANON cited "Supplier Agreement v15 clause 33" and listed v13 and
+  v10–v12, so v14 was named nowhere; an answer said 12% applies "from v15". They now say clause 33 is the same from
+  v14 to the current v17 (`company_facts.json`: 9% is v13 or earlier).
 - **Refund timing.** Four entries said banks show a refund in "5 to 10" days; the Terms say 7 to 14 working days.
   `accountant:stripe-refunds-accounting` now quotes Stripe's own 5–10 beside the figure QuotesDone gives a customer.
 - **COMPANY_CANON.md** described "10 departments", and said the founder gives final approval on refunds and that
@@ -185,7 +205,22 @@ passed:
 - it_engineer-exam-81;
 - marketing-exam-54.
 
-### 5. Grader corrections (G)
+### 5. The independent review
+
+Before the PR, an independent agent reviewed the whole diff against the governing texts, re-running probes.
+
+- It found **18 problems**: 8 in the grader, 6 in changed passages, 2 in the Arabic, 2 in items.
+- Every one was fixed, the affected rounds were re-graded, and the items they touched were re-asked (round 5).
+- The grader findings are listed under G below.
+- The knowledge findings are in sections 1 and 2:
+  - interest from the due date;
+  - `ceo:automated-decision-governance` listing refunds as founder-reserved;
+  - the LLC entry's remaining manager and Memorandum points;
+  - an Arabic bullet that had never been translated.
+- The item findings: marketing-exam-53 and -76 get their removed rubric points back, with rewordings that ask them,
+  so that one policy applies to every such item: keep the rubric and make the question ask it.
+
+### 6. Grader corrections (G)
 
 Each correction was made with evidence and has a test case in
 `scripts/checks/the_seat_exam_sweep_grades_by_the_canon.test.mjs`.
@@ -202,18 +237,33 @@ Each correction was made with evidence and has a test case in
     pass a pass, so nothing else was re-judged.
 - **Answer length.** The first answering rule capped answers at 160 words; production synthesis allows about 900
   output tokens. The cap is now 250 words.
+- **From the independent review.** Each item below has a test case.
+  - The figure check matched a bare number anywhere in the ~25k-character context, so an invented "2% handling fee"
+    passed. It now compares figures, against the batch file the seat was actually shown.
+  - The refund detector missed "processed / happens automatically", "refunds you automatically" and "money back
+    automatically", and spanned commas. It now catches them; only the ladder or clock running by itself is excused.
+  - Negation now stops at the clause, so "Don't worry, the refund is automatic" is caught, and a question is not a
+    claim.
+  - "The founder is notified after the CEO seat approves" no longer reads as a founder decision.
+  - A legacy figure is excused only by the version named nearest to it.
+  - Arabic is now audited too.
+  - Re-grading every round with the corrected grader moved 6 round-1 verdicts:
+    - accountant-12 failed on the canon (the interest-date error);
+    - two items whose "AED 20" could no longer be traced went to the judge, which passed both;
+    - three became code passes.
 
 ## Model spend
 
 All on the founder's subscription; nothing on OpenRouter, the gateway or any paid API.
 
-- **37 subagent runs, 5,694,684 tokens** in total, as the harness reports them (`subagent_tokens`, including what each
+- **46 subagent runs, 6,947,307 tokens** in total, as the harness reports them (`subagent_tokens`, including what each
   agent read).
 - By role:
-  - answering seats: 18 runs;
-  - judge: 14 runs, including 3 calibrations and 1 re-judge;
-  - blind wording writers: 3 runs;
-  - failure diagnosis: 2 runs, on the session model; everything else on Sonnet.
+  - answering seats: 21 runs;
+  - judge: 17 runs, including 3 calibrations and 1 re-judge;
+  - blind wording writers: 5 runs;
+  - failure diagnosis: 2 runs, and the independent review: 1 run, all three on the session model; everything else on
+    Sonnet.
 - Not counted:
   - 5 answering agents stopped seconds after launch, when round 1 was re-prepared from `main`; their usage was not
     reported;
@@ -245,6 +295,18 @@ node scripts/eval/seat_exam_sweep.mjs score --dir <D> [--carry <D_prev>,<D_prev2
 
 Between `prepare` and `grade`, a subscription model answers `<D>/batches/*.md` into `<D>/answers/`. Between `grade`
 and `score`, the calibrated judge answers `<D>/judge/*.md` into `<D>/judged/`.
+
+## Open: one conflict between the Terms and the brief
+
+Customer Terms v11 clause 5 (and Refund Policy v1.9) say a refund is decided "by QuotesDone under its published rules,
+by the QuotesDone operations team using automated tools", and that the operations team makes the day-5 final contact
+attempt. company.md §5 tells the customer-facing seats: "day 5 the case goes to QuotesDone's CEO for a final call …
+Every refund is decided by QuotesDone's CEO". seats.md says the same internally.
+
+This branch follows company.md and seats.md, since the seats speak from them. Both texts agree that no refund is
+automatic, and that is what was fixed. They differ only on whom to name to a customer. That is the wording of a signed
+legal text, so it is not changed here. To settle it, company.md §5 should either quote the Terms' wording or the Terms
+should name the CEO.
 
 ## Not done here, on purpose
 

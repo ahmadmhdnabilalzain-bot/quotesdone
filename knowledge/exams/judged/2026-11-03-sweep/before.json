@@ -11,8 +11,8 @@
    "rate": 0.9411764705882353,
    "mt_asked": 58,
    "mt_passed": 55,
-   "by_code": 77,
-   "by_judge": 35,
+   "by_code": 78,
+   "by_judge": 34,
    "meets_bar": false
   },
   {
@@ -40,13 +40,13 @@
   {
    "seat": "accountant",
    "asked": 109,
-   "passed": 109,
-   "rate": 1,
+   "passed": 108,
+   "rate": 0.9908256880733946,
    "mt_asked": 77,
-   "mt_passed": 77,
-   "by_code": 78,
-   "by_judge": 31,
-   "meets_bar": true
+   "mt_passed": 76,
+   "by_code": 80,
+   "by_judge": 28,
+   "meets_bar": false
   },
   {
    "seat": "it_engineer",
@@ -55,8 +55,8 @@
    "rate": 0.9724770642201835,
    "mt_asked": 19,
    "mt_passed": 18,
-   "by_code": 78,
-   "by_judge": 28,
+   "by_code": 76,
+   "by_judge": 30,
    "meets_bar": false
   },
   {
@@ -142,10 +142,6 @@
    "answer": "He gets 20%. Post-money equals pre-money plus new cash: AED 2,000,000 + AED 500,000 = AED 2,500,000. His ownership is the investment divided by post-money: 500,000 / 2,500,000 = 20%. Every existing holder is diluted by that same 20% proportion, so the founder drops from 100% to 80%. If an option pool were created before the round it would dilute only the existing holders. I would only model this for the founder; fundraising is founder-reserved, and I never quote a valuation or percentage to anyone else.",
    "missing": [
     "the investor 20%"
-   ],
-   "unsupported": [
-    "100%",
-    "80%"
    ],
    "note": "20% and founder at 80%; correct arithmetic"
   },
@@ -320,9 +316,6 @@
    "missing": [
     "divided by the customers acquired"
    ],
-   "unsupported": [
-    "AED 1956"
-   ],
    "note": "spend divided by customers acquired, time cost recorded; 1,956 correctly derived"
   },
   {
@@ -343,9 +336,6 @@
    "answer": "Yes on the figures we have, though direct messaging and model cost per inquiry is not established. Contribution per reveal is the fee, minus the card fee we absorb, minus expected refund cost, minus direct messaging and model cost. The plan puts it at about 94% of the fee. Example: a AED 5,000 quote earns a AED 150 fee, and a domestic card charge costs about AED 5.35 (2.9% of 150 plus AED 1). It gets thinner on international cards, and one AED 60 dispute fee equals 40% of that fee, so I watch ticket size, dispute rate and the actual processor line each month.",
    "missing": [
     "card-processing fee"
-   ],
-   "unsupported": [
-    "94%"
    ],
    "note": "contribution formula correct, positive; 94% is a plan figure"
   },
@@ -705,7 +695,7 @@
    "seat": "ceo",
    "money_terms": true,
    "pass": true,
-   "by": "judge",
+   "by": "code",
    "wording": "What week-on-week growth should a young company aim for?",
    "sources": [
     "ceo:growth-rate-discipline",
@@ -715,11 +705,7 @@
     "ceo:fundraising-basics",
     "ceo:crisis-leadership"
    ],
-   "answer": "Per Paul Graham's framing: about 5-7% a week is good, 10% a week is exceptional, and 1% suggests the company has not found what works. For us it is a discipline, not a promise. Each Monday I record collected revenue, reveals and active buyers against the base scenario's weekly rate and the edges of the AED 100-400k band, and show the required weekly rate from today next to the achieved trailing four-week rate. Early numbers are tiny and volatile, so I use trailing averages. When the gap widens for several weeks, that triggers a target-revision proposal rather than hope.",
-   "unsupported": [
-    "AED 100"
-   ],
-   "note": "5-7% good, 10% exceptional, measured on revenue/reveals/buyers"
+   "answer": "Per Paul Graham's framing: about 5-7% a week is good, 10% a week is exceptional, and 1% suggests the company has not found what works. For us it is a discipline, not a promise. Each Monday I record collected revenue, reveals and active buyers against the base scenario's weekly rate and the edges of the AED 100-400k band, and show the required weekly rate from today next to the achieved trailing four-week rate. Early numbers are tiny and volatile, so I use trailing averages. When the gap widens for several weeks, that triggers a target-revision proposal rather than hope."
   },
   {
    "id": "ceo-exam-35",
@@ -832,6 +818,9 @@
    "answer": "Not established as a measured number: the plan assumptions are release rate 75% (posted requests that pass qualification) and quote fill 80% (released requests receiving at least one complete quote), so about 0.75 x 0.8 = 60% of posted requests would get a quote. A more demanding measure is three or more quotes, which the comparison report needs. These are assumptions; customers open only from January 2027. I measure weekly per trade: release rate, quote fill, three-quote rate, and time to first and third quote, median and 90th percentile. A low fill with a fast first quote means thin supply.",
    "missing": [
     "fill rate"
+   ],
+   "unsupported": [
+    "60%"
    ],
    "note": "fill rate defined and measured per trade, 60% derived from assumptions"
   },
@@ -1517,7 +1506,6 @@
    ],
    "answer": "Base is about AED 245,000 cumulative collected fees by 31 August 2027. Collected fees to date are zero on the facts I hold, since there is no customer revenue before January 2027. Remaining weeks from 3 Nov 2026 is about 43 (301 days / 7). Flat requirement: remaining amount / remaining weeks = about 245,000 / 43 = roughly AED 5,700 a week, and that is optimistic because the customer side opens only in January. The growth requirement, the weekly rate g solved by goal-seek, cannot be computed from a zero base. I compare it with the trailing four-week rate and Graham's ranges (5-7% a week good, 10% exceptional), and show it as out of reach if it needs more.",
    "unsupported": [
-    "AED 245000",
     "AED 5700"
    ],
    "note": "remaining/remaining weeks correct (301 days, 43 weeks, ~5,700)"
@@ -2864,7 +2852,7 @@
    ],
    "answer": "No. Support never promises a refund, and money is never confirmed before the CEO seat approves; the accountant handles the numbers. The only refund we may promise is the automatic non-response refund when a revealed supplier stays silent 5 working days. A dispute with a supplier who responded is a commercial disagreement: the reveal was delivered, there is no automatic refund, and support facilitates and records the facts. What we say: his request is recorded, evidence is being collected from both sides (5 working days each), and the CEO decides within 3 working days, so give him the actual date. Never write 'will be refunded' before approval, and never take sides.",
    "canon": [
-    "automatic_refund: automatic non-response refund"
+    "automatic_refund: refund we may promise is the automatic"
    ]
   },
   {
@@ -6540,6 +6528,7 @@
    ],
    "answer": "On a AED 100,000 quote the fee is 3% = AED 3,000, charged to the buyer only, uncapped, with no VAT and nothing added for card. We keep AED 3,000 less Stripe's cost: on a domestic card 0.029 x 3,000 + 1 = AED 88, leaving AED 2,912; on another card 0.039 x 3,000 + 1 = AED 118, leaving AED 2,882. Our revenue is only the fee, never the AED 100,000, which is the buyers' and suppliers' deal, not QuotesDone's turnover. The model's average is about AED 395 per reveal, a planning figure. Customer revenue starts only from January 2027.",
    "unsupported": [
+    "AED 88",
     "AED 2912",
     "AED 118",
     "AED 2882"
@@ -6677,8 +6666,8 @@
    "id": "accountant-exam-12",
    "seat": "accountant",
    "money_terms": true,
-   "pass": true,
-   "by": "judge",
+   "pass": false,
+   "by": "code",
    "wording": "A supplier ignored a paid unlock and we refunded the buyer. What can we bill the supplier?",
    "sources": [
     "accountant:company-hard-rules",
@@ -6689,11 +6678,13 @@
     "accountant:company-plan-drivers"
    ],
    "answer": "The non-response charge: the exact amount refunded (the 3% reveal fee), plus the payment processor's fee QuotesDone paid on it and could not recover, plus the administrative fee (AED 500; AED 250 for a supplier on Supplier Agreement v12 or earlier), plus simple interest from the refund date until paid (12% a year for v14 and later; 9% for v13 or earlier). The older wording of a flat 3% charge is superseded. It is recorded in its own revenue account 4200, recognised when the trigger has occurred and collection is probable, and no invoice goes out until the evidence bundle (accepted version and timestamp, trigger timestamps, notices) is complete.",
+   "canon": [
+    "interest_from_refund_date: interest from the refund date"
+   ],
    "missing": [
     "12% per annum simple interest",
     "AED 500 admin fee"
-   ],
-   "note": "Refund + processor fee + AED 500/250 admin + 12%/9% interest with version split."
+   ]
   },
   {
    "id": "accountant-exam-13",
@@ -7689,10 +7680,6 @@
    "missing": [
     "0% rate on taxable income up to AED 375,000"
    ],
-   "unsupported": [
-    "AED 500000",
-    "AED 11250"
-   ],
    "note": "0% to AED 375,000, 9% above; example arithmetic correct."
   },
   {
@@ -7912,7 +7899,7 @@
    "seat": "accountant",
    "money_terms": true,
    "pass": true,
-   "by": "judge",
+   "by": "code",
    "wording": "After we register, how long do we have to send a proper tax invoice?",
    "sources": [
     "accountant:vat-registration-thresholds",
@@ -7922,11 +7909,7 @@
     "accountant:vat-return-vat201-method",
     "accountant:vat-tax-invoice-content-and-timing"
    ],
-   "answer": "Within 14 days of the date of supply. Article 65 of the VAT Decree-Law requires a registrant making a taxable supply to issue an original tax invoice and deliver it to the recipient, and Article 67 sets the 14-day limit. The invoice template then carries the words Tax Invoice, our TRN, the customer TRN where registered, a sequential number, date, description, amount excluding VAT, rate, VAT amount in AED and total; the full field list comes from the amended Article 59 at that time. Failure to issue within the legal period is AED 2,500 for each detected case. Until we are registered we must never show VAT or a TRN on a fee invoice.",
-   "unsupported": [
-    "AED 2500"
-   ],
-   "note": "14 days; AED 2,500 penalty is in the reference."
+   "answer": "Within 14 days of the date of supply. Article 65 of the VAT Decree-Law requires a registrant making a taxable supply to issue an original tax invoice and deliver it to the recipient, and Article 67 sets the 14-day limit. The invoice template then carries the words Tax Invoice, our TRN, the customer TRN where registered, a sequential number, date, description, amount excluding VAT, rate, VAT amount in AED and total; the full field list comes from the amended Article 59 at that time. Failure to issue within the legal period is AED 2,500 for each detected case. Until we are registered we must never show VAT or a TRN on a fee invoice."
   },
   {
    "id": "accountant-exam-82",
@@ -8173,7 +8156,7 @@
    "seat": "accountant",
    "money_terms": false,
    "pass": true,
-   "by": "judge",
+   "by": "code",
    "wording": "If an auditor picks a number, how do we show where it came from?",
    "sources": [
     "accountant:bank-statement-integrity",
@@ -8183,11 +8166,7 @@
     "accountant:cash-position-and-runway",
     "accountant:company-what-winning-looks-like"
    ],
-   "answer": "Through the audit trail. Every journal entry carries a unique ID, posting and document dates, the source type and source ID (Stripe balance transaction ID, bank statement line ID, receipt ID, or reveal ID), accounts balancing to zero, currency and rate if not AED, the actor (seat, routine or human), a reasoning note for any judgement, and a link to the entry being corrected. Entries are never deleted; errors are reversed and re-posted. Source documents are stored immutably with a content hash, and bank statements are kept as the original PDF with its hash. So the auditor can go from any number back to its source document and from any document forward to the ledger. Records are kept at least seven years.",
-   "unsupported": [
-    "AED "
-   ],
-   "note": "Entries link to source document with IDs, dates, accounts, actor."
+   "answer": "Through the audit trail. Every journal entry carries a unique ID, posting and document dates, the source type and source ID (Stripe balance transaction ID, bank statement line ID, receipt ID, or reveal ID), accounts balancing to zero, currency and rate if not AED, the actor (seat, routine or human), a reasoning note for any judgement, and a link to the entry being corrected. Entries are never deleted; errors are reversed and re-posted. Source documents are stored immutably with a content hash, and bank statements are kept as the original PDF with its hash. So the auditor can go from any number back to its source document and from any document forward to the ledger. Records are kept at least seven years."
   },
   {
    "id": "accountant-exam-96",
@@ -8286,7 +8265,7 @@
    ],
    "answer": "We keep the fee only: 3% of the selected quotation's ex-VAT value, uncapped, no minimum. QuotesDone is an agent for the underlying trade, so revenue is the fee and never the deal value; GMV appears only in management KPIs. Take rate is fee revenue divided by GMV for the same transactions. Out of that 3%, we bear Stripe's cost, 2.9% plus AED 1 on a domestic card (3.9% plus AED 1 on other cards), booked separately from revenue. Worked example from the arithmetic: on an AED 100,000 quotation the fee is AED 3,000; on a domestic card Stripe takes 2.9% x 3,000 + 1 = AED 88, leaving about AED 2,912 before other costs. Penalties and non-response recoveries are separate income lines, not part of this share.",
    "unsupported": [
-    "AED 3000",
+    "AED 88",
     "AED 2912"
    ],
    "note": "Take rate = fee revenue / GMV; example arithmetic correct."
@@ -8308,7 +8287,7 @@
    ],
    "answer": "The target is exactly 3.00% of the selected quotation base. The customer pays exactly the 3% reveal fee, nothing is added for card, and there is no VAT, so the net fee rate (net fee retained per reveal divided by the quotation base) must be 3.00%; any shortfall is a gross-up or card-rate defect. Stripe's fee is QuotesDone's own cost, booked separately to 5000: 2.9% plus AED 1 on a domestic card, 3.9% plus AED 1 on others. Example: a AED 100,000 quote gives a AED 3,000 fee; the domestic Stripe cost is 0.029 x 3,000 + 1 = AED 88, leaving AED 2,912 in cash. Revenue is still recognised gross at AED 3,000.",
    "unsupported": [
-    "AED 3000",
+    "AED 88",
     "AED 2912"
    ],
    "note": "3.00% target; Stripe example arithmetic correct."
@@ -9139,7 +9118,7 @@
    "seat": "it_engineer",
    "money_terms": true,
    "pass": true,
-   "by": "code",
+   "by": "judge",
    "wording": "Twilio charges jumped this week. How big a jump does IT treat as an anomaly?",
    "sources": [
     "it_engineer:otp-usage-provider-watch",
@@ -9149,7 +9128,11 @@
     "it_engineer:stripe-radar-rules",
     "it_engineer:twilio-verify-fraud-guard"
    ],
-   "answer": "Provider spend is judged daily. It is an anomaly at twice its own baseline (spend_anomaly_multiple 2), with a floor of AED 20 (spend_floor_aed 20) so tiny amounts never page. A Twilio jump therefore counts only if the day's spend is at least double Twilio's own normal and above that floor. A jump like this is also a prompt to check for SMS pumping: look at OTP sends per prefix, with the thresholds otp_burst_per_prefix_hour 5, otp_sms_per_ip_hour 10 and otp_signup_global_hour 60. Block the abusive prefix immediately and record the cost from Twilio usage. The floor_twilio_balance threshold is empty, so it is not established."
+   "answer": "Provider spend is judged daily. It is an anomaly at twice its own baseline (spend_anomaly_multiple 2), with a floor of AED 20 (spend_floor_aed 20) so tiny amounts never page. A Twilio jump therefore counts only if the day's spend is at least double Twilio's own normal and above that floor. A jump like this is also a prompt to check for SMS pumping: look at OTP sends per prefix, with the thresholds otp_burst_per_prefix_hour 5, otp_sms_per_ip_hour 10 and otp_signup_global_hour 60. Block the abusive prefix immediately and record the cost from Twilio usage. The floor_twilio_balance threshold is empty, so it is not established.",
+   "unsupported": [
+    "AED 20"
+   ],
+   "note": "States 2x baseline (multiple 2) with AED 20 floor; AED 20 is spend_floor_aed 20 from the reference, so the CHECK figure is correct; extra detail does not contradict."
   },
   {
    "id": "it_engineer-exam-39",
@@ -9386,6 +9369,9 @@
    "missing": [
     "5x its usual hour"
    ],
+   "unsupported": [
+    "AED 20"
+   ],
    "note": "All rubric points made; consistent with reference."
   },
   {
@@ -9393,7 +9379,7 @@
    "seat": "it_engineer",
    "money_terms": false,
    "pass": true,
-   "by": "code",
+   "by": "judge",
    "wording": "What is the most we may spend per day on models when no customer is using the platform?",
    "sources": [
     "it_engineer:company-hard-rules",
@@ -9403,7 +9389,11 @@
     "it_engineer:load-testing-method",
     "it_engineer:vercel-cron-jobs"
    ],
-   "answer": "About USD 1-2 per day. That is the founder's ceiling for idle internal spend (instr 986), meaning model spend when nothing customer-driven is happening. It is an approximate ceiling, not an exact cap. It is enforced by the hourly model_spend duty, which attributes every call to a consumer and flags unlisted consumers, loops at 5x the usual hour and repeated uncached calls. The daily provider-spend duty adds an anomaly flag at twice baseline with an AED 20 floor. The doctrine behind it is that about 95% of internal operation is deterministic code and only about 5% uses a model."
+   "answer": "About USD 1-2 per day. That is the founder's ceiling for idle internal spend (instr 986), meaning model spend when nothing customer-driven is happening. It is an approximate ceiling, not an exact cap. It is enforced by the hourly model_spend duty, which attributes every call to a consumer and flags unlisted consumers, loops at 5x the usual hour and repeated uncached calls. The daily provider-spend duty adds an anomaly flag at twice baseline with an AED 20 floor. The doctrine behind it is that about 95% of internal operation is deterministic code and only about 5% uses a model.",
+   "unsupported": [
+    "AED 20"
+   ],
+   "note": "States about USD 1-2 per day as the founder's idle internal spend ceiling; AED 20 matches the reference floor, no contradiction."
   },
   {
    "id": "it_engineer-exam-53",

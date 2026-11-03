@@ -40,13 +40,13 @@
   {
    "seat": "accountant",
    "asked": 109,
-   "passed": 109,
-   "rate": 1,
+   "passed": 108,
+   "rate": 0.9908256880733946,
    "mt_asked": 77,
-   "mt_passed": 77,
+   "mt_passed": 76,
    "by_code": 0,
    "by_judge": 0,
-   "meets_bar": true
+   "meets_bar": false
   },
   {
    "seat": "it_engineer",
@@ -62,8 +62,8 @@
   {
    "seat": "marketing",
    "asked": 78,
-   "passed": 78,
-   "rate": 1,
+   "passed": 77,
+   "rate": 0.9871794871794872,
    "mt_asked": 19,
    "mt_passed": 19,
    "by_code": 0,
@@ -75,8 +75,8 @@
  "reasked": {
   "items": 10,
   "passed": 9,
-  "previously_passing": 0,
-  "still_passing": 0,
+  "previously_passing": 1,
+  "still_passing": 1,
   "newly_failing": []
  },
  "carried": 631,

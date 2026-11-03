@@ -7,11 +7,11 @@
   {
    "seat": "ceo",
    "asked": 119,
-   "passed": 116,
-   "rate": 0.9747899159663865,
+   "passed": 117,
+   "rate": 0.9831932773109243,
    "mt_asked": 58,
-   "mt_passed": 56,
-   "by_code": 19,
+   "mt_passed": 57,
+   "by_code": 20,
    "by_judge": 7,
    "meets_bar": false
   },
@@ -40,13 +40,13 @@
   {
    "seat": "accountant",
    "asked": 109,
-   "passed": 109,
-   "rate": 1,
+   "passed": 108,
+   "rate": 0.9908256880733946,
    "mt_asked": 77,
-   "mt_passed": 77,
+   "mt_passed": 76,
    "by_code": 16,
-   "by_judge": 4,
-   "meets_bar": true
+   "by_judge": 3,
+   "meets_bar": false
   },
   {
    "seat": "it_engineer",
@@ -62,11 +62,11 @@
   {
    "seat": "marketing",
    "asked": 78,
-   "passed": 76,
-   "rate": 0.9743589743589743,
+   "passed": 75,
+   "rate": 0.9615384615384616,
    "mt_asked": 19,
    "mt_passed": 18,
-   "by_code": 12,
+   "by_code": 11,
    "by_judge": 5,
    "meets_bar": false
   }
@@ -74,9 +74,9 @@
  "rows_are": "every item at its latest asking up to this round (score --carry)",
  "reasked": {
   "items": 142,
-  "passed": 132,
-  "previously_passing": 107,
-  "still_passing": 105,
+  "passed": 131,
+  "previously_passing": 106,
+  "still_passing": 104,
   "newly_failing": [
    "ceo-exam-112",
    "marketing-exam-54"
@@ -367,8 +367,8 @@
    "id": "ceo-exam-65",
    "seat": "ceo",
    "money_terms": true,
-   "pass": false,
-   "by": "judge",
+   "pass": true,
+   "by": "code",
    "wording": "How would we estimate the money value of a single posted request in each trade category?",
    "sources": [
     "ceo:contribution-by-category",
@@ -378,11 +378,7 @@
     "ceo:marketplace-metric-set",
     "ceo:supply-first-or-demand-first"
    ],
-   "answer": "We estimate it as net fee per posted request: share released (0.75) x share quoted (0.8) x reveal conversion x average quote value x 3% x 0.95 for refunds. On the plan's category assumptions this gives roughly: villa renovation about AED 385, office and retail fit-out about AED 308, joinery and kitchens about AED 141, steel and building materials about AED 128, solar about AED 82, waterproofing and flooring about AED 62, landscaping about AED 37, HVAC service and painting about AED 11, and cleaning under AED 2. Several category values rest on search snippets and are low confidence, so trust the ranking more than the exact figures. Reveal conversion is still an assumption (15 to 21%, unmeasured). We re-run the table monthly with measured conversion and values, and use it so paid acquisition is justified only where contribution per posted request can exceed cost per posted request.",
-   "unsupported": [
-    "21%"
-   ],
-   "note": "Formula given but 'larger quote values deserve more effort' not stated, and 21% reveal-conversion bound is not found in anything given (invented)."
+   "answer": "We estimate it as net fee per posted request: share released (0.75) x share quoted (0.8) x reveal conversion x average quote value x 3% x 0.95 for refunds. On the plan's category assumptions this gives roughly: villa renovation about AED 385, office and retail fit-out about AED 308, joinery and kitchens about AED 141, steel and building materials about AED 128, solar about AED 82, waterproofing and flooring about AED 62, landscaping about AED 37, HVAC service and painting about AED 11, and cleaning under AED 2. Several category values rest on search snippets and are low confidence, so trust the ranking more than the exact figures. Reveal conversion is still an assumption (15 to 21%, unmeasured). We re-run the table monthly with measured conversion and values, and use it so paid acquisition is justified only where contribution per posted request can exceed cost per posted request."
   },
   {
    "id": "ceo-exam-76",
@@ -1626,6 +1622,7 @@
    ],
    "answer": "For a AED 100,000 selected quotation the reveal fee is 3% = AED 3,000, uncapped with no minimum, on the ex-VAT base. The customer pays AED 3,000 and nothing more: nothing is added for card (Cabinet Resolution 66/2023 Art. 5(3)) and no VAT, since we are not VAT-registered. Revenue is booked gross at AED 3,000, and QuotesDone keeps AED 3,000 less Stripe's fee, which is our own cost booked separately. Stripe's fee is 2.9% plus AED 1 on a domestic card: 2.9% x 3,000 = 87, plus 1 = AED 88, leaving AED 2,912. On other cards it is 3.9% plus AED 1: 117 + 1 = AED 118, leaving AED 2,882. These are my arithmetic on the stated rates; the Stripe Invoicing charge and the tax on Stripe's fees are further costs whose amounts are not established here. The check is that gross charged divided by the base equals 3.00%.",
    "unsupported": [
+    "AED 88",
     "AED 2912",
     "AED 118",
     "AED 2882"
@@ -1653,8 +1650,8 @@
    "id": "accountant-exam-12",
    "seat": "accountant",
    "money_terms": true,
-   "pass": true,
-   "by": "judge",
+   "pass": false,
+   "by": "code",
    "wording": "The supplier never replied, so we refunded the buyer. What does that supplier now owe us?",
    "sources": [
     "accountant:company-pricing-and-fee-arithmetic",
@@ -1665,10 +1662,12 @@
     "accountant:non-response-charge-accounting"
    ],
    "answer": "After the CEO seat decides the refund on the record (never automatic), the supplier owes QuotesDone four things: (1) the exact amount refunded, which is the 3% reveal fee; (2) the payment processor's fee QuotesDone paid on it and could not recover; (3) an AED 500 administrative fee; and (4) 12% per annum simple interest from the refund date until paid, never compounded. That is for Supplier Agreement v14 and later; a supplier on an earlier version owes what it signed (AED 250 admin fee for v12 or earlier, 9% interest for v13 or earlier). The flat 3% charge wording is superseded and must not be used. Payment is due within 7 days of notice, and the supplier is not matched until settled. Account for it as contractual revenue with high dispute risk, in its own revenue account (4200), recognised only when the trigger has occurred, the evidence is complete and collection is probable. Keep it apart from fee revenue, and hold the invoice until the evidence bundle is complete.",
+   "canon": [
+    "interest_from_refund_date: interest from the refund date"
+   ],
    "missing": [
     "AED 500 admin fee"
-   ],
-   "note": "Refund amount, processor fee, AED 500, 12% simple; earlier versions' terms given."
+   ]
   },
   {
    "id": "accountant-exam-13",
@@ -2475,8 +2474,8 @@
    "id": "marketing-exam-53",
    "seat": "marketing",
    "money_terms": false,
-   "pass": true,
-   "by": "code",
+   "pass": false,
+   "by": "unjudged",
    "wording": "What is the retention period for data collected in LinkedIn Lead Gen Forms?",
    "sources": [
     "marketing:linkedin-lead-gen-forms",
@@ -2486,7 +2485,11 @@
     "marketing:video-types",
     "marketing:hooks"
    ],
-   "answer": "90 days. LinkedIn deletes all lead data collected through Lead Gen Forms after 90 days, so leads must be downloaded or synced to our database continuously; our rule is to sync via the integration the same day. Leads from archived forms remain downloadable only if they were submitted within the last 90 days. The consent text on the form must state what we will send (PDPL), and first contact is within one working day by customer_support, never on a weekend or UAE public holiday."
+   "answer": "90 days. LinkedIn deletes all lead data collected through Lead Gen Forms after 90 days, so leads must be downloaded or synced to our database continuously; our rule is to sync via the integration the same day. Leads from archived forms remain downloadable only if they were submitted within the last 90 days. The consent text on the form must state what we will send (PDPL), and first contact is within one working day by customer_support, never on a weekend or UAE public holiday.",
+   "missing": [
+    "three custom questions"
+   ],
+   "note": "not judged"
   },
   {
    "id": "marketing-exam-54",

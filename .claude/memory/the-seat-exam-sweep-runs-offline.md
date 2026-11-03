@@ -19,7 +19,7 @@ No token, no gateway, no production write. Report: `docs/reports/seat_exam_sweep
 
 **Lessons from the first sweep:**
 
-- **Run `audit` before asking any model.** On main it found 45 canon contradictions in the knowledge itself: 22
+- **Run `audit` before asking any model.** On main it found 84 canon contradictions in the knowledge itself (English and Arabic): 22
   entries said a silent supplier's refund is "automatic" (Terms v11 §5: "no refund is automatic"), and four said
   banks take "5 to 10" days instead of 7–14. Code found these for free; the answers then repeated them.
 - **The commonest failure was the ITEM, not the knowledge.** In 18 items the rewording (`q_reworded`, or a bank
@@ -31,8 +31,12 @@ No token, no gateway, no production write. Report: `docs/reports/seat_exam_sweep
 - **The answer cap must not be tighter than production.** 160 words cut multi-point answers; think() allows about 900
   tokens.
 - **The robustness figure is the regression sample, not the composite.** Re-asking failures until they pass reaches
-  100%; previously passing items held at 105/107 on fresh wording.
+  100%; previously passing items held at 104/106 on fresh wording.
 - **A batch file showed the sources of every question in it.** Use one question per file when that matters.
+- **Have the grader reviewed before trusting it.** The independent review found the figure check matched bare numbers
+  anywhere in a 25k-character context (an invented "2% fee" passed), the refund detector missed common phrasings,
+  and negation leaked across clauses. Each is now a test case. A grader that is too lax reports a qualified seat
+  that is not one.
 
 **Still open.** The corrected packs reach production only when loaded after merge. The same exam through `think()`
 on the gateway (retrieval rank, the production model, Arabic) waits on a token and on OpenRouter.
