@@ -11,6 +11,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A refused CDN is worked around in the check, not in production (27 Oct)](a-refused-cdn-is-worked-around-in-the-check-not-in-production.md) — cloud proxy refuses cdn.jsdelivr.net: ml_embed type-checked via @ts-types npm, dwg check grants only the npm registry
 - [The founder's user-global CLAUDE.md](user-global-CLAUDE.md) — copy of ~/.claude/CLAUDE.md: skills-and-plugins-first, every session
 - [Supplier campaign sends FROM supplier@quotesdone.com](supplier-campaign-sends-from-supplier-at-quotesdone-com.md) — repeated 19 Oct; never invite@hello
+- [An invitation open is measured on a tracked share (3 Nov)](an-invitation-open-is-measured-on-a-tracked-share.md) — invite_open_tracking (seeded 20%) adds an HTML twin + one first-party pixel; changes ruling 1301 for that share only; opens are a floor
 - [WhatsApp supplier invites need an opt-in](whatsapp-supplier-invites-need-an-opt-in.md) — 27 Oct: Meta policy; scraped mobiles are not opt-ins (0 of 2,863); both switches + HIGH sender + brake; #1511 WAS merged
 - [WhatsApp opt-in = the button or a yes to consent (27 Oct)](whatsapp-opt-in-is-the-button-or-a-yes-to-consent.md) — ledger 1341: "Set up my page" or a yes to fn_wa_consent_question; a message they send is never one; one rule, fn_wa_optin_rule
 - [EVERY founder message is an instruction](every-founder-message-is-an-instruction.md) — 22 Sep, instr 644: record each ask in founder_instruction at once; reconcile before any "nothing pending"
@@ -20,6 +21,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Work without check-ins](quotesdone-work-without-checkins.md) · [Decide, do not present options](decide-dont-present-options.md) · [No technical questions to him](dont-ask-him-technical-questions.md)
 - [Never state what you have not measured](never-state-what-you-have-not-measured.md) — founder's standing rule
 - [Ready means every gate measured](ready-means-every-gate-measured.md) — 6 Oct: founder relies fully; "ready" only with a same-day measured go/no-go checklist
+- [Release standard is Apple's day one (3 Nov)](release-standard-is-apples-day-one.md) — every scenario proven on demo data; "ready" only when docs/release/qualification_matrix.md §7 is measured green the same day, 0 P0/P1
 - [The agent delivers its own work](the-agent-delivers-its-own-work.md) — never hand-deliver a seat's output; the delivery IS the test
 - [A status column is not a delivery record](a-status-column-is-not-a-delivery-record.md) — verify sends through the outbox; 171 leads read "invited" with 0 emails ever sent
 - [MAX 5 agents at once; Sonnet for simple tasks (1 Nov)](max-five-agents.md) — ledger 1417; replaces the limit of 10 (ledger 1280)

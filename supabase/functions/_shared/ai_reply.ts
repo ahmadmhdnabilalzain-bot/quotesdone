@@ -151,6 +151,17 @@ const PHONE = /(?:\+|00)?\d[\d\s().-]{7,}\d/g;
 const LICENCE_LIKE = /\b(?:licen[cs]e|trade licen[cs]e|رخصة)\b[^.\n؟?]{0,20}?\d{5,}|\b\d{6,8}\b/gi;
 const digits = (s: string) => s.replace(/\D/g, '');
 
+/** Whether `text` carries one of `forbidden` (another party's identity before a reveal, pre_reveal_identities.ts) as a
+ *  whole word, any case, whatever punctuation joins its words. Whole-word since 3 Nov 2026, when callers began passing
+ *  the list: a substring match refused "quality" for a customer named Ali. */
+export function namesForbidden(text: string, forbidden: string[]): boolean {
+  // the term's words in order with any punctuation or none between them: "Al Noor" also finds "Al-Noor" and "AlNoor"
+  return forbidden.some((f) => {
+    const parts = f.split(/[^\p{L}\p{N}@]+/u).filter(Boolean).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    return parts.length > 0 && new RegExp('(?<![\\p{L}\\p{N}])' + parts.join('[^\\p{L}\\p{N}]*') + '(?![\\p{L}\\p{N}])', 'iu').test(text);
+  });
+}
+
 /** What is wrong with a reply. `allowed` is the brief and the facts: details found there may be repeated. */
 export function replyProblems(text: string, known: Set<string>, o: { allowed?: string; forbidden?: string[] } = {}): string[] {
   const out = [...moneyFiguresNotInBrief(text, known).map((n) => 'the figure ' + n + ' (the brief states no such fee, price or rate)'), ...policyProblems(text), ...revealFeeIncomplete(text),
@@ -158,9 +169,9 @@ export function replyProblems(text: string, known: Set<string>, o: { allowed?: s
   // a deferral with little else in it (think.ts's measure): "I'll check" alone is refused; a full answer that also says
   // "a member of the team will contact you" is not
   if ((EVASION.some((re) => re.test(text)) || /\bI'?m not sure\b|لست متأكد/i.test(text)) && substanceWords(text) < 25) out.push('it defers or says it does not know (answer what can be said now)');
-  const lower = text.toLowerCase();
-  if ((o.forbidden ?? []).some((f) => f.trim() && lower.includes(f.trim().toLowerCase()))) out.push("it reveals another party's identity before the reveal");
   const allowed = o.allowed ?? '';
+  // a term the brief or the facts already use is the company's own wording, never the other party's identity (review of #1836)
+  if (namesForbidden(text, (o.forbidden ?? []).filter((f) => !namesForbidden(allowed, [f])))) out.push("it reveals another party's identity before the reveal");
   const allowedLower = allowed.toLowerCase(); const allowedDigits = digits(allowed);
   const leaks = [...(text.match(EMAIL) ?? []).filter((e) => !allowedLower.includes(e.toLowerCase())),
     ...(text.match(PHONE) ?? []).filter((p) => digits(p).length >= 7 && !allowedDigits.includes(digits(p))),
