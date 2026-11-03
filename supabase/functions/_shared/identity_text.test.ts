@@ -52,6 +52,40 @@ const LEAKED: [string, string][] = [
   ['Building 5, Al Quoz, Dubai', 'Al Quoz'], ['Villa 23, Street 14, Jumeirah 1, Dubai', 'Jumeirah'], ['مكتب ١٢، برج الخليج، دبي', 'برج الخليج'], ['Post Box 12345', '12345'],
   ['المهندس أحمد المنصوري', 'المنصوري'], ['م. أحمد المنصوري', 'المنصوري'], ['مع التحية، أحمد المنصوري', 'المنصوري'],
   ['Al Noor & Sons Trading LLC', 'Noor'], ['Saif bin Darwish Contracting', 'Saif'],
+  // ── adversarial re-review of these fixes (3 Nov 2026), every row reproduced by execution ──
+  // C1 a phone followed by another group; C7 other layouts and other countries
+  ['Call +971 50 123 4567 9am to 6pm', '4567'], ['Call 050 123 4567 9am to 6pm', '4567'], ['Mob: 050 123 4567 24/7', '4567'],
+  ['Tel 04 345 6789 050 123 4567', '6789'], ['Tel 04 345 6789 050 123 4567', '123 4567'],
+  ['Call 050–123–4567', '4567'], ['٠٥٠–١٢٣–٤٥٦٧', '٤٥٦٧'], ['Call 050  123  4567', '4567'], ['Toll free 800 66667', '66667'], ['Call 600 522222', '522222'],
+  ['Mob 00966501234567', '501234567'], ['Mob +966 50 123 4567', '4567'], ['Mob +91 98765 43210', '43210'],
+  // C2 long names; C3 apostrophe and camel-case; C4 labels and sign-offs
+  ['Best regards,\nMohammed Abdul Rahman Al Hashimi', 'Hashimi'], ['المهندس محمد عبد الله أحمد المنصوري', 'المنصوري'],
+  ["Prepared by: John D'Souza", 'Souza'], ['Prepared by: Ian McDonald', 'McDonald'], ['Prepared by: Mohammed DSouza', 'DSouza'],
+  ['Rgds, Ahmed Khan', 'Khan'], ['Br,\nAhmed Khan', 'Khan'], ['Cheers, Ahmed Khan', 'Khan'], ['Thanks\nAhmed Khan', 'Khan'], ['Thank you,\nAhmed Khan', 'Khan'],
+  ['Name: Ahmed Khan', 'Khan'], ['My name is Ahmed Khan from the sales team', 'Khan'], ['Contact Mr Ahmed Khan for site visit', 'Khan'], ['Eng Ahmed Khan will attend', 'Khan'],
+  ['Sales Engineer - Ahmed Khan', 'Khan'], ['Engr. Mohd. Irfan Khan', 'Khan'], ['Regards, Sales Manager Ahmed Khan', 'Khan'],
+  ['السيد/ أحمد المنصوري', 'المنصوري'], ['م/ أحمد المنصوري', 'المنصوري'], ['المهندس/ أحمد المنصوري', 'المنصوري'], ['الاسم: أحمد المنصوري', 'المنصوري'],
+  ['تحياتي، أحمد المنصوري', 'المنصوري'], ['شكرا، أحمد المنصوري', 'المنصوري'], ['مدير المبيعات: أحمد المنصوري', 'المنصوري'], ['اسمي أحمد المنصوري', 'المنصوري'],
+  // C5 Latin firm forms
+  ['Gulf Pipes FZC', 'Gulf Pipes'], ['Gulf Pipes W.L.L.', 'Gulf Pipes'], ['Gulf Pipes DMCC', 'Gulf Pipes'], ['Gulf Pipes PJSC', 'Gulf Pipes'],
+  ['Al Noor Est.', 'Noor'], ['Al Noor Est', 'Noor'], ['Al Noor Group', 'Noor'], ['Al Noor Technical Works', 'Noor'], ['Al Noor Electromechanical Works', 'Noor'],
+  ['Al Noor General Maintenance', 'Noor'], ['Al Noor Trdg. LLC', 'Noor'], ['Al Noor Cont. Co. LLC', 'Noor'], ['M/s. Al Noor Bldg. Cont. Co.', 'Noor'],
+  ['al noor trading llc', 'noor'], ['Al Noor trading LLC', 'Noor'],
+  // C6 Arabic firms
+  ['مؤسسة نور الهدى', 'نور الهدى'], ['النور للمقاولات العامة', 'النور'], ['أحمد المنصوري للمقاولات', 'المنصوري'], ['مكتب النور للاستشارات الهندسية', 'النور'],
+  ['مصنع النور للألمنيوم', 'النور'], ['النور للمقاولات LLC', 'النور'],
+  // C8 mail, web and social
+  ['ahmed at gmail dot com', 'gmail'], ['ahmed AT gmail DOT com', 'gmail'], ['Visit alnoor . ae', 'alnoor'], ['Visit alnoor dot ae', 'alnoor'], ['Visit alnoor.dev', 'alnoor'],
+  ['Visit alnoor.build', 'alnoor'], ['Visit alnoor.contractors', 'alnoor'], ['Visit alnoor.me', 'alnoor'], ['Visit alnoor.in', 'alnoor'], ['Instagram: @alnoor_trading', 'alnoor_trading'],
+  ['Find us on facebook /alnoortrading', 'alnoortrading'], ['IG alnoor.trading', 'alnoor'],
+  // C9 bank; C10 P.O. Box, licence, address
+  ['Acc No. 1012345678901', '1012345678901'], ['رقم الحساب: 1012345678901', '1012345678901'], ['IBAN: AE٠٧٠٣٣١٢٣٤٥٦٧٨٩٠١٢٣٤٥٦', '٥٦٧٨٩'],
+  ['P.O. Box No. 12345', '12345'], ['P.B. 12345', '12345'], ['PB 12345 Dubai', '12345'], ['Box 12345, Dubai', '12345'], ['صندوق البريد 12345', '12345'], ['ص.ب. رقم 12345', '12345'],
+  ['TL 273158', '273158'], ['TL-273158', '273158'], ['DED 1234567', '1234567'], ['رخصة رقم 123456', '123456'], ['ترخيص رقم 123456', '123456'], ['CN 12345678', '12345678'],
+  ['Shop # 5, Al Quoz, Dubai', 'Al Quoz'], ['Office 12 - Al Garhoud - Dubai', 'Garhoud'], ['مكتب رقم ١٢ - بناية النور - الشارقة', 'بناية النور'],
+  // the reviewer's own input set, re-run after the fixes above
+  ['Please ask for Ahmed Khan at reception', 'Khan'], ['Ahmed Khan | Sales Manager | +971 50 123 4567', 'Khan'], ['info@alnoor.construction', 'alnoor'],
+  ['Plot 597-123, DIP, Dubai', '597'],
 ];
 /** What a residual scan must flag on the RAW text (a drawing page holding these is held, never shared). */
 const residualOf = (s: string) => residualScan(s, ['zz demo']);
@@ -101,7 +135,31 @@ const KEEP = ['Supply and install 2 TR ducted split unit 6 nos 4200.00 25200.00'
   'Thanks for the opportunity', 'Our trading terms apply', 'General trading terms apply', 'With regards to the delivery schedule',
   'Best Regards, Supply Chain Team', 'Kind regards, QS Team', 'Prepared by: MEP CONSULTANTS', 'Attention: ALL WORKS TO BE TESTED',
   'Dated 05.06.2026 1200 hrs', 'الشركة المصنعة تقدم الضمان', 'الشركة الموردة مسؤولة عن التركيب', 'المهندس المقيم في الموقع', 'مع الشكر للتعاون',
-  'طول الأنبوب ١٠ م. حسب المخطط', 'Model CN 1234567 driver', 'Item code CN-1234567 panel'];
+  'طول الأنبوب ١٠ م. حسب المخطط', 'Model CN 1234567 driver', 'Item code CN-1234567 panel',
+  // ── adversarial re-review (3 Nov 2026): trade text the fixes above destroyed, every row reproduced by execution ──
+  // D1 Title-Case scope ending in a firm word
+  'Site Establishment and Mobilisation 1 LS', 'Mobilisation & Site Establishment 1 lot', 'Includes 12 Months Free Technical Services',
+  'Annual Maintenance Contract Technical Services', 'Testing & Commissioning Technical Services', 'Scope: Waterproofing Contracting for roof',
+  'Villa Renovation Contracting works', 'Swimming Pool Contracting Package', 'Interior Fit-Out Contracting 1 LS', 'Gypsum Partition Contracting 120 sqm',
+  'Kitchen Equipment Trading terms apply',
+  // D2 roles and scope after a label
+  'Prepared by Quantity Surveyor', 'Signed by Authorised Signatory', 'Thanks, Will Confirm Tomorrow', 'From: Existing Manhole MH-3 To MH-7',
+  'Contact: Mall Security For Permits', 'اعتماد المهندس قبل التنفيذ', 'موافقة المهندس قبل البدء بالأعمال', 'توفير المهندس طوال فترة المشروع', 'مع التحية والتقدير لكم',
+  // D3 dates and DN lists with a slash; D4 prices after @; D5 a sentence with no space after its full stop
+  'Dated 05/03/2026 09:00', 'Site visit on 05/02/2026 10 am', 'Valves DN 050/065/080 2 nos each',
+  'Supply 10 nos @ 450. Total 4500', 'Rate @ 120. VAT extra', 'Rebar 12 mm 5.2 ton @ 3200. VAT 5%', 'We can meet @ site. Send the drawings first',
+  'Price valid for 30 days.Site visit required before start', 'after approval.Shop drawings', '2 weeks.Store at site', '2 years.App based controls',
+  'in mm.Pro rata payment', '2 coats.Group A colours',
+  // D6 product codes by their label; D8 licence words with no number; D9 a generic firm noun
+  'Catalogue No. CN-123456 ceiling tile', 'SKU: CN-123456 downlight', 'Article CN-1234567 LED driver', 'Product CN-123456 panel',
+  'License: Included', 'Software License: Perpetual', 'Vehicle registration: required before site access', 'تجديد الرخصة التجارية 2026',
+  'يتم الفحص بواسطة شركة المصاعد', 'التنسيق مع شركة الغاز قبل التركيب', 'شركة الحراسة مسؤولة عن الموقع', 'تنظيف نهائي من قبل شركة التنظيف',
+  'شركة البناء تتحمل المسؤولية', 'تقديم شهادة من شركة واحدة للضمان', 'تقديم شهادة من شركة فحص للمعدات',
+  // and the guards the fixes for the re-review must not break
+  'Duct 800 600 1200 mm', 'WhatsApp group for site updates', 'مجموعة المضخات ٢ عدد', 'Qty 6 @AED50', 'Thanks\nPlease find attached', 'Box 12 nos',
+  'تم تسليم المخطط للمقاولات العامة', 'مكتب الموقع للمهندس المشرف',
+  // the reviewer's own input set, re-run after the fixes above
+  'Inspection 05-04-2026 14 30 hrs', 'Price excludes VAT.Info on request', 'Marble Trading Co. not included', 'ص ب 100 لتر'];
 // stripContact writes Arabic-Indic digits as Latin ones before it reads numbers; that is the same figure, not damage.
 const latin = (s: string) => s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/\s+/g, ' ').trim();
 const kept = (s: string, out: string) => latin(out) === latin(s);
@@ -128,10 +186,26 @@ Deno.test("MUST-KEEP: a trade-named firm's own trade wording survives its own na
     ['Cool Air Conditioning Contracting LLC', 'Air conditioning works 2 TR ducted split; air conditioning maintenance'],
     ['Premium Joinery Works', 'premium joinery finish to all doors'],
   ];
+  // Adversarial re-review D7: a one-word core that is a trade word stripped the supplier's own scope.
+  NAMES.push(['Insulation Trading LLC', 'GI ductwork with insulation 85 sqm'], ['Steel Trading LLC', 'Supply of steel rebar']);
   for (const [n, s] of NAMES) assertEquals(supplierScrub(s, n, []), s, n);
+  // ...while a name joined by "&" is still taken whole (C5): "Al Noor & Sons" was missed by the `[\s.,_-]*` separator.
+  for (const out of [supplierScrub('Cheque payable to Al Noor & Sons only', 'Al Noor & Sons Trading LLC', []) ?? '', maskContacts('Cheque payable to Al Noor & Sons only', ['Al Noor & Sons Trading LLC'], 'en')]) assert(!out.includes('Noor'), out);
   // Across suppliers in the comparison: another supplier's name never strips this one's scope.
   const names = ['Cool Air Conditioning Contracting LLC', 'Al Waha Fire Safety Systems LLC', 'Blue Ocean Building Materials Trading'];
   for (const s of ['Supplier B: supply and install air conditioning units, 6 nos ducted split', 'Fire safety systems to civil defence approval', 'Building materials by others']) assertEquals(maskContacts(s, names, 'en'), s);
+});
+// Adversarial re-review R1 / R2: a pattern that backtracks exponentially kills the edge function on its CPU cap. The
+// dotted BOQ line took 37.9 s through drawing_boq and residualScan (identity_contacts WEB_HOST); 20 KB with no "@" ~1 s.
+Deno.test('no shape backtracks: dotted runs and long tokens scrub in well under a second', () => {
+  const inputs = ['SUPPLY.AND.FIX.ALL.FLOOR.TILES.AS.PER.THE.DRAWING.AND.SPEC.WITH.ALL.ITEMS.FOR 25 sqm', 'abc.'.repeat(20), 'a'.repeat(20000), 'a.'.repeat(10000), '0-'.repeat(10000),
+    'Al '.repeat(3000) + 'Trading', 'شركة '.repeat(3000), 'Regards '.repeat(3000)];
+  const runs: [string, (s: string) => unknown][] = [['drawing_boq', boqScrub], ['residualScan', residualOf], ['supplier_api', (s) => supplierScrub(s, NAME, [])],
+    ['quote_documents', (s) => maskContacts(s, [NAME])], ['messages_api', (s) => stripContact(s, [NAME])]];
+  for (const s of inputs) for (const [who, f] of runs) {
+    const t0 = performance.now(); f(s); const ms = performance.now() - t0;
+    assert(ms < 1000, `${who}: ${ms.toFixed(0)} ms for ${JSON.stringify(s.slice(0, 40))}…`);
+  }
 });
 Deno.test('MUST-KEEP: a project name is removed only whole from a Q&A answer, its ordinary words stay', () => {
   assertEquals(stripContact('The kitchen cabinets are 3.2 m long; villa has two floors; renovation starts in January.', ['Ahmed Khan'], ['Villa Kitchen Renovation']),

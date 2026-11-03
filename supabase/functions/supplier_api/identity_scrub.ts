@@ -25,9 +25,8 @@ const ID_PATTERNS: RegExp[] = [
   // A TRN or a licence number finds the company on a public register (founder, 14 Sep 2026). First,
   // so the phone patterns below cannot take a 15-digit TRN apart and leave its label behind.
   TRN_LABELLED, TRN_BARE, LICENCE_NO,
-  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
-  /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
-  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info)(?:\.[A-Za-z]{2})?\b/gi,
+  // E-mail, web addresses and bare domains are read by the shared list (EMAIL / URL / DOMAIN / DOMAIN_LC), adversarial
+  // review of #1838: this copy's case-blind ".info" took "VAT.Info" out of "Price excludes VAT.Info on request" at save.
   // UAE phones are NOT here any more (3 Nov 2026, review of #1838): "\b0\d(?:[\s.-]?\d){7,8}" took "03 120 4500" out of a
   // BOQ row and "075 110 160" out of a pipe list, AT SAVE. The shared list (_shared/identity_text.ts, run first in
   // scrubIdentity) reads phones in the groupings UAE documents print, plus IBANs, P.O. Boxes, licences, addresses,

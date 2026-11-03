@@ -17,3 +17,9 @@ one scrubber. A known name is matched by `knownNameRe`. Re-measure with
 `node scripts/e2e/identity_never_leaks_before_reveal.mjs --repeats 3` (480 trials, OCR, ~1 h, USD 0) and report the
 hold rate beside the leak rate. Supplier-facing documents before the reveal print no contact detail of any shape,
 ours included (`options.contact = false`, doc_template.SUPPLIER_ASK).
+
+**Loosening is held to BOTH lists, and the corpus keeps planting what was loosened.** The first review of #1838 fixed
+over-redaction and, in the same change, stopped the corpus planting six-digit "CN-" licences, so the run read 0 leaks
+over a leak it had reopened; a second review found eight more reopened shapes (sign-offs without a comma, ALL-CAPS and
+particle names, "(+971)", Arabic legal forms without شركة). A KEEP row never licenses removing a LEAKED row or a corpus
+form: tell the two apart by context (the label before a code, the word after شركة), not by dropping the measurement.

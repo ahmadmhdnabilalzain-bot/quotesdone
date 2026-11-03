@@ -3,10 +3,12 @@
 // the function runs, rather than a copy.
 import { knownNameRe, scrubIdentityText } from '../_shared/identity_text.ts';
 const clip = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
+// The e-mail (obfuscated too), bare-domain, messenger and @handle patterns that lived here moved to the shared list
+// (_shared/identity_text.ts EMAIL / DOMAIN / DOMAIN_LC / SOCIAL / HANDLE), adversarial review of #1838: these copies
+// read "Supply 10 nos @ 450. Total" and "meet @ site. Send" as addresses, "2 years.App based" as a host, and "WhatsApp
+// group for site updates" as a handle. The quotation and BOQ scrubbers now read every one of them too.
 const STRIP: RegExp[] = [
-  /[A-Za-z0-9._%+-]+\s*(?:@|\(at\)|\[at\])\s*[A-Za-z0-9.-]+\s*(?:\.|\(dot\)|\[dot\])\s*[A-Za-z]{2,}/gi,
   /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
-  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info|app|link)(?:\.[A-Za-z]{2})?\b(?:\/[^\s,;)\]]*)?/gi,
   /(?:\+|00)\s?971[\s.\-]?\d(?:[\s.\-]?\d){6,10}/g,
   // Second review of #1838: unbounded, these took "050 075 110" out of "UPVC pipe dia 050 075 110 160", "00 25200.00" out
   // of a BOQ row and "05.11.2026 10" out of a date. A number standing ALONE (no digit group before or after it) is still
@@ -14,8 +16,6 @@ const STRIP: RegExp[] = [
   // "050.123.4567").
   /(?<!\d[\s.\-]?)(?<!\d)0\d(?:[\s\-]?\d){7,8}(?![\s.\-]?\d)/g,
   /(?<!\d[\s.\-]?)(?<!\d)5\d(?:[\s.\-]?\d){7}(?![\s.\-]?\d)/g,
-  /\b(?:whats\s*app|wa\.me|telegram|t\.me|viber|botim|snapchat|skype|instagram)\b\S*/gi,
-  /(^|\s)@[A-Za-z0-9_.]{3,}/g,
 ];
 const NAME_STOP = new Set(['llc', 'l.l.c', 'trading', 'contracting', 'general', 'company', 'group', 'est', 'establishment', 'services', 'technical', 'the', 'and']);
 // ponytail: a name is removed as whole words of 4+ letters; a nickname or misspelling survives.
@@ -30,7 +30,7 @@ function scrubName(text: string, name: unknown): string {
 export function stripContact(raw: unknown, names: unknown[] = [], whole: unknown[] = []): string {
   // Arabic-Indic digits first, so ٠٥٠١٢٣٤٥٦٧ is caught by the same number patterns.
   let s = clip(raw, 1500).replace(/[٠-٩]/g, (c) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g, (c) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c)));
-  for (const re of STRIP) s = s.replace(re, (m: string, lead?: string) => (typeof lead === 'string' && /^\s?$/.test(lead) && m.startsWith(lead) ? lead : '') + '[removed]');
+  for (const re of STRIP) s = s.replace(re, '[removed]');
   // 3 Nov 2026 (identity_never_leaks_before_reveal.mjs: 60 of 60 messages leaked): "(050) 000 0058", "971500000064",
   // an Arabic firm name, "Thanks, ZZ Rashid Ketbi" and the customer's project went through. The shared list runs
   // too, and each known name is also matched whole by knownNameRe. A PROJECT name goes in `whole` only: scrubName
