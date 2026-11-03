@@ -206,7 +206,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const input = (r.facts ? 'THIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000)
     + (prior.length ? '\n\nAN EARLIER ANSWER TO THIS MESSAGE COULD NOT BE SENT. It had these problems: ' + [...new Set(prior)].join('; ')
       + '. Write a complete answer that avoids every one of them and follows every rule in your instructions.' : '');
-  const opts = { taskClass: REPLY_CLASS, ...(r.effort ? { effort: r.effort } : {}), ...(history.length ? { history } : {}), ...(r.briefInPrompt === false ? {} : { sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable }), cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
+  const opts = { taskClass: REPLY_CLASS, ...(r.effort ? { effort: r.effort } : {}), ...(history.length ? { history } : {}), ...(r.briefInPrompt === false ? {} : { sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable }), cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = [];
   const left = () => (r.deadline ?? Infinity) - Date.now();
@@ -215,7 +215,11 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     if (left() < MIN_CALL_MS) { calls = MAX_CALLS; attempts.push('deadline: no time left for another call'); return null; }
     calls++;
     const timeout = r.deadline ? { timeoutMs: Math.min(PER_CALL_MS, left()) } : {};
-    return await deps.llm('synthesise', sys, prompt, { ...opts, ...timeout, ...(r.signal ? { signal: r.signal } : {}), ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
+    // THE SENDER'S RATE BUCKET COUNTS MESSAGES, NOT CALLS (review of #1816, run 41551955675): the gateway counts every call that
+    // carries rate_key (20 an hour), so each rewrite of one reply used one of the sender's 20, and the supplier's last two
+    // turns of that run (a bad PDF, a voice note) were rate-limited and got no reply (ai_rate_limit wa:...0050 at 20). Only
+    // the first call of a reply carries it. Prevented by: ai_reply.test.ts.
+    return await deps.llm('synthesise', sys, prompt, { ...opts, ...(calls === 1 && r.rateKey ? { rateKey: r.rateKey } : {}), ...timeout, ...(r.signal ? { signal: r.signal } : {}), ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
   };
   const done = (text: string, content: string | null | undefined, model: string | null): AiReply => {
     const j = json(content);

@@ -59,7 +59,7 @@ export const WA_RULES = 'Plain text for WhatsApp (no markdown), under about 90 w
 export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
   const t0 = Date.now();
   try {
-    const ask = (deadline: number, o: { briefInPrompt?: boolean; priorProblems?: string[] } = {}) => aiReply(deps, {
+    const ask = (deadline: number, o: { briefInPrompt?: boolean; priorProblems?: string[]; rateKey?: string } = {}) => aiReply(deps, {
       seat: 'customer_support', channel: 'whatsapp', audience: r.audience, lang: r.lang,
       message: r.message || '(no text — they pressed a menu option or sent a file)',
       conversation: r.conversation,
@@ -79,7 +79,8 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
     // suppliers?") could only be answered from memory, so the caller opts in (situationAnswers) for a turn whose facts say what
     // happens, a person being needed above all, and the brief-less prompt says nothing about the company beyond its facts.
     if (r.situationAnswers === true && !String(out.reply || '').trim() && !out.outage && !r.signal) {
-      const last = await ask(Date.now() + LAST_CHANCE_MS, { briefInPrompt: false, priorProblems: out.problems });
+      // the same message's reply, so it does not count against the sender's rate bucket again (rateKey left out)
+      const last = await ask(Date.now() + LAST_CHANCE_MS, { briefInPrompt: false, priorProblems: out.problems, rateKey: undefined });
       attempts = [...attempts, ...last.attempts.map((a) => 'last-chance ' + a)];
       if (String(last.reply || '').trim()) out = last;
       else out = { ...out, problems: last.problems?.length ? last.problems : out.problems };

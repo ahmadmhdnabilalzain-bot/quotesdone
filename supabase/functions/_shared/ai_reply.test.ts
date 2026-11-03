@@ -247,3 +247,15 @@ Deno.test('the brief-less ask is told to state no company fact beyond its facts,
   assert(!lean.includes('never say you do not know'), 'no pressure to answer what the facts do not cover');
   assert(full.includes('never say you do not know') && full.includes('COMPANY BRIEF'), 'control: the full prompt is unchanged');
 });
+
+// Run 41551955675: the gateway counts every call that carries rate_key (20 an hour per sender), so rewrites used up the
+// supplier's bucket and its last two turns got no reply. One reply is one message: only its first call carries the key.
+// Fails on 84cc89fc (every call carried it).
+Deno.test("a reply's rewrites do not count against the sender's rate bucket: only the first call carries rateKey", async () => {
+  const s = mkRec(['Here is my reply: thanks', JSON.stringify({ answer: 'Thank you, your request is noted and suppliers will be matched.', escalate: false })]);
+  const r = await aiReply(s.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO hi', askEscalate: true, rateKey: 'wa:whatsapp:+971500000031' });
+  assert(r.reply.startsWith('Thank you'), r.attempts.join(' | '));
+  assert(s.opts.length >= 2, 'a second call was made');
+  assertEquals(s.opts[0].rateKey, 'wa:whatsapp:+971500000031');
+  assert(s.opts.slice(1).every((o) => o.rateKey === undefined), 'no later call of the same reply counts again');
+});
