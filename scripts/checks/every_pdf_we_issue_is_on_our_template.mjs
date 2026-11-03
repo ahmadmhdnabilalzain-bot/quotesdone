@@ -49,7 +49,8 @@ export function code(src) {
   return String(src).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
 }
 
-const PDF_LIB = /from\s+['"][^'"]*\b(pdf-lib|jspdf|pdfkit|pdfmake|html-pdf|puppeteer)\b/;
+// A static import or a dynamic import() (review of #1796: `await import('https://esm.sh/pdf-lib…')` passed the static form unseen).
+const PDF_LIB = /(?:from\s+|\bimport\s*\(\s*)['"`][^'"`]*\b(pdf-lib|jspdf|pdfkit|pdfmake|html-pdf|puppeteer)\b/;
 const PDF_MAKE = /\bPDFDocument\s*\.\s*create\s*\(/;
 const PDF_RESPONSE = /new\s+Response\s*\([^;]*application\/pdf/;
 const STRIPE_DOC = /(\?\.|\.)\s*(invoice_pdf|hosted_invoice_url|receipt_url)\b|\[\s*['"](invoice_pdf|hosted_invoice_url|receipt_url)['"]\s*\]/;
@@ -63,7 +64,10 @@ const FILED_STRIPE_PDF = /invoices\/stripe\//;
 // drawing with its identity cut out; that file is the customer's document, never one we issue, so it cannot be on
 // our template. It may IMPORT the library to load and save that drawing. It may still never CREATE a PDF or answer
 // with one: those two rules apply to it like to every other file (the .test.mjs proves both still fire there).
-const EDITS_CUSTOMER_PDF = new Set(['supabase/functions/_shared/pdf_vector_redact.ts']);
+// The second (review of #1796, 3 Nov 2026): supplier_docs_later.ts cuts a supplier's own scanned company profile to its first pages before
+// the reading model sees it (the model bills per page). That copy is the supplier's document, read by a model and handed to nobody, so it is
+// held to the same rule: it may load and save the file, and the EDITOR_AUTHORS shapes below still fail it.
+const EDITS_CUSTOMER_PDF = new Set(['supabase/functions/_shared/pdf_vector_redact.ts', 'supabase/functions/_shared/supplier_docs_later.ts']);
 // Review of #1056: in that file the library is in reach, so "creates a PDF" is read wider than PDF_MAKE: the bracket
 // form (PDFDocument['create']), any alias of PDFDocument (import ... as, const X = PDFDocument, a destructured
 // create), and the calls that author content rather than edit it (addPage, drawText, embedFont and their kin).

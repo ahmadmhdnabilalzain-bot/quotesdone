@@ -3495,6 +3495,26 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_wa_route_dry(p_phone text, p_body text, p_needs_person boolean DEFAULT NULL::boolean, p_intent text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_out jsonb;
+begin
+  begin
+    v_out := public.fn_wa_route(p_phone, p_body, false, p_needs_person, p_intent);
+    raise exception 'qd_dry_route';
+  exception when raise_exception then
+    if sqlerrm is distinct from 'qd_dry_route' then raise; end if;
+  end;
+  return v_out;
+end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_sender_quality_record(p_rating text, p_status text, p_limit text DEFAULT NULL::text, p_raw jsonb DEFAULT '{}'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
