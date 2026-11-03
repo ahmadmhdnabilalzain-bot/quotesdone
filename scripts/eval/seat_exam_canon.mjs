@@ -73,7 +73,7 @@ export const FORBIDDEN_CLAIMS = [
   { id: 'founder_decides_refunds', canon: 'company.md §5 "Every refund is decided by QuotesDone\'s CEO"; seats.md "Every approval is the CEO seat\'s, refunds included"',
     re: /\b(?:the )?founder\b(?:(?!\bCEO\b|\bnotified\b|\binformed\b)[^.]){0,50}\b(?:approves?|decides?|signs? off|authori[sz]es?)\b[^.]{0,40}\brefunds?\b|\brefunds?\b[^.]{0,50}\b(?:approved|decided|signed off|authori[sz]ed)\s+by\s+(?:the\s+)?founder\b/gi },
   { id: 'automatic_refund', canon: 'company.md §5 "Every refund is decided by QuotesDone\'s CEO … None is automatic"; Customer Terms v11 clause 5 "no refund is automatic"',
-    re: /\bautomatic(?:ally)?\s+(?:[\w-]+\s+){0,2}refunds?\b|\brefund(?:s|ed)?\b[^.;:?!]{0,45}?\bautomatic(?:ally)?\b|\bautomatically\s+(?:\w+\s+){0,2}refund(?:ed|s)?\b|\brefunds?\s+you\s+automatically\b|\bmoney\s+back\s+automatically\b|\btriggers?\s+(?:a\s+|an\s+)?(?:full\s+)?refund\s+automatically\b/gi,
+    re: /\bautomatic(?:ally)?\s+(?:[\w-]+\s+){0,2}refunds?\b|\brefund(?:s|ed)?\b[^.;:?!,]{0,45}?\bautomatic(?:ally)?\b|\bautomatically\s+(?:\w+\s+){0,2}refund(?:ed|s)?\b|\brefunds?\s+you\s+automatically\b|\bmoney\s+back\s+automatically\b|\btriggers?\s+(?:a\s+|an\s+)?(?:full\s+)?refund\s+automatically\b/gi,
     // the LADDER (the clock, the chase) runs by itself; that is not the refund being automatic (Refund Policy v1.9 s4)
     except: /\b(?:ladder|clock)\s+(?:above\s+)?runs?\s+automatically\b|\btracks?\s+(?:every|each)\s+reveal\b/i },
   { id: 'quotesdone_vat_registered', canon: 'company.md §4 "QuotesDone is not VAT-registered"',
@@ -120,7 +120,12 @@ export function canonFindings(text) {
     // 9%"), so the window is the 250 characters before the figure and the rest of its sentence.
     // findings() indexes the tag-stripped, whitespace-collapsed text, so the window is read from that text; and the
     // NEAREST version named before the figure decides ("v12 … AED 250. A supplier on v17 owes AED 250" is not excused).
-    if (leg != null && f.got === leg && isLegacyContext(P.slice(Math.max(0, f.at - 250), f.at), f.fact)) continue;
+    // A version named right after the figure is its own ("AED 250 admin fee for v12 or earlier") and is read first.
+    // Only a version linked to THIS figure ("… for v12 or earlier"), read up to the next figure, so "AED 250, not the
+    // AED 500 that applies from v13" is not read as AED 250 for v13.
+    const rest = P.slice(f.at + String(f.text).length, f.at + String(f.text).length + 60).split(/AED|\d\s?%/)[0];
+    const after = /^[^.;()]{0,12}?\b(?:for|on|under|in)\s+(?:a\s+supplier\s+on\s+)?(?:Supplier Agreement\s+)?v(?:ersion)?\s?(\d{1,2})\b/i.exec(rest);
+    if (leg != null && f.got === leg && (after ? Number(after[1]) <= (LEGACY_MAX[f.fact] ?? 13) : isLegacyContext(P.slice(Math.max(0, f.at - 250), f.at), f.fact))) continue;
     out.push({ claim: `company_facts.${f.fact}`, kind: 'value', got: f.got, want: f.want, text: f.text });
   }
   for (const w of wrongWordings(t)) {

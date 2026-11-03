@@ -42,7 +42,8 @@ test('a contradiction of the canon is found (the control for the test above)', (
   assert.ok(claims('QuotesDone runs on 10 departments.').includes('departments_exist'));
   // the independent review's cases (3 Nov 2026): phrasings the first detector let through
   for (const t of ["Don't worry, the refund is automatic.", 'Nothing to do: refund is automatic.', 'The refund is processed automatically.',
-    'QuotesDone refunds you automatically.', 'You get your money back automatically.']) assert.ok(claims(t).includes('automatic_refund'), t);
+    'QuotesDone refunds you automatically.', 'You get your money back automatically.',
+    'We never promise a refund before approval, except the automatic non-response refund the Terms guarantee.']) assert.ok(claims(t).includes('automatic_refund'), t);
   assert.ok(claims('A supplier on v12 or earlier owes AED 250. A supplier on v17 owes an AED 250 administrative fee.').some((c) => c.startsWith('company_facts.')));
   assert.ok(claims('12% a year simple interest runs from the refund date until paid.').includes('interest_from_refund_date'));
   assert.deepEqual(arabicFindings('رُدّ إليكم كامل المبلغ المدفوع تلقائياً').map((f) => f.claim), ['automatic_refund_ar']);
@@ -60,6 +61,8 @@ test('a statement the canon makes is not a contradiction', () => {
     'An earlier note ("free until 31 July 2027") was superseded; never quote a date.',
     "Stripe's guide says customers usually see the credit in about 5-10 business days, but QuotesDone gives the Terms' 7 to 14 working days.",
     'The founder is notified after the CEO seat approves the refund.',
+    'That is for Supplier Agreement v14 and later; a supplier on an earlier version owes what it signed (AED 250 admin fee for v12 or earlier, 9% interest for v13 or earlier).',
+    'A supplier whose accepted Supplier Agreement is v12 or earlier owes an AED 250 administrative fee, not the AED 500 that applies from v13 onward.',
     'Is the refund automatic? No, the CEO seat decides it on the record.',
     'You do not need to submit a request for a non-response refund: the ladder above runs automatically from the moment you pay.',
     'There are six seats and no departments.',
