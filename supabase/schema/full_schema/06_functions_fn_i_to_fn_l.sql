@@ -6717,6 +6717,34 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_openrouter_unattributed()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_max numeric := coalesce(public.fn_it_threshold('openrouter_unattributed_share_max'), 0.05);
+        v_days jsonb; v_n int; v_items jsonb := '[]'::jsonb;
+begin
+  select count(*), coalesce(jsonb_agg(jsonb_build_object('day', d.day, 'meter_usd', round(d.authoritative_usd, 2),
+                                    'unattributed_usd', round(d.unattributed_usd, 2),
+                                    'share', round(d.unattributed_usd / d.authoritative_usd, 3)) order by d.day desc), '[]')
+    into v_n, v_days
+    from public.openrouter_day d
+   where d.day >= (now() at time zone 'Asia/Dubai')::date - 7
+     and d.reconciled_at is not null and d.authoritative_usd >= 1
+     and d.unattributed_usd > v_max * d.authoritative_usd;
+  if v_n > 0 then
+    v_items := jsonb_build_array(jsonb_build_object('item', 'over_share', 'owner_seat', 'it_engineer', 'blast', 'internal', 'affected', v_n,
+      'title', v_n || ' day(s) of the last 7 had more than ' || round(v_max * 100) || '% of OpenRouter''s meter with no ai_cost_log row (latest '
+               || (v_days -> 0 ->> 'day') || ': USD ' || (v_days -> 0 ->> 'unattributed_usd') || ' of ' || (v_days -> 0 ->> 'meter_usd') || ')',
+      'evidence', jsonb_build_object('days', v_days, 'threshold', v_max,
+        'where_to_look', 'openrouter_day.breakdown: unpriced calls, unattributed_functions; a caller outside ai_gateway; a stream or attempt with no usage')));
+  end if;
+  return jsonb_build_object('days_over', v_n, 'settled', public.fn_it_duty_settle('openrouter_unattributed', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_perimeter_freshness()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -6745,17 +6773,25 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_postmortem()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare h record; v_inc bigint; p public.it_playbook; v_since timestamptz; n_open int := 0; n_play int := 0; n_asked int := 0;
-        n_known int := 0; n_waiting int := 0; v_cause text; v_hid bigint;
+        n_known int := 0; n_waiting int := 0; v_cause text; v_prev bigint; v_check text; v_hid bigint; n_fixture int := 0;
         v_hist int; v_late int; v_ids jsonb; v_items jsonb := '[]'::jsonb; f public.it_engineer_finding;
 begin
   select created_at into v_since from public.seat_duty where duty = 'it_engineer.postmortem';
   v_since := coalesce(v_since, now());
+
+  -- 1. a test fixture's finding opens no incident (counted, never opened)
+  select count(*) into n_fixture from public.agent_actions a
+   where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done'
+     and a.detail->>'severity' in ('critical', 'high') and coalesce(a.decided_at, a.created_at) >= v_since
+     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+     and public.fn_it_finding_is_fixture(a.detail, a.evidence);
 
   for h in
     select a.* from public.agent_actions a
      where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done'
        and a.detail->>'severity' in ('critical', 'high') and coalesce(a.decided_at, a.created_at) >= v_since
        and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+       and not public.fn_it_finding_is_fixture(a.detail, a.evidence)
      order by a.id limit 50
   loop
     v_inc := public.fn_it_incident_open(h.id);
@@ -6775,27 +6811,35 @@ begin
     end if;
   end loop;
 
-  -- A class the playbook has never seen: its root cause is asked ONCE PER FAULT (the finding key, digits stripped),
-  -- three faults a run, oldest first. An incident of a fault whose cause is already known takes that cause with no
-  -- model; one whose fault already has a question in the last 7 days waits for that answer (the apply fills it).
+  -- 2. no playbook: the CLASS's recorded cause by template; 3. a novel class: asked once per class.
   for h in
-    select i.id inc_id, a.detail, a.evidence, public.fn_it_postmortem_fault_key(a.detail) fk
+    select i.id inc_id, a.detail, a.evidence, public.fn_it_postmortem_fault_key(a.detail) fk, public.fn_it_postmortem_class_key(a.detail) ck
       from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
      where i.created_at >= v_since and i.playbook_class is null and coalesce(btrim(i.cause), '') = ''
        and not exists (select 1 from public.reasoning_held_question q where q.dedupe_key = 'postmortem:' || i.id)
+       and not public.fn_it_finding_is_fixture(a.detail, a.evidence)
      order by i.id
   loop
-    select i2.cause into v_cause from public.it_incident i2 join public.agent_actions a2 on a2.id = i2.handoff_id
-     where i2.id <> h.inc_id and coalesce(btrim(i2.cause), '') <> '' and public.fn_it_postmortem_fault_key(a2.detail) = h.fk
+    v_cause := null; v_prev := null; v_check := null;
+    select i2.id, i2.cause, i2.regression_check into v_prev, v_cause, v_check from public.it_incident i2 join public.agent_actions a2 on a2.id = i2.handoff_id
+     where i2.id <> h.inc_id and coalesce(btrim(i2.cause), '') <> '' and public.fn_it_postmortem_class_key(a2.detail) = h.ck
      order by i2.id desc limit 1;
     if v_cause is not null then
-      update public.it_incident set cause = v_cause, recorded_by = 'it_engineer.postmortem (same fault as an earlier incident)',
-             updated_at = now() where id = h.inc_id;
+      -- the earlier cause without the template's own wrapping, so a template never wraps a template
+      -- (.+? and not [^ ]+: a class key may hold a space, e.g. an advisor routine's 'p_request uuid')
+      v_cause := regexp_replace(split_part(v_cause, ' | This occurrence: ', 1), '^Known class .+? \(incident [0-9]+\): ', '');
+      update public.it_incident
+         set cause = left('Known class ' || h.ck || ' (incident ' || v_prev || '): ' || v_cause
+                          || ' | This occurrence: ' || coalesce(h.detail->>'title', h.detail->>'issue_key', 'untitled'), 2000),
+             regression_check = coalesce(nullif(btrim(regression_check), ''), v_check),
+             recorded_by = 'it_engineer.postmortem (template: known class ' || h.ck || ')', updated_at = now()
+       where id = h.inc_id;
       n_known := n_known + 1;
       continue;
     end if;
     if exists (select 1 from public.reasoning_held_question q
-                where q.surface = 'it_engineer.postmortem' and q.subject->>'fault_key' = h.fk
+                where q.surface = 'it_engineer.postmortem'
+                  and coalesce(q.subject->>'class_key', public.fn_it_postmortem_class_key(jsonb_build_object('issue_key', q.subject->>'fault_key'))) = h.ck
                   and q.status in ('held', 'reasoned', 'applied') and q.created_at > now() - interval '7 days') then
       n_waiting := n_waiting + 1;
       continue;
@@ -6808,10 +6852,9 @@ begin
         'question', 'Root cause of: ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
         'context', jsonb_build_object('audience', 'internal', 'case', jsonb_build_object('handoff', h.detail, 'answer', h.evidence,
           'finding', to_jsonb(f) - 'evidence')),
-        'subject', jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk), 'dedupeKey', 'postmortem:' || h.inc_id),
-      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk),
+        'subject', jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk, 'class_key', h.ck), 'dedupeKey', 'postmortem:' || h.inc_id),
+      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk, 'class_key', h.ck),
       'seat_duty', 'postmortem:' || h.inc_id);
-    -- only a question actually filed spends the run's budget (a refused or recently failed one files nothing)
     if exists (select 1 from public.reasoning_held_question q where q.id = v_hid and q.dedupe_key = 'postmortem:' || h.inc_id) then
       n_asked := n_asked + 1;
     end if;
@@ -6819,20 +6862,23 @@ begin
 
   select count(*) into v_hist from public.agent_actions a
    where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done' and a.detail->>'severity' in ('critical', 'high')
-     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id);
+     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+     and not public.fn_it_finding_is_fixture(a.detail, a.evidence);
 
   select count(*), coalesce(jsonb_agg(id order by id) filter (where rn <= 20), '[]') into v_late, v_ids
     from (select i.id, row_number() over (order by i.id) rn from public.it_incident i
+            join public.agent_actions a on a.id = i.handoff_id
            where i.ended_at < now() - interval '72 hours' and i.created_at >= v_since
-             and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = '')) z;
+             and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = '')
+             and not public.fn_it_finding_is_fixture(a.detail, a.evidence)) z;
   if v_late > 0 then
     v_items := jsonb_build_array(jsonb_build_object('item', 'incomplete', 'owner_seat', 'it_engineer', 'blast', 'internal', 'affected', v_late,
       'title', v_late || ' closed incident(s) have no root cause or no regression check 72 hours after they closed',
       'evidence', jsonb_build_object('incident_ids', v_ids)));
   end if;
 
-  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked, 'cause_already_known', n_known,
-                            'waiting_on_its_fault', n_waiting,
+  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked, 'cause_from_its_class', n_known,
+                            'waiting_on_its_class', n_waiting, 'fixture_findings_not_opened', n_fixture,
                             'historical_without_postmortem', v_hist, 'settled', public.fn_it_duty_settle('postmortem', v_items));
 end $function$
 
@@ -7111,6 +7157,19 @@ CREATE OR REPLACE FUNCTION public.fn_it_external_reply_needs_founder(p_text text
 AS $function$
   select coalesce(p_text, '') ~* '(please|kindly|could you|can you|we need you to|you will need to|you need to)[^.?!]{0,80}\m(provide|share|send|confirm|verify|complete|reply|respond|approve|upload|screenshot|log ?in|sign ?in|re-?register|delete|update|resubmit)'
       or coalesce(p_text, '') ~* '(action required|awaiting your (reply|response|update|confirmation)|pending your (reply|response|update))'
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_finding_is_fixture(p_detail jsonb, p_evidence jsonb)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_detail ->> 'issue_key', '') like 'duty:journey:%'
+      or (coalesce(p_detail::text, '') || ' ' || coalesce(p_evidence::text, '')) ~* '(@example\.invalid|qd_run:)';
+  -- NOT the "ZZ DEMO" name alone: a probe of this very duty names its own findings that way and must still open
+  -- incidents (scripts/checks/it_engineer_gap_duties_act.test.mjs); a harness run's fixtures carry its qd-<tag> address.
 $function$
 
 
@@ -8360,6 +8419,17 @@ begin
   perform public.fn_it_duty_ran('postmaster', v_res);
   return v_res;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_postmortem_class_key(p_detail jsonb)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- the first two ':' parts of the fault key; null, never '', when the finding names nothing
+  select nullif(array_to_string((string_to_array(public.fn_it_postmortem_fault_key(p_detail), ':'))[1:2], ':'), '');
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_postmortem_fault_key(p_detail jsonb)
