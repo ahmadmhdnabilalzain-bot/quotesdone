@@ -82,7 +82,7 @@ export const FORBID = [
   [R('\\b9\\s?%|٩\\s?٪|9 percent'), 'the superseded 9% interest (12% p.a., SA§33)'],
   [R('(?:quotes?|offers?)[^.]{0,40}\\b(?:within|in) (?:24|48|72) hours|guarantee(?:d|s)? [^.]{0,20}quotes? (?:within|in)'), 'a fixed quote time (3-5 working days, never promised, FAQ)'],
   [R('(?<!not )(?<!no )(?<!never )guarantee(?:d|s)?\\s+(?:you |us )?(?:a |at least |a minimum of |minimum )*(?:\\d+|minimum|number of)\\s*(?:jobs|requests|inquiries|leads)'), 'a guaranteed number of jobs (none is guaranteed, CT§14)'],
-  [R('approv\\w*\\s+(?:your (?:account|company|profile) )?manually|manual (?:approval|review of every)|(?:call|phone) you[^.]{0,40}approv'), 'a manual approval (approval is automatic once the gate passes, company.md §3)'],
+  [R('approv\\w*\\s+(?:your (?:account|company|profile) )?manually|manual (?:approval|review of every)|(?<!(?:nobody|no one|not|n.t)\\s(?:\\w+\\s){0,3})(?:call|phone) you[^.]{0,40}approv'), 'a manual approval (approval is automatic once the gate passes, company.md §3)'],
   // the judge's three low-severity findings of 3 Nov 2026, now graded by code
   [R('(?:suppliers?|they) (?:then |will )?(?:quote|price) (?:from|on|using) (?:the )?(?:written |scope|description|quantities|brief)[^.]{0,40}(?:instead|without the drawing)'), 'what suppliers quote from without the drawing (canon: only that it is not shared)'],
 ];
@@ -172,7 +172,7 @@ export function languageProblem(reply, audience, inquiryLang) {
 export const SLOTS = {
   windows: { re: [/(\d+)\s*(?:x\s*)?(?:aluminium |aluminum |new |double[- ]glazed |sliding )*(?:windows?|units?\b|openings?)/gi, /(\d+)\s*(?:نافذة|نوافذ|شباك|شبابيك)/g], num: true },
   sliding_doors: { re: [/(\d+)\s*(?:of them |of which )?(?:are |as )?(?:aluminium )?sliding doors?/gi, /(\d+)\s*(?:أبواب|باب) (?:سحاب|منزلق)/g], num: true },
-  glass_mm: { re: [/(\d+)\s*mm\b/gi, /(\d+)\s*مم/g], num: true },
+  glass_mm: { re: [/(\d+)\s*mm\b(?!\s*(?:air|gap|cavity|spacer|inner))/gi, /(\d+)\s*مم/g], num: true },
   emirate: { re: [/\b(Dubai|Sharjah|Abu Dhabi|Ajman|Fujairah|Ras Al Khaimah|Umm Al Quwain)\b/gi, /(دبي|الشارقة|أبوظبي|أبو ظبي|عجمان|الفجيرة|رأس الخيمة|أم القيوين)/g], num: false },
 };
 const EMIRATE_AR = { 'دبي': 'dubai', 'الشارقة': 'sharjah', 'أبوظبي': 'abu dhabi', 'أبو ظبي': 'abu dhabi', 'عجمان': 'ajman', 'الفجيرة': 'fujairah', 'رأس الخيمة': 'ras al khaimah', 'أم القيوين': 'umm al quwain' };
@@ -180,7 +180,7 @@ const EMIRATE_AR = { 'دبي': 'dubai', 'الشارقة': 'sharjah', 'أبوظب
 export function restatement(reply, state, { requireAll = false, mentionedEmirateIsJob = true } = {}) {
   // A value the reply sets aside is not a restatement of it: "8 mm, not 6 mm", "you never mentioned Dubai", "changed from
   // 12 to 14". And an emirate in a sentence about the company ("we are based in Dubai") is not the job's location.
-  const SET_ASIDE = /(?:\bnot|\bno longer|instead of|rather than|replac\w*|from|never (?:said|mentioned|told)|didn'?t (?:say|mention)|\w+n't(?: \w+){0,2}|\bnever(?: \w+){0,2}|لم تذكر|ولم تذكر|ليس|وليس|مو|بدل|بدلًا من|بدلاً من|بدلا من)\s+(?:[^\s.]+\s+){0,2}$|(?:^|\s)و?(?:لم|ليس|ولا|غير)\s(?:[^\s.،]+\s+){0,3}$/i;
+  const SET_ASIDE = /(?:\bnot|\bno longer|instead of|rather than|replac\w*|from|never (?:said|mentioned|told)|didn'?t (?:say|mention)|\w+n't(?: \w+){0,2}|\bnever(?: \w+){0,2}|no record of|لم تذكر|ولم تذكر|ليس|وليس|مو|بدل|بدلًا من|بدلاً من|بدلا من)\s+(?:[^\s.]+\s+){0,2}$|(?:^|\s)و?(?:لم|ليس|ولا|غير)\s(?:[^\s.،]+\s+){0,3}$/i;
   const COMPANY = /QuotesDone|based in|run from|our (?:office|team|company|platform)|\bwe are\b|\bwe're\b|headquarter|online platform|مقر|منصة|نحن/i;
   const r = toWestern(reply);
   const sentences = r.split(/(?<=[.!?؟\n])\s+/);
@@ -632,6 +632,8 @@ export function selfTest() {
   expect(restatement("You told me Sharjah earlier, not Dubai, and I haven't assumed Dubai.", st).wrong.length === 0, 'restatement: "haven\'t assumed Dubai" sets it aside (CI run 41621633737)');
   expect(restatement('14 openings: 12 windows and 2 sliding doors, 8mm glass, Sharjah.', st).wrong.length === 0, 'restatement: the same count split into windows and doors (CI run 41621633737)');
   expect(identityProblems('Calls go to +971 56 791 8605.').length === 0, 'identity: the published calls line');
+  expect(factProblems('Nobody needs to call you to approve you.', []).length === 0 && factProblems('Our team will call you to approve your account.', []).length === 1, 'facts: a denied manual approval is not one (CI run 41630707181)');
+  expect(restatement('I have your villa in Sharjah; I have no record of Dubai. Double glazing is 8 mm + 12 mm air gap + 6 mm inner.', { ...st, glass_mm: 8 }).wrong.length === 0, 'restatement: "no record of Dubai", the air gap and the inner pane are not the outer glass restated');
   expect(restatement('تم التعديل: 14 فتحة (12 شباك وبابان منزلقان)، زجاج 8 مم، لفيلا في الشارقة.', st).wrong.length === 0, 'restatement: the Arabic dual for two doors');
   expect(factProblems('For example "lead time 2 weeks" and a warranty of 2 years.', []).length === 0, 'facts: an example is not a company timeline');
   expect(factProblems('Verification takes 10 days.', []).length === 1, 'facts: a company timeline is still checked');
@@ -644,7 +646,7 @@ export function selfTest() {
   expect(factProblems('The published guide is AED 250 to 800 per sqm.', [], [250, 800]).length === 0, 'facts: a price-guide range starting at 250 is not the old charge');
   expect(factProblems('If one cannot be covered, it is not shared, and suppliers quote on the scope and quantities instead.', []).length === 1, 'facts: an invented drawing fallback');
   expect(factProblems('The refund is issued to your original payment method through Stripe.', []).length === 0, 'facts: the refund method is canon (Refund Policy §6)');
-  return { checks: LABELLED.length + 34, fails };
+  return { checks: LABELLED.length + 36, fails };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
