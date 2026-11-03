@@ -422,7 +422,8 @@ if (!REPO_ONLY && ON_PR) {
   const base = process.env.QD_PR_BASE_SHA || '';
   const { files, error } = prAddedFiles(base);
   const mine = REPO_TO_PROD.filter(x => files.includes(x.file));
-  if (mine.length) {
+  if (error && REPO_TO_PROD.length) console.log(`\nnothing below is set aside as this PR's own, and every finding STILL COUNTs: ${error}`);
+  else if (mine.length) {
     let results = null;
     try { results = JSON.parse(readFileSync(process.env.QD_REHEARSAL_RESULTS || '', 'utf8')); } catch { /* absent: counts */ }
     const problem = error || rehearsalProblem(results, files, base);

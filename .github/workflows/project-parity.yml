@@ -115,8 +115,9 @@ jobs:
         run: node --test scripts/checks/the_registry_prices_are_the_catalogue_s_prices.test.mjs
       # 3 NOV 2026 (it_engineer) — A PULL REQUEST IS NOT RED FOR WHAT ITS OWN MERGE APPLIES. A merged MANIFEST line
       # applies itself (apply-on-merge.yml), so the routines of a PR's own new lines are not live until it merges, and
-      # the step below went red on every database PR (~10 human overrides on 3 Nov). This rehearses those files on
-      # production exactly as the merge will apply them, rolled back, and reads their routines back; the step below
+      # the step below went red on every database PR (~10 human overrides on 3 Nov). This runs apply_sql's own guards
+      # on those files (dry run), rehearses them on production in the merge's order with their probes, rolled back and
+      # time-limited (lock 5 s, statement 90 s), and reads their routines back; the step below
       # sets a finding aside only when its file is one of them and the read-back IS the canonical body
       # (scripts/lib/applies_at_merge.mjs). A PR with no new MANIFEST line sends nothing. Push and dispatch: no step.
       - name: This pull request's new MANIFEST lines, rehearsed as the merge will apply them (rolled back)
