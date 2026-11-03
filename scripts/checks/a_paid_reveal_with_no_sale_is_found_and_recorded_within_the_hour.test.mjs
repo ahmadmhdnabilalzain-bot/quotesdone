@@ -80,7 +80,7 @@ test('demo payments file no finding: test mode, fn_is_demo_email, or an is_demo 
 });
 
 test('every routine is SECURITY DEFINER with a pinned search_path and EXECUTE revoked; the tables are service_role only and registered', () => {
-  const made = [...code.matchAll(/create or replace function public\.(\w+)\(([^)]*)\)\s*returns[^$]*?security definer set search_path to 'public'(, 'extensions')?, 'pg_temp'/g)].map((m) => m[1]);
+  const made = [...code.matchAll(/create or replace function public\.(\w+)\(([^)]*)\)\s*returns[^$]*?security definer set search_path to 'public', 'pg_temp'/g)].map((m) => m[1]);
   assert.deepEqual(made.sort(), ['fn_accountant_reveal_reconcile_findings', 'fn_accountant_reveal_reconcile_record', 'fn_accountant_reveal_reconcile_tick']);
   for (const sig of ['fn_accountant_reveal_reconcile_findings()', 'fn_accountant_reveal_reconcile_record(bigint, jsonb)', 'fn_accountant_reveal_reconcile_tick()']) {
     assert.ok(code.includes(`revoke execute on function public.${sig} from public, anon, authenticated;`), 'no revoke for ' + sig);

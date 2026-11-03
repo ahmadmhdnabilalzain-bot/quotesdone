@@ -254,7 +254,7 @@ grant execute on function public.fn_accountant_reveal_reconcile_record(bigint, j
 
 -- ── 6. The duty ───────────────────────────────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_accountant_reveal_reconcile_tick()
-returns jsonb language plpgsql security definer set search_path to 'public', 'extensions', 'pg_temp' as $fn$
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_days int; v_ref text; v_key text; v_cred text; v_run bigint; v_req bigint; v_harvested int := 0; v_pruned int := 0;
 begin
   -- The last dispatches' HTTP answers (pg_net keeps responses 6 hours; this runs every hour).
