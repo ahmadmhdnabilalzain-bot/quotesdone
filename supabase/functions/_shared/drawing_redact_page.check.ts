@@ -16,7 +16,7 @@
 // the same geometry, with ink that cannot be mistaken for a redaction box (stripes are grey, boxes are black).
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
-import { cadPage, MAXW, serverBoxedPage, supplierPagePrefix } from './drawing_redact_page.ts';
+import { cadPage, MAXW, repaintJpeg, serverBoxedPage, supplierPagePrefix } from './drawing_redact_page.ts';
 import { pdfPages, type PdfPage, type TextRun } from './pdf_text_positions.ts';
 import { seedTerms, titleBlockBoxes } from './anonymise.ts';
 import { supplierBoxes } from './supplier_copy.ts';
@@ -103,4 +103,18 @@ Deno.test('the stored path names nothing: only the namespace survives, the rest 
   const p = supplierPagePrefix(`redacted/${FILE_NAME}/rashid.kareem@zzdemo.example.invalid/${Date.now()}`);
   assert(/^redacted\/[0-9a-f-]{36}\/page$/.test(p), p);
   assert(supplierPagePrefix('redacted') !== supplierPagePrefix('redacted'));
+});
+
+Deno.test('the verifier\'s retry repaints an already-redacted JPEG with one decode and one encode (2 Nov 2026)', async () => {
+  const W = 400, H = 300;
+  const page = new Image(W, H).fill(0xffffffff);
+  page.composite(new Image(60, 30).fill(0x606060ff), 300, 240);          // a "logo" the verifier still saw
+  const first = await page.encodeJPEG(82);
+  const out = await repaintJpeg(first, [{ x: 0.75, y: 0.8, w: 0.15, h: 0.1 }], 0.03);
+  const back = await Image.decode(out) as Image;
+  assertEquals([back.width, back.height], [W, H]);
+  const rgb = (x: number, y: number) => back.getPixelAt(x + 1, y + 1) >>> 8;       // 1-based accessor
+  assert(rgb(330, 255) < 0x101010, 'the named region is under solid black');
+  assert(rgb(50, 50) > 0xe0e0e0, 'the drawing outside the region is untouched');
+  assert(!hasApp1(out), 'no metadata segment survives the re-encode');
 });

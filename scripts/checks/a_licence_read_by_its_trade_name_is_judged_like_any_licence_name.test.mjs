@@ -25,13 +25,16 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 const ZZ = 'zz-demo-tn1711';
 const row = (k, entered, licenceName, n) => `(null, false, true, '${ZZ}-${k}@example.invalid', '${entered}', '${ZZ}-${k}@example.invalid',
   '+9715001711${n}', true, true, now(), 'terms/${ZZ}/${k}.pdf', 'licenses/${ZZ}/${k}.pdf', 'profiles/${ZZ}/${k}.pdf',
-  ${licenceName === null ? 'null' : `'${licenceName}'`}, '2028-12-31', 'ZZTN1711-${k.toUpperCase()}', 'Dubai', 'Dubai', 'probe', array['qd_demo'])`;
+  ${licenceName === null ? 'null' : `'${licenceName}'`}, '2028-12-31', 'ZZTN1711-${k.toUpperCase()}', 'Dubai Department of Economy and Tourism',
+  'Dubai', 'Dubai', 'probe', array['qd_demo'])`;
+// Since ledger 1442 (2 Nov 2026) the gate holds a licence whose issuing authority was never read (licence_authority_unread). Every
+// fixture prints a UAE authority, as a real Dubai licence does, so case B still reaches the approval this check exists to prove.
 const PROBE = String.raw`
 insert into storage.objects (bucket_id, name)
 select 'supplier-docs', d || '/${ZZ}/' || k || '.pdf' from unnest(array['licenses', 'profiles']) d, unnest(array['h', 'a', 'b', 'c']) k;
 insert into public.leads (approval_status, verified, claimed, claimed_by, company_name, email, phone, owner_email_verified, owner_phone_verified,
                           accepted_terms_at, signed_terms_path, license_doc_path, company_profile_doc_path, licence_legal_name, license_expiry,
-                          trade_license_no, emirate, city, source, tags)
+                          trade_license_no, license_authority, emirate, city, source, tags)
 values ${row('h', 'ZZ DEMO TN1711 Holder Trading LLC', 'ZZ DEMO TN1711 Holder Trading LLC', '10')},
        ${row('a', 'ZZ DEMO TN1711 Entered A LLC', 'ZZ DEMO TN1711 Holder Trading LLC', '11')},
        ${row('b', 'ZZ DEMO TN1711 Entered B LLC', 'ZZ DEMO TN1711 Printed B Aluminium LLC', '12')},

@@ -24,6 +24,8 @@ import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { rotateAndSettle } from '../_shared/it_rotate_by_api.ts';
 import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
+import { notReached } from '../_shared/not_reached.ts';
+import { anotherRound, ARCHIVE_HARD_MS, isolateOffsets, type SliceOut } from './archive_rounds.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
 import { pollReplyInbox, pollTenantMailboxes, PROOF_LABEL, type SenderKind } from '../_shared/m365_reply_inbox.ts';
@@ -158,17 +160,31 @@ const ARCHIVE_SWEEPS = 4, ARCHIVE_BATCH = 4;
 async function archiveTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
-    const one = async (offset: number) => {
+    // A sweep is idempotent (oldest-first, recorded by upsert), so one the platform refused before any worker ran it
+    // is asked once more (2 Nov 2026: 7 conversation_archive 503s in a day, each ~10 s with no execution_id and
+    // x-served-by base/server - the worker never started). _shared/not_reached.ts decides what "refused" means.
+    const signal = AbortSignal.timeout(ARCHIVE_HARD_MS);   // one clock for every call of every round
+    const one = async (offset: number, limit = ARCHIVE_BATCH): Promise<SliceOut & { ok?: boolean; error?: string }> => {
       try {
-        const r = await fetch(FN + '/conversation_archive', {
+        const ask = () => fetch(FN + '/conversation_archive', {
           method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
-          body: JSON.stringify({ __secret: secret, action: 'sweep', limit: ARCHIVE_BATCH, offset }), signal: AbortSignal.timeout(50000),
+          body: JSON.stringify({ __secret: secret, action: 'sweep', limit, offset }), signal: signal,
         });
+        let r = await ask();
+        if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
         return { offset, status: r.status, result: await r.json().catch(() => null) };
       } catch (e) { return { offset, ok: false, error: String((e as Error)?.message || e) }; }
     };
-    const sweeps = await Promise.all(Array.from({ length: ARCHIVE_SWEEPS }, (_, i) => one(i * ARCHIVE_BATCH)));
-    return { status: (sweeps[0] as { status?: number }).status, result: (sweeps[0] as { result?: unknown }).result, sweeps };
+    // ROUNDS UNTIL THE BACKLOG IS CLEAR, AND A DEAD SLICE RE-RUN ONE MESSAGE PER WORKER (archive_rounds.ts).
+    const t0 = Date.now(); const rounds: unknown[] = []; let sweeps: SliceOut[] = [];
+    for (let round = 0; ; round++) {
+      sweeps = await Promise.all(Array.from({ length: ARCHIVE_SWEEPS }, (_, i) => one(i * ARCHIVE_BATCH)));
+      const iso = isolateOffsets(sweeps, ARCHIVE_BATCH);
+      const isolated = iso.length ? await Promise.all(iso.map((o) => one(o, 1))) : [];
+      rounds.push({ sweeps, isolated });
+      if (!anotherRound(sweeps, round, Date.now() - t0)) break;
+    }
+    return { status: sweeps[0]?.status, result: sweeps[0]?.result, rounds: rounds.length, detail: rounds };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 

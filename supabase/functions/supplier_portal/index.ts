@@ -15,9 +15,8 @@ import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { REQUIRED_DOC_KEYS } from '../_shared/supplier_registration.ts';
 import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supplierCard, type Supplier } from './overview.ts';
 import { markReading, modelReadText } from '../_shared/supplier_doc_trades.ts';
-import { afterResponse, ownPath, readStoredDocsLater, type LaterDoc } from '../_shared/supplier_docs_later.ts';
+import { afterResponse, ownPath, readProfileByModel, readStoredDocsLater, type LaterDoc } from '../_shared/supplier_docs_later.ts';
 import { storedAt } from '../_shared/stored_at.ts';
-import { toB64 } from '../_shared/document_expiry.ts';
 import { buildInsightsSummary } from './insights_summary.ts';
 import { deleteSupporting, listSupporting, saveSupporting, urlSupporting } from './supporting_documents.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/sanctioned.ts';
@@ -678,11 +677,16 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
       if (later.length) {
         const markErr = await markReading(admin, Number(sup.id), later);
         if (markErr) console.error(JSON.stringify({ at: 'supplier_portal.save_documents.markReading', supplier: sup.id, error: markErr }));
+        // A PICTURE OR A SCANNED PDF is read by the same model the licence uses, with the licence's two attempts (2 Nov 2026, ledger 1442:
+        // "is our agent actually reading the company profile"). Before, only a picture was sent and a scanned PDF stayed needs_ocr.
+        // When the model cannot read it the document stays needs_ocr: never a false "no trades".
         const profile = async (d: LaterDoc) => {
-          if (!(d.bytes && /^image\//i.test(d.mime || '') && aiOn && INBOUND_SECRET)) return;
-          const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', images: [{ b64: toB64(d.bytes), mime: d.mime }] }) });
-          const jd = await r.json().catch(() => null);
-          if (jd?.ok) d.photo_text = modelReadText('profile', jd.profile?.lines);   // else the document stays needs_ocr: never a false "no trades"
+          if (!(aiOn && INBOUND_SECRET)) return;
+          await readProfileByModel(d, async (b) => {
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', ...b }), signal: AbortSignal.timeout(120_000) });
+            const jd = await r.json().catch(() => null);
+            return { ...(jd ?? {}), status: r.status };
+          }, { subject: { supplier_id: Number(sup.id), email }, admin });
         };
         const w = afterResponse(readStoredDocsLater(admin, Number(sup.id), later, { profile }), 'supplier_portal.save_documents.later'); if (w) await w;
       }
