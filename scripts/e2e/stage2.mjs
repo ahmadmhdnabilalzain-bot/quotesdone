@@ -906,7 +906,12 @@ async function realRun(pre) {
         await call('kyc', s.jwt, { action: 'accept_terms', user_kind: 'supplier', email });
         await call('kyc', s.jwt, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' });
         const w0 = await costWatermark();
-        const body = { action: 'process_docs', license: b64(d), company_profile: await ownProfile(prof, d.registered_name), ...(i === 0 && catalogue ? { catalogs: [b64(catalogue)] } : {}) };
+        // A NAME TAKEN FROM THE LICENCE IS THE NAME ON THE PROFILE (run 4506ead8, 3 Nov 2026: lic_mismatch_scan proposed none of its profile's
+        // trades). A name_autofilled shape registers under a typed name; the licence gate renames the company to the licence's legal name
+        // inside process_docs (supplier_name_from_licence), and the profile, read after the response, printed the superseded typed name -
+        // another company's profile. A real company's profile carries its legal name, so these shapes print the licence's.
+        const profileName = d.expected === 'name_autofilled' ? d.truth.legal_name_en : d.registered_name;
+        const body = { action: 'process_docs', license: b64(d), company_profile: await ownProfile(prof, profileName), ...(i === 0 && catalogue ? { catalogs: [b64(catalogue)] } : {}) };
         const r = await call('supplier_api', s.jwt, body, 240000);
         const route = (await costSince(w0)).map((x) => `${x.task_class}:${x.model_used}`).join(' ');
         // WAIT FOR THE READING TO END, NOT FOR THE FIRST GATE (run 0a717394). process_docs answers before the profile and

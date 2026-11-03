@@ -359,6 +359,11 @@ const sq = (v) => `'${String(v).replace(/'/g, "''")}'`;
 // The customer's request cards load after networkidle (run 5, run 0a717394). Wait this long for the quoted one, and
 // name anything over CARDS_SLOW_MS as slow in the step's detail.
 export const CARDS_WAIT_MS = 60000, CARDS_SLOW_MS = 10000;
+// THE QUOTED CARD, AS ITS TEXT REALLY READS (run 4506ead8, 3 Nov 2026 - the C1 cause runs f0b2de8f and 0a717394 could not find). The filter
+// is matched against the card's textContent, where adjacent elements have no space between them: C1's card read
+// "Revealed Aluminium 163071 Dubai·3 quotesOpen request…", so the old trailing \b (between "s" and "O") never matched, for 60 s, on a
+// card that was on the screenshot. "N quote(s)" followed by anything but a lowercase letter; N >= 1.
+export const QUOTED_CARD = { en: /\b[1-9]\d* quotes?(?![a-z])/, ar: /[1-9]\d*\s*عر(ض|وض)/ };
 
 async function jstep(rep, J, page, dir, name, fn) {
   const t0 = Date.now(); let ok = false, detail = '';
@@ -495,7 +500,7 @@ async function customerJourney(browser, w, lang, view) {
     await page.goto(me, { waitUntil: 'load' }); await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     // OPEN THE REQUEST THAT HAS QUOTES (run 71b75b60): the cards are collapsed, and prices render only inside an
     // opened card (CustomerPortal.tsx RequestCard), so the walk read a list of closed cards and found no AED.
-    const card = page.locator('[id^="inq-"]').filter({ hasText: lang === 'ar' ? /[1-9]\d*\s*عر(ض|وض)/ : /\b[1-9]\d* quotes?\b/ }).first();
+    const card = page.locator('[id^="inq-"]').filter({ hasText: QUOTED_CARD[lang === 'ar' ? 'ar' : 'en'] }).first();
     // WAIT FOR THE CARDS (run 5, 321d13ae): requests load after networkidle; the step read the page 2 s in and
     // failed C1, whose "4 quotes" card was on the screenshot taken moments later.
     // WAIT LONGER, AND SAY HOW LONG (run 0a717394, 19 Oct): C1's step gave up at 20 s (step 22,480 ms) and its own
@@ -526,7 +531,7 @@ async function customerJourney(browser, w, lang, view) {
       // THE REVEAL BUTTON ITSELF, THEN ITS CONFIRMATION (run 71b75b60): /reveal|unlock|pay/ first matched the
       // "N quotes to review … reveal the supplier" notice, and the in-page confirm (q_confirm_pay) was never pressed,
       // so nothing navigated and waitForURL timed out. Open the quoted card, press "Reveal & contact", confirm.
-      const card = page.locator('[id^="inq-"]').filter({ hasText: lang === 'ar' ? /[1-9]\d*\s*عر(ض|وض)/ : /\b[1-9]\d* quotes?\b/ }).first();
+      const card = page.locator('[id^="inq-"]').filter({ hasText: QUOTED_CARD[lang === 'ar' ? 'ar' : 'en'] }).first();
       if (await card.count()) { const head = card.locator('[role=button][aria-expanded]').first(); if ((await head.getAttribute('aria-expanded')) !== 'true') { await head.click(); await page.waitForTimeout(2000); } }
       const btn = page.getByRole('button', { name: lang === 'ar' ? /اكشف وتواصل/ : /Reveal & contact/ }).and(page.locator(':enabled')).first();
       if (!(await btn.count())) return ['SKIP', 'no "Reveal & contact" button visible (needs an unrevealed quote)'];

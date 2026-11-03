@@ -64,3 +64,16 @@ test('the quotes step waits long enough for the request cards and names a slow l
   assert.doesNotMatch(SRC, /await card\.waitFor\(\{ state: 'visible', timeout: 20000 \}\)/);
   assert.match(SRC, /SLOW: the quoted card took \$\{cardsMs\} ms/);
 });
+
+// Run 4506ead8 (3 Nov 2026): C1's quoted card was on screen and the filter never matched it - its textContent reads
+// "...Dubai·3 quotesOpen request..." (no space between elements), and a trailing \b after "quotes" cannot sit between "s" and "O".
+test('the quoted-card filter matches the card text as the page really joins it', () => {
+  const m = SRC.match(/export const QUOTED_CARD = \{ en: \/(.+?)\/, ar:/);
+  assert.ok(m, 'QUOTED_CARD.en is declared');
+  const en = new RegExp(m[1]);
+  assert.match('RevealedAluminium163071Dubai·3 quotesOpen requestSupply and install 20 aluminium windows', en);
+  assert.match('Matching · Plumbing · 1 quote · editable', en);
+  assert.doesNotMatch('MatchingPainting163105Dubai·0 quotes·editable 58mOpen request', en, 'a card with 0 quotes is not the quoted card');
+  assert.doesNotMatch('RevealedAluminium163071Dubai·3 quotesOpen request', /\b[1-9]\d* quotes?\b/, 'known-bad: the old filter missed this card');
+  assert.equal((SRC.match(/hasText: QUOTED_CARD\[/g) || []).length, 2, 'the quotes step and the reveal step use the one filter');
+});

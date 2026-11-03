@@ -20,8 +20,8 @@ permissions:
 jobs:
   stage2:
     runs-on: ubuntu-latest
-    # 8 install + 130 wait for a quiet moment + 125 run + teardown; the 2-hour rehearsal window closes itself in the database.
-    timeout-minutes: 275
+    # 8 install + 130 wait for a quiet moment + 150 run + teardown; the 2-hour rehearsal window closes itself in the database.
+    timeout-minutes: 300
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_SANDBOX_OUT: stage2-out
@@ -51,7 +51,10 @@ jobs:
       - id: run
         if: env.CLEANUP_TAG == ''
         run: node scripts/e2e/stage2.mjs --run
-        timeout-minutes: 125
+        # 150, not 125 (run 4506ead8, 3 Nov 2026): S01 to S24 took 124 min on 2 Nov and 125+ on 3 Nov, so the step was killed after S23,
+        # before S24 and before its own teardown (the rows were removed by a cleanup_tag run). The scenarios after the 2-hour window made
+        # 0 model calls in both runs; the window still closes itself at 2 hours, so the spend cap is unchanged.
+        timeout-minutes: 150
       # A window this job opened never outlives it (same step the nightly has).
       - if: always() && env.CLEANUP_TAG == ''
         run: node scripts/e2e/close_job_windows.mjs "$QD_E2E_RUN_TAGS"

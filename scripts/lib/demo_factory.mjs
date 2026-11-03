@@ -47,6 +47,7 @@ import { assertNotProduction, mgmtRead, mgmtFixture, PROD_REF } from './qd_guard
 import { demoPdf, demoTradeLicence } from './demo_pdf.mjs';
 import { readFileSync } from 'node:fs';
 import { randomBytes, createHmac } from 'node:crypto';
+import { platformRefused } from '../../supabase/functions/_shared/not_reached.ts';
 import { pickApiKey } from './supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 // THE TARGET, REHOMED 15 AUG 2026 — AND WHY THIS ONE LINE MATTERED MORE THAN IT LOOKS.
@@ -109,7 +110,23 @@ export async function keys() {
   return _keys;
 }
 
-export async function call(slug, jwt, body, timeoutMs = 90000) {
+// A RELAY 5xx NO WORKER SERVED IS ASKED AGAIN (stage 2 run 4506ead8, 3 Nov 2026): S07's fourth quote got Cloudflare's text/html 502 at
+// 09:30:07Z in 231 ms, no worker ran (the five-minute-mark burst #1797 measured), and six assertions after it failed on a quote that
+// was never written. The rule is the product's own (_shared/not_reached.ts): only a 502/503/521/522/523 WITHOUT the runtime's
+// x-served-by is asked again, because nothing ran; a timeout, or anything a worker answered, is returned as it is.
+// prevented by: scripts/lib/demo_factory_call.test.mjs
+export const RELAY_RETRY_MS = [3000, 8000];
+export async function askAgainIfNotReached(once, sleep = (ms) => new Promise((s) => setTimeout(s, ms))) {
+  for (let i = 0; ; i++) {
+    const { notReached, ...res } = await once();
+    if (!notReached || i >= RELAY_RETRY_MS.length) return res;
+    await sleep(RELAY_RETRY_MS[i]);
+  }
+}
+
+export const call = (slug, jwt, body, timeoutMs = 90000) => askAgainIfNotReached(() => callOnce(slug, jwt, body, timeoutMs));
+
+async function callOnce(slug, jwt, body, timeoutMs) {
   const { ANON } = await keys();
   try {
     const r = await fetch(`${BASE}/functions/v1/${slug}?forceFunctionRegion=ap-southeast-1`, {
@@ -125,7 +142,8 @@ export async function call(slug, jwt, body, timeoutMs = 90000) {
     const text = await r.text();
     let json = null;
     try { json = JSON.parse(text); } catch { /* a non-JSON body is itself the finding */ }
-    return { status: r.status, json, text: text.slice(0, 200).replace(/\s+/g, ' '), body: text };
+    return { status: r.status, json, text: text.slice(0, 200).replace(/\s+/g, ' '), body: text,
+      notReached: platformRefused(r.status, r.headers.get('x-served-by')) };
   } catch (e) {
     return { status: 0, json: null, text: String(e.message).slice(0, 200) };
   }

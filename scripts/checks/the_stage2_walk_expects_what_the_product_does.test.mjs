@@ -35,7 +35,10 @@ test('S04: the painting customer answers interior and exterior, in both language
 
 // S21: the profile prints the registered company, because a profile of another company proposes no trade.
 test('S21: each shape uploads a profile that prints the supplier\'s registered name', async () => {
-  assert.match(s21, /company_profile: await ownProfile\(prof, d\.registered_name\)/);
+  assert.match(s21, /company_profile: await ownProfile\(prof, profileName\)/);
+  // run 4506ead8: a shape whose company is renamed from its licence prints the licence's legal name, not the superseded typed one
+  assert.match(s21, /const profileName = d\.expected === 'name_autofilled' \? d\.truth\.legal_name_en : d\.registered_name;/);
+  assert.doesNotMatch(s21, /ownProfile\(prof, d\.registered_name\)/, 'known-bad: run 4506ead8 printed the typed name on a renamed company\'s profile');
   assert.doesNotMatch(s21, /company_profile: b64\(prof\)/, 'known-bad: the old upload sent the corpus\'s fictional company');
   const name = 'ZZ DEMO Registered Company LLC';
   const { bytes, mime } = await profileBytes('pdf', name, ['painting'], ['Jotun'], 1);
