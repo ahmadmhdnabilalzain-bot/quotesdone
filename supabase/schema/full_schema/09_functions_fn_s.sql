@@ -8290,7 +8290,7 @@ begin
   select value into v_body    from app_secrets where key = 'invite_body';
   -- 27 Oct 2026: the founder's invitation carries no link ("safer to not send links"); a supplier registers at
   -- quotesdone.com or replies. Only an EMPTY template is refused now. A template that still has {{link}} is filled.
-  if btrim(coalesce(v_body, '')) = '' then
+  if coalesce(v_body, '') ~ '^[[:space:]]*$' then
     raise exception 'app_secrets.invite_body is empty: no invitation is built from nothing';
   end if;
   v_target := coalesce((select nullif(value,'')::int from app_secrets where key='invite_target_per_category'),

@@ -1239,21 +1239,47 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_competitor_refresh_duty()
 AS $function$
 declare
   v_week date := date_trunc('week', now() at time zone 'Asia/Dubai')::date;
-  v_body jsonb; v_stale int;
+  v_body jsonb; v_stale int; v_scan jsonb; v_read int; v_posts int; v_on_file int; v_held int; v_claims boolean;
 begin
+  v_scan := public.fn_marketing_competitor_scan();
   select count(*) into v_stale from public.competitor
    where watched and kind <> 'incumbent_behaviour' and (verified_at is null or verified_at < current_date - 90);
+  select count(*) into v_read from public.competitor_scan
+   where page_kind in ('home', 'pricing') and status in ('fetched', 'unchanged', 'reasoned') and content_hash like 'v2:%'
+     and requested_at >= now() - interval '7 days';
+  select count(distinct (competitor_id, page_kind)) into v_on_file from public.competitor_scan
+   where page_kind in ('home', 'pricing') and status in ('fetched', 'reasoned') and content_hash like 'v2:%' and length(page_text) >= 200;
+  select count(*) into v_posts from public.market_intel where kind = 'competitor' and fetched_at >= now() - interval '7 days';
+  select count(*) into v_held from public.competitor_scan where status = 'fetched' and decided_at is null and held_id is not null
+     and requested_at >= now() - interval '7 days';
+  v_claims := v_read > 0 or v_posts > 0;
   v_body := jsonb_build_object(
     'week', v_week,
     'watched', (select count(*) from public.competitor where watched),
     'stale_profiles', v_stale,
-    'changes', (select coalesce(jsonb_agg(jsonb_build_object('competitor', c.name, 'page', s.page_kind, 'decision', s.decision,
+    'inputs', jsonb_build_object(
+       'pages_read_this_week', v_read,
+       'readable_pages_on_file', v_on_file,
+       'posts_seen_this_week', v_posts,
+       'posts_by_platform', (select coalesce(jsonb_object_agg(platform, n), '{}'::jsonb) from
+                             (select platform, count(*) n from public.market_intel where kind = 'competitor' and fetched_at >= now() - interval '7 days' group by 1) p),
+       'competitors_with_a_social_handle', (select count(*) from public.competitor where watched and social_handles is not null and social_handles <> '{}'::jsonb),
+       'failures_by_reason', (select coalesce(jsonb_object_agg(reason, n), '{}'::jsonb) from
+                              (select left(coalesce(error, 'unknown'), 80) reason, count(*) n from public.competitor_scan
+                                where status = 'failed' and requested_at >= now() - interval '7 days' group by 1) f),
+       'awaiting_reasoning', v_held),
+    'claims_findings', v_claims,
+    'verdict', case when v_claims
+       then format('%s page reading(s) and %s post(s) this week; %s reading(s) still await reasoning.', v_read, v_posts, v_held)
+       else 'NO INPUT THIS WEEK: no competitor page was read and no post was seen, so this brief claims no finding.' end,
+    'changes', case when not v_claims then '[]'::jsonb else
+               (select coalesce(jsonb_agg(jsonb_build_object('competitor', c.name, 'page', s.page_kind, 'decision', s.decision,
                   'what_changed', s.fields->>'what_changed', 'ceo_task', s.task_id) order by s.decided_at), '[]'::jsonb)
                   from public.competitor_scan s join public.competitor c on c.id = s.competitor_id
-                 where s.decided_at >= now() - interval '7 days'),
+                 where s.decided_at >= now() - interval '7 days') end,
     'fetch_failures', (select count(*) from public.competitor_scan where status = 'failed' and requested_at >= now() - interval '7 days'),
-    'social_posts_seen', (select count(*) from public.market_intel where platform = 'instagram' and fetched_at >= now() - interval '7 days'),
-    'scan', public.fn_marketing_competitor_scan());
+    'social_posts_seen', v_posts,
+    'scan', v_scan);
   insert into public.marketing_plan_doc (kind, period, body) values ('competitor_intel', v_week, v_body)
   on conflict (kind, period) do update set body = excluded.body, updated_at = now();
   return v_body - 'changes';
@@ -1280,17 +1306,23 @@ begin
     end if;
   end loop;
 
+  -- Weekly per page. A failed page is retried after a day; three failures in 30 days rest that page for the 30 days.
   for c in
-    select x.id, x.kind, p.page_kind, p.url
+    select x.id, p.page_kind, p.url
       from public.competitor x
-      cross join lateral (values ('home', x.url), ('pricing', x.pricing_url)) p(page_kind, url)
+      cross join lateral (values ('home', x.url), ('pricing', x.pricing_url), ('feed', x.social_handles->>'rss')) p(page_kind, url)
      where x.watched and x.kind <> 'incumbent_behaviour' and p.url ~ '^https://'
        and not exists (select 1 from public.competitor_scan z where z.competitor_id = x.id and z.page_kind = p.page_kind
-                         and (z.status = 'fetching' or z.requested_at > now() - interval '30 days'))
+                         and (z.status = 'fetching'
+                              or (z.status <> 'failed' and z.requested_at > now() - interval '7 days')
+                              or (z.status = 'failed' and z.requested_at > now() - interval '1 day')))
+       and (select count(*) from public.competitor_scan z where z.competitor_id = x.id and z.page_kind = p.page_kind
+             and z.status = 'failed' and z.requested_at > now() - interval '30 days') < 3
      order by x.id, p.page_kind limit 10
   loop
     v_req := net.http_get(c.url, '{}'::jsonb,
-               jsonb_build_object('User-Agent', 'QuotesDone market watch (+https://www.quotesdone.ae)', 'Accept', 'text/html'), 20000);
+               jsonb_build_object('User-Agent', 'QuotesDone market watch (+https://www.quotesdone.ae)',
+                                  'Accept', case when c.page_kind = 'feed' then 'application/rss+xml, application/atom+xml, application/xml' else 'text/html' end), 20000);
     insert into public.competitor_scan (competitor_id, page_kind, url, request_id) values (c.id, c.page_kind, c.url, v_req);
     n_out := n_out + 1;
   end loop;
@@ -1400,6 +1432,60 @@ begin
     end if;
   end loop;
   return bad;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_fact_register()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_facts jsonb := public.fn_marketing_public_facts(); v_hash text; v_prev text; w record; r record; v_missing text[]; e text;
+  n_req int := 0; n_checked int := 0; v_changed boolean; v_today date := (now() at time zone 'Asia/Dubai')::date;
+begin
+  v_hash := md5(v_facts::text);
+  select body->>'hash' into v_prev from public.marketing_duty_record where duty = 'marketing.fact_register' order by period desc limit 1;
+  v_changed := v_prev is distinct from v_hash;
+  insert into public.marketing_duty_record (duty, period, body)
+  values ('marketing.fact_register', v_today, jsonb_build_object('hash', v_hash, 'facts', v_facts, 'changed_from', v_prev))
+  on conflict (duty, period) do update set body = excluded.body, written_at = now();
+  -- what each surface must say: the FAQ every fact, the others the reveal fee
+  update public.marketing_fact_watch set expects = case when surface = 'site_faq'
+      then array[v_facts->>'reveal_fee', v_facts->>'supplier_subscription', v_facts->>'nonresponse_admin_fee'] else array[v_facts->>'reveal_fee'] end;
+
+  -- read what came back
+  for w in select * from public.marketing_fact_watch where request_id is not null and checked_at is distinct from requested_at loop
+    select status_code, content into r from net._http_response where id = w.request_id;
+    continue when not found and w.requested_at > now() - interval '6 hours';
+    v_missing := '{}';
+    foreach e in array w.expects loop
+      if coalesce(r.content, '') not like '%' || e || '%' then v_missing := v_missing || e; end if;
+    end loop;
+    update public.marketing_fact_watch set checked_at = requested_at, http_status = r.status_code,
+           carries = cardinality(v_missing) = 0 and coalesce(r.status_code, 0) between 200 and 299, missing = v_missing where surface = w.surface;
+    if cardinality(v_missing) > 0 or coalesce(r.status_code, 0) not between 200 and 299 then
+      perform public.fn_it_engineer_finding_upsert('facts:surface_stale:' || w.surface,
+        w.url || ' does not state ' || coalesce(array_to_string(v_missing, ', '), '') || ' (HTTP ' || coalesce(r.status_code::text, 'no answer') || ')',
+        w.url, 'customer_facing', 1, jsonb_build_object('facts', v_facts, 'missing', v_missing, 'owner_seat', 'marketing'),
+        '{}'::text[], array['which page component states the fact'], 'marketing');
+    else
+      update public.it_engineer_finding set closed_at = now(), close_note = 'the surface states every public fact'
+       where issue_key = 'facts:surface_stale:' || w.surface and closed_at is null;
+    end if;
+    n_checked := n_checked + 1;
+  end loop;
+
+  -- request: every day, and at once when a fact changed
+  for w in select * from public.marketing_fact_watch
+            where v_changed or requested_at is null or requested_at < now() - interval '1 day' loop
+    update public.marketing_fact_watch set request_id = net.http_get(w.url, '{}'::jsonb,
+             jsonb_build_object('User-Agent', 'QuotesDone fact register (+https://www.quotesdone.ae)', 'Accept', 'text/html'), 20000),
+           requested_at = now(), fact_hash = v_hash where surface = w.surface;
+    n_req := n_req + 1;
+  end loop;
+  return jsonb_build_object('facts', v_facts, 'changed', v_changed, 'requested', n_req, 'checked', n_checked,
+    'stale_surfaces', (select coalesce(jsonb_agg(surface), '[]'::jsonb) from public.marketing_fact_watch where carries is false));
 end $function$
 
 
@@ -1662,7 +1748,7 @@ declare v_body text := (select value from public.app_secrets where key = 'invite
 begin
   -- 27 Oct 2026: the founder approved ONE invitation with no link; each plan row stores it (the trade is filled at
   -- send time by the Microsoft 365 lane). Only an empty template is refused.
-  if btrim(coalesce(v_body, '')) = '' then
+  if coalesce(v_body, '') ~ '^[[:space:]]*$' then
     raise exception 'app_secrets.invite_body is empty: no plan is built from nothing';
   end if;
 
@@ -1768,6 +1854,57 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_geo_fix()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_month date := date_trunc('month', now() at time zone 'Asia/Dubai')::date; q record; n_open int := 0; n_closed int := 0; v_action text; v_brief text;
+begin
+  -- closed: a later check cited us
+  update public.marketing_geo_fix f set status = 'closed', closed_at = now(),
+         close_note = 'cited by ' || (select string_agg(distinct g.engine, ', ') from public.marketing_geo_check g
+                                       where g.question_id = f.question_id and g.cited and g.checked_at > f.opened_at)
+   where f.status = 'open' and exists (select 1 from public.marketing_geo_check g where g.question_id = f.question_id and g.cited and g.checked_at > f.opened_at);
+  get diagnostics n_closed = row_count;
+
+  for q in
+    select g.question_id, count(*) checks, array_agg(distinct g.engine) engines,
+           coalesce((select array_agg(distinct c) from public.marketing_geo_check g2, unnest(g2.competitors_cited) c
+                      where g2.question_id = g.question_id and g2.month = v_month), '{}') comps,
+           max(qq.question) question, max(qq.trade) trade, max(qq.city) city
+      from public.marketing_geo_check g join public.marketing_geo_question qq on qq.id = g.question_id and qq.active
+     where g.month = v_month
+     group by g.question_id
+    having not bool_or(g.cited)
+       and not exists (select 1 from public.marketing_geo_fix f where f.month = v_month and f.question_id = g.question_id)
+  loop
+    if cardinality(q.comps) > 0 then
+      v_action := 'comparison_passage';
+      v_brief := format('Engines answered "%s" citing %s and not QuotesDone. Publish an honest, answer-first comparison passage '
+                        '(what each does, who pays what, where QuotesDone differs: best-3 quotes, 3%% reveal paid by the buyer) '
+                        'and seek a listing or citation on the cited sources.', q.question, array_to_string(q.comps, ', '));
+    elsif q.trade is not null then
+      v_action := 'answer_first_service_passage';
+      v_brief := format('Engines answered "%s" without citing QuotesDone. Put a 40-word answer-first passage that answers it '
+                        'verbatim at the top of the %s service page%s, with Service JSON-LD for that trade and area.',
+                        q.question, q.trade, coalesce(' for ' || q.city, ''));
+    else
+      v_action := 'entity_fix';
+      v_brief := format('Engines answered "%s" without citing QuotesDone. Check the Organization entity (name, sameAs, '
+                        'description) is identical on the site, the directories and the profiles, and that the answer appears on one page.', q.question);
+    end if;
+    insert into public.marketing_geo_fix (month, question_id, checks, engines, competitors_cited, action, brief)
+    values (v_month, q.question_id, q.checks, q.engines, q.comps, v_action, v_brief);
+    n_open := n_open + 1;
+  end loop;
+  return jsonb_build_object('month', v_month, 'fixes_opened', n_open, 'fixes_closed', n_closed,
+    'open', (select count(*) from public.marketing_geo_fix where status = 'open'),
+    'by_action', (select coalesce(jsonb_object_agg(action, n), '{}'::jsonb) from (select action, count(*) n from public.marketing_geo_fix where status = 'open' group by 1) a));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_geo_record(p_month date, p_question_id bigint, p_engine text, p_cited boolean, p_rank integer, p_evidence text, p_model text, p_competitors text[] DEFAULT '{}'::text[])
  RETURNS bigint
  LANGUAGE sql
@@ -1860,6 +1997,71 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_jnum(v jsonb)
 AS $function$
   select case when jsonb_typeof(v) = 'number' then (v #>> '{}')::numeric end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_kpi_scorecard()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_m0 date := date_trunc('month', now() at time zone 'Asia/Dubai')::date; v_pm date := (v_m0 - interval '1 month')::date; v_cur jsonb; v_closed boolean := false;
+begin
+  -- the last month is closed once, then never rewritten; the current month is rewritten daily as month-to-date
+  if not exists (select 1 from public.marketing_duty_record where duty = 'marketing.kpi_scorecard' and period = v_pm and body->>'final' = 'true') then
+    insert into public.marketing_duty_record (duty, period, body)
+    values ('marketing.kpi_scorecard', v_pm, public.fn_marketing_kpi_scorecard_for(v_pm) || jsonb_build_object('final', true))
+    on conflict (duty, period) do update set body = excluded.body, written_at = now();
+    v_closed := true;
+  end if;
+  v_cur := public.fn_marketing_kpi_scorecard_for(v_m0) || jsonb_build_object('final', false);
+  insert into public.marketing_duty_record (duty, period, body) values ('marketing.kpi_scorecard', v_m0, v_cur)
+  on conflict (duty, period) do update set body = excluded.body, written_at = now();
+  return jsonb_build_object('closed_last_month', v_closed, 'month_to_date', v_cur);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_kpi_scorecard_for(p_month date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_from timestamptz := p_month::timestamp at time zone 'Asia/Dubai'; v_to timestamptz := (p_month + interval '1 month')::timestamp at time zone 'Asia/Dubai';
+  v_reg int; v_spend numeric; v_ours int; v_theirs int;
+begin
+  select count(*) into v_reg from public.leads l
+   where coalesce(l.is_demo, false) = v_fx and l.registration_submitted_at >= v_from and l.registration_submitted_at < v_to;
+  select coalesce(sum(spend), 0) into v_spend from public.marketing_ad_spend_day where is_demo = v_fx and day >= p_month and day < (p_month + interval '1 month')::date;
+  select count(*) filter (where cited), coalesce(sum(cardinality(competitors_cited)), 0) into v_ours, v_theirs
+    from public.marketing_geo_check where month = p_month;
+  return jsonb_build_object(
+    'month', p_month,
+    'suppliers_registered', v_reg,
+    'registered_by_campaign', (select coalesce(jsonb_object_agg(cmp, n), '{}'::jsonb) from (
+        select coalesce(ft.utm_campaign, '(no campaign)') cmp, count(*) n
+          from public.leads l left join public.marketing_first_touch ft on ft.lead_id = l.id
+         where coalesce(l.is_demo, false) = v_fx and l.registration_submitted_at >= v_from and l.registration_submitted_at < v_to
+         group by 1) x),
+    'paid_spend_aed', v_spend,
+    'cost_per_registered_supplier_aed', case when v_spend > 0 and v_reg > 0 then round(v_spend / v_reg, 2) end,
+    'cost_note', case when v_spend = 0 then 'no paid spend: paid media is off until a budget is approved' end,
+    'geo', (select coalesce(jsonb_object_agg(engine, jsonb_build_object('checked', n, 'cited', c)), '{}'::jsonb) from (
+        select engine, count(*) n, count(*) filter (where cited) c from public.marketing_geo_check where month = p_month group by 1) g),
+    'share_of_voice_pct', case when v_ours + v_theirs > 0 then round(100.0 * v_ours / (v_ours + v_theirs), 1) else 0 end,
+    'share_of_voice_basis', format('%s answer(s) citing us vs %s competitor citation(s) in the month''s GEO checks', v_ours, v_theirs),
+    'posts_by_pillar', (select coalesce(jsonb_object_agg(pillar, body), '{}'::jsonb) from (
+        select coalesce(c.theme, '(no campaign)') pillar,
+               jsonb_build_object('published', count(distinct p.id),
+                 'metrics', (select coalesce(jsonb_object_agg(metric, v), '{}'::jsonb) from (
+                     select m.metric, sum(m.value) v from public.marketing_post_metric m join public.marketing_post p2 on p2.id = m.post_id
+                      where p2.is_demo = v_fx and p2.published_at >= v_from and p2.published_at < v_to and coalesce(p2.campaign_id, -1) = coalesce(c.id, -1)
+                        and m.value is not null group by 1) mm)) body
+          from public.marketing_post p left join public.marketing_campaign c on c.id = p.campaign_id
+         where p.is_demo = v_fx and p.status = 'published' and p.published_at >= v_from and p.published_at < v_to
+         group by c.id, c.theme) b));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_launch_plan_duty()
@@ -2535,6 +2737,48 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_paid_spend_report()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on'; v_paid boolean := public.fn_marketing_paid_allowed();
+  v_30 numeric; v_mtd numeric; v_unhanded int; v_unbooked int; p public.ad_spend_policy; v_body jsonb; v_today date := (now() at time zone 'Asia/Dubai')::date;
+begin
+  select coalesce(sum(spend), 0) into v_30 from public.marketing_ad_spend_day where is_demo = v_fx and day >= v_today - 30;
+  select coalesce(sum(spend), 0) into v_mtd from public.marketing_ad_spend_day where is_demo = v_fx and day >= date_trunc('month', v_today)::date;
+  select count(*) filter (where handed_off_at is null), count(*) filter (where handed_off_at < now() - interval '2 days' and booked_ack_at is null)
+    into v_unhanded, v_unbooked from public.marketing_ad_spend_day where is_demo = v_fx and spend > 0 and day < v_today - 1;
+  select * into p from public.ad_spend_policy where policy_key = 'default';
+  v_body := jsonb_build_object('paid_allowed', v_paid, 'spend_30d_aed', v_30, 'spend_month_to_date_aed', v_mtd,
+    'days_not_handed_to_accountant', v_unhanded, 'days_handed_not_booked_2d', v_unbooked,
+    'pace', case when v_paid and p.monthly_cap_aed is not null then
+        jsonb_build_object('monthly_cap_aed', p.monthly_cap_aed, 'expected_by_today_aed',
+          round(p.monthly_cap_aed * extract(day from v_today) / extract(day from (date_trunc('month', v_today) + interval '1 month - 1 day')), 2),
+          'over_pace', v_mtd > p.monthly_cap_aed * extract(day from v_today) / extract(day from (date_trunc('month', v_today) + interval '1 month - 1 day')) * 1.1) end);
+  if not v_fx then
+    if not v_paid and v_30 > 0 then
+      perform public.fn_it_engineer_finding_upsert('paid:spend_without_budget', 'AED ' || v_30 || ' of ad spend in 30 days while paid media is not approved',
+        'public.marketing_ad_spend_day', 'monitor', 1, v_body || jsonb_build_object('owner_seat', 'marketing'), '{}'::text[], array['which account spent'], 'marketing');
+    else
+      update public.it_engineer_finding set closed_at = now(), close_note = 'no spend without an approved budget'
+       where issue_key = 'paid:spend_without_budget' and closed_at is null;
+    end if;
+    if v_unhanded + v_unbooked > 0 then
+      perform public.fn_it_engineer_finding_upsert('paid:spend_not_reported', (v_unhanded + v_unbooked) || ' ad-spend day(s) not handed to or not booked by the accountant',
+        'public.marketing_ad_spend_day', 'monitor', v_unhanded + v_unbooked, v_body || jsonb_build_object('owner_seat', 'marketing'), '{}'::text[], '{}'::text[], 'marketing');
+    else
+      update public.it_engineer_finding set closed_at = now(), close_note = 'every spend day is with the accountant'
+       where issue_key = 'paid:spend_not_reported' and closed_at is null;
+    end if;
+    insert into public.marketing_duty_record (duty, period, body) values ('marketing.paid_spend_report', v_today, v_body)
+    on conflict (duty, period) do update set body = excluded.body, written_at = now();
+  end if;
+  return v_body;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_plan_calendar(p_at timestamp with time zone DEFAULT now())
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3193,6 +3437,23 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_public_facts()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    -- trim_scale keeps the decimals: the earlier to_char mask used '#', which is no digit pattern, so 3.5 printed "4%"
+    -- (independent review of #1551)
+    'reveal_fee', trim_scale(standard_reveal_rate * 100)::text || '%',
+    'supplier_subscription', 'AED ' || trim(to_char(supplier_reg_fee, 'FM9,999,990')),
+    'nonresponse_admin_fee', 'AED ' || trim(to_char(supplier_nonresponse_admin_fee_aed, 'FM9,999,990')),
+    'supplier_period', supplier_reg_period, 'refund_window_working_days', refund_window_working_days)
+  from public.pricing_config where id = 1
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_publishing_live()
  RETURNS boolean
  LANGUAGE sql
@@ -3242,6 +3503,7 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_recruitment_funnel()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_day date := (now() at time zone 'Asia/Dubai')::date; v_rows int; gp record; v_empty int := 0; v_keys text[] := '{}';
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on'; v_company jsonb;
 begin
   insert into public.supplier_recruitment_funnel as f (trade, emirate, day, pool, invited, clicked, registered, approved, quoting)
   select g.trade, g.emirate, v_day,
@@ -3255,7 +3517,7 @@ begin
          count(*) filter (where exists (select 1 from public.quotes q where q.supplier_id = l.id))
     from public.supply_gap g
     left join public.leads l on g.trade = any(coalesce(l.invite_trades, '{}'::text[]))
-                            and (g.emirate = 'UAE' or l.emirate = g.emirate) and coalesce(l.is_demo, false) = false
+                            and (g.emirate = 'UAE' or l.emirate = g.emirate) and coalesce(l.is_demo, false) = v_fx
    where g.status = 'recruit'
    group by g.trade, g.emirate
   on conflict (trade, emirate, day) do update set pool = excluded.pool, invited = excluded.invited, clicked = excluded.clicked,
@@ -3285,9 +3547,41 @@ begin
                            else 'no recruiting gap in this trade group has an empty pool' end
    where fi.issue_key like 'recruitment:pool_empty:%' and fi.closed_at is null and not (fi.issue_key = any(v_keys));
 
+  -- THE COMPANY FUNNEL FROM DELIVERED INVITATIONS (19 Oct 2026, ledger 1003 C05). A lead's status column is not a
+  -- delivery record: the stage starts at the invitation email the provider reported delivered, then follows that lead.
+  with inv as (
+    select lower(btrim(n.to_email)) email, bool_or(n.provider_status = 'delivered') delivered
+      from public.notifications n
+     -- supplier_invite only: supplier_invite_seed rows are the deliverability seed inboxes, not suppliers (measured:
+     -- 305 sent seeds, 0 of their addresses is a lead)
+     where n.type = 'supplier_invite' and n.status = 'sent' and n.to_email is not null
+     group by 1),
+  f as (
+    select count(*) sent, count(*) filter (where i.delivered) delivered,
+           count(*) filter (where i.delivered and l.invite_clicked_at is not null) clicked,
+           count(*) filter (where i.delivered and (l.registration_submitted_at is not null or coalesce(l.claimed, false))) registered,
+           count(*) filter (where i.delivered and l.approval_status = 'approved') approved,
+           count(*) filter (where i.delivered and exists (select 1 from public.quotes q where q.supplier_id = l.id)) quoting
+      from inv i join public.leads l on lower(btrim(l.email)) = i.email and coalesce(l.is_demo, false) = v_fx)
+  select jsonb_build_object('leads_marked_invited', (select count(*) from public.leads l where l.invited_at is not null and coalesce(l.is_demo, false) = v_fx),
+           'invitations_sent', sent, 'delivered', delivered, 'clicked', clicked, 'registered', registered,
+           'approved', approved, 'quoting', quoting,
+           'pct_delivered_clicked', case when delivered > 0 then round(100.0 * clicked / delivered, 1) end,
+           'pct_clicked_registered', case when clicked > 0 then round(100.0 * registered / clicked, 1) end,
+           'pct_registered_approved', case when registered > 0 then round(100.0 * approved / registered, 1) end,
+           'pct_approved_quoting', case when approved > 0 then round(100.0 * quoting / approved, 1) end,
+           'losing_stage', case when delivered = 0 then 'delivery' when clicked = 0 then 'delivered_to_clicked'
+                                when registered = 0 then 'clicked_to_registered' when approved = 0 then 'registered_to_approved'
+                                when quoting = 0 then 'approved_to_quoting' else null end)
+    into v_company from f;
+  insert into public.marketing_duty_record (duty, period, body) values ('marketing.recruitment_funnel', v_day, v_company)
+  on conflict (duty, period) do update set body = excluded.body, written_at = now();
+
   return jsonb_build_object('gaps_recruiting', v_rows, 'empty_pools', v_empty, 'empty_pool_findings', cardinality(v_keys),
-    'totals', (select jsonb_build_object('pool', sum(pool), 'invited', sum(invited), 'registered', sum(registered), 'approved', sum(approved), 'quoting', sum(quoting))
+    'totals', (select jsonb_build_object('pool', coalesce(sum(pool), 0), 'invited', coalesce(sum(invited), 0), 'registered', coalesce(sum(registered), 0),
+                                         'approved', coalesce(sum(approved), 0), 'quoting', coalesce(sum(quoting), 0))
                  from public.supplier_recruitment_funnel where day = v_day),
+    'company_funnel', v_company,
     -- which stage lost them, filed to the CEO when a channel has N invited and 0 registered (#1012)
     'diagnosis', public.fn_marketing_funnel_diagnosis(false, true));
 end $function$
@@ -3301,7 +3595,7 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_report_figures(p_from timestamp w
 AS $function$
 declare v_posts int; v_posts_ever int; v_spend jsonb; v_spend_aed numeric; v_unconv int; v_asked int; v_inq numeric; v_head text;
         v_sched int; v_held int; v_failed int; v_stuck int; v_live boolean; v_ins jsonb; v_conn jsonb; v_ins_days int;
-        v_partial int;
+        v_partial int; v_opens jsonb;
 begin
   -- A post counts as published only when its channels say so (channel_outcome published, or not read back yet:
   -- null / pending keep the old reading). Partly published is its own figure; failed on every channel is failed.
@@ -3335,6 +3629,15 @@ begin
   v_head := format('%s post(s) published%s, %s scheduled for the next 7 days%s, AED %s ad spend reported, %s conversation(s) handed to the founder, %s customer request(s) posted.',
                    v_posts, case when v_partial > 0 then format(' (%s more only partly: a channel failed)', v_partial) else '' end, v_sched, case when not v_live and v_held > 0 then format(' (%s due and held: publishing is off)', v_held) else '' end,
                    v_spend_aed, v_asked, coalesce(v_inq::text, 'unmeasured'));
+  -- 3 Nov 2026 (marketing): the invitation open measurement over the same window (fn_invite_open_summary).
+  v_opens := public.fn_invite_open_summary(p_from, p_to);
+  -- Worded so no ratio can be read across the arms: opens exist only for the tracked share, and the last count is all time.
+  v_head := v_head || format(' Invitations: %s sent, %s of them in the tracked share; %s of those %s likely opened by a person; %s (all time) likely opened and not registered after 3 days.',
+                             coalesce((v_opens #>> '{by_arm,tracked,sent}')::int, 0) + coalesce((v_opens #>> '{by_arm,untracked,sent}')::int, 0),
+                             coalesce((v_opens #>> '{by_arm,tracked,sent}')::int, 0),
+                             coalesce((v_opens #>> '{by_arm,tracked,opened_human}')::int, 0),
+                             coalesce((v_opens #>> '{by_arm,tracked,sent}')::int, 0),
+                             v_opens ->> 'opened_by_a_person_not_registered_after_3_days');
   return jsonb_build_object(
     'headline', v_head,
     'measured', jsonb_build_object(
@@ -3346,12 +3649,13 @@ begin
       'connections_failing', coalesce((select jsonb_agg(c->'check') from jsonb_array_elements(v_conn->'checks') c where not (c->>'ok')::boolean), '[]'::jsonb),
       'connections_measured_at', v_conn->'oldest_measurement',
       'business_development', (select to_jsonb(f) from public.marketing_bd_figures f),
-      'social_inbox', coalesce((select jsonb_agg(to_jsonb(v)) from public.v_marketing_social_volume v), '[]'::jsonb)),
+      'social_inbox', coalesce((select jsonb_agg(to_jsonb(v)) from public.v_marketing_social_volume v), '[]'::jsonb),
+      'invitation_opens', v_opens),
     'not_measured', to_jsonb(array_remove(array[
       case when v_ins_days = 0 then 'followers, reach and engagement per channel: no insight was pulled for the window yet' end,
       case when coalesce((v_conn->>'never_measured')::boolean, true) then 'channel access: the access check has not run yet' end,
       'search rankings and organic traffic: no SEO reader is built yet'], null)),
-    'basis', 'Posts: marketing_post (published_at in the window; scheduled and held from its status and dry_run; published / partly / failed from channel_outcome where it has been read back from Postiz, else from status). Spend: ad_spend_reported by spend_date (Asia/Dubai), in AED at gl_settings usd_to_aed. Insights: marketing_insight_day, page and account metrics summed over the window. Connections: marketing_connection_check as last measured. Handed to the founder: notifications of kind social_human_request. Customer requests: fn_ceo_plan_measure(inquiries_posted), demo excluded. Business development: marketing_bd_figures (7-day counts, ZZ DEMO excluded). Social inbox: v_marketing_social_volume per platform. Window: the 24 hours before the report.');
+    'basis', 'Posts: marketing_post (published_at in the window; scheduled and held from its status and dry_run; published / partly / failed from channel_outcome where it has been read back from Postiz, else from status). Spend: ad_spend_reported by spend_date (Asia/Dubai), in AED at gl_settings usd_to_aed. Insights: marketing_insight_day, page and account metrics summed over the window. Connections: marketing_connection_check as last measured. Handed to the founder: notifications of kind social_human_request. Customer requests: fn_ceo_plan_measure(inquiries_posted), demo excluded. Business development: marketing_bd_figures (7-day counts, ZZ DEMO excluded). Social inbox: v_marketing_social_volume per platform. Invitation opens: fn_invite_open_summary (supplier_invite rows sent in the window, by arm; an open is a load of the image in a tracked email, so it says nothing about untracked mail or mail whose images were not loaded). Window: the 24 hours before the report.');
 end $function$
 
 
@@ -3392,7 +3696,10 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_reputation()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_link text := nullif(btrim((select value from public.app_secrets where key = 'public_review_url')), '');
+declare v_link text := coalesce(
+      nullif(btrim((select value from public.app_secrets where key = 'public_review_url')), ''),
+      -- Google's own "write a review" address for a Business Profile, built from its place id (19 Oct 2026, C07)
+      'https://search.google.com/local/writereview?placeid=' || nullif(btrim((select value from public.app_secrets where key = 'google_place_id')), ''));
   v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';   -- fixture run: ONLY demo rows
   r record; v_asked int := 0; v_waiting int := 0; v_ar boolean;
 begin
@@ -3405,8 +3712,8 @@ begin
     if v_waiting > 0 then
       perform public.fn_it_engineer_finding_upsert('reputation:no_public_review_link',
         v_waiting || ' customer job(s) are waiting to be asked for a public review, and no review link is configured',
-        'app_secrets public_review_url', 'monitor', v_waiting, jsonb_build_object('owner_seat', 'marketing'),
-        '{}'::text[], array['the Google Business Profile or directory review link to use'], 'marketing');
+        'app_secrets public_review_url / google_place_id', 'monitor', v_waiting, jsonb_build_object('owner_seat', 'marketing'),
+        '{}'::text[], array['the Google Business Profile place id (app_secrets.google_place_id) or a directory review link (public_review_url)'], 'marketing');
     end if;
   else
     update public.it_engineer_finding set closed_at = now(), close_note = 'a public review link is configured'
@@ -3779,6 +4086,133 @@ begin
     end if;
   end loop;
   return jsonb_build_object('closed', n_closed, 'waiting', n_waiting);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_social_inbox()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on'; v_overdue jsonb; n_over int;
+  n_sig int; n_fail int; v_working boolean := public.fn_is_working_day((now() at time zone 'Asia/Dubai')::date);
+begin
+  -- owed: a person asked something a seat must answer; unanswered 2 hours on a working day is late
+  select count(*), coalesce(jsonb_object_agg(cls, n), '{}'::jsonb) into n_over, v_overdue from (
+    select m.classification cls, count(*) n
+      from public.social_message m join public.social_conversation c on c.id = m.conversation_id and c.is_demo = v_fx
+     where m.direction = 'in' and m.author = 'person'
+       and m.classification in ('question', 'complaint', 'sales_lead', 'supplier_enquiry', 'sensitive_legal')
+       and m.occurred_at < now() - interval '2 hours' and m.occurred_at > now() - interval '30 days'
+       and c.status <> 'handed_to_human'
+       and not exists (select 1 from public.social_message o where o.in_reply_to = m.id and o.direction = 'out' and o.send_status = 'sent')
+     group by 1) x;
+  n_over := coalesce((select sum(value::int) from jsonb_each_text(v_overdue)), 0);
+  if v_working and n_over > 0 then
+    perform public.fn_it_engineer_finding_upsert('social_inbox:overdue', n_over || ' social message(s) owed an answer for over 2 working hours',
+      'public.social_message', 'agent_facing', n_over, jsonb_build_object('by_class', v_overdue, 'owner_seat', 'marketing'),
+      '{}'::text[], array['whether the reply is held (social_send_enabled) or was never composed'], 'marketing');
+  elsif n_over = 0 then
+    update public.it_engineer_finding set closed_at = now(), close_note = 'no owed social message is unanswered'
+     where issue_key = 'social_inbox:overdue' and closed_at is null;
+  end if;
+
+  -- a SIGNED webhook we could not verify is a stale meta_app_secret (unsigned pokes are 'skipped', not counted)
+  select count(*) into n_sig from public.agent_runs
+   where agent = 'fn:marketing_social_inbox' and status = 'warn' and counts->>'signed_rejected' = 'true' and started_at > now() - interval '24 hours';
+  if n_sig > 0 then
+    perform public.fn_it_engineer_finding_upsert('social_inbox:signature_rejected', n_sig || ' signed Meta webhook(s) failed verification in 24h',
+      'fn:marketing_social_inbox', 'agent_facing', n_sig, jsonb_build_object('owner_seat', 'marketing'), '{}'::text[],
+      array['whether meta_app_secret was rotated in the Meta app'], 'marketing');
+  else
+    update public.it_engineer_finding set closed_at = now(), close_note = 'no signed webhook rejected in 24h'
+     where issue_key = 'social_inbox:signature_rejected' and closed_at is null;
+  end if;
+
+  select count(*) into n_fail from public.social_message m join public.social_conversation c on c.id = m.conversation_id and c.is_demo = v_fx
+   where m.direction = 'out' and m.send_status = 'failed' and m.created_at > now() - interval '24 hours';
+  if n_fail > 0 then
+    perform public.fn_it_engineer_finding_upsert('social_inbox:send_failed', n_fail || ' social reply/replies failed to send in 24h',
+      'public.social_message', 'agent_facing', n_fail, jsonb_build_object('owner_seat', 'marketing'), '{}'::text[],
+      array['the send_error of each'], 'marketing');
+  else
+    update public.it_engineer_finding set closed_at = now(), close_note = 'no social reply failed in 24h'
+     where issue_key = 'social_inbox:send_failed' and closed_at is null;
+  end if;
+
+  return jsonb_build_object('working_day', v_working, 'overdue', n_over, 'overdue_by_class', v_overdue,
+    'signed_webhooks_rejected_24h', n_sig, 'sends_failed_24h', n_fail,
+    'held_switch_off', (select count(*) from public.social_message where send_status = 'held_switch_off'));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_social_publish()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_today date := (now() at time zone 'Asia/Dubai')::date; v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  n_moved int := 0; n_utm int := 0; v_missed int; v_blocked int; v_task bigint; v_audit jsonb; v_title text;
+begin
+  -- AN APPROVED POST IS NEVER EDITED HERE (independent review of #1551, 3 Nov 2026). The founder approves a campaign
+  -- once and it goes out exactly as approved: fn_marketing_campaign_hash covers every post's scheduled_at and cta_url,
+  -- so moving or re-tagging ONE post of an approved campaign voids the approval of ALL of them (approval_void) and the
+  -- publisher then refuses the whole month. Only posts of a campaign not yet approved (or of none) are touched here;
+  -- an approved post that now lands on a non-working day goes to the CEO for re-approval, with the missed slots.
+  -- a post now landing on a weekend or a holiday added after it was written: re-slid by the a05 trigger on write
+  update public.marketing_post p set scheduled_at = p.scheduled_at, updated_at = now()
+   where p.status = 'scheduled' and p.scheduled_at > now() and p.is_demo = v_fx
+     and not public.fn_is_working_day((p.scheduled_at at time zone 'Asia/Dubai')::date)
+     and not exists (select 1 from public.marketing_campaign c where c.id = p.campaign_id and c.approved_hash is not null);
+  get diagnostics n_moved = row_count;
+
+  -- every link a post carries is tagged, so a registration can be traced to the post (UTM). A post with no channel is
+  -- tagged 'social': a null channel would have turned the whole cta_url null.
+  update public.marketing_post p
+     set cta_url = p.cta_url || case when p.cta_url like '%?%' then '&' else '?' end
+                   || 'utm_source=' || coalesce(p.channels[1], 'social') || '&utm_medium=social&utm_campaign='
+                   || coalesce((select c.campaign_key from public.marketing_campaign c where c.id = p.campaign_id), 'organic')
+                   || '&utm_content=' || coalesce(p.ingest_key, p.id::text),
+         updated_at = now()
+   where p.status in ('draft', 'scheduled') and p.is_demo = v_fx and p.cta_url is not null and p.cta_url !~ 'utm_source='
+     and not exists (select 1 from public.marketing_campaign c where c.id = p.campaign_id and c.approved_hash is not null);
+  get diagnostics n_utm = row_count;
+
+  -- a slot that passed unpublished, or an approved post now on a non-working day, needs re-approval, and approval is
+  -- the CEO's: handed once, while it is open
+  select count(*) into v_missed from public.marketing_post
+   where status = 'scheduled' and scheduled_at < now() - interval '2 hours' and is_demo = v_fx;
+  select count(*) into v_blocked from public.marketing_post p
+   where p.status = 'scheduled' and p.scheduled_at > now() and p.is_demo = v_fx
+     and not public.fn_is_working_day((p.scheduled_at at time zone 'Asia/Dubai')::date)
+     and exists (select 1 from public.marketing_campaign c where c.id = p.campaign_id and c.approved_hash is not null);
+  v_title := 'Marketing: re-approve or cancel the social post(s) whose slot passed unpublished';
+  if v_missed + v_blocked > 0 and not v_fx and not exists (select 1 from public.ceo_task where title = v_title and state = 'open') then
+    v_task := public.fn_ceo_task_open(v_title, v_missed || ' scheduled post(s) passed their slot without publishing (the publisher marks them '
+      || '"missed_slot: reschedule and re-approve")' || coalesce(': ' || (select string_agg(ingest_key || ' (' || to_char(scheduled_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ')', ', ' order by scheduled_at)
+         from public.marketing_post where status = 'scheduled' and scheduled_at < now() - interval '2 hours' and not is_demo), '')
+      || '; ' || v_blocked || ' approved post(s) now fall on a UAE weekend day or public holiday and are not moved here, because moving one voids the campaign''s approval'
+      || coalesce(': ' || (select string_agg(p.ingest_key || ' (' || to_char(p.scheduled_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ')', ', ' order by p.scheduled_at)
+         from public.marketing_post p where p.status = 'scheduled' and p.scheduled_at > now() and not p.is_demo
+          and not public.fn_is_working_day((p.scheduled_at at time zone 'Asia/Dubai')::date)
+          and exists (select 1 from public.marketing_campaign c where c.id = p.campaign_id and c.approved_hash is not null)), '')
+      || '. Approve a new working-day slot for each, or cancel it.');
+  end if;
+
+  -- yesterday's due posts, audited
+  select jsonb_build_object('due', count(*), 'published', count(*) filter (where status = 'published'),
+           'failed', count(*) filter (where status = 'failed'), 'unconfirmed', count(*) filter (where status in ('publishing', 'unconfirmed')),
+           'still_scheduled', count(*) filter (where status = 'scheduled'))
+    into v_audit from public.marketing_post
+   where is_demo = v_fx and (scheduled_at at time zone 'Asia/Dubai')::date = v_today - 1;
+  insert into public.marketing_duty_record (duty, period, body)
+  values ('marketing.social_publish', v_today - 1, v_audit) on conflict (duty, period) do update set body = excluded.body, written_at = now();
+
+  return jsonb_build_object('posting_day', public.fn_is_working_day(v_today), 'moved_off_non_working_days', n_moved,
+    'links_tagged', n_utm, 'missed_slots', v_missed, 'approved_on_non_working_days', v_blocked, 'ceo_task', v_task, 'yesterday', v_audit,
+    'scheduled_ahead', (select count(*) from public.marketing_post where status = 'scheduled' and scheduled_at > now() and is_demo = v_fx));
 end $function$
 
 
@@ -4336,6 +4770,43 @@ AS $function$
          when extract(hour from p_at at time zone 'Asia/Dubai') < 17 then 'afternoon'
          else 'evening' end end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_trend_decision()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_week date := date_trunc('week', now() at time zone 'Asia/Dubai')::date; n_expired int; v_brief jsonb; v_silent jsonb;
+begin
+  -- the 48-hour decision: unjudged after 48 hours is rejected, with the reason, so nothing waits forever
+  update public.marketing_trend set relevant = false, judged_at = now(), judged_by = 'rule:48h',
+         why_it_matters = 'Not judged within 48 hours of being seen, so rejected; a trend older than two days is not acted on.'
+   where relevant is null and judged_at is null and seen_at < now() - interval '48 hours';
+  get diagnostics n_expired = row_count;
+
+  select jsonb_build_object('accepted', count(*) filter (where t.relevant), 'rejected', count(*) filter (where not t.relevant),
+           'accepted_items', coalesce(jsonb_agg(jsonb_build_object('title', t.title, 'url', t.url, 'source', s.name, 'why', t.why_it_matters)
+                                              order by t.judged_at desc) filter (where t.relevant), '[]'::jsonb))
+    into v_brief from public.marketing_trend t join public.marketing_trend_source s on s.id = t.source_id
+   where t.judged_at >= v_week::timestamp at time zone 'Asia/Dubai';
+  insert into public.marketing_duty_record (duty, period, body) values ('marketing.trend_decision', v_week, v_brief)
+  on conflict (duty, period) do update set body = excluded.body, written_at = now();
+
+  select coalesce(jsonb_agg(name), '[]'::jsonb) into v_silent from public.marketing_trend_source
+   where active and (last_error is not null or last_read_at is null or last_read_at < now() - interval '2 days');
+  if jsonb_array_length(v_silent) > 0 then
+    perform public.fn_it_engineer_finding_upsert('trends:feed_silent', jsonb_array_length(v_silent) || ' trend feed(s) unread for 2 days or failing',
+      'public.marketing_trend_source', 'monitor', jsonb_array_length(v_silent), jsonb_build_object('feeds', v_silent, 'owner_seat', 'marketing'),
+      '{}'::text[], '{}'::text[], 'marketing');
+  else
+    update public.it_engineer_finding set closed_at = now(), close_note = 'every trend feed read within 2 days'
+     where issue_key = 'trends:feed_silent' and closed_at is null;
+  end if;
+  return jsonb_build_object('expired_rejected', n_expired, 'week', v_week, 'accepted', v_brief->'accepted', 'rejected', v_brief->'rejected',
+    'unjudged_under_48h', (select count(*) from public.marketing_trend where relevant is null), 'silent_feeds', v_silent);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_trend_judged(p_id bigint, p_relevant boolean, p_why text, p_by text)
@@ -5526,6 +5997,10 @@ begin
   if new.lang is null or new.lang not in ('en', 'ar') then
     new.lang := coalesce(public.fn_registered_locale(new.to_role, null, new.lead_id, new.to_email), 'en');
   end if;
+  -- A REPLY KEEPS ITS WRITTEN TEXT (3 Nov 2026, sales_engineer). An inbound_reply is the answer a person or a seat wrote
+  -- to the message it threads under; the copy below is a generic notice and would replace that answer. fn_inbox_send
+  -- refuses an Arabic body to a supplier before it is written; the subject repeats the sender's own subject.
+  if new.type = 'inbound_reply' then return new; end if;
   v_all := coalesce(new.subject, '') || ' ' || coalesce(new.body, '');
   v_ar := v_all ~ '[؀-ۿ]';
   -- coalesce: fn_language_mismatch answers null for pure Arabic, and a null here would make the
