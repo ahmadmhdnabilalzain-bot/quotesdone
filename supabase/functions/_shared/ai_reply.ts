@@ -69,8 +69,10 @@ export interface AiReplyRequest {
 }
 /** The trade pack a reply carries: the caller's own, else the first trade the other party named in its recent turns,
  *  then the message, then the facts (company_brief.ts conversationTrade). */
-export function replyTrade(r: Pick<AiReplyRequest, 'trade' | 'message' | 'conversation' | 'facts'>): string | null {
+export function replyTrade(r: Pick<AiReplyRequest, 'trade' | 'message' | 'conversation' | 'facts' | 'audience'>): string | null {
   if (r.trade !== undefined) return r.trade;
+  // a supplier speaks about the inquiry the facts describe (supplier_api's quotation chat): its trade comes first (review)
+  if (r.audience === 'supplier') { const f = conversationTrade('', [], r.facts); if (f) return f; }
   return conversationTrade(r.message, (r.conversation ?? []).filter((t) => t.role !== 'seat').map((t) => t.text), r.facts);
 }
 /** outage: no call reached a model — every one failed with a network error, 5xx, timeout/deadline or an open circuit

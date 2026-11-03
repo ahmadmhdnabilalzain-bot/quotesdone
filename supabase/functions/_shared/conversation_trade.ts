@@ -9,8 +9,10 @@
 // Changed in the move, because a pack chosen from a false match carries the wrong trade's playbook:
 //   - three short Arabic words match as words, with or without the article (§): the brief's exam questions showed them
 //     inside other words (بق in بقيمة "worth", نش in أنشر "I post", شتر in أشتري "I buy"); البق, النش, الشتر still match;
-//   - "sign up/in", "our/supplier network" and "build a quote" are no longer signage, IT networking or building work
-//     (independent review: "How do I sign up?" read as signage);
+//   - "sign up/in", "where do I sign?", "our/supplier/QuotesDone network", "a network of suppliers" and "build a quote"
+//     are no longer signage, IT networking or building work (independent review: "How do I sign up?" read as signage);
+//     a sign is still one when it is a shop, new, neon, LED, acrylic or outdoor sign, or a sign board;
+//   - نش takes the article only (النش), not ف: the Gulf "فنش" (finished) is not a leak;
 //   - "renovate" and ترميم read as fit-out, so a permit question about a villa renovation carries the fit-out digest.
 // prevented by: sales_engineer/conversation_plan.test.ts (the bank's 43 openings to their playbooks), _shared/brief_budget.test.ts
 
@@ -44,7 +46,7 @@ export const TRADE_WORDS: [string, RegExp][] = ([
   ['tiling', String.raw`\btiles?\b|\btiling|بلاط|سيراميك|بورسلين`],
   ['flooring', String.raw`\bfloor(ing)?\b|parquet|vinyl|laminate floor|ارضيات|ارضية|باركيه`],
   ['plumbing', String.raw`\bbathroom|\bplumb|\bpipe|\bleaking tap|blockage|حمام|سباكة|مواسير`],
-  ['waterproofing', String.raw`waterproof|roof leak|leak\w* (from|through) (the )?roof|seepage|damp proof|عزل مائي|عزل السطح|تسريب|تسرب|§نش(?![\p{L}])`],
+  ['waterproofing', String.raw`waterproof|roof leak|leak\w* (from|through) (the )?roof|seepage|damp proof|عزل مائي|عزل السطح|تسريب|تسرب|(?<![\p{L}])(?:ال)?نش(?![\p{L}])`],
   ['roofing', String.raw`\bre-?roof|roof (tiles|sheets?|replacement)|new roof|سقف معدني|قرميد`],
   ['swimming-pools', String.raw`\bpool\b|swimming|مسبح|بركة سباحة`],
   ['landscaping', String.raw`\bgarden|landscap|\blawn|\bturf|irrigation|interlock|paving|driveway|حديقة|عشب|انترلوك|بلاط حوش`],
@@ -54,7 +56,7 @@ export const TRADE_WORDS: [string, RegExp][] = ([
   ['aluminium', String.raw`\bwindows?\b|alumin|upvc|curtain wall|نوافذ|شبابيك|شباك|المنيوم`],
   ['garage-doors', String.raw`garage door|roller shutter|§شتر(?![\p{L}])|باب كراج`],
   ['elevators', String.raw`\blift\b|elevator|مصعد`],
-  ['signage', String.raw`signage|\bsign\b(?!\s*(?:up|in|on|out|off|here|the|a|an|this|it|my|our|your)\b)|light box|لوحة اعلانية|يافطة`],
+  ['signage', String.raw`signage|\b(?:shop|new|neon|led|acrylic|illuminated|outdoor|3d)\s+signs?\b|\bsigns?\s*boards?\b|\bsign\b(?!\s*(?:up|in|on|out|off|here|the|a|an|this|it|my|our|your|today|now|tomorrow|please|and|with|for|by)\b|\s*(?:[?.!,]|$))|light box|لوحة اعلانية|يافطة`],
   ['marble-granite', String.raw`marble|granite|رخام|جرانيت`],
   ['epoxy-flooring', String.raw`epoxy|ايبوكسي`],
   ['gypsum', String.raw`gypsum|false ceiling|cornice|bulkhead|جبس|جبسم|اسقف معلقة`],
@@ -72,7 +74,7 @@ export const TRADE_WORDS: [string, RegExp][] = ([
   ['demolition', String.raw`demoli|strip[- ]out|هدم`],
   ['masonry', String.raw`block ?work|masonry|plaster|cladding|بلوك|لياسة`],
   ['scaffolding', String.raw`scaffold|سقالة|سقالات`],
-  ['it-networking', String.raw`(?<!(?:supplier|suppliers|partner|partners|contractor|contractors|our|your|sales)\s)network|wi-?fi|cabling|server|شبكة|واي فاي`],
+  ['it-networking', String.raw`(?<!(?:supplier|suppliers|partner|partners|contractor|contractors|our|your|sales|quotesdone)\s)network(?!\s+of\s+(?:suppliers|contractors|partners|companies|vendors|installers))|wi-?fi|cabling|server|شبكة|واي فاي`],
   ['av-systems', String.raw`audio|home cinema|projector|speakers|صوتيات|سينما`],
   ['insulation', String.raw`insulat|عزل حراري`],
   ['general-building-contracting', String.raw`extension|annex|build (?:a|an) (?!quote|quotation|request|list|profile|report|brief)|construct|ملحق|بناء`],

@@ -108,9 +108,12 @@ Deno.test('the one trade pack: the first named trade, the caller\'s own, none, a
     return String(s.calls[0].o.sysStable ?? '');
   };
   const conv = [{ role: 'customer' as const, text: 'I need my AC serviced.' }, { role: 'seat' as const, text: 'Sure, and your kitchen?' }, { role: 'customer' as const, text: 'Also the kitchen cabinets.' }];
-  const first = await sent({ message: 'How long does it take?', conversation: conv });
-  assert(first.includes('## HVAC (hvac)') && !first.includes('## Kitchens (kitchens)'), 'the first trade the customer named stays');
-  assert((await sent({ message: 'How long does it take?', conversation: conv, trade: 'kitchens' })).includes('## Kitchens (kitchens)'), "the caller's own trade wins");
+  // two trades named equally recently: the newer one (company_brief.ts conversationTrade weighs each turn)
+  const newer = await sent({ message: 'How long does it take?', conversation: conv });
+  assert(newer.includes('## Kitchens (kitchens)') && !newer.includes('## HVAC (hvac)'), 'the trade the customer is talking about now');
+  assert((await sent({ message: 'How long does it take?', conversation: conv, trade: 'hvac' })).includes('## HVAC (hvac)'), "the caller's own trade wins");
+  assert((await sent({ audience: 'supplier' as never, message: 'Can I add a tiling option?', facts: 'The inquiry: kitchen cabinets, L-shaped, 4 m.' })).includes('## Kitchens (kitchens)'),
+    "a supplier's inquiry trade (the facts) comes before its passing words");
   assert(!(await sent({ message: 'kitchen?', trade: null })).includes('# Conversation playbook:'), 'null: no pack');
   assert(!(await sent({})).includes('Supplier how-to'), 'a customer gets no supplier how-to');
   assert((await sent({ audience: 'supplier' as never })).includes('Supplier how-to'), 'a supplier does');

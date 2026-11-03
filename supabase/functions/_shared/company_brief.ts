@@ -39,13 +39,28 @@ export const PLAYBOOK_TEXT = BRIEF_PART_IDS.map((id, i) => (id.startsWith('conve
 /** Every compiled knowledge block: the core, the supplier part and every pack part. */
 export const KNOWLEDGE_TEXT = [BRIEF_TEXT, BRIEF_SUPPLIER, ...BRIEF_PART_TEXT].join('\n\n');
 
-/** THE TRADE IS STICKY (review of this change, 3 Nov 2026). The pack is for the first trade the person named in their last
- *  TRADE_WINDOW turns, then the message, then the caller's facts, as the portal's plan picks its playbook (tradeOf): a
- *  passing word in a later message ("the cabinets should match the floor tiles") does not swap a kitchen job's pack. A
- *  new job takes over once its turns fill the window. `earlier` is the person's own turns, oldest first. */
+/** THE TRADE THE CONVERSATION IS ABOUT, BY WEIGHT (two independent reviews of this change, 3 Nov 2026). Neither "the newest
+ *  message wins" (one passing word, "match the floor tiles", swapped a kitchen job's pack) nor "the first named wins" (a
+ *  returning customer's new AC job kept the old kitchen pack for 12 turns) holds. Each of the person's last TRADE_WINDOW
+ *  turns votes for the trade it names: the message 3, the three turns before it 2, older ones 1; the highest total wins,
+ *  a tie goes to the newer. So a new job takes over from its first message unless the old job was still being talked
+ *  about, and then from its second; a single passing word in a job's conversation does not. Nothing named: the facts.
+ *  `earlier` is the person's own turns, oldest first. */
 export const TRADE_WINDOW = 12;
-export const conversationTrade = (message: string, earlier: string[] = [], facts?: string | null): string | null =>
-  tradeIn([...earlier.slice(-TRADE_WINDOW), message, facts], hasPack);
+export function conversationTrade(message: string, earlier: string[] = [], facts?: string | null): string | null {
+  const turns = [...earlier.slice(-TRADE_WINDOW), message];
+  const score = new Map<string, { w: number; last: number }>();
+  turns.forEach((t, i) => {
+    const k = tradeIn([t], hasPack);
+    if (!k) return;
+    const w = i === turns.length - 1 ? 3 : i >= turns.length - 4 ? 2 : 1;
+    const s = score.get(k) ?? { w: 0, last: -1 };
+    score.set(k, { w: s.w + w, last: i });
+  });
+  let best: string | null = null; let top = { w: 0, last: -1 };
+  for (const [k, s] of score) if (s.w > top.w || (s.w === top.w && s.last > top.last)) { best = k; top = s; }
+  return best ?? tradeIn([facts], hasPack);
+}
 
 /** The published price guide with a pack: its heading and notes, the lines of the pack's trade family, and the lines of
  *  any code that is no trade (fn_price_brief's `general` rows: MDF, plywood, cement and other materials, measured 3 Nov
@@ -155,30 +170,42 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 
   const brief = BRIEF_TEXT + '\n\n' + composeBrief({ company, facts, faqs, lang, knowledge, faqTokens, blocks: [prices, ...blocks].filter(Boolean) });
   // what the prompt left out but the figure check still accepts (figureSource): other families' price lines, FAQ rows past the budget
   const unsent = [prices === guide ? '' : guide, composeBrief({ company: '', facts: '', faqs, lang })].filter(Boolean).join('\n\n');
-  const old = cache.get(key)?.brief;
-  if (old !== undefined && old !== brief) UNSENT.delete(old);
+  // Bounded (review of this change): an expired entry leaves the cache, the cache keeps at most CACHE_MAX keys, and a
+  // brief's unsent text lives exactly as long as some live entry still returns that brief (two keys can build one string).
+  for (const [k, v] of cache) if (now - v.at >= BRIEF_TTL_MS || now < v.at) cache.delete(k);
+  cache.delete(key); cache.set(key, { at: now, brief });   // newest last, so the cap below drops the oldest
+  while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!);
+  const live = new Set([...cache.values()].map((v) => v.brief));
+  for (const b of UNSENT.keys()) if (!live.has(b)) UNSENT.delete(b);
   UNSENT.set(brief, unsent);
-  cache.set(key, { at: now, brief });
   return brief;
 }
+const CACHE_MAX = 200;
 
 /** The two live reads every brief carries: the company block and the PUBLISHED PRICE GUIDE (fn_price_brief: every
  *  price_benchmark range). One read per `rpc` (a request's own client), so a caller can start them before it knows the
  *  trade (warmBrief) and companyBrief reuses them. A failed read leaves that part out; the figure check then accepts none
  *  of its numbers, which is the safe side. */
-// a long-lived rpc (a module-level client) re-reads after BRIEF_TTL_MS, so a price edit still reaches the brief in that window
+// LIVE_TTL_MS only shares one request's reads between warmBrief and companyBrief: a long-lived rpc (a module-level client)
+// re-reads after it, so a price edit reaches the brief within BRIEF_TTL_MS + LIVE_TTL_MS, not twice the TTL.
+const LIVE_TTL_MS = 30_000;
 const LIVE = new WeakMap<Rpc, { at: number; p: Promise<{ company: string; guide: string }> }>();
 function liveSources(rpc: Rpc): Promise<{ company: string; guide: string }> {
   const hit = LIVE.get(rpc);
-  if (hit && Date.now() - hit.at < BRIEF_TTL_MS) return hit.p;
+  if (hit && Date.now() - hit.at < LIVE_TTL_MS) return hit.p;
   const read = async (fn: string, args: Record<string, unknown>) => { try { return (await rpc(fn, args)).data; } catch (_e) { return null; } };
   const p = Promise.all([read('fn_company_context', { p_max_chars: 8000, p_audience: 'public' }), read('fn_price_brief', {})])
     .then(([cc, pb]) => ({ company: String((cc as { block?: string } | null)?.block || ''), guide: typeof pb === 'string' ? pb : '' }));
   LIVE.set(rpc, { at: Date.now(), p });
   return p;
 }
-/** Start the live reads now, for a caller that learns the trade later (the portal reads its conversation first). */
-export const warmBrief = (rpc: Rpc): void => { void liveSources(rpc); };
+/** Start the live reads now, for a caller that learns the trade later (the portal reads its conversation first). A no-op
+ *  while this worker holds a fresh brief (review of this change: a warm on every request read twice as often as before);
+ *  a fresh brief for another trade then reads after the conversation, as before this change. */
+export const warmBrief = (rpc: Rpc, now = Date.now()): void => {
+  for (const v of cache.values()) if (now - v.at < BRIEF_TTL_MS && now >= v.at) return;
+  void liveSources(rpc);
+};
 
 // ── the figure check ── (number AND unit; review of #1330, twice)
 // Digits: Arabic-Indic ٠-٩ and Persian ۰-۹ become Western; the Arabic decimal mark ٫ becomes "." and the Arabic

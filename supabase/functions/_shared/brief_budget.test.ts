@@ -79,11 +79,17 @@ Deno.test('every exam question reaches its facts: the company ones in the core, 
 });
 
 // prevented by: these tests (independent review of this change, 3 Nov 2026). Each is a scenario the review produced.
-Deno.test('the trade is sticky and passing words are not trades', async () => {
+Deno.test('the trade is the one the conversation is about, and passing words are not trades', async () => {
   const { conversationTrade } = await import('./company_brief.ts');
-  for (const q of ['How do I sign up?', 'ok where do I sign in?', 'How big is your supplier network?', 'Can you build a quote for me?', 'كم سأدفع إذا اخترت عرض سعر بقيمة 20,000 درهم؟'])
+  for (const q of ['How do I sign up?', 'ok where do I sign in?', 'where do I sign?', 'I am ready to sign today', 'How big is your supplier network?',
+    'Do you have a network of suppliers in Abu Dhabi?', 'QuotesDone network is big', 'Can you build a quote for me?', 'خلاص فنش',
+    'كم سأدفع إذا اخترت عرض سعر بقيمة 20,000 درهم؟'])
     assertEquals(conversationTrade(q), null, q);
-  assertEquals(conversationTrade('the cabinets should match the floor tiles', ['I want new kitchen cabinets.']), 'kitchens', 'a passing word does not swap the job');
+  const kitchen = ['I want new kitchen cabinets.', 'The kitchen is L-shaped, 4 m by 3 m.', 'High-gloss for the kitchen doors please.'];
+  assertEquals(conversationTrade('the cabinets should match the floor tiles', kitchen), 'kitchens', 'a passing word does not swap the job');
+  assertEquals(conversationTrade('Now I need a quote for AC servicing', ['I want new kitchen cabinets.', 'Thanks, all done.']), 'hvac', 'a new job takes over at once when the old one went quiet');
+  assertEquals(conversationTrade('Now I need a quote for AC servicing', kitchen), 'kitchens', 'mid-job, a new trade needs a second message');
+  assertEquals(conversationTrade('It is a 2 ton split unit.', [...kitchen, 'Now I need a quote for AC servicing']), 'hvac', '... and then it has it');
   assertEquals(conversationTrade('عندي البق في الشقة'), 'pest', 'the article form still matches');
   assertEquals(conversationTrade('الشتر خربان'), 'garage-doors');
   assertEquals(conversationTrade('عندنا مشكلة النش في السقف'), 'waterproofing');
