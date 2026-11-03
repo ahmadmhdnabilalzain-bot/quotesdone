@@ -39,7 +39,7 @@
 // social_comments). X is removed and LinkedIn is the company page only (founder, 23 Sep 2026): see that file.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { timedFetch } from '../_shared/timed_fetch.ts';
-import { observe } from '../_shared/observe.ts';
+import { annotate, observe } from '../_shared/observe.ts';
 import { recallCases } from '../_shared/case_recall.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
@@ -67,13 +67,20 @@ async function rl(key: string, limit: number, seconds: number): Promise<boolean>
 // A fixture can never be messaged, whatever the switch says (tests use ZZDEMO ids and ZZ DEMO names).
 const isFixture = (ev: InboundEvent) => /^ZZDEMO/i.test(ev.userId) || /^ZZ DEMO/i.test(ev.handle || '');
 
+// How the run log reads a refusal (statusOf in _shared/observe.ts).
+function refusal(res: Response, noCredential: boolean): Response {
+  return annotate(res, noCredential ? { refused_unauthenticated: true } : { signed_rejected: true });
+}
+
 Deno.serve(observe('marketing_social_inbox', async (req) => {
   const url = new URL(req.url);
   if (req.method === 'GET') {
     const challenge = handshake(url, await sec('meta_webhook_verify_token'));
-    return challenge ? new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } }) : new Response('forbidden', { status: 403 });
+    if (challenge) return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
+    // No hub.mode at all is not Meta (Meta's handshake always carries it): an unauthenticated poke.
+    return refusal(new Response('forbidden', { status: 403 }), !url.searchParams.get('hub.mode'));
   }
-  if (req.method !== 'POST') return new Response('method not allowed', { status: 405 });
+  if (req.method !== 'POST') return refusal(new Response('method not allowed', { status: 405 }), true);
 
   const raw = await req.text();
   // THE REASONED HANDOFF (23 Sep 2026). A person check held under the model hold, reasoned later by the
@@ -95,8 +102,11 @@ Deno.serve(observe('marketing_social_inbox', async (req) => {
       return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
   }
-  if (!(await verifySignature(raw, req.headers.get('x-hub-signature-256'), await sec('meta_app_secret')))) {
-    return new Response('invalid signature', { status: 403 });
+  const sigHeader = req.headers.get('x-hub-signature-256');
+  if (!(await verifySignature(raw, sigHeader, await sec('meta_app_secret')))) {
+    // Unsigned = no credential presented ('skipped'). Signed but unverifiable stays 'warn': Meta signed it
+    // and we could not verify, i.e. a stale meta_app_secret -- what duty marketing.social_inbox watches.
+    return refusal(new Response('invalid signature', { status: 403 }), !sigHeader);
   }
   let body: unknown;
   try { body = JSON.parse(raw); } catch (_e) { return new Response('bad json', { status: 400 }); }
