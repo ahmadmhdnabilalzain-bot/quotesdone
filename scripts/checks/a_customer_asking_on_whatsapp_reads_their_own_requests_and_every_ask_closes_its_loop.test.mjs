@@ -67,6 +67,32 @@ test('a confirmed customer is a known party, and every ask acts', () => {
   assert.match(canonical('fn_customer_support_closes_status_chases').body, /set_config\('qd\.handoff_closer', 'customer_support'/, 'the originator does not close the chase');
 });
 
+// The independent review of #1844 (3 Nov 2026): each finding's rule, on the newest body. The probe proves the behaviour.
+test('the review of #1844 stays fixed: scrub, one chase, a confirmed cancel, a read delivery, bounded digits', () => {
+  const ch = canonical('fn_inquiry_change_from_customer').body;
+  assert.match(ch, /fn_scrub_customer_identity\(/, 'a change reaches suppliers without the shared identity scrub');
+  assert.doesNotMatch(ch, /replace\(v_text, btrim\(c\.full_name\)/, 'the case-sensitive full-name replace is back');
+  assert.match(ch, /md5\(coalesce\(r\.answer_as_written, r\.answer/, 'a resent change is mailed again');
+  const sc = canonical('fn_scrub_customer_identity').body;
+  assert.match(sc, /\\y0\[0-9\]/, 'landlines are not scrubbed');
+  assert.match(sc, /\(ae\|com/, 'bare domains are not scrubbed');
+  assert.match(sc, /'\\y' \|\| w \|\| '\\y', '\[removed\]', 'gi'\)/, 'name tokens are not scrubbed case-insensitively');
+  const w = canonical('fn_wa_customer_request_answer').body;
+  assert.doesNotMatch(w, /YYYYMMDD/, 'the status chase is keyed by date again (a second chase after midnight)');
+  assert.doesNotMatch(w, /\[0-9\]\{2,\}\)/, 'an unbounded digit run is back (bigint overflow on an IBAN)');
+  assert.match(w, /fn_wa_pending_cancel\(p_customer\)/, 'a cancel is carried out without its confirmation');
+  assert.match(w, /exception when unique_violation/, 'a concurrent first ask can lose its chase');
+  assert.match(w, /'my_documents'/, 'a buyer asking my_documents falls through to the supplier template');
+  assert.match(canonical('fn_wa_answer').body, /p_intent in \('none', 'cancel_request'\)/, 'a "yes" read as a change or a status question is turned into a cancel');
+  assert.match(canonical('fn_wa_is_cancel_confirmation').body, /<= 3/, 'any message containing "yes" and the ref confirms a cancel');
+  assert.match(canonical('fn_scrub_customer_identity').body, /translate\(p_text/, 'Arabic-Indic digits pass the scrub');
+  const cl = canonical('fn_customer_support_closes_status_chases').body;
+  assert.match(cl, /v_res->0->>'status'/, 'the closer closes without reading the delivery');
+  assert.match(cl, /n\.type = 'new_quote'/, 'the closer re-announces a quote the platform already announced');
+  assert.doesNotMatch(canonical('fn_customer_inquiry_facts').body, /target_id like/i, 'the chase is read by LIKE again (no index)');
+  assert.doesNotMatch(canonical('fn_wa_human_request_tick').body, /call them or email them/, 'the founder is told to email a contact the duty already emails');
+});
+
 test('production, rolled back: every case and every loop answers PROBE OK', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   let msg = '';
   try { await replaySql(R(FILE) + '\n' + R(PROBE), { label: NAME, rows: false }); }
