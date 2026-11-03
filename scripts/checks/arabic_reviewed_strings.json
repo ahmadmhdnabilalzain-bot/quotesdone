@@ -7440,5 +7440,29 @@
   "cb1e99b7d7b5",
   "dd05d5c3d65f",
   "eef8ff7a9b46"
+ ],
+ "scripts/sql/a_customer_asking_on_whatsapp_reads_their_own_requests_and_every_ask_closes_its_loop.sql": [
+  "00e11c0abef6",
+  "1a6bced74eb5",
+  "22b3e97aeda2",
+  "242c5cca417c",
+  "2aff41e0990f",
+  "31e9b483e7dc",
+  "3adb8f58b5b5",
+  "3c4657c74408",
+  "3c67deddc149",
+  "4fba80a2977b",
+  "540a141559b1",
+  "5881a7100768",
+  "58c1fcf37910",
+  "62e1ad4230a8",
+  "80de9b3b7c81",
+  "817e5fa6a653",
+  "86bc1051c759",
+  "87aaed22720b",
+  "999c3753adda",
+  "c54113251261",
+  "f0a8de3ec78a",
+  "fbc53a6b6fe7"
  ]
 }
