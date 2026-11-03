@@ -97,6 +97,7 @@ CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_sco
 CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
 CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
+CREATE TRIGGER z40_customer_account_active_notice AFTER UPDATE OF tos_accepted_at ON public.customers FOR EACH ROW WHEN (((old.tos_accepted_at IS NULL) AND (new.tos_accepted_at IS NOT NULL))) EXECUTE FUNCTION fn_customer_account_active_notice();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
@@ -235,6 +236,7 @@ CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON 
 CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
 CREATE TRIGGER a06_notifications_supplier_notice_follows_the_accepted_agreemen BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_supplier_notice_follows_the_accepted_agreement();
 CREATE TRIGGER a07_notifications_supplier_invite_is_whole BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_supplier_invite_is_whole();
+CREATE TRIGGER a08_invoice_ready_waits_for_its_invoice BEFORE INSERT ON public.notifications FOR EACH ROW WHEN (((new.type = 'invoice_ready'::text) AND (new.to_role = 'customer'::text) AND (new.quote_id IS NOT NULL) AND (new.attachments IS NULL))) EXECUTE FUNCTION fn_invoice_ready_waits_for_its_invoice();
 CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
 CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
 CREATE TRIGGER a20_notifications_promotional_consent_gate BEFORE INSERT OR UPDATE OF status ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_promotional_consent_gate();
@@ -242,6 +244,7 @@ CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FO
 CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
 CREATE TRIGGER z05_notifications_supplier_is_english BEFORE INSERT OR UPDATE OF lang, subject, body, to_role ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_supplier_is_english();
 CREATE TRIGGER z06_supplier_notice_whatsapp_twin_under_v11 AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_supplier_notice_whatsapp_twin_under_v11();
+CREATE TRIGGER z30_invoice_ready_asks_for_its_invoice AFTER INSERT ON public.notifications FOR EACH ROW WHEN (((new.type = 'invoice_ready'::text) AND (new.to_role = 'customer'::text) AND (COALESCE(new.channel, 'email'::text) = 'email'::text) AND (new.status = ANY (ARRAY['queued'::text, 'pending'::text])) AND (new.quote_id IS NOT NULL) AND (new.attachments IS NULL))) EXECUTE FUNCTION fn_invoice_ready_asks_for_its_invoice();
 CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
 CREATE TRIGGER z81_invite_schedule_counts_a_real_send AFTER UPDATE OF sent_at ON public.notifications FOR EACH ROW WHEN (((new.type = 'supplier_invite'::text) AND (new.sent_at IS NOT NULL) AND (old.sent_at IS NULL))) EXECUTE FUNCTION trg_invite_schedule_counts_a_real_send();
 CREATE TRIGGER z90_every_send_is_tracked AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_customer_support_adopts_untracked_send();
@@ -1623,6 +1626,8 @@ select cron.schedule('seat_duty:marketing.trend_decision','*/5 * * * *',$CRON$se
 select cron.schedule('seat_duty:marketing.kpi_scorecard','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.kpi_scorecard');$CRON$);
 select cron.schedule('seat_duty:marketing.fact_register','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.fact_register');$CRON$);
 select cron.schedule('seat_duty:marketing.paid_spend_report','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.paid_spend_report');$CRON$);
+select cron.schedule('seat_duty:it_engineer.openrouter_unattributed','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.openrouter_unattributed');$CRON$);
+select cron.schedule('seat_duty:it_engineer.postmortem','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.postmortem');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

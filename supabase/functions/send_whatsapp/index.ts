@@ -51,6 +51,7 @@ import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { portfolioGate } from './portfolio_gate.ts';
 import { registrationNeeds } from './registration_reminder.ts';
+import { INVOICE_LINK_TTL, invoiceAttachment, isConfirmation } from './confirmations.ts';
 // v9 (24 Sep 2026, customer_support, founder ledger 994): nothing depends on WhatsApp alone. While the IT
 // engineer's watch holds the sender down, or when one send fails, the notice goes once by SMS
 // (_shared/whatsapp_failover.ts, public.fn_wa_sms_twin), and back to WhatsApp when the watch closes.
@@ -94,7 +95,8 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
 // then marks THIS row 'skipped' with the reason. It returns null for a row that is not the
 // founder's, so the caller falls through to the behaviour it always had.
 type WaRow = { id: number; type?: string|null; to_phone?: string|null; to_role?: string|null;
-               subject?: string|null; body?: string|null; created_at?: string|null; lang?: string|null; lead_id?: number|null };
+               subject?: string|null; body?: string|null; created_at?: string|null; lang?: string|null; lead_id?: number|null;
+               attachments?: unknown };
 // isFounderRow decides the CAP EXEMPTIONS only. Who the founder is for the fallback is decided in
 // one place — fn_wa_founder_alert_fallback, which uses a10's own test (to_role, or to_phone equal
 // to admin_mfa_phone) — so this function does not pre-filter and the two cannot disagree about a
@@ -154,6 +156,16 @@ function tmplKey(type:string):string|null{
   // 24 Sep 2026 (sales_engineer): the approval notice, twinned from its email to the confirmed number.
   // {{1}} is its subject ("You are verified on QuotesDone: please confirm your categories"), {{2}} the portal.
   if(t==='supplier_approved') return 'supplier_account_notice';
+  // 3 Nov 2026 (customer_support): supplier_api save_profile's first-save notice (what the registration still needs, or
+  // that it is under review). fn_wa_fanout already queued its twin to the confirmed number and this mapped nothing, so the
+  // twin would have been skipped "no WhatsApp template mapping". {{1}} is its subject, {{2}} the portal.
+  if(t==='registration_received') return 'supplier_account_notice';
+  // 3 Nov 2026 (customer_support): the customer's account-active confirmation (fn_customer_account_active_notice).
+  // Its own UTILITY template, English and Arabic; held queued until Meta approves it.
+  if(t==='customer_account_active') return 'customer_account_active';
+  // 3 Nov 2026 (customer_support): "Your invoice is ready" (the invoice.issued handoff), carrying the QuotesDone invoice
+  // reveal_invoice attached. Unmapped until now, so its twin was skipped. Its own UTILITY template, English and Arabic.
+  if(t==='invoice_ready') return 'customer_reveal_invoice';
   // 2 Nov 2026 (it_engineer): the registration reminder's WhatsApp twin. Unmapped, the first one (05:00Z) was skipped
   // "no WhatsApp template mapping". Its own UTILITY template, English only; held queued until Meta approves it.
   if(t==='supplier_registration_reminder') return 'supplier_registration_reminder';
@@ -177,7 +189,7 @@ function shortSummary(s:string){ let x=String(s||'').replace(/\s+/g,' ').trim();
 // A template variable may not carry a newline, a tab or a run of spaces (Meta refuses the send), so
 // every value is flattened and capped before it reaches Twilio.
 function waVar(s:string, max:number){ const x=String(s||'').replace(/\s+/g,' ').trim(); return x.length>max ? x.slice(0,max-1)+'…' : x; }
-function varsFor(key:string, n:{subject?:string|null; body?:string|null}): Record<string,string>{
+function varsFor(key:string, n:{subject?:string|null; body?:string|null; invoice_url?:string|null}): Record<string,string>{
   if (key==='founder_alert') {
     // fn_notify_founder writes 'QuotesDone [level]: event' on the first line and the detail after it.
     const lines = String(n.body||'').split('\n'); const head = lines.shift()||''; const rest = lines.join(' ').trim();
@@ -189,6 +201,8 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}): Recor
   if (key==='supplier_invite') return {'1': waVar(waInviteTrade(n.subject), 60)};
   if (key==='support_reply') return {'1': waVar(shortSummary(n.subject||''), 120), '2': waVar(String(n.body||''), 700)};
   if (key==='supplier_registration_reminder') return {'1': waVar(registrationNeeds(n.body), 160), '2': linkFor(key)};
+  // customer_reveal_invoice: {{1}} the notice's subject, {{2}} the invoice link the loop signed, else the account page.
+  if (key==='customer_reveal_invoice') return {'1': shortSummary(n.subject||''), '2': n.invoice_url || linkFor(key)};
   return {'1':shortSummary(n.subject||n.body||''),'2':linkFor(key)};
 }
 // The page a notice points to. The SMS twin carries the same link as the WhatsApp template.
@@ -499,7 +513,9 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // does not get three business-initiated messages in a day and report the sender; the founder
       // asked for this channel himself and will not report his own company. Applying it to him
       // meant only the FIRST alert of any 24 hours ever reached him, and the rest aged out.
-      if (!isFounderRow(n)) {
+      // 3 Nov 2026 (customer_support): nor for the three confirmations (confirmations.ts), each sent once to a number its
+      // owner confirmed with a code minutes earlier. The daily cap above still counts them.
+      if (!isFounderRow(n) && !isConfirmation(n.type)) {
         const { count: toThisNumber } = await admin.from('notifications').select('id', { count: 'exact', head: true })
           .eq('channel','whatsapp').eq('status','sent').eq('to_phone', n.to_phone).gte('sent_at', since24);
         if (Number(toThisNumber || 0) >= perRecip) { capped++; continue; }
@@ -536,7 +552,11 @@ Deno.serve(observe('send_whatsapp', async (req) => {
           // supplier / customer notice: held, never dropped — it goes the moment the template is approved
           skipped++; requeued++; lastErr = 'template ' + key + ' is ' + st.status + (st.reason ? ': ' + String(st.reason).slice(0, 120) : ''); continue;
         }
-        res = await waSendTemplate(acct, ks, kk, from, to, sid, varsFor(key!, n));
+        // THE INVOICE LINK IS SIGNED AS IT LEAVES (3 Nov 2026, customer_support; confirmations.ts says why). With no invoice
+        // reference on the row, or a signature Storage refuses, {{2}} is the account page, where the Invoice button is.
+        const inv = key === 'customer_reveal_invoice' ? invoiceAttachment(n.attachments) : null;
+        const invoiceUrl = inv ? (await admin.storage.from(inv.bucket).createSignedUrl(inv.path, INVOICE_LINK_TTL).catch(() => ({ data: null })))?.data?.signedUrl || null : null;
+        res = await waSendTemplate(acct, ks, kk, from, to, sid, varsFor(key!, { ...n, invoice_url: invoiceUrl }));
       } else if (!ready) {
         // NOTE: the row is deliberately left 'queued' so it can go out once templates are approved.
         // That means it will be rescanned every run - tracked as 'requeued' so the backlog is visible.
