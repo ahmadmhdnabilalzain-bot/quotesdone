@@ -24,19 +24,24 @@ if (process.env.QD_E2E_RUN_TAGS) (await import('node:fs')).appendFileSync(proces
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 // A scripted run (QD_CONV_SCRIPT) may run beside another (the before and after jobs of conversation-quality.yml), so its
 // no-account number is a run-allocated fixture number with no conversation on it, never the shared +971500000097.
-const STRANGER = SCRIPT ? await (async () => {
+const freeFixtureNumber = async (not = '') => {
   const { demoMobile } = await import('../lib/demo_factory.mjs');
-  for (let i = 0; i < 20; i++) {
-    const p = demoMobile();
-    const used = await mgmtRead(REF, `select (exists (select 1 from public.wa_conversation where phone_e164 = ${q(p.replace(/\D/g, ''))})
-      or exists (select 1 from public.leads where phone = ${q(p)} or whatsapp_phone = ${q(p)}) or exists (select 1 from public.customers where phone = ${q(p)})) used`);
+  for (let i = 0; i < 40; i++) {
+    const p = demoMobile(); if (p === not) continue;
+    const t = q(p.replace(/\D/g, '').slice(-9));
+    const used = await mgmtRead(REF, `select (exists (select 1 from public.wa_conversation where right(phone_e164, 9) = ${t})
+      or exists (select 1 from public.leads where right(regexp_replace(coalesce(phone,''),'[^0-9]','','g'),9) = ${t} or right(regexp_replace(coalesce(whatsapp_phone,''),'[^0-9]','','g'),9) = ${t})
+      or exists (select 1 from public.customers where right(regexp_replace(coalesce(phone,''),'[^0-9]','','g'),9) = ${t} or right(regexp_replace(coalesce(whatsapp_phone,''),'[^0-9]','','g'),9) = ${t})) used`);
     if (used[0]?.used === false) return p;
   }
-  throw new Error('no free fixture number for the scripted customer');
-})() : '+971500000097';
+  throw new Error('no free fixture number for the scripted run');
+};
+const STRANGER = SCRIPT ? await freeFixtureNumber() : '+971500000097';
 let sup, started = new Date().toISOString(), result = null;
 try {
   sup = await makeSupplier(run, {});
+  // a scripted run's supplier gets a number nobody else holds (see freeFixtureNumber): one party, or wa_inbound names nobody
+  if (SCRIPT) await mgmtFixture(REF, `update public.leads set phone = ${q(await freeFixtureNumber(STRANGER))} where id = ${sup.leadId}`, 'fixture supplier number of its own');
   const phone = (await mgmtRead(REF, `select phone from public.leads where id=${sup.leadId}`))[0].phone;
   if (!/^\+9715000000\d\d$/.test(phone)) throw new Error('REFUSED: supplier phone ' + phone + ' is not in the fixture block');
   // the supplier chose "same number for WhatsApp" (what the new kyc rule writes after a WhatsApp-delivered code)
