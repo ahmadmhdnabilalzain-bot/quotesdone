@@ -22,7 +22,7 @@ export const isArabic = (s: string): boolean => /[؀-ۿ]/.test(String(s || ''));
 /** Arabic and Latin letters in a message; links, emails, the brand and the ZZ DEMO fixture tag are not counted. */
 export function scripts(s: string): { ar: number; la: number } {
   const t = String(s || '').replace(/https?:\/\/\S+|\S+@\S+|\bQuotesDone\b|\bZZ ?DEMO\b/gi, '');
-  return { ar: (t.match(/[؀-ۿ]/g) || []).length, la: (t.match(/[A-Za-z]/g) || []).length };
+  return { ar: (t.match(/[\u0600-\u06FF]/g) || []).length, la: (t.match(/[A-Za-z]/g) || []).length };
 }
 // A MIXED MESSAGE KEEPS THE CONVERSATION'S LANGUAGE (customer_support, 3 Nov 2026). Measured on the live widget: an English
 // inquiry's message "sorry, الزجاج 8 مم مو 6mm. And the villa is in Sharjah ..." was answered wholly in Arabic, because any
