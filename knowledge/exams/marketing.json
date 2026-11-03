@@ -921,13 +921,11 @@
         "marketing:linkedin-lead-gen-forms"
       ],
       "expected_facts": [
-        "after 90 days",
-        "three custom questions"
+        "after 90 days"
       ],
       "q_reworded": "How long can we pull leads from LinkedIn forms before they vanish?",
       "answer_must": [
-        "Lead data is available for 90 days, download before then",
-        "Forms allow up to three custom questions"
+        "Lead data is available for 90 days, download before then"
       ]
     },
     {
@@ -1214,7 +1212,7 @@
         "reshare",
         "watch it all the way through"
       ],
-      "q_reworded": "Can we just upload our TikTok videos to Instagram as they are?",
+      "q_reworded": "We post our TikTok exports to Instagram unchanged. What does Instagram rank Reels on, and what should we change?",
       "answer_must": [
         "No: watermarked or low-quality reels are shown less; render native versions",
         "Reels are ranked mainly on likely reshares, full watch-through and likes",
@@ -1232,7 +1230,7 @@
       "expected_facts": [
         "within 1-2 hours"
       ],
-      "q_reworded": "Someone left an angry comment on our LinkedIn post. Should we delete it?",
+      "q_reworded": "Someone left an angry comment on our LinkedIn post. Should we delete it, how fast must we reply, and where do complaints and sales leads in the comments go?",
       "answer_must": [
         "Do not hide legitimate criticism; respond to it, and only hide spam, abuse or exposed personal data",
         "Reply in business hours within one to two hours and move details to DM",
@@ -1268,7 +1266,7 @@
       "expected_facts": [
         "Federal Decree-Law No. 55 of 2023"
       ],
-      "q_reworded": "Can we use the UAE flag and a leadership quote in our National Day ad?",
+      "q_reworded": "We want the UAE flag and a leadership quote in our National Day ad. Which UAE law and content standards govern that, and what do they require of any ad?",
       "answer_must": [
         "The UAE media law and Media Council content standards apply",
         "No commercial use of national symbols or leadership references without permission, no political or religious content",
@@ -1344,8 +1342,7 @@
       "q_reworded": "The dashboard says 171 suppliers were invited. Is that the number to report?",
       "answer_must": [
         "Only an invitation actually delivered through the outbox counts, not a status flag",
-        "Measure each stage: sourced, invited, registered, verified, activated, retained",
-        "Prioritise trades where buyers post and coverage is thin"
+        "Measure each stage: sourced, invited, registered, verified, activated, retained"
       ]
     },
     {

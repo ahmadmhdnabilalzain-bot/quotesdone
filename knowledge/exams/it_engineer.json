@@ -1159,11 +1159,11 @@
       ],
       "expected_facts": [
         "runbook",
-        "not paged"
+        "postmortem action"
       ],
       "q_reworded": "An alert fired at night and nobody knew what to do. What was missing?",
       "answer_must": [
-        "A runbook link; alerts without one should not page"
+        "A runbook link; a page nobody can act on should not be sent, and an alert with no runbook produces a postmortem action to write one"
       ]
     },
     {
@@ -1625,7 +1625,7 @@
       ],
       "q_reworded": "Our delivery-status callbacks arrive out of order and sometimes repeated. How should the handler cope?",
       "answer_must": [
-        "Record processed event ids and skip duplicates; never order by created time",
+        "Record processed event ids and skip duplicates; never use created time to decide whether an event was already processed",
         "Return 2xx fast and process asynchronously; fetch current state from the API when needed"
       ]
     },
