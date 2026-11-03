@@ -12,6 +12,8 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { sql } from '../lib/db.mjs';
 import { compileBrief } from './compile_brief.mjs';
+// what production sends since 3 Nov 2026: the core and the one trade pack the question names (company_brief.ts)
+import { conversationTrade, packOf } from '../../supabase/functions/_shared/company_brief.ts';
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const OUT = arg('--out'); if (!OUT) throw new Error('--out <dir> is required (use the session scratchpad)');
@@ -30,16 +32,33 @@ const PREAMBLE = `You are QuotesDone's customer-facing assistant (website chat, 
   `human colleague: give one direct, exact answer in the language the person writes in (Arabic in, Arabic out). ` +
   `Never invent figures, dates, clauses, approvals or supplier identities. If the brief does not cover it, say ` +
   `so plainly and give your best general expert guidance labelled as such. Keep replies chat-length.\n\n`;
-const SYSTEM = PREAMBLE + brief.text;
+const SYSTEM = (q) => PREAMBLE + brief.core + '\n\n' + packOf(conversationTrade(q));
 // A candidate written "model+deep" runs that model with one added instruction (coordinator, 13 Oct: Luna and Haiku
 // scored low on helpfulness with ~200-token answers; does asking for depth close the gap?).
 const DEEP = 'Give a complete, expert, well-structured answer (not a short one), then ask the one or two follow-up questions that matter.\n\n';
 const modelOf = (c) => c.replace(/\+deep$/, '');
-const systemOf = (c) => (c.endsWith('+deep') ? DEEP : '') + SYSTEM;
+const systemOf = (c, q) => (c.endsWith('+deep') ? DEEP : '') + SYSTEM(q);
 
 let spent = 0;
 const key = (await sql(`select value from public.app_secrets where key = 'openrouter_api_key'`))[0]?.value;
 if (!key) throw new Error('openrouter_api_key missing');
+
+// EVERY CALL THIS SCRIPT BUYS IS ON THE COMPANY'S LEDGER (it_engineer, 3 Nov 2026). It calls OpenRouter directly from the
+// laptop, so ai_cost_log never saw it: part of the USD 11.79 billed in 7 days that the ledger could not attribute. Each
+// answered call is written through public.fn_llm_log with OpenRouter's own usage and charge and the generation id (unique,
+// so a re-run of the write cannot count it twice), then stamped with this run's tag. A failed write stops the run: a call
+// that cannot be recorded is not bought again.
+const lit = (v) => (v == null ? 'null' : `'${String(v).replace(/'/g, "''")}'`);
+const int = (v) => (Number.isFinite(Number(v)) ? String(Math.round(Number(v))) : 'null');
+async function ledger(model, u, gen, ms) {
+  await sql(`select public.fn_llm_log(p_fn := 'brief_quality_test', p_dept := null, p_agent := null, p_task_class := 'brief_quality_test',
+    p_model := ${lit(model)}, p_because := ${lit('scripts/kb/brief_quality_test.mjs qd_run:' + TAG + ' - a direct OpenRouter call from the laptop, recorded after it answered')},
+    p_tier := null, p_prompt_tokens := ${int(u.prompt_tokens)}, p_output_tokens := ${int(u.completion_tokens)}, p_cached := false,
+    p_cache_key := null, p_latency_ms := ${int(ms)}, p_ok := true, p_confidence := null,
+    p_cached_in := ${int(u.prompt_tokens_details?.cached_tokens ?? 0)}, p_cache_write := ${int(u.prompt_tokens_details?.cache_write_tokens ?? u.cache_creation_input_tokens ?? 0)},
+    p_generation_id := ${lit(gen)}, p_cost_usd_reported := ${Number.isFinite(Number(u.cost)) ? Number(u.cost) : 'null'})`);
+  if (gen) await sql(`update public.ai_cost_log set e2e_run_tag = ${lit(TAG)} where generation_id = ${lit(gen)} and e2e_run_tag is null`);
+}
 
 async function call(model, system, user, { cache, max = MAX }) {
   if (spent >= CAP - 0.15) throw new Error(`spend ceiling: USD ${spent.toFixed(4)} of ${CAP}`);
@@ -55,6 +74,7 @@ async function call(model, system, user, { cache, max = MAX }) {
   if (!r.ok || !j.choices) throw new Error(`${model} HTTP ${r.status}: ${JSON.stringify(j).slice(0, 300)}`);
   const u = j.usage || {};
   spent += Number(u.cost || 0);
+  await ledger(model, u, j.id, Date.now() - t0);
   return { text: j.choices[0].message.content || '', finish: j.choices[0].finish_reason, ms: Date.now() - t0, cost: Number(u.cost || 0),
     prompt: u.prompt_tokens, completion: u.completion_tokens,
     cached_read: u.prompt_tokens_details?.cached_tokens ?? 0,
@@ -70,10 +90,10 @@ try {
     const cache = modelOf(m).startsWith('anthropic/') || modelOf(m).startsWith('google/'); // explicit cache_control; OpenAI caches the stable prefix by itself
     answers[m] = {};
     // first call alone writes the cache; the rest read it (3 lanes, inside the 5-minute TTL)
-    answers[m][questions[0].id] = await call(modelOf(m), systemOf(m), questions[0].q, { cache });
+    answers[m][questions[0].id] = await call(modelOf(m), systemOf(m, questions[0].q), questions[0].q, { cache });
     for (let i = 1; i < questions.length; i += 3) {
       const batch = questions.slice(i, i + 3);
-      const res = await Promise.all(batch.map((q) => call(modelOf(m), systemOf(m), q.q, { cache }).catch((e) => ({ error: String(e), cost: 0 }))));
+      const res = await Promise.all(batch.map((q) => call(modelOf(m), systemOf(m, q.q), q.q, { cache }).catch((e) => ({ error: String(e), cost: 0 }))));
       batch.forEach((q, k) => { answers[m][q.id] = res[k]; });
     }
     writeFileSync(join(OUT, 'answers.json'), JSON.stringify(answers, null, 1)); // saved per model: a key-limit stop keeps what was bought

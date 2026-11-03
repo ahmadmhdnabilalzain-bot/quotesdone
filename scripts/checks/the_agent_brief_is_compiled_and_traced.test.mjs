@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { compileBrief, renderModule } from '../kb/compile_brief.mjs';
+import { approxTokens, compileBrief, renderModule } from '../kb/compile_brief.mjs';
 
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 
@@ -45,7 +45,13 @@ test('contract practice and every materials digest name sources and access date'
   }
 });
 
-test('the compiled brief stays under 120k tokens', () => {
-  const { approxTokens } = compileBrief();
-  assert.ok(approxTokens < 120000, `brief is ~${approxTokens} tokens`);
+// 3 Nov 2026: a reply carries the core, the supplier part and at most one pack, never the whole compilation; the most
+// any reply carries of it stays under the ruling's ceiling (the per-reply cap of 40k is brief_budget.test.ts's).
+test('the most compiled knowledge one reply carries stays under 120k tokens', () => {
+  const b = compileBrief();
+  const byId = new Map(b.partIds.map((id, i) => [id, b.partText[i]]));
+  const pack = Math.max(...b.packs.map(([, , ...ids]) => approxTokens(ids.map((id) => byId.get(id)).join('\n\n'))));
+  const most = b.approxTokens + approxTokens(b.supplier) + pack;
+  assert.ok(most < 120000, `~${most} tokens`);
+  assert.ok(most < 40000, `the core, the supplier part and the largest pack are ~${most} tokens, over the 40k a reply may carry`);
 });

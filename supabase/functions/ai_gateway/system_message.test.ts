@@ -53,3 +53,27 @@ Deno.test('cache_history marks the turn before the newest, on the asked tier, an
   assertEquals(msgs[1].content, 'reply 1');   // the input is not mutated
   assertEquals(withHistoryBreakpoint([{ role: 'user', content: 'only' }], null), [{ role: 'user', content: 'only' }]);
 });
+
+// prevented by: these tests (it_engineer, 3 Nov 2026). The history breakpoint is on the DEFAULT 5-minute tier (the 1-hour
+// tier writes at 2x and a chat's history is read back within minutes or never); the brief blocks keep the 1-hour tier,
+// and Anthropic wants the longer tier first, which system-before-messages gives.
+Deno.test('the gateway marks the history on the default tier, whatever tier the brief asked for', async () => {
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const calls = [...src.matchAll(/withHistoryBreakpoint\(([^)]*)\)/g)].map((m) => m[1]);
+  assertEquals(calls, ['convo, null']);
+});
+
+// THE BRIEF IS SENT ONCE ON EVERY ROUTE (it_engineer, 3 Nov 2026). gpt-6-luna-pro fallback calls report ~2x Sonnet's
+// prompt tokens for the same reply (ai_cost_log 30 Oct-3 Nov: wa_inbound median 279,614 vs 143,548). Measured: the same
+// ratio holds where no brief is sent at all (knowledge_validation 2.53x, resilience_ping 1.84x), so it is that model's own
+// token count, not a second copy. This pins the copy count on both shapes the gateway can send (cached blocks for
+// Claude, one plain string where the route does not cache).
+Deno.test('the brief appears exactly once in the system message, cached or not', () => {
+  const brief = '<<<FILE knowledge/brief/company.md>>>\nTHE CORE\n<<<END>>>';
+  for (const useCache of [true, false]) {
+    const m = systemMessage({ shared: brief, stable: 'PACK AND COMPANY BLOCK', sys: 'rules', useCache, ttl: '1h' })!;
+    const text = typeof m.content === 'string' ? m.content : m.content.map((b) => b.text).join('');
+    assertEquals(text.split('THE CORE').length - 1, 1, 'useCache ' + useCache);
+    assertEquals(text.split('PACK AND COMPANY BLOCK').length - 1, 1, 'useCache ' + useCache);
+  }
+});

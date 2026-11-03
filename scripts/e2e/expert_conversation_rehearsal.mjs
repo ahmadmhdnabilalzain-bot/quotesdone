@@ -19,6 +19,7 @@ import sharp from 'sharp';
 import { newRun, teardown, makeSupplier, keys, REF, q, closeRehearsalWindow, internalCred } from '../lib/demo_factory.mjs';
 import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 import { BRIEF_TEXT, CONVERSATION_STYLE, BRIEF_VERSION } from '../../supabase/functions/_shared/brief.generated.ts';
+import { packOf } from '../../supabase/functions/_shared/company_brief.ts';   // the core + the scenario's one trade pack, as a reply gets them (3 Nov 2026)
 
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
@@ -132,7 +133,7 @@ async function main() {
       for (let t = 0; t < MAX_AGENT_TURNS; t++) {
         const msgs = turns.map((x, i) => ({ role: x.role === 'customer' ? 'user' : 'assistant',
           content: i === 0 && s.image ? [{ type: 'text', text: x.text }, { type: 'image_url', image_url: { url: image } }] : x.text }));
-        const a = await gw({ fn: 'sales_engineer_conversation_drill', task_class: 'customer_communication', sys_stable: BRIEF_TEXT,
+        const a = await gw({ fn: 'sales_engineer_conversation_drill', task_class: 'customer_communication', sys_stable: BRIEF_TEXT + '\n\n' + packOf(s.trade),
           messages: [{ role: 'system', content: AGENT_RULES(s.lang) }, ...msgs], max: 700, temperature: 0.3 });
         if (!a.ok) { turns.push({ role: 'agent', text: `(NO ANSWER: ${a.err})` }); break; }
         if (a.model) models.add(a.model);
