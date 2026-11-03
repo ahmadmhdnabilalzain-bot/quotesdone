@@ -1211,6 +1211,15 @@
   "fa4b51d2ade2",
   "fffb93cafbf1"
  ],
+ "scripts/sql/every_confirmation_reaches_the_person_on_email_and_whatsapp.sql": [
+  "2c4e58a707cf",
+  "4f2dd4b144de",
+  "78d0df800b35",
+  "9739118f1091",
+  "a393b48e1bad",
+  "a923b67a948c",
+  "d4e670f76ba2"
+ ],
  "scripts/sql/every_customer_is_asked_for_a_public_review_whatever_their_rating.sql": [
   "1ddbe22a20cf",
   "25831966a970",
@@ -6873,6 +6882,9 @@
   "aa9f2a1ff91a",
   "ae49912278d5"
  ],
+ "supabase/functions/reveal_invoice/attach.ts": [
+  "232bd676e53b"
+ ],
  "supabase/functions/sales_engineer/conversation_plan.ts": [
   "02df85d6d9d0",
   "04025a05d41f",
@@ -7380,10 +7392,14 @@
   "59eee1a94a43",
   "5d7f0a4d3f98",
   "805a68c2628d",
+  "82b4992bae4d",
+  "88c90d880be0",
   "96059a8ef96c",
   "a5cba62f3cdc",
   "d7028cd29b51",
-  "d9a9b884d813"
+  "d99cd47fba2a",
+  "d9a9b884d813",
+  "f7049682f252"
  ],
  "scripts/sql/an_arabic_question_is_not_six_words_that_must_all_appear.sql": [
   "3cbc1543d65e"
