@@ -46,7 +46,7 @@ const LABEL = [ci('prepared') + '\\s+' + ci('by'), ci('issued') + '\\s+' + ci('b
   ci('contact') + '\\s+' + ci('person'), ci('contact') + ':', ci('attn') + '\\.?', ci('attention'), ci('regards'), ci('thanks'), ci('sincerely'), '[Ff]rom:',
   ci('sales') + '\\s+(?:' + ci('engineer') + '|' + ci('manager') + '|' + ci('executive') + ')', ci('project') + '\\s+' + ci('manager'),
   ci('on') + '\\s+' + ci('behalf') + '\\s+' + ci('of'), ci('in') + '\\s+' + ci('favou') + '?[Rr]\\s+' + ci('of'),
-  '(?:Mr|Mrs|Ms|Eng|Engr|Dr)\\.', 'المسؤول', 'المهندس', 'السيد', 'السيدة', 'مقدم\\s+العرض', 'بواسطة', 'مع\\s+تحيات'].join('|');
+  '(?:Mr|Mrs|Ms|Eng|Engr|Dr)\\.', 'المسؤول', 'المهندس', 'السيد', 'السيدة', 'مقدم\\s+العرض', 'مع\\s+تحيات'].join('|');
 export const PERSON_LABELLED = new RegExp(`(?:${LABEL})\\s*[:：,\\-]?\\s*(?:"?(?:(?:Mr|Mrs|Ms|Eng|Engr|Dr)\\.?\\s+)?(?:[A-Z][A-Za-z'.-]*(?![A-Za-z])[ \\t]*){1,6}|(?:[؀-ۿ]+[ \\t]*){1,4})`, 'g');
 
 /** Named, so a residual scan can say which one it found. Order matters: registration numbers before phones. */

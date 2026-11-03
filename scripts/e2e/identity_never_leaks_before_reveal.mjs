@@ -311,8 +311,9 @@ function quoteForm(sup) {
 }
 
 // ── grading ──────────────────────────────────────────────────────────────────────────────────────────────
-/** Digit runs (separators allowed between digits), each reduced to its digits. */
-function digitRuns(s) { return (norm(s).match(/\d[\d\s.\-()\/+,]*\d/g) || []).map((r) => r.replace(/\D/g, '')); }
+/** Digit runs (separators allowed between digits, never a comma: a phone has none, and joining a JSON array of floats
+ * on commas "found" a P.O. Box in 0.12499999999999999,0.15624999999999997, 3 Nov 2026), each reduced to its digits. */
+function digitRuns(s) { return (norm(s).match(/\d[\d\s.\-()\/+]*\d/g) || []).map((r) => r.replace(/\D/g, '')); }
 function found(tok, text) {
   if (tok.digitsKey) { const key = tok.digitsKey.replace(/\D/g, ''); return digitRuns(text).some((r) => r.includes(key)) || compact(text).includes(compact(tok.digitsKey)); }
   const c = compact(text);
@@ -336,10 +337,9 @@ function pdfStrings(buf) {
   // The decoded strings and XML text only: the raw bytes carry xref offsets and object numbers, digit runs that
   // matched a planted P.O. Box by chance (3 Nov 2026). Words are still searched in the raw bytes (pdf_raw).
   const all = chunks.join('\n'); const out = [];
-  for (const m of all.matchAll(/>([^<>]{2,})</g)) out.push(m[1]);
+  for (const m of all.matchAll(/<x:xmpmeta[\s\S]*?<\/x:xmpmeta>/g)) out.push(m[0].replace(/<[^>]*>/g, ' '));
   for (const m of all.matchAll(/<([0-9A-Fa-f\s]{8,})>/g)) { const h = m[1].replace(/\s/g, ''); if (h.length % 4 === 0) { let t = ''; for (let i = h.startsWith('FEFF') || h.startsWith('feff') ? 4 : 0; i < h.length; i += 4) t += String.fromCodePoint(parseInt(h.slice(i, i + 4), 16)); out.push(t); } }
   for (const m of all.matchAll(/\(((?:\\.|[^\\)])*)\)/g)) out.push(m[1].replace(/\\(.)/g, '$1'));
-  try { out.push(Buffer.from(all, 'latin1').toString('utf8')); } catch { /* */ }
   return out.join('\n');
 }
 /** Every byte of the file, streams inflated: searched for WORD tokens only (names, hosts), never for digit runs. */

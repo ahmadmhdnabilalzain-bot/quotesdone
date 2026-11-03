@@ -7392,5 +7392,23 @@
  ],
  "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
   "ac6c63ab5f9f"
+ ],
+ "supabase/functions/_shared/identity_text.ts": [
+  "04a4dfa3a6cd",
+  "05c8e6517854",
+  "0b5c0de61612",
+  "1be36c27f5db",
+  "43a6f9edc2e3",
+  "5822ef5ff519",
+  "7239ae59985c",
+  "81eb60f1942f",
+  "b67262a5d723",
+  "d0639f8d7847",
+  "e9b0dbfe3c1c"
+ ],
+ "supabase/functions/messages_api/strip_contact.ts": [
+  "2ab8d7bf7b54",
+  "8edd7a4d9e27",
+  "e00bf959ccfc"
  ]
 }
