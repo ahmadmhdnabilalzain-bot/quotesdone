@@ -87,7 +87,7 @@ begin
   t := v->>'deterministic_reply';
   if v->>'deterministic_intent' <> 'my_requests' or t not like '%Request ' || ref1 || '%2 quote(s) so far%' or t not like '%Request ' || ref2 || '%0 quote(s)%'
      or t not like '%asked our sales engineer to chase it%' then fails := fails || ' 1:reply_en(' || coalesce(t, 'null') || ')'; end if;
-  if v->'fact_pack'->'identity'->>'kind' <> 'customer' or v->'fact_pack'::text like '%no job status can be given%' then fails := fails || ' 1:fact_pack'; end if;
+  if v->'fact_pack'->'identity'->>'kind' <> 'customer' or (v->'fact_pack')::text like '%no job status can be given%' then fails := fails || ' 1:fact_pack'; end if;
   if v::text ~ '12400|15800|Supplier One|Supplier Two' then fails := fails || ' 1:route_leak'; end if;
   o := o || jsonb_build_object('case1_reply_en', t, 'case1_pack_identity_kind', v->'fact_pack'->'identity'->>'kind',
                                'case1_pack_unknown', v->'fact_pack'->'unknown');
