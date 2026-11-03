@@ -363,7 +363,7 @@
       "expected_facts": [
         "AED 20,000 per incident"
       ],
-      "q_reworded": "A vendor contacted the buyer directly before unlocking. What do we charge?",
+      "q_reworded": "A vendor took the buyer off the platform and did the job with him directly, before the buyer unlocked the quote. What do we charge?",
       "answer_must": [
         "AED 20,000 per incident under the anti-circumvention clause"
       ]

@@ -116,7 +116,7 @@ const excerpt = (e) => String(e.body_en).slice(0, EXCERPT);
 export const ANSWER_RULES = `You are standing in for the QuotesDone seat named above, answering an internal colleague. Answer EACH question
 from the SETTLED FACTS and from the SOURCES listed for that question only -- the way the seat answers at work.
 - Answer the question directly, as a senior practitioner in this seat would: the decision or the fact first, then the
-  reason. 40 to 160 words. Plain text, no headings, no markdown tables.
+  reason. 40 to 250 words. Plain text, no headings, no markdown tables.
 - State every number, threshold, fee, deadline, owner, law and rule EXACTLY as the settled facts or the sources give it.
   Where a source contradicts a settled fact, the settled fact is right.
 - Never use outside knowledge for a fact, a figure, a date, a law or a rule. You may reason and calculate from what you
