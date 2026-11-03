@@ -104,9 +104,9 @@ export function canonFindings(text) {
     // A supplier bound by an earlier signed version owes that version's figure (company_facts.json `legacy`, clause 33
     // as signed): AED 250 or 9% is right when the same sentence names the earlier version it applies to.
     const leg = facts[f.fact]?.legacy?.value;
-    // The version may be named in the sentence before ("… v12 or earlier. The interest for such a supplier is 9%").
-    const here = sentenceAround(t, f.at), start = f.at - here.length;
-    if (leg != null && f.got === leg && LEGACY.test(sentenceAround(t, Math.max(0, start - 2)) + here + sentenceTail(t, f.at))) continue;
+    // The version may be named a clause or a sentence before ("… v12 or earlier; … The interest for such a supplier is
+    // 9%"), so the window is the 250 characters before the figure and the rest of its sentence.
+    if (leg != null && f.got === leg && LEGACY.test(t.slice(Math.max(0, f.at - 250), f.at) + sentenceTail(t, f.at))) continue;
     out.push({ claim: `company_facts.${f.fact}`, kind: 'value', got: f.got, want: f.want, text: f.text });
   }
   for (const w of wrongWordings(t)) {

@@ -52,7 +52,7 @@ test('a statement the canon makes is not a contradiction', () => {
     'There are six seats and no departments.',
     // two correct answers the first grading flagged (3 Nov 2026): a legacy figure with its version named, and the
     // processor cost described as QuotesDone's own expense
-    'AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier. The interest for such a supplier is 9% per annum simple (12% applies from v14).',
+    'AED 250. The administrative charge is AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier; it is AED 500 for later versions. The interest for such a supplier is 9% per annum simple (12% applies from v14).',
     'Revenue is recognised gross at the full fee and the processing cost is booked separately to 5000 Payment processing fees.',
   ]) assert.deepEqual(claims(ok), [], ok);
 });
