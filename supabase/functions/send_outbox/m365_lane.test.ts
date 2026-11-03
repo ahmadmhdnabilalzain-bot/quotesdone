@@ -395,9 +395,7 @@ Deno.test('both routes send the identical approved body and subject: Microsoft 3
 
 Deno.test('wiring: index.ts builds the campaign email with campaignMail on BOTH routes, and the fallback sends it text-only', () => {
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  // 3 Nov 2026: a mailbox reply sends its own text (replyMail); every other lane row still sends campaignMail.
-  assert(/const \{ subject: mSubject, text: mBody, bad \} = rm \? [^\n]*: await campaignFor\(n\);/.test(src), 'the Microsoft 365 lane no longer uses campaignMail');
-  assert(/const rm = isReply \? replyMail\(n\) : null;/.test(src), 'only a mailbox reply may skip campaignMail');
+  assert(/const \{ subject: mSubject, text: mBody, bad \} = await campaignFor\(n\);/.test(src), 'the Microsoft 365 lane no longer uses campaignMail');
   assert(/const camp = supplierSide && isLaneType\(n\.type\) \? await campaignFor\(n\) : null;/.test(src), 'the Resend fallback no longer uses campaignMail');
   assert(/camp\s*\? resendPayload\(\{ from, to: n\.to_email, reply, subject: camp\.subject, html: '', text: camp\.text, unsub,/.test(src), 'the fallback no longer sends the campaign text without HTML');
   assert(/return campaignMail\(n, /.test(src));
@@ -432,11 +430,9 @@ Deno.test('pacing: at most M365_PER_RUN lane sends a run; the rest are re-queued
   assert(paceM365(M365_PER_RUN) && paceM365(M365_PER_RUN + 30));
   assert(M365_PACE_MS >= 5 * 60_000, 'a paced row would come back in the same burst');
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  // 3 Nov 2026: the decision is m365Step, which paces with paceM365 every lane row but a mailbox reply (m365_reply.test.ts).
-  assert(/const step = m365Step\(\{ reply: isReply, hold: mh, sentThisRun: m365SentRun \}\);/.test(src), 'index.ts no longer paces by the run count');
-  const pace = src.indexOf("if (step === 'pace')"); const send = src.indexOf('await campaignFor(n);');
+  const pace = src.indexOf('if (paceM365(m365SentRun))'); const send = src.indexOf('await campaignFor(n);');
   assert(pace > 0 && pace < send, 'index.ts no longer checks pacing before building and sending the lane row');
-  assert(/step === 'pace'\) \{\s*await admin\.from\('notifications'\)\.update\(\{ status: 'queued', claimed_at: null, not_before: new Date\(Date\.now\(\) \+ M365_PACE_MS\)/.test(src),
+  assert(/paceM365\(m365SentRun\)\) \{\s*await admin\.from\('notifications'\)\.update\(\{ status: 'queued', claimed_at: null, not_before: new Date\(Date\.now\(\) \+ M365_PACE_MS\)/.test(src),
     'a paced row is no longer put back in the queue with not_before');
   assert(/sent\+\+; m365SentToday\+\+; m365SentRun\+\+;/.test(src), 'a lane send no longer counts toward the run');
 });

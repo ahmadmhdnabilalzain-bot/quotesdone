@@ -2,18 +2,26 @@
 -- Pure probe, no DDL: it always raises CHK<<...>> and rolls back. Fixtures only (ZZ DEMO lead, @example.invalid senders);
 -- nothing here can send: every row it writes is rolled back before send_outbox could claim it. PROBE OK only if
 --   A. a message that came INTO the supplier mailbox from a lead's address (inbound lead_id NULL) is answered with
---      to_role 'supplier', that lead, kind 'supplier_mailbox_reply' and in_reply_to = the supplier's Message-ID;
+--      to_role 'supplier', that lead, kind 'supplier_mailbox_reply', lang 'en' and in_reply_to = the supplier's Message-ID;
 --   B. a supplier's message to another mailbox (management@, lead_id set) is answered with to_role 'supplier' and the
 --      lead, but NO kind (it keeps its Resend route);
 --   C. an unknown sender's message to info@ is answered exactly as before: to_role, lead_id and kind NULL, threaded;
 --   D. no reply is twinned on WhatsApp (fn_wa_fanout), even for a lead whose WhatsApp answer is 'none';
 --   E. fn_inbox_send stays service_role only; the real rows of the defect (notifications 125102 and 125121,
---      inbound_messages 1829) are untouched.
+--      inbound_messages 1829) are untouched;
+--   F. a supplier's message to supplier@ with an Arabic-Outlook subject ("رد: ...") and an English reply keeps the
+--      reply's own body and subject (a04 does not swap in the generic '*' notice);
+--   G. a reply with an Arabic body to a supplier is refused (an error, no notification row, replied_at not stamped);
+--   H. an unknown sender who wrote to supplier@ is answered with to_role and lead_id NULL but kind
+--      'supplier_mailbox_reply' (answered from supplier@, in the language email_triage wrote, no supplier rule applied).
 do $probe$
 declare
-  f text[] := '{}'; v_mailbox text; v_lead bigint; ia bigint; ib bigint; ic bigint; na record; nb record; nc record;
+  f text[] := '{}'; v_mailbox text; v_lead bigint; ia bigint; ib bigint; ic bigint; i_f bigint; ig bigint; ih bigint;
+  na record; nb record; nc record; nf record; nh record; g jsonb; v_g_rows int; v_g_replied timestamptz;
   v_wa int; v_open text; r0 text; r1 text;
   pa text := '<zz-demo-reply-lane-a@example.invalid>'; pb text := '<zz-demo-reply-lane-b@example.invalid>'; pc text := '<zz-demo-reply-lane-c@example.invalid>';
+  pf text := '<zz-demo-reply-lane-f@example.invalid>'; pg text := '<zz-demo-reply-lane-g@example.invalid>'; ph text := '<zz-demo-reply-lane-h@example.invalid>';
+  v_fbody text := 'Hello,' || chr(10) || chr(10) || 'ZZ DEMO probe reply F, in English.' || chr(10) || chr(10) || 'Kind regards,' || chr(10) || 'The QuotesDone Team';
 begin
   select md5(string_agg(id || coalesce(status,'') || coalesce(to_role,'') || coalesce(provider_message_id,'') || coalesce(sent_at::text,''), ',' order by id))
     || coalesce((select replied_at::text from public.inbound_messages where id = 1829), '') into r0
@@ -33,14 +41,30 @@ begin
   insert into public.inbound_messages (from_email, to_email, subject, body, raw, lead_id)
   values ('zz-demo-reply-lane-customer@example.invalid', 'info@quotesdone.com', 'ZZ DEMO enquiry', 'ZZ DEMO body', jsonb_build_object('message_id', pc), null)
   returning id into ic;
+  insert into public.inbound_messages (from_email, to_email, subject, body, raw, lead_id)
+  values ('zz-demo-reply-lane@example.invalid', v_mailbox, 'رد: A question about your work in the UAE', 'ZZ DEMO yes', jsonb_build_object('message_id', pf), v_lead)
+  returning id into i_f;
+  insert into public.inbound_messages (from_email, to_email, subject, body, raw, lead_id)
+  values ('zz-demo-reply-lane@example.invalid', v_mailbox, 'ZZ DEMO question G', 'ZZ DEMO body', jsonb_build_object('message_id', pg), v_lead)
+  returning id into ig;
+  insert into public.inbound_messages (from_email, to_email, subject, body, raw, lead_id)
+  values ('zz-demo-reply-lane-unknown@example.invalid', v_mailbox, 'ZZ DEMO question H', 'ZZ DEMO body', jsonb_build_object('message_id', ph), null)
+  returning id into ih;
 
   perform public.fn_inbox_send(ia, 'Hello,' || chr(10) || chr(10) || 'ZZ DEMO probe reply A.' || chr(10) || chr(10) || 'Kind regards,' || chr(10) || 'The QuotesDone Team', 'sales_engineer');
   perform public.fn_inbox_send(ib, 'ZZ DEMO probe reply B.', 'sales_engineer');
   perform public.fn_inbox_send(ic, 'ZZ DEMO probe reply C.', 'customer_support');
+  perform public.fn_inbox_send(i_f, v_fbody, 'customer_support');
+  g := public.fn_inbox_send(ig, 'مرحبا، ZZ DEMO probe reply G.', 'customer_support');
+  perform public.fn_inbox_send(ih, 'ZZ DEMO probe reply H.', 'customer_support');
 
   select * into na from public.notifications where type = 'inbound_reply' and channel = 'email' and in_reply_to = pa order by id desc limit 1;
   select * into nb from public.notifications where type = 'inbound_reply' and channel = 'email' and in_reply_to = pb order by id desc limit 1;
   select * into nc from public.notifications where type = 'inbound_reply' and channel = 'email' and in_reply_to = pc order by id desc limit 1;
+  select * into nf from public.notifications where type = 'inbound_reply' and channel = 'email' and in_reply_to = pf order by id desc limit 1;
+  select * into nh from public.notifications where type = 'inbound_reply' and channel = 'email' and in_reply_to = ph order by id desc limit 1;
+  select count(*) into v_g_rows from public.notifications where in_reply_to = pg;
+  select replied_at into v_g_replied from public.inbound_messages where id = ig;
 
   if na.id is null then f := f || 'A: no reply row';
   else
@@ -59,6 +83,20 @@ begin
   elsif nc.to_role is not null or nc.lead_id is not null or nc.kind is not null then
     f := f || ('C: the customer-side reply changed: ' || coalesce(nc.to_role, 'NULL') || '/' || coalesce(nc.lead_id::text, 'NULL') || '/' || coalesce(nc.kind, 'NULL'));
   end if;
+  if nf.id is null then f := f || 'F: no reply row';
+  else
+    if nf.body is distinct from v_fbody then f := f || ('F: the reply body was replaced by: ' || left(coalesce(nf.body, 'NULL'), 80)); end if;
+    if nf.subject is distinct from 'Re: رد: A question about your work in the UAE' then f := f || ('F: subject ' || coalesce(nf.subject, 'NULL')); end if;
+    if nf.to_role is distinct from 'supplier' or nf.kind is distinct from 'supplier_mailbox_reply' or nf.lang is distinct from 'en' then
+      f := f || ('F: ' || coalesce(nf.to_role, 'NULL') || '/' || coalesce(nf.kind, 'NULL') || '/' || coalesce(nf.lang, 'NULL')); end if;
+  end if;
+  if coalesce(g->>'error', '') not like '%always answered in English%' then f := f || ('G: an Arabic body to a supplier was accepted: ' || coalesce(g::text, 'NULL')); end if;
+  if v_g_rows <> 0 then f := f || ('G: ' || v_g_rows || ' notification row(s) written for the refused reply'); end if;
+  if v_g_replied is not null then f := f || 'G: the refused reply stamped replied_at'; end if;
+  if nh.id is null then f := f || 'H: no reply row';
+  elsif nh.to_role is not null or nh.lead_id is not null or nh.kind is distinct from 'supplier_mailbox_reply' then
+    f := f || ('H: ' || coalesce(nh.to_role, 'NULL') || '/' || coalesce(nh.lead_id::text, 'NULL') || '/' || coalesce(nh.kind, 'NULL'));
+  end if;
 
   select count(*) into v_wa from public.notifications where type = 'inbound_reply' and channel = 'whatsapp' and to_email like 'zz-demo-reply-lane%@example.invalid';
   if v_wa <> 0 then f := f || ('D: ' || v_wa || ' WhatsApp twin(s) of a reply'); end if;
@@ -71,9 +109,10 @@ begin
     from public.notifications where id in (125102, 125121);
   if r1 is distinct from r0 then f := f || 'E: a real row of the defect changed'; end if;
 
-  raise exception 'CHK<<%>> A=%/%/% B=%/% C=%/% wa=%',
+  raise exception 'CHK<<%>> A=%/% B=%/% C=%/% F=%/% G=% H=%/% wa=%',
     case when cardinality(f) = 0 then 'PROBE OK' else 'PROBE FAILED: ' || array_to_string(f, '; ') end,
-    coalesce(na.to_role, 'NULL'), coalesce(na.kind, 'NULL'), coalesce(na.in_reply_to, 'NULL'),
-    coalesce(nb.to_role, 'NULL'), coalesce(nb.kind, 'NULL'), coalesce(nc.to_role, 'NULL'), coalesce(nc.in_reply_to, 'NULL'), v_wa;
+    coalesce(na.to_role, 'NULL'), coalesce(na.kind, 'NULL'), coalesce(nb.to_role, 'NULL'), coalesce(nb.kind, 'NULL'),
+    coalesce(nc.to_role, 'NULL'), coalesce(nc.in_reply_to, 'NULL'), coalesce(nf.to_role, 'NULL'), left(coalesce(nf.body, 'NULL'), 40),
+    coalesce(g->>'error', 'accepted'), coalesce(nh.to_role, 'NULL'), coalesce(nh.kind, 'NULL'), v_wa;
 end
 $probe$;
