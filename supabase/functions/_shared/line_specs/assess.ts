@@ -139,8 +139,10 @@ export function reasoned(l: Pick<Line, 'spec' | 'spec_source'>, key: string): st
 // vocabulary is the upgrade if a measured case shows it.
 const DIMENSION = /\d\s*(?:mm|cm|m²|m2|m3)\b|\d\s*[x×*]\s*\d/i;
 const words = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}&]+/gu, ' ').trim().split(' ').filter(Boolean);
+// option words that name no material ("Standard gypsum board"): "Standard delivery and offloading" is a service line
+const NOT_MATERIAL_WORDS = new Set(['standard', 'other', 'none']);
 const optionWords = (codes: string[]) => new Set(codes.flatMap((c) => TRADES[c]?.attrs ?? [])
-  .flatMap((a) => a.options ?? []).flatMap(words).filter((w) => w.length >= 3 && !/^\d/.test(w)));
+  .flatMap((a) => a.options ?? []).flatMap(words).filter((w) => w.length >= 3 && !/^\d/.test(w) && !NOT_MATERIAL_WORDS.has(w)));
 const VOCAB_OF = new Map<string, Set<string>>();
 /** The material and finish words of a trade (every catalogue trade's, for a trade the catalogue does not hold). */
 function materialWords(trade: string | null): Set<string> {

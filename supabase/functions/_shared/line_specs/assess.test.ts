@@ -92,6 +92,14 @@ Deno.test('"no material" in the supplier\'s own words skips the specs only when 
   for (const d of ['Delivery charges to Abu Dhabi site', 'Installation charges for 12 doors', 'Lump sum for preliminaries and site setup',
     'Site cleaning after completion of works', 'Removal and disposal of existing wardrobes', 'Labour charges for installation of 3 wardrobes'])
     assertEquals(said(d, d).lines[0].material, false, d);
+  // ...and when reasoning read only the short phrase that says so: the one-other-word rule held each of these
+  for (const [d, w] of [['Delivery charges to Abu Dhabi site', 'Delivery charges'], ['Installation charges for 12 doors', 'Installation charges'],
+    ['Lump sum for preliminaries and site setup', 'Lump sum'], ['Site cleaning after completion of works', 'Site cleaning'],
+    ['Removal and disposal of existing wardrobes', 'Removal and disposal'], ['Labour charges for installation of 3 wardrobes', 'Labour charges']])
+    assertEquals(said(d, w).lines[0].material, false, d);
+  // "standard" is a gypsum option word ("Standard gypsum board") that names no material
+  const gypsum = aq({ category: 'gypsum', lines: [L(1, 'Standard delivery and offloading')], read: { 1: { [READ.notMaterial]: 'delivery and offloading' } }, terms: { lead_time: '3 weeks' }, requirements: NONE_NEEDED });
+  assertEquals(gypsum.lines[0].material, false);
   // ordinary labour and transport lines are not material (review of #1836): the unit says nothing either way
   assertEquals(said('Transport to site', 'Transport').lines[0].material, false);
   assertEquals(said('Tile laying labour', 'Tile laying labour', { unit: 'm2' }).lines[0].material, false);
