@@ -5,9 +5,16 @@
 --   node scripts/qsql.mjs <competitor file + duties file + this probe>
 -- Its subjects are ZZ DEMO (a ZZ DEMO competitor, watched = false, with synthetic HTML and a synthetic feed); the
 -- duties themselves run against production as it stands. It asserts nobody was reached: notifications are counted
--- before and after, and nothing is posted (marketing_post rows are counted by status).
+-- this transaction wrote, and nothing is posted (no post this transaction wrote changed status).
 do $probe$
-declare n0 bigint := (select count(*) from public.notifications); p0 jsonb := (select jsonb_object_agg(status, n) from (select status, count(*) n from public.marketing_post group by 1) x);
+-- 3 Nov 2026 (independent review of #1551): it counts only what THIS transaction writes. A whole-table count read other
+-- sessions' live inserts and status changes as the probe's (the same false failure #1722 measured: two suppressed rows
+-- every ~20 s), and this probe also runs after the apply, where a false failure stops every later MANIFEST file.
+-- now() is this transaction's start and the column default; xmin catches a writer that sets the column itself.
+-- It also proves no approved campaign lost its approval: fn_marketing_social_publish must not edit an approved post.
+declare v_xid text := (pg_current_xact_id()::text::bigint % 4294967296)::text;
+  p0 jsonb := (select coalesce(jsonb_object_agg(id::text, status), '{}'::jsonb) from public.marketing_post);
+  a0 bigint[] := (select coalesce(array_agg(id), '{}') from public.marketing_campaign where approved_hash is not null and approved_hash = public.fn_marketing_campaign_hash(id));
   r jsonb := '{}'::jsonb; v_fail text := ''; v_comp bigint; v_scan bigint; v_feed bigint; v_brief0 jsonb; v_text text; v_handles jsonb;
 begin
   -- C06 1: a week with no reading claims no finding
@@ -66,8 +73,12 @@ begin
     'seat_duties_registered', (select count(*) from public.seat_duty where duty in ('marketing.geo_fix', 'marketing.social_publish', 'marketing.social_inbox',
         'marketing.trend_decision', 'marketing.kpi_scorecard', 'marketing.fact_register', 'marketing.paid_spend_report')),
     'paid_allowed_after', public.fn_marketing_paid_allowed(),
-    'notifications_added', (select count(*) from public.notifications) - n0,
-    'posts_by_status_unchanged', p0 = (select jsonb_object_agg(status, n) from (select status, count(*) n from public.marketing_post group by 1) x));
+    'notifications_added', (select count(*) from public.notifications where created_at = now() or xmin::text = v_xid),
+    'posts_by_status_unchanged', not exists (select 1 from public.marketing_post p where (p.xmin::text = v_xid or p.updated_at = now())
+                                               and p.status is distinct from p0->>(p.id::text)),
+    'approvals_voided', (select count(*) from public.marketing_campaign c where c.id = any(a0)
+                           and c.approved_hash is distinct from public.fn_marketing_campaign_hash(c.id)));
+  if (r->>'approvals_voided')::int <> 0 then v_fail := v_fail || 'an approved campaign lost its approval (a post of it was edited); '; end if;
   if (r->>'notifications_added')::int <> 0 then v_fail := v_fail || 'a notification was written; '; end if;
   if not (r->>'posts_by_status_unchanged')::boolean then v_fail := v_fail || 'a post changed status; '; end if;
   if (r->>'paid_allowed_after')::boolean then v_fail := v_fail || 'paid was switched on; '; end if;

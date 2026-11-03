@@ -65,3 +65,19 @@ test('C14: the public reveal fee keeps its decimals (no FM990.## rounding)', () 
   assert.doesNotMatch(body, /'FM990\.##'/, `${file}: the reveal fee is rounded to a whole percent`);
   assert.match(body, /trim_scale\(standard_reveal_rate \* 100\)::text \|\| '%'/, `${file}: the reveal fee is not written with its decimals`);
 });
+
+// C10: AN APPROVED POST IS NEVER EDITED BY THE DUTY (independent review of #1551, 3 Nov 2026). fn_marketing_campaign_hash
+// covers every post's scheduled_at and cta_url, so the duty's re-slide or UTM tag on ONE post of an approved campaign
+// voided the founder's approval of the whole campaign and the publisher refused every post of it. Every write the duty
+// makes to marketing_post must exclude a post whose campaign carries an approved_hash.
+const editsOnlyUnapproved = (body) => (body.match(/update\s+public\.marketing_post\b[^;]*;/gi) || [])
+  .map((stmt) => /not exists \(select 1 from public\.marketing_campaign c where c\.id = p\.campaign_id and c\.approved_hash is not null\)/.test(stmt));
+test('C10: the publishing duty never edits a post of an approved campaign', () => {
+  const { file, body } = newest('fn_marketing_social_publish');
+  const stmts = editsOnlyUnapproved(body);
+  assert.ok(stmts.length >= 2, `${file}: the re-slide and the UTM tag are not both found`);
+  assert.ok(stmts.every(Boolean), `${file}: an update of marketing_post can edit an approved post and void its campaign's approval`);
+  assert.doesNotMatch(body, /'utm_source=' \|\| p\.channels\[1\] \|\|/, `${file}: a post with no channel has its cta_url turned null`);
+  // known-bad control: the unguarded update this replaced must fail
+  assert.ok(!editsOnlyUnapproved("update public.marketing_post p set cta_url = 'x' where p.status = 'scheduled';").every(Boolean), 'control: an unguarded update passed');
+});

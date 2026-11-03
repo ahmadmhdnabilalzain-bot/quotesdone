@@ -310,32 +310,50 @@ grant execute on function public.fn_marketing_reputation() to service_role;
 create or replace function public.fn_marketing_social_publish()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_today date := (now() at time zone 'Asia/Dubai')::date; v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
-  n_moved int := 0; n_utm int := 0; v_missed int; v_task bigint; v_audit jsonb; v_title text;
+  n_moved int := 0; n_utm int := 0; v_missed int; v_blocked int; v_task bigint; v_audit jsonb; v_title text;
 begin
+  -- AN APPROVED POST IS NEVER EDITED HERE (independent review of #1551, 3 Nov 2026). The founder approves a campaign
+  -- once and it goes out exactly as approved: fn_marketing_campaign_hash covers every post's scheduled_at and cta_url,
+  -- so moving or re-tagging ONE post of an approved campaign voids the approval of ALL of them (approval_void) and the
+  -- publisher then refuses the whole month. Only posts of a campaign not yet approved (or of none) are touched here;
+  -- an approved post that now lands on a non-working day goes to the CEO for re-approval, with the missed slots.
   -- a post now landing on a weekend or a holiday added after it was written: re-slid by the a05 trigger on write
   update public.marketing_post p set scheduled_at = p.scheduled_at, updated_at = now()
    where p.status = 'scheduled' and p.scheduled_at > now() and p.is_demo = v_fx
-     and not public.fn_is_working_day((p.scheduled_at at time zone 'Asia/Dubai')::date);
+     and not public.fn_is_working_day((p.scheduled_at at time zone 'Asia/Dubai')::date)
+     and not exists (select 1 from public.marketing_campaign c where c.id = p.campaign_id and c.approved_hash is not null);
   get diagnostics n_moved = row_count;
 
-  -- every link a post carries is tagged, so a registration can be traced to the post (UTM)
+  -- every link a post carries is tagged, so a registration can be traced to the post (UTM). A post with no channel is
+  -- tagged 'social': a null channel would have turned the whole cta_url null.
   update public.marketing_post p
      set cta_url = p.cta_url || case when p.cta_url like '%?%' then '&' else '?' end
-                   || 'utm_source=' || p.channels[1] || '&utm_medium=social&utm_campaign='
+                   || 'utm_source=' || coalesce(p.channels[1], 'social') || '&utm_medium=social&utm_campaign='
                    || coalesce((select c.campaign_key from public.marketing_campaign c where c.id = p.campaign_id), 'organic')
-                   || '&utm_content=' || p.ingest_key,
+                   || '&utm_content=' || coalesce(p.ingest_key, p.id::text),
          updated_at = now()
-   where p.status in ('draft', 'scheduled') and p.is_demo = v_fx and p.cta_url is not null and p.cta_url !~ 'utm_source=';
+   where p.status in ('draft', 'scheduled') and p.is_demo = v_fx and p.cta_url is not null and p.cta_url !~ 'utm_source='
+     and not exists (select 1 from public.marketing_campaign c where c.id = p.campaign_id and c.approved_hash is not null);
   get diagnostics n_utm = row_count;
 
-  -- a slot that passed unpublished needs re-approval, and approval is the CEO's: handed once, while it is open
+  -- a slot that passed unpublished, or an approved post now on a non-working day, needs re-approval, and approval is
+  -- the CEO's: handed once, while it is open
   select count(*) into v_missed from public.marketing_post
    where status = 'scheduled' and scheduled_at < now() - interval '2 hours' and is_demo = v_fx;
+  select count(*) into v_blocked from public.marketing_post p
+   where p.status = 'scheduled' and p.scheduled_at > now() and p.is_demo = v_fx
+     and not public.fn_is_working_day((p.scheduled_at at time zone 'Asia/Dubai')::date)
+     and exists (select 1 from public.marketing_campaign c where c.id = p.campaign_id and c.approved_hash is not null);
   v_title := 'Marketing: re-approve or cancel the social post(s) whose slot passed unpublished';
-  if v_missed > 0 and not v_fx and not exists (select 1 from public.ceo_task where title = v_title and state = 'open') then
+  if v_missed + v_blocked > 0 and not v_fx and not exists (select 1 from public.ceo_task where title = v_title and state = 'open') then
     v_task := public.fn_ceo_task_open(v_title, v_missed || ' scheduled post(s) passed their slot without publishing (the publisher marks them '
-      || '"missed_slot: reschedule and re-approve"): ' || (select string_agg(ingest_key || ' (' || to_char(scheduled_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ')', ', ' order by scheduled_at)
-         from public.marketing_post where status = 'scheduled' and scheduled_at < now() - interval '2 hours' and not is_demo)
+      || '"missed_slot: reschedule and re-approve")' || coalesce(': ' || (select string_agg(ingest_key || ' (' || to_char(scheduled_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ')', ', ' order by scheduled_at)
+         from public.marketing_post where status = 'scheduled' and scheduled_at < now() - interval '2 hours' and not is_demo), '')
+      || '; ' || v_blocked || ' approved post(s) now fall on a UAE weekend day or public holiday and are not moved here, because moving one voids the campaign''s approval'
+      || coalesce(': ' || (select string_agg(p.ingest_key || ' (' || to_char(p.scheduled_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ')', ', ' order by p.scheduled_at)
+         from public.marketing_post p where p.status = 'scheduled' and p.scheduled_at > now() and not p.is_demo
+          and not public.fn_is_working_day((p.scheduled_at at time zone 'Asia/Dubai')::date)
+          and exists (select 1 from public.marketing_campaign c where c.id = p.campaign_id and c.approved_hash is not null)), '')
       || '. Approve a new working-day slot for each, or cancel it.');
   end if;
 
@@ -349,7 +367,7 @@ begin
   values ('marketing.social_publish', v_today - 1, v_audit) on conflict (duty, period) do update set body = excluded.body, written_at = now();
 
   return jsonb_build_object('posting_day', public.fn_is_working_day(v_today), 'moved_off_non_working_days', n_moved,
-    'links_tagged', n_utm, 'missed_slots', v_missed, 'ceo_task', v_task, 'yesterday', v_audit,
+    'links_tagged', n_utm, 'missed_slots', v_missed, 'approved_on_non_working_days', v_blocked, 'ceo_task', v_task, 'yesterday', v_audit,
     'scheduled_ahead', (select count(*) from public.marketing_post where status = 'scheduled' and scheduled_at > now() and is_demo = v_fx));
 end $fn$;
 revoke execute on function public.fn_marketing_social_publish() from public, anon, authenticated;
