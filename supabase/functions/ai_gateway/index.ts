@@ -567,7 +567,7 @@ async function handle(req: Request): Promise<Response> {
       if (inWindow) route.why = route.why + ' | TEST RUN (ruling 1260): run tag ' + runTag + (ownWork ? ' | ' + ownWork : '');
     }
 
-    // OUR OWN WORK (it_engineer, 3 Nov 2026): a proven test run, or a seat's own scheduled duty its internal caller
+    // OUR OWN WORK (it_engineer, 3 Nov 2026): a run-tagged call (e2e_run.ts honours a tag only with its proof), or a seat's own scheduled duty its internal caller
     // declared (think.ts internalDuty -> llm.ts internal_duty). Used for one thing only: a paid empty completion of our own
     // work is never asked again of the same model (the attempt loop below). Nothing is refused or capped on it (founder,
     // 24 Sep 2026: "I don't want caps"). A customer's, supplier's or visitor's request is never own work.

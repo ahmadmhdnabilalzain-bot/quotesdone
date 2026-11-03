@@ -43,8 +43,9 @@ test('internal duty is DECLARED per surface by the replay, never inferred from t
 });
 
 test('no daily ceiling or spend cap exists (founder ruling of 24 Sep 2026)', () => {
-  const gw = read('supabase/functions/ai_gateway/index.ts');
-  assert.doesNotMatch(gw, /fn_ai_spend_ceiling|daily_ceiling|spend_ceiling/);
+  for (const f of ['supabase/functions/ai_gateway/index.ts', 'supabase/functions/_shared/think.ts', 'supabase/functions/_shared/llm.ts']) {
+    assert.doesNotMatch(read(f), /fn_ai_spend_ceiling|daily_ceiling|spend_ceiling|llm_daily_ceiling/, f + ' names a spend ceiling');
+  }
   assert.ok(!existsSync(join(REPO, 'supabase/functions/_shared/spend_ceiling.ts')));
   assert.ok(!existsSync(join(REPO, 'scripts/sql/the_non_customer_model_spend_stops_at_a_daily_ceiling.sql')));
 });
