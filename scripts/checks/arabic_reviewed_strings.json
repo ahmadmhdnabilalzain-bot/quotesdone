@@ -1780,6 +1780,9 @@
  "scripts/sql/the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql": [
   "361ce5b53fac"
  ],
+ "scripts/sql/the_invitation_builders_refuse_a_blank_body_not_only_an_empty_one.sql": [
+  "8625d60560f4"
+ ],
  "scripts/sql/the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql": [
   "8625d60560f4"
  ],
@@ -1903,6 +1906,12 @@
   "7434a89712a3",
   "863c1d9211e6",
   "952c560b9f31"
+ ],
+ "scripts/sql/the_marketing_seat_closes_the_loops_a_senior_marketer_closes.sql": [
+  "1ddbe22a20cf",
+  "25831966a970",
+  "71425d07f632",
+  "735f3f9ff862"
  ],
  "scripts/sql/the_marketing_seat_publishes_measures_and_reports_spend_probe.sql": [
   "3d46bb7cf9ae",
@@ -7086,6 +7095,7 @@
  ],
  "supabase/functions/stripe_checkout/index.ts": [
   "1317c3d3a9ac",
+  "1d1780c6bc01",
   "783c51d9471a",
   "ea217ac6f72a"
  ],
@@ -7392,5 +7402,27 @@
  ],
  "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
   "ac6c63ab5f9f"
+ ],
+ "scripts/sql/a_supplier_reply_goes_back_from_its_own_mailbox.sql": [
+  "2e6cf0d056d2",
+  "b88134480ab1",
+  "ecfd9d7efd73"
+ ],
+ "scripts/sql/a_refund_request_after_a_partial_stripe_refund_is_answered_not_a_500.sql": [
+  "2dc8d6b31c47",
+  "2f07e86bbe56",
+  "526918cbaf63",
+  "536351e77319",
+  "6e39a7adaa59",
+  "7523ab70af3b",
+  "799abd6ef0a9",
+  "8cfe854d116a",
+  "9832034b6a97",
+  "9eb884eeab87",
+  "b261e2b8d708",
+  "b61e2128537d",
+  "cb1e99b7d7b5",
+  "dd05d5c3d65f",
+  "eef8ff7a9b46"
  ]
 }

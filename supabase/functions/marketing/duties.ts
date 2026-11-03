@@ -677,7 +677,9 @@ export const DUTIES: Duty[] = [
     owner_seat: 'marketing',
     run: async (ctx) => {
       const token = await ctx.sec('meta_access_token');
-      const igUser = await ctx.sec('meta_ig_user_id');
+      // the company's own IG business id: the secret, else the one the social inbox derived from the page (19 Oct 2026)
+      const igUser = await ctx.sec('meta_ig_user_id') || ((await ctx.admin.from('marketing_meta_page').select('ig_id')
+        .not('ig_id', 'is', null).limit(1).maybeSingle()).data?.ig_id as string | undefined);
       if (!token || !igUser) return { due: false, reason: 'meta_access_token and meta_ig_user_id are not both set' };
       const { data: last } = await ctx.admin.from('market_intel').select('fetched_at').eq('platform', 'instagram')
         .order('fetched_at', { ascending: false }).limit(1).maybeSingle();
