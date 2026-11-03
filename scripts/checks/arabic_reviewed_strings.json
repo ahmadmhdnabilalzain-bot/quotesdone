@@ -1794,6 +1794,10 @@
  "scripts/sql/the_last_traces_of_bank_details_negotiations_and_the_network_map_leave.sql": [
   "e3377772a818"
  ],
+ "scripts/sql/the_legacy_site_pages_carry_the_public_numbers_and_never_the_founders_mobile.sql": [
+  "3c3557cba102",
+  "ede7dec21a56"
+ ],
  "scripts/sql/the_live_composers_say_it_in_native_arabic.sql": [
   "06c2c091e00b",
   "0807f264cf45",
@@ -6639,7 +6643,7 @@
   "f045dd46c30e"
  ],
  "supabase/functions/email_triage/index.ts": [
-  "2564e8b2cc53"
+  "21457f021dbc"
  ],
  "supabase/functions/inquiry_intake/index.ts": [
   "3a572c138209",
