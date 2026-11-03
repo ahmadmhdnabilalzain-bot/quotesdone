@@ -74,7 +74,7 @@ export function ProductCard({ p, lang }: { p: Product; lang: Lang }) {
   const variant = (p.variants || []).find((v) => v.active) || (p.variants || [])[0];
   const lead = variant?.lead_time_policy?.['lead_time_days'] as number | undefined;
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+    <article className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h4 className="text-sm font-medium truncate">{p.name}</h4>
@@ -168,7 +168,7 @@ export default function ProductIntelligence({ token, lang = 'en' }: { token?: st
       <SupplierCatalogUpload token={token} lang={lang} onDone={() => setReload((n) => n + 1)} />
 
       {/* §7's "After" panel: the three counts the spec draws, over real rows. */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <h3 className="text-xs uppercase tracking-wide opacity-60 mb-3">{t(lang, 'title')}</h3>
         <div className="grid grid-cols-4 gap-4">
           <Count label={t(lang, 'products')} value={data.product_count} />
@@ -194,7 +194,7 @@ export default function ProductIntelligence({ token, lang = 'en' }: { token?: st
         onChange={(e) => setQ(e.target.value)}
         placeholder={t(lang, 'search')}
         aria-label={t(lang, 'search')}
-        className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm outline-none focus:border-white/25"
+        className="w-full rounded-xl border border-white/10 bg-white/3 px-3.5 py-2.5 text-sm outline-hidden focus:border-white/25"
       />
       {q && (
         <div className="text-[11px] opacity-50">

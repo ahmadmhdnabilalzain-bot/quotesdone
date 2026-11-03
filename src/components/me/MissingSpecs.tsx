@@ -67,7 +67,7 @@ export function MissingSpecs({ inq, token, lang, call, onChange }) {
           {choicesFor(m).map((c) => (
             <button key={c} type="button" role="radio" aria-checked={pick === c}
               onClick={() => setPicks((a) => ({ ...a, [m.key]: c }))}
-              className={'rounded-full border px-3 py-1.5 text-[13px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ' + (pick === c ? 'border-primary bg-primary/10 text-foreground' : 'border-input text-muted-foreground hover:text-foreground')}>
+              className={'rounded-full border px-3 py-1.5 text-[13px] focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring ' + (pick === c ? 'border-primary bg-primary/10 text-foreground' : 'border-input text-muted-foreground hover:text-foreground')}>
               {label(c)}
             </button>
           ))}
@@ -76,7 +76,7 @@ export function MissingSpecs({ inq, token, lang, call, onChange }) {
           <input id={id} aria-labelledby={id + '-q'} value={text} maxLength={300} placeholder={t(lang, 'ms_other_ph')}
             inputMode={m.type === 'number' ? 'decimal' : undefined} autoComplete="off"
             onChange={(e) => setTexts((a) => ({ ...a, [m.key]: e.target.value }))}
-            className="mt-2 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-[13px] text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+            className="mt-2 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-[13px] text-foreground outline-hidden focus-visible:ring-1 focus-visible:ring-ring" />
         ) : null}
       </fieldset>
       <div className="mt-3 flex flex-wrap items-center gap-3">

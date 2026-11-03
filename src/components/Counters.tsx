@@ -27,7 +27,7 @@ export function Counters({ children }: { children: ReactNode }) {
 
   if (!items.length) return <>{children}</>;
   return (
-    <div className="relative z-10 border-t border-[var(--line)] bg-navy-deep/60">
+    <div className="relative z-10 border-t border-(--line) bg-navy-deep/60">
       <div className="container-x grid grid-cols-2 gap-px py-5 md:grid-cols-4">
         {items.map((it) => (
           <div key={it.k} className="px-4 py-2 text-start">

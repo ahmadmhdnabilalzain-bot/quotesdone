@@ -79,7 +79,7 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
                     <tr key={r.who} className="border-t border-line">
                       <th scope="row" className="px-5 py-5 text-start font-head text-[15px] font-semibold text-white">{r.who}</th>
                       <td className="px-5 py-5 text-muted">
-                        <span className="me-2 inline-block align-middle redact redact-bar !h-2 !w-8" aria-hidden />{r.before}
+                        <span className="me-2 inline-block align-middle redact redact-bar h-2! w-8!" aria-hidden />{r.before}
                       </td>
                       <td className="px-5 py-5 text-paper/90">{r.after}</td>
                     </tr>
@@ -96,7 +96,7 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
             {/* a measured ruler, not three boxes: the ticks run along the rule the days sit under */}
             <ol className="qd-ticks grid border-t border-line2 md:grid-cols-3">
               {time.map((line, i) => (
-                <li key={line} className="relative border-b border-line pb-7 pt-9 md:border-b-0 md:pe-8 md:[&:not(:first-child)]:border-s md:[&:not(:first-child)]:ps-8">
+                <li key={line} className="relative border-b border-line pb-7 pt-9 md:border-b-0 md:pe-8 md:not-first:border-s md:not-first:ps-8">
                   <span className="tabular font-mono text-label text-teal-light">{String(i + 1).padStart(2, '0')}</span>
                   <p className="mt-3 text-copy text-paper/90">{line}</p>
                 </li>

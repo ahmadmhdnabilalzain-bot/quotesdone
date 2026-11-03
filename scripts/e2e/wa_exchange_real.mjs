@@ -41,7 +41,7 @@ try {
   const line = (r.stdout || '').split('\n').find((l) => l.startsWith('RESULT='));
   if (!line) throw new Error('driver produced no RESULT; stdout tail: ' + (r.stdout || '').slice(-600) + ' stderr tail: ' + (r.stderr || '').slice(-1200));
   result = JSON.parse(line.slice(7));
-  const brief = (x) => ({ status: x?.status, ms: x?.ms, reply: x?.reply, results: x?.rows?.[0]?.meta?.results, err: x?.rows?.[0]?.meta?.send_error, nrows: x?.rows?.length, t: x?.rows?.[0]?.meta?.timings });
+  const brief = (x) => ({ status: x?.status, ms: x?.ms, reply: x?.reply, results: x?.rows?.[0]?.meta?.results, err: x?.rows?.[0]?.meta?.send_error, nrows: x?.rows?.length, t: x?.rows?.[0]?.meta?.timings, att: x?.rows?.[0]?.meta?.reply_attempts });
   for (const k of ['parity', 'parity_control_detects_a_difference', 'forged', 'question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal', 'image', 'document', 'bad_image_control', 'bad_pdf_control', 'voice', 'stranger_image']) console.log('## ' + k + ' ' + JSON.stringify(['forged', 'parity', 'parity_control_detects_a_difference'].includes(k) ? result[k] : brief(result[k])));
   {
     // Media verdicts. Each file turn must leave a row and a reply; the bad-file controls must NOT read as accepted;
@@ -63,6 +63,13 @@ try {
     const turns = [...['question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal'].map((k) => result[k]), ...result.ten.filter((t) => typeof t.ms === 'number')].filter((t) => t && typeof t.ms === 'number');
     const ms = turns.map((t) => t.ms).sort((a, b) => a - b); const pct = (p) => ms[Math.min(ms.length - 1, Math.floor(p * ms.length))];
     console.log('LATENCY turns=' + ms.length + ' p50_ms=' + pct(0.5) + ' p95_ms=' + pct(0.95) + ' max_ms=' + ms[ms.length - 1] + ' unanswered=' + turns.filter((t) => !t.reply).length);
+    // EVERY TURN IS ANSWERED, THE PARITY TURNS TOO (customer_support, 3 Nov 2026). Run 41530397323 printed unanswered=0 while the
+    // lean "scam" parity turn had no reply at 93 s: the count above leaves the ten parity turns out. These verdicts fail the run.
+    const par = result.parity || [];
+    const parUnanswered = par.flatMap((p) => [p.old, p.lean]).filter((x) => !x?.answered).length;
+    const mismatches = par.filter((p) => !p.same).length;
+    console.log('VERDICT unanswered_including_parity=' + (turns.filter((t) => !t.reply).length + parUnanswered) + ' parity_mismatches=' + mismatches);
+    if (turns.some((t) => !t.reply) || parUnanswered || mismatches) process.exitCode = 1;
   }
   // The held queue, by design: a turn that got no reply is filed (fn_reason_hold) and the re-ask cron answers it or lets it expire.
   // Polled up to 5 minutes. A fixture reply is captured, never delivered, so 'failed' with reask_delivery.detail 'captured' means

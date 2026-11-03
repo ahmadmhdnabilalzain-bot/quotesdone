@@ -49,7 +49,8 @@ test('CSS does not override the dir attribute on .ltr/.tabular', () => {
   // the public footer: dir="auto" but getComputedStyle().direction === "ltr", date still backwards.
   // `:not([dir])` hands an element that states its own direction back to its attribute.
   const css = readFileSync(join(SRC, 'app', 'globals.css'), 'utf8');
-  const rules = css.match(/^\[dir="rtl"\][^{\n]*\{[^}]*direction:\s*ltr[^}]*\}/gm) || [];
+  // Tailwind 4's upgrade nests and reformats globals.css (indented, single-quoted attribute values).
+  const rules = css.match(/^\s*\[dir=["']rtl["']\][^{\n]*\{[^}]*direction:\s*ltr[^}]*\}/gm) || [];
   assert.ok(rules.length > 0, 'the RTL direction-force rule vanished from globals.css — this check has lost its subject');
   for (const r of rules) {
     assert.match(r, /:not\(\[dir\]\)/, `${r.trim()} forces direction:ltr regardless of the element's own dir attribute, `

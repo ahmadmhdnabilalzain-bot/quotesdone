@@ -18,7 +18,7 @@ export function CtaBand() {
               i === 3 ? (
                 <span key={i} className="h-3 w-12 rounded-[2px] shadow-[inset_0_0_0_1px_#E3C065]" />
               ) : (
-                <span key={i} className={`redact redact-line !w-9 text-[19px]`} />
+                <span key={i} className={`redact redact-line w-9! text-[19px]`} />
               ),
             )}
           </div>
