@@ -23,7 +23,9 @@ async function sign(params: Record<string, string>, token = TOKEN): Promise<stri
 
 type World = { msgs: Record<string, unknown>[]; seen: Set<string>; gateway: Record<string, unknown>[]; rpcs: { fn: string; args: Record<string, unknown> }[]; nextId: number; audience: Record<string, unknown>; replies: string[]; script?: string[]; log?: string[]; slowMs?: number;
   /** what a classification (any call that is not a conversation reply) answers, and how long a review of a decision takes */
-  classify?: Record<string, unknown>; reviewMs?: number };
+  classify?: Record<string, unknown>; reviewMs?: number;
+  /** every reply call that carries the company brief answers a cut-off object (nothing usable) */
+  briefedReplyCut?: boolean };
 const world = (audience: Record<string, unknown> = { audience: 'supplier', name: 'ZZ DEMO Glass LLC', claimed: true, approved: true }): World =>
   ({ msgs: [], seen: new Set(), gateway: [], rpcs: [], nextId: 1, audience, replies: [] });
 
@@ -50,6 +52,7 @@ function stubFor(w: World): Stub {
           return J({ ok: true, content: JSON.stringify(review ? { ...w.classify, decision: { choice: 'none' } } : w.classify), model: 'stub/model' });
         }
         w.log?.push('res:' + String(body.task_class ?? ''));
+        if (w.briefedReplyCut && body.task_class === 'conversation_reply' && body.sys_stable) return J({ ok: true, content: '{"answer":"We will', model: 'stub/model' });
         const n = w.replies.length + 1; const text = w.script?.shift() ?? 'ZZ DEMO reply ' + n;
         return J({ ok: true, content: JSON.stringify({ answer: text, reply: text, lang: 'en', escalate: false }), model: 'stub/model' });
       }
@@ -251,4 +254,20 @@ Deno.test('the reading settles nothing but a person is needed: the route is aske
   assert(routed.length > 0, 'the route was asked: ' + w.rpcs.map((c) => c.fn).join(', '));
   assertEquals(routed[0].args.p_needs_person, true, 'the person check said yes');
   assertEquals(routed[0].args.p_intent, 'contact_human');
+});
+
+// Review of #1816: the brief-less last chance runs ONLY on a turn whose facts say what happens (a person is needed). Every
+// briefed reply call here answers a cut-off object. A company question gets no brief-less call (it would answer from memory);
+// a person request gets one, and its reply is sent. On fe852ccd the company question also got a brief-less call.
+Deno.test('the brief-less last chance: never for a company question, only when a person is needed', async () => {
+  const briefless = (w: World) => w.gateway.filter((g) => g.task_class === 'conversation_reply' && !g.sys_stable).length;
+  const w1 = world({ audience: 'unknown' }); w1.briefedReplyCut = true;
+  await inbound(w1, B, 'ZZ DEMO how do you vet your suppliers?');
+  assertEquals(briefless(w1), 0, 'no brief-less call for a company question');
+  assert(!w1.msgs.some((m) => m.wa_from === B && m.sent === true && m.reply), 'and nothing invented was sent');
+  const w2 = world({ audience: 'unknown' }); w2.briefedReplyCut = true;
+  w2.classify = { answer: 'needs a person', reasoning: [], cited: [], asked_back: null, decision: { choice: 'none' }, needs_a_person: 'needs_a_person', menu_meaning: 'other' };
+  await inbound(w2, B, 'ZZ DEMO you took my money and vanished, this is a scam');
+  assert(briefless(w2) >= 1, 'a person is needed: the last chance ran');
+  assert(w2.msgs.some((m) => m.wa_from === B && m.reply && (m.meta as Record<string, unknown>)?.held_notice === false), 'and the person got the reply');
 });

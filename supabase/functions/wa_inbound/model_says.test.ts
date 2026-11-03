@@ -147,7 +147,7 @@ Deno.test('the model is up but nothing passes in the budget: one brief-less last
     embed: () => Promise.resolve(null),
     rpc: () => Promise.resolve({ data: null, error: null }),
   } as unknown as ThinkDeps;
-  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money and vanished, this is a scam', situation: 'They need a person.' });
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money and vanished, this is a scam', situation: 'They need a person.', situationAnswers: true });
   assert(r.text.includes('+1 218 316 6814'), 'the last chance wrote the reply: ' + r.attempts.join(' | '));
   assert(calls.some((o) => !o.sysStable && !o.sysShared), 'the last chance carried no brief');
   assert(r.attempts.some((a) => a.startsWith('last-chance')), 'and is named in the attempts: ' + r.attempts.join(' | '));
@@ -172,4 +172,24 @@ Deno.test('a reply object with a real line break inside the answer string is rea
   assert(r.text.includes('+1 218 316 6814'), 'read: ' + r.attempts.join(' | '));
   assertEquals(s.calls.length, 1, 'the first answer was used; no second rung');
   assertEquals(r.escalate, true);
+});
+
+// Review of #1816: without the brief a company question can only be answered from memory. A fact question whose first ask
+// produced nothing usable gets NO brief-less answer: the caller did not say the facts answer the turn. Fails on fe852ccd.
+Deno.test('a company fact question whose first ask failed gets no brief-less answer (the facts do not answer it)', async () => {
+  const calls: Record<string, unknown>[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null),
+    llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => {
+      calls.push(o);
+      return Promise.resolve((o.sysStable ? { content: '{"answer":"We vet suppliers by', model: 'stub' }
+        : { content: A('We vet every supplier with a site visit and three references.'), model: 'stub' }) as LlmReply);
+    },
+    embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: null, error: null }),
+  } as unknown as ThinkDeps;
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO how do you vet suppliers?', situation: 'No intent row fits.' });
+  assertEquals(r.text, '', 'nothing invented: ' + r.attempts.join(' | '));
+  assert(calls.every((o) => o.sysStable), 'no call went without the brief');
+  assert(!r.attempts.some((a) => a.startsWith('last-chance')));
 });

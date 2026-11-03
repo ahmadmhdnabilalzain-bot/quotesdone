@@ -1,6 +1,6 @@
 // aiReply() with a stubbed model. No network, no paid call.
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { aiReply } from './ai_reply.ts';
+import { aiReply, aiSystem, proseOf } from './ai_reply.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
 
 const COMPANY = 'REVEAL FEE: the customer pays 3.00% of the selected quotation value. No card fee is added.';
@@ -201,4 +201,49 @@ Deno.test('a reply written as plain prose is the reply; a cut-off object is stil
   const cut = mk(['{"answer":"Sorry to hear that. AC repair is', '{"answer":"Sorry to hear that. AC repair is', '{"answer":"Sorry', '{"answer":"Sorry']);
   const r2 = await aiReply(cut.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO my AC is broken' });
   assertEquals(r2.reply, '', 'control: a cut-off object is never sent');
+});
+
+// Review of #1816. Prose carries no action and no escalate flag, so it is the reply only when neither is asked for; otherwise
+// the same rung is asked again for the object. Each assertion fails on 3e756c6c (prose taken as the reply in every case).
+const mkRec = (answers: string[]) => {
+  const systems: string[] = []; const opts: Record<string, unknown>[] = [];
+  const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
+    llm: (_p: string, sys: string, _i: string, o: Record<string, unknown>) => { systems.push(sys); opts.push(o); return Promise.resolve({ content: answers.shift() ?? null, model: 'stub' } as LlmReply); } } as unknown as ThinkDeps;
+  return { deps, systems, opts };
+};
+Deno.test('the supplier quotation chat (actions): a prose "Done, submitted" is not the reply; the object is asked for on the same rung', async () => {
+  const s = mkRec(['Done, your quotation has been submitted to the customer.',
+    JSON.stringify({ answer: 'Your quotation is complete. Shall I submit it to the customer now?', action: 'none' })]);
+  const r = await aiReply(s.deps, { seat: 'sales_engineer', channel: 'portal', audience: 'supplier', lang: 'en', message: 'ZZ DEMO submit it',
+    actions: [{ id: 'submit', meaning: 'submit the quotation' }, { id: 'none', meaning: 'nothing to do yet' }] });
+  assert(!r.reply.startsWith('Done'), 'the prose was not taken: ' + r.attempts.join(' | '));
+  assertEquals(r.action, 'none');
+  assertEquals(s.opts.length, 2);
+  assertEquals(s.opts[1].counterpartModel, undefined, 'asked again on the same rung, not the other family');
+});
+Deno.test('WhatsApp (askEscalate): a prose answer is not the reply; the rewrite brings the escalate flag', async () => {
+  const s = mkRec(['I am sorry this happened. Please reach our team on +1 218 316 6814 and we will look into it.',
+    JSON.stringify({ answer: 'I am sorry this happened. Please reach our team on +1 218 316 6814 and we will look into it.', escalate: true })]);
+  const r = await aiReply(s.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money', askEscalate: true });
+  assert(r.reply.includes('+1 218 316 6814'), r.attempts.join(' | '));
+  assertEquals(r.escalate, true, 'the model flag survives (it is OR-ed with the router)');
+  assert(r.attempts[0].startsWith('route:prose'), r.attempts.join(' | '));
+});
+Deno.test('prose that is a preamble, meta-text, a trailing key or cut off is never a reply; a finished one is', () => {
+  assertEquals(proseOf("Here's my reply: Thank you for your message."), '');
+  assertEquals(proseOf('Answer: Thank you for your message.'), '');
+  assertEquals(proseOf('The user is asking about fees, so I should explain them.'), '');
+  assertEquals(proseOf('The customer is asking about a refund.'), '');
+  assertEquals(proseOf('Thank you for your message. escalate: true'), '');
+  assertEquals(proseOf('Thank you for your message. Our suppliers cover AC repair and you can'), '', 'cut at the token cap');
+  assertEquals(proseOf('Thank you. Reach a person on:'), '');
+  assertEquals(proseOf('Thank you for your message. Reach our team any time.'), 'Thank you for your message. Reach our team any time.');
+  assert(proseOf('Our team will help you.\nmanagement@quotesdone.com') !== '', 'a reply ending on its own contact line is finished');
+});
+Deno.test('the brief-less ask is told to state no company fact beyond its facts, and is not pushed to answer everything', () => {
+  const r = { seat: 'customer_support' as const, channel: 'whatsapp', audience: 'customer' as const, lang: 'en' as const, message: 'x' };
+  const lean = aiSystem({ ...r, briefInPrompt: false }, 'en'); const full = aiSystem(r, 'en');
+  assert(lean.includes('You do NOT have the company brief'), lean);
+  assert(!lean.includes('never say you do not know'), 'no pressure to answer what the facts do not cover');
+  assert(full.includes('never say you do not know') && full.includes('COMPANY BRIEF'), 'control: the full prompt is unchanged');
 });

@@ -76,9 +76,14 @@ export function aiSystem(r: AiReplyRequest, replyLang: 'en' | 'ar'): string {
   return `You are QuotesDone's ${r.seat.replace(/_/g, ' ')} answering a ${r.audience} on ${r.channel}. Answer the way a senior UAE construction and procurement expert answers a client, reasoned with your own expertise; trade, material and specification questions get a clear expert answer from your own knowledge.
 RULES:
 - Answer what they asked, directly and exactly. Then, where it helps, ask the one or two follow-up questions that matter most for their job; you may offer two concrete choices when they are unsure. Never a list of "top results".
-- Everything about QuotesDone itself (fees, terms, liability, how it works, policies, contacts) comes from the COMPANY BRIEF. Every money figure or percentage you write must be one the brief states; never estimate a fee, price or rate the brief does not give. When they ask what a trade or item costs, give the range from the PUBLISHED PRICE GUIDE as a range and say it is a guide, not a quotation; never volunteer it when they did not ask about cost, and give it once per conversation (live conversation suite, ledger 1200: 15 of 26 replies opened with an unasked price range).
+${r.briefInPrompt === false
+    // review of #1816: the brief-less ask (model_says.ts, a turn whose facts already say what happens) must not fill a company fact from memory
+    ? `- You do NOT have the company brief for this reply. State nothing about QuotesDone itself (fees, terms, how it works, policies, timings, numbers) that is not written in this conversation's facts. For anything the facts do not cover, give them the direct contact for a person (below) instead of an answer.
+- Never ask again what the conversation already asked. Speak only to them: never mention your own earlier reply, a correction or a rewrite.
+- Never say you will check or get back to them. Plain text, no markdown.`
+    : `- Everything about QuotesDone itself (fees, terms, liability, how it works, policies, contacts) comes from the COMPANY BRIEF. Every money figure or percentage you write must be one the brief states; never estimate a fee, price or rate the brief does not give. When they ask what a trade or item costs, give the range from the PUBLISHED PRICE GUIDE as a range and say it is a guide, not a quotation; never volunteer it when they did not ask about cost, and give it once per conversation (live conversation suite, ledger 1200: 15 of 26 replies opened with an unasked price range).
 - Never ask again what the conversation already asked: a question they answered is noted, and one they skipped or were unsure of is recorded "to confirm at the supplier's site visit" and not repeated (the suite measured the same question asked three times). Speak only to them: never mention your own earlier reply, a correction or a rewrite.
-- Never say you will check, confirm or get back to them, and never say you do not know; never decline a question about a trade, category or specification (food and beverage excepted). Plain text, no markdown.${r.rules ? '\n- ' + r.rules : ''}
+- Never say you will check, confirm or get back to them, and never say you do not know; never decline a question about a trade, category or specification (food and beverage excepted). Plain text, no markdown.`}${r.rules ? '\n- ' + r.rules : ''}
 - Reply in ${replyLang === 'ar' ? 'formal Gulf Arabic (Western digits)' : 'UAE English'}${r.audience === 'supplier' ? ' — suppliers are always answered in English' : ''}.
 - If they ask for a person: +1 218 316 6814 (WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com.
 - Whenever you state the reveal fee, say in the same reply, in so many words, that no card fee is added and no VAT is charged on it.
@@ -117,14 +122,24 @@ const json = (s: string | null | undefined): Record<string, unknown> => {
 // THE REPLY WRITTEN AS PLAIN PROSE IS THE REPLY (customer_support, 3 Nov 2026). Measured on the real exchange (run 41540859092,
 // reply_attempts): 3 of 27 Sonnet answers were the reply itself as plain text, no JSON object at all ("route:failed unparseable
 // (411 chars): Sorry to hear that. AC repair is covered..."), so each went to the other-family rung: a 278k-token Luna call,
-// 10-15 s more. Text with no brace at all is taken as the answer and checked like any other draft; anything with a brace
-// (a truncated object included) must still parse. Prevented by: ai_reply.test.ts.
-const parse = (s: string | null | undefined): string => {
-  const a = String(json(s).answer ?? '').trim();
-  if (a) return a;
+// 10-15 s more. Prose is NOT always the reply (review of #1816): it carries no "action" (the supplier quotation chat acts on
+// it) and no "escalate" (WhatsApp ORs it with the router), and it can be a preamble, meta-text or cut off at the token cap.
+// So proseOf() keeps only text that reads as a finished reply to the person; aiReply takes it as the answer only when the
+// request asks for neither an action nor an escalate flag, and otherwise asks the SAME rung again for the object (a short
+// rewrite, not the other family). Anything with a brace (a truncated object included) must still parse. Prevented by: ai_reply.test.ts.
+const parse = (s: string | null | undefined): string => String(json(s).answer ?? '').trim();
+const NOT_THE_OBJECT = 'it is plain text, not the one JSON object your instructions ask for (return the object, with every key)';
+const LABEL_OPENING = /^\s*(?:here(?:'s| is)|answer|reply|response|draft)\b[^\n]*:/i;
+const META_TEXT = /\bthe user\b|\bthe customer is asking\b|\bI should\b|\bmy instructions\b/i;
+const TRAILING_KEY = /\b(?:escalate|action|answer|reply|lang|audience)\s*["']?\s*[:=]\s*\S*\s*$/i;
+// A finished reply ends a sentence, or ends on its own contact line (the rules put each phone, e-mail or link on its own line).
+const ENDS_CLEAN = /(?:[.!?؟)"'”’\]]|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|https?:\/\/\S+|\+?\d[\d\s().-]{6,}\d)\s*$/;
+export function proseOf(s: string | null | undefined): string {
   const t = String(s ?? '').trim();
-  return /[{}]/.test(t) || t.startsWith('```') ? '' : t;
-};
+  if (!t || /[{}]/.test(t) || t.startsWith('```')) return '';
+  if (LABEL_OPENING.test(t) || META_TEXT.test(t) || TRAILING_KEY.test(t) || !ENDS_CLEAN.test(t)) return '';
+  return t;
+}
 /** Why a call gave no usable text, for the turn's record: the gateway's error, or what came back that would not parse. */
 const failedWhy = (res: LlmReply | null): string => res?.error ? String(res.error).slice(0, 200)
   : String(res?.content ?? '').trim() ? 'unparseable (' + String(res!.content).length + ' chars): ' + JSON.stringify(String(res!.content).slice(0, 160)) : 'no answer';
@@ -216,23 +231,32 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     if (res && (String(res.content ?? '').trim() || !res.error)) answered = true;   // it answered, we could not read it
     else failures.push(res ? String(res.error ?? '') : (left() < MIN_CALL_MS ? 'deadline' : 'threw'));
   };
+  // A finished prose reply is the answer only when nothing else rides in the object (no action, no escalate flag); otherwise
+  // it is asked for again on the same rung, as the object (review of #1816).
+  const proseIsReply = !r.actions?.length && !r.askEscalate;
+  const read = (res: LlmReply | null): { text: string; prose: string } => {
+    const text = parse(res?.content);
+    if (text) return { text, prose: '' };
+    const prose = proseOf(res?.content);
+    return proseIsReply ? { text: prose, prose: '' } : { text: '', prose };
+  };
   // the gateway's route (its own ladder), then a counterpart of another family; MAX_CALLS in all
   const rungs = r.otherFamilyFirst ? [REPLY_MODEL, null] : [null, REPLY_MODEL];
   for (const [rung, counterpartModel] of rungs.entries()) {
     if (calls >= MAX_CALLS) break;
     let res = await call(input, counterpartModel);
-    let text = parse(res?.content);
+    let { text, prose } = read(res);
     seen(res, text);
-    attempts.push((counterpartModel ? 'other-family:' : 'route:') + (text ? 'ok' : 'failed ' + failedWhy(res)));
-    while (text) {
-      const bad = check(text);
+    attempts.push((counterpartModel ? 'other-family:' : 'route:') + (text ? 'ok' : prose ? 'prose, asked again for the object: ' + failedWhy(res) : 'failed ' + failedWhy(res)));
+    while (text || prose) {
+      const bad = prose ? [NOT_THE_OBJECT] : check(text);
       if (!bad.length) return done(text, res?.content, res?.model ?? null);
       lastProblems = bad;
       if (calls >= MAX_CALLS || calls >= (rung > 0 ? MAX_CALLS : 3)) break;   // the first rung leaves a call for the second
-      res = await call(input + `\n\nYOUR ANSWER WAS:\n${text}\n\nIt has these problems: ${bad.join('; ')}. Write the whole answer again, correcting them.`, r.otherFamilyFirst ? counterpartModel : null);
-      text = parse(res?.content);
+      res = await call(input + `\n\nYOUR ANSWER WAS:\n${text || prose}\n\nIt has these problems: ${bad.join('; ')}. Write the whole answer again, correcting them.`, r.otherFamilyFirst ? counterpartModel : null);
+      ({ text, prose } = read(res));
       seen(res, text);
-      attempts.push('rewrite:' + (text ? 'ok' : 'failed ' + failedWhy(res)) + ' [' + bad.join('; ').slice(0, 300) + ']');
+      attempts.push('rewrite:' + (text ? 'ok' : prose ? 'prose' : 'failed ' + failedWhy(res)) + ' [' + bad.join('; ').slice(0, 300) + ']');
     }
   }
   // THE MODEL'S OWN SAFE SENTENCES (1339). The model answered but no whole draft passed: its sentences that pass every

@@ -402,6 +402,8 @@ async function handleInbound(req: Request): Promise<Response> {
   // Prevented by: arrival_is_stored_first.test.ts.
   let arrivalId: number | null = null;
   let crashed = false, MessageSidSeen = '';
+  // The review of a decision, started beside the reply (below) and awaited in the finally; it never throws (review_request.ts).
+  let reviewP: Promise<unknown> = Promise.resolve(null);
   // RACE WITH THE SWEEP (review of #1457): the arrival row is completed only while it is still 'received'. If
   // fn_wa_arrival_sweep took it first (a turn past 5 minutes), the row stays 'escalated', this turn's record goes on a row
   // of its own, and fn_wa_arrival_turn_finished closes the action and suppresses a holding notice not yet sent.
@@ -575,6 +577,9 @@ async function handleInbound(req: Request): Promise<Response> {
     // WHAT THE LAST SAY TRIED (aiReply.attempts: each call, each rewrite and the problems that refused it), kept on the turn's
     // row so a refused or rewritten reply names its reason (customer_support, 3 Nov 2026: 7 Luna rewrites in a run, no record why).
     let sayAttempts: string[] = [];
+    // THE TURN'S FACTS ALONE SAY WHAT TO TELL THEM (a person is needed): only then may modelSays's brief-less last chance run
+    // (review of #1816). Set just before the main reply is asked; every earlier say runs without it.
+    let factsAnswer = false;
     // THE WHOLE CONVERSATION, EVERY TURN (2 Nov 2026): this number's earlier turns, read once per turn (_shared/wa_history.ts).
     let history: ReturnType<typeof waConversation> | null = null;
     // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
@@ -587,13 +592,15 @@ async function handleInbound(req: Request): Promise<Response> {
         // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
         rateKey: signal ? 'wa-spec:' + From : 'wa:' + From,
         ...(signal ? { signal } : {}), ...(extraCheck ? { extraCheck } : {}),
-        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
+        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}),
+        ...(factsAnswer && !signal ? { situationAnswers: true } : {}) });
     };
     const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
       modelEscalate = modelEscalate || r.escalate;
       sayOutage = !r.text && r.outage;
       sayProblems = r.text ? [] : (r.problems ?? []);
-      sayAttempts = (r.attempts ?? []).map((x) => String(x).slice(0, 400)).slice(0, 8);
+      const att = (r.attempts ?? []).map((x) => String(x).slice(0, 400));
+      sayAttempts = att.length > 8 ? [...att.slice(0, 4), ...att.slice(-4)] : att;   // the head and the tail (the last chance is at the end)
       return r.text;
     };
     const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], extraCheck?: (t: string) => string[]) =>
@@ -1386,8 +1393,8 @@ async function handleInbound(req: Request): Promise<Response> {
     // IT RUNS BESIDE THE REPLY, NOT BEFORE IT (customer_support, 3 Nov 2026). Measured on the real exchange on main (run
     // 41530397323, ai_cost_log 66624 and 66653): its think() took 19 s and 25 s in series ahead of the reply on the lean "scam"
     // turn, so the reply started ~65 s after arrival, ran out of its 90 s budget and the person got nothing. The reply reads
-    // nothing it writes; it is awaited at the end of the turn. Prevented by: the_whole_exchange.test.ts.
-    const reviewP: Promise<unknown> = needsPerson === true
+    // nothing it writes; it is awaited in the turn's finally, so a throw after this line still files it. Prevented by: the_whole_exchange.test.ts.
+    reviewP = needsPerson === true
       ? fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp', requester: From, message: Body,
           surface: 'wa_inbound.review_of_decision', dedupeKey: MessageSid || From + ':' + Body.slice(0, 40),
           audience: audience === 'supplier' ? 'supplier' : 'customer', subjectTable: 'wa_conversation', subjectId: From })
@@ -1442,6 +1449,8 @@ async function handleInbound(req: Request): Promise<Response> {
     if (!(spec && spec.text)) specAbort.abort();   // discarded: stop paying for it
     const drafted = spec && spec.text ? spec : null;
     timings.speculative = drafted ? 1 : 0;
+    // A person is needed: the facts carry the contact and what to say, so the last chance may answer without the brief.
+    factsAnswer = needsPerson === true || route?.needs_a_person === true || routedIntent === 'contact_human';
     let reply = (drafted ? adopt(drafted) : await say(situation)).slice(0, 1200);
     mark('reply_written');
     const llmFailed = !reply;
@@ -1504,7 +1513,6 @@ async function handleInbound(req: Request): Promise<Response> {
       } catch (_e) { /* */ }
     }
 
-    await reviewP;   // never throws (review_request.ts); started beside the reply above
     const counts = { audience: audienceFinal, lang, escalated: escalate, autoreply_enabled: enabled, sent, llm_failed: llmFailed, faq_matches: ids.length, row_saved: rowSaved, provenance_verified: 1 };
     if (llmFailed) await logRun('error', counts, 'no model answered - the held notice was sent and the turn queued for the model');
     else if (enabled && !sent) await logRun('error', counts, 'reply composed but Twilio refused to send: ' + (sendErr || 'unknown'));
@@ -1525,5 +1533,9 @@ async function handleInbound(req: Request): Promise<Response> {
         if (!h.error && (h.data?.length ?? 0) === 0) await admin.rpc('fn_wa_arrival_turn_finished', { p_wa_message_id: arrivalId });
       } catch (_e) { /* the sweep will escalate it: noisy, never silent */ }
     }
+    // The review of a decision (started beside the reply) is filed even when the turn threw after it started.
+    try {
+      await reviewP;
+    } catch (_e) { /* fileReviewRequest never throws; a lost review row must never cost the turn */ }
   }
 }

@@ -24,6 +24,7 @@ export interface SayRequest {
   must?: string[];              // text the reply must carry exactly (a job number, a case reference)
   signal?: AbortSignal;         // a speculative draft that was discarded: abort it
   extraCheck?: (text: string) => string[];   // the turn's own rule: a draft it names a problem in is rewritten, never sent
+  situationAnswers?: boolean;   // the facts alone say what to tell them (a person is needed): the brief-less last chance may run
 }
 // A VOICE NOTE REPLY NEVER ASKS FOR A DOCUMENT (customer_support, 3 Nov 2026). Measured on the real exchange on main
 // (run 41528725657, after f6dcbe7d): the voice turn came after four licence/file turns in the same chat, the model saw them
@@ -74,7 +75,10 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
     // one could, it is asked ONCE more, bounded by LAST_CHANCE_MS: the rules and this turn's facts without the ~140k-token
     // brief (a few seconds), the refused drafts' problems named, every check unchanged. Still model-written (1195-1197, 1339).
     // Not for a speculative draft (signal) and not in an outage (the held notice owns that). Prevented by: model_says.test.ts.
-    if (!String(out.reply || '').trim() && !out.outage && !r.signal) {
+    // ONLY WHEN THE FACTS ALONE ANSWER THE TURN (review of #1816): without the brief a company question ("how do you vet
+    // suppliers?") could only be answered from memory, so the caller opts in (situationAnswers) for a turn whose facts say what
+    // happens, a person being needed above all, and the brief-less prompt says nothing about the company beyond its facts.
+    if (r.situationAnswers === true && !String(out.reply || '').trim() && !out.outage && !r.signal) {
       const last = await ask(Date.now() + LAST_CHANCE_MS, { briefInPrompt: false, priorProblems: out.problems });
       attempts = [...attempts, ...last.attempts.map((a) => 'last-chance ' + a)];
       if (String(last.reply || '').trim()) out = last;
