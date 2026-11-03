@@ -397,7 +397,10 @@ Deno.test('wiring: index.ts builds the campaign email with campaignMail on BOTH 
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assert(/const \{ subject: mSubject, text: mBody, bad \} = await campaignFor\(n\);/.test(src), 'the Microsoft 365 lane no longer uses campaignMail');
   assert(/const camp = supplierSide && isLaneType\(n\.type\) \? await campaignFor\(n\) : null;/.test(src), 'the Resend fallback no longer uses campaignMail');
-  assert(/camp\s*\? resendPayload\(\{ from, to: n\.to_email, reply, subject: camp\.subject, html: '', text: camp\.text, unsub,/.test(src), 'the fallback no longer sends the campaign text without HTML');
+  // 3 Nov 2026 (marketing, open_tracking.ts): the fallback's html is '' unless this row is in the tracked share, and then it
+  // is only the HTML twin of the same text with one image (open_tracking.test.ts). Off, it is text-only exactly as before.
+  assert(/camp\s*\? resendPayload\(\{ from, to: n\.to_email, reply, subject: camp\.subject, html: campHtml, text: camp\.text, unsub,/.test(src), 'the fallback no longer sends the campaign text without HTML');
+  assert(/const campHtml = camp \? await openHtmlFor\(n, camp\.text\) : '';/.test(src), 'the fallback html comes from somewhere other than the open-tracking twin');
   assert(/return campaignMail\(n, /.test(src));
 });
 

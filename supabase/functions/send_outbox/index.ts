@@ -15,6 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, isStale, ownsChannel, STALE_CEILING_H } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
+import { invitationHtml, openShare, openTracks, pixelBase, pixelUrl } from './open_tracking.ts';
 import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, conversationReplyTo, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, paceM365, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
@@ -34,7 +35,7 @@ export const OUTBOX_KEYS = ['unsubscribe_signing_key', 'email_enabled', 'supplie
   'resend_api_key', 'email_from_supplier', 'email_from_info', 'email_reply_supplier', 'email_reply_supplier_docs',
   'email_reply_info', 'email_logo_url', 'unsubscribe_public_base', 'email_asset_public_base', 'email_signature_name',
   'email_signature_name_ar', 'email_signature_title', 'invite_preheader', 'daily_send_cap', 'invite_lane_enabled',
-  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox'];
+  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox', 'invite_open_tracking'];
 let secCache: Map<string, string | undefined> | null = null;
 async function warmSecrets() {
   secCache = null;
@@ -253,6 +254,19 @@ Deno.serve(observe('send_outbox', async (req) => {
       // company and a fire-safety trainer were asked about their "civil works work". GlockApps tested the neutral wording.
       return campaignMail(n, { company: (lead as any)?.company_name ?? undefined });
     };
+    // THE INVITATION OPEN (3 Nov 2026, marketing; open_tracking.ts). Share 0 / 'off' or no first-party base: no call, and
+    // the email is exactly the untracked one. Otherwise the database picks the arm and the token; a failed call or no
+    // token sends the untracked email (an open is never worth a held invitation).
+    const openPct = openShare(await setting('invite_open_tracking'));
+    const openBase = pixelBase(unsubBase);
+    const openHtmlFor = async (n: { id: number; type?: unknown; kind?: unknown; to_role?: unknown; lang?: unknown }, text: string): Promise<string> => {
+      if (!openPct || !openBase || !openTracks(n)) return '';
+      try {
+        const { data, error } = await admin.rpc('fn_invite_open_token', { p_notification_id: n.id });
+        const pixel = error ? '' : pixelUrl(openBase, data);
+        return pixel ? invitationHtml(text, pixel) : '';
+      } catch { return ''; }
+    };
     for (const n of rows) {
       // WHATSAPP ROWS EATEN 27 Jul 2026 - the select above pulls every queued row of EVERY channel but
       // this line excluded only 'sms', and the next line marks any row with no to_email as 'skipped'.
@@ -319,8 +333,9 @@ Deno.serve(observe('send_outbox', async (req) => {
         // Resend fallback below); only the seed keeps its (ref QD…) token.
         const { subject: mSubject, text: mBody, bad } = await campaignFor(n);
         if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 invitation copy rule failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
+        const mHtml = await openHtmlFor(n, mBody);
         const now = new Date(); const mid = messageIdFor(n.id, now);
-        const mime = m365Mime({ from: M365_FROM_NAME + ' <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
+        const mime = m365Mime({ from: M365_FROM_NAME + ' <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now, html: mHtml });
         try {
           const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
           if (r.ok) {
@@ -374,6 +389,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       // founder would read "here is this week's report", find no report, and have no way to tell
       // that from a report saying nothing happened. Failing the row keeps it queued for retry and
       // records why in last_error.
+      const campHtml = camp ? await openHtmlFor(n, camp.text) : '';
       const att = await resolveAttachments(n.attachments);
       if (!att.ok) {
         lastErr = att.err.slice(0, 200);
@@ -385,7 +401,7 @@ Deno.serve(observe('send_outbox', async (req) => {
         // the body, the footer and the unsubscribe URL in the recipient's language.
         // payload.ts builds it (22 Sep 2026) so the exact message can be rendered and inbox-linted offline.
         const mail: Record<string, unknown> = camp
-          ? resendPayload({ from, to: n.to_email, reply, subject: camp.subject, html: '', text: camp.text, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX })
+          ? resendPayload({ from, to: n.to_email, reply, subject: camp.subject, html: campHtml, text: camp.text, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX })
           : resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
           // The mailto half goes to the mailbox resend_inbound reads (_shared/unsubscribe_mailbox.ts), not to
           // the reply-to address.

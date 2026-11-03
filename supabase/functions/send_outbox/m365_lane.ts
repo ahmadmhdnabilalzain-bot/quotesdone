@@ -390,14 +390,23 @@ export function qpEncode(text: string): string {
   }).join('\r\n');
 }
 
-/** The whole message as MIME (base64, as sendMail's text/plain mode wants it). An empty reply writes no Reply-To. */
-export function m365Mime(o: { from: string; to: string; reply: string; subject: string; text: string; unsub: string; unsubMailto: string; messageId: string; now: Date }): string {
+/** The whole message as MIME (base64, as sendMail's text/plain mode wants it). An empty reply writes no Reply-To.
+ *  `html` (3 Nov 2026, open_tracking.ts): absent or '' = the plain-text message exactly as before; otherwise
+ *  multipart/alternative with the SAME text part first and the HTML twin second (RFC 2046 5.1.4: last part preferred). */
+export function m365Mime(o: { from: string; to: string; reply: string; subject: string; text: string; unsub: string; unsubMailto: string; messageId: string; now: Date; html?: string }): string {
   const lines = [
     `From: ${clean(o.from)}`, `To: ${clean(o.to)}`, ...(clean(o.reply) ? [`Reply-To: ${clean(o.reply)}`] : []), `Subject: ${hdr(clean(o.subject) || 'QuotesDone')}`,
     `Date: ${o.now.toUTCString()}`, `Message-ID: ${o.messageId}`, 'MIME-Version: 1.0',
   ];
   if (o.unsub) lines.push(`List-Unsubscribe: <${clean(o.unsub)}>, <mailto:${o.unsubMailto}?subject=unsubscribe>`, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click');
-  lines.push('Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(o.text));
+  const textPart = ['Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(o.text)];
+  if (!o.html) {
+    lines.push(...textPart);
+  } else {
+    const b = 'qd-alt-' + o.messageId.replace(/[^A-Za-z0-9]/g, '').slice(0, 48);
+    lines.push(`Content-Type: multipart/alternative; boundary="${b}"`, '', `--${b}`, ...textPart, `--${b}`,
+      'Content-Type: text/html; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(o.html), `--${b}--`, '');
+  }
   return b64(lines.join('\r\n'));
 }
 
