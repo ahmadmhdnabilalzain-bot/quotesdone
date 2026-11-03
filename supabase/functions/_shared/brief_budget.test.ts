@@ -94,6 +94,12 @@ Deno.test('the trade is the one the conversation is about, and passing words are
   assertEquals(conversationTrade('ابي صيانة مكيفات', kitchen), 'hvac', 'in Arabic too');
   assertEquals(conversationTrade('Also the floor tiles in the hall.', [...kitchen, 'And the tiles, is that possible?']), 'tiling', 'a trade named in two of the last three turns takes over');
   assertEquals(conversationTrade('How long will it take?', kitchen), 'kitchens', 'no trade in the message: the established one');
+  // the fourth review's probes: a question that asks, but about the job in hand
+  const k3 = ['I want new kitchen cabinets.', 'about 3 metres', 'white gloss'];
+  for (const q of ['how much is the kitchen if we add wall tiles?', 'how much is a kitchen with a granite top?', 'I want the cabinets to match the floor tiles',
+    'We need it to match the tiles', 'كم سعر المطبخ مع رخام؟'])
+    assertEquals(conversationTrade(q, k3), 'kitchens', q);
+  assertEquals(conversationTrade('We also need the bathroom plumbing redone', k3), 'plumbing', 'a request for another trade, alone in the message, takes over');
   for (const [q, t] of [['I need a sign for my shop', 'signage'], ['a sign with LED letters', 'signage'], ['we need signs for the office', 'signage'], ['عندنا مشكلة والنش في السقف', 'waterproofing']] as const)
     assertEquals(conversationTrade(q), t, q);
   assertEquals(conversationTrade('عندي البق في الشقة'), 'pest', 'the article form still matches');

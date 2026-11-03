@@ -19,7 +19,7 @@
 // held under BRIEF_TOKEN_CAP by construction: the FAQ takes what is left, and a pack that does not fit is left out.
 // prevented by: _shared/company_brief.test.ts, _shared/brief_budget.test.ts, scripts/checks/every_brief_line_reaches_a_reply.test.mjs
 import { BRIEF_PACKS, BRIEF_PART_IDS, BRIEF_PART_TEXT, BRIEF_SUPPLIER, BRIEF_TEXT } from './brief.generated.ts';
-import { normalise, tradeIn } from './conversation_trade.ts';
+import { normalise, TRADE_WORDS, tradeIn } from './conversation_trade.ts';
 
 /** Estimated Sonnet tokens (scripts/kb/compile_brief.mjs approxTokens, calibrated on production 3 Nov 2026: the cheapest
  *  wa_inbound call's whole old prompt was 139,874 tokens; this formula gives 142,228, about 2% high, on purpose). */
@@ -44,12 +44,27 @@ export const KNOWLEDGE_TEXT = [BRIEF_TEXT, BRIEF_SUPPLIER, ...BRIEF_PART_TEXT].j
  *  kitchen job's pack; "the first named wins" kept a returning customer's kitchen pack for a new AC job; a vote by weight
  *  failed the first case again when the job's later turns name no trade ("about 3 metres", "white gloss"). So:
  *    - the ESTABLISHED trade is the one the person's last TRADE_WINDOW turns name most often (a tie: the more recent);
- *    - the message's trade replaces it when the message ASKS for that trade ("I need a quote for AC servicing", أبي...),
- *      or when the same trade is named in two of the last three turns, the message included;
+ *    - a message that still names the established trade keeps it ("how much is the kitchen if we add wall tiles?");
+ *    - otherwise the message's trade replaces it when the message ASKS for that trade and names no other ("I need a
+ *      quote for AC servicing", أبي...; not "we need it to match the tiles"), or when that trade is named in two of the
+ *      last three turns, the message included;
  *    - nothing named anywhere: the trade the caller's facts name.
  *  `earlier` is the person's own turns, oldest first. */
 export const TRADE_WINDOW = 12;
 const ASKS = /\b(?:i|we)\s+(?:also\s+|now\s+|still\s+)?(?:need|want|would like|require|am looking for|are looking for)\b|\b(?:need|want)s?\s+(?:a|an|to|new|some)\b|\bquote for\b|\blooking for\b|\bhow much (?:is|for|does|to)\b|(?<![\p{L}])(?:و)?(?:ابي|ابغي|اريد|نبي|نبغي|نريد|احتاج|نحتاج|محتاج|محتاجين|ودي|بدي)(?![\p{L}])/u;
+// a trade word right after one of these is a comparison, not a request ("match the tiles", "like a glass splashback")
+const COMPARED = /\b(?:match|matching|matches|like|as|same|similar|with|than|plus|add|adding)\b(?:\s+\S+){0,2}\s*$|(?:مثل|زي|نفس|مع|يناسب|يطابق)(?:\s+\S+){0,2}\s*$/u;
+/** Whether `message` ASKS for `code` and names no other trade: the request words come before the trade's word, and that
+ *  word is not part of a comparison. "We need it to match the tiles" asks for no tiling. */
+function asksFor(message: string, code: string): boolean {
+  const n = normalise(message);
+  const named = new Set(TRADE_WORDS.filter(([k, re]) => hasPack(k) && re.test(n)).map(([k]) => k));
+  if (named.size !== 1) return false;
+  const m = TRADE_WORDS.filter(([k]) => k === code).map(([, re]) => n.match(re)).find(Boolean);
+  if (!m || m.index === undefined) return false;
+  const before = n.slice(0, m.index);
+  return ASKS.test(before) && !COMPARED.test(before);
+}
 export function conversationTrade(message: string, earlier: string[] = [], facts?: string | null): string | null {
   const past = earlier.slice(-TRADE_WINDOW).map((t) => tradeIn([t], hasPack));
   const now = tradeIn([message], hasPack);
@@ -58,8 +73,12 @@ export function conversationTrade(message: string, earlier: string[] = [], facts
   let established: string | null = null; let top = { n: 0, last: -1 };
   for (const [k, c] of count) if (c.n > top.n || (c.n === top.n && c.last > top.last)) { established = k; top = c; }
   if (!now) return established ?? tradeIn([facts], hasPack);
-  if (!established || now === established || ASKS.test(normalise(message))) return now;
-  return past.slice(-2).filter((k) => k === now).length >= 1 ? now : established;
+  if (!established || now === established) return now;
+  // the message still names the established trade ("how much is the kitchen if we add wall tiles?"): it stays
+  const n = normalise(message);
+  if (TRADE_WORDS.some(([k, re]) => k === established && re.test(n))) return established;
+  if (asksFor(message, now)) return now;
+  return past.slice(-2).includes(now) ? now : established;
 }
 
 /** The published price guide with a pack: its heading and notes, the lines of the pack's trade family, and the lines of
