@@ -8,7 +8,7 @@ import { siteReturnBase, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
-import { payReveal, priceToken, type StripeCall } from './element_pay.ts';
+import { checkoutSessionKey, payReveal, priceToken, type StripeCall } from './element_pay.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
 import { canReveal } from '../_shared/reveal_guard.ts';
 import { readRevealRate, recordRateUnreadable } from '../_shared/reveal_rate.ts';
@@ -19,7 +19,7 @@ async function secret(k: string) { const { data } = await admin.from('app_secret
 // 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
 // and NO cap. This is the amount Stripe charges, so it computes the standard rate and nothing else, the
 // same as public.reveal_fee(); pricing_config forbids a promo or a cap by constraint.
-function revealFee(amount: number, cfg: any): number { if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg?.standard_reveal_rate) * 100) / 100; }
+function revealFee(amount: number, cfg: any): number { if (!amount || amount <= 0) return 0; return revealCharge(amount, Number(cfg?.standard_reveal_rate)).base_fee; }
 
 // Observability: a customer who cannot reach Stripe checkout is lost revenue with no trace.
 // Config and Stripe-side failures are logged as errors; auth rejections are not (normal traffic).
@@ -139,11 +139,18 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
           quoteId: qid, inquiryId: String(q.inquiry_id), supplierId: String(q.supplier_id),
           requestRef, letter, returnUrl: portal + '?reveal=' + encodeURIComponent(qid),
         });
-        const counts = { quote_id: qid, status: res.status, ...(res.priced ? { total: res.priced.charge.total_charged, basis: res.priced.basis.basis, card_country: res.priced.basis.card_country, wallet: res.priced.basis.wallet } : {}) };
+        // A second tab, or a second press after the first paid: nothing is charged again and the portal reveals
+        // what the first payment bought (the sale is recorded by that payment's own path).
+        if (res.status === 'already_paid') {
+          await logRun('ok', { quote_id: qid, already_paid: true, invoice: res.invoice }, 'element_pay on a quote this customer already paid: nothing charged again');
+          return J({ ok: true, status: 'succeeded', already_paid: true, invoice: res.invoice, ...res.priced.charge, total_fils: Math.round(res.priced.charge.total_charged * 100) });
+        }
+        const counts = { quote_id: qid, status: res.status, ...(res.priced ?{ total: res.priced.charge.total_charged, basis: res.priced.basis.basis, card_country: res.priced.basis.card_country, wallet: res.priced.basis.wallet } : {}) };
         if (res.status === 'succeeded') {
           const sale = await recordRevealSale(admin, { quoteId: qid, customerId: String(cust.id), baseFee: res.priced.charge.base_fee,
             processingFee: res.priced.charge.processing_fee, totalCharged: res.priced.charge.total_charged, paymentRef: res.payment_intent, invoiceId: res.invoice });
-          await logRun('error' in sale ? 'error' : 'ok', { ...counts, invoice: res.invoice, sale }, 'error' in sale ? 'PAID BUT NOT RECORDED by element_pay - stripe_webhook invoice.paid will retry: ' + sale.error : '');
+          await logRun('error' in sale || sale.other_payment ? 'error' : 'ok', { ...counts, invoice: res.invoice, sale }, 'error' in sale ? 'PAID BUT NOT RECORDED by element_pay - stripe_webhook invoice.paid will retry: ' + sale.error
+            : sale.other_payment ? 'SECOND PAYMENT FOR A REVEALED QUOTE - filed as reveal:second_payment:' + sale.other_payment : '');
         } else {
           await logRun(res.status === 'failed' ? 'error' : 'ok', counts, res.status === 'failed' ? 'element payment failed: ' + res.error : '');
         }
@@ -233,8 +240,16 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     form.set('payment_intent_data[metadata][quote_id]', qid);
     // The card statement reads QUOTESDONE* <suffix> (_shared/statement_descriptor.ts).
     form.set('payment_intent_data[statement_descriptor_suffix]', revealDescriptorSuffix(requestRef));
-    const r = await timedFetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+    // ONE SESSION PER QUOTE AND CUSTOMER FOR A DAY (3 Nov 2026, accountant, gap #7): two tabs pressing "reveal"
+    // get the SAME hosted session, and a Checkout Session can be paid once. Before, each press made a new session
+    // and each could be paid. Stripe keeps a key 24 hours, the life of a session.
+    const r = await timedFetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded',
+      'Idempotency-Key': checkoutSessionKey(qid, String(cust.id), Math.round(ch.total_charged * 100)) }, body: form.toString() });
     const sj = await r.json();
+    if (!r.ok && (r.status === 409 || sj?.error?.type === 'idempotency_error')) {
+      await logRun('ok', { quote_id: qid, payment_in_progress: true, http: r.status }, 'a reveal checkout for this quote is already open in another window');
+      return J({ ok: false, error: 'payment_in_progress', code: 'payment_in_progress', message: 'A payment for this supplier is already open in another window. Finish it there, or try again in a minute.', message_ar: 'هناك عملية دفع لهذا المورّد مفتوحة في نافذة أخرى. أكملها هناك أو حاول مجددًا بعد دقيقة.' }, 409);
+    }
     if (!r.ok) { await logRun('error', { quote_id: qid, fee, http: r.status }, 'stripe session create failed: ' + String(sj?.error?.message || '').slice(0, 250)); return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502); }
     await logRun('ok', { quote_id: qid, fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, session: String(sj?.id || '') }, '');
     return J({ ok: true, url: sj.url, fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });

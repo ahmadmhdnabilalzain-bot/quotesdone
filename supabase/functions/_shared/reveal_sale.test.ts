@@ -36,6 +36,38 @@ Deno.test('an existing sale without a reference gets it; one with a reference ke
   assertEquals(b.writes.length, 0);
 });
 
+// 3 Nov 2026 (gap #7): two tabs, two succeeded PaymentIntents, one quote. The second came back "already recorded"
+// and nothing named it; now it is other_payment and a finding keyed on that payment (before: no rpc, no flag).
+Deno.test('a second, different payment for a recorded sale is flagged for refund, never merged', async () => {
+  const a: any = fakeAdmin({ id: 'tx1', stripe_invoice_id: 'in_FIRST', payment_ref: 'pi_first' });
+  const calls: any[] = []; a.rpc = async (fn: string, p: any) => { calls.push({ fn, p }); return { data: null }; };
+  const r: any = await recordRevealSale(a, { ...args, paymentRef: 'pi_second', invoiceId: 'in_SECOND' });
+  assertEquals([r.id, r.created, r.other_payment], ['tx1', false, 'pi_second']);
+  assertEquals(calls.map((c) => [c.fn, c.p.p_issue_key]), [['fn_it_engineer_finding_upsert', 'reveal:second_payment:pi_second']]);
+  assertEquals(a.writes.length, 0);
+  // The SAME payment delivered again is the same sale: no flag.
+  const b: any = fakeAdmin({ id: 'tx1', stripe_invoice_id: 'in_FIRST', payment_ref: 'pi_x' });
+  const r2: any = await recordRevealSale(b, args);
+  assertEquals([r2.created, r2.other_payment], [false, undefined]);
+});
+
+// A racing delivery loses the unique insert: it answers with the winner's row, not an error (webhook answered 500).
+Deno.test('an insert that loses the race reads the winner and is not an error', async () => {
+  let reads = 0;
+  const a: any = fakeAdmin();
+  const base = a.from;
+  a.from = (t: string) => {
+    const c = base(t);
+    if (t === 'transactions') {
+      c.maybeSingle = async () => (reads++ === 0 ? { data: null } : { data: { id: 'txW', payment_ref: 'pi_x' } });
+      c.insert = () => ({ select: () => ({ single: async () => ({ data: null, error: { message: 'duplicate key value violates unique constraint "transactions_quote_id_uidx"' } }) }) });
+    }
+    return c;
+  };
+  const r: any = await recordRevealSale(a, args);
+  assertEquals([r.id, r.created, r.error], ['txW', false, undefined]);
+});
+
 Deno.test('something that is not a Stripe invoice id is never stored', async () => {
   const a = fakeAdmin();
   await recordRevealSale(a, { ...args, invoiceId: 'pi_notaninvoice' });
