@@ -63,6 +63,8 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+/** Twilio codes that mean the recipient opted out of our messages (21610: replied STOP). Final, and never failed over. */
+const OPTED_OUT_CODES = new Set(['21610']);
 
 // Observability -------------------------------------------------------------
 const T0 = Date.now();
@@ -412,7 +414,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     if (claimErr) { await logThrottled('claim_failed', 10, 'error', {}, 'could not claim the WhatsApp queue: ' + claimErr.message); return J({ ok:false, error: claimErr.message }); }
     for (const n of (rows || []) as WaRow[]) claimedIds.push(n.id);
     const staleH = Number(await sec('wa_stale_hours') || 24);
-    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0, fellBack=0, unconfirmed=0; let lastErr=''; const unmappedTypes = new Set<string>();
+    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0, fellBack=0, unconfirmed=0, retrying=0; let lastErr=''; const unmappedTypes = new Set<string>();
     const fallbackOutcomes = new Set<string>();
     let smsFailover = 0;
     // The notice goes by SMS instead. Founder rows keep their own email fallback (fn_wa_founder_alert_fallback).
@@ -579,11 +581,16 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       const verdict = res.ok ? null : twilioVerdict(res.code);
       // an unknown rejection is retried a bounded number of times, then falls through to 'failed' below
       const tries = Number((n as { attempts?: number }).attempts || 0) + 1;
+      // NOT A TEMPLATE PROBLEM (3 Nov 2026, it_engineer, drill D5). This branch counted the row into `requeued`, which arms
+      // the templates_not_ready line, so a Twilio 503 with no error object was logged as "the matching template is missing or
+      // still awaiting Meta approval": the row said the truth, the run line customer_support reads blamed Meta. Measured in
+      // the drill: one 503 tick, one such line. It is counted in `retrying` and logged with its own reason below.
+      // prevented by: send_whatsapp/drill_twilio_faults.test.ts
       if (verdict === 'unknown' && tries < UNKNOWN_RETRY_CAP) {
         lastErr = 'rejected with no Twilio error code, retry ' + tries + '/' + UNKNOWN_RETRY_CAP + ': ' + String(res.error || '').slice(0, 160);
         await admin.from('notifications').update({ attempts: tries, last_error: lastErr.slice(0, 500) }).eq('id', n.id);
         if (await tryFallback(n, lastErr)) continue;
-        skipped++; requeued++; continue;
+        skipped++; retrying++; continue;
       }
       if (verdict === 'not_yet') {
         lastErr = 'template not usable yet (Twilio ' + res.code + '): ' + String(res.error || '').slice(0, 160);
@@ -602,8 +609,16 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         // class of lying counter this version exists to remove.
         if (await tryFallback(n, 'Twilio rejected the WhatsApp send: ' + lastErr)) continue;
       }
+      // THE PERSON SAID STOP (3 Nov 2026, it_engineer, drill D5). Twilio 21610 is "attempt to send to unsubscribed
+      // recipient": they replied STOP to us. The failover below then queued the same notice by SMS, so the one thing the
+      // person asked for was answered with a message on another channel (measured in the drill: one 21610, one SMS twin,
+      // and the failed-row scan would have twinned it again on any later tick had the first twin failed). A refusal of
+      // this kind is final: the row is failed with the reason, the code is stamped where that scan reads it, no twin.
+      // The founder's own rows are untouched (they go to email above). prevented by: send_whatsapp/drill_twilio_faults.test.ts
+      const optedOut = !res.ok && OPTED_OUT_CODES.has(String(res.code ?? ''));
+      if (optedOut) res.error = 'the recipient has opted out of our messages (Twilio ' + res.code + ', they replied STOP); not followed to SMS: ' + String(res.error || '');
       // One failed WhatsApp send: the row is recorded 'failed' below, then the same notice goes once by SMS.
-      const smsAfter = !res.ok && !isFounderRow(n);
+      const smsAfter = !res.ok && !isFounderRow(n) && !optedOut;
       // THE SID IS THE PROOF (21 Sep 2026). Measured: 24 of 24 WhatsApp rows marked 'sent' since 18 Sep
       // carried provider_message_id NULL, so every founder alert's WhatsApp twin came back to the
       // delivery watch as 'sent_unconfirmed', was escalated to the CEO as "did not arrive", and reached
@@ -612,7 +627,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // stored where the outbox stores Resend's id, so a WhatsApp send is confirmed or failed, never
       // unconfirmed.
       await admin.from('notifications').update({ status: res.ok?'sent':'failed', sent_at: res.ok?new Date().toISOString():null,
-        provider_message_id: res.ok ? (res.sid || null) : null,
+        provider_message_id: res.ok ? (res.sid || null) : null, ...(optedOut ? { provider_error_code: String(res.code) } : {}),
         last_error: res.ok?null:String(res.error||'').slice(0,500) }).eq('id', n.id);
       if (res.ok) { sent++; budget--; } else { failed++; lastErr = String(res.error || '').slice(0, 200); }
       if (smsAfter) await toSms(n, 'Twilio rejected the WhatsApp send: ' + String(res.error || '').slice(0, 200));
@@ -626,6 +641,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       .or('last_error.is.null,last_error.not.ilike.*' + FAILOVER_MARK.replace(/[^a-z ]/g, '') + '*').limit(25);
     for (const n of (lateFails || []) as (WaRow & { provider_error_code?: string | null })[]) {
       if (isFounderRow(n) || routeFor(health, normPhone(String(n.to_phone || ''))) === 'suppress') continue;
+      if (OPTED_OUT_CODES.has(String(n.provider_error_code ?? ''))) continue;   // they said STOP: see optedOut above
       await toSms(n, 'WhatsApp reported the message failed' + (n.provider_error_code ? ' (Twilio ' + n.provider_error_code + ')' : ''));
     }
     if (smsFailover) await logRun('ok', { signal: 'sms_failover', sms_failover: smsFailover, whatsapp_healthy: health.healthy },
@@ -649,6 +665,8 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     // Templates not approved yet + a growing queue is the quiet failure worth surfacing. `requeued`
     // now counts ONLY rows a template blocked: a row held by the daily or per-recipient cap is
     // counted in `capped` alone, so this signal can no longer accuse Meta of the cap's work.
+    if (retrying) await logThrottled('twilio_unknown_retry', 60, 'error', { retrying, cap: UNKNOWN_RETRY_CAP },
+      retrying + ' WhatsApp message(s) were refused by Twilio with no error code and stay queued for a bounded retry (at most ' + UNKNOWN_RETRY_CAP + ' tries, then failed and sent once by SMS). Last: ' + lastErr);
     if (requeued) await logThrottled('templates_not_ready', 60, 'error', { requeued, pending: (rows||[]).length },
       requeued + ' WhatsApp notification(s) cannot be sent yet because the matching template is missing or still awaiting Meta approval. They stay queued and are rescanned every run, so this backlog will keep growing until the template SIDs are live.');
     if (unmapped) await logThrottled('unmapped_type', 60, 'error', { unmapped, types: [...unmappedTypes] },
@@ -663,7 +681,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     else if (heldStale) await logRun('ok', { sent, failed, skipped, held_stale: heldStale, templates_ready: ready },
       heldStale + ' WhatsApp message(s) were held as stale: older than ' + staleH + 'h when the queue was drained. They are retained, not sent — an alert that old describes a situation that has probably changed.');
     else if (sent || (skipped && !requeued)) await logRun('ok', { sent, failed, skipped, templates_ready: ready }, '');
-    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, unconfirmed, fell_back: fellBack, sms_failover: smsFailover, whatsapp_healthy: health.healthy,
+    return J({ ok:true, sent, failed, skipped, requeued, retrying, unmapped, capped, unconfirmed, fell_back: fellBack, sms_failover: smsFailover, whatsapp_healthy: health.healthy,
                fallback_outcomes: [...fallbackOutcomes], held_founder: heldFounder, held_stale: heldStale,
                cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
   } catch (e) { const m = String((e as Error)?.message||e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
