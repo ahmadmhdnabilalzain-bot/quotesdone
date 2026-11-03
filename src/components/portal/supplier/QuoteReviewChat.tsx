@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { srvMsg } from './serverCopy';
 import { failed, fileToBase64, openPdf as openPdfUrl, qr, REVIEW_STATE, type Issue, type Lang, type MessageView, type ThreadView } from './quoteReviewApi';
+import { awaitingReply } from './awaitingReply';
 import { photoToDataUrl } from '@/lib/chatPhoto';
 import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { Ltr } from '@/lib/Ltr';
@@ -177,6 +178,18 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
     const h = setInterval(async () => { const n = ++seq.current; adopt(await qr.thread(token, inquiryId, lang), n); }, 2000);
     return () => clearInterval(h);
   }, [th, busy, token, inquiryId, lang, adopt]);
+
+  // THE ENGINEER'S ANSWER CAN ARRIVE AFTER THE SEND (3 Nov 2026). A turn the model did not answer is held and re-asked
+  // (_shared/reask.ts), and the re-ask posts the answer into this thread about a minute later - but nothing polled
+  // unless a review was running, so the supplier saw no answer until they reloaded (branch nightly 41623020490: "the
+  // engineer never answered the typed prices"). While the last message is the supplier's and under 5 minutes old, the
+  // thread is read again every 4 s. Prevented by: src/components/portal/supplier/awaitingReply.test.mjs.
+  const waitingFor = awaitingReply(th);
+  useEffect(() => {
+    if (!waitingFor || busy) return;
+    const h = setInterval(async () => { const n = ++seq.current; adopt(await qr.thread(token, inquiryId, lang), n); }, 4000);
+    return () => clearInterval(h);
+  }, [waitingFor, busy, token, inquiryId, lang, adopt]);
 
   const count = th ? th.messages.length : 0;
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, [count, busy]);

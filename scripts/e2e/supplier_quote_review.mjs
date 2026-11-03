@@ -214,10 +214,20 @@ async function drive(browser, run, supplier, inquiryId, lang, viewport) {
     step(name('complete quotation: approved for submission, no point left open'), !openOf(p2).length, `open: ${openOf(p2).map((r) => r.code).join(', ') || 'none'}`);
     await shot('07_approved_choice');
 
+    // "Generate it for me" PREVIEWS the standardised quotation and waits in ready_to_submit for the supplier's own Submit
+    // (supplier_api quote_review_flow.ts decide, SP-F-07 since 22 Sep 2026: nothing goes out in the supplier's name
+    // unseen). This journey pressed Generate and waited for "Submitted", which only Submit produces: branch run
+    // 41623020490 timed out there on both devices once the earlier waits were fixed.
+    const quoteRows = () => read(`select id, status, quote_amount, source from public.quotes where inquiry_id = ${q(inquiryId)} and supplier_id = ${Number(supplier.leadId)}`);
+    const said3 = await engineer.count();
     await chat.getByRole('button', { name: L('Generate it for me', 'أعدّه لي') }).click();
+    await badge('Approved — ready to submit').waitFor({ timeout: 90000 });
+    await spoke(said3 + 1);
+    step(name('Generate shows the quotation first and nothing is submitted before Submit'), (await quoteRows()).every((r) => r.status !== 'submitted'));
+    await chat.getByRole('button', { name: `Submit to Job ${job}`, exact: true }).click();
     await chat.getByText(L('Submitted to the job.', 'قُدّم العرض إلى الطلب.')).first().waitFor({ timeout: 90000 });
     await shot('08_submitted');
-    const qs = await read(`select id, status, quote_amount, source from public.quotes where inquiry_id = ${q(inquiryId)} and supplier_id = ${Number(supplier.leadId)}`);
+    const qs = await quoteRows();
     for (const r of qs) run.ids.quotes.add(r.id);
     step(name('submitted through submit_quote: the quote is with the customer'), qs.some((r) => r.status === 'submitted'), JSON.stringify(qs.map((r) => ({ status: r.status, amount: Number(r.quote_amount), source: r.source }))));
     const errs = realErrors(consoleErrors);
