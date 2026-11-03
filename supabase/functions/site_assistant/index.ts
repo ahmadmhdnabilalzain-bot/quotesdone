@@ -22,7 +22,7 @@
 // v12: A VISITOR GETS GENERAL ANSWERS AND THE WAY TO SIGN UP (founder ruling 18 Oct 2026, visitor_scope.ts). No inquiry
 //     is collected on the homepage; a real need is sent to sign up; a server-side cap per conversation and IP.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { langOf, replyLanguageProblems, turnLang, type FaqRow } from '../_shared/chat_answers.ts';
+import { langOf, turnLang, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { givenTradeKnowledge, givenBlock } from '../_shared/given_trade_knowledge.ts';
