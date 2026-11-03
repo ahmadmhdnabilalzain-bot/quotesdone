@@ -7396,5 +7396,8 @@
  ],
  "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
   "ac6c63ab5f9f"
+ ],
+ "supabase/functions/_shared/supplier_trade_choice.ts": [
+  "728be8b0e357"
  ]
 }

@@ -139,8 +139,11 @@ export function mergeChoices(rs: { trades: TradeChoice[]; rejected: { code: stri
   return { ok: true, trades, rejected: rs.flatMap((r) => r.rejected).filter((x) => !by.has(x.code)) };
 }
 
-/** Letters and digits only, lower case, one space: how a quote is found in the text it came from. */
-export const quoteKey = (s: string) => String(s ?? '').toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+/** Letters and digits only, lower case, one space: how a quote is found in the text it came from.
+ *  THE LAM-ALEF ORDER IS NOT EVIDENCE (3 Nov 2026, sales_engineer; document_reading_qualification, real profile C05): pdf.js gives the
+ *  ligature back swapped inside a word ("مقاوال" for "مقاولا"), the model quotes the word as written, and the quote was refused as
+ *  "not in the document" on 3 of 3 runs. The key reads both orders as one, on both sides; the stored quote is unchanged. */
+export const quoteKey = (s: string) => String(s ?? '').toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/لا/g, 'ال').trim();
 
 /** The JSON object of a model answer that holds `key`: code fences stripped, every {...} candidate tried from the last. */
 export function answerJson(content: string, key: string): Record<string, unknown> | null {

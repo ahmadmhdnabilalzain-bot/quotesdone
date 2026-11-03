@@ -183,3 +183,11 @@ Deno.test('a chunk the gateway cannot answer before its deadline is read in halv
     assert(seen.some((n) => n > 9000) && seen.some((n) => n <= 9000), 'a refused chunk was retried in halves');
   } finally { globalThis.fetch = was; }
 });
+
+Deno.test('a model quote of an Arabic word is found in text where pdf.js swapped its lam-alef (real profile C05: refused 3 of 3)', async () => {
+  const { checkChoice } = await import('./supplier_trade_choice.ts');
+  const text = 'وبصفتنا مقاوال رائدا في الهندسة والمشتريات والبناء\nخدماتنا\nأعمال المقاوالت العامة';
+  const r = checkChoice(JSON.stringify({ trades: [{ code: 'general_contracting', quotes: [{ text: 'أعمال المقاولات العامة', form: 'list_item' }], reason: 'listed' }] }), text, [{ code: 'general_contracting', label: 'General building contracting', services: [] }]);
+  assert(r.ok);
+  assertEquals(r.ok && r.trades.map((t) => t.code), ['general_contracting']);
+});
