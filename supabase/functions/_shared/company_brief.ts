@@ -9,21 +9,59 @@
 //   - every approved public FAQ in the asker's language (the published answers, capped).
 // It is sent as the gateway's sys_stable (the byte-stable, cacheable half of the system prompt) and is cached per
 // worker for BRIEF_TTL_MS, so a change to a FAQ or a price reaches the brief within that window.
-// ponytail: the FAQ section is capped at FAQ_CAP chars (≈ the first ~60 FAQs by id) to keep the brief near 8k tokens;
-// rank FAQs by how often they are asked if the cap starts cutting answers people need.
-// prevented by: _shared/company_brief.test.ts
-import { BRIEF_TEXT } from './brief.generated.ts';
+// ponytail: the FAQ section is capped at FAQ_CAP chars a language (≈ the first ~60 FAQs by id) and, since 3 Nov 2026, at
+// what BRIEF_TOKEN_CAP leaves; rank FAQs by how often they are asked if the cap starts cutting answers people need.
+// THE CORE AND ONE TRADE PACK (it_engineer, 3 Nov 2026; scripts/kb/compile_brief.mjs says what each holds). Measured
+// before, ai_cost_log 30 Oct-3 Nov: every reply carried all 32 knowledge files, 140-150k Sonnet prompt tokens a reply
+// (wa_inbound 1,450 calls, mean 144,310), USD 0.022-0.031 each. A reply now carries the core (~21k), the supplier how-to
+// only when a supplier reads it (~5k), and AT MOST ONE trade pack (7-10k) chosen here by code from the trade the
+// conversation names (tradeIn). With a pack, the price guide carries only that trade family's lines. The whole brief is
+// held under BRIEF_TOKEN_CAP by construction: the FAQ takes what is left, and a pack that does not fit is left out.
+// prevented by: _shared/company_brief.test.ts, _shared/brief_budget.test.ts, scripts/checks/every_brief_line_reaches_a_reply.test.mjs
+import { BRIEF_PACKS, BRIEF_PART_IDS, BRIEF_PART_TEXT, BRIEF_SUPPLIER, BRIEF_TEXT } from './brief.generated.ts';
+import { tradeIn } from './trade_words.ts';
 
-/** The text whose numbers the figure check accepts: the brief WITHOUT the authored knowledge block. Measured 13 Oct
- *  2026: with BRIEF_TEXT counted, "The reveal fee is 5%." passed the check, because the regulation digests state a
- *  5% VAT. Fees and prices come from the live sources (fn_company_context, fn_price_brief, FAQ); the knowledge block
- *  informs the answer but never licenses a money figure. */
-export const figureSource = (brief: string): string => brief.replace(BRIEF_TEXT, '');
+/** Estimated Sonnet tokens (scripts/kb/compile_brief.mjs approxTokens, calibrated on production 3 Nov 2026: the cheapest
+ *  wa_inbound call's whole old prompt was 139,874 tokens; this formula gives 142,228, about 2% high, on purpose). */
+export const approxTokens = (t: string): number => { const ar = (String(t).match(/[\u0600-\u06FF]/g) || []).length; return Math.ceil((String(t).length - ar) / 2.55 + ar / 1.9); };
+/** No reply path sends more brief than this (core, supplier part, pack, live company block, price guide, facts, FAQ). */
+export const BRIEF_TOKEN_CAP = 40_000;
 
-/** ONE CACHED PREFIX FOR EVERY LANGUAGE AND CHANNEL (13 Oct 2026, coordinator's option a). The knowledge block is the
- *  brief's FIRST part and identical for every caller, so it is sent as the gateway's sys_shared with its own cache
- *  breakpoint; the rest (company block, price guide, FAQ, the caller's facts) is sys_stable. Language rules live in the
- *  caller's sys, after both breakpoints. */
+const PART = new Map(BRIEF_PART_IDS.map((id, i) => [id, BRIEF_PART_TEXT[i]]));
+const PACKS = new Map(BRIEF_PACKS.map(([code, family, ...ids]) => [code, { family, text: ids.map((id) => PART.get(id) ?? '').join('\n\n') }]));
+const FAMILY = new Map<string, string[]>();
+for (const [code, family] of BRIEF_PACKS) FAMILY.set(family, [...(FAMILY.get(family) ?? []), code]);
+/** The trade pack of a category code ('' when it has none). */
+export const packOf = (trade?: string | null): string => (trade && PACKS.get(trade)?.text) || '';
+export const hasPack = (trade: string): boolean => PACKS.has(trade);
+/** Every trade playbook, for the portal's conversation plan (never sent as such). */
+export const PLAYBOOK_TEXT = BRIEF_PART_IDS.map((id, i) => (id.startsWith('conversation/') ? BRIEF_PART_TEXT[i] : '')).filter(Boolean).join('\n\n');
+/** Every compiled knowledge block: the core, the supplier part and every pack part. */
+export const KNOWLEDGE_TEXT = [BRIEF_TEXT, BRIEF_SUPPLIER, ...BRIEF_PART_TEXT].join('\n\n');
+
+/** The trade a reply's pack is for: the newest text that names one, the caller's order (the message, then earlier turns
+ *  newest first, then the facts). */
+export const conversationTrade = (texts: (string | null | undefined)[]): string | null => tradeIn(texts, hasPack);
+
+/** The published price guide with a pack: its heading and notes, the lines of the pack's trade family, and the lines of
+ *  any code that is no trade (fn_price_brief's `general` rows: MDF, plywood, cement and other materials, measured 3 Nov
+ *  2026), which any job may ask about. Only another trade's lines are left out. */
+export function pricesFor(guide: string, trade?: string | null): string {
+  const fam = trade ? FAMILY.get(PACKS.get(trade)?.family ?? '') : undefined;
+  if (!fam || !guide) return guide;
+  return guide.split('\n').filter((l) => { const c = l.match(/^- ([a-z]+(?:-[a-z]+)*):/)?.[1]; return !c || !PACKS.has(c) || fam.includes(c); }).join('\n');
+}
+
+/** The text whose numbers the figure check accepts: the brief WITHOUT the authored knowledge (the core, the supplier
+ *  part, the pack: every <<<FILE ...>>> block). Measured 13 Oct 2026: with the knowledge counted, "The reveal fee is
+ *  5%." passed the check, because the regulation digests state a 5% VAT. Fees and prices come from the live sources
+ *  (fn_company_context, fn_price_brief, FAQ); the knowledge informs the answer but never licenses a money figure. */
+export const figureSource = (brief: string): string => brief.replace(/<<<FILE knowledge\/brief\/[^>\n]*>>>[\s\S]*?<<<END>>>/g, '');
+
+/** ONE CACHED PREFIX FOR EVERY LANGUAGE AND CHANNEL (13 Oct 2026, coordinator's option a). The core is the brief's
+ *  FIRST part and identical for every caller, so it is sent as the gateway's sys_shared with its own cache breakpoint;
+ *  the rest (supplier part, trade pack, company block, price guide, FAQ, the caller's facts) is sys_stable, the same
+ *  bytes for every caller that names the same trade. Language rules live in the caller's sys, after both breakpoints. */
 export const BRIEF_SHARED = BRIEF_TEXT;
 export function splitBrief(brief: string): { shared: string; stable: string } {
   return brief.startsWith(BRIEF_TEXT) ? { shared: BRIEF_TEXT, stable: brief.slice(BRIEF_TEXT.length) } : { shared: '', stable: brief };
@@ -39,14 +77,15 @@ type Faq = { id?: unknown; question?: unknown; answer?: unknown; language?: unkn
 // as `blocks` — each is appended after the FAQ inside the same byte-stable, cacheable prefix. Its numbers become figures
 // the check accepts, so a block must hold published facts only.
 /** One language's published FAQ, by id, capped at FAQ_CAP (the same rows that language's asker always received). */
-function faqSection(faqs: Faq[], lang: 'en' | 'ar'): string {
+// faqTokens: the FAQ's share of BRIEF_TOKEN_CAP, per language (companyBrief); the first rows by id that fit are kept.
+function faqSection(faqs: Faq[], lang: 'en' | 'ar', faqTokens = Infinity): string {
   const mine = faqs.filter((f) => (f.language ?? 'en') === lang && f.question && f.answer)
     .sort((a, b) => Number(a.id ?? 0) - Number(b.id ?? 0));
-  let faq = '';
+  let faq = ''; let tokens = 0;
   for (const f of mine) {
     const line = `Q: ${String(f.question).trim()}\nA: ${String(f.answer).trim()}\n\n`;
-    if (faq.length + line.length > FAQ_CAP) break;
-    faq += line;
+    if (faq.length + line.length > FAQ_CAP || tokens + approxTokens(line) > faqTokens) break;
+    faq += line; tokens += approxTokens(line);
   }
   return faq.trim();
 }
@@ -54,10 +93,12 @@ function faqSection(faqs: Faq[], lang: 'en' | 'ar'): string {
 // lang 'all' (13 Oct 2026, #1407 review): ONE brief for every language that loses nothing. The Arabic FAQ is not a
 // provable translation of the English one (measured: 150 English rows, 152 Arabic, no shared id, section, sort or
 // source key), so both sections ride in the one brief, each exactly as its own asker received it before.
-export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; lang: 'en' | 'ar' | 'all'; blocks?: string[] }): string {
-  const faq = o.lang === 'all' ? faqSection(o.faqs, 'en') : faqSection(o.faqs, o.lang);
-  const faqAr = o.lang === 'all' ? faqSection(o.faqs, 'ar') : '';
+// knowledge: the compiled blocks that ride in the stable half before the live ones (the supplier part, the trade pack).
+export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; lang: 'en' | 'ar' | 'all'; blocks?: string[]; knowledge?: string[]; faqTokens?: number }): string {
+  const faq = o.lang === 'all' ? faqSection(o.faqs, 'en', o.faqTokens) : faqSection(o.faqs, o.lang, o.faqTokens);
+  const faqAr = o.lang === 'all' ? faqSection(o.faqs, 'ar', o.faqTokens) : '';
   return [
+    ...(o.knowledge ?? []).filter(Boolean),
     '# QUOTESDONE COMPANY BRIEF — everything you state about the company, its fees, terms, rules and contacts comes from here.',
     o.company.trim(),
     o.facts.trim(),
@@ -74,14 +115,19 @@ export function fnv1a(s: string): string {
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
   return h.toString(16) + ':' + s.length;
 }
+/** Who reads the reply and what it is about: the trade code chooses the one pack (null or unknown: none); a supplier
+ *  reader also gets the supplier how-to. */
+export interface BriefFor { trade?: string | null; supplier?: boolean }
 /** The brief, rebuilt from the live sources at most every BRIEF_TTL_MS per worker. ONE brief for every language
- *  (13 Oct 2026): the published FAQ in both languages, each as its asker always received it (FAQ_CAP each), and the
- *  model answers in the person's language, set by the caller's rules after the cache breakpoints. `_lang` is kept for callers. */
-export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 'en' | 'ar', blocks: string[] = [], now = Date.now()): Promise<string> {
+ *  (13 Oct 2026): the published FAQ in both languages, each as its asker always received it (FAQ_CAP each, inside what
+ *  BRIEF_TOKEN_CAP leaves), and the model answers in the person's language, set by the caller's rules after the cache
+ *  breakpoints. `_lang` is kept for callers. */
+export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 'en' | 'ar', blocks: string[] = [], now = Date.now(), o: BriefFor = {}): Promise<string> {
   const lang = 'all' as const;
+  const trade = o.trade && hasPack(o.trade) ? o.trade : null;
   // Keyed on the CONTENT (review of #1330): two callers whose facts or blocks differ only in wording never share a
   // brief. The FAQ list is the same live table for every caller; its edits reach the brief within BRIEF_TTL_MS.
-  const key = lang + ':' + fnv1a([facts, ...blocks].join('\u0001'));
+  const key = lang + ':' + (trade ?? '') + ':' + (o.supplier ? 's' : '') + ':' + fnv1a([facts, ...blocks].join('\u0001'));
   const hit = cache.get(key);
   if (hit && now - hit.at < BRIEF_TTL_MS) return hit.brief;
   // The company block and the PUBLISHED PRICE GUIDE (fn_price_brief: every price_benchmark range, read live), together.
@@ -89,12 +135,19 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 
   const read = async (fn: string, args: Record<string, unknown>) => { try { return (await rpc(fn, args)).data; } catch (_e) { return null; } };
   const [cc, pb] = await Promise.all([read('fn_company_context', { p_max_chars: 8000, p_audience: 'public' }), read('fn_price_brief', {})]);
   const company = String((cc as { block?: string } | null)?.block || '');
-  const prices = typeof pb === 'string' ? pb : '';
+  const guide = typeof pb === 'string' ? pb : '';
+  const supplier = o.supplier ? BRIEF_SUPPLIER : '';
+  // THE CAP BY CONSTRUCTION: the pack rides only if the core, the supplier part, the live blocks and the caller's facts
+  // leave it room (measured: only a supplier on the website chat, with its three FACTS blocks, leaves none); the FAQ then
+  // takes what is left, split evenly between its two languages.
+  const fixed = (k: string[], prices: string) => approxTokens([BRIEF_TEXT, ...k, company, facts, prices, ...blocks].join('\n\n')) + 200;   // 200: headings and joins
+  const withPack = trade ? [supplier, packOf(trade)] : [supplier];
+  const fits = !trade || fixed(withPack, pricesFor(guide, trade)) <= BRIEF_TOKEN_CAP;
+  const knowledge = fits ? withPack : [supplier];
+  const prices = fits ? pricesFor(guide, trade) : guide;
+  const faqTokens = Math.max(0, Math.floor((BRIEF_TOKEN_CAP - fixed(knowledge, prices)) / 2));
   // BRIEF_TEXT FIRST, byte-identical for every caller: splitBrief() hands it to the gateway as its own cached block.
-  const brief = BRIEF_TEXT + '\n\n' + composeBrief({ company, facts, faqs, lang, blocks: [prices, ...blocks].filter(Boolean) });
-  // BRIEF_TEXT (scripts/kb/compile_brief.mjs, sales_engineer, rulings 1195-1200): the authored company brief, the UAE
-  // regulation digests and every trade's conversation playbook, ~60k tokens, byte-stable, so it sits FIRST in the cached
-  // prefix for every caller (aiReply, site_assistant) instead of being passed by each one.
+  const brief = BRIEF_TEXT + '\n\n' + composeBrief({ company, facts, faqs, lang, knowledge, faqTokens, blocks: [prices, ...blocks].filter(Boolean) });
   cache.set(key, { at: now, brief });
   return brief;
 }

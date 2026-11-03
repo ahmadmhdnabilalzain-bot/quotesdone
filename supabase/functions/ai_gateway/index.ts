@@ -595,8 +595,10 @@ async function handle(req: Request): Promise<Response> {
     // the transcribe path there is no system prompt at all. Only prepend one when it says something,
     // and never when the caller already supplied its own system turn inside `messages`.
     const hasOwnSystem = convo.some((m) => m?.role === 'system');
-    // cache_history (chat_history.ts): the earlier turns of a long conversation are the third cached block.
-    const convoOut: Msg[] = (useCache && body.cache_history === true) ? withHistoryBreakpoint(convo, cacheTtl) as Msg[] : convo;
+    // cache_history (chat_history.ts): the earlier turns of a long conversation are the third cached block, on the
+    // DEFAULT 5-minute tier (3 Nov 2026): a conversation's history is read back within minutes or never, and the 1-hour
+    // tier writes at 2x against 1.25x. The brief blocks before it keep the 1-hour tier (system_message.ts).
+    const convoOut: Msg[] = (useCache && body.cache_history === true) ? withHistoryBreakpoint(convo, null) as Msg[] : convo;
     const outbound: Msg[] = (sysMsg && !hasOwnSystem) ? [sysMsg as Msg, ...convoOut] : convoOut;
 
     // 29 Jul 2026 - WALL DEADLINE. The ladder could run two models x two attempts x 25s, up to

@@ -43,7 +43,7 @@ import { acceptImages } from '../_shared/chat_images.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { accountKey, clientHistory, fitHistory, openConversation } from '../_shared/chat_history.ts';
 import { answerFromBrief } from '../_shared/brief_answer.ts';
-import { briefNumbers, companyBrief, figureSource } from '../_shared/company_brief.ts';
+import { briefNumbers, companyBrief, conversationTrade, figureSource } from '../_shared/company_brief.ts';
 import { aiSystem, replyProblems } from '../_shared/ai_reply.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
@@ -449,13 +449,15 @@ const plain = observe('sales_engineer', async (req) => {
       const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
       const pConvo = acct ? openConversation(admin, { account: acct }) : Promise.resolve({ key: '', turns: null, adopted: 0 });
       const rpc = async (f: string, args: Record<string, unknown>) => { const x = await admin.rpc(f, args); return { data: x.data, error: x.error }; };
-      const pBrief = companyBrief(rpc, [], '', lang);
       const pKey = sec('cred_fn_sales_engineer');
       // the conversation as stored (or, on its first turn, as the browser sent it), read once for the plan and the answer
       const pTurns = pConvo.then((c) => {
         const tr = c.turns && c.turns.length ? c.turns : clientHistory(body.history).filter((h, i, a) => !(i === a.length - 1 && h.role === 'user' && h.content === message));
         return tr.map((t) => ({ role: t.role === 'assistant' ? 'assistant' as const : 'user' as const, content: t.content }));
       });
+      // ONE TRADE PACK (company_brief.ts, 3 Nov 2026): the trade the message names, else the customer's newest turn that names one
+      const pBrief = pTurns.then((tr) => companyBrief(rpc, [], '', lang, [], undefined,
+        { trade: conversationTrade([message, ...tr.filter((t) => t.role === 'user').map((t) => t.content).reverse()]) }));
       // WHAT THE DETECTORS CANNOT READ (conversation_plan.ts, 27 Oct 2026): in a job conversation with must-haves still
       // open, a bounded json_extraction call reads the message beside the retrieval below, never past EXTRACT_BY_MS
       const pExtract = Promise.all([pTurns, pKey]).then(([tr, k]) => k ? extractSlots({ gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: k,

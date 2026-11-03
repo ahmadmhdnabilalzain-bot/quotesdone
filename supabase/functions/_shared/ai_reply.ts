@@ -16,7 +16,7 @@
 //     (openrouter_down.ts) — the only case a caller may send a code-written fallback (founder_instruction 1339).
 // Suppliers are always answered in English; everyone else in their language.
 // prevented by: _shared/ai_reply.test.ts
-import { briefNumbers, companyBrief, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
+import { briefNumbers, companyBrief, conversationTrade, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
 import { fitHistory } from './chat_history.ts';
 import { isOpenRouterDown } from './openrouter_down.ts';
@@ -60,9 +60,18 @@ export interface AiReplyRequest {
   effort?: 'low' | 'medium' | 'high'; // reasoning effort asked of the model
   signal?: AbortSignal;     // the caller no longer wants the answer (a discarded speculative draft): the call in flight is aborted and none starts
   extraCheck?: (text: string) => string[]; // the caller's own rules (the portal's plain-language gate, English for suppliers)
-  // false: the company brief (~140k tokens) is NOT sent, only the rules and the caller's facts; every draft is still checked
+  // false: the company brief (21-40k tokens since 3 Nov 2026; ~140k before) is NOT sent, only the rules and the caller's facts; every draft is still checked
   // against the brief. WhatsApp's last chance (model_says.ts) uses it: a short prompt answers in seconds, not 10-15 s.
   briefInPrompt?: boolean;
+  // THE ONE TRADE PACK (company_brief.ts, 3 Nov 2026): the category code the caller resolved for this conversation. Absent:
+  // read by code from the message, then the earlier turns of the other party (newest first), then the facts. null: none.
+  trade?: string | null;
+}
+/** The trade pack a reply carries: the caller's own, else the first of the message, the other party's turns newest
+ *  first, and the facts that names a trade with a pack. */
+export function replyTrade(r: Pick<AiReplyRequest, 'trade' | 'message' | 'conversation' | 'facts'>): string | null {
+  if (r.trade !== undefined) return r.trade;
+  return conversationTrade([r.message, ...(r.conversation ?? []).filter((t) => t.role !== 'seat').map((t) => t.text).reverse(), r.facts]);
 }
 /** outage: no call reached a model — every one failed with a network error, 5xx, timeout/deadline or an open circuit
  *  (openrouter_down.ts). Only then may a caller send its code-written fallback (founder_instruction 1339). */
@@ -201,7 +210,7 @@ const actionOf = (r: AiReplyRequest, content: string | null | undefined): string
 
 export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiReply> {
   const replyLang: 'en' | 'ar' = r.audience === 'supplier' ? 'en' : r.lang;
-  const brief = await companyBrief(deps.rpc, [], '', replyLang, r.blocks ?? []);
+  const brief = await companyBrief(deps.rpc, [], '', replyLang, r.blocks ?? [], undefined, { trade: replyTrade(r), supplier: r.audience === 'supplier' });
   const allowed = figureSource(brief) + '\n' + (r.facts ?? '') + '\n' + aiSystem(r, replyLang);   // the published contact is in the rules
   const known = briefNumbers(allowed);
   const must = (r.must ?? []).map((m) => String(m || '').trim()).filter(Boolean);
