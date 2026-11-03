@@ -1419,12 +1419,12 @@
       ],
       "expected_facts": [
         "original payment method",
-        "5 to 10 business days"
+        "7 to 14 working days"
       ],
       "q_reworded": "We refunded her yesterday and she says nothing shows on her statement and asks us to send it to her husband's card instead. What do we say?",
       "answer_must": [
         "A refund only goes back to the original payment method",
-        "It usually appears 5 to 10 business days after issue, depending on the bank",
+        "Banks usually take 7 to 14 working days to show it after issue, depending on the bank (Customer Terms clause 5)",
         "An early refund can be a reversal where the charge simply disappears"
       ]
     },

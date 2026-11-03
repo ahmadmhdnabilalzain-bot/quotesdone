@@ -1,6 +1,6 @@
 # QuotesDone — Company Canon
 
-The authoritative, grounded answer to any question about QuotesDone. Every agent should be able to answer from this. Grounded in the live product + config as of 2026-07-24.
+The authoritative, grounded answer to any question about QuotesDone. Every agent should be able to answer from this. Grounded in the live product + config as of 2026-07-24; the Operating Model, the founder's role, the quote turnaround and the launch status were re-grounded on 2026-11-03 against knowledge/brief/company.md and knowledge/brief/seats.md, which govern where they differ (seat-exam sweep, docs/reports/seat_exam_sweep_2026-11-03.md).
 
 ## Identity
 
@@ -30,7 +30,7 @@ A buyer signs in via OTP and completes a profile (name, phone, SMS-verified mobi
 
 **How fast will I get quotes?**
 
-Quotes come from verified UAE suppliers who respond to your RFQ. QuotesDone is pre-launch with no real transactions yet, so we don't advertise a fixed turnaround. Quote cards show response statistics so you can see how quickly suppliers tend to reply.
+Quotes come from verified UAE suppliers who respond to your RFQ. Realistically they arrive within 3 to 5 working days and you are notified as each one arrives, but no fixed turnaround is promised. Quote cards show response statistics so you can see how quickly suppliers tend to reply.
 
 **What do I see on a quote before I pay?**
 
@@ -160,11 +160,11 @@ The logo is a teal ring shaped like an open Q with a gold check mark inside it. 
 
 **How is QuotesDone run as a company?**
 
-QuotesDone is run as an AI-native company built around 10 departments — Executive/Chief-of-Staff, IT & Engineering, Procurement/Marketplace Core, Supplier Success, Customer Success, Marketing, Finance, Knowledge, Analytics, and Legal. Each is an autonomous AI expert that plans and executes toward the vision, within permanent safety gates.
+QuotesDone is run as an AI-native company of six seats and no departments: ceo (direction and every approval, refunds included), customer_support (the homepage chat, email and WhatsApp), sales_engineer (customers and suppliers, both portals, inquiries, matching, quotes, the comparison report and reveals), accountant (Stripe, the books, refunds and charges as documents, VAT and tax), it_engineer (monitors and fixes the platform, reporting to the CEO seat) and marketing (social media, SEO and the blog). The founder removed every department on 7 Sep 2026; each seat is an expert that acts within permanent safety gates.
 
 **What is the founder's role?**
 
-The founder provides capital and gives final approval on exactly three things: marketing posts, ad-boost budgets, and refunds. Everything else runs automatically through the AI departments, within permanent safety gates around money movement, authentication, security, destructive actions, and legal judgement.
+The founder is the sole owner and provides the capital. Every approval is the CEO seat's, refunds included: every refund is decided by the CEO seat on the record and none is automatic. The founder is notified, and nothing waits on him; a technical item is never a decision for the founder. The seats work within permanent safety gates around money movement, authentication, security, destructive actions, and legal judgement.
 
 ## Tech
 
@@ -176,9 +176,9 @@ QuotesDone is built on Supabase (Postgres plus Deno edge functions) with a Next.
 
 **Has QuotesDone launched yet?**
 
-Not yet — QuotesDone is pre-launch with 0 real transactions so far. The funnel holds about 20,465 scraped and indexed UAE supplier records as a directory asset. The initial launch focus is 3 trades in Dubai.
+Not yet — QuotesDone is pre-launch with 0 real transactions so far. October to December 2026 is supplier registration only; customers launch from January 2027, so there is no customer revenue before then. The funnel holds about 20,465 scraped and indexed UAE supplier records as a directory asset.
 
 **How many suppliers does QuotesDone have?**
 
-The platform has a directory asset of roughly 20,465 scraped and indexed UAE supplier records. These are indexed listings rather than transacting customers — QuotesDone is still pre-launch. The initial launch targets 3 trades in Dubai.
+The platform has a directory asset of roughly 20,465 scraped and indexed UAE supplier records. These are indexed listings rather than transacting customers — QuotesDone is still pre-launch, registering suppliers before customers open in January 2027.
 
