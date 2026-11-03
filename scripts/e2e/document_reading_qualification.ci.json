@@ -1,17 +1,17 @@
 {
- "about": "What .github/workflows/document-reading-qualification.yml runs, per corpus. Changing this file on the branch runs the workflow (a workflow not yet on main cannot be dispatched); on main, a dispatch runs it as written. cap_usd is the tagged window's database-enforced cap; the two together stay at or under USD 15.",
+ "about": "What .github/workflows/document-reading-qualification.yml runs, per corpus, when it is dispatched (dispatch only). The limits of 3 Nov 2026: one run, the real corpus only, at most 3 repeats, cap_usd at most 5 (the tagged window's database-enforced cap), one document at a time.",
  "real": {
   "run": true,
   "repeats": 3,
-  "parallel": 5,
-  "cap_usd": 7,
+  "parallel": 1,
+  "cap_usd": 5,
   "only": ""
  },
  "synthetic": {
-  "run": true,
-  "repeats": 5,
-  "parallel": 5,
-  "cap_usd": 8,
+  "run": false,
+  "repeats": 3,
+  "parallel": 1,
+  "cap_usd": 5,
   "only": ""
  }
 }

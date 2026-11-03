@@ -9,13 +9,11 @@ name: Supplier document-reading qualification (model stage)
 #              from the private evidence bucket and refused unless their sha256 matches (never committed, never contacted)
 #   synthetic  the invented ZZ DEMO gold corpus, kept for what no company publishes (corrupt, password-protected, 30 MB)
 # The one committed row per run is a ZZ DEMO subject supplier at @example.invalid; teardown removes the run by its tag, and the
-# always() step closes any window this job opened. Runs on push of this file or its config on its own branch (a workflow not yet
-# on main cannot be dispatched) and on dispatch once it is.
+# always() step closes any window this job opened.
+# DISPATCH ONLY (3 Nov 2026, coordinator): the two push-triggered runs on the branch spent AED 48.22 (about USD 13.1) in four windows.
+# A further model-stage run is ONE dispatch, the real corpus only, at most 3 repeats, a cap of at most USD 5, 1 document at a time.
 on:
   workflow_dispatch: {}
-  push:
-    branches: [sales_engineer/document-reading-qualification]
-    paths: ['.github/workflows/document-reading-qualification.yml', 'scripts/e2e/document_reading_qualification.ci.json']
 
 jobs:
   qualify:
