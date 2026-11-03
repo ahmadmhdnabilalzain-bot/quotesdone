@@ -15,6 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, isStale, ownsChannel, STALE_CEILING_H } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
+import { OPEN_TOKEN_MS, invitationHtml, openShare, openTracks, pixelBase, pixelUrl } from './open_tracking.ts';
 import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, afterRefusal, campaignMail, conversationReplyTo, graphSend, holdForM365, isMailboxReply, laneSide, m365Carries, m365Step, replyMail, m365Mime, m365ReplyTo, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
@@ -34,7 +35,7 @@ export const OUTBOX_KEYS = ['unsubscribe_signing_key', 'email_enabled', 'supplie
   'resend_api_key', 'email_from_supplier', 'email_from_info', 'email_reply_supplier', 'email_reply_supplier_docs',
   'email_reply_info', 'email_logo_url', 'unsubscribe_public_base', 'email_asset_public_base', 'email_signature_name',
   'email_signature_name_ar', 'email_signature_title', 'invite_preheader', 'daily_send_cap', 'invite_lane_enabled',
-  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox'];
+  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox', 'invite_open_tracking'];
 let secCache: Map<string, string | undefined> | null = null;
 async function warmSecrets() {
   secCache = null;
@@ -253,6 +254,21 @@ Deno.serve(observe('send_outbox', async (req) => {
       // company and a fire-safety trainer were asked about their "civil works work". GlockApps tested the neutral wording.
       return campaignMail(n, { company: (lead as any)?.company_name ?? undefined });
     };
+    // THE INVITATION OPEN (3 Nov 2026, marketing; open_tracking.ts). Share 0 / 'off' or no first-party base: no call, and
+    // the email is exactly the untracked one. Otherwise the database picks the arm and the token; a failed call or no
+    // token sends the untracked email (an open is never worth a held invitation). The call is cut at OPEN_TOKEN_MS, so a
+    // hung database call cannot delay an invitation. Only the Microsoft 365 lane carries the twin: the Resend fallback stays
+    // text-only, so a provider's own open or click tracking can never be added to an invitation (review of #1831).
+    const openPct = openShare(await setting('invite_open_tracking'));
+    const openBase = pixelBase(unsubBase);
+    const openHtmlFor = async (n: { id: number; type?: unknown; kind?: unknown; to_role?: unknown; lang?: unknown }, text: string): Promise<string> => {
+      if (!openPct || !openBase || !openTracks(n)) return '';
+      try {
+        const { data, error } = await admin.rpc('fn_invite_open_token', { p_notification_id: n.id }).abortSignal(AbortSignal.timeout(OPEN_TOKEN_MS));
+        const pixel = error ? '' : pixelUrl(openBase, data);
+        return pixel ? invitationHtml(text, pixel) : '';
+      } catch { return ''; }
+    };
     for (const n of rows) {
       // WHATSAPP ROWS EATEN 27 Jul 2026 - the select above pulls every queued row of EVERY channel but
       // this line excluded only 'sms', and the next line marks any row with no to_email as 'skipped'.
@@ -330,9 +346,11 @@ Deno.serve(observe('send_outbox', async (req) => {
           const rm = isReply ? replyMail(n) : null;
           const { subject: mSubject, text: mBody, bad } = rm ? { subject: rm.subject, text: rm.text, bad: rm.bad.map((rule) => ({ rule, ok: false, detail: '' })) } : await campaignFor(n);
           if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 ' + (isReply ? 'reply' : 'invitation copy rule') + ' failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
+          // The open-tracking twin is for a campaign row only (open_tracking.ts openTracks); a reply is never tracked.
+          const mHtml = rm ? '' : await openHtmlFor(n, mBody);
           const now = new Date(); const mid = messageIdFor(n.id, now);
           // A reply is one person answering another: no List-Unsubscribe, as on its Resend route.
-          const mime = m365Mime({ from: M365_FROM_NAME + ' <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub: isReply ? '' : unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now, inReplyTo: rm?.inReplyTo });
+          const mime = m365Mime({ from: M365_FROM_NAME + ' <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub: isReply ? '' : unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now, inReplyTo: rm?.inReplyTo, html: mHtml });
           try {
             const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
             if (r.ok) {
