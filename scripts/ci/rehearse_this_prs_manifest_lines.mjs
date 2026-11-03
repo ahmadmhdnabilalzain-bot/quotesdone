@@ -4,6 +4,8 @@
 //   1. apply_sql.mjs's own pre-write guards, as a DRY RUN (refused statements, a foreign project ref, a callee the
 //      database does not have). A routine an earlier file of this PR defines counts as present, because the merge
 //      applies that file first: its name is handed to the dry run as a comment, which apply_sql reads as defined.
+//      The credit is read from code only, less what an earlier file drops, and the read-back must then hold every
+//      credited routine, or the file that leaned on it FAILS.
 //   2. Only when k has a _probe.sql: files 1..k replayed with the probe, which must answer PROBE OK.
 // Then ONE replay of all the files together, reading back every routine they define from inside the rolled-back
 // transaction: that read-back is what production will hold once the merge has applied them, and it is the
@@ -33,16 +35,27 @@ if (error || !files.length) {
 }
 
 const { rehearse } = await import('./rehearse_sql.mjs');
-const { replaySql } = await import('../lib/safe_replay.mjs');
+const { replaySql, createdObjects } = await import('../lib/safe_replay.mjs');
+const { maskSql } = await import('../lib/sql_text.mjs');
 // A rehearsal that waits on a lock is one holding production up; it fails, and the finding counts (review of #1825).
 const LIMITS = "set local lock_timeout = '5s';\nset local statement_timeout = '90s';\n";
 const texts = files.map((f) => readFileSync(f, 'utf8'));
 const upTo = (k) => LIMITS + texts.slice(0, k + 1).join('\n;\n');
-// apply_sql.mjs's own pattern for "this file defines a routine".
-const DEFINES = /create\s+or\s+replace\s+function\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi;
+// The routines files 1..k-1 leave behind, read from CODE (comments, strings and bodies masked), in apply order: a
+// commented-out definition, or one an earlier file creates and then drops, is never credited (re-review of #1825).
+const DROPS = /\bdrop\s+(?:function|procedure)\s+(?:if\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi;
+const credited = [];
+const creditFor = (k) => {
+  const left = new Set();
+  for (const t of texts.slice(0, k)) {
+    for (const n of createdObjects(t).routines) if (n.startsWith('public.')) left.add(n.slice('public.'.length));
+    for (const m of maskSql(t).matchAll(DROPS)) left.delete(m[1].toLowerCase());
+  }
+  return [...left];
+};
 const scratch = mkdtempSync(join(tmpdir(), 'qd-rehearse-'));
 const guards = (k) => {
-  const earlier = [...new Set(texts.slice(0, k).flatMap((t) => [...t.matchAll(DEFINES)].map((m) => m[1].toLowerCase())))];
+  const earlier = credited[k] = creditFor(k);
   const file = join(scratch, files[k].split('/').pop());
   writeFileSync(file, texts[k] + '\n' + earlier.map((n) => `-- applied by an earlier file of this PR: create or replace function public.${n}(\n`).join(''));
   try {
@@ -76,7 +89,7 @@ rmSync(scratch, { recursive: true, force: true });
 if (!failed) {
   // Every name a `create function` in these files mentions, the same pattern canonical_routine_manifest reads.
   const names = [...new Set([...texts.join('\n;\n').matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\(/gi)]
-    .map((m) => m[1].toLowerCase()))];
+    .map((m) => m[1].toLowerCase()).concat(credited.flat()))];
   const unprobed = results.files.filter((r) => !r.probe);
   try {
     const list = names.map((n) => `'${n}'`).join(',') || "''";
@@ -86,6 +99,13 @@ if (!failed) {
     for (const r of rows) (routines[r.proname] ??= []).push(r.prosrc);
     results.post_state = { ok: true, routines };
     for (const r of unprobed) r.verdict = 'REHEARSED';
+    // A credit the read-back does not hold was never real: the merge's own dry run of that file would refuse it.
+    for (const [k, r] of results.files.entries()) {
+      // the credited names this file calls, by apply_sql.mjs's own callee pattern over the file as the merge sends it
+      const calls = new Set([...texts[k].matchAll(/public\.((?:fn|trg|qd|run)_[a-z0-9_]+)\s*\(/g)].map((m) => m[1].toLowerCase()));
+      const absent = (credited[k] || []).filter((n) => calls.has(n) && !routines[n]);
+      if (absent.length) r.verdict = `FAILED: it calls on ${absent.join(', ')}, credited to an earlier file of this PR, and the read-back after every file holds none`;
+    }
     console.log(`read back ${rows.length} routine body(ies) of ${names.length} name(s) after all ${files.length} file(s), rolled back`);
   } catch (e) {
     results.post_state = { ok: false, error: String(e?.message ?? e).slice(0, 2000) };

@@ -34,7 +34,7 @@ const fn = (name, body) => `create or replace function public.${name}() returns 
 const ROWS = [{ proname: 'fn_a', prosrc: 'a' }, { proname: 'fn_b', prosrc: 'b' }, { proname: 'fn_c', prosrc: 'c' }];
 const dirs = [];
 
-function rehearse({ a = 'return 1;', b = 'return public.fn_a();', c = 'return 3;' } = {}) {
+function rehearse({ a = 'return 1;', aAlso = '', b = 'return public.fn_a();', c = 'return 3;', rows = ROWS } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'rehearse-pr-')); dirs.push(dir);
   const put = (p, text) => { mkdirSync(join(dir, p, '..'), { recursive: true }); writeFileSync(join(dir, p), text); };
   const git = (...a) => execFileSync('git', ['-c', 'core.autocrlf=false', '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', ...a],
@@ -45,14 +45,14 @@ function rehearse({ a = 'return 1;', b = 'return public.fn_a();', c = 'return 3;
   put('scripts/sql/MANIFEST.txt', 'scripts/sql/old.sql\n');
   git('init', '-q'); git('add', '-A'); git('commit', '-qm', 'main');
   const base = git('rev-parse', 'HEAD');
-  put('scripts/sql/a.sql', fn('fn_a', a));
+  put('scripts/sql/a.sql', fn('fn_a', a) + aAlso);
   put('scripts/sql/b.sql', fn('fn_b', b));
   put('scripts/sql/b_probe.sql', "do $p$ begin raise exception 'PROBE OK'; end $p$;\n");
   put('scripts/sql/c.sql', fn('fn_c', c));
   put('scripts/sql/MANIFEST.txt', 'scripts/sql/old.sql\nscripts/sql/a.sql\nscripts/sql/b.sql\nscripts/sql/c.sql\n');
   git('add', '-A'); git('commit', '-qm', 'the pull request');
   const log = join(dir, 'queries.log'), out = join(dir, 'results.json');
-  const env = { ...process.env, SUPABASE_ACCESS_TOKEN: 'fixture-not-a-token', FIXTURE_LOG: log, FIXTURE_ROWS: JSON.stringify(ROWS),
+  const env = { ...process.env, SUPABASE_ACCESS_TOKEN: 'fixture-not-a-token', FIXTURE_LOG: log, FIXTURE_ROWS: JSON.stringify(rows),
     NODE_OPTIONS: `--import=${pathToFileURL(join(dir, 'stub_fetch.mjs')).href}` };
   const r = spawnSync(process.execPath, ['scripts/ci/rehearse_this_prs_manifest_lines.mjs', base, out], { cwd: dir, env, encoding: 'utf8' });
   const queries = existsSync(log) ? readFileSync(log, 'utf8').trim().split('\n').map((l) => JSON.parse(l)) : [];
@@ -91,6 +91,26 @@ test('apply_sql.mjs\'s guards run first: a callee nobody defines is refused, one
   assert.deepEqual(verdicts(results), ['NOT REHEARSED', 'PROBE OK', 'FAILED'], stdout);
   assert.match(results.files[2].verdict, /apply_sql\.mjs refused it \(exit 4\)[\s\S]*fn_nowhere/, results.files[2].verdict);
   assert.ok(!replays.some((q) => q.includes('SAFE_REPLAY_ROWS')), 'a read-back ran after a refusal');
+});
+
+test('a commented-out or dropped definition in an earlier file is no credit: the merge\'s dry run would refuse the call', () => {
+  for (const [why, aAlso] of [
+    ['commented out', '-- retired: create or replace function public.fn_ghost(\n'],
+    ['defined, then dropped', fn('fn_ghost', 'return 9;') + 'drop function public.fn_ghost();\n'],
+  ]) {
+    const { code, stdout, results, replays } = rehearse({ aAlso, c: 'return public.fn_ghost();' });
+    assert.equal(code, 0, stdout);
+    assert.deepEqual(verdicts(results), ['NOT REHEARSED', 'PROBE OK', 'FAILED'], `${why}:\n${stdout}`);
+    assert.match(results.files[2].verdict, /apply_sql\.mjs refused it \(exit 4\)[\s\S]*fn_ghost/, `${why}: ${results.files[2].verdict}`);
+    assert.ok(!replays.some((q) => q.includes('SAFE_REPLAY_ROWS')), `${why}: a read-back ran after a refusal`);
+  }
+});
+
+test('a credited routine the read-back does not hold fails the file that called it', () => {
+  const { code, stdout, results } = rehearse({ rows: ROWS.filter((r) => r.proname !== 'fn_a') });
+  assert.equal(code, 0, stdout);
+  assert.deepEqual(verdicts(results), ['REHEARSED', 'FAILED', 'REHEARSED'], stdout);
+  assert.match(results.files[1].verdict, /calls on fn_a, credited to an earlier file/, results.files[1].verdict);
 });
 
 test.after(() => { for (const d of dirs) rmSync(d, { recursive: true, force: true }); });
