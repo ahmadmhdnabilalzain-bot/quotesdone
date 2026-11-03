@@ -10,7 +10,7 @@ import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 process.env.QD_FIXTURES = '1';
-const { newRun, makeSupplier, teardown, REF, BASE, keys } = await import('../lib/demo_factory.mjs');
+const { newRun, makeSupplier, teardown, REF, BASE, keys, internalCred } = await import('../lib/demo_factory.mjs');
 const { mgmtRead, mgmtFixture } = await import('../lib/qd_guard.mjs');
 const { demoTradeLicence, demoOfficePlanPng } = await import('../lib/demo_pdf.mjs');
 const MEDIA_ONLY = process.env.QD_MEDIA_ONLY === '1';   // six file turns, USD 1 cap
@@ -48,7 +48,7 @@ try {
   const dir = mkdtempSync(join(tmpdir(), 'waexch-'));
   const cfg = join(dir, 'cfg.json');
   writeFileSync(cfg, JSON.stringify({ url: `https://${REF}.supabase.co`, service: SERVICE, authToken: sec.twilio_auth_token, mediaOnly: MEDIA_ONLY, internals: [sec.cred_fn_wa_inbound, sec.cred_ops_wa_replay].filter(Boolean),
-    supplier: phone, stranger: STRANGER, ...(SCRIPT ? { script: SCRIPT } : {}), parityOld: '+971500000094', parityNew: '+971500000095',
+    supplier: phone, stranger: STRANGER, ...(SCRIPT ? { script: SCRIPT, e2e: { tag, secret: await internalCred() } } : {}), parityOld: '+971500000094', parityNew: '+971500000095',
     pngB64: demoOfficePlanPng().toString('base64'),
     pdfB64: demoTradeLicence({ company: sup.companyName, licenceNo: 'ZZ-DEMO-000123' }).toString('base64') }));
   const r = spawnSync('deno', ['run', '--no-lock', '--node-modules-dir=auto', '--allow-net', '--allow-env', '--allow-read', 'scripts/e2e/wa_exchange_real_driver.ts', cfg],

@@ -27,3 +27,23 @@ Deno.test('the first message, and the Arabic screen, keep their old rules', () =
   assertEquals(langOf('مرحبا'), 'ar');
   assertEquals(langOf('ZZ DEMO كم تبلغ رسوم الاشتراك؟'), 'ar', 'the fixture tag is not English');
 });
+
+// THE LANGUAGE IS CHECKED, NOT ONLY ASKED FOR (CI run 41621633737, conversation-quality, this branch's widget): with turnLang
+// choosing English, 1 of 5 replies to the mixed message was still wholly Arabic. Every reply path now sends such a draft back.
+import { replyLanguageProblems } from './chat_answers.ts';
+import { assert } from 'jsr:@std/assert@1';
+const arabicReply = 'لا أستطيع تسجيل أي تفاصيل أو تعديلها في هذه المحادثة، لذلك لن يتغير شيء في طلبك من هنا.';
+Deno.test('a reply in the other script is refused; quoted words and a link are not', () => {
+  assertEquals(replyLanguageProblems(arabicReply, 'en').length, 1);
+  assertEquals(replyLanguageProblems('Please put the glass (الزجاج) thickness in your request at /me.', 'en'), []);
+  assertEquals(replyLanguageProblems('Sign up free and post your job here, we match it to verified suppliers.', 'ar').length, 1);
+  assertEquals(replyLanguageProblems(arabicReply, 'ar'), []);
+  assertEquals(replyLanguageProblems('/ar/me', 'ar'), [], 'a link line alone');
+});
+Deno.test('the widget, the portal, aiReply (WhatsApp) and the WhatsApp language all use it', () => {
+  const read = (p: string) => Deno.readTextFileSync(new URL(p, import.meta.url));
+  assert(/\.\.\.replyLanguageProblems\(s, replyLang\)/.test(read('../site_assistant/index.ts')), 'site_assistant check');
+  assert(/\.\.\.replyLanguageProblems\(t, lang\)/.test(read('../sales_engineer/index.ts')), 'sales_engineer check');
+  assert(/replyLanguageProblems\(t, replyLang\)/.test(read('./ai_reply.ts')), 'aiReply check');
+  assert(/langGiven \?\? turnLang\(Body/.test(read('../wa_inbound/index.ts')), 'wa_inbound language');
+});

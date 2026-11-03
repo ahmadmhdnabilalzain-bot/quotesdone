@@ -22,7 +22,7 @@
 // v12: A VISITOR GETS GENERAL ANSWERS AND THE WAY TO SIGN UP (founder ruling 18 Oct 2026, visitor_scope.ts). No inquiry
 //     is collected on the homepage; a real need is sent to sign up; a server-side cap per conversation and IP.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { langOf, turnLang, type FaqRow } from '../_shared/chat_answers.ts';
+import { langOf, replyLanguageProblems, turnLang, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { givenTradeKnowledge, givenBlock } from '../_shared/given_trade_knowledge.ts';
@@ -396,7 +396,7 @@ RULES:
 - Never say you will check, confirm or get back to them, and never decline a question about any trade, category or specification (food and beverage excepted): give everything that can be said now.
 ${who ? '- Answer what they asked, directly and exactly; then, where it helps, ask the one or two follow-up questions that matter most (you may offer two concrete choices when they are unsure).' : visitorRules(audience, replyLang)}
 - Never a list of "top results", never a robotic yes/no. Plain text for a chat window: no markdown, no bullets, no headings. Under about ${live ? 120 : 90} words.
-- Reply in ${replyLang === 'ar' ? 'formal Gulf Arabic (Western digits; each phone number, email or link on its own line)' : 'UAE English'}${audience === 'supplier' ? ' — suppliers are always answered in English' : ', the language they wrote in'}.
+- Reply in ${replyLang === 'ar' ? 'formal Gulf Arabic (Western digits; each phone number, email or link on its own line)' : 'UAE English'}${audience === 'supplier' ? ' — suppliers are always answered in English' : ', the language this conversation is in, even when a message mixes in words of another language'}.
 - If they sent a photo or drawing, use what you see in it: name what is there, what it means for their job, and what you still need to know.
 - Before you write, read every question you asked in your earlier replies. Each one is either answered or, if they skipped it or were unsure, already recorded "to confirm at the supplier's site visit": never ask it again in any wording, and move on to what is still unknown (live conversation suite run a8ad5ed7: 9 of 11 conversations below target re-asked a question).
 - If they ask for a person, give the published contact: +1 218 316 6814 (WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, /contact/.
@@ -415,7 +415,7 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
       gateway: GATEWAY, secret: key, fn: 'site_assistant', agent: seatForSurface, taskClass: live ? 'customer_portal_assistant' : 'visitor_chat',
       brief, sys, input: [...past, { role: 'user', content: turnText }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,
       rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : (/^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined),   // our own test traffic is named so the gateway never bills or counts it
-      check: (s: string) => guardSupportReply(s, replyLang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
+      check: (s: string) => [...guardSupportReply(s, replyLang).violations.map((v) => 'it breaks the reply rule "' + v + '"'), ...replyLanguageProblems(s, replyLang)],
     }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
     lap('reply');
     const reply = a.reply.trim();

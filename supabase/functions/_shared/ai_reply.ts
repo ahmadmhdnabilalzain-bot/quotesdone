@@ -19,6 +19,7 @@
 import { briefNumbers, companyBrief, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
 import { fitHistory } from './chat_history.ts';
+import { replyLanguageProblems } from './chat_answers.ts';
 import { isOpenRouterDown } from './openrouter_down.ts';
 import { EVASION, substanceWords, type LlmReply, type Seat, type ThinkDeps, type Turn } from './think.ts';
 
@@ -196,7 +197,9 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const must = (r.must ?? []).map((m) => String(m || '').trim()).filter(Boolean);
   // A SUPPLIER IS ANSWERED IN ENGLISH, CHECKED, NOT ONLY ASKED (ruling 1008). Run 41554788700: a supplier's Arabic question got
   // two Sonnet drafts and then an other-family reply written in Arabic, and it was sent (47.8 s). Prevented by: ai_reply.test.ts.
-  const english = (t: string) => r.audience === 'supplier' && /[؀-ۿ]/.test(t) ? ['it is not in English (a supplier is always answered in English)'] : [];
+  // and everyone else in the language of the conversation, checked too (3 Nov 2026, chat_answers.replyLanguageProblems)
+  const english = (t: string) => r.audience === 'supplier' ? (/[\u0600-\u06FF]/.test(t) ? ['it is not in English (a supplier is always answered in English)'] : [])
+    : replyLanguageProblems(t, replyLang);
   const check = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []), ...english(t),
     ...must.filter((m) => !t.includes(m)).map((m) => 'it leaves out "' + m + '", which must appear exactly as given')];
   const sentenceCheck = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []), ...english(t)];

@@ -38,7 +38,7 @@ import { defaultDeps } from '../_shared/think.ts';
 import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
 import { reasonedOffers } from '../_shared/reasoned_matching.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
-import { langOf, turnLang, type QuoteForAnswer } from '../_shared/chat_answers.ts';
+import { langOf, replyLanguageProblems, turnLang, type QuoteForAnswer } from '../_shared/chat_answers.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { accountKey, clientHistory, fitHistory, openConversation } from '../_shared/chat_history.ts';
@@ -526,7 +526,7 @@ const plain = observe('sales_engineer', async (req) => {
         // the same rules aiReply holds every conversation reply to (figures, policy, reply guard, another party's identity),
         // sentence by sentence; a deferral is a whole-answer judgement (aiReply), never one sentence's, so it is not run here
         check: (t: string) => [...guardSupportReply(t, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
-          ...replyProblems(t, known, { allowed }).filter((p) => !/defers/.test(p)), ...wrappedReply(t), ...plainLanguage(t, lang)],
+          ...replyProblems(t, known, { allowed }).filter((p) => !/defers/.test(p)), ...wrappedReply(t), ...plainLanguage(t, lang), ...replyLanguageProblems(t, lang)],
       }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
       lap('reply');
       const reply = a.reply.trim();

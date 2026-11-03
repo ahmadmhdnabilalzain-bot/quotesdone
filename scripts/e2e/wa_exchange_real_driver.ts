@@ -18,7 +18,7 @@ async function sign(params: Record<string, string>) {
   return btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data)))));
 }
 async function lastRow(from: string, sid: string) {
-  const r = await fetch(`${cfg.url}/rest/v1/wa_messages?wa_from=eq.${encodeURIComponent(from)}&meta->>message_sid=eq.${sid}&order=id.desc&select=inbound,reply,sent,escalated,meta`, { headers: REST });
+  const r = await fetch(`${cfg.url}/rest/v1/wa_messages?wa_from=eq.${encodeURIComponent(from)}&meta->>message_sid=eq.${sid}&order=id.desc&select=inbound,reply,lang,sent,escalated,meta`, { headers: REST });
   return (await r.json()) as { inbound: string; reply: string; sent: boolean; escalated: boolean; meta: Record<string, unknown> }[];
 }
 // A text turn: Twilio-signed form POST. Returns the captured reply row(s).
@@ -28,7 +28,9 @@ async function say(phone: string, body: string) {
   const pending: Promise<unknown>[] = [];
   (globalThis as unknown as { EdgeRuntime: unknown }).EdgeRuntime = { waitUntil: (p: Promise<unknown>) => { pending.push(p); } };
   const t0 = Date.now();
-  const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': await sign(params) }, body: new URLSearchParams(params).toString() }));
+  // a scripted run (cfg.e2e) names its run and proves it, so its model calls are costed and capped by its window
+  const tagHeaders: Record<string, string> = cfg.e2e ? { 'x-qd-e2e-run': cfg.e2e.tag, 'x-qd-e2e-secret': cfg.e2e.secret } : {};
+  const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': await sign(params), ...tagHeaders }, body: new URLSearchParams(params).toString() }));
   await Promise.all(pending);
   const rows = await lastRow(from, sid);
   return { status: res.status, ms: Date.now() - t0, rows, reply: rows.map((r) => r.reply).filter(Boolean).join(' | ') };
@@ -75,7 +77,10 @@ if (cfg.script) {
     const phone = who === 'supplier' ? S : X; conv[who] = [];
     for (const text of turns) {
       const r = await say(phone, text);
-      conv[who].push({ role: 'customer', text }, { role: 'agent', text: r.reply || `(NO ANSWER: ${r.status} ${JSON.stringify(r.rows[0]?.meta?.send_error ?? 'no row')})`, ms: r.ms });
+      // what the handler decided for the turn, so a wrong reply can be traced to its path (route, audience, language, attempts)
+      const m = (r.rows[0]?.meta ?? {}) as Record<string, unknown>;
+      const trace = { lang: (r.rows[0] as { lang?: string } | undefined)?.lang ?? null, ...Object.fromEntries(['route', 'audience', 'lang', 'route_intent', 'model', 'reply_attempts', 'outage'].filter((k) => k in m).map((k) => [k, JSON.stringify(m[k]).slice(0, 400)])) };
+      conv[who].push({ role: 'customer', text }, { role: 'agent', text: r.reply || `(NO ANSWER: ${r.status} ${JSON.stringify(r.rows[0]?.meta?.send_error ?? 'no row')})`, ms: r.ms, trace } as never);
     }
   }
   console.log('RESULT=' + JSON.stringify({ script: conv })); Deno.exit(0);

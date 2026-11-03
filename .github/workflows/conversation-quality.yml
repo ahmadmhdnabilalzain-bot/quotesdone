@@ -14,7 +14,8 @@ name: Conversation quality (every chat surface, before and after, ZZ DEMO)
 #
 # Identities are the repository's fixtures (ZZ DEMO, @example.invalid, fixture numbers; torn down by the run's tag). The
 # real model answers inside capped rehearsal windows: per job USD 3 (portal), 5 x 0.45 (each WhatsApp surface), 1.5
-# (thread), 1.5 (widget); USD 19.5 for the whole run at most. Runs by hand, and on a push to this file on a branch
+# (thread), 1.5 (widget); USD 19.5 for the whole run at most. Since 3 Nov 2026 (run 41621633737 measured 449 untagged WhatsApp
+# calls, USD 6.1, past their 0.45 caps) a scripted WhatsApp turn carries the run's tag, so its window caps it too. Runs by hand, and on a push to this file on a branch
 # (a workflow not yet on main cannot be dispatched).
 on:
   workflow_dispatch:
@@ -25,6 +26,10 @@ on:
         default: '5'
       sides:
         description: "before,after (default: .github/conversation-quality-sides.txt, which a push run reads too)"
+        required: false
+        default: ''
+      surfaces:
+        description: "widget,portal,whatsapp_customer,whatsapp_supplier,supplier_thread (default: .github/conversation-quality-surfaces.txt)"
         required: false
         default: ''
   push:
@@ -77,9 +82,12 @@ jobs:
       - id: gate
         env:
           SIDES: ${{ inputs.sides }}
+          SURFACES: ${{ inputs.surfaces }}
         run: |
           sides="${SIDES:-$(cat .github/conversation-quality-sides.txt 2>/dev/null || echo before,after)}"
           case ",$sides," in *",${{ matrix.side }},"*) ;; *) echo "::notice::side ${{ matrix.side }} not in '$sides': skipped"; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0;; esac
+          surfaces="${SURFACES:-$(cat .github/conversation-quality-surfaces.txt 2>/dev/null || echo widget,portal,whatsapp_customer,whatsapp_supplier,supplier_thread)}"
+          case ",$surfaces," in *",${{ matrix.surface }},"*) ;; *) echo "::notice::surface ${{ matrix.surface }} not in '$surfaces': skipped"; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0;; esac
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
             echo "::notice::SUPABASE_ACCESS_TOKEN is not set; the conversation-quality run needs it for the demo fixtures and is skipped"
             echo "skip=1" >> "$GITHUB_OUTPUT"
