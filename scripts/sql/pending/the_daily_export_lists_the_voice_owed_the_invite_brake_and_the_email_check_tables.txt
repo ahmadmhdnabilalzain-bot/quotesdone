@@ -1,1 +1,0 @@
-it_engineer, 2 Nov 2026: three tables (customer_support_voice_owed, invite_brake, lead_email_check) have no table_export_registry row, which turns main's checks job red. Registry rows only; nothing else changes. Apply through apply-sql.yml after review (rehearse with apply=false first), then delete this note and append the file to the END of MANIFEST.txt in the same commit.

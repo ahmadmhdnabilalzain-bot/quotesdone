@@ -1780,6 +1780,9 @@
  "scripts/sql/the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql": [
   "361ce5b53fac"
  ],
+ "scripts/sql/the_invitation_builders_refuse_a_blank_body_not_only_an_empty_one.sql": [
+  "8625d60560f4"
+ ],
  "scripts/sql/the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql": [
   "8625d60560f4"
  ],
@@ -1903,6 +1906,12 @@
   "7434a89712a3",
   "863c1d9211e6",
   "952c560b9f31"
+ ],
+ "scripts/sql/the_marketing_seat_closes_the_loops_a_senior_marketer_closes.sql": [
+  "1ddbe22a20cf",
+  "25831966a970",
+  "71425d07f632",
+  "735f3f9ff862"
  ],
  "scripts/sql/the_marketing_seat_publishes_measures_and_reports_spend_probe.sql": [
   "3d46bb7cf9ae",
