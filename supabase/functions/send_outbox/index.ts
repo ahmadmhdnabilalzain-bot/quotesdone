@@ -15,13 +15,30 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, isStale, ownsChannel, STALE_CEILING_H } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, afterRefusal, campaignMail, conversationReplyTo, graphSend, holdForM365, isMailboxReply, laneSide, m365Carries, m365Step, replyMail, m365Mime, m365ReplyTo, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
+import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PENDING_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, afterRefusal, campaignMail, conversationReplyTo, graphSend, holdForM365, isMailboxReply, laneSide, m365Carries, m365Step, replyMail, m365Mime, m365ReplyTo, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
 const MAX_ATTEMPTS = 3;
+// A REFUSAL IS RETRIED LATER, NOT ON THE NEXT POLL, AND A PERMANENT ONE IS NOT RETRIED (it_engineer, 3 Nov 2026, drill D3).
+// MEASURED by the drill: failNote put a refused row straight back to 'queued' with no not_before, so the next 2-minute poll
+// took it again. Three polls, about four minutes, dead-lettered every message in the queue during a Resend outage of that
+// length, and a 422 "Invalid `to` field" was posted twice more before it failed. A retry now waits RETRY_BACKOFF_MS (5, then
+// 20 minutes, or the provider's Retry-After when longer, up to an hour), so three attempts span about 25 minutes; a 400 or
+// 422 (Resend's "this request is wrong", which no retry changes) fails at once. The claim already honours not_before.
+// prevented by: supabase/functions/send_outbox/drill_send_faults.test.ts
+const RETRY_BACKOFF_MS = [5 * 60_000, 20 * 60_000];
+const RETRY_AFTER_MAX_MS = 60 * 60_000;
+const PERMANENT_HTTP = new Set([400, 422]);
+function retryAfterMs(v: string | null): number {
+  if (!v) return 0;
+  const s = Number(v);
+  if (Number.isFinite(s)) return Math.max(0, s * 1000);
+  const t = Date.parse(v);
+  return Number.isFinite(t) ? Math.max(0, t - Date.now()) : 0;
+}
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 // ONE READ FOR THE SETTINGS, NOT TWENTY (it_engineer, 28 Sep 2026, ledger 760). Every call read ~20
 // app_secrets keys one round trip at a time before looking at the queue: an IDLE poll averaged 8.4 s
@@ -236,11 +253,16 @@ Deno.serve(observe('send_outbox', async (req) => {
     let laneHeld = 0;
     const supReason = new Map<string, string>();
     if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email,reason').in('email', toEmails); for (const s of (sup || []) as any[]) supReason.set(foldEmail(s.email), String(s.reason || '')); }
-    let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0, unconfirmed = 0;
-    const failNote = async (n: any, msg: string) => {
+    let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0, unconfirmed = 0, writeFailed = 0;
+    // provider_message_id is cleared: a row that is not sent has no provider message, and this also clears the Microsoft 365
+    // pending marker (M365_PENDING_PREFIX) of a mailbox reply Graph refused and Resend then refused, so it is retried, not
+    // mistaken next run for a send whose outcome was lost.
+    const failNote = async (n: any, msg: string, o: { permanent?: boolean; retryAfterMs?: number } = {}) => {
       const att = (Number(n.attempts) || 0) + 1;
-      const dead = att >= MAX_ATTEMPTS;
-      await admin.from('notifications').update({ status: dead ? 'failed' : 'queued', attempts: att, last_error: String(msg).slice(0, 500) }).eq('id', n.id);
+      const dead = !!o.permanent || att >= MAX_ATTEMPTS;
+      const waitMs = Math.max(RETRY_BACKOFF_MS[Math.min(att, RETRY_BACKOFF_MS.length) - 1], Math.min(o.retryAfterMs || 0, RETRY_AFTER_MAX_MS));
+      await admin.from('notifications').update({ status: dead ? 'failed' : 'queued', attempts: att, last_error: String(msg).slice(0, 500), provider_message_id: null,
+        ...(dead ? {} : { not_before: new Date(Date.now() + waitMs).toISOString() }) }).eq('id', n.id);
       failed++; if (dead) deadlettered++; else retried++;
     };
     let lastErr = '';
@@ -265,6 +287,21 @@ Deno.serve(observe('send_outbox', async (req) => {
       // fire; it stays as defence in depth, still leaving the row untouched for its own sender.
       if (!ownsChannel(n.channel)) { skipped++; continue; }
       if (!n.to_email) { await admin.from('notifications').update({ status: 'skipped' }).eq('id', n.id); continue; }
+      // A ROW THAT WAS HANDED TO MICROSOFT GRAPH IS NEVER SENT AGAIN, BY EITHER LANE (it_engineer, 3 Nov 2026, drill D6/D10).
+      // MEASURED by the drill: Graph accepted a sendMail (202), the 'sent' write then failed, and the row went back on the
+      // queue (this function's finally, or fn_notifications_claim's 5-minute expiry), so the next tick sent the supplier a
+      // second copy. Graph has no idempotency key, so this side must remember: the lane writes M365_PENDING_PREFIX + the
+      // Message-ID onto the row BEFORE the POST, and a row that comes back carrying it is recorded sent-unconfirmed (sent,
+      // provider_message_id NULL, the reason in last_error: the estate's existing shape for "it left, the answer did not")
+      // and never posted again. Checked before the suppression and lane rules on purpose: the lane being switched off since
+      // must not send it through Resend instead.
+      // prevented by: supabase/functions/send_outbox/drill_send_faults.test.ts
+      if (String(n.provider_message_id || '').startsWith(M365_PENDING_PREFIX)) {
+        await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: null,
+          last_error: ('a previous run handed this message to Microsoft Graph (' + String(n.provider_message_id).slice(M365_PENDING_PREFIX.length) +
+            ') and could not record the outcome; sent-unconfirmed, NOT sent again').slice(0, 500) }).eq('id', n.id);
+        unconfirmed++; continue;
+      }
       // 3 SEP 2026: RFC 2606 reserved domains (example.com/net/org, .test, .example, .invalid,
       // localhost) are never deliverable — Resend answers 422 "Invalid to field" and this loop used
       // to log it as a failed run and retry. The demo fixtures address every ZZ DEMO party there on
@@ -333,10 +370,16 @@ Deno.serve(observe('send_outbox', async (req) => {
           const now = new Date(); const mid = messageIdFor(n.id, now);
           // A reply is one person answering another: no List-Unsubscribe, as on its Resend route.
           const mime = m365Mime({ from: M365_FROM_NAME + ' <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub: isReply ? '' : unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now, inReplyTo: rm?.inReplyTo });
+          // The pending marker (see M365_PENDING_PREFIX above). If it cannot be written nothing is sent: the finally gives
+          // the claim back and a later run tries again, which costs a delay and never a duplicate.
+          const mark = await admin.from('notifications').update({ provider_message_id: M365_PENDING_PREFIX + mid }).eq('id', n.id);
+          if (mark.error) { writeFailed++; lastErr = ('could not mark the row before the Graph send: ' + mark.error.message).slice(0, 200); continue; }
           try {
             const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
             if (r.ok) {
-              await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: r.providerId }).eq('id', n.id);
+              const w = await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: r.providerId }).eq('id', n.id);
+              // Graph has the message; a failed write leaves the marker, so the next run records it and does not resend.
+              if (w.error) { writeFailed++; lastErr = ('Graph accepted notification ' + n.id + ' but the sent write failed: ' + w.error.message).slice(0, 200); }
               // this lane has no Resend webhook, so the lead moves here (1 Nov 2026: 52 sent invitations still read 'queued')
               if (n.type === 'supplier_invite' && n.lead_id) await admin.from('leads').update({ invite_status: 'sent' }).eq('id', n.lead_id).eq('invite_status', 'queued');
               sent++; m365SentToday++; m365SentRun++; if (LANE_CAPPED_TYPES.includes(n.type)) cappedSentToday++;
@@ -346,7 +389,7 @@ Deno.serve(observe('send_outbox', async (req) => {
               try { await fileFinding(refusalFinding(m365.mailbox, r.status, M365_SECRET_NAMES.filter((k) => !!Deno.env.get(k)))); } catch (_e) { /* the hold below still happens */ }
               if (afterRefusal(isReply) === 'resend') toResend = true;
               else {
-                await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil('unverified', new Date()).toISOString(),
+                await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil('unverified', new Date()).toISOString(), provider_message_id: null,
                   last_error: ('held: ' + r.status + '; never sent through Resend').slice(0, 500) }).eq('id', n.id);
                 laneHeld++;
               }
@@ -424,16 +467,30 @@ Deno.serve(observe('send_outbox', async (req) => {
           sent++;
           if (lane.active && LANE_CAPPED_TYPES.includes(n.type) && from === lane.from) laneSentToday++;
         }
-        else { const t = await r.text(); lastErr = String(t).slice(0, 200); await failNote(n, t); console.error('resend fail', n.id, t); }
+        else {
+          const t = await r.text(); lastErr = ('HTTP ' + r.status + ': ' + t).slice(0, 200);
+          await failNote(n, 'Resend answered HTTP ' + r.status + ': ' + t, { permanent: PERMANENT_HTTP.has(r.status), retryAfterMs: retryAfterMs(r.headers.get('retry-after')) });
+          console.error('resend fail', n.id, r.status, t);
+        }
       } catch (e) {
         // A THROW HERE MEANS THE REQUEST LEFT AND THE ANSWER DID NOT (22 Sep 2026, it_engineer, CONN-03).
-        // It used to go to failNote, which puts the row back to 'queued' — so a timeout on a message
-        // Resend had in fact accepted sent it again on the next pass. The row is marked 'sent' with
-        // provider_message_id NULL and the reason in last_error, which is this estate's existing way of
-        // saying UNCONFIRMED: fn_customer_support_delivery_watch returns 'sent_unconfirmed' for exactly
-        // that shape, and fn_originator_checks_delivery refuses to re-send on it. True, never repeated,
-        // and visible to the two routines that judge delivery.
+        // Before the Idempotency-Key it went to failNote and a timeout on a message Resend had accepted sent
+        // it again on the next pass; so the row was marked sent-unconfirmed at once and never retried.
+        // RETRIED UNDER THE SAME KEY BEFORE THE CEILING (it_engineer, 3 Nov 2026, drill D3). MEASURED by the drill:
+        // with no retry, a message Resend never received was lost (sent-unconfirmed, delivered 0 times), where the
+        // qualification matrix (F09.03, D3) asks for "exactly once after recovery". The key above is what makes
+        // the retry safe: Resend answers a repeated accepted key with its first answer and sends nothing (24 h;
+        // the retries here span about 25 minutes, RETRY_BACKOFF_MS). Only at the ceiling is the row marked 'sent'
+        // with provider_message_id NULL and the reason in last_error, this estate's existing way of saying
+        // UNCONFIRMED: fn_customer_support_delivery_watch returns 'sent_unconfirmed' for exactly that shape, and
+        // fn_originator_checks_delivery refuses to re-send on it.
+        // prevented by: supabase/functions/send_outbox/drill_send_faults.test.ts
         lastErr = String((e as Error)?.message || e).slice(0, 200);
+        if ((Number(n.attempts) || 0) + 1 < MAX_ATTEMPTS) {
+          await failNote(n, 'the POST to Resend did not return (' + lastErr + '); retried later under the same Idempotency-Key (qd-notif-' + n.id + '), so a message Resend did accept is not sent twice');
+          console.error(e);
+          continue;
+        }
         unconfirmed++;
         await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: null,
           last_error: ('the POST to Resend did not return (' + lastErr + '); it may or may not have been accepted, so this row is sent-unconfirmed and will NOT be sent again').slice(0, 500) }).eq('id', n.id);
@@ -442,11 +499,14 @@ Deno.serve(observe('send_outbox', async (req) => {
     }
     // Only log runs that did something. Idle polls (nothing queued) stay out of agent_runs
     // so a real event is never buried under 720 empty rows a day.
-    const didWork = sent || failed || suppressed || held || skipped || laneHeld;
-    if (deadlettered) await logRun('error', { sent, failed, retried, deadlettered, suppressed, held, skipped, pending: rows.length }, deadlettered + ' email(s) permanently dead-lettered after ' + MAX_ATTEMPTS + ' attempts and will never be delivered. Last error: ' + lastErr);
+    const didWork = sent || failed || suppressed || held || skipped || laneHeld || unconfirmed || writeFailed;
+    if (deadlettered) await logRun('error', { sent, failed, retried, deadlettered, suppressed, held, skipped, pending: rows.length }, deadlettered + ' email(s) permanently dead-lettered after ' + MAX_ATTEMPTS + ' attempts (or at once on a permanent 400/422 refusal) and will never be delivered. Last error: ' + lastErr);
     else if (failed) await logRun('error', { sent, failed, retried, suppressed, held, skipped, pending: rows.length }, 'Resend rejected ' + failed + ' email(s), will retry. Last error: ' + lastErr);
+    // A database write around a Graph send failed (the marker before it, or the 'sent' record after it): visible here, and
+    // the marker makes the next run record the row rather than send it twice.
+    else if (writeFailed) await logRun('error', { sent, write_failed: writeFailed, unconfirmed, held, pending: rows.length }, writeFailed + ' notification write(s) around a Microsoft 365 send failed; none is sent twice. Last error: ' + lastErr);
     else if (didWork) await logRun('ok', { sent, suppressed, held, skipped, pending: rows.length, remaining_today: Math.max(0, remaining - sent) }, held ? (held + ' held (supplier sending gate or stale)') : '');
-    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent), invite_lane: lane.active ? lane.domain : lane.why, invite_m365: m365.active ? m365.mailbox : m365.why, invite_lane_held: laneHeld });
+    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, write_failed: writeFailed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent), invite_lane: lane.active ? lane.domain : lane.why, invite_m365: m365.active ? m365.mailbox : m365.why, invite_lane_held: laneHeld });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
   finally {
     // Rows this run resolved are no longer 'sending', so the status filter makes this exact: only a
