@@ -279,7 +279,9 @@ const personSpan = (m: string): [number, number] | null => {
  * second review of #1838) it must also END in a mail domain (com / ae / net / org / co): the adversarial re-review
  * measured "Supply 10 nos @ 450. Total 4500" and "We can meet @ site. Send the drawings" read as addresses.
  */
-export const EMAIL = /[A-Za-z0-9._%+-]{1,64}@(?=[A-Za-z0-9-]*[A-Za-z])[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,24}(?![A-Za-z])|[A-Za-z0-9._%+-]{1,64}(?:\s*(?:\(at\)|\[at\])\s*|\s+@\s*|\s*@\s+|\s+at\s+)(?=[A-Za-z0-9-]*[A-Za-z])[A-Za-z0-9-]+(?:\s*(?:\(dot\)|\[dot\])\s*|\s*\.\s*|\s+dot\s+)(?:com|ae|net|org|co)(?![A-Za-z])/gi;
+// A bracketed (at) / [at] is never a price or a meeting place, so any ending goes with it ("info [at] host.example.invalid":
+// the final leak run found the shared list stricter than the Q&A copy it replaced, 1 of 180 messages).
+export const EMAIL = /[A-Za-z0-9._%+-]{1,64}@(?=[A-Za-z0-9-]*[A-Za-z])[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,24}(?![A-Za-z])|[A-Za-z0-9._%+-]{1,64}\s*(?:\(at\)|\[at\])\s*[A-Za-z0-9-]+(?:\s*(?:\(dot\)|\[dot\]|\.)\s*[A-Za-z0-9-]+){0,4}\s*(?:\(dot\)|\[dot\]|\.)\s*[A-Za-z]{2,24}(?![A-Za-z])|[A-Za-z0-9._%+-]{1,64}(?:\s+@\s*|\s*@\s+|\s+at\s+)(?=[A-Za-z0-9-]*[A-Za-z])[A-Za-z0-9-]+(?:\s*(?:\(dot\)|\[dot\])\s*|\s*\.\s*|\s+dot\s+)(?:com|ae|net|org|co)(?![A-Za-z])/gi;
 export const URL = /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi;
 /**
  * A bare domain WITH its path ("instagram.com/alnoortrading" loses the handle as well as the host). The common endings

@@ -86,6 +86,8 @@ const LEAKED: [string, string][] = [
   // the reviewer's own input set, re-run after the fixes above
   ['Please ask for Ahmed Khan at reception', 'Khan'], ['Ahmed Khan | Sales Manager | +971 50 123 4567', 'Khan'], ['info@alnoor.construction', 'alnoor'],
   ['Plot 597-123, DIP, Dubai', '597'],
+  // the final 480-trial run on these fixes: 1 of 180 Q&A messages kept a bracketed address with a long ending
+  ['email info [at] zzcrescentbluegd8.example.invalid', 'zzcrescentbluegd8'], ['ahmed (at) alnoor (dot) construction', 'alnoor'],
 ];
 /** What a residual scan must flag on the RAW text (a drawing page holding these is held, never shared). */
 const residualOf = (s: string) => residualScan(s, ['zz demo']);
