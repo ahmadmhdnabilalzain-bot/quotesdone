@@ -102,6 +102,9 @@ export function classify(http: number): ObserveStatus {
  */
 export function statusOf(http: number, ann?: Record<string, unknown>): ObserveStatus {
   if (http >= 500 && ann?.held === true) return 'held';
+  // 3 Nov 2026 (it_engineer): a call ai_gateway SKIPPED at a daily spend ceiling on our own traffic (spend_ceiling.ts)
+  // is a decision, not a fault and not a hold to wait out: 'skipped', which no failure watcher counts.
+  if (http >= 500 && ann?.skipped === true) return 'skipped';
   // 19 Oct 2026 (marketing): a 4xx the handler marked refused_unauthenticated is a caller that presented
   // NO credential at all (curl with no signature header). It is not a run of the function: 'skipped'.
   // Measured: fn:marketing_social_inbox read 4 of 8 runs 'warn' over 7 days, and all 4 were one

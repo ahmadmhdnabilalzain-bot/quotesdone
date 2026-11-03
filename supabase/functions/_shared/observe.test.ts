@@ -107,6 +107,8 @@ Deno.test('the portal data functions carry the 2.5 s budget the founder set', ()
 // Incident 437 (24 Sep 2026): ai_gateway's deliberate 503 fixture_no_spend was logged 'error' and paged as a run failure.
 Deno.test('a 5xx the handler annotated held is held; an unannotated 5xx is still an error', () => {
   assertEquals(statusOf(503, { held: true }), 'held');
+  assertEquals(statusOf(503, { skipped: true }), 'skipped');      // a daily-ceiling skip (spend_ceiling.ts)
+  assertEquals(statusOf(503, { skipped: 'true' }), 'error');
   assertEquals(statusOf(503, {}), 'error');
   assertEquals(statusOf(503, { held: 'true' }), 'error');
   assertEquals(statusOf(503), 'error');

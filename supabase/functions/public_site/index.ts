@@ -78,6 +78,11 @@ export function detectEmirate(t: string): string | null {
   return null;
 }
 
+// THE SAME QUESTION IS ANSWERED ONCE (it_engineer, 3 Nov 2026). Measured (ai_cost_log, 7 days): 809 public_site model calls
+// on 73 distinct prompts, 0 cache hits. The prompt carries the price bands and catalogue it was answered from, so a changed
+// band is a new prompt; an identical prompt is replayed for 6 hours by its exact hash, never by similarity (cacheExact).
+const PUBLIC_DEPS = { gte: 'remote' as const, embedTimeoutMs: 3000, cacheTtlMin: 360 };
+
 async function routeBrief(text: string, lang: 'en' | 'ar', ip = 'unknown') {
   const emirate = detectEmirate(text);
   // WHICH CATEGORY IS REASONED, NOT ALIAS-MATCHED (founder_instruction 886-903; decision point 24). The
@@ -88,7 +93,7 @@ async function routeBrief(text: string, lang: 'en' | 'ar', ip = 'unknown') {
   if (error) return { ok: false, error: 'router_unavailable' };
   const cats = ((open as any)?.candidates || []) as { catalog_num: number; live_name: string }[];
   // A visitor has no channel to be answered on later, so a held question is not queued: he is asked now.
-  const pick = cats.length ? await catalogueCategoryOf(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 }), { text, categories: cats, audience: 'visitor', queue: false }) : null;
+  const pick = cats.length ? await catalogueCategoryOf(defaultDeps(admin, 'public_site', PUBLIC_DEPS), { text, categories: cats, audience: 'visitor', queue: false }) : null;
   let d: any = open || {};
   if (pick?.value) {
     const { data: routed, error: re } = await admin.rpc('fn_kb_route_decide', { p_text: text.slice(0, 1000), p_catalog_num: pick.value });
@@ -174,7 +179,7 @@ async function routeBrief(text: string, lang: 'en' | 'ar', ip = 'unknown') {
 // _shared/reasoned_suppliers.ts priceGuidanceFor; founder_instruction 886-903) — fn_price_guidance no
 // longer reads the question. Held (the model hold): no band is offered on a guess; reason 'held'.
 async function priceGuidance(question: string, ip: string) {
-  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 }), question.slice(0, 300), 6, 'visitor', 'ip:' + ip);
+  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site', PUBLIC_DEPS), question.slice(0, 300), 6, 'visitor', 'ip:' + ip);
   if (p.ok && Array.isArray(p.bands)) {
     // Only the band itself. The evidence text and the kb_chunk/blog source ids stay server-side.
     const bands = p.bands.slice(0, 4).map((b: any) => ({
