@@ -25,7 +25,9 @@ type World = { msgs: Record<string, unknown>[]; seen: Set<string>; gateway: Reco
   /** what a classification (any call that is not a conversation reply) answers, and how long a review of a decision takes */
   classify?: Record<string, unknown>; reviewMs?: number;
   /** every reply call that carries the company brief answers a cut-off object (nothing usable) */
-  briefedReplyCut?: boolean };
+  briefedReplyCut?: boolean;
+  /** the gateway refuses every call that carries a sender rate_key (the bucket is spent) */
+  bucketSpent?: boolean };
 const world = (audience: Record<string, unknown> = { audience: 'supplier', name: 'ZZ DEMO Glass LLC', claimed: true, approved: true }): World =>
   ({ msgs: [], seen: new Set(), gateway: [], rpcs: [], nextId: 1, audience, replies: [] });
 
@@ -52,6 +54,7 @@ function stubFor(w: World): Stub {
           return J({ ok: true, content: JSON.stringify(review ? { ...w.classify, decision: { choice: 'none' } } : w.classify), model: 'stub/model' });
         }
         w.log?.push('res:' + String(body.task_class ?? ''));
+        if (w.bucketSpent && body.rate_key) return J({ ok: true, used_llm: false, outcome: 'rate_limited', detail: { allowed: false } });
         if (w.briefedReplyCut && body.task_class === 'conversation_reply' && body.sys_stable) return J({ ok: true, content: '{"answer":"We will', model: 'stub/model' });
         const n = w.replies.length + 1; const text = w.script?.shift() ?? 'ZZ DEMO reply ' + n;
         return J({ ok: true, content: JSON.stringify({ answer: text, reply: text, lang: 'en', escalate: false }), model: 'stub/model' });
@@ -270,4 +273,17 @@ Deno.test('the brief-less last chance: never for a company question, only when a
   await inbound(w2, B, 'ZZ DEMO you took my money and vanished, this is a scam');
   assert(briefless(w2) >= 1, 'a person is needed: the last chance ran');
   assert(w2.msgs.some((m) => m.wa_from === B && m.reply && (m.meta as Record<string, unknown>)?.held_notice === false), 'and the person got the reply');
+});
+
+// Re-review of #1816: a sender whose bucket is spent. As on main: the reply call is refused, nothing more is asked (no other
+// family, no rewrite, no last chance, all of which carry no key), nothing code-written is sent, and the turn is held.
+// Fails on 247386a2: the unkeyed calls after the refusal answered and a reply was sent.
+Deno.test('a spent sender bucket: one refused reply call, nothing else asked, no text sent, the turn held', async () => {
+  const w = world({ audience: 'unknown' }); w.bucketSpent = true;
+  w.classify = { answer: 'needs a person', reasoning: [], cited: [], asked_back: null, decision: { choice: 'none' }, needs_a_person: 'needs_a_person', menu_meaning: 'other' };
+  await inbound(w, B, 'ZZ DEMO you took my money and vanished, this is a scam');
+  const replies = w.gateway.filter((g) => g.task_class === 'conversation_reply' && g.fn === 'wa_inbound');
+  assertEquals(replies.filter((g) => !g.rate_key).length, 0, 'no unkeyed reply call after the refusal: ' + replies.length);
+  assert(!w.msgs.some((m) => m.wa_from === B && m.sent === true), 'nothing was sent');
+  assert(w.rpcs.some((c) => c.fn === 'fn_reason_hold'), 'the turn was held for the re-ask');
 });

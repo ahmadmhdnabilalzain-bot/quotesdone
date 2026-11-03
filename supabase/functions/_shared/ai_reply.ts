@@ -66,7 +66,7 @@ export interface AiReplyRequest {
 }
 /** outage: no call reached a model — every one failed with a network error, 5xx, timeout/deadline or an open circuit
  *  (openrouter_down.ts). Only then may a caller send its code-written fallback (founder_instruction 1339). */
-export interface AiReply { reply: string; model: string | null; attempts: string[]; action?: string | null; escalate?: boolean; problems?: string[]; outage?: boolean }
+export interface AiReply { reply: string; model: string | null; attempts: string[]; action?: string | null; escalate?: boolean; problems?: string[]; outage?: boolean; rateLimited?: boolean }
 
 export function aiSystem(r: AiReplyRequest, replyLang: 'en' | 'ar'): string {
   const extra = [
@@ -211,7 +211,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
       + '. Write a complete answer that avoids every one of them and follows every rule in your instructions.' : '');
   const opts = { taskClass: REPLY_CLASS, ...(r.effort ? { effort: r.effort } : {}), ...(history.length ? { history } : {}), ...(r.briefInPrompt === false ? {} : { sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable }), cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
-  let calls = 0; let lastProblems: string[] = [];
+  let calls = 0; let lastProblems: string[] = []; let rateLimited = false;
   const left = () => (r.deadline ?? Infinity) - Date.now();
   const call = async (prompt: string, counterpartModel: string | null) => {
     if (r.signal?.aborted) { calls = MAX_CALLS; attempts.push('aborted by the caller'); return null; }
@@ -222,7 +222,14 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     // carries rate_key (20 an hour), so each rewrite of one reply used one of the sender's 20, and the supplier's last two
     // turns of that run (a bad PDF, a voice note) were rate-limited and got no reply (ai_rate_limit wa:...0050 at 20). Only
     // the first call of a reply carries it. Prevented by: ai_reply.test.ts.
-    return await deps.llm('synthesise', sys, prompt, { ...opts, ...(calls === 1 && r.rateKey ? { rateKey: r.rateKey } : {}), ...timeout, ...(r.signal ? { signal: r.signal } : {}), ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
+    // AND A SPENT BUCKET STOPS THE WHOLE REPLY (re-review of #1816): the later calls carry no key, so if the first is refused
+    // 'rate_limited' and the ladder went on, a sender over the cap would still buy the other-family call and its rewrites. The
+    // per-sender key is the only spend cap on public WhatsApp (no gateway budget halt, founder_instruction 987). As on main:
+    // no further call, no text; the caller holds the turn (no code-written text while the model is up, 1339).
+    const keyed = calls === 1 && !!r.rateKey;
+    const res = await deps.llm('synthesise', sys, prompt, { ...opts, ...(keyed ? { rateKey: r.rateKey } : {}), ...timeout, ...(r.signal ? { signal: r.signal } : {}), ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
+    if (keyed && res?.error === 'rate_limited') { calls = MAX_CALLS; rateLimited = true; attempts.push("rate_limited: the sender's bucket is spent"); }
+    return res;
   };
   const done = (text: string, content: string | null | undefined, model: string | null): AiReply => {
     const j = json(content);
@@ -273,7 +280,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     if (kept) { attempts.push('salvaged: the passing sentences of the last draft'); return { ...done(kept, lastContent, lastModel), outage: false }; }
   }
   const outage = !answered && failures.length > 0 && failures.every((e) => isOpenRouterDown(e));
-  return { reply: '', model: null, attempts, problems: lastProblems, outage };
+  return { reply: '', model: null, attempts, problems: lastProblems, ...(rateLimited ? { rateLimited: true, outage: false } : { outage }) };
 }
 
 /** The sentences of a model draft that pass `sentence` on their own, joined, when the whole still passes `whole`

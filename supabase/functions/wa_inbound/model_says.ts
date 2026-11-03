@@ -78,7 +78,8 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
     // ONLY WHEN THE FACTS ALONE ANSWER THE TURN (review of #1816): without the brief a company question ("how do you vet
     // suppliers?") could only be answered from memory, so the caller opts in (situationAnswers) for a turn whose facts say what
     // happens, a person being needed above all, and the brief-less prompt says nothing about the company beyond its facts.
-    if (r.situationAnswers === true && !String(out.reply || '').trim() && !out.outage && !r.signal) {
+    // Never past a spent sender bucket (out.rateLimited): the turn ends as on main, held with no text (re-review of #1816).
+    if (r.situationAnswers === true && !String(out.reply || '').trim() && !out.outage && !out.rateLimited && !r.signal) {
       // the same message's reply, so it does not count against the sender's rate bucket again (rateKey left out)
       const last = await ask(Date.now() + LAST_CHANCE_MS, { briefInPrompt: false, priorProblems: out.problems, rateKey: undefined });
       attempts = [...attempts, ...last.attempts.map((a) => 'last-chance ' + a)];

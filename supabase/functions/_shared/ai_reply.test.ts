@@ -268,3 +268,18 @@ Deno.test('a supplier reply written in Arabic is rewritten in English, never sen
   assert(r.reply.startsWith('Do you mean'), r.attempts.join(' | '));
   assert(r.attempts.some((a) => a.includes('not in English')), r.attempts.join(' | '));
 });
+
+// Re-review of #1816: only the first call carries rateKey, so a refused first call must stop the reply; otherwise a sender over
+// the cap still bought the other-family call and its rewrites, unchecked. As on main: one call, no text, not an outage.
+// Fails on 247386a2 (2 calls and a reply).
+Deno.test('a spent sender bucket stops the reply: exactly one model call, no text, rateLimited, not an outage', async () => {
+  const opts: Record<string, unknown>[] = [];
+  const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
+    llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => { opts.push(o);
+      return Promise.resolve((o.rateKey ? { content: null, error: 'rate_limited' } : { content: JSON.stringify({ answer: 'Thank you, your message is with our team.', escalate: false }), model: 'stub' }) as LlmReply); } } as unknown as ThinkDeps;
+  const r = await aiReply(deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO hi', askEscalate: true, rateKey: 'wa:whatsapp:+971500000031' });
+  assertEquals(opts.length, 1, 'no call after the refusal: ' + r.attempts.join(' | '));
+  assertEquals(r.reply, '');
+  assertEquals(r.rateLimited, true);
+  assertEquals(r.outage, false, 'a spent bucket is not an outage: no code-written notice (1339)');
+});

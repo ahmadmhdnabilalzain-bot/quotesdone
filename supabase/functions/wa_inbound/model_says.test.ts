@@ -193,3 +193,16 @@ Deno.test('a company fact question whose first ask failed gets no brief-less ans
   assert(calls.every((o) => o.sysStable), 'no call went without the brief');
   assert(!r.attempts.some((a) => a.startsWith('last-chance')));
 });
+
+// Re-review of #1816: a spent sender bucket gets no last chance either (it carries no key, so it would be unchecked spend).
+Deno.test('a spent sender bucket: one model call, no last chance, no text, not an outage', async () => {
+  const calls: Record<string, unknown>[] = [];
+  const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
+    llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => { calls.push(o);
+      return Promise.resolve((o.rateKey ? { content: null, error: 'rate_limited' } : { content: A('Please reach our team on +1 218 316 6814.'), model: 'stub' }) as LlmReply); } } as unknown as ThinkDeps;
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money', situation: 'They need a person.', situationAnswers: true, rateKey: 'wa:whatsapp:+971500000031' });
+  assertEquals(calls.length, 1, r.attempts.join(' | '));
+  assert(!r.attempts.some((a) => a.startsWith('last-chance')));
+  assertEquals(r.text, '');
+  assertEquals(r.outage, false);
+});
