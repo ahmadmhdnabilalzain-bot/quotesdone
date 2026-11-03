@@ -266,7 +266,7 @@ end $function$;
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 3. fn_wa_fact_pack: the confirmed customer, their requests, and no false "nothing exists" line
 create or replace function public.fn_wa_fact_pack(p_phone text)
- returns jsonb language plpgsql stable security definer set search_path to 'public'
+ returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp'
 as $function$
 declare
   v_lead_id bigint;
@@ -506,11 +506,11 @@ begin
     perform public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
       'type', 'inquiry_cancelled', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', v_email,
       'to_role', 'customer', 'inquiry_id', p_inquiry, 'lang', case when v_ar then 'ar' else 'en' end,
-      'subject', case when v_ar then 'تم إلغاء طلبك رقم ' || coalesce(v.rfq_no::text, '')
+      'subject', case when v_ar then 'أُلغي طلبكم رقم ' || coalesce(v.rfq_no::text, '')
                       else 'Your request ' || coalesce(v.rfq_no::text, '') || ' is cancelled' end,
       'body', case when v_ar
-        then 'تم إلغاء طلبك رقم ' || coalesce(v.rfq_no::text, '') || ' بناءً على رغبتك، وقد أبلغنا المورّدين المدعوين لتقديم عروضهم. '
-             || 'وإن كان ذلك عن طريق الخطأ، يمكنك نشر الطلب من جديد على https://quotesdone.com'
+        then 'أُلغي طلبكم رقم ' || coalesce(v.rfq_no::text, '') || ' بناءً على رغبتكم، وأبلغنا بذلك المورّدين الذين دعوناهم إلى تقديم عروضهم. '
+             || 'وإن كان الإلغاء عن طريق الخطأ، فبإمكانكم نشر الطلب من جديد على https://quotesdone.com'
         else 'Your request ' || coalesce(v.rfq_no::text, '') || ' is cancelled, as you asked, and the suppliers invited to quote have been told. '
              || 'If this was a mistake, you can post the request again at https://quotesdone.com' end,
       'dedupe_key', 'inquiry_cancelled:' || p_inquiry)));
@@ -537,9 +537,7 @@ end $function$;
 -- 7. L1: THE STATUS CHASE — registered conversation, the sales engineer's handler, customer_support's closer
 insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
  ('inquiry.status_chase', 'customer_support', 'sales_engineer',
-  'A customer asked on WhatsApp about a request that is past the time quotes were due with fewer than 3 quotes: the sales '
-  || 'engineer reminds every matched supplier who has not quoted (never one reminded in the last 24 hours). customer_support '
-  || 'closes it after telling the customer: a quote arrived, or the dated update at next_update_by.',
+  'A customer asked on WhatsApp about a request that is past the time quotes were due with fewer than 3 quotes: the sales engineer reminds every matched supplier who has not quoted (never one reminded in the last 24 hours). customer_support closes it after telling the customer: a quote arrived, or the dated update at next_update_by.',
   'fn_sales_engineer_chases_for_status', interval '26 hours', true,
   'scripts/sql/a_customer_asking_on_whatsapp_reads_their_own_requests_and_every_ask_closes_its_loop.sql')
 on conflict (type, from_seat, to_seat) do update set meaning = excluded.meaning, handler = excluded.handler,
@@ -606,9 +604,10 @@ begin
         v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
           'type', 'quote_received', 'requested_by', 'customer_support', 'channel', case when v_dest is null then 'email' else 'whatsapp' end,
           'to_phone', v_dest, 'to_email', c.email, 'to_role', 'customer', 'inquiry_id', i.id, 'lang', case when v_ar then 'ar' else 'en' end,
-          'subject', case when v_ar then 'وصل عرض جديد على طلبك رقم ' || coalesce(i.rfq_no::text, '') else 'A new quote arrived on your request ' || coalesce(i.rfq_no::text, '') end,
+          'subject', case when v_ar then 'مستجدات العروض على طلبكم رقم ' || coalesce(i.rfq_no::text, '') else 'A new quote arrived on your request ' || coalesce(i.rfq_no::text, '') end,
           'body', case when v_ar
-            then 'كما وعدناك: وصل ' || v_new || ' عرض جديد على طلبك رقم ' || coalesce(i.rfq_no::text, '') || '، وأصبح لديك ' || v_live || ' عرض. يمكنك مقارنتها في حسابك على https://quotesdone.com'
+            then 'كما وعدناكم، وصل إلى طلبكم رقم ' || coalesce(i.rfq_no::text, '') || ' ما عدده ' || v_new || ' من العروض الجديدة، ليصبح مجموع العروض لديكم ' || v_live
+                 || '. وبإمكانكم مقارنتها في حسابكم على https://quotesdone.com'
             else 'As promised: ' || v_new || ' new quote(s) arrived on your request ' || coalesce(i.rfq_no::text, '') || ', so you now have ' || v_live
                  || '. You can compare them in your account at https://quotesdone.com' end,
           'dedupe_key', 'status_chase_followup:' || h.id)));
@@ -618,10 +617,10 @@ begin
         v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
           'type', 'inquiry_status_update', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', c.email,
           'to_role', 'customer', 'inquiry_id', i.id, 'lang', case when v_ar then 'ar' else 'en' end,
-          'subject', case when v_ar then 'تحديث عن طلبك رقم ' || coalesce(i.rfq_no::text, '') else 'An update on your request ' || coalesce(i.rfq_no::text, '') end,
+          'subject', case when v_ar then 'مستجدات طلبكم رقم ' || coalesce(i.rfq_no::text, '') else 'An update on your request ' || coalesce(i.rfq_no::text, '') end,
           'body', case when v_ar
-            then 'كما وعدناك، هذا تحديث عن طلبك رقم ' || coalesce(i.rfq_no::text, '') || ': لديك الآن ' || v_live || ' من أصل 3 عروض نسعى إليها. '
-                 || 'ذكّر مهندس المبيعات لدينا المورّدين المدعوين الذين لم يقدّموا عروضهم بعد، ويبقى طلبك مفتوحًا لمورّدين آخرين في المجال نفسه. سنخبرك فور وصول أي عرض جديد.'
+            then 'كما وعدناكم، إليكم مستجدات طلبكم رقم ' || coalesce(i.rfq_no::text, '') || ': وصلكم حتى الآن ' || v_live || ' من أصل 3 عروض نسعى إلى توفيرها. '
+                 || 'وقد ذكّر مهندس المبيعات لدينا المورّدين المدعوين الذين لم يقدّموا عروضهم بعد، ويبقى طلبكم متاحًا لمورّدين آخرين في المجال نفسه، وسنوافيكم فور وصول أي عرض جديد.'
             else 'As promised, an update on your request ' || coalesce(i.rfq_no::text, '') || ': you have ' || v_live || ' of the 3 quotes we aim for. '
                  || 'Our sales engineer reminded the invited suppliers who had not quoted, and the request stays open to more suppliers in its trade. '
                  || 'We will tell you as soon as a new quote arrives.' end,
@@ -679,7 +678,7 @@ begin
         'to_role', o.party_kind, 'lead_id', o.lead_id, 'lang', case when v_ar then 'ar' else 'en' end,
         'subject', case when v_ar then 'بخصوص طلبكم التحدث إلى أحد أعضاء الفريق' else 'About your request to speak to a person' end,
         'body', case when v_ar
-          then 'نعتذر عن تأخر ردنا عليكم بعد طلبكم على واتساب التحدث إلى أحد أعضاء الفريق. لقد أبلغناه مجددًا بطلبكم، '
+          then 'نعتذر عن تأخر ردنا عليكم بعد طلبكم على واتساب التحدث إلى أحد أعضاء الفريق، وقد ذكّرنا الفريق بطلبكم مجددًا. '
                || 'ويمكنكم الرد على هذه الرسالة أو مراسلتنا على واتساب في أي وقت، وستصلكم الإجابات الفورية مباشرة.' || E'\n\nفريق خدمة العملاء في QuotesDone'
           else 'We are sorry you have not heard from us since you asked on WhatsApp to speak to a person. We have reminded the team of your request. '
                || 'You can reply to this email, or message us on WhatsApp at any time and instant answers are back on there.' || E'\n\nQuotesDone Customer Support' end,
@@ -825,6 +824,13 @@ begin
   return jsonb_build_object('reply', v_lines, 'actions', v_actions);
 end $fn$;
 revoke execute on function public.fn_wa_customer_request_answer(uuid, text, text, text) from public, anon, authenticated;
+-- The four routines this file replaces. CREATE OR REPLACE keeps their ACL (service_role only, measured on production
+-- 3 Nov 2026; every caller is an edge function's service-role client), so these change nothing live: they state the
+-- rule in the file that now owns them.
+revoke execute on function public.fn_cancel_inquiry(uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.fn_wa_answer(text, text, text) from public, anon, authenticated;
+revoke execute on function public.fn_wa_context(text, text) from public, anon, authenticated;
+revoke execute on function public.fn_wa_fact_pack(text) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 9. fn_wa_answer: a CONFIRMED customer is a known party (unchanged for suppliers and unknown numbers)
