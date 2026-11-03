@@ -6,10 +6,14 @@ const clip = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
 const STRIP: RegExp[] = [
   /[A-Za-z0-9._%+-]+\s*(?:@|\(at\)|\[at\])\s*[A-Za-z0-9.-]+\s*(?:\.|\(dot\)|\[dot\])\s*[A-Za-z]{2,}/gi,
   /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
-  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info|app|link)(?:\.[A-Za-z]{2})?\b/gi,
+  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info|app|link)(?:\.[A-Za-z]{2})?\b(?:\/[^\s,;)\]]*)?/gi,
   /(?:\+|00)\s?971[\s.\-]?\d(?:[\s.\-]?\d){6,10}/g,
-  /\b0\d(?:[\s.\-]?\d){7,8}\b/g,
-  /\b5\d(?:[\s.\-]?\d){7}\b/g,
+  // Second review of #1838: unbounded, these took "050 075 110" out of "UPVC pipe dia 050 075 110 160", "00 25200.00" out
+  // of a BOQ row and "05.11.2026 10" out of a date. A number standing ALONE (no digit group before or after it) is still
+  // read in any spacing ("0 4 1 2 3 4 5 6 7", "50 123 4567"); the leading-0 form takes no dots (the shared list reads
+  // "050.123.4567").
+  /(?<!\d[\s.\-]?)(?<!\d)0\d(?:[\s\-]?\d){7,8}(?![\s.\-]?\d)/g,
+  /(?<!\d[\s.\-]?)(?<!\d)5\d(?:[\s.\-]?\d){7}(?![\s.\-]?\d)/g,
   /\b(?:whats\s*app|wa\.me|telegram|t\.me|viber|botim|snapchat|skype|instagram)\b\S*/gi,
   /(^|\s)@[A-Za-z0-9_.]{3,}/g,
 ];

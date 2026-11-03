@@ -99,10 +99,12 @@ function supplierIdentity(n) {
     T('email', id.email, { words: [id.email.split('@')[0] + slug] }), T('website', id.web, { words: [slug] }),
     T('phone_mobile', pick(ph.mobile.all), { digitsKey: ph.mobile.key }), T('phone_land', pick(ph.land.all), { digitsKey: ph.land.key }),
     T('trn', pick([`TRN: ${trn}`, `TRN ${trn.replace(/^(\d{3})(\d{4})(\d{4})(\d{4})$/, '$1 $2 $3 $4')}`, `VAT Reg. No. ${trn.replace(/^(\d{3})(\d{4})(\d{4})(\d{4})$/, '$1-$2-$3-$4')}`, `الرقم الضريبي: ${toAr(trn)}`, `Tax Registration Number ${trn}`, trn]), { digitsKey: trn }),
-    // A licence printed the way a UAE letterhead prints it: the DED "CN-" number has SEVEN digits, and the TL abbreviation
-    // carries its number marker or a licence word. A bare "TL 273158" or a six-digit "CN-123456" is a product code as often
-    // as a licence (review of #1838), so the corpus does not plant them and the shared list keeps them.
-    T('licence', pick([`Trade Licence No. ${lic}`, `License No: ${lic}`, `CN-${lic}${digits(1)}`, `T.L. No. ${lic}`, `Trade licence TL ${lic}`, `رقم الرخصة: ${toAr(lic)}`, `D.E.D. Licence ${lic}`]), { digitsKey: lic }),
+    // A licence printed the way a UAE letterhead prints it. The DED "CN-" number is planted with SIX and with SEVEN digits,
+    // dashed, spaced and run together: the second review of #1838 measured that the first loosening stopped planting the
+    // six-digit form ("CN-974461", this run's own first measured leak) at the same time as it stopped catching it, so the
+    // measurement could not see the leak it had reopened. A product code is told apart by its label ("Product code
+    // CN-123456"), never by its digit count. The TL abbreviation carries its number marker or a licence word.
+    T('licence', pick([`Trade Licence No. ${lic}`, `License No: ${lic}`, `CN-${lic}`, `CN-${lic}${digits(1)}`, `CN ${lic}${digits(1)}`, `CN${lic}`, `T.L. No. ${lic}`, `Trade licence TL ${lic}`, `رقم الرخصة: ${toAr(lic)}`, `D.E.D. Licence ${lic}`]), { digitsKey: lic }),
     T('iban', pick([`IBAN: ${iban}`, `IBAN ${iban.replace(/(.{4})/g, '$1 ').trim()}`, `Account IBAN ${iban}`]), { digitsKey: iban.slice(2) }),
     T('po_box', pick([`P.O. Box ${pob}, Dubai`, `PO BOX: ${pob}`, `POB ${pob}`, `ص.ب ${toAr(pob)}`, `P. O. Box ${pob}`]), { digitsKey: pob }),
     T('address', `Office ${100 + Math.floor(rnd() * 900)}, ZZ ${c} ${code} Tower, Al Quoz Industrial Area ${1 + Math.floor(rnd() * 4)}, Dubai`, { words: [`${c} ${code} Tower`] }),

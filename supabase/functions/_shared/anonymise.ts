@@ -35,7 +35,7 @@ import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
 
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
 import { CONTACT_PATTERNS } from './identity_contacts.ts';
-import { IBAN, LICENCE_SHORT, PHONE_UAE_INTL, PHONE_UAE_NATIONAL, PO_BOX } from './identity_text.ts';
+import { IBAN, identityShapesIn, LICENCE_SHORT, PHONE_UAE_INTL, PHONE_UAE_NATIONAL, PO_BOX } from './identity_text.ts';
 export type Box = { x: number; y: number; w: number; h: number };
 export type SeedSource = { name?: string; company?: string; email?: string; phone?: string; project?: string; address?: string; plot?: string; makani?: string; extra?: string[] };
 
@@ -198,6 +198,10 @@ export function residualScan(text: string, seeds: string[]): string[] {
   const s = String(text ?? '');
   const found = new Set(seedRanges(s, seeds, true).map((r) => 'seed:' + r.what));
   for (const [name, re] of GENERIC_ID) if (new RegExp(re.source, re.flags.replace('g', '')).test(s)) found.add('pattern:' + name);
+  // 3 Nov 2026 (second review of #1838): the residual read the shared list's NUMBERS only, so a page left with "Best
+  // Regards Ahmed Khan", "شركة النور الذهبية" or "alnoor.store" was not held. Every shape the scrubbers remove is read
+  // here through the same validator, so a residual never holds a page for "Approved by MEP Consultants".
+  for (const name of identityShapesIn(s)) found.add('pattern:' + name);
   return [...found];
 }
 

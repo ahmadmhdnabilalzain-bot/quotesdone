@@ -4,7 +4,7 @@
 // the shared list destroyed (some of it at save, so permanently). Both halves must hold.
 // deno test --no-lock supabase/functions/_shared/identity_text.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { knownNameRe, scrubIdentityText } from './identity_text.ts';
+import { identityShapesIn, knownNameRe, scrubIdentityText } from './identity_text.ts';
 import { scrubIdentity as supplierScrub } from '../supplier_api/identity_scrub.ts';
 import { scrubIdentity as boqScrub } from '../drawing_boq/boq_from_text.ts';
 import { maskContacts, quoteDocument } from './quote_documents.ts';
@@ -20,6 +20,8 @@ const LEAKED: [string, string][] = [
   ['IBAN: AE280040006055553370809', '0060555'],
   ['P. O. Box 59508', '59508'], ['PO BOX: 14446', '14446'], ['POB 21759', '21759'], ['ص.ب ٥٦١٤٣', '٥٦١٤٣'],
   ['Trade licence TL 273158', '273158'], ['T.L. No. 273158', '273158'], ['CN-9744610', '9744610'], ['D.E.D. Licence 780159', '780159'],
+  // The header's own measured leak was the SIX-digit "CN-974461" (second review of #1838, 3 Nov 2026): restored.
+  ['CN-974461', '974461'], ['Licence CN 1234567', '1234567'], ['CN1234567', '1234567'],
   ['Hotline (050) 000 0076', '0076'], ['Mob 971500000064', '0064'], ['+٩٧١ ٥٠ ٠٠٠ ٠٠٦١', '٠٠٦١'], ['٠٤ ٠٠٠ ٠٠٥٥', '٠٠٥٥'], ['(04) 000 0044', '0044'],
   ['Mob: 05 0000 0012', '0012'], ['04-0000012', '0000012'], ['0500000098', '0098'], ['+971 4 000 0017', '0017'],
   ['Showroom: Office 735, ZZ Palm IU8 Tower, Al Quoz Industrial Area 3, Dubai.', 'IU8 Tower'],
@@ -27,12 +29,40 @@ const LEAKED: [string, string][] = [
   ['شركة النخلة الملكي للديكور ذ.م.م', 'النخلة'], ['شركة الواحة الأخضر للخدمات الفنية ذ.م.م', 'الواحة'],
   ['Prepared by: ZZ Omar Qasimi, Sales Engineer', 'Qasimi'], ['Thanks, ZZ Rashid Ketbi - quotes', 'Ketbi'], ['Site visits arranged by ZZ Majid Nuaimi.', 'Nuaimi'],
   ['المسؤول: زد زد عمر المزروعي.', 'المزروعي'],
+  // ── second independent review of #1838 (3 Nov 2026): leaks the loosened list REOPENED, each measured passing ──
+  // 1. a sign-off with no comma
+  ['Best Regards\nAhmed Khan\nSales Manager', 'Khan'], ['Best Regards Ahmed Khan', 'Khan'], ['Kind regards Ahmed Khan, Sales Manager', 'Khan'],
+  ['Thanks & Regards\nAHMED KHAN', 'KHAN'], ['Regards,\nAhmed Khan\nSales Manager', 'Khan'],
+  // 2. name shapes: hyphenated, all-caps, lowercase particles
+  ['Prepared by: Ahmed Al-Mansoori', 'Mansoori'], ['Prepared by: AHMED KHAN', 'KHAN'], ['Contact: Eng. Ahmed al Mansoori', 'Mansoori'],
+  ['Mr. Ahmed bin Rashid', 'Rashid'], ['Prepared by: Ahmed Khan Sales Engineer', 'Khan'],
+  // 4. Arabic legal names: a legal form is identity on its own; a proper noun after شركة / مؤسسة
+  ['شركة النور ٢٠٠٠ للمقاولات ذ.م.م', 'النور'], ['النور للمقاولات ذ.م.م', 'النور'], ['شركة النور الذهبية', 'النور'], ['مؤسسة النور', 'النور'],
+  ['وشركة النور للمقاولات', 'النور'],
+  // 5. the country code in brackets
+  ['Tel (+971) 50 123 4567', '4567'], ['Tel (+971) 4 123 4567', '4567'],
+  // 6. all-caps Latin firms; 7. other mobile layouts
+  ['AL NOOR TRADING', 'NOOR'], ['AL NOOR CONTRACTING CO.', 'NOOR'],
+  ['050 12 34 567', '567'], ['050/1234567', '1234567'], ['0 5 0 1 2 3 4 5 6 7', '4 5 6 7'],
+  // PRE-EXISTING GAPS closed here
+  ['Lic. No. 1234567', '1234567'], ['Lic No: 654321', '654321'], ['رخصة تجارية رقم ١٢٣٤٥٦', '١٢٣٤٥٦'], ['السجل التجاري 765432', '765432'],
+  ['Visit alnoor.store', 'alnoor'], ['Visit alnoor.shop today', 'alnoor'], ['Follow instagram.com/alnoortrading', 'alnoortrading'],
+  ['Mail ahmed @ gmail . com', 'ahmed'], ['Mail ahmed[at]gmail[dot]com', 'ahmed'], ['Mail ahmed(at)gmail(dot)com', 'ahmed'],
+  ['IBAN AE07-0331-2345-6789-0123-456', '6789'],
+  ['Building 5, Al Quoz, Dubai', 'Al Quoz'], ['Villa 23, Street 14, Jumeirah 1, Dubai', 'Jumeirah'], ['مكتب ١٢، برج الخليج، دبي', 'برج الخليج'], ['Post Box 12345', '12345'],
+  ['المهندس أحمد المنصوري', 'المنصوري'], ['م. أحمد المنصوري', 'المنصوري'], ['مع التحية، أحمد المنصوري', 'المنصوري'],
+  ['Al Noor & Sons Trading LLC', 'Noor'], ['Saif bin Darwish Contracting', 'Saif'],
 ];
-Deno.test('every leaked shape is gone through each scrubber that let it through', () => {
+/** What a residual scan must flag on the RAW text (a drawing page holding these is held, never shared). */
+const residualOf = (s: string) => residualScan(s, ['zz demo']);
+Deno.test('every leaked shape is gone through each scrubber that let it through, and a residual scan flags the raw text', () => {
+  const bad: string[] = [];
   for (const [text, gone] of LEAKED) {
     const outs = { supplier_api: supplierScrub(text, NAME, []) ?? '', drawing_boq: boqScrub(text), quote_documents: maskContacts(text, [NAME]), messages_api: stripContact(text, [NAME]) };
-    for (const [who, out] of Object.entries(outs)) assert(!out.includes(gone), `${who} kept "${gone}" of "${text}": ${out}`);
+    for (const [who, out] of Object.entries(outs)) if (out.includes(gone)) bad.push(`${who} kept "${gone}" of ${JSON.stringify(text)}: ${JSON.stringify(out)}`);
+    if (!residualOf(text).length) bad.push(`residualScan found nothing in ${JSON.stringify(text)}`);
   }
+  assertEquals(bad, []);
 });
 Deno.test('a known name is matched whole, with its suffix, and next to Arabic; fragments only with a digit, only when asked', () => {
   const re = knownNameRe(NAME)!;
@@ -61,12 +91,28 @@ const KEEP = ['Supply and install 2 TR ducted split unit 6 nos 4200.00 25200.00'
   'Unit 12, Block B, Dubai', 'Mr. Client to provide power', 'From: Ground Floor To Roof',
   'مكتب خشبي مقاس ١٢٠×٦٠ سم عدد ١٠', 'تشطيب مكتب الإدارة بالكامل', 'خرسانة جاهزة من مصنع معتمد C40', 'يتم الاستلام من قبل المهندس المشرف على المشروع',
   'المسؤول عن التركيب المقاول الرئيسي', 'تجديد مكتب في دبي مارينا مساحة ٢٠٠ متر مربع', 'شركة التأمين تتحمل التكاليف',
-  'Contact: Site Office for access', 'Regards, Supply Chain Team'];
-Deno.test('MUST-KEEP: ordinary BOQ, quotation and Arabic wording is untouched by the shared list and by every scrubber', () => {
+  'Contact: Site Office for access', 'Regards, Supply Chain Team',
+  // ── second independent review of #1838 (3 Nov 2026): trade text the loosened list still ate ──
+  'Acoustic Consultants approval required', 'Third Party Consultants to witness testing', 'Fire Alarm Engineering Consultants approval',
+  'Kitchen Interiors package 1 lot', 'Section 5: Hotel Lobby Interiors', 'Permit issued by Dubai Municipality', 'NOC issued by Abu Dhabi Municipality',
+  'Signed by Both Parties before mobilisation', 'Submitted by Tenderer Before Closing Date', 'Contact: Dubai Electricity Authority for connection',
+  'BMS software licence 12500.00', 'Annual licence 15000 per year', 'عن طريق شركة معتمدة للصيانة', 'بواسطة شركة متخصصة للعزل المائي',
+  // and the guards the fixes above must not break
+  'Thanks for the opportunity', 'Our trading terms apply', 'General trading terms apply', 'With regards to the delivery schedule',
+  'Best Regards, Supply Chain Team', 'Kind regards, QS Team', 'Prepared by: MEP CONSULTANTS', 'Attention: ALL WORKS TO BE TESTED',
+  'Dated 05.06.2026 1200 hrs', 'الشركة المصنعة تقدم الضمان', 'الشركة الموردة مسؤولة عن التركيب', 'المهندس المقيم في الموقع', 'مع الشكر للتعاون',
+  'طول الأنبوب ١٠ م. حسب المخطط', 'Model CN 1234567 driver', 'Item code CN-1234567 panel'];
+// stripContact writes Arabic-Indic digits as Latin ones before it reads numbers; that is the same figure, not damage.
+const latin = (s: string) => s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/\s+/g, ' ').trim();
+const kept = (s: string, out: string) => latin(out) === latin(s);
+Deno.test('MUST-KEEP: ordinary BOQ, quotation and Arabic wording is untouched by the shared list, by every scrubber and by the residual scan', () => {
   const bad: string[] = [];
   for (const s of KEEP) {
-    const outs = { shared: scrubIdentityText(s, '[X]'), supplier_api: supplierScrub(s, null, []) ?? '', drawing_boq: boqScrub(s), quote_documents: maskContacts(s, [], 'en') };
-    for (const [who, out] of Object.entries(outs)) if (out.replace(/\s+/g, ' ').trim() !== s) bad.push(`${who}: "${s}" -> "${out}"`);
+    const outs = { shared: scrubIdentityText(s, '[X]'), supplier_api: supplierScrub(s, null, []) ?? '', drawing_boq: boqScrub(s), quote_documents: maskContacts(s, [], 'en'), messages_api: stripContact(s, []) };
+    for (const [who, out] of Object.entries(outs)) if (!kept(s, out)) bad.push(`${who}: "${s}" -> "${out}"`);
+    // The residual's shared-list half never holds a page for trade wording (its older GENERIC_ID half is unchanged here).
+    const shapes = identityShapesIn(s);
+    if (shapes.length) bad.push(`residual shared-list half: "${s}" -> ${shapes.join(',')}`);
   }
   assertEquals(bad, []);
 });

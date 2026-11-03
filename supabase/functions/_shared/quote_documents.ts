@@ -76,7 +76,8 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   t = t.replace(/█+/g, H);
   t = t.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, H);
   t = t.replace(/\b(?:https?:\/\/|www\.)\S+/gi, H);
-  t = t.replace(/\b[\w-]+\.(?:com|ae|net|org|co)(?:\.[a-z]{2})?\b/gi, H);
+  // With its path: "instagram.com/alnoortrading" kept the handle (second review of #1838).
+  t = t.replace(/\b[\w-]+\.(?:com|ae|net|org|co)(?:\.[a-z]{2})?\b(?:\/[^\s,;)\]]*)?/gi, H);
   // A TRN or licence number finds the company on a public register (founder, 14 Sep 2026). Before
   // the phone patterns, which would otherwise take a 15-digit TRN apart and leave its label behind.
   t = t.replace(TRN_LABELLED, H).replace(TRN_BARE, H).replace(LICENCE_NO, H);
