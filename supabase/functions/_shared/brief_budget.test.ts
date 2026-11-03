@@ -85,11 +85,17 @@ Deno.test('the trade is the one the conversation is about, and passing words are
     'Do you have a network of suppliers in Abu Dhabi?', 'QuotesDone network is big', 'Can you build a quote for me?', 'خلاص فنش',
     'كم سأدفع إذا اخترت عرض سعر بقيمة 20,000 درهم؟'])
     assertEquals(conversationTrade(q), null, q);
-  const kitchen = ['I want new kitchen cabinets.', 'The kitchen is L-shaped, 4 m by 3 m.', 'High-gloss for the kitchen doors please.'];
+  // a real job names its trade once; its later turns name none (the third review's probes)
+  const kitchen = ['I want new kitchen cabinets.', 'About 3 metres along the wall.', 'White gloss.', 'Next week if possible.'];
   assertEquals(conversationTrade('the cabinets should match the floor tiles', kitchen), 'kitchens', 'a passing word does not swap the job');
-  assertEquals(conversationTrade('Now I need a quote for AC servicing', ['I want new kitchen cabinets.', 'Thanks, all done.']), 'hvac', 'a new job takes over at once when the old one went quiet');
-  assertEquals(conversationTrade('Now I need a quote for AC servicing', kitchen), 'kitchens', 'mid-job, a new trade needs a second message');
-  assertEquals(conversationTrade('It is a 2 ton split unit.', [...kitchen, 'Now I need a quote for AC servicing']), 'hvac', '... and then it has it');
+  assertEquals(conversationTrade('the cabinets should match the floor tiles', ['I want new kitchen cabinets.']), 'kitchens');
+  assertEquals(conversationTrade('can it be like a glass splashback?', [...kitchen, 'Yes.']), 'kitchens');
+  assertEquals(conversationTrade('Now I need a quote for AC servicing', ['I want new kitchen cabinets.', 'Thanks, all done.']), 'hvac', 'a new job asked for takes over at once');
+  assertEquals(conversationTrade('ابي صيانة مكيفات', kitchen), 'hvac', 'in Arabic too');
+  assertEquals(conversationTrade('Also the floor tiles in the hall.', [...kitchen, 'And the tiles, is that possible?']), 'tiling', 'a trade named in two of the last three turns takes over');
+  assertEquals(conversationTrade('How long will it take?', kitchen), 'kitchens', 'no trade in the message: the established one');
+  for (const [q, t] of [['I need a sign for my shop', 'signage'], ['a sign with LED letters', 'signage'], ['we need signs for the office', 'signage'], ['عندنا مشكلة والنش في السقف', 'waterproofing']] as const)
+    assertEquals(conversationTrade(q), t, q);
   assertEquals(conversationTrade('عندي البق في الشقة'), 'pest', 'the article form still matches');
   assertEquals(conversationTrade('الشتر خربان'), 'garage-doors');
   assertEquals(conversationTrade('عندنا مشكلة النش في السقف'), 'waterproofing');

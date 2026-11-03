@@ -19,7 +19,7 @@
 // held under BRIEF_TOKEN_CAP by construction: the FAQ takes what is left, and a pack that does not fit is left out.
 // prevented by: _shared/company_brief.test.ts, _shared/brief_budget.test.ts, scripts/checks/every_brief_line_reaches_a_reply.test.mjs
 import { BRIEF_PACKS, BRIEF_PART_IDS, BRIEF_PART_TEXT, BRIEF_SUPPLIER, BRIEF_TEXT } from './brief.generated.ts';
-import { tradeIn } from './conversation_trade.ts';
+import { normalise, tradeIn } from './conversation_trade.ts';
 
 /** Estimated Sonnet tokens (scripts/kb/compile_brief.mjs approxTokens, calibrated on production 3 Nov 2026: the cheapest
  *  wa_inbound call's whole old prompt was 139,874 tokens; this formula gives 142,228, about 2% high, on purpose). */
@@ -39,27 +39,27 @@ export const PLAYBOOK_TEXT = BRIEF_PART_IDS.map((id, i) => (id.startsWith('conve
 /** Every compiled knowledge block: the core, the supplier part and every pack part. */
 export const KNOWLEDGE_TEXT = [BRIEF_TEXT, BRIEF_SUPPLIER, ...BRIEF_PART_TEXT].join('\n\n');
 
-/** THE TRADE THE CONVERSATION IS ABOUT, BY WEIGHT (two independent reviews of this change, 3 Nov 2026). Neither "the newest
- *  message wins" (one passing word, "match the floor tiles", swapped a kitchen job's pack) nor "the first named wins" (a
- *  returning customer's new AC job kept the old kitchen pack for 12 turns) holds. Each of the person's last TRADE_WINDOW
- *  turns votes for the trade it names: the message 3, the three turns before it 2, older ones 1; the highest total wins,
- *  a tie goes to the newer. So a new job takes over from its first message unless the old job was still being talked
- *  about, and then from its second; a single passing word in a job's conversation does not. Nothing named: the facts.
+/** THE TRADE THE CONVERSATION IS ABOUT (three rounds of independent review of this change, 3 Nov 2026). "The newest message
+ *  wins" let one passing word ("the cabinets should match the floor tiles", "can it be like a glass splashback?") swap a
+ *  kitchen job's pack; "the first named wins" kept a returning customer's kitchen pack for a new AC job; a vote by weight
+ *  failed the first case again when the job's later turns name no trade ("about 3 metres", "white gloss"). So:
+ *    - the ESTABLISHED trade is the one the person's last TRADE_WINDOW turns name most often (a tie: the more recent);
+ *    - the message's trade replaces it when the message ASKS for that trade ("I need a quote for AC servicing", أبي...),
+ *      or when the same trade is named in two of the last three turns, the message included;
+ *    - nothing named anywhere: the trade the caller's facts name.
  *  `earlier` is the person's own turns, oldest first. */
 export const TRADE_WINDOW = 12;
+const ASKS = /\b(?:i|we)\s+(?:also\s+|now\s+|still\s+)?(?:need|want|would like|require|am looking for|are looking for)\b|\b(?:need|want)s?\s+(?:a|an|to|new|some)\b|\bquote for\b|\blooking for\b|\bhow much (?:is|for|does|to)\b|(?<![\p{L}])(?:و)?(?:ابي|ابغي|اريد|نبي|نبغي|نريد|احتاج|نحتاج|محتاج|محتاجين|ودي|بدي)(?![\p{L}])/u;
 export function conversationTrade(message: string, earlier: string[] = [], facts?: string | null): string | null {
-  const turns = [...earlier.slice(-TRADE_WINDOW), message];
-  const score = new Map<string, { w: number; last: number }>();
-  turns.forEach((t, i) => {
-    const k = tradeIn([t], hasPack);
-    if (!k) return;
-    const w = i === turns.length - 1 ? 3 : i >= turns.length - 4 ? 2 : 1;
-    const s = score.get(k) ?? { w: 0, last: -1 };
-    score.set(k, { w: s.w + w, last: i });
-  });
-  let best: string | null = null; let top = { w: 0, last: -1 };
-  for (const [k, s] of score) if (s.w > top.w || (s.w === top.w && s.last > top.last)) { best = k; top = s; }
-  return best ?? tradeIn([facts], hasPack);
+  const past = earlier.slice(-TRADE_WINDOW).map((t) => tradeIn([t], hasPack));
+  const now = tradeIn([message], hasPack);
+  const count = new Map<string, { n: number; last: number }>();
+  past.forEach((k, i) => { if (k) count.set(k, { n: (count.get(k)?.n ?? 0) + 1, last: i }); });
+  let established: string | null = null; let top = { n: 0, last: -1 };
+  for (const [k, c] of count) if (c.n > top.n || (c.n === top.n && c.last > top.last)) { established = k; top = c; }
+  if (!now) return established ?? tradeIn([facts], hasPack);
+  if (!established || now === established || ASKS.test(normalise(message))) return now;
+  return past.slice(-2).filter((k) => k === now).length >= 1 ? now : established;
 }
 
 /** The published price guide with a pack: its heading and notes, the lines of the pack's trade family, and the lines of
@@ -79,9 +79,10 @@ export function pricesFor(guide: string, trade?: string | null): string {
 // and the FAQ rows the budget left out of the prompt are still published sources, so a figure from them (a kitchen range
 // already given before the customer asked "where do I sign up?") is accepted as it always was. companyBrief records that
 // unsent text against the brief it built; the prompt is smaller, the check is unchanged.
-const UNSENT = new Map<string, string>();
+// value: the unsent text, and when a brief that carries it was last handed to a caller
+const UNSENT = new Map<string, { text: string; last: number }>();
 export const figureSource = (brief: string): string =>
-  brief.replace(/<<<FILE knowledge\/brief\/[^>\n]*>>>[\s\S]*?<<<END>>>/g, '') + (UNSENT.has(brief) ? '\n\n' + UNSENT.get(brief) : '');
+  brief.replace(/<<<FILE knowledge\/brief\/[^>\n]*>>>[\s\S]*?<<<END>>>/g, '') + (UNSENT.has(brief) ? '\n\n' + UNSENT.get(brief)!.text : '');
 
 /** ONE CACHED PREFIX FOR EVERY LANGUAGE AND CHANNEL (13 Oct 2026, coordinator's option a). The core is the brief's
  *  FIRST part and identical for every caller, so it is sent as the gateway's sys_shared with its own cache breakpoint;
@@ -154,7 +155,7 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 
   // brief. The FAQ list is the same live table for every caller; its edits reach the brief within BRIEF_TTL_MS.
   const key = lang + ':' + (trade ?? '') + ':' + (o.supplier ? 's' : '') + ':' + fnv1a([facts, ...blocks].join('\u0001'));
   const hit = cache.get(key);
-  if (hit && now - hit.at < BRIEF_TTL_MS) return hit.brief;
+  if (hit && now - hit.at < BRIEF_TTL_MS) { const u = UNSENT.get(hit.brief); if (u) u.last = Math.max(u.last, now); return hit.brief; }
   const { company, guide } = await liveSources(rpc);
   const supplier = o.supplier ? BRIEF_SUPPLIER : '';
   // THE CAP BY CONSTRUCTION: the pack rides only if the core, the supplier part, the live blocks and the caller's facts
@@ -171,13 +172,14 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 
   // what the prompt left out but the figure check still accepts (figureSource): other families' price lines, FAQ rows past the budget
   const unsent = [prices === guide ? '' : guide, composeBrief({ company: '', facts: '', faqs, lang })].filter(Boolean).join('\n\n');
   // Bounded (review of this change): an expired entry leaves the cache, the cache keeps at most CACHE_MAX keys, and a
-  // brief's unsent text lives exactly as long as some live entry still returns that brief (two keys can build one string).
+  // brief's unsent text lives while some live entry returns that brief (two keys can build one string) and for 2 x
+  // BRIEF_TTL_MS after it was last handed out, so a reply still waiting on its model when its entry expires keeps it.
   for (const [k, v] of cache) if (now - v.at >= BRIEF_TTL_MS || now < v.at) cache.delete(k);
   cache.delete(key); cache.set(key, { at: now, brief });   // newest last, so the cap below drops the oldest
   while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!);
   const live = new Set([...cache.values()].map((v) => v.brief));
-  for (const b of UNSENT.keys()) if (!live.has(b)) UNSENT.delete(b);
-  UNSENT.set(brief, unsent);
+  for (const [b, u] of UNSENT) if (!live.has(b) && (now - u.last >= 2 * BRIEF_TTL_MS || now < u.last)) UNSENT.delete(b);
+  UNSENT.set(brief, { text: unsent, last: now });
   return brief;
 }
 const CACHE_MAX = 200;
