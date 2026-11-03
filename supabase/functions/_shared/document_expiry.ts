@@ -642,12 +642,7 @@ function activitiesBlock(text: string): string[] | null {
 }
 export function licenceFieldsFromText(text: string): LicenceFields {
   const t = String(text || '');
-  // A NUMBER ON AN ARABIC LINE IS NOT READ BY CODE (3 Nov 2026, sales_engineer; document_reading_qualification L07). An Arabic text
-  // licence printing "رقم الرخصة: 1100237" was read as 7320011: the text layer of a right-to-left line carries its digits in whatever
-  // order the producer wrote its glyphs, and a reversed number is a valid-looking WRONG number, believed downstream. Unread, the
-  // model reads it from the page (licenceNeedsModel) and mergeLicenceReads takes the model's - never a number in the wrong order.
-  const noLine = labelled(t, LABELS.licence_no);
-  const noRaw = noLine && !/[؀-ۿ]/.test((t.split(/\r?\n/).find((l) => l.includes(noLine)) ?? '')) ? noLine : null;
+  const noRaw = labelled(t, LABELS.licence_no);
   const licence_no = noRaw ? (/[A-Z0-9][A-Z0-9\-/.]*\d[A-Z0-9\-/.]*/i.exec(noRaw)?.[0].replace(/[.\-/]+$/, '') ?? null) : null;
   const legal = labelled(t, LEGAL_NAME_LABELS);
   const authority = labelled(t, LABELS.authority);

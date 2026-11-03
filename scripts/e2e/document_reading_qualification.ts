@@ -74,7 +74,7 @@ const inText = (line: string, text: string) => (' ' + quoteKey(text) + ' ').incl
 
 type Run = {
   status: string; reason: string | null; codes: string[]; reach: Record<string, boolean>; model_chars: number; sent_pages: number | null; sent_kind: string | null;
-  pages_read: string | null; ledger: { read: number; of: number } | null; cut_recorded: boolean; first_pass: string | null; passes: number; licence?: Record<string, unknown>; licence_needs_model?: boolean; ms: number; error?: string;
+  pages_read: string | null; ledger: { read: number; of: number } | null; cut_recorded: boolean; first_pass: string | null; passes: number; choice: string | null; rejected: { code: string; why: string }[]; quotes: Record<string, string>; licence?: Record<string, unknown>; licence_needs_model?: boolean; ms: number; error?: string;
 };
 async function once(it: Item): Promise<Run> {
   const t0 = performance.now();
@@ -107,7 +107,7 @@ async function once(it: Item): Promise<Run> {
       if (model?.activities?.length && !code?.activities?.length) d.photo_text = (await import('../../supabase/functions/_shared/supplier_doc_trades.ts')).modelReadText('licence', model.activities);
     }
     lic = DX.mergeLicenceReads(code, model).merged;
-  } else if (!d.refused && it.kind === 'profile') {   // supplier_docs_later.readStoredDocsLater runs the profile hook for a profile only
+  } else if (!d.refused) {   // readStoredDocsLater runs the model hook for a profile and (3 Nov 2026) a catalogue
     // 2. a picture or a scan: the same function the upload paths call, its request recorded (and sent, in the model stage)
     await readProfileByModel(d, async (body) => {
       sent = { kind: body.file_b64 ? 'pdf' : 'images', pages: body.file_b64 ? await pagesOf(String(body.file_b64)) : (body.images as unknown[])?.length ?? 0 };
@@ -138,7 +138,7 @@ async function once(it: Item): Promise<Run> {
   return { status: ev.status, reason: ev.reason ?? null, codes: [...new Set((ev.trades || []).map((t) => t.code))].sort(), reach,
     model_chars: given.length, sent_pages: sent ? (sent as { pages: number | null }).pages : null, sent_kind: sent ? (sent as { kind: string }).kind : null,
     pages_read: d.read?.pages && d.read.pages.read < d.read.pages.of ? `${d.read.pages.read}/${d.read.pages.of}` : (/Read (\d+) of (\d+) pages/.exec(note)?.slice(1, 3).join('/') ?? null),
-    ledger: ev.pages ?? null, cut_recorded: !!d.pages_read, first_pass: firstPass, passes, licence: lic, licence_needs_model: needs, ms: Math.round(performance.now() - t0) };
+    ledger: ev.pages ?? null, cut_recorded: !!d.pages_read, first_pass: firstPass, passes, choice: ev.choice ?? null, quotes: Object.fromEntries((ev.trades || []).map((t) => [t.code, String(t.snippet ?? '').slice(0, 160)])), rejected: (ev.rejected ?? []).slice(0, 12).map((r) => ({ code: r.code, why: String(r.why).slice(0, 160) })), licence: lic, licence_needs_model: needs, ms: Math.round(performance.now() - t0) };
 }
 
 const LIC_FIELDS = ['licence_no', 'legal_name_en', 'legal_name_ar', 'authority', 'emirate', 'issue_date', 'expiry_date', 'activities'];
@@ -206,9 +206,9 @@ const md = [`# Document-reading qualification: ${MODEL ? 'with the model' : 'cod
   '|---|---|---:|---|---|---|---|---|---|---|---|---|---|',
   ...rows.map((r) => `| ${r.c} | ${r.items.length > 120 ? r.items.split(', ').length + ' items' : r.items} | ${r.runs} | ${r.reach} | ${r.recall} | ${r.precision} | ${r.forbidden} | ${r.unavailable} | ${r.fields} | ${r.wrong} | ${r.honest} | ${r.partial} | ${r.consistent} |`),
   '', '## Per item (first repeat)', '',
-  '| item | status | reached | proposed | missed | wrong | sent to the model | pages read (first repeat) | fields wrong | reason |', '|---|---|---|---|---|---|---|---|---|---|',
+  '| item | status | reached | proposed | missed | wrong | refused by code or the second look (why) | sent to the model | pages read (first repeat) | fields wrong | reason |', '|---|---|---|---|---|---|---|---|---|---|---|',
   ...R.map((r) => { const x = r.runs[0], p = r.per[0];
-    return `| ${r.id} | ${x.status} | ${p.reached}/${p.reach_gold} | ${x.codes.join(' ') || '-'} | ${r.gold.filter((c: string) => !x.codes.includes(c)).join(' ') || '-'} | ${p.forbidden.join(' ') || '-'} | ${x.sent_kind ? x.sent_kind + ' ' + x.sent_pages + ' pages' : x.model_chars ? x.model_chars + ' characters' : '-'} | ${x.first_pass ? x.first_pass + ' in run 1, all after ' + x.passes + ' runs' : x.pages_read ?? 'all'} | ${p.fields.filter((f: any) => !f.ok).map((f: any) => f.k + (f.wrong ? ' (WRONG)' : '')).join(', ') || '-'} | ${String(x.reason ?? '').replace(/\|/g, '/').slice(0, 110)} |`; }),
+    return `| ${r.id} | ${x.status} | ${p.reached}/${p.reach_gold} | ${x.codes.join(' ') || '-'} | ${r.gold.filter((c: string) => !x.codes.includes(c)).join(' ') || '-'} | ${p.forbidden.join(' ') || '-'} | ${(x.rejected ?? []).map((j: any) => j.code + ': ' + j.why.slice(0, 60)).join('; ').replace(/|/g, '/') || '-'} | ${x.sent_kind ? x.sent_kind + ' ' + x.sent_pages + ' pages' : x.model_chars ? x.model_chars + ' characters' : '-'} | ${x.first_pass ? x.first_pass + ' in run 1, all after ' + x.passes + ' runs' : x.pages_read ?? 'all'} | ${p.fields.filter((f: any) => !f.ok).map((f: any) => f.k + (f.wrong ? ' (WRONG)' : '')).join(', ') || '-'} | ${String(x.reason ?? '').replace(/\|/g, '/').slice(0, 110)} |`; }),
 ].join('\n');
 await Deno.writeTextFile(outPath.replace(/\.json$/, '.md'), md + '\n');
 console.log(md.split('\n').slice(0, 6 + rows.length).join('\n'));

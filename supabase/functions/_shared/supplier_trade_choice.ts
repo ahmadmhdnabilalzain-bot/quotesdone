@@ -236,7 +236,16 @@ export function liveTradeChooser(admin: any, opts: { subject?: unknown; headers?
       const head = parts.length > 1 ? parts[0].slice(0, 2500) : '';
       // one reading of the whole document: every chunk read once, merged; an error only when a chunk could not be read twice
       const readOnce = async (): Promise<ChoiceResult> => {
-        const each = await inPool(parts, CHOICE_CONCURRENCY, (p, i) => twice(async () => { const g = await gateway(choiceRequest(i && head ? `[The document opens with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n${p}` : p, kind, d, opts.subject, company)); if (g.ok && (globalThis as any).Deno?.env?.get('QD_CHOICE_DEBUG')) console.error('CHOICE_RAW', i, String(g.content).slice(0, 1500)); return g.ok ? checkChoice(g.content, p, d) : g; }));
+        // A CHUNK THE GATEWAY COULD NOT ANSWER IN TIME IS READ IN HALVES (3 Nov 2026, sales_engineer; document_reading_qualification on
+        // the real set: an 85 MB group brochure's 14,000-character chunks hit the gateway's deadline, HTTP 502 gateway_deadline, on 3 of 5
+        // runs, and the whole document proposed nothing). Twice at most, so a chunk is never cut below a quarter.
+        const readPart = async (p: string, i: number, depth = 0): Promise<ChoiceResult> => {
+          const r = await twice(async () => { const g = await gateway(choiceRequest(i && head ? `[The document opens with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n${p}` : p, kind, d, opts.subject, company)); if (g.ok && (globalThis as any).Deno?.env?.get('QD_CHOICE_DEBUG')) console.error('CHOICE_RAW', i, String(g.content).slice(0, 1500)); return g.ok ? checkChoice(g.content, p, d) : g; });
+          if (r.ok || depth >= 2 || p.length < 4000 || !/gateway_deadline|546|cut off|timed? ?out/i.test(r.error)) return r;
+          const halves = await Promise.all(textChunks(p, Math.ceil(p.length / 2) + 200).map((h) => readPart(h, i || 1, depth + 1)));
+          return halves.find((x) => !x.ok) ?? mergeChoices(halves as Extract<ChoiceResult, { ok: true }>[]);
+        };
+        const each = await inPool(parts, CHOICE_CONCURRENCY, (p, i) => readPart(p, i));
         const bad = each.find((x) => !x.ok);
         return bad ?? mergeChoices(each as Extract<ChoiceResult, { ok: true }>[]);
       };

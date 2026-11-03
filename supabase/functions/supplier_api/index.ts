@@ -927,6 +927,11 @@ ${q}`,
       // picture, or a profile PDF with no text layer (13 Oct 2026, it_engineer: Menasco, 87 pages, 0 characters), goes to
       // license_extract's profile mode (ruling 1177), up to PROFILE_PDF_MODEL_MAX; a PDF pdf.js could not parse is held
       // unreadable, never taken for a scan. Its findings are written to the row on their own update.
+      const askProfile = async (b: Record<string, unknown>) => {
+        const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'profile', ...b }), signal: AbortSignal.timeout(120_000) });
+        const j = await r.json().catch(() => null);
+        return { ...(j ?? {}), status: r.status };
+      };
       const runProfileModel = async (pq?: LaterDoc) => {
         // THE ONE PROFILE READ (review of #1796): the Documents tab and registration read a picture or a scan through readProfileByModel, with the
         // same size and page caps, the same two attempts, the same subject for the spend, and the same finding when both attempts fail.
@@ -934,11 +939,7 @@ ${q}`,
         const pqImage = !!(pq?.bytes && pq.mime && /^image\//i.test(pq.mime));
         const images = profImgs.length ? [...(pqImage ? [{ b64: toB64(pq!.bytes!), mime: pq!.mime }] : []), ...profImgs] : undefined;
         const holder: LaterDoc = pq ?? { path: '', name: 'profile', kind: 'profile' };
-        const res = await readProfileByModel(holder, async (b) => {
-          const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'profile', ...b }), signal: AbortSignal.timeout(120_000) });
-          const j = await r.json().catch(() => null);
-          return { ...(j ?? {}), status: r.status };
-        }, { subject: { supplier_id: sup.id, email }, admin, ...(images ? { images } : {}) });
+        const res = await readProfileByModel(holder, askProfile, { subject: { supplier_id: sup.id, email }, admin, ...(images ? { images } : {}) });
         if (!res.asked) return;
         const mUpd: Record<string, unknown> = {};
         if (!(res.ok && res.profile)) return;   // readProfileByModel has logged it and filed the finding
@@ -992,7 +993,9 @@ ${q}`,
         out.documents_reading = readQueue.map((d) => d.path);
         let modelRan = false;
         const job = (async () => {
-          await readStoredDocsLater(admin, Number(sup.id), readQueue, { profile: async (d) => { modelRan = true; await runProfileModel(d); } });
+          // a scanned catalogue is read by the same model; its lines are its own photo_text and it writes no profile field
+          await readStoredDocsLater(admin, Number(sup.id), readQueue, { profile: async (d) => { modelRan = true; await runProfileModel(d); },
+            catalogue: async (d) => { await readProfileByModel(d, askProfile, { subject: { supplier_id: sup.id, email }, admin }); } });
           if (!modelRan && profImgs.length) await runProfileModel();
         })();
         const w = afterResponse(job, 'supplier_api.process_docs.later'); if (w) await w;

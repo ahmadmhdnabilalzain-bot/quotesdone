@@ -216,6 +216,9 @@ export async function gateStored(admin: Admin, supplierId: number, d: LaterDoc, 
 export type LaterHooks = {
   /** Runs on a gated profile before its trades are read (the vision model for a picture or a scan). */
   profile?: (d: LaterDoc) => Promise<void>;
+  /** Runs on a gated catalogue: a scanned or photographed catalogue goes to the same model (readProfileByModel), never left needs_ocr
+   *  for good (3 Nov 2026: a 90-page scanned building-materials catalogue proposed nothing on 5 of 5 runs of the qualification). */
+  catalogue?: (d: LaterDoc) => Promise<void>;
   retry?: boolean;
   deps?: TradeResolveDeps; gateDeps?: GateDeps;
 };
@@ -227,8 +230,9 @@ export async function readStoredDocsLater(admin: Admin, supplierId: number, docs
   const deps = hooks.deps ?? await liveTradeDeps(admin);   // read once: the vectors and meaning's budget are shared
   for (const d0 of docs) {
     const d = await gateStored(admin, supplierId, d0, hooks.gateDeps);
-    if (!d.refused && d.kind === 'profile' && hooks.profile && !d.from_page) {   // a continuation reads text pages on, never the model
-      try { await hooks.profile(d); } catch (e) { errors.push(`profile: ${String((e as Error)?.message || e).slice(0, 160)}`); }
+    const hook = d.kind === 'profile' ? hooks.profile : d.kind === 'catalogue' ? hooks.catalogue : undefined;
+    if (!d.refused && hook && !d.from_page) {   // a continuation reads text pages on, never the model
+      try { await hook(d); } catch (e) { errors.push(`${d.kind}: ${String((e as Error)?.message || e).slice(0, 160)}`); }
     }
     const r = await proposeTradesFromDocs(admin, supplierId, [d], deps, hooks.retry);
     if (r.ok) { out.push(...r.docs); proposed = r.proposed_trades; } else errors.push(r.error);

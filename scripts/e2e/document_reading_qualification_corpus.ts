@@ -309,8 +309,11 @@ const licTruth = (l: Lic) => ({ ...l, legal_name_ar: l.legal_name_ar ?? null });
 }
 {
   const l: Lic = { licence_no: '1100237', legal_name_en: null, legal_name_ar: 'زد زد ديمو للنجارة ذ.م.م', authority: 'دائرة الاقتصاد والسياحة', emirate: 'Dubai', issue_date: '2025-03-01', expiry_date: '2027-02-28', activities: ['أعمال النجارة'], legal_form: 'ذات مسؤولية محدودة' };
-  const lines = ['حكومة دبي', 'رخصة تجارية', `رقم الرخصة: ${l.licence_no}`, `الاسم القانوني: ${l.legal_name_ar}`, `الشكل القانوني: ${l.legal_form}`, 'الإمارة: دبي',
-    `جهة الإصدار: ${l.authority}`, `تاريخ الإصدار: ${dmy(l.issue_date)}`, `تاريخ الانتهاء: ${dmy(l.expiry_date)}`, `الأنشطة: ${l.activities.join('، ')}`];
+  // The digits stand on their own lines, below their Arabic labels: fontkit lays out a right-to-left run with its digits reversed,
+  // so "رقم الرخصة: 1100237" drawn as one string PRINTS 7320011 (code and the vision model both read 7320011 on 3 Nov: a fixture
+  // artefact, not a reader defect). Code then reads no number or date here (no value on the label's line); the model reads them.
+  const lines = ['حكومة دبي', 'رخصة تجارية', 'رقم الرخصة:', l.licence_no, `الاسم القانوني: ${l.legal_name_ar}`, `الشكل القانوني: ${l.legal_form}`, 'الإمارة: دبي',
+    `جهة الإصدار: ${l.authority}`, 'تاريخ الإصدار:', dmy(l.issue_date), 'تاريخ الانتهاء:', dmy(l.expiry_date), `الأنشطة: ${l.activities.join('، ')}`];
   await save({ id: 'L07_text_arabic', ext: 'pdf', mime: 'application/pdf', kind: 'licence', cls: 'licence_text', pages: 1, text_layer: true, registered_name: 'ZZ DEMO Carpentry LLC',
     trades: [gold('joinery', l.activities[0], 1)], forbidden: [], licence: licTruth(l), note: 'Arabic-only text licence (embedded font)' }, await textPdf([lines], { font: 'arial' }));
 }

@@ -691,7 +691,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
             return { ...(jd ?? {}), status: r.status };
           }, { subject: { supplier_id: Number(sup.id), email }, admin });
         };
-        const w = afterResponse(readStoredDocsLater(admin, Number(sup.id), later, { profile }), 'supplier_portal.save_documents.later'); if (w) await w;
+        const w = afterResponse(readStoredDocsLater(admin, Number(sup.id), later, { profile, catalogue: profile }), 'supplier_portal.save_documents.later'); if (w) await w;
       }
       // The fresh list rides on the answer (finding 16): what the row holds NOW, not what the tab guessed.
       const fresh = await listDocuments(Number(sup.id));

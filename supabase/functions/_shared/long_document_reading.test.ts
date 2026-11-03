@@ -105,11 +105,6 @@ Deno.test('a licence printing its activities one per line under the label reads 
   assertEquals(licenceFieldsFromText('Activities:\nTiling Works\nExpiry Date: 31/08/2027').activities, ['Tiling Works']);
 });
 
-Deno.test('a licence number on an Arabic line is left to the model, never read in the wrong order (7320011 for 1100237)', () => {
-  assertEquals(licenceFieldsFromText('حكومة دبي\nرقم الرخصة: 7320011\nتاريخ الانتهاء: 28/02/2027').licence_no, null);
-  assertEquals(licenceFieldsFromText('Licence No: 1100237').licence_no, '1100237');
-});
-
 // A text PDF whose font is Type0 / Identity-H (two-byte glyph codes, text only through the ToUnicode CMap), built by hand: no font
 // program is embedded, which pdf.js reads like any embedded subset (the codes map to letters through ToUnicode alone).
 function identityHPdf(lines: string[]): Uint8Array {
@@ -161,4 +156,30 @@ Deno.test('a scan read on a busy worker is a scan after its probe pages, never "
   assertEquals([r.status, r.pages], ['no_text', 3]);
   const read = await readDocument(blank, 's.pdf', 'application/pdf', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes });
   assert(read.ok && read.needs === 'ocr', JSON.stringify(read));
+});
+
+Deno.test('a chunk the gateway cannot answer before its deadline is read in halves, so the document is still read (85 MB brochure, 3 of 5 runs proposed nothing)', async () => {
+  const { liveTradeChooser } = await import('./supplier_trade_choice.ts');
+  const q = (rows: unknown) => ({ select: () => ({ eq: () => ({ order: async () => ({ data: rows }), maybeSingle: async () => ({ data: { value: 'cred' } }) }), order: async () => ({ data: [] }) }) });
+  const admin = { from: (t: string) => t === 'taxonomy_trade' ? q([{ code: 'pest_control', label: 'Pest control' }]) : t === 'app_secrets' ? q(null) : q([]) };
+  const line = 'Pest control and fumigation for homes, offices and food outlets';
+  const text = Array.from({ length: 700 }, (_, k) => `Project reference ${k}: ZZ DEMO tower, client ZZ DEMO Properties`).join('\n') + '\nOUR SERVICES\n' + line;
+  const seen: number[] = [];
+  const was = globalThis.fetch;
+  globalThis.fetch = (async (_u: unknown, init?: { body?: string }) => {
+    const body = JSON.parse(String(init?.body ?? '{}'));
+    const said = JSON.stringify(body.input ?? '');
+    seen.push(said.length);
+    if (said.length > 9000) return new Response(JSON.stringify({ ok: false, error: 'gateway_deadline' }), { status: 502 });
+    if (String(body.sys_stable ?? '').startsWith('You check')) return new Response(JSON.stringify({ ok: true, content: '{"keep":["pest_control"],"drop":[]}' }));
+    const has = said.includes('Pest control and fumigation');
+    return new Response(JSON.stringify({ ok: true, content: JSON.stringify({ trades: has ? [{ code: 'pest_control', quotes: [{ text: line, form: 'list_item' }], reason: 'listed' }] : [] }) }));
+  }) as typeof fetch;
+  Deno.env.set('SUPABASE_URL', Deno.env.get('SUPABASE_URL') ?? 'http://127.0.0.1:1');
+  try {
+    const r = await liveTradeChooser(admin)(text, 'profile', 'ZZ DEMO Pest LLC');
+    assert(r.ok, JSON.stringify(r));
+    assertEquals(r.ok && r.trades.map((t) => t.code), ['pest_control']);
+    assert(seen.some((n) => n > 9000) && seen.some((n) => n <= 9000), 'a refused chunk was retried in halves');
+  } finally { globalThis.fetch = was; }
 });
