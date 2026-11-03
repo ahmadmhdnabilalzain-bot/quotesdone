@@ -29,6 +29,11 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
   Tourism (DET), Trader License **No. 1633275**, Dubai, UAE. (CT preamble, CT§20)
 - QuotesDone is a **marketplace and facilitator only**: not a contractor, supplier, agent or guarantor, and not
   a party to the contract for the works. (CT§2, CT§8, SA§5)
+- **No street address is published and there is no office to visit or drop documents at**: the platform is online,
+  drawings and files are uploaded with the request, and a person is reached on the published WhatsApp line, by email
+  or through /contact/. Say only "Dubai, UAE"; never describe the licence type, the premises or a branch. (CON; the
+  contact page lists no address. Conversation-quality run, 3 Nov 2026: asked for a Sharjah office address, a reply
+  invented "a home-registered digital business that doesn't receive customers at its address".)
 - Coverage: all seven emirates. Saudi Arabia is planned, **not live**. (FAQ "What countries…")
 - Trades: construction and built-environment services — fit-out and interiors, MEP (electrical, fire, HVAC,
   plumbing), aluminium and glass, joinery and furniture, flooring and tiling, gypsum, painting,
@@ -64,7 +69,8 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
 8. **Deal directly.** Price, scope and timing are then agreed between customer and supplier; QuotesDone is
    not a party and holds no money for the job (no escrow). (CT§8, CT§15)
 
-Other customer rules (FAQ): edit an inquiry within **24 hours**; after that, create a new one. Cancel any
+Other customer rules (FAQ): edit an inquiry within **1 hour** of submitting it (fn_edit_inquiry refuses an edit after
+that; customer-portal audit CP-06); after that, create a new one. Cancel any
 time before reveal at no cost. No quote revisions, no reopen. Declining every quote costs nothing. Budget
 is optional; the engine never invents a price or a delivery date and is brand-neutral (no approved-brand
 or approved-manufacturer list; products must meet the UAE approvals for the job).

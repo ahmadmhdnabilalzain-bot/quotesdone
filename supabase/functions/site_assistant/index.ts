@@ -22,7 +22,7 @@
 // v12: A VISITOR GETS GENERAL ANSWERS AND THE WAY TO SIGN UP (founder ruling 18 Oct 2026, visitor_scope.ts). No inquiry
 //     is collected on the homepage; a real need is sent to sign up; a server-side cap per conversation and IP.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { langOf, type FaqRow } from '../_shared/chat_answers.ts';
+import { langOf, turnLang, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { givenTradeKnowledge, givenBlock } from '../_shared/given_trade_knowledge.ts';
@@ -305,7 +305,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // bounded aiReply (capRules, the link a must-carry, a 20 s deadline) writes the sign-up direction, and capReply's code
     // text goes out only through modelOrOutage, i.e. only when no call reached a model (5xx, network, timeout, open
     // circuit; never a 4xx). Model up and nothing passed: no text, the sign-up button alone (the widget shows it).
-    const visitorLang = audience === 'supplier' ? 'en' : langOf(message, uiLang);
+    const visitorLang = audience === 'supplier' ? 'en' : turnLang(message, uiLang, clientHistory(b.history));
     const signup = who ? null : signupAction(audience, visitorLang);
     if (!who && signup && await pastVisitorCap(rl, { ip, conv: hasConv ? conv : '', cap: { conv: lim.site_assistant_visitor_conv_day, ip: lim.site_assistant_visitor_ip_day } })) {
       const capped = await capReplyByModel(defaultDeps(admin, 'site_assistant'), { audience, lang: visitorLang, message,
@@ -364,7 +364,8 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // MODEL), climbs the model ladder when a model fails, and applies the language rule. If no model answers, the caller
     // gets no text and an error status (the widget shows its own error line).
     // Customers and visitors are answered in their language; suppliers always in English (founder, 28 Sep 2026).
-    const lang = langOf(message, uiLang);
+    // a mixed message keeps the language the conversation began in (chat_answers.turnLang, 3 Nov 2026)
+    const lang = turnLang(message, uiLang, history);
     const replyLang: 'en' | 'ar' = audience === 'supplier' ? 'en' : lang;
     // NO PAST-CASE TEXT ON THIS SURFACE (18 Oct 2026, sandbox run d6cf4793 turn 16). A recalled case's situation is the
     // raw record it was opened from (a quote case: another customer's inquiry id, amount and scope), and every reader of

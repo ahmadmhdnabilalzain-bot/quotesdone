@@ -19,8 +19,27 @@ export type Lang = 'en' | 'ar';
 export type QuestionType = 'count' | 'cost' | 'timeline' | null;
 
 export const isArabic = (s: string): boolean => /[؀-ۿ]/.test(String(s || ''));
-export const langOf = (message: string, uiLang?: string): Lang =>
-  isArabic(message) || String(uiLang || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
+/** Arabic and Latin letters in a message; links, emails, the brand and the ZZ DEMO fixture tag are not counted. */
+export function scripts(s: string): { ar: number; la: number } {
+  const t = String(s || '').replace(/https?:\/\/\S+|\S+@\S+|\bQuotesDone\b|\bZZ ?DEMO\b/gi, '');
+  return { ar: (t.match(/[؀-ۿ]/g) || []).length, la: (t.match(/[A-Za-z]/g) || []).length };
+}
+// A MIXED MESSAGE KEEPS THE CONVERSATION'S LANGUAGE (customer_support, 3 Nov 2026). Measured on the live widget: an English
+// inquiry's message "sorry, الزجاج 8 مم مو 6mm. And the villa is in Sharjah ..." was answered wholly in Arabic, because any
+// Arabic letter made the message Arabic. `established` is the language the conversation began in (turnLang): a message that
+// mixes both scripts keeps it; a message in one script, a first message, and the Arabic screen keep their old rules.
+// prevented by: _shared/chat_lang_follows_the_conversation.test.ts
+export const langOf = (message: string, uiLang?: string, established?: Lang): Lang => {
+  if (String(uiLang || '').toLowerCase().startsWith('ar')) return 'ar';
+  const { ar, la } = scripts(message);
+  if (ar && la && established) return established;
+  return ar ? 'ar' : 'en';
+};
+/** The reply language of a chat turn: this message, read against the language of the conversation's first message. */
+export function turnLang(message: string, uiLang: string | undefined, history: { role: string; content: string }[]): Lang {
+  const first = history.find((h) => h.role === 'user' && (scripts(h.content).ar + scripts(h.content).la) > 0);
+  return langOf(message, uiLang, first ? langOf(first.content) : undefined);
+}
 
 // ── 1. QUESTION TYPE ─────────────────────────────────────────────────────────────────────────
 // REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903). COUNT_RE / COST_RE / TIMELINE_RE /

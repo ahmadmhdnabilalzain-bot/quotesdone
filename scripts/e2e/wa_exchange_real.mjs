@@ -14,6 +14,9 @@ const { newRun, makeSupplier, teardown, REF, BASE, keys } = await import('../lib
 const { mgmtRead, mgmtFixture } = await import('../lib/qd_guard.mjs');
 const { demoTradeLicence, demoOfficePlanPng } = await import('../lib/demo_pdf.mjs');
 const MEDIA_ONLY = process.env.QD_MEDIA_ONLY === '1';   // six file turns, USD 1 cap
+// QD_CONV_SCRIPT=<file.json> {supplier?: [text...], customer?: [text...]}: scripted conversations only (the supplier's number and
+// the no-account number); the transcripts are written to QD_CONV_OUT. Used by scripts/eval/conversation_quality.mjs.
+const SCRIPT = process.env.QD_CONV_SCRIPT ? JSON.parse((await import('node:fs')).readFileSync(process.env.QD_CONV_SCRIPT, 'utf8')) : null;
 const CAP_USD = MEDIA_ONLY ? 1 : 2.5;
 const run = newRun({ quiet: true }); const tag = run.tag;
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
@@ -32,16 +35,18 @@ try {
   const dir = mkdtempSync(join(tmpdir(), 'waexch-'));
   const cfg = join(dir, 'cfg.json');
   writeFileSync(cfg, JSON.stringify({ url: `https://${REF}.supabase.co`, service: SERVICE, authToken: sec.twilio_auth_token, mediaOnly: MEDIA_ONLY, internals: [sec.cred_fn_wa_inbound, sec.cred_ops_wa_replay].filter(Boolean),
-    supplier: phone, stranger: STRANGER, parityOld: '+971500000094', parityNew: '+971500000095',
+    supplier: phone, stranger: STRANGER, ...(SCRIPT ? { script: SCRIPT } : {}), parityOld: '+971500000094', parityNew: '+971500000095',
     pngB64: demoOfficePlanPng().toString('base64'),
     pdfB64: demoTradeLicence({ company: sup.companyName, licenceNo: 'ZZ-DEMO-000123' }).toString('base64') }));
   const r = spawnSync('deno', ['run', '--no-lock', '--node-modules-dir=auto', '--allow-net', '--allow-env', '--allow-read', 'scripts/e2e/wa_exchange_real_driver.ts', cfg],
-    { encoding: 'utf8', maxBuffer: 64 << 20, timeout: (MEDIA_ONLY ? 8 : 20) * 60 * 1000 });
+    { encoding: 'utf8', maxBuffer: 64 << 20, timeout: (MEDIA_ONLY ? 8 : SCRIPT ? 60 : 20) * 60 * 1000 });
   console.log((r.stderr || '').split('\n').filter((l) => /error|Error/.test(l)).slice(0, 8).join('\n'));
   const line = (r.stdout || '').split('\n').find((l) => l.startsWith('RESULT='));
   if (!line) throw new Error('driver produced no RESULT; stdout tail: ' + (r.stdout || '').slice(-600) + ' stderr tail: ' + (r.stderr || '').slice(-1200));
   result = JSON.parse(line.slice(7));
-  const brief = (x) => ({ status: x?.status, ms: x?.ms, reply: x?.reply, results: x?.rows?.[0]?.meta?.results, err: x?.rows?.[0]?.meta?.send_error, nrows: x?.rows?.length, t: x?.rows?.[0]?.meta?.timings, att: x?.rows?.[0]?.meta?.reply_attempts });
+  if (SCRIPT) writeFileSync(process.env.QD_CONV_OUT, JSON.stringify(result.script));
+  if (!SCRIPT) {
+  const brief =(x) => ({ status: x?.status, ms: x?.ms, reply: x?.reply, results: x?.rows?.[0]?.meta?.results, err: x?.rows?.[0]?.meta?.send_error, nrows: x?.rows?.length, t: x?.rows?.[0]?.meta?.timings, att: x?.rows?.[0]?.meta?.reply_attempts });
   for (const k of ['parity', 'parity_control_detects_a_difference', 'forged', 'question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal', 'image', 'document', 'bad_image_control', 'bad_pdf_control', 'voice', 'stranger_image']) console.log('## ' + k + ' ' + JSON.stringify(['forged', 'parity', 'parity_control_detects_a_difference'].includes(k) ? result[k] : brief(result[k])));
   {
     // Media verdicts. Each file turn must leave a row and a reply; the bad-file controls must NOT read as accepted;
@@ -83,6 +88,7 @@ try {
       await new Promise((r) => setTimeout(r, 30000));
     }
   } catch (e) { console.log('held queue read failed: ' + String(e).slice(0, 200)); }
+  }   // !SCRIPT
   try {
     const cost = (await mgmtRead(REF, `select coalesce(sum(cost_aed),0)::float aed from public.ai_cost_log where occurred_at >= ${q(started)}`))[0];
     console.log('COST_AED_SINCE_START(all callers)=' + cost.aed + ' (USD ' + (cost.aed / 3.6725).toFixed(2) + ')');
