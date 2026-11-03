@@ -3008,5 +3008,68 @@
    }
   ],
   "label": "this branch, with OCR (same caveat; every drawing surface 0)"
+ },
+ "after_review_with_ocr": {
+  "measured_at": "2026-11-03T13:15:18.539Z",
+  "seed": 20261103,
+  "repeats": 3,
+  "trials": 480,
+  "leaked_trials": 0,
+  "table": [
+   {
+    "family": "drawing",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "quotation",
+    "trials": 300,
+    "shared": 300,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "comparison",
+    "trials": 60,
+    "shared": 60,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "qa",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   }
+  ],
+  "by_class": {},
+  "by_surface": {},
+  "held": {
+   "drawing:file": 1,
+   "drawing:model_path": 36
+  },
+  "model_path_drawings": 36,
+  "ocr_control": {
+   "tokens": 1577,
+   "read": 1414,
+   "rate": 0.897
+  },
+  "image_control": {
+   "planted": 348,
+   "seen_on_original": 348
+  },
+  "leaks": [],
+  "label": "this branch after the review of #1838 (must-keep fixes), with OCR; corpus licence formats as a letterhead prints them (CN- with 7 digits, T.L. No.)"
+ },
+ "must_keep_probes": {
+  "probe.ts shared list": "38/38 kept",
+  "probe.ts own trade-named firm scope": "9/10 kept; Emirates Glass LLC: \"Emirates glass ...\" is its own whole name and is removed on purpose",
+  "probe.ts Q&A (old call shape, project as a name)": "changed 3/3 — production now passes the project as a whole name (stripContact third argument); in that shape 3/3 kept",
+  "probe_main.ts": "39/39 lines x scrubbers kept; 3/3 trade-named firms kept",
+  "probe_reveal.ts": "4/4 party chips name the supplier",
+  "probe_cmp.ts": "3/3 kept"
  }
 }
