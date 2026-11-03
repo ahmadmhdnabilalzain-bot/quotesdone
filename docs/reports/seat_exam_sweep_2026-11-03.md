@@ -48,7 +48,7 @@ How to read the "after" table:
   passed (98.1%)**. ceo-exam-112 and marketing-exam-54 flipped to a fail, then passed again in round 3. Re-asking
   failures until they pass flatters a score; this sample is the honest estimate. On an unseen wording, a seat drops
   about 2% of the items it had passed.
-- Round by round (composite after each, `knowledge/exams/judged/2026-11-03-sweep/<round>.json`):
+- Round by round (composite after each, `docs/reports/seat_exam_sweep_2026-11-03/<round>.json`):
 
   | after round | items asked | passed | composite | money/terms | seats at bar |
   |---|---:|---:|---:|---:|---:|
@@ -89,7 +89,7 @@ seats), written by hand. The bar is ≥ 48/50 right and ≤ 1 good answer flagge
 - **Rule v1: 50/50, 0 flagged.**
 - **Rule v2: 50/50, 0 flagged.** The rule was corrected mid-run (see "grader corrections" below) and recalibrated
   before use.
-- Both sets of verdicts are in `knowledge/exams/judged/2026-11-03-sweep/judge_calibration.json`.
+- Both sets of verdicts are in `docs/reports/seat_exam_sweep_2026-11-03/judge_calibration.json`.
 
 **What this does NOT measure. Read every score with these limits:**
 
@@ -276,7 +276,7 @@ All on the founder's subscription; nothing on OpenRouter, the gateway or any pai
 - `scripts/checks/the_seat_exam_sweep_grades_by_the_canon.test.mjs`, offline. It fails if any seat-pack entry, card,
   brief, canon or exam key contradicts the canon again, or if the grader or calibration rule weakens.
 - `tests/fixtures/seat_exam_judge_calibration.json`: the 50 labelled cases.
-- `knowledge/exams/judged/2026-11-03-sweep/{before,after,r3,r4}.json`: every item asked, with its wording, its six
+- `docs/reports/seat_exam_sweep_2026-11-03/{before,after,r3,r4}.json`: every item asked, with its wording, its six
   sources, the answer, the verdict, and who decided it (code or judge, with the judge's note).
 
 To reproduce, start with the code audit:
