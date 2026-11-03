@@ -20,6 +20,10 @@ Deno.test('general questions: a visitor is told to answer what QuotesDone is, ho
 Deno.test('a visitor is never told a job detail was recorded', () => {
   assertMatch(visitorRules('unknown', 'en'), /never say a detail was noted on, recorded, saved or updated in their request/);
 });
+// the same run, the judge's finding: "so you won't need to repeat anything" — a visitor posts the request after sign-up
+Deno.test('a visitor is never promised they will not need to repeat anything', () => {
+  for (const aud of ['unknown', 'customer', 'supplier'] as const) assertMatch(visitorRules(aud, 'en'), /never say they will not need to repeat anything/);
+});
 
 Deno.test('an inquiry leads to sign-up with no spec questions, in the visitor\'s language and seat', () => {
   for (const [aud, lang, url] of [['customer', 'en', '/me'], ['unknown', 'ar', '/ar/me'], ['supplier', 'en', '/portal']] as const) {

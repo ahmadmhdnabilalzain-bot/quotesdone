@@ -54,7 +54,9 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
    (FAQ "What happens after I submit…", "What happens if information is missing?")
 3. **Anonymity.** Suppliers never see the customer's name, phone, email, company or exact address — only the
    job and general area/emirate. A drawing is shared only after the customer's details on it are covered;
-   a drawing that cannot be covered is not shared. (FAQ "Is my identity hidden?")
+   a drawing that cannot be covered is not shared. (FAQ "Is my identity hidden?") Say only that; nothing published
+   says what suppliers then quote from, so never describe it (conversation-quality run, 3 Nov 2026: "suppliers quote
+   from the scope and quantities instead").
 4. **Matching.** Only suppliers who can genuinely do the job, from anywhere in the UAE; usually a handful,
    capped. "A wrong match is worse than no match." Customers cannot pick or invite their own suppliers.
    (FAQ "How many suppliers…", "Can I invite my own supplier?")
@@ -146,7 +148,8 @@ or subscriptions; a supplier's own quotation may state discounts, which we relay
   payment without the customer doing anything: day 3 (working) QuotesDone chases the supplier, copying the
   customer; day 5 the case goes to **QuotesDone's CEO** for a final call; if the supplier still does not
   respond, **everything the customer paid is refunded** — QuotesDone deducts nothing. Banks take **7–14
-  working days** to show it. Working days are Mon–Fri excluding UAE public holidays. (CT§5)
+  working days** to show it. Working days are Mon–Fri excluding UAE public holidays. (CT§5) A refund QuotesDone's CEO
+  decides is issued **to the original payment method** through Stripe and confirmed to the customer. (Refund Policy §6)
 - **Every refund is decided by QuotesDone's CEO**, recorded against a refund case reference quoted to the
   customer. None is automatic. (CT§5; FI 1, FI 89)
 - No refund where the supplier responded (by any reasonable means, incl. WhatsApp or phone), the customer

@@ -17,10 +17,23 @@ const MEDIA_ONLY = process.env.QD_MEDIA_ONLY === '1';   // six file turns, USD 1
 // QD_CONV_SCRIPT=<file.json> {supplier?: [text...], customer?: [text...]}: scripted conversations only (the supplier's number and
 // the no-account number); the transcripts are written to QD_CONV_OUT. Used by scripts/eval/conversation_quality.mjs.
 const SCRIPT = process.env.QD_CONV_SCRIPT ? JSON.parse((await import('node:fs')).readFileSync(process.env.QD_CONV_SCRIPT, 'utf8')) : null;
-const CAP_USD = MEDIA_ONLY ? 1 : 2.5;
+const CAP_USD = Number(process.env.QD_CAP_USD) || (MEDIA_ONLY ? 1 : 2.5);   // QD_CAP_USD: conversation_quality's per-conversation cap
 const run = newRun({ quiet: true }); const tag = run.tag;
+// the workflow's always() step closes this window by its tag even if the process is killed (close_job_windows.mjs)
+if (process.env.QD_E2E_RUN_TAGS) (await import('node:fs')).appendFileSync(process.env.QD_E2E_RUN_TAGS, tag + '\n');
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
-const STRANGER = '+971500000097';
+// A scripted run (QD_CONV_SCRIPT) may run beside another (the before and after jobs of conversation-quality.yml), so its
+// no-account number is a run-allocated fixture number with no conversation on it, never the shared +971500000097.
+const STRANGER = SCRIPT ? await (async () => {
+  const { demoMobile } = await import('../lib/demo_factory.mjs');
+  for (let i = 0; i < 20; i++) {
+    const p = demoMobile();
+    const used = await mgmtRead(REF, `select (exists (select 1 from public.wa_conversation where phone_e164 = ${q(p.replace(/\D/g, ''))})
+      or exists (select 1 from public.leads where phone = ${q(p)} or whatsapp_phone = ${q(p)}) or exists (select 1 from public.customers where phone = ${q(p)})) used`);
+    if (used[0]?.used === false) return p;
+  }
+  throw new Error('no free fixture number for the scripted customer');
+})() : '+971500000097';
 let sup, started = new Date().toISOString(), result = null;
 try {
   sup = await makeSupplier(run, {});

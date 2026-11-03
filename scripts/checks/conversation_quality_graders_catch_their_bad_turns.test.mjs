@@ -7,7 +7,9 @@
 //   * the independent judge's calibration set loses its balance (half hallucinated, half clean) or its 16 items;
 //   * the brief the customer-facing models are given (knowledge/brief/company.md, compiled into brief.generated.ts) states
 //     an inquiry edit window other than the one the product enforces (customer_api EDIT_WINDOW_MS, fn_edit_inquiry): the
-//     live run of 3 Nov 2026 found company.md saying 24 hours while the product and the FAQ say 1 hour.
+//     live run of 3 Nov 2026 found company.md saying 24 hours while the product and the FAQ say 1 hour;
+//   * the brief stops stating the refund method the published Refund Policy states (the original payment method), or
+//     stops saying a drawing that cannot be covered is described no further (the judge's findings, 3 Nov 2026).
 //
 //   node --test scripts/checks/conversation_quality_graders_catch_their_bad_turns.test.mjs
 import { test } from 'node:test';
@@ -44,4 +46,11 @@ test('the brief states the inquiry edit window the product enforces', () => {
   assert.ok(line, 'the brief states the edit window');
   assert.match(line, /within \*\*1 hour\*\*/, line);
   assert.doesNotMatch(BRIEF_TEXT, /edit an inquiry within \*\*24 hours\*\*/);
+});
+
+test('the brief states the refund method the Refund Policy states, and no fallback for an uncovered drawing', () => {
+  const legal = JSON.parse(readFileSync(new URL('../../src/content/legal.json', import.meta.url), 'utf8'));
+  assert.match(JSON.stringify(legal['refund-policy']), /issued to the original payment method/);
+  assert.match(BRIEF_TEXT, /issued \*\*to the original payment method\*\* through Stripe/);
+  assert.match(BRIEF_TEXT, /a drawing that cannot be covered is not shared\. \(FAQ "Is my identity hidden\?"\) Say only that/);
 });
