@@ -974,7 +974,7 @@
         "Never write \"only three shown\"",
         "Suppliers pay no commission"
       ],
-      "q_reworded": "Can the ad copy say \"we show you only three quotes\"?",
+      "q_reworded": "Can the ad copy say \"we show you only three quotes\", and what must our copy say about commission for suppliers?",
       "answer_must": [
         "Never write \"only three shown\"",
         "Also: suppliers pay no commission"

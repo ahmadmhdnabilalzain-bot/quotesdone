@@ -1345,7 +1345,7 @@
         "retrieved approved source",
         "misinformation"
       ],
-      "q_reworded": "The chat told a customer a fee we never published. What rule was broken and what should it do next time?",
+      "q_reworded": "The chat told a customer a fee we never published. Which grounding rules were broken, what should it do next time, and which known risks of language-model assistants do these rules guard against?",
       "answer_must": [
         "Every factual claim must come from a retrieved approved source and the source is logged",
         "If nothing is retrieved, the assistant does not invent an answer",
@@ -1573,7 +1573,7 @@
         "Federal Decree-Law No. 46 of 2021",
         "does not lose legal validity"
       ],
-      "q_reworded": "The buyer asks if a quotation the supplier submitted electronically through the portal counts as much as one with a wet signature.",
+      "q_reworded": "The buyer asks if a quotation signed or submitted electronically through the portal is as legally valid in the UAE as one with a wet signature, and who licenses the providers behind electronic signatures.",
       "answer_must": [
         "Decree-Law 46/2021 makes electronic documents and signatures legally effective",
         "An electronic document does not lose validity or evidential value because it is electronic",
