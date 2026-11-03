@@ -11,6 +11,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A refused CDN is worked around in the check, not in production (27 Oct)](a-refused-cdn-is-worked-around-in-the-check-not-in-production.md) — cloud proxy refuses cdn.jsdelivr.net: ml_embed type-checked via @ts-types npm, dwg check grants only the npm registry
 - [The founder's user-global CLAUDE.md](user-global-CLAUDE.md) — copy of ~/.claude/CLAUDE.md: skills-and-plugins-first, every session
 - [Supplier campaign sends FROM supplier@quotesdone.com](supplier-campaign-sends-from-supplier-at-quotesdone-com.md) — repeated 19 Oct; never invite@hello
+- [An invitation open is measured on a tracked share (3 Nov)](an-invitation-open-is-measured-on-a-tracked-share.md) — invite_open_tracking (seeded 20%) adds an HTML twin + one first-party pixel; changes ruling 1301 for that share only; opens are a floor
 - [WhatsApp supplier invites need an opt-in](whatsapp-supplier-invites-need-an-opt-in.md) — 27 Oct: Meta policy; scraped mobiles are not opt-ins (0 of 2,863); both switches + HIGH sender + brake; #1511 WAS merged
 - [WhatsApp opt-in = the button or a yes to consent (27 Oct)](whatsapp-opt-in-is-the-button-or-a-yes-to-consent.md) — ledger 1341: "Set up my page" or a yes to fn_wa_consent_question; a message they send is never one; one rule, fn_wa_optin_rule
 - [EVERY founder message is an instruction](every-founder-message-is-an-instruction.md) — 22 Sep, instr 644: record each ask in founder_instruction at once; reconcile before any "nothing pending"
