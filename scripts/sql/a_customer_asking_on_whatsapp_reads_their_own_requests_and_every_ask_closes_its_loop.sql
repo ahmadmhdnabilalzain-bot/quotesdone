@@ -446,7 +446,7 @@ revoke execute on function public.fn_scrub_customer_identity(text, uuid) from pu
 create or replace function public.fn_inquiry_change_from_customer(p_inquiry uuid, p_customer uuid, p_text text, p_source text)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare i public.inquiries; v_text text; v_full text; v_note bigint; v_q text; l record; v_prev public.rfq_clarification;
-        v_told int := 0; v_quoted int := 0; v_failed int := 0; v_matched int; v_head text; v_body text; v_ar boolean; v_d jsonb;
+        v_told int := 0; v_quoted int := 0; v_failed int := 0; v_matched int; v_head text; v_body text; v_ar boolean; v_d jsonb; v_dup boolean;
 begin
   if p_source not in ('whatsapp') then raise exception 'a customer change comes from whatsapp here, not %', p_source; end if;
   select * into i from public.inquiries where id = p_inquiry for update;
@@ -465,21 +465,23 @@ begin
   v_ar := v_text ~ '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]';
   select count(*) into v_matched from public.inquiry_matches x where x.inquiry_id = i.id;
 
-  -- THE SAME CHANGE TWICE IS ONE CHANGE: the earlier note is the answer and nothing is sent again.
+  -- THE SAME CHANGE TWICE IS ONE CHANGE: the earlier note is reused and no second note is filed. Its deliveries are
+  -- asked for again under the SAME keys, so a supplier already told is not mailed twice (the delivery door dedupes a
+  -- delivered key) and one whose first delivery failed is retried (a failed key is not deduped).
   select * into v_prev from public.rfq_clarification r
    where r.inquiry_id = i.id and r.kind = 'note' and r.source = 'rfq_note'
      and coalesce(r.answered_at, r.asked_at) > now() - interval '6 hours'
      and md5(coalesce(r.answer_as_written, r.answer, '')) = md5(v_full)
    order by r.id desc limit 1;
-  if v_prev.id is not null then
-    return jsonb_build_object('ok', true, 'duplicate', true, 'note_id', v_prev.id, 'held_for_english', v_prev.english_held_at is not null,
-      'suppliers_told', 0, 'quoted_told', 0, 'suppliers_matched', v_matched);
-  end if;
+  v_dup := v_prev.id is not null;
+  if v_dup then v_note := v_prev.id; end if;
   -- the portal's own limit on notes (customer_api rfq_note)
-  if (select count(*) from public.rfq_clarification r where r.inquiry_id = i.id and r.kind = 'note' and r.asked_at > now() - interval '1 hour') >= 10 then
+  if not v_dup and (select count(*) from public.rfq_clarification r where r.inquiry_id = i.id and r.kind = 'note' and r.asked_at > now() - interval '1 hour') >= 10 then
     return jsonb_build_object('ok', false, 'error', 'too_many_notes'); end if;
 
-  if v_ar then
+  if v_dup then
+    null;
+  elsif v_ar then
     -- Suppliers read English only: the Arabic is kept as written and its supplier copy waits for its English, exactly as
     -- fn_inquiry_add_missing_specs files it (the supplier_english replay mails every matched supplier when it lands).
     insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answer_as_written, english_held_at, answered_at, source)
@@ -523,7 +525,7 @@ begin
     if not v_ar then v_told := v_told + 1; end if;
     if l.quoted then v_quoted := v_quoted + 1; end if;
   end loop;
-  return jsonb_build_object('ok', true, 'note_id', v_note, 'held_for_english', v_ar, 'suppliers_told', v_told, 'quoted_told', v_quoted,
+  return jsonb_build_object('ok', true, 'duplicate', v_dup, 'note_id', v_note, 'held_for_english', v_ar, 'suppliers_told', v_told, 'quoted_told', v_quoted,
     'delivery_failed', v_failed, 'suppliers_matched', v_matched);
 end $fn$;
 revoke execute on function public.fn_inquiry_change_from_customer(uuid, uuid, text, text) from public, anon, authenticated;
@@ -575,7 +577,7 @@ begin
   -- ...and the customer gets the confirmation in the request's own language (founder, 28 Sep 2026).
   if v_email is not null and position('@' in v_email)>1 then
     v_ar := coalesce(v.lang, v_locale) = 'ar';
-    perform public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+    v_d := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
       'type', 'inquiry_cancelled', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', v_email,
       'to_role', 'customer', 'inquiry_id', p_inquiry, 'lang', case when v_ar then 'ar' else 'en' end,
       'subject', case when v_ar then 'أُلغي طلبكم رقم ' || coalesce(v.rfq_no::text, '')
@@ -586,7 +588,7 @@ begin
         else 'Your request ' || coalesce(v.rfq_no::text, '') || ' is cancelled, as you asked, and the suppliers invited to quote have been told. '
              || 'If this was a mistake, you can post the request again at https://quotesdone.com' end,
       'dedupe_key', 'inquiry_cancelled:' || p_inquiry)));
-    v_cust_told := true;
+    v_cust_told := coalesce(v_d->0->>'status', '') in ('done', 'demo_captured');
   end if;
 
   select count(*) into v_cnt from inquiry_cancellations where customer_id=v.customer_id and created_at > now()-interval '30 days';
@@ -663,7 +665,7 @@ create or replace function public.fn_customer_support_closes_status_chases()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare h public.agent_actions; i public.inquiries; c public.customers; v_new int; v_live int; v_due timestamptz; v_ar boolean;
         v_dest text; v_res jsonb; v_st text; v_lang text; v_qkey text; v_tries int; v_verdict text; v_outcome text;
-        v_first_new timestamptz; v_pstat text; v_pat timestamptz;
+        v_first_new timestamptz; v_ptold boolean; v_pwait boolean;
         n_closed int := 0; n_wait int := 0; n_failed int := 0; n_stuck int := 0; v_err jsonb := '[]'::jsonb;
 begin
   for h in select * from public.agent_actions a
@@ -673,7 +675,7 @@ begin
     begin
       v_verdict := null; v_outcome := null; v_res := null; v_st := null; v_dest := null; v_lang := null;
       v_tries := coalesce((h.detail->>'followup_attempts')::int, 0);
-      v_pstat := null; v_pat := null;
+      v_ptold := null; v_pwait := null;
       select * into i from public.inquiries where id = (h.detail->>'inquiry_id')::uuid;
       select * into c from public.customers where id = i.customer_id;
       v_due := coalesce((h.evidence->>'next_update_by')::timestamptz, (h.detail->>'next_update_by')::timestamptz, h.created_at + interval '24 hours');
@@ -686,11 +688,13 @@ begin
        where q.inquiry_id = i.id and coalesce(q.status, '') not in ('draft', 'withdrawn', 'rejected', 'expired', 'held', 'cancelled')
          and q.stale_at is null;
       -- The platform's own new-quote notice for THESE quotes (measured 3 Nov 2026: its rows carry inquiry_id, not quote_id,
-      -- so it is tied by time: written at or after the first new quote). Its newest state decides below.
+      -- so it is tied by time: written at or after the first new quote). Every such row counts (it may write one per
+      -- channel): any delivered one means told; else any still queued under an hour means wait; else we send.
       if v_new > 0 then
-        select n.status, n.created_at into v_pstat, v_pat from public.notifications n
-         where n.inquiry_id = i.id and n.type = 'new_quote' and n.to_role = 'customer' and n.created_at >= v_first_new
-         order by n.id desc limit 1;
+        select bool_or(coalesce(n.status, 'queued') not in ('failed', 'skipped', 'queued', 'pending')),
+               bool_or(coalesce(n.status, 'queued') in ('queued', 'pending') and n.created_at > now() - interval '1 hour')
+          into v_ptold, v_pwait from public.notifications n
+         where n.inquiry_id = i.id and n.type = 'new_quote' and n.to_role = 'customer' and n.created_at >= v_first_new;
       end if;
       if i.id is null or coalesce(i.status, '') not in ('sent', 'quoted', 'open', 'split') then
         -- read before the retry cap, so a stuck chase still closes when its request moves on
@@ -699,13 +703,13 @@ begin
       elsif v_tries >= 3 then
         -- three failed follow-ups wait on it_engineer's finding, never a fourth identical try
         n_stuck := n_stuck + 1; continue;
-      elsif v_new > 0 and v_pstat in ('queued', 'pending') and v_pat > now() - interval '1 hour' then
-        -- the platform's notice is still on its way: wait for it rather than send a second message
-        n_wait := n_wait + 1; continue;
-      elsif v_new > 0 and v_pstat is not null and v_pstat not in ('failed', 'skipped', 'queued', 'pending') then
+      elsif v_new > 0 and coalesce(v_ptold, false) then
         -- sent, delivered, or (demo only, measured 3 Nov 2026) suppressed, as ours would be: the customer was told
         v_outcome := 'quote_arrived'; v_st := 'platform_new_quote_notice';
-        v_verdict := v_new || ' new quote(s) arrived and the platform''s new-quote notice (' || v_pstat || ') told the customer; nothing more was sent';
+        v_verdict := v_new || ' new quote(s) arrived and the platform''s new-quote notice told the customer; nothing more was sent';
+      elsif v_new > 0 and coalesce(v_pwait, false) then
+        -- the platform's notice is still on its way: wait for it rather than send a second message
+        n_wait := n_wait + 1; continue;
       elsif v_new > 0 then
         -- A quote arrived: the customer hears it on the WhatsApp they asked on (the approved customer_new_quote template);
         -- after a failed try, by the email on file instead, so a WhatsApp that keeps failing is not retried alone.
@@ -944,15 +948,16 @@ revoke execute on function public.fn_wa_human_request_tick() from public, anon, 
 --     the reason nothing was done yet). Only a later reply that confirms AND names that request cancels it.
 create or replace function public.fn_wa_is_cancel_confirmation(p_body text)
 returns boolean language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  -- the words a buyer confirms with, English and Arabic, on word edges ("yesterday" is not "yes"); AND the message is
-  -- only that: with the confirm words, the cancel words, digits and punctuation taken out, at most 3 letters remain.
-  -- Re-review of #1844: "yes, change the quantity on 1043 to 40" said yes and named the request, and is not a cancel.
+  -- A confirm word, English or Arabic, AND nothing else: every WORD of the message (digits and punctuation are not
+  -- words) is a confirm word or one of the few that go with one. Re-review of #1844: "yes, change the quantity on 1043
+  -- to 40", "yes, edit 1043" and "yes add 1043" each said yes and named the request, and none is a cancel.
   select coalesce(p_body, '') ~* ('(^|[^[:alpha:]])(' || x.w || ')([^[:alpha:]]|$)')
-     and length(regexp_replace(regexp_replace(lower(coalesce(p_body, '')), x.w || '|' || x.c, '', 'g'), '[^[:alpha:]]', '', 'g')) <= 3
+     and not exists (select 1 from regexp_split_to_table(lower(coalesce(p_body, '')), '[^[:alpha:]]+') t
+                      where t <> '' and t !~ ('^(' || x.w || '|' || x.c || ')$'))
     from (select 'yes|yep|confirm|confirmed|'
                  || 'نعم|أؤكد|اؤكد|تأكيد|أكد|موافق' as w,
-                 'cancel|please|request|the|it|okay|ok|'
-                 || 'إلغاء|الغاء|ألغوا|الغوا|الطلب|طلب|رقم|من فضلكم|لو سمحتم' as c) x
+                 'cancel|please|pls|request|the|it|ok|okay|sure|thanks|thank|you|'
+                 || 'إلغاء|الغاء|ألغوا|الغوا|الطلب|طلب|رقم|من|فضلكم|لو|سمحتم|شكرا' as c) x
 $fn$;
 revoke execute on function public.fn_wa_is_cancel_confirmation(text) from public, anon, authenticated;
 
@@ -1088,8 +1093,10 @@ begin
       else 'I have added your change to request ' || v_ref || ' and sent it to the ' || (v_res->>'suppliers_told')
            || ' supplier(s) invited to quote' || case when coalesce((v_res->>'quoted_told')::int, 0) > 0
              then '; the ' || (v_res->>'quoted_told') || ' who already quoted were asked to confirm or revise their price' else '' end
-           || case when coalesce((v_res->>'delivery_failed')::int, 0) > 0 then ' (' || (v_res->>'delivery_failed') || ' more could not be reached by email)' else '' end
-           || '. You can see it on the request in your account.' end;
+           || '. You can see it on the request in your account.' end
+      -- whichever branch answered, a supplier the delivery could not reach is said, never counted as told
+      || case when coalesce((v_res->>'delivery_failed')::int, 0) > 0
+              then ' ' || (v_res->>'delivery_failed') || ' invited supplier(s) could not be reached by email; sending the same change again retries them.' else '' end;
     return jsonb_build_object('reply', v_reply, 'actions', v_actions);
   end if;
 
@@ -1147,9 +1154,13 @@ begin
             jsonb_build_object('handoff_id', v_h, 'inquiry_id', e->>'id', 'error', a.detail->>'error', 'owner_seat', 'sales_engineer'),
             '{}'::text[], array['why fn_sales_engineer_chases_for_status failed for this request'], 'customer_support');
         end if;
-        v_when :=to_char(coalesce((a.evidence->>'next_update_by')::timestamptz, (a.detail->>'next_update_by')::timestamptz) at time zone 'Asia/Dubai', 'DD Mon HH24:MI');
+        v_when := to_char(coalesce((a.evidence->>'next_update_by')::timestamptz, (a.detail->>'next_update_by')::timestamptz) at time zone 'Asia/Dubai', 'DD Mon HH24:MI');
         v_line := v_line || case
           when a.status = 'failed' then ' It is past the time quotes were due, but the chase could not be started automatically; it has been reported so it is started by hand.'
+          -- a chase whose follow-up failed three times promises nothing it cannot send (re-review of #1844)
+          when coalesce((a.detail->>'followup_attempts')::int, 0) >= 3 then ' Our sales engineer has been chasing it since '
+               || to_char(a.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (UAE time), but our updates to you about it could not be delivered; '
+               || 'this has been reported, and you can ask me here for the latest at any time.'
           when a.created_at = now() then ' It is past the time quotes were due (' || to_char((e->>'quotes_due_by')::timestamptz at time zone 'Asia/Dubai', 'DD Mon HH24:MI')
                || ' UAE time) with ' || (e->>'quotes_received') || ' of the 3 quotes we aim for, so I have asked our sales engineer to chase it: '
                || 'the ' || (coalesce((a.evidence->>'chased')::int, 0) + coalesce((a.evidence->>'already_reminded_today')::int, 0))
@@ -1217,9 +1228,9 @@ begin
 
   -- A CONFIRMATION OF A PENDING CANCEL is the cancel conversation, whatever the classifier made of "yes 1043" (8a):
   -- the request is still named and checked against the pending one inside fn_wa_customer_request_answer.
-  -- Only a message the classifier left open (none, unreasoned) or read as a cancel; never one it read as a change or a
-  -- status question (re-review of #1844).
-  if v_cust is not null and (p_intent is null or p_intent in ('none', 'cancel_request'))
+  -- Whatever the classifier made of a bare "yes 1043" (a status or by-id reading is plausible), except a message it read
+  -- as a change (re-review of #1844); fn_wa_is_cancel_confirmation admits nothing but a bare confirmation.
+  if v_cust is not null and p_intent is distinct from 'change_request'
      and public.fn_wa_is_cancel_confirmation(v_body) and public.fn_wa_pending_cancel(v_cust) is not null then
     p_intent := 'cancel_request';
   end if;

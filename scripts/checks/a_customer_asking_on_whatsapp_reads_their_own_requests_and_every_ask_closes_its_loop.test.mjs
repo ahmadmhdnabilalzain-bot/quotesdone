@@ -83,8 +83,8 @@ test('the review of #1844 stays fixed: scrub, one chase, a confirmed cancel, a r
   assert.match(w, /fn_wa_pending_cancel\(p_customer\)/, 'a cancel is carried out without its confirmation');
   assert.match(w, /exception when unique_violation/, 'a concurrent first ask can lose its chase');
   assert.match(w, /'my_documents'/, 'a buyer asking my_documents falls through to the supplier template');
-  assert.match(canonical('fn_wa_answer').body, /p_intent in \('none', 'cancel_request'\)/, 'a "yes" read as a change or a status question is turned into a cancel');
-  assert.match(canonical('fn_wa_is_cancel_confirmation').body, /<= 3/, 'any message containing "yes" and the ref confirms a cancel');
+  assert.match(canonical('fn_wa_answer').body, /p_intent is distinct from 'change_request'/, 'a "yes" read as a change is turned into a cancel');
+  assert.match(canonical('fn_wa_is_cancel_confirmation').body, /not exists \(select 1 from regexp_split_to_table/, 'a message with any other word ("yes, edit 1043") confirms a cancel');
   assert.match(canonical('fn_scrub_customer_identity').body, /translate\(p_text/, 'Arabic-Indic digits pass the scrub');
   const cl = canonical('fn_customer_support_closes_status_chases').body;
   assert.match(cl, /v_res->0->>'status'/, 'the closer closes without reading the delivery');

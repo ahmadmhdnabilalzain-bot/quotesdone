@@ -285,6 +285,8 @@ begin
   -- a "yes" that is a change, not a confirmation, never cancels (re-review); a bare "yes" is told which ref to name
   v := public.fn_wa_route(pA, 'yes, please change the quantity on ' || ref2 || ' to 40', false, false, 'change_request');
   r := jsonb_build_object('yes_change', v->>'deterministic_reply');
+  v := public.fn_wa_route(pA, 'yes, edit ' || ref2, false, false, 'none');
+  r := r || jsonb_build_object('yes_edit', v->>'deterministic_reply');
   v := public.fn_wa_route(pA, 'yes', false, false, 'none');
   r := r || jsonb_build_object('bare_yes', v->>'deterministic_reply');
   if (select status from public.inquiries where id = i2) <> 'sent' or r->>'bare_yes' not like '%reply yes ' || ref2 || '%' then
@@ -293,7 +295,8 @@ begin
   v := public.fn_wa_route(pA, 'yes ' || ref1, false, false, 'none');
   if (select status from public.inquiries where id = i2) <> 'sent' then fails := fails || ' R5:other_ref_cancelled'; end if;
   o := o || jsonb_build_object('R5_other_ref_reply', v->>'deterministic_reply');
-  v := public.fn_wa_route(pA, 'نعم ' || translate(ref2::text, '0123456789', '٠١٢٣٤٥٦٧٨٩'), false, false, 'none');
+  -- the classifier may read a bare "yes <ref>" as a status question: the confirmation still cancels
+  v := public.fn_wa_route(pA, 'نعم ' || translate(ref2::text, '0123456789', '٠١٢٣٤٥٦٧٨٩'), false, false, 'my_requests');
   select count(*) into n from public.notifications where inquiry_id = i2 and type = 'rfq_cancelled';
   if (select status from public.inquiries where id = i2) <> 'cancelled' or n <> 3
      or (select count(*) from public.notifications where inquiry_id = i2 and type = 'inquiry_cancelled' and to_role = 'customer' and channel = 'email') <> 1
