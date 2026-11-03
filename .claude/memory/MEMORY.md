@@ -20,6 +20,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Work without check-ins](quotesdone-work-without-checkins.md) · [Decide, do not present options](decide-dont-present-options.md) · [No technical questions to him](dont-ask-him-technical-questions.md)
 - [Never state what you have not measured](never-state-what-you-have-not-measured.md) — founder's standing rule
 - [Ready means every gate measured](ready-means-every-gate-measured.md) — 6 Oct: founder relies fully; "ready" only with a same-day measured go/no-go checklist
+- [Release standard is Apple's day one (3 Nov)](release-standard-is-apples-day-one.md) — every scenario proven on demo data; "ready" only when docs/release/qualification_matrix.md §7 is measured green the same day, 0 P0/P1
 - [The agent delivers its own work](the-agent-delivers-its-own-work.md) — never hand-deliver a seat's output; the delivery IS the test
 - [A status column is not a delivery record](a-status-column-is-not-a-delivery-record.md) — verify sends through the outbox; 171 leads read "invited" with 0 emails ever sent
 - [MAX 5 agents at once; Sonnet for simple tasks (1 Nov)](max-five-agents.md) — ledger 1417; replaces the limit of 10 (ledger 1280)
