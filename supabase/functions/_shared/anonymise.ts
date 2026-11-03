@@ -35,6 +35,7 @@ import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
 
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
 import { CONTACT_PATTERNS } from './identity_contacts.ts';
+import { IBAN, LICENCE_SHORT, PHONE_UAE_INTL, PHONE_UAE_NATIONAL, PO_BOX } from './identity_text.ts';
 export type Box = { x: number; y: number; w: number; h: number };
 export type SeedSource = { name?: string; company?: string; email?: string; phone?: string; project?: string; address?: string; plot?: string; makani?: string; extra?: string[] };
 
@@ -160,6 +161,9 @@ const GENERIC_ID: [string, RegExp][] = [
   ['url', /\b(?:https?:\/\/|www\.)\S+/gi],
   ['phone', /(?:\+?971|00971|\b0)[\s-]?\d{1,2}[\s-]?\d{3}[\s-]?\d{4}\b/g],
   ['trn', TRN_LABELLED], ['trn_bare', TRN_BARE], ['licence_no', LICENCE_NO],
+  // 3 Nov 2026 (identity_never_leaks_before_reveal.mjs): an Arabic-Indic "٠٤ ٠٠٠ ٠٠١٤" in a drawing's header stayed in the
+  // anonymised vector PDF, and "TL 614867" / "(04) 000 0019" in the anonymised DXF. A residual of these now boxes or holds.
+  ['phone_uae_intl', PHONE_UAE_INTL], ['phone_uae_national', PHONE_UAE_NATIONAL], ['iban', IBAN], ['po_box_any', PO_BOX], ['licence_short', LICENCE_SHORT],
 ];
 const REDACT_ONLY_BEFORE_SCRUB = GENERIC_ID.slice(0, GENERIC_ID.findIndex(([n]) => n === 'email'));
 
@@ -357,7 +361,9 @@ export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box
     }
     // (d) logo-sized images outside the strip (a firm's logo or a stamp placed on the drawing).
     for (const im of p.images || []) {
-      if (strip && centreIn(strip, im)) continue;
+      // WHOLLY inside the strip is covered by it; one laid across the strip's edge gets its own box (3 Nov 2026: a
+      // logo at 0.80..0.90 against a strip from 0.816 kept its left edge in the preview, and its whole self in the PDF).
+      if (strip && covers(strip, im)) continue;
       if (im.w * im.h <= 0.03 && im.px * im.py <= 1_500_000) bx.push(clamp({ x: im.x - 0.005, y: im.y - 0.005, w: im.w + 0.01, h: im.h + 0.01 }));
     }
     // A sheet with text but no findable title block most likely has it as vectors or in an image.

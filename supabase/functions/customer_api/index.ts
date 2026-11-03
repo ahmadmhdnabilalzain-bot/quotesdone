@@ -124,34 +124,10 @@ function labelize(s: string): string { return String(s || '').replace(/[-_]/g, '
 // "villa fit-out for Ahmed Khan, call 050 123 4567" had that emailed verbatim to up to eight
 // suppliers before anyone paid a reveal fee, which is the entire business model inverted. Anything
 // leaving this function toward a supplier goes through scrubIdentity first.
-const CO_SUFFIX = '(?:l\\.?\\s?l\\.?\\s?c\\.?|fz-?llc|fzc|fze|trading|contracting|establishment|est\\.?|general|co\\.?|company|group)';
-const ID_PATTERNS: RegExp[] = [
-  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
-  /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
-  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info)(?:\.[A-Za-z]{2})?\b/gi,
-  /\+\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
-  /\b00\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
-  /\b0\d(?:[\s.-]?\d){7,8}\b/g,
-];
-const rxEsc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-function companyRe(name: unknown): RegExp | null {
-  const base = String(name || '').replace(new RegExp('\\b' + CO_SUFFIX, 'gi'), ' ').replace(/[^A-Za-z0-9؀-ۿ ]+/g, ' ').trim();
-  const words = base.split(/\s+/).filter((w) => w.length > 1).map(rxEsc);
-  if (!words.length || base.replace(/\s+/g, '').length < 3) return null;
-  try { return new RegExp('\\b' + words.join('[\\s.,_-]*') + '(?:[\\s.,_-]*' + CO_SUFFIX + ')*', 'gi'); } catch (_e) { return null; }
-}
-function scrubIdentity(text: string | null, ownName: unknown, hits: string[]): string | null {
-  if (text == null) return text;
-  let out = String(text);
-  const nameRe = companyRe(ownName);
-  // Contact patterns run BEFORE the company-name pattern on purpose: "www.alnoor.ae" must be
-  // taken out whole as a URL, otherwise the name pattern eats "alnoor" first and leaves a
-  // half-redacted "www.[removed].ae" that still points at the supplier.
-  for (const re of (nameRe ? [...ID_PATTERNS, nameRe] : ID_PATTERNS)) {
-    out = out.replace(re, (m: string) => { const t = String(m).trim(); if (t.length < 3) return m; if (!hits.includes(t)) hits.push(t); return '[removed]'; });
-  }
-  return out;
-}
+// 3 Nov 2026: the copy that lived here is gone. It had drifted from supplier_api's (no TRN, no licence) and both
+// missed the shapes the planted-identity test measured (scripts/e2e/identity_never_leaks_before_reveal.mjs), so there
+// is ONE scrubber now, imported: supplier_api/identity_scrub.ts scrubIdentity, built on _shared/identity_text.ts.
+import { scrubIdentity } from '../supplier_api/identity_scrub.ts';
 async function queueNotifications(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
 // AUDIT 1.5 (4 Aug 2026) -----------------------------------------------------------------------
 // Both supplier-facing emails in this file passed ownName = null to scrubIdentity. companyRe(null)

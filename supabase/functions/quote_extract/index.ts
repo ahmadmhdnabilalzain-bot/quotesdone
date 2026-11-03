@@ -13,6 +13,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { scrubIdentityText } from '../_shared/identity_text.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { quoteFromExtracted, quoteText } from './quote_from_document.ts';
 import { defaultDeps } from '../_shared/think.ts';
@@ -41,7 +42,8 @@ function scrub(s: unknown): string {
   t = t.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '█');
   t = t.replace(/https?:\/\/\S+|www\.[\w.-]+\.[a-z]{2,}/gi, '█');
   t = t.replace(/(?:\+?\d[\d\s().-]{6,}\d)/g, (m) => (m.replace(/\D/g,'').length >= 7 ? '█' : m));
-  return t.trim();
+  // 3 Nov 2026: the shared identity shapes too (_shared/identity_text.ts), whatever the model left in.
+  return scrubIdentityText(t, '█').trim();
 }
 const SYS = `You read a supplier's price QUOTATION for a UAE building / fit-out job and convert it into an ANONYMOUS standardized quote for QuotesDone, a marketplace where the customer must PAY to reveal the supplier. The customer must NOT be able to identify the supplier from anything you output.\n\nRead EVERY page and EVERY line item carefully. Extract all commercial figures, then REWRITE every text field so it cannot reveal who the supplier is.\n\nMASK / REMOVE:\n- Company name, logo wording, letterhead, slogan, person names, signatures, stamps.\n- Phone, email, website, address, social handles, trade-license / TRN / VAT numbers, bank details.\n- Brand names, manufacturer names, product model names or numbers, and any proprietary or exclusive product line a customer could search online to identify a specific seller (e.g. a named ceramic line, a named tap/mixer brand, a named pump model). Replace with a neutral equivalent that preserves the spec and quality tier, e.g. 'premium branded 120x60 porcelain', 'premium branded mixer', 'premium variable-speed pump'.\n- Any unusually distinctive wording that could fingerprint the supplier.\n\nKEEP (these matter for comparing quotes): amounts, currency, quantities, dimensions/sizes, generic material & spec, quality tier (standard / premium), finish, lead time, validity, payment terms, warranty, scope, conditions, exclusions.\n\nReturn STRICT JSON only, no prose:\n{\"amount\":number,\"currency\":\"AED\",\"line_items\":[{\"description\":string,\"qty\":string,\"amount\":number}],\"lead_time\":string,\"validity\":string,\"payment_terms\":string,\"warranty\":string,\"scope\":string,\"conditions\":string,\"exclusions\":string,\"notes\":string,\"description_anonymized\":string,\"masked_terms\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\namount = the GRAND TOTAL of the whole quotation (sum / stated total), not a single line. Every string field must ALREADY be anonymized. masked_terms = the original identity-revealing strings you removed (shown ONLY to the supplier for review, never to the customer). If a value is absent, use an empty string (or [] for line_items).`;
 

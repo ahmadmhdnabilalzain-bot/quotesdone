@@ -32,6 +32,7 @@ import { arUnit as glossaryUnit, arCount as glossaryCount, arAttr, CATEGORY_AR, 
 import { METHOD_NOTE_AR, METHOD_NOTE_EN } from '../quote_compare/deterministic.ts';
 
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
+import { knownNameRe, scrubIdentityText } from './identity_text.ts';
 import { aed, aedRange, figure } from './money.ts';
 import { needsArabic } from './arabic_script.ts';
 import { feeBaseOf, feeBasisLine, NOT_RESPONSIBLE, priceStated, vatShort, vatStated, type PriceRow } from './stated_price.ts';
@@ -79,6 +80,10 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   t = t.replace(/(?:\+|00)?971[\s-]?\(?0?\)?[\s-]?\d(?:[\s-]?\d){6,8}\b/g, H);
   t = t.replace(/\b0[2-9](?:[\s-]?\d){7,8}\b/g, H);
   t = t.replace(/\+\d(?:[\s-]?\d){8,13}\b/g, H);
+  // 3 Nov 2026 (identity_never_leaks_before_reveal.mjs): every shape in the shared list (_shared/identity_text.ts), and
+  // each named supplier by knownNameRe too: its suffix-free core and any two consecutive words of its name.
+  t = scrubIdentityText(t, H);
+  for (const n of names) { const re = knownNameRe(n); if (re && String(n).replace(/[^A-Za-z؀-ۿ]/g, '').length >= 3) t = t.replace(re, H); }
   for (const n of names) {
     const v = String(n || '').trim();
     if (v.length < 3) continue;
@@ -920,7 +925,7 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
   const relabel = (v: any): any => typeof v === 'string' ? (v.startsWith(ORIGINAL) ? CUSTOMER_ORIGINAL + v.slice(ORIGINAL.length) : v) : Array.isArray(v) ? v.map(relabel) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([kk, x]) => [kk, kk === 'sub' ? relabel(x) : relabel(x)])) : v;
   const body: Record<string, unknown> = {
     title: T('Inquiry', 'استفسار'), ref, name: docName(ref, 'inquiry', lang), lang,
-    cover: relabel(maskDeep(cover0, [], lang)), control, blocks: relabel(maskDeep(blocks, [], lang)), options: { letterhead: true },
+    cover: relabel(maskDeep(cover0, [], lang)), control, blocks: relabel(maskDeep(blocks, [], lang)), options: { letterhead: true, contact: false },
   };
   if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
   return { body, ref, job, drawings, untranslated: [...k.untranslated] };

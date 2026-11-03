@@ -18,6 +18,7 @@
 import type { PdfPage } from '../_shared/pdf_text_positions.ts';
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 import { scrubContacts } from '../_shared/identity_contacts.ts';
+import { scrubIdentityText } from '../_shared/identity_text.ts';
 
 export type BoqItem = { section: string; item: string; description: string; qty: number | null; unit: string; basis: string; confidence: 'low' | 'medium'; specification?: string };
 
@@ -31,7 +32,9 @@ const unitOf = (s: string) => { for (const [u, re] of UNIT) if (re.test(s)) retu
 export function scrubIdentity(s: string): string {
   // Non-UAE phones, bare web hosts, street addresses and city/ZIP lines first (identity_contacts.ts,
   // 21 Sep 2026): a US consultant's title block matched none of the patterns below.
-  return scrubContacts(String(s || ''))
+  // 3 Nov 2026: and every shape in the shared list (_shared/identity_text.ts) first: Arabic-Indic and bracketed
+  // phones, IBAN, P.O. Box, "TL 273158", addresses, Arabic / Latin firm names, a person after a label.
+  return scrubContacts(scrubIdentityText(String(s || '')))
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '')
     .replace(/\b(?:https?:\/\/|www\.)\S+/gi, '')
     .replace(/(?:\+?971|00971|\b0)[\s-]?\d{1,2}[\s-]?\d{3}[\s-]?\d{4}\b/g, '')
