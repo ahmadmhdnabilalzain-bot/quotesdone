@@ -11,8 +11,9 @@ import { readFileSync } from 'node:fs';
 const src = readFileSync(new URL('../../src/components/portal/SupportRatingPrompt.tsx', import.meta.url), 'utf8');
 
 test('the card is fixed to the end corner, never the start corner where the sidebar is', () => {
-  assert.match(src, /fixed bottom-4 end-4/);
-  assert.doesNotMatch(src, /fixed [^"]*\bstart-/);
+  // Tailwind 4 (#1201) spells the logical insets inset-s-* / inset-e-*; start-*/end-* are the v3 names.
+  assert.match(src, /fixed bottom-4 inset-e-4/);
+  assert.doesNotMatch(src, /fixed [^"]*\b(?:inset-s|start)-/);
 });
 
 test('it is one line until the person chooses to rate: the scales are only in the open branch', () => {

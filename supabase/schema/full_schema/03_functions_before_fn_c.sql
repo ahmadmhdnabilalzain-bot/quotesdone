@@ -11262,8 +11262,12 @@ AS $function$
     select d.inquiry_id from public.arabic_compare_waiter d
      where d.attempts < 5   -- a render that keeps failing stops costing replays (customer_api tells the sales engineer)
        and (d.last_offered_at is null or d.last_offered_at < now() - interval '2 minutes')
-       and not exists (select 1 from unnest(d.texts) t
-                        where not exists (select 1 from public.arabic_translation a where a.source_md5 = md5(t)))
+       and (
+         not exists (select 1 from unnest(d.texts) t
+                      where not exists (select 1 from public.arabic_translation a where a.source_md5 = md5(t)))
+         -- the clock: a waiter that is still incomplete is looked at again at least hourly from its first hour
+         or (d.created_at < now() - interval '1 hour' and (d.last_offered_at is null or d.last_offered_at < now() - interval '1 hour'))
+       )
      order by d.attempts, d.last_offered_at nulls first, d.created_at
      limit greatest(1, least(coalesce(p_limit, 10), 100))
      for update skip locked

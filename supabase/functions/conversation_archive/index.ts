@@ -22,6 +22,8 @@ import { docIdentity } from '../_shared/doc_template.ts';
 import { observe } from '../_shared/observe.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { conversationDocument, stripHtml, type ConversationRow } from './document.ts';
+import { drawingMs, mayRenderNext } from './budget.ts';
+import { archiveOne } from './archive_one.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const ASSET = Deno.env.get('SUPABASE_URL')! + '/storage/v1/object/public/brand';
@@ -53,24 +55,49 @@ async function sweep(limit: number, offset = 0, tag?: string) {
   if (error) return { ok: false, stage: 'pending', error: error.message };
   const rows = ((data || []) as ConversationRow[]).slice(offset);
   const identity = rows.length ? await docIdentity(admin) : undefined;
-  let archived = 0, queued = 0; const failed: Array<{ ref: string; error: string }> = [];
+  let archived = 0, queued = 0, renderMs = 0, slowestMs = 0, deferred = 0, htmlCopies = 0; const failed: Array<{ ref: string; error: string }> = [];
+  // The budget counts drawing, not waiting: time spent fetching a brand asset or font (cold on a fresh worker) is
+  // taken out of each render's clock, so a cold start does not cut a sweep to one or two PDFs (review of #1797).
+  let waitedMs = 0;
+  const timedFetchBytes = async (p: string) => { const t = performance.now(); try { return await fetchBytes(p); } finally { waitedMs += performance.now() - t; } };
   for (const r of rows) {
     const ref = `${r.source_table}:${r.source_id}`;
+    // A CPU budget, not a count (budget.ts): what is not drawn here stays pending for the next sweep.
+    if (!mayRenderNext(renderMs, slowestMs)) { deferred = rows.length - archived - failed.length; break; }
     try {
-      const out = await renderPdf(conversationDocument(r), { fetchBytes, identity });
-      if (!out.ok) { failed.push({ ref, error: 'render ' + JSON.stringify(out.body).slice(0, 160) }); continue; }
-      const month = String(r.occurred_at || new Date().toISOString()).slice(0, 7);
-      const path = `conversations/${r.channel}/${month}/${r.source_table}-${r.source_id}.pdf`;
-      const up = await admin.storage.from('backups').upload(path, out.bytes, { contentType: 'application/pdf', upsert: true });
-      if (up.error) { failed.push({ ref, error: 'upload ' + up.error.message }); continue; }
-      const { data: rec, error: recErr } = await admin.rpc('fn_conversation_archived', { p_source_table: r.source_table, p_source_id: r.source_id, p_path: path, p_bytes: out.bytes.length });
-      if (recErr || !(rec as { ok?: boolean })?.ok) { failed.push({ ref, error: 'record ' + (recErr?.message || JSON.stringify(rec)) }); continue; }
-      archived++; queued += Number((rec as { queued_for_dropbox?: number }).queued_for_dropbox) || 0;
+      const res = await archiveOne(r, {
+        attempt: async (m) => { const { data, error } = await admin.rpc('fn_conversation_archive_attempt', { p_source_table: m.source_table, p_source_id: m.source_id }); return error || typeof data !== 'number' ? null : data; },
+        render: async (m) => {
+          const t0 = performance.now(), w0 = waitedMs;
+          try {
+            const out = await renderPdf(conversationDocument(m), { fetchBytes: timedFetchBytes, identity });
+            return out.ok ? { ok: true, bytes: out.bytes } : { ok: false, error: JSON.stringify(out.body).slice(0, 160) };
+          } finally { const took = drawingMs(performance.now() - t0, waitedMs - w0); renderMs += took; slowestMs = Math.max(slowestMs, took); }
+        },
+        upload: async (path, bytes, contentType) => { const up = await admin.storage.from('backups').upload(path, bytes, { contentType, upsert: true }); return up.error ? up.error.message : null; },
+        record: async (m, path, n) => {
+          const { data: rec, error: recErr } = await admin.rpc('fn_conversation_archived', { p_source_table: m.source_table, p_source_id: m.source_id, p_path: path, p_bytes: n });
+          return recErr || !(rec as { ok?: boolean })?.ok ? { ok: false, queued: 0, error: recErr?.message || JSON.stringify(rec) }
+            : { ok: true, queued: Number((rec as { queued_for_dropbox?: number }).queued_for_dropbox) || 0 };
+        },
+        clear: async (m) => { await admin.from('conversation_archive_attempt').delete().eq('source_table', m.source_table).eq('source_id', m.source_id); },
+        finding: async (m, n, path) => {
+          await admin.rpc('fn_it_engineer_finding_upsert', {
+            p_issue_key: `conversation_archive:html_copy:${m.source_table}:${m.source_id}`,
+            p_title: `A conversation could not be drawn as a PDF inside the edge CPU cap after ${n - 1} attempts; it is kept as an HTML copy instead`,
+            p_where: 'conversation_archive sweep -> renderPdf (pdf_native) -> archive_one.ts HTML copy', p_blast: 'One conversation is kept as an HTML copy instead of a PDF: every field and the whole text are kept, the page layout is plain.', p_affected: 1,
+            p_evidence: { ref: `${m.source_table}:${m.source_id}`, path, attempts: n, chars: String(m.body || m.html || '').length, at: new Date().toISOString() },
+          });
+        },
+      });
+      if (!res.ok) { failed.push({ ref, error: res.error }); continue; }
+      archived++; queued += res.queued; if (res.light) htmlCopies++;
     } catch (e) { failed.push({ ref, error: String((e as Error)?.message || e).slice(0, 200) }); }
   }
-  if (rows.length) await logRun(failed.length ? 'error' : 'ok', { pending: rows.length, archived, queued_for_dropbox: queued, failed: failed.length },
+  const render_ms = Math.round(renderMs), slowest_render_ms = Math.round(slowestMs);
+  if (rows.length) await logRun(failed.length ? 'error' : 'ok', { pending: rows.length, archived, queued_for_dropbox: queued, failed: failed.length, deferred, render_ms, slowest_render_ms, html_copies: htmlCopies },
     failed.length ? 'PDF not kept for ' + failed.length + ' message(s): ' + failed.slice(0, 3).map((f) => f.ref + ' ' + f.error).join('; ') : '');
-  return { ok: failed.length === 0, pending: rows.length, archived, queued_for_dropbox: queued, failed };
+  return { ok: failed.length === 0, pending: rows.length, archived, queued_for_dropbox: queued, deferred, render_ms, slowest_render_ms, html_copies: htmlCopies, failed };
 }
 
 async function resendGet(key: string, url: string) {

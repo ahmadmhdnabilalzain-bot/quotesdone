@@ -91,9 +91,9 @@ const T = {
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
 
 const RISK_TONE: Record<string, string> = {
-  low: 'text-ok-fg border-ok/25 bg-ok/[0.06]',
-  medium: 'text-warn-fg border-warn/25 bg-warn/[0.06]',
-  high: 'text-danger-fg border-danger/25 bg-danger/[0.06]',
+  low: 'text-ok-fg border-ok/25 bg-ok/6',
+  medium: 'text-warn-fg border-warn/25 bg-warn/6',
+  high: 'text-danger-fg border-danger/25 bg-danger/6',
 };
 
 // One proposed term. Every card on this screen is a thing the AI SUGGESTS, so they share a shell
@@ -210,7 +210,7 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
   return (
     <div className="space-y-4">
       {demo && (
-        <p className="rounded-xl border border-warn/25 bg-warn/[0.06] px-3 py-2 text-[11px] leading-snug text-warn-fg/80">
+        <p className="rounded-xl border border-warn/25 bg-warn/6 px-3 py-2 text-[11px] leading-snug text-warn-fg/80">
           {t(lang, 'demoBanner')}
         </p>
       )}
@@ -222,7 +222,7 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
         <p className="mb-2.5 text-[12px] text-muted-foreground">{t(lang, 'intentHelp')}</p>
         <input
           id="qd-qb-intent"
-          className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
+          className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground outline-hidden placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
           placeholder={t(lang, 'placeholder')}
           value={intent}
           onChange={(e) => setIntent(e.target.value)}

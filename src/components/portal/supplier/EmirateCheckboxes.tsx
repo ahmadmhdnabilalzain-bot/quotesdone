@@ -17,7 +17,7 @@ export default function EmirateCheckboxes({ lang, value, onChange, legend }: Pro
   const all = picked.length === UAE_EMIRATES.length;
   const some = picked.length > 0 && !all;
   const toggle = (e: string) => onChange(value.includes(e) ? value.filter((x) => x !== e) : [...value, e]);
-  const box = 'h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  const box = 'h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring';
   const row = 'flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md border border-border px-3 text-[13.5px] text-foreground hover:bg-muted/40';
   return (
     <fieldset className="mt-1.5">

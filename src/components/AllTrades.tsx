@@ -34,13 +34,13 @@ export function AllTrades() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t('search')}
-          className="w-full rounded-btn border border-line2 bg-surf/60 px-4 py-2.5 text-[15px] text-paper outline-none placeholder:text-faint focus-visible:border-teal"
+          className="w-full rounded-btn border border-line2 bg-surf/60 px-4 py-2.5 text-[15px] text-paper outline-hidden placeholder:text-faint focus-visible:border-teal"
         />
       </label>
       {rows.length ? (
         <ul className="mt-6 grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((c) => (
-            <li key={c.code} className="flex items-center justify-between gap-3 border-b border-[var(--line)] py-3">
+            <li key={c.code} className="flex items-center justify-between gap-3 border-b border-(--line) py-3">
               <span className="min-w-0 text-[15px] text-paper">{c.label}</span>
               <GetQuotesFor category={c.code} label={t('getQuotes')} draft={t('draft', { trade: c.label })} />
             </li>

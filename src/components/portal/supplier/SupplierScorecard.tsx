@@ -62,7 +62,7 @@ export default function SupplierScorecard({ token }: { token?: string | null }) 
             const m = card.metrics[key];
             const v = verdict(m);
             return (
-              <div key={key} className="rounded-lg border border-[var(--line)] p-3">
+              <div key={key} className="rounded-lg border border-(--line) p-3">
                 <dt className="text-[12px] text-muted-foreground">{label}</dt>
                 <dd className="mt-1 text-[20px] font-semibold text-foreground">{m.you == null ? <span className="text-[13px] font-normal text-muted-foreground">not enough data yet</span> : fmt(m.you)}</dd>
                 <dd className="mt-1 text-[12px] text-muted-foreground">

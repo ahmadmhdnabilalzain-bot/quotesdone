@@ -42,7 +42,7 @@ licence holder, and the business name is QuotesDone Technologies.
 
 **Two phone numbers, both his, and they are not interchangeable:**
 - **+971 56 791 8605** — on the trade licence. Use this for anything Meta or DET cross-checks.
-- **+971 50 931 9355** — the approved PUBLIC contact given to customers ([[founder-landline-and-mobile]]).
+- **+971 50 931 9355** — his PERSONAL mobile. It was the public contact until ledger 1482 (2 Nov 2026), which ruled the public calling number is +971 56 791 8605 and WhatsApp is +1 218 316 6814; it is on no current public page ([[a-contact-only-terms-version-asks-nobody-to-sign-again]]).
 
 **A Portal licence has no street address** — its "address" is those four store URLs. Jabal Ali
 First / Shaista Azizi 702 / Dubai is his accommodation, which is normal and correct for a

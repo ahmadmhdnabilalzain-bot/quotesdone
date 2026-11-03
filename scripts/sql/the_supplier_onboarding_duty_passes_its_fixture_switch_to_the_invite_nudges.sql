@@ -76,7 +76,7 @@ begin
       'dedupe_key', 'first_quote_nudge:' || r.lead_id || ':' || (select nudges from public.supplier_onboarding where lead_id = r.lead_id),
       'subject', 'Customer requests are waiting for your quotation',
       -- #1070's greeting guard (#1007): an Arabic-script company name is not written into an English letter
-      'body', 'Dear ' || coalesce(nullif(btrim(case when r.company_name ~ '[؀-ۿ]' then '' else r.company_name end), ''), 'supplier') || ',' || chr(10) || chr(10)
+      'body', 'Dear ' || coalesce(nullif(btrim(case when r.company_name ~ '[\u0600-\u06FF]' then '' else r.company_name end), ''), 'supplier') || ',' || chr(10) || chr(10)
           || r.open_matches || ' customer request(s) matched to your trade are open and have no quotation from you yet. '
           || 'You can read them and quote in your supplier portal: '
           || coalesce((select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com')

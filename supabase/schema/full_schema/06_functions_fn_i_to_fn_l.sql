@@ -9596,12 +9596,14 @@ CREATE OR REPLACE FUNCTION public.fn_kb_embed_dispatch(p_limit integer DEFAULT 2
  SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 declare
-  v_lim     int := greatest(1, least(coalesce(p_limit, 200), 1000));
-  v_url     text;
-  v_secret  text;
-  v_queued  int := 0;
-  v_cap     constant int := 150;   -- see the header: the in-flight ceiling, not the normal bound
+  v_lim      int := greatest(1, least(coalesce(p_limit, 200), 1000));
+  v_url      text;
+  v_secret   text;
+  v_queued   int := 0;
+  v_cap      constant int := 150;   -- the in-flight ceiling, not the normal bound
+  v_tries    constant int := 5;     -- failed attempts allowed per text before a row is given up on
   v_inflight int;
+  v_gave_up  bigint;
 begin
   select 'https://' || value || '.supabase.co/functions/v1/ai_gateway' into v_url
     from public.app_secrets where key = 'project_ref';
@@ -9610,56 +9612,61 @@ begin
     return jsonb_build_object('ok', false, 'error', 'missing_project_ref_or_cred_fn_ai');
   end if;
 
-  -- CONCURRENCY CAP. Three minutes, matching the claim lease below, so "in flight" means the same
-  -- thing in both places.
+  -- Rows that spent every attempt on their current text. Counted, never sent again until the text changes.
+  select count(*) into v_gave_up from (
+    select f.chunk_id
+      from public.kb_embed_inflight f
+      join public.kb_chunks k on k.id = f.chunk_id and k.embedding_gte is null
+     where f.failed_at is not null
+       and f.text_md5 = md5(left(coalesce(k.title, '') || E'\n' || coalesce(k.content, ''), 1200))
+     group by f.chunk_id having count(*) >= v_tries) g;
+
+  -- CONCURRENCY CAP. Three minutes, matching the claim lease below.
   select count(*) into v_inflight from public.kb_embed_inflight i
-   where i.queued_at > now() - interval '3 minutes';
+   where i.failed_at is null and i.queued_at > now() - interval '3 minutes';
   v_lim := least(v_lim, greatest(0, v_cap - v_inflight));
   if v_lim = 0 then
-    return jsonb_build_object('ok', true, 'queued', 0, 'inflight', v_inflight, 'cap', v_cap,
+    return jsonb_build_object('ok', true, 'queued', 0, 'inflight', v_inflight, 'cap', v_cap, 'gave_up', v_gave_up,
       'held', 'the gateway already has the in-flight ceiling of embed requests; nothing was claimed', 'at', now());
   end if;
 
-  -- The claim. Same lease discipline as fn_kb_embed_claim -- FOR UPDATE SKIP LOCKED, a three-minute
-  -- expiry stamped into embed_claimed_at -- so concurrent dispatches take disjoint slices and a
-  -- dispatch that dies costs three minutes rather than its rows.
+  -- The claim: FOR UPDATE SKIP LOCKED and a three-minute lease in embed_claimed_at, so concurrent dispatches take
+  -- disjoint slices. A row with a request still in flight is not sent twice.
   with pick as (
-    select k.id, k.title, k.content
+    select k.id, left(coalesce(k.title, '') || E'\n' || coalesce(k.content, ''), 1200) as txt
       from public.kb_chunks k
       left join public.kb_embed_priority p on p.category = k.category
      where k.embedding_gte is null
        and (k.embed_claimed_at is null or k.embed_claimed_at < now() - interval '3 minutes')
        and coalesce(p.tier, 3) <= greatest(1, least(coalesce(p_max_tier, 4), 4))
+       and not exists (select 1 from public.kb_embed_inflight f where f.chunk_id = k.id and f.failed_at is null)
+       and (select count(*) from public.kb_embed_inflight f
+             where f.chunk_id = k.id and f.failed_at is not null and f.failed_at > now() - interval '24 hours'
+               and f.text_md5 = md5(left(coalesce(k.title, '') || E'\n' || coalesce(k.content, ''), 1200))) < v_tries
      order by coalesce(p.tier, 3) asc, k.created_at asc
      limit v_lim
      for update of k skip locked
   ), claimed as (
     update public.kb_chunks k set embed_claimed_at = now()
       from pick where k.id = pick.id
-    returning k.id, pick.title, pick.content
+    returning k.id, pick.txt
   ), sent as (
-    select c.id,
+    select c.id, md5(c.txt) as text_md5,
            net.http_post(
              url := v_url,
              headers := '{"Content-Type":"application/json"}'::jsonb,
-             body := jsonb_build_object(
-                       '__secret', v_secret,
-                       'fn', 'kb_embed_dispatch',
-                       'action', 'embed',
-                       -- 1,200 characters is the window kb_embed used and the window every existing
-                       -- kb_chunks vector was built from. Changing it would make new rows
-                       -- incomparable with the 166,093 already embedded.
-                       'text', left(coalesce(c.title, '') || E'\n' || coalesce(c.content, ''), 1200)),
+             -- 1,200 characters is the window every existing kb_chunks vector was built from.
+             body := jsonb_build_object('__secret', v_secret, 'fn', 'kb_embed_dispatch', 'action', 'embed', 'text', c.txt),
              timeout_milliseconds := 25000) as request_id
       from claimed c
   )
-  insert into public.kb_embed_inflight (request_id, chunk_id)
-  select s.request_id, s.id from sent s
+  insert into public.kb_embed_inflight (request_id, chunk_id, text_md5)
+  select s.request_id, s.id, s.text_md5 from sent s
   on conflict (request_id) do nothing;
-
   get diagnostics v_queued = row_count;
+
   return jsonb_build_object('ok', true, 'queued', v_queued, 'inflight_before', v_inflight, 'cap', v_cap,
-                            'max_tier', p_max_tier, 'at', now());
+                            'gave_up', v_gave_up, 'max_tier', p_max_tier, 'at', now());
 end
 $function$
 
@@ -9675,42 +9682,74 @@ declare
   v_failed  int := 0;
   v_expired int := 0;
 begin
-  with done as (
-    select f.request_id, f.chunk_id, r.status_code, r.content
+  with answered as (
+    select f.request_id, f.chunk_id, f.text_md5, r.status_code,
+           -- the vector, only if the gateway really returned one; checked left to right so no cast can raise
+           case when r.status_code = 200
+                 and pg_input_is_valid(r.content, 'jsonb')
+                 and jsonb_typeof(r.content::jsonb -> 'embedding') = 'string'
+                 and pg_input_is_valid(r.content::jsonb ->> 'embedding', 'jsonb')
+                 and jsonb_typeof((r.content::jsonb ->> 'embedding')::jsonb) = 'array'
+                 and jsonb_array_length((r.content::jsonb ->> 'embedding')::jsonb) = 384
+                then r.content::jsonb ->> 'embedding' end as vec
       from public.kb_embed_inflight f
       join net._http_response r on r.id = f.request_id
-  ), good as (
-    select d.chunk_id, ((d.content::jsonb) ->> 'embedding') as vec
-      from done d
-     where d.status_code = 200
-       and (d.content::jsonb) ->> 'embedding' is not null
-  ), upd as (
+     where f.failed_at is null
+  ), wrote as (
+    -- only a row still NULL whose text is still what was sent
     update public.kb_chunks k
-       set embedding_gte = g.vec::vector, embed_claimed_at = null
-      from good g
-     where k.id = g.chunk_id and k.embedding_gte is null
+       set embedding_gte = a.vec::vector, embed_claimed_at = null
+      from answered a
+     where a.vec is not null and k.id = a.chunk_id and k.embedding_gte is null
+       and md5(left(coalesce(k.title, '') || E'\n' || coalesce(k.content, ''), 1200)) = a.text_md5
     returning k.id
-  ), del as (
+  ), failed as (
+    update public.kb_embed_inflight f
+       set failed_at = now(), status_code = a.status_code
+      from answered a
+     where f.request_id = a.request_id and a.vec is null
+    returning f.chunk_id
+  ), settled as (
+    -- written, or its text changed after it was sent, or another path embedded the row: forgotten either way
     delete from public.kb_embed_inflight f
-     using done d where f.request_id = d.request_id
-    returning d.status_code
+     using answered a
+     where f.request_id = a.request_id and a.vec is not null
+    returning f.chunk_id
+  ), released as (
+    -- an answered request holds no lease: a row that is still NULL can be sent again by the dispatch that follows
+    update public.kb_chunks k
+       set embed_claimed_at = null
+     where k.id in (select chunk_id from failed union select chunk_id from settled)
+       and k.id not in (select id from wrote)
+       and k.embedding_gte is null
+    returning k.id
   )
-  select (select count(*) from upd), (select count(*) from del where status_code is distinct from 200)
-    into v_written, v_failed;
+  select (select count(*) from wrote), (select count(*) from failed) into v_written, v_failed;
 
-  -- A request pg_net never resolved: free the chunk so a later dispatch picks it up again.
+  -- No answer within an hour: a failed attempt, and the row is free to be sent again.
   with stale as (
-    delete from public.kb_embed_inflight
-     where queued_at < now() - interval '1 hour'
+    update public.kb_embed_inflight
+       set failed_at = now()
+     where failed_at is null and queued_at < now() - interval '1 hour'
     returning chunk_id
   )
   update public.kb_chunks k set embed_claimed_at = null
     from stale s where k.id = s.chunk_id and k.embedding_gte is null;
   get diagnostics v_expired = row_count;
 
+  -- The attempts of a row that has its vector, or no longer exists, are history nobody needs.
+  delete from public.kb_embed_inflight f
+   where f.failed_at is not null
+     and not exists (select 1 from public.kb_chunks k where k.id = f.chunk_id and k.embedding_gte is null);
+
+  -- Attempts older than a day no longer count (the dispatch reads only the last 24 hours), so a row that ran out of
+  -- attempts during an outage is tried again the next day rather than never; the old rows are dropped here.
+  delete from public.kb_embed_inflight f
+   where f.failed_at is not null and f.failed_at < now() - interval '24 hours';
+
   return jsonb_build_object('ok', true, 'embedded', v_written, 'failed', v_failed,
                             'expired_and_released', v_expired,
-                            'still_inflight', (select count(*) from public.kb_embed_inflight),
+                            'still_inflight', (select count(*) from public.kb_embed_inflight where failed_at is null),
                             'at', now());
 end
 $function$
@@ -9722,11 +9761,16 @@ CREATE OR REPLACE FUNCTION public.fn_kb_embed_scheduled_run()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_t jsonb;
+declare v_t jsonb; v_work boolean;
 begin
   v_t := public.fn_kb_embed_tick(400);
-  if coalesce((v_t->'dispatch'->>'ok')::boolean, false) then
-    perform public.fn_it_duty_ran('kb_embed', jsonb_build_object('scheduler', 'pg_cron kb_embed_daily', 'tick', v_t));
+  v_work := coalesce((v_t->'harvest'->>'embedded')::int, 0) + coalesce((v_t->'harvest'->>'failed')::int, 0)
+          + coalesce((v_t->'harvest'->>'expired_and_released')::int, 0) + coalesce((v_t->'dispatch'->>'queued')::int, 0) > 0;
+  -- A refused dispatch (missing secret) must not beat; an idle tick beats at most once in 20 hours.
+  if coalesce((v_t->'dispatch'->>'ok')::boolean, false)
+     and (v_work or coalesce((select max(started_at) from public.agent_runs
+                               where agent = 'it_engineer' and counts->>'job' = 'duty:kb_embed'), '-infinity') < now() - interval '20 hours') then
+    perform public.fn_it_duty_ran('kb_embed', jsonb_build_object('scheduler', 'pg_cron kb_embed', 'tick', v_t));
   end if;
   return v_t;
 end $function$

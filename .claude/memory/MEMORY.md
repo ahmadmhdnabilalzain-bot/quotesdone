@@ -50,7 +50,8 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [WhatsApp is the founder's command channel](whatsapp-founder-command-channel.md)
 - [Founder mail goes through founder_mail_policy](founder-mail-goes-through-founder-mail-policy.md) — fn_notify_founder needs p_kind
 - [The estate could not email a file](the-estate-could-not-email-a-file.md) — fixed 9 Sep: notifications.attachments + send_outbox v43
-- [Founder's landline and mobile](founder-landline-and-mobile.md)
+- [Founder's landline and mobile](founder-landline-and-mobile.md) — 2 Nov: no longer public (ledger 1482)
+- [A contact-only terms version asks nobody to sign again](a-contact-only-terms-version-asks-nobody-to-sign-again.md) — 2 Nov: Supplier Agreement v17 + app_secrets supplier_terms_carries_from; deploy functions BEFORE the apply
 - [No observe mode — plain login](no-observe-mode-plain-login.md) — mobile number + OTP
 - [Links he shares are standing, not per-task](links-he-shares-are-standing-not-per-task.md)
 - [Expenses email is the source of truth](expenses-email-source-of-truth.md) · [Resend inbound keeps ~1 month](resend-inbound-retention-is-about-a-month.md) · [Accountant only sees what was forwarded](the-accountant-only-sees-what-was-forwarded.md)
@@ -135,6 +136,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [WhatsApp reply model was never shown the conversation](whatsapp-reply-model-was-never-shown-the-conversation.md) — 2 Nov: stored is not shown; voice notes not heard; OTP-on-WhatsApp does not make a supplier known
 - [Lessons — measurement, guards, checks, audits, identity](lessons-measurement-guards-and-audits.md) — 75 pattern lessons, grouped
 - [Lessons — Postgres, kernel, deploy, phase machinery](lessons-postgres-kernel-and-deploy.md) — 60 pattern lessons, grouped
+- [A deferred row aged out by created_at (2 Nov)](a-deferred-row-aged-out-by-created-at.md) — a supplier_invite held with no last_error was send_outbox's 72 h stale guard; a same-day resume now reopens the batch
 - [A held row failed with no result means the runner died (27 Oct)](a-held-row-failed-with-no-result-means-the-runner-died.md) — 2 s edge CPU cap; gte-small in a batch goes to embed_ml
 - [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
 ## The lenses that keep paying
@@ -152,6 +154,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
 - [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support
 - [Registration walk reads the REAL code via a Resend sink; supplier@ replies were never answered (28 Oct)](the-registration-walk-reads-the-real-code-through-a-resend-sink.md) — `--real-otp`; #1699 fixed `noAutoReply`→internal for supplier@; 390 px harness traps
+- [Supplier document uploads measured (28 Oct)](supplier-document-uploads-measured-28-oct.md) — body vs direct path; 9.66 MB read, 14.5 MB hit the CPU cap (pdfText, #1721); 10 MB portal cap (#1720); pad PDFs with hex, never base64; never `timeout` a probe's teardown
 - [Invitations resume only at ≥80% Outlook inbox](invitations-resume-only-at-80-percent-outlook-inbox.md) — 27 Oct, instr 1312: GlockApps from supplier@; report inbox/spam/promotions per provider
 - [No test email to the founder's own inboxes (27 Oct)](no-test-email-to-the-founders-own-inboxes.md) — standing: no seed/test/placement/warm-up mail to his 6 mailboxes; morning seed retired; resuming invites must also replace the seed gate with the GlockApps verdict
 - [The invitation gate reads the GlockApps verdict, per provider (27 Oct)](the-invitation-gate-reads-the-glockapps-verdict.md) — record get_results with scripts/record_inbox_placement_verdict.mjs (no API key); bar in invite_placement_bar; a passing provider is invited, others skipped, `other` follows Microsoft; 7 days; applies after #1696
