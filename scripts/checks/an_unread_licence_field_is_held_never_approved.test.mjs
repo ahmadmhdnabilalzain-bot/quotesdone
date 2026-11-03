@@ -63,8 +63,15 @@ test('process_docs reads every labelled field by code, asks the model (with one 
   assert.match(api, /if \(codeFields\.licence_no\) upd\.trade_license_no = codeFields\.licence_no;/);
   assert.match(api, /if \(d\.license_number && !codeFields\.licence_no\) upd\.trade_license_no = d\.license_number;/, 'the model overwrites the number code read');
   assert.match(api, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/, 'a failed model read is not retried');
-  // Since 19 Oct 2026 the profile is read after the response (supplier_docs_later.ts); the picture joins the model's images there.
-  assert.match(api, /if \(pq\?\.bytes && pq\.mime && \/\^image\\\/\/i\.test\(pq\.mime\)\) imgs\.unshift\(\{ b64: toB64\(pq\.bytes\)/, 'a photo-only profile is not sent to the model');
+  // Since 19 Oct 2026 the profile is read after the response (supplier_docs_later.ts). Since #1796 (2 Nov 2026) registration and the
+  // Documents tab read it through ONE function, readProfileByModel: a photo profile goes to the model as its own image, ahead of the
+  // browser's rendered pages when there are any, and on its own bytes when there are none.
+  assert.match(api, /const pqImage = !!\(pq\?\.bytes && pq\.mime && \/\^image\\\/\/i\.test\(pq\.mime\)\);/, 'a photo profile is not recognised');
+  assert.match(api, /const images = profImgs\.length \? \[\.\.\.\(pqImage \? \[\{ b64: toB64\(pq!\.bytes!\), mime: pq!\.mime \}\] : \[\]\), \.\.\.profImgs\] : undefined;/, 'a photo profile is not sent ahead of the rendered pages');
+  assert.match(api, /const holder: LaterDoc = pq \?\? /, 'the profile itself is not what the model reads');
+  assert.match(api, /await readProfileByModel\(holder, /, 'process_docs does not read the profile through readProfileByModel');
+  const later = R('supabase/functions/_shared/supplier_docs_later.ts');
+  assert.match(later, /if \(\/\^image\\\/\/i\.test\(mime\)\) \{\n[^\n]*PROFILE_IMAGE_MAX[^\n]*\n\s*body = \{ images: \[\{ b64: toB64\(d\.bytes\), mime \}\] \};/, 'a photo-only profile is not sent to the model');
 });
 
 // Browser walk f4294be8 (12 Oct 2026, it_engineer): a clean text licence uploaded on the supplier portal's own

@@ -149,3 +149,25 @@ export function neverSuppressible(email: string, protectedList: string[]): boole
   if (/(^|\.)quotesdone\.(com|ae)$/.test(dom)) return true;
   return protectedList.map((x) => x.trim().toLowerCase()).filter(Boolean).includes(e);
 }
+
+// ── THE THREE GATES BEFORE A REPLY'S "STOP" IS APPLIED, IN ONE PLACE (28 Oct 2026, sales_engineer; founder ledger 1401) ──
+// resend_inbound has applied them since 22 Sep 2026 (a From header can be forged; Svix proves Resend delivered the mail,
+// not who wrote it). email_triage's opt_out backstop (email_triage/opt_out_backstop.ts) now applies a stop the word list
+// missed, and it must stand behind exactly the same gates, so they moved here unchanged, in the same order, with the
+// same reasons:
+//   1. never our own domains, the admin addresses, the expense forwarders or the expense mailbox (protectedList);
+//   2. the receiving server must have authenticated the From domain (`authenticated`, read lazily: resend_inbound
+//      fetches the headers only when gate 1 passed);
+//   3. we must actually have sent this address an invitation or reminder (a 'sent' notification of OPT_OUT_TYPES) --
+//      the only mail an opt-out stops.
+// '' when the stop may be applied; otherwise the reason it may not, for the row a person reviews.
+// deno-lint-ignore no-explicit-any
+type StopDb = any;
+export async function replyStopRefusal(admin: StopDb, o: { from: string; protectedList: string[]; authenticated: () => boolean | Promise<boolean> }): Promise<string> {
+  const from = String(o.from || '').trim().toLowerCase();
+  if (neverSuppressible(from, o.protectedList)) return 'a protected address (our own domain, an admin address or an expense forwarder)';
+  if (!(await o.authenticated())) return 'the receiving server did not authenticate the sender domain (no aligned DMARC, DKIM or SPF pass)';
+  const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
+    .ilike('to_email', from.replace(/[\\%_]/g, '\\$&')).in('type', [...OPT_OUT_TYPES]).eq('status', 'sent');
+  return count ? '' : 'we never sent this address an invitation or reminder';
+}

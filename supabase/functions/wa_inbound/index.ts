@@ -54,7 +54,7 @@ import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 import { waRow } from './wa_row.ts';
 import { waConversation } from '../_shared/wa_history.ts';
-import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
+import { budgetLeft, holdUnwritten, modelSays, voiceReplyProblems } from './model_says.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 // THE QUESTION IS UNDERSTOOD, NOT ONLY MATCHED (instruction 763). Measured 22 Sep 2026: wa_inbound
@@ -576,14 +576,14 @@ async function handleInbound(req: Request): Promise<Response> {
     let history: ReturnType<typeof waConversation> | null = null;
     // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
     // They are apart so a reply started speculatively (below) that is then discarded can never escalate or flag the turn.
-    const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], signal?: AbortSignal) => {
+    const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => {
       history ??= waConversation(admin, From, receivedAt, isDemoPhone(From));
       return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: await history,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
         // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
         // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
         rateKey: signal ? 'wa-spec:' + From : 'wa:' + From,
-        ...(signal ? { signal } : {}),
+        ...(signal ? { signal } : {}), ...(extraCheck ? { extraCheck } : {}),
         subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
     };
     const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
@@ -592,8 +592,8 @@ async function handleInbound(req: Request): Promise<Response> {
       sayProblems = r.text ? [] : (r.problems ?? []);
       return r.text;
     };
-    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) =>
-      adopt(await askModel(aud, situation, lang, must));
+    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], extraCheck?: (t: string) => string[]) =>
+      adopt(await askModel(aud, situation, lang, must, undefined, extraCheck));
     // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
     const say = (situation: string, lang?: 'en' | 'ar') => sayFor(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : audience === 'founder' ? 'founder' : 'visitor')(situation, lang);
     // NOBODY IS LEFT SILENT (review of #1335). When no model wrote the reply, or the guard refused what it wrote, the
@@ -1014,6 +1014,28 @@ async function handleInbound(req: Request): Promise<Response> {
           return null;
         })
       : null;
+    // THE PRICE-CHANGE READING STARTS BESIDE THE CLASSIFICATION TOO (customer_support, 3 Nov 2026). It reads only the body,
+    // yet it was asked after menuTurn had waited for the readings. Measured on the real exchange on main (run 41530397323,
+    // ai_cost_log): on 14 of 14 supplier text turns the supplier_directive call started 0.75-0.95 s after the classification
+    // ended and took 5.1-6.8 s, in series, so supplier turns were classified at 16.6-23.6 s against 11.6-12.7 s for a
+    // number with no account. A turn the menu answers aborts it (specAbort), like the speculative draft.
+    let directiveP: Promise<{ change?: boolean; amount?: unknown } | null> | null = null;
+    const directiveRead = () => (directiveP ??= (async () => {
+      const gsecret = await sec('cred_fn_ai');
+      const csys = 'Decide whether this message from a supplier is an INSTRUCTION TO CHANGE THEIR QUOTATION PRICE, and if so to what amount in AED.\n'
+        + 'Return STRICT JSON ONLY. If it is: {"change":true,"amount":"<the new total price as a bare number, no currency, no commas>"}.\n'
+        + 'Otherwise, including every question, every request for information, anything about their licence or profile, anything asking to CREATE a new quotation, and anything you are unsure about: {"change":false}.\n'
+        + 'A relative instruction with no stated total ("drop it a bit", "make it cheaper") is NOT a change — return false, because I cannot act on an amount you had to invent.';
+      const cr = await fetch(GATEWAY, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: gsecret, fn: 'supplier_directive', sys: csys, input: Body.slice(0, 600), temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),
+        signal: AbortSignal.any([AbortSignal.timeout(40000), specAbort.signal]),
+      });
+      const cj = await cr.json().catch(() => ({} as Record<string, unknown>));
+      const cm = String((cj as { content?: string })?.content || '').match(/\{[\s\S]*\}/);
+      return cm ? JSON.parse(cm[0]) : null;
+    })().catch(() => null));   // a classifier failure must never swallow their message: it reads as "not a change"
+    if (audience === 'supplier' && typedQuestion) directiveRead();
     const m = await menuTurn(menuDeps, menuIn);
     if (m.handled) {
       specAbort.abort();
@@ -1188,7 +1210,7 @@ async function handleInbound(req: Request): Promise<Response> {
         const audioOnly = media.every((m) => /^audio\//i.test(m.mime));
         if (audioOnly) {
           results.push('voice note: not heard, no transcription on WhatsApp yet');
-          reply = await sayFor(leadId ? 'supplier' : 'visitor')('They sent a voice note. Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed. Tell them so plainly, apologise briefly, and ask them to type the message here; a typed message is answered at once.', 'en');
+          reply = await sayFor(leadId ? 'supplier' : 'visitor')('They sent a voice note. Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed. Tell them so plainly, apologise briefly, and ask them to type the message here; a typed message is answered at once. Whatever was said earlier in this chat, this reply is about the voice note only: do not ask for, offer or mention any document, licence, PDF, photo or upload.', 'en', undefined, voiceReplyProblems);
         } else if (!leadId) {
           // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
           // model, one more asking). It is never filed against a company — there is none — but its words are kept on this
@@ -1290,19 +1312,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // Three different founder messages were all classified as the first one's directive that way.
     if (audience === 'supplier') {
       try {
-        const gsecret = await sec('cred_fn_ai');
-        const csys = 'Decide whether this message from a supplier is an INSTRUCTION TO CHANGE THEIR QUOTATION PRICE, and if so to what amount in AED.\n'
-          + 'Return STRICT JSON ONLY. If it is: {"change":true,"amount":"<the new total price as a bare number, no currency, no commas>"}.\n'
-          + 'Otherwise, including every question, every request for information, anything about their licence or profile, anything asking to CREATE a new quotation, and anything you are unsure about: {"change":false}.\n'
-          + 'A relative instruction with no stated total ("drop it a bit", "make it cheaper") is NOT a change — return false, because I cannot act on an amount you had to invent.';
-        const cr = await fetch(GATEWAY, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ __secret: gsecret, fn: 'supplier_directive', sys: csys, input: Body.slice(0, 600), temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),
-          signal: AbortSignal.timeout(40000),
-        });
-        const cj = await cr.json().catch(() => ({} as Record<string, unknown>));
-        const cm = String((cj as { content?: string })?.content || '').match(/\{[\s\S]*\}/);
-        const parsed = cm ? JSON.parse(cm[0]) : null;
+        const parsed = await directiveRead();   // started beside the classification (above); asked here when it was not
         if (parsed?.change === true && parsed?.amount) {
           const { data: applied } = await admin.rpc('fn_supplier_apply_change', {
             p_phone: From, p_field: 'quote_price', p_value: String(parsed.amount),

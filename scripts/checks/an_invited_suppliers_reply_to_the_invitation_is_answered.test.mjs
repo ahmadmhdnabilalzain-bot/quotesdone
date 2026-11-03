@@ -16,7 +16,8 @@ const facts = readFileSync(new URL('../../supabase/functions/email_triage/accoun
 test('email_triage lifts the internal skip only for a lead writing to the invitation mailbox or mail to management@ or docs@, then re-applies every other rule', () => {
   assert.match(src, /let skip = noAutoReply\(m, founder\)/);
   // review of #1699: a lead in email_suppressions is passed as `suppressed`, so a lead who opted out is never answered
-  assert.match(src, /if \(skip === 'internal'\)\s*\{[\s\S]{0,300}fn_mail_sender_known[\s\S]{0,400}from\('email_suppressions'\)[\s\S]{0,300}invitationReplyAnswerable\(m, rel, !!\(sup && sup\.length\)\)\)\s*skip = noAutoReply\(\{ \.\.\.m, to_email: '' \}, founder\)/);
+  // (#1728: the lift may sit in a block that also records `invitationReply = !skip`, the opt_out backstop's scope)
+  assert.match(src, /if \(skip === 'internal'\)\s*\{[\s\S]{0,300}fn_mail_sender_known[\s\S]{0,400}from\('email_suppressions'\)[\s\S]{0,300}invitationReplyAnswerable\(m, rel, !!\(sup && sup\.length\)\)\)\s*\{?\s*skip = noAutoReply\(\{ \.\.\.m, to_email: '' \}, founder\)/);
   // widened on purpose (2 Nov 2026, the founder: every mailbox is with the agents): the second lift is exactly this rule,
   // inside the same block, re-applying every other rule, and a suppressed sender is still passed
   assert.match(src, /else if \(tenantMailAnswerable\(m, !!\(sup && sup\.length\)\)\) skip = noAutoReply\(\{ \.\.\.m, to_email: '' \}, founder\)/);
