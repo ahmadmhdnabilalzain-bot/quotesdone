@@ -74,6 +74,40 @@ Deno.test('a reading key the SUPPLIER typed is ignored: only reasoning can say a
   assertEquals([read.lines[0].material, codes(read)], [false, ['line_items']]);
 });
 
+Deno.test('"no material" in the supplier\'s own words skips the specs only when the line\'s shape agrees (3 Nov 2026)', () => {
+  // Before: any reasoned READ.notMaterial skipped every spec question, whatever else the line said.
+  const said = (description: string, words: string, x: Partial<Line> = {}) =>
+    aq({ category: 'joinery', lines: [L(1, description, x)], read: { 1: { [READ.notMaterial]: words } }, terms: { lead_time: '3 weeks' }, requirements: NONE_NEEDED });
+  const tiles = said('Wardrobe MDF carcass labour only no material', 'labour only no material');
+  assertEquals([tiles.lines[0].material, codes(tiles)], [true, ['1:material', '1:thickness_mm', '1:finish']]);
+  assert(said('Installation labour 2400x600', 'Installation labour').lines[0].material, 'a dimension');
+  assert(said('Fixing labour', 'labour', { notes: 'x', spec: { material: 'MDF' }, spec_source: { material: 'supplier_portal' } }).lines[0].material, 'a stated value');
+  assert(said('Wardrobe', 'labour only').lines[0].material, 'words the line does not carry');
+  // a material word of the line's own trade, from the catalogue's options (tiling: ceramic, porcelain, marble ...)
+  const tiling = (description: string, words: string, x: Partial<Line> = {}) =>
+    aq({ category: 'tiling', lines: [L(1, description, x)], read: { 1: { [READ.notMaterial]: words } }, terms: { lead_time: '3 weeks' }, requirements: NONE_NEEDED });
+  assert(tiling('Installation of ceramic tiles - labour only', 'labour only').lines[0].material, 'names a tiling material, not priced as labour');
+  assert(tiling('Ceramic tiles 60x60 (labour only)', 'labour only').lines[0].material, 'a dimension');
+  // service lines of any length skip their specs (review of #1836: the one-other-word rule held every one of these)
+  for (const d of ['Delivery charges to Abu Dhabi site', 'Installation charges for 12 doors', 'Lump sum for preliminaries and site setup',
+    'Site cleaning after completion of works', 'Removal and disposal of existing wardrobes', 'Labour charges for installation of 3 wardrobes'])
+    assertEquals(said(d, d).lines[0].material, false, d);
+  // ...and when reasoning read only the short phrase that says so: the one-other-word rule held each of these
+  for (const [d, w] of [['Delivery charges to Abu Dhabi site', 'Delivery charges'], ['Installation charges for 12 doors', 'Installation charges'],
+    ['Lump sum for preliminaries and site setup', 'Lump sum'], ['Site cleaning after completion of works', 'Site cleaning'],
+    ['Removal and disposal of existing wardrobes', 'Removal and disposal'], ['Labour charges for installation of 3 wardrobes', 'Labour charges']])
+    assertEquals(said(d, w).lines[0].material, false, d);
+  // "standard" is a gypsum option word ("Standard gypsum board") that names no material
+  const gypsum = aq({ category: 'gypsum', lines: [L(1, 'Standard delivery and offloading')], read: { 1: { [READ.notMaterial]: 'delivery and offloading' } }, terms: { lead_time: '3 weeks' }, requirements: NONE_NEEDED });
+  assertEquals(gypsum.lines[0].material, false);
+  // ordinary labour and transport lines are not material (review of #1836): the unit says nothing either way
+  assertEquals(said('Transport to site', 'Transport').lines[0].material, false);
+  assertEquals(said('Tile laying labour', 'Tile laying labour', { unit: 'm2' }).lines[0].material, false);
+  assertEquals(said('Labour charges for fixing', 'Labour charges for fixing', { unit: 'nos' }).lines[0].material, false);
+  assertEquals(said('Installation of ceramic tiles - labour only', 'labour only', { unit: 'm2', labour: 1500 }).lines[0].material, false);
+  assertEquals(said('Site supervision and labour', 'Site supervision and labour').lines[0].material, false);
+});
+
 Deno.test('(1) a line whose reading did not find a detail holds the quote and names the line and the detail', () => {
   const read = { ...FITOUT_READ, 1: { [READ.trade]: 'joinery', material: 'MDF', finish: 'HPL' } };
   const a = aq({ category: 'fitout', lines: FITOUT, terms: { lead_time: '4 weeks' }, read, readTerms: TERMS_READ });

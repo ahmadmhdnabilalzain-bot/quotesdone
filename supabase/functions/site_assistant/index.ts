@@ -30,7 +30,7 @@ import { gteReads } from '../_shared/ml_embed_recipe.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
-import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { siteReplyCheck } from './reply_check.ts';
 import { checkReadability } from '../_shared/readability.ts';
 import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
 import { companyBrief } from '../_shared/company_brief.ts';
@@ -414,7 +414,7 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
       gateway: GATEWAY, secret: key, fn: 'site_assistant', agent: seatForSurface, taskClass: live ? 'customer_portal_assistant' : 'visitor_chat',
       brief, sys, input: [...past, { role: 'user', content: turnText }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,
       rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : (/^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined),   // our own test traffic is named so the gateway never bills or counts it
-      check: (s: string) => guardSupportReply(s, replyLang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
+      check: siteReplyCheck(brief, sys, replyLang),
     }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
     lap('reply');
     const reply = a.reply.trim();
