@@ -137,15 +137,40 @@ CREATE OR REPLACE FUNCTION public.fn_inbox_send(p_id bigint, p_body text, p_by t
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare m public.inbound_messages%rowtype;
+declare
+  m public.inbound_messages%rowtype;
+  v_mailbox text; v_to text; v_known text; v_role text; v_lead bigint; v_kind text; v_name text;
 begin
   select * into m from public.inbound_messages where id=p_id;
   if m.id is null then return jsonb_build_object('error','message not found'); end if;
   if m.from_email is null then return jsonb_build_object('error','no sender address'); end if;
   if coalesce(trim(p_body),'')='' then return jsonb_build_object('error','empty reply'); end if;
 
-  insert into public.notifications(type,to_email,to_role,channel,subject,body,in_reply_to)
-    values('inbound_reply', m.from_email, null, 'email',
+  -- Which mailbox the message came into, and who wrote it.
+  select lower(btrim(value)) into v_mailbox from public.app_secrets where key = 'invite_m365_mailbox';
+  v_mailbox := coalesce(nullif(v_mailbox, ''), 'supplier@quotesdone.com');
+  v_to := lower(btrim(coalesce(substring(m.to_email from '<([^>]+)>'), m.to_email, '')));
+  v_known := public.fn_mail_sender_known(m.from_email);
+  if coalesce(v_known, '') not in ('staff', 'customer') then
+    if m.lead_id is not null or v_known = 'supplier' then
+      v_role := 'supplier';
+      v_lead := coalesce(m.lead_id, (select l.id from public.leads l
+                                       where lower(btrim(l.email)) = lower(btrim(m.from_email))
+                                          or lower(btrim(l.claimed_by)) = lower(btrim(m.from_email))
+                                       order by l.id limit 1));
+    end if;
+    if v_to = v_mailbox then v_kind := 'supplier_mailbox_reply'; end if;
+  end if;
+  -- a supplier is answered in English: an Arabic letter in the body (the lead's own name set aside) is never sent
+  if v_role = 'supplier' then
+    select nullif(btrim(l.company_name), '') into v_name from public.leads l where l.id = v_lead;
+    if replace(p_body, coalesce(v_name, ''), '') ~ '[؀-ۿ]' then
+      return jsonb_build_object('error', 'a supplier is always answered in English: this reply carries Arabic, so it was not sent');
+    end if;
+  end if;
+
+  insert into public.notifications(type,to_email,to_role,lead_id,kind,channel,subject,body,in_reply_to)
+    values('inbound_reply', m.from_email, v_role, v_lead, v_kind, 'email',
            case when coalesce(m.subject,'') ilike 're:%' then m.subject else 'Re: '||coalesce(nullif(m.subject,''),'your message') end,
            p_body, nullif(btrim(m.raw->>'message_id'), ''));
 
@@ -153,7 +178,7 @@ begin
   update public.agent_actions set status='approved', decided_by=coalesce(p_by,'founder'), decided_at=now()
    where target_table='inbound_messages' and target_id=p_id::text
      and status in ('pending','held_for_review','proposed','open');
-  return jsonb_build_object('ok',true, 'to', m.from_email);
+  return jsonb_build_object('ok',true, 'to', m.from_email, 'to_role', v_role, 'lead_id', v_lead);
 end $function$
 
 
@@ -662,6 +687,143 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_invite_open_arm(p_key text, p_share integer)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_share, 0) > 0 and coalesce(p_key, '') <> ''
+     and (('x' || substr(md5('invite_open:' || p_key), 1, 7))::bit(28)::int % 100) < least(coalesce(p_share, 0), 100)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_open_funnel(p_from timestamp with time zone, p_to timestamp with time zone DEFAULT now())
+ RETURNS TABLE(day date, arm text, sent integer, delivered integer, bounced integer, complained integer, opened_any integer, opened_human integer, opened_machine_only integer, replied integer, registered integer, approved integer, unsubscribed integer)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with inv as (
+    select n.id, n.lead_id, n.to_email, n.sent_at, l.invite_status,
+           (l.registration_submitted_at is not null or coalesce(l.claimed, false)) as reg,
+           coalesce(l.approval_status = 'approved', false) as appr,
+           exists (select 1 from public.email_open_token t where t.notification_id = n.id) as tracked
+      from public.notifications n
+      join public.leads l on l.id = n.lead_id
+     where n.type = 'supplier_invite' and n.sent_at is not null and n.sent_at > p_from and n.sent_at <= coalesce(p_to, now())
+       and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email)),
+  opens as (
+    select i.id, count(e.id) as any_n, count(e.id) filter (where e.classification = 'likely_human') as human_n
+      from inv i
+      join public.email_open_token t on t.lead_id = i.lead_id
+      join public.email_open_event e on e.token = t.token and e.opened_at >= i.sent_at
+     group by i.id)
+  select (i.sent_at at time zone 'Asia/Dubai')::date, case when i.tracked then 'tracked' else 'untracked' end,
+         count(*)::int,
+         (count(*) filter (where i.invite_status is distinct from 'bounced'))::int,
+         (count(*) filter (where i.invite_status = 'bounced'))::int,
+         (count(*) filter (where i.invite_status = 'complained'))::int,
+         (count(o.id) filter (where o.any_n > 0))::int,
+         (count(o.id) filter (where o.human_n > 0))::int,
+         (count(o.id) filter (where o.any_n > 0 and o.human_n = 0))::int,
+         (count(*) filter (where exists (select 1 from public.inbound_messages m
+                                          where (m.lead_id = i.lead_id or lower(m.from_email) = lower(btrim(i.to_email)))
+                                            and m.created_at > i.sent_at)))::int,
+         (count(*) filter (where i.reg))::int,
+         (count(*) filter (where i.appr))::int,
+         (count(*) filter (where exists (select 1 from public.email_suppressions s
+                                          where s.email = lower(btrim(i.to_email)) and s.reason = 'unsubscribe')))::int
+    from inv i left join opens o on o.id = i.id
+   group by 1, 2
+   order by 1, 2
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_open_share()
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when v ~ '^\s*\d{1,3}\s*%?\s*$' then least(100, btrim(replace(v, '%', ''))::int) else 0 end
+    from (select coalesce((select value from public.app_secrets where key = 'invite_open_tracking'), 'off') as v) s
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_open_summary(p_from timestamp with time zone, p_to timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_arms jsonb;
+begin
+  select coalesce(jsonb_object_agg(a.arm, to_jsonb(a) - 'arm'), '{}'::jsonb) into v_arms from (
+    select f.arm, sum(f.sent)::int as sent, sum(f.delivered)::int as delivered, sum(f.bounced)::int as bounced,
+           sum(f.complained)::int as complained, sum(f.opened_any)::int as opened_any, sum(f.opened_human)::int as opened_human,
+           sum(f.opened_machine_only)::int as opened_machine_only, sum(f.replied)::int as replied,
+           sum(f.registered)::int as registered, sum(f.approved)::int as approved, sum(f.unsubscribed)::int as unsubscribed,
+           round(sum(f.bounced)::numeric / nullif(sum(f.sent), 0), 4) as bounce_rate,
+           round(sum(f.complained)::numeric / nullif(sum(f.sent), 0), 4) as complaint_rate,
+           round(sum(f.replied)::numeric / nullif(sum(f.sent), 0), 4) as reply_rate,
+           round(sum(f.unsubscribed)::numeric / nullif(sum(f.sent), 0), 4) as unsubscribe_rate,
+           round(sum(f.registered)::numeric / nullif(sum(f.sent), 0), 4) as registered_rate,
+           round(sum(f.opened_human)::numeric / nullif(sum(f.sent), 0), 4) as human_open_rate
+      from public.fn_invite_open_funnel(p_from, p_to) f group by f.arm) a;
+  return jsonb_build_object(
+    'from', p_from, 'to', coalesce(p_to, now()), 'share_pct', public.fn_invite_open_share(), 'by_arm', v_arms,
+    'opened_by_a_person_not_registered_after_3_days', (select count(*) from public.fn_invite_opened_not_registered(3)),
+    'basis', 'supplier_invite rows sent in the window (ZZ DEMO and reserved addresses excluded), split by arm: tracked = the email carried the image (email_open_token). bounced and complained are leads.invite_status, the same as fn_invite_send_health; delivered = sent less bounced (the Microsoft 365 lane has no delivery receipt); opened counts a lead once, from any of its tracked emails, after this invitation; replied = inbound_messages from the lead after the send; registered = registration_submitted_at or claimed; unsubscribed = email_suppressions reason unsubscribe. The follow-up list is fn_invite_opened_not_registered(days).',
+    'limits', 'An open is a load of the image, never a read receipt. Outlook and most corporate mail block remote images from an unknown sender, so a person can read the email and leave no open: opened is a floor. Apple Mail Privacy Protection and mail scanners load images without a person; the rules mark the known ones machine_prefetch, not all. The untracked arm has no opens by construction; compare the arms on bounce, complaint, reply, unsubscribe and registered rates, and on inbox placement.');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_open_token(p_notification_id bigint)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n record; v_share int; v_tok text;
+begin
+  select id, type, to_role, to_email, lead_id, kind, lang into n from public.notifications where id = p_notification_id;
+  if not found or n.to_role is distinct from 'supplier' or n.type not in ('supplier_invite', 'supplier_invite_nudge')
+     or coalesce(n.lang, 'en') = 'ar' or public.fn_is_demo_email(n.to_email) then return null; end if;
+  select token into v_tok from public.email_open_token where notification_id = n.id;
+  if found then return v_tok; end if;
+  v_share := public.fn_invite_open_share();
+  if not public.fn_invite_open_arm(coalesce(n.lead_id::text, lower(btrim(n.to_email))), v_share) then return null; end if;
+  insert into public.email_open_token (token, notification_id, lead_id, share_pct)
+  values (replace(gen_random_uuid()::text, '-', ''), n.id, n.lead_id, v_share)
+  on conflict (notification_id) do nothing;
+  select token into v_tok from public.email_open_token where notification_id = n.id;
+  return v_tok;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_opened_not_registered(p_min_days integer DEFAULT 3)
+ RETURNS TABLE(lead_id bigint, company_name text, email text, invited_at timestamp with time zone, first_human_open_at timestamp with time zone, human_opens integer, days_since_first_open integer, replied boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select l.id, l.company_name, l.email, l.invited_at, min(e.opened_at), count(*)::int,
+         floor(extract(epoch from (now() - min(e.opened_at))) / 86400)::int,
+         exists (select 1 from public.inbound_messages m where m.lead_id = l.id or lower(m.from_email) = lower(btrim(l.email)))
+    from public.email_open_event e
+    join public.email_open_token t on t.token = e.token
+    join public.leads l on l.id = t.lead_id
+   where e.classification = 'likely_human'
+     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
+     and l.registration_submitted_at is null and not coalesce(l.claimed, false)
+     and not exists (select 1 from public.email_suppressions s where s.email = lower(btrim(l.email)))
+   group by l.id
+  having min(e.opened_at) <= now() - make_interval(days => greatest(0, coalesce(p_min_days, 3)))
+   order by min(e.opened_at)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_invite_placement_class_verdicts(p_now timestamp with time zone DEFAULT now())
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1039,7 +1201,12 @@ begin
     return v_cur;
   end if;
 
-  select count(*), max(invited_at) into v_sent_total, v_last_sent from leads where invited_at is not null and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+  -- ISSUED MEANS SENT, AND WHEN IT WAS SENT (3 Nov 2026): the same rows fn_invite_send_health reads, from the lane's stamp.
+  select count(distinct n.lead_id), max(n.sent_at), max((n.sent_at at time zone 'Asia/Dubai')::date)
+    into v_sent_total, v_last_sent, v_last_day
+    from public.notifications n join public.leads l on l.id = n.lead_id
+   where n.type = 'supplier_invite' and n.status = 'sent' and n.sent_at >= v_since
+     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email);
   -- THE 48 h HEALTH READ IS NOT LANE-SCOPED (review of #963): complaints and bounces reflect the list and the
   -- copy, not the domain, so switching the lane on must never hide yesterday's complaints from the pause.
   select h.sent, h.bounced, h.complained into v_s48, v_b48, v_c48
@@ -1095,11 +1262,19 @@ begin
     v_new := v_cur;
     v_note := 'hold: 48 h bounce ' || round(v_br * 100, 1) || '% (' || v_b48 || '/' || v_s48 || '), complaint ' || round(v_cr * 100, 2)
               || '% — growth needs bounce < ' || round(v_ok_b * 100, 1) || '% and complaint < ' || round(v_ok_c * 100, 2) || '%.';
+  elsif v_s48 < v_back_n then
+    -- NO GROWTH ON AN EMPTY WINDOW (3 Nov 2026). A Monday is no longer a restart, and its 48 h window holds the weekend's
+    -- zero sends: "0 bounces of 0" is not health. It holds until the window carries enough sends to judge.
+    v_new := v_cur;
+    v_note := 'hold: ' || v_s48 || ' invitation(s) sent in 48 h, too few to judge health; growth needs ' || v_back_n || '.';
   else
     -- GROW ON VOLUME ISSUED, ONCE PER SEND DAY. Weekends and holidays run no batch, so a calendar-based
     -- ladder would ratchet on days the domain sent nothing.
-    select max((invited_at at time zone 'Asia/Dubai')::date) into v_last_day from leads where invited_at is not null and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
-    select count(*) into v_last_day_sent from leads where (invited_at at time zone 'Asia/Dubai')::date = v_last_day and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+    select count(*) into v_last_day_sent
+      from public.notifications n join public.leads l on l.id = n.lead_id
+     where n.type = 'supplier_invite' and n.status = 'sent' and n.sent_at >= v_since
+       and (n.sent_at at time zone 'Asia/Dubai')::date = v_last_day
+       and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email);
     select exists (select 1 from agent_runs a where a.agent = 'invite_ramp' and a.finished_at > v_last_sent
                      and (a.counts->>'new_cap')::int > (a.counts->>'old_cap')::int) into v_grew_since;
     if v_grew_since then
@@ -1238,6 +1413,56 @@ begin
   end if;
   return NEW;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invoice_ready_asks_for_its_invoice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_secret text; v_ref text;
+begin
+  select value into v_secret from public.app_secrets where key = 'cred_db_internal';
+  if nullif(btrim(coalesce(v_secret, '')), '') is null then raise exception 'app_secrets.cred_db_internal is missing'; end if;
+  v_ref := public.qd_project_ref();
+  -- pg_net sends only once this transaction commits, so reveal_invoice reads the notice and its twin as written.
+  perform net.http_post(
+    'https://' || v_ref || '.supabase.co/functions/v1/reveal_invoice',
+    jsonb_build_object('__secret', v_secret, 'action', 'attach', 'quote_id', new.quote_id),
+    '{}'::jsonb, '{"Content-Type":"application/json"}'::jsonb, 60000);
+  return null;
+exception when others then
+  -- The notice is never refused for this: it goes at the end of its hold without the invoice, and the failure is filed
+  -- where customer_support reads its work. That record is guarded too, so this trigger can never fail the insert.
+  begin
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    values ('customer_support', 'invoice_ready_attachment', 'failed', 'medium',
+            left('The invoice could not be requested for notification ' || new.id, 200),
+            jsonb_build_object('notification_id', new.id, 'quote_id', new.quote_id, 'error', left(sqlerrm, 500)),
+            'notifications', new.id::text);
+  exception when others then
+    raise warning 'fn_invoice_ready_asks_for_its_invoice: notification % not requested and not recorded: %', new.id, sqlerrm;
+  end;
+  return null;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invoice_ready_waits_for_its_invoice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- Ten minutes is the ceiling, not the wait: reveal_invoice releases both rows the moment the invoice is attached.
+  if coalesce(new.status, 'pending') in ('queued', 'pending') then
+    new.not_before := greatest(coalesce(new.not_before, now()), now() + interval '10 minutes');
+  end if;
+  return new;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_is_demo_email(p_email text)
@@ -6492,6 +6717,34 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_openrouter_unattributed()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_max numeric := coalesce(public.fn_it_threshold('openrouter_unattributed_share_max'), 0.05);
+        v_days jsonb; v_n int; v_items jsonb := '[]'::jsonb;
+begin
+  select count(*), coalesce(jsonb_agg(jsonb_build_object('day', d.day, 'meter_usd', round(d.authoritative_usd, 2),
+                                    'unattributed_usd', round(d.unattributed_usd, 2),
+                                    'share', round(d.unattributed_usd / d.authoritative_usd, 3)) order by d.day desc), '[]')
+    into v_n, v_days
+    from public.openrouter_day d
+   where d.day >= (now() at time zone 'Asia/Dubai')::date - 7
+     and d.reconciled_at is not null and d.authoritative_usd >= 1
+     and d.unattributed_usd > v_max * d.authoritative_usd;
+  if v_n > 0 then
+    v_items := jsonb_build_array(jsonb_build_object('item', 'over_share', 'owner_seat', 'it_engineer', 'blast', 'internal', 'affected', v_n,
+      'title', v_n || ' day(s) of the last 7 had more than ' || round(v_max * 100) || '% of OpenRouter''s meter with no ai_cost_log row (latest '
+               || (v_days -> 0 ->> 'day') || ': USD ' || (v_days -> 0 ->> 'unattributed_usd') || ' of ' || (v_days -> 0 ->> 'meter_usd') || ')',
+      'evidence', jsonb_build_object('days', v_days, 'threshold', v_max,
+        'where_to_look', 'openrouter_day.breakdown: unpriced calls, unattributed_functions; a caller outside ai_gateway; a stream or attempt with no usage')));
+  end if;
+  return jsonb_build_object('days_over', v_n, 'settled', public.fn_it_duty_settle('openrouter_unattributed', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_perimeter_freshness()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -6520,17 +6773,25 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_postmortem()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare h record; v_inc bigint; p public.it_playbook; v_since timestamptz; n_open int := 0; n_play int := 0; n_asked int := 0;
-        n_known int := 0; n_waiting int := 0; v_cause text; v_hid bigint;
+        n_known int := 0; n_waiting int := 0; v_cause text; v_prev bigint; v_check text; v_hid bigint; n_fixture int := 0;
         v_hist int; v_late int; v_ids jsonb; v_items jsonb := '[]'::jsonb; f public.it_engineer_finding;
 begin
   select created_at into v_since from public.seat_duty where duty = 'it_engineer.postmortem';
   v_since := coalesce(v_since, now());
+
+  -- 1. a test fixture's finding opens no incident (counted, never opened)
+  select count(*) into n_fixture from public.agent_actions a
+   where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done'
+     and a.detail->>'severity' in ('critical', 'high') and coalesce(a.decided_at, a.created_at) >= v_since
+     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+     and public.fn_it_finding_is_fixture(a.detail, a.evidence);
 
   for h in
     select a.* from public.agent_actions a
      where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done'
        and a.detail->>'severity' in ('critical', 'high') and coalesce(a.decided_at, a.created_at) >= v_since
        and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+       and not public.fn_it_finding_is_fixture(a.detail, a.evidence)
      order by a.id limit 50
   loop
     v_inc := public.fn_it_incident_open(h.id);
@@ -6550,27 +6811,35 @@ begin
     end if;
   end loop;
 
-  -- A class the playbook has never seen: its root cause is asked ONCE PER FAULT (the finding key, digits stripped),
-  -- three faults a run, oldest first. An incident of a fault whose cause is already known takes that cause with no
-  -- model; one whose fault already has a question in the last 7 days waits for that answer (the apply fills it).
+  -- 2. no playbook: the CLASS's recorded cause by template; 3. a novel class: asked once per class.
   for h in
-    select i.id inc_id, a.detail, a.evidence, public.fn_it_postmortem_fault_key(a.detail) fk
+    select i.id inc_id, a.detail, a.evidence, public.fn_it_postmortem_fault_key(a.detail) fk, public.fn_it_postmortem_class_key(a.detail) ck
       from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
      where i.created_at >= v_since and i.playbook_class is null and coalesce(btrim(i.cause), '') = ''
        and not exists (select 1 from public.reasoning_held_question q where q.dedupe_key = 'postmortem:' || i.id)
+       and not public.fn_it_finding_is_fixture(a.detail, a.evidence)
      order by i.id
   loop
-    select i2.cause into v_cause from public.it_incident i2 join public.agent_actions a2 on a2.id = i2.handoff_id
-     where i2.id <> h.inc_id and coalesce(btrim(i2.cause), '') <> '' and public.fn_it_postmortem_fault_key(a2.detail) = h.fk
+    v_cause := null; v_prev := null; v_check := null;
+    select i2.id, i2.cause, i2.regression_check into v_prev, v_cause, v_check from public.it_incident i2 join public.agent_actions a2 on a2.id = i2.handoff_id
+     where i2.id <> h.inc_id and coalesce(btrim(i2.cause), '') <> '' and public.fn_it_postmortem_class_key(a2.detail) = h.ck
      order by i2.id desc limit 1;
     if v_cause is not null then
-      update public.it_incident set cause = v_cause, recorded_by = 'it_engineer.postmortem (same fault as an earlier incident)',
-             updated_at = now() where id = h.inc_id;
+      -- the earlier cause without the template's own wrapping, so a template never wraps a template
+      -- (.+? and not [^ ]+: a class key may hold a space, e.g. an advisor routine's 'p_request uuid')
+      v_cause := regexp_replace(split_part(v_cause, ' | This occurrence: ', 1), '^Known class .+? \(incident [0-9]+\): ', '');
+      update public.it_incident
+         set cause = left('Known class ' || h.ck || ' (incident ' || v_prev || '): ' || v_cause
+                          || ' | This occurrence: ' || coalesce(h.detail->>'title', h.detail->>'issue_key', 'untitled'), 2000),
+             regression_check = coalesce(nullif(btrim(regression_check), ''), v_check),
+             recorded_by = 'it_engineer.postmortem (template: known class ' || h.ck || ')', updated_at = now()
+       where id = h.inc_id;
       n_known := n_known + 1;
       continue;
     end if;
     if exists (select 1 from public.reasoning_held_question q
-                where q.surface = 'it_engineer.postmortem' and q.subject->>'fault_key' = h.fk
+                where q.surface = 'it_engineer.postmortem'
+                  and coalesce(q.subject->>'class_key', public.fn_it_postmortem_class_key(jsonb_build_object('issue_key', q.subject->>'fault_key'))) = h.ck
                   and q.status in ('held', 'reasoned', 'applied') and q.created_at > now() - interval '7 days') then
       n_waiting := n_waiting + 1;
       continue;
@@ -6583,10 +6852,9 @@ begin
         'question', 'Root cause of: ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
         'context', jsonb_build_object('audience', 'internal', 'case', jsonb_build_object('handoff', h.detail, 'answer', h.evidence,
           'finding', to_jsonb(f) - 'evidence')),
-        'subject', jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk), 'dedupeKey', 'postmortem:' || h.inc_id),
-      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk),
+        'subject', jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk, 'class_key', h.ck), 'dedupeKey', 'postmortem:' || h.inc_id),
+      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk, 'class_key', h.ck),
       'seat_duty', 'postmortem:' || h.inc_id);
-    -- only a question actually filed spends the run's budget (a refused or recently failed one files nothing)
     if exists (select 1 from public.reasoning_held_question q where q.id = v_hid and q.dedupe_key = 'postmortem:' || h.inc_id) then
       n_asked := n_asked + 1;
     end if;
@@ -6594,20 +6862,23 @@ begin
 
   select count(*) into v_hist from public.agent_actions a
    where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done' and a.detail->>'severity' in ('critical', 'high')
-     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id);
+     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+     and not public.fn_it_finding_is_fixture(a.detail, a.evidence);
 
   select count(*), coalesce(jsonb_agg(id order by id) filter (where rn <= 20), '[]') into v_late, v_ids
     from (select i.id, row_number() over (order by i.id) rn from public.it_incident i
+            join public.agent_actions a on a.id = i.handoff_id
            where i.ended_at < now() - interval '72 hours' and i.created_at >= v_since
-             and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = '')) z;
+             and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = '')
+             and not public.fn_it_finding_is_fixture(a.detail, a.evidence)) z;
   if v_late > 0 then
     v_items := jsonb_build_array(jsonb_build_object('item', 'incomplete', 'owner_seat', 'it_engineer', 'blast', 'internal', 'affected', v_late,
       'title', v_late || ' closed incident(s) have no root cause or no regression check 72 hours after they closed',
       'evidence', jsonb_build_object('incident_ids', v_ids)));
   end if;
 
-  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked, 'cause_already_known', n_known,
-                            'waiting_on_its_fault', n_waiting,
+  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked, 'cause_from_its_class', n_known,
+                            'waiting_on_its_class', n_waiting, 'fixture_findings_not_opened', n_fixture,
                             'historical_without_postmortem', v_hist, 'settled', public.fn_it_duty_settle('postmortem', v_items));
 end $function$
 
@@ -6886,6 +7157,19 @@ CREATE OR REPLACE FUNCTION public.fn_it_external_reply_needs_founder(p_text text
 AS $function$
   select coalesce(p_text, '') ~* '(please|kindly|could you|can you|we need you to|you will need to|you need to)[^.?!]{0,80}\m(provide|share|send|confirm|verify|complete|reply|respond|approve|upload|screenshot|log ?in|sign ?in|re-?register|delete|update|resubmit)'
       or coalesce(p_text, '') ~* '(action required|awaiting your (reply|response|update|confirmation)|pending your (reply|response|update))'
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_finding_is_fixture(p_detail jsonb, p_evidence jsonb)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_detail ->> 'issue_key', '') like 'duty:journey:%'
+      or (coalesce(p_detail::text, '') || ' ' || coalesce(p_evidence::text, '')) ~* '(@example\.invalid|qd_run:)';
+  -- NOT the "ZZ DEMO" name alone: a probe of this very duty names its own findings that way and must still open
+  -- incidents (scripts/checks/it_engineer_gap_duties_act.test.mjs); a harness run's fixtures carry its qd-<tag> address.
 $function$
 
 
@@ -8135,6 +8419,17 @@ begin
   perform public.fn_it_duty_ran('postmaster', v_res);
   return v_res;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_postmortem_class_key(p_detail jsonb)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- the first two ':' parts of the fault key; null, never '', when the finding names nothing
+  select nullif(array_to_string((string_to_array(public.fn_it_postmortem_fault_key(p_detail), ':'))[1:2], ':'), '');
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_postmortem_fault_key(p_detail jsonb)

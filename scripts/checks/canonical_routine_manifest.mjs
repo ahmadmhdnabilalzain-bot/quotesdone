@@ -43,6 +43,8 @@
 //   REPO->PROD   the canonical body is not what is deployed
 //   PROD->REPO   a live application routine no canonical file defines
 //   MANIFEST GAP a scripts/sql file on disk that MANIFEST.txt does not list, or the reverse
+//   On a pull request only, a REPO->PROD finding of the PR's own new MANIFEST lines is set aside when this run
+//   rehearsed them and read the canonical body back (APPLIES AT MERGE, below; scripts/lib/applies_at_merge.mjs).
 //
 // OWNERSHIP is decided by evidence, never by a name pattern, so an application routine cannot hide
 // inside a "managed" exclusion: EXTENSION_MANAGED means pg_depend deptype='e'; SUPABASE_MANAGED
@@ -58,6 +60,7 @@ import { createHash } from 'node:crypto';
 import { dirname } from 'node:path';
 import { pendingNotes } from '../lib/pending_sql.mjs';
 import { SCHEMA_MIRROR, readSchemaMirror } from '../lib/schema_mirror.mjs';
+import { prAddedFiles, rehearsalProblem } from '../lib/applies_at_merge.mjs';
 
 const ROOT = process.cwd().replace(/\\/g, '/');
 const PROD = 'htdblwldjkcgjvmqkbeh';
@@ -401,6 +404,42 @@ if (!REPO_ONLY) {
   }
 }
 
+// ---------------------------------------------------------------- applies at merge (pull requests only)
+// A merged MANIFEST line applies itself, so on a pull request the routines of the PR's OWN new lines are not live
+// yet by definition. scripts/lib/applies_at_merge.mjs states the rule; in short, a REPOSITORY -> PRODUCTION finding
+// is set aside only when ALL of these hold, and counts exactly as before when any does not:
+//   * this is a pull_request run (push to main, the schedule and a local run never set anything aside: main must
+//     read 0 once the apply ran, and that 0 is the proof the routines went live);
+//   * its canonical file is a MANIFEST line main does not list yet (git, against the event's base sha);
+//   * this same run rehearsed every such file on production, rolled back, as committed, with PROBE OK from each
+//     _probe.sql sibling;
+//   * the routine read back from inside that rehearsal IS the canonical body, overload for overload - so an extra
+//     live overload the new file does not replace still counts, because the merge would not clear it.
+// PROD -> REPO, gaps, conflicts, ambiguous winners and uncommitted DDL are never set aside.
+const ON_PR = process.env.GITHUB_EVENT_NAME === 'pull_request';
+const APPLIES_AT_MERGE = [];
+if (!REPO_ONLY && ON_PR) {
+  const base = process.env.QD_PR_BASE_SHA || '';
+  const { files, error } = prAddedFiles(base);
+  const mine = REPO_TO_PROD.filter(x => files.includes(x.file));
+  if (error && REPO_TO_PROD.length) console.log(`\nnothing below is set aside as this PR's own, and every finding STILL COUNTs: ${error}`);
+  else if (mine.length) {
+    let results = null;
+    try { results = JSON.parse(readFileSync(process.env.QD_REHEARSAL_RESULTS || '', 'utf8')); } catch { /* absent: counts */ }
+    const problem = error || rehearsalProblem(results, files, base);
+    if (problem) console.log(`\n${mine.length} finding(s) below name this PR's own new MANIFEST lines and STILL COUNT: ${problem}`);
+    else {
+      for (const x of mine) {
+        const src = new Set(canonical.get(x.name).bodies.map(b => tokens(b.body)));
+        const dep = new Set((results.post_state.routines[x.name] || []).map(tokens));
+        if ([...src].every(b => dep.has(b)) && [...dep].every(b => src.has(b))) APPLIES_AT_MERGE.push(x);
+        else x.why += ' — and STILL drifted when read back after this PR\'s files were rehearsed, so the merge will not clear it';
+      }
+      REPO_TO_PROD.splice(0, REPO_TO_PROD.length, ...REPO_TO_PROD.filter(x => !APPLIES_AT_MERGE.includes(x)));
+    }
+  }
+}
+
 // ---------------------------------------------------------------- uncommitted application DDL
 // The repository's record of DDL is every canonical-tier file plus the schema mirror. Anything live
 // that neither mentions was created somewhere that left no record a future session could replay.
@@ -558,6 +597,8 @@ if (REPO_ONLY) {
     + 'management token to assert them.');
 } else {
   show('REPOSITORY -> PRODUCTION drift (canonical body not deployed)', REPO_TO_PROD, x => `${x.name}  ${x.why}  [${x.file}]`);
+  if (ON_PR) show('APPLIES AT MERGE (this PR\'s own new MANIFEST lines: rehearsed, probed and read back in this run; not counted)',
+    APPLIES_AT_MERGE, x => `${x.name}  ${x.why}  [${x.file}]`);
   show('PRODUCTION -> REPOSITORY drift (live application routine with no canonical file)', PROD_TO_REPO,
     x => `${x.name}(${x.args})  owner ${x.owner}  — ${x.mirror}`);
   // A FINDING THAT IS COUNTED AND NEVER NAMED CANNOT BE ACTED ON. UNCOMMITTED_DDL was summed into
@@ -578,6 +619,7 @@ console.log(`  manifest gaps                    ${GAPS.length}`);
 console.log(`  repository -> production drift   ${REPO_ONLY ? 'not asserted' : REPO_TO_PROD.length}`);
 console.log(`  production -> repository drift   ${REPO_ONLY ? 'not asserted' : PROD_TO_REPO.length}`);
 console.log(`  uncommitted application DDL      ${REPO_ONLY ? 'not asserted' : UNCOMMITTED_DDL.length}`);
+if (ON_PR) console.log(`  applies at merge (not counted)   ${APPLIES_AT_MERGE.length}`);
 console.log(`  ------------------------------------`);
 console.log(`  countable findings               ${findings}  -> exit ${findings ? 1 : 0}`);
 

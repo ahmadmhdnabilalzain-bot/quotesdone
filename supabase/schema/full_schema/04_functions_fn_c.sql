@@ -5873,6 +5873,15 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_refund_verify(p_transaction_id uuid)
 AS $function$
 declare v jsonb; v_inc bigint;
 begin
+  -- A demo payment is checked and the verdict returned, but it never opens an incident: the incident pauses every
+  -- refund and supplier charge in the company and pages the founder (3 Nov 2026, gap #8).
+  -- DEMO MEANS THE IDENTITY THAT PICKS THE STRIPE TEST KEY: the e-mail (isDemoEmail in stripe_checkout,
+  -- fn_is_demo_email here). customers.is_demo is also true by NAME or phone, and a name is typed freely at sign-up,
+  -- so a real customer who calls himself "ZZ DEMO ..." pays LIVE money and must still open the incident (review of #1835).
+  if exists (select 1 from public.transactions t join public.customers c on c.id = t.customer_id
+              where t.id = p_transaction_id and public.fn_is_demo_email(c.email)) then
+    return public.fn_ceo_refund_checklist(p_transaction_id, 'verify', true) || jsonb_build_object('demo', true, 'incident', null);
+  end if;
   -- An incident already open on this payment owns the re-verification: it re-runs the checklist and
   -- either closes (and resumes) or stays paused. A second incident on the same money is never opened.
   select id into v_inc from public.refund_incident i
@@ -6728,7 +6737,9 @@ begin
             'ad_spend_reported_aed',           (select coalesce(sum(amount_aed), 0) from ad_spend_reported),
             'latest_report',                   (select jsonb_build_object('date', m.report_date, 'headline', m.figures->'headline',
                                                                           'no_data_yet', m.no_data_yet)
-                                                  from marketing_report m order by m.report_date desc limit 1))
+                                                  from marketing_report m order by m.report_date desc limit 1),
+            -- 3 Nov 2026 (marketing): sent, opened, replied, registered per arm, and opened-not-registered
+            'invitation_opens',                public.fn_invite_open_summary(v_from, now()))
           when 'ceo' then jsonb_build_object(
             'approvals_decided',               (select count(*) from ceo_approval),
             'reports_accepted',                (select count(*) from support_ceo_report where accepted_at is not null),
@@ -10060,6 +10071,76 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_competitor_feed_ingest(p_competitor_id bigint, p_xml text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare it text; v_title text; v_link text; v_id text; v_when text; v_at timestamptz; v_rows jsonb := '[]'::jsonb; n int := 0;
+begin
+  -- two patterns, not one alternation: a top-level (a|b) group ran greedy and returned every item as one (measured)
+  for it in select x[1] from regexp_matches(coalesce(p_xml, ''), '<item[\s>].*?</item>', 'gi') x
+            union all select x[1] from regexp_matches(coalesce(p_xml, ''), '<entry[\s>].*?</entry>', 'gi') x loop
+    exit when n >= 25;
+    it := regexp_replace(it, '<!\[CDATA\[(.*?)\]\]>', '\1', 'g');
+    v_title := btrim(regexp_replace(coalesce(substring(it from '<title[^>]*?>(.*?)</title>'), ''), '<[^>]+>', ' ', 'g'));
+    v_link := btrim(coalesce(substring(it from '<link>\s*(https://[^<\s]+)'), substring(it from '<link[^>]*?href="(https://[^"]+)"')));
+    v_id := btrim(coalesce(substring(it from '<guid[^>]*?>(.*?)</guid>'), substring(it from '<id>(.*?)</id>'), v_link));
+    v_when := btrim(coalesce(substring(it from '<pubDate>(.*?)</pubDate>'), substring(it from '<published>(.*?)</published>'),
+                             substring(it from '<updated>(.*?)</updated>')));
+    begin v_at := v_when::timestamptz; exception when others then v_at := null; end;
+    continue when coalesce(v_link, '') = '' or coalesce(v_id, '') = '';
+    v_rows := v_rows || jsonb_build_array(jsonb_build_object('platform', 'rss', 'source', 'public_feed', 'external_id', left(v_id, 300),
+                'competitor_id', p_competitor_id, 'source_url', v_link, 'posted_at', v_at, 'caption', nullif(left(v_title, 500), ''),
+                'media_type', 'article', 'metrics', '{}'::jsonb));
+    n := n + 1;
+  end loop;
+  return public.fn_marketing_intel_upsert(v_rows) || jsonb_build_object('items', n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_competitor_public_links(p_html text, p_base_url text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb := '{}'::jsonb; m text; tag text; origin text := substring(p_base_url from '^(https://[^/]+)');
+  site text := lower(regexp_replace(substring(p_base_url from '^https://([^/:?#]+)'), '^www\.', '')); feed_host text;
+begin
+  if coalesce(p_html, '') = '' then return v; end if;
+  m := substring(p_html from 'instagram\.com/([A-Za-z0-9_.]{2,30})');
+  if m is not null and lower(m) not in ('p', 'reel', 'reels', 'explore', 'accounts', 'sharer', 'share') then v := v || jsonb_build_object('instagram', m); end if;
+  m := substring(p_html from 'linkedin\.com/company/([A-Za-z0-9_-]{2,80})');
+  if m is not null then v := v || jsonb_build_object('linkedin', 'https://www.linkedin.com/company/' || m); end if;
+  m := substring(p_html from 'facebook\.com/([A-Za-z0-9.]{2,80})');
+  if m is not null and lower(m) not in ('sharer', 'sharer.php', 'share', 'dialog', 'tr', 'plugins', 'groups') then v := v || jsonb_build_object('facebook', 'https://www.facebook.com/' || m); end if;
+  m := substring(p_html from '(?:twitter|x)\.com/([A-Za-z0-9_]{2,15})');
+  if m is not null and lower(m) not in ('intent', 'share', 'home', 'i') then v := v || jsonb_build_object('x', m); end if;
+  m := substring(p_html from 'tiktok\.com/@([A-Za-z0-9_.]{2,30})');
+  if m is not null then v := v || jsonb_build_object('tiktok', m); end if;
+  m := substring(p_html from 'youtube\.com/((?:@|channel/|c/)[A-Za-z0-9_.-]{2,80})');
+  if m is not null then v := v || jsonb_build_object('youtube', 'https://www.youtube.com/' || m); end if;
+  -- the feed the site itself advertises (<link rel="alternate" type="application/rss+xml" href="...">)
+  tag := substring(p_html from '<link[^>]*?application/(?:rss|atom)\+xml[^>]*?>');
+  m := substring(tag from 'href="([^"]+)"');
+  if m is not null then
+    m := replace(m, '&amp;', '&');
+    if m ~ '^/' and origin is not null then m := origin || m; end if;
+    -- THE COMPETITOR'S OWN SITE ONLY (review of #1551). The href is written by a page we do not control, and
+    -- fn_marketing_competitor_scan fetches it with pg_net from inside the database's network: a feed on any other
+    -- host (an internal name, a metadata address) is never stored, so it is never fetched. Subdomains pass.
+    feed_host := lower(regexp_replace(substring(m from '^https://([^/:?#@]+)(?:[/:?#]|$)'), '^www\.', ''));
+    if m ~ '^https://' and site is not null and feed_host is not null and m !~ '^https://[^/?#]*@'
+       and (feed_host = site or right(feed_host, length(site) + 1) = '.' || site) then
+      v := v || jsonb_build_object('rss', m);
+    end if;
+  end if;
+  return v;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_competitor_scan_ingest(p_scan_id bigint, p_status integer, p_content text, p_error text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -10067,6 +10148,7 @@ CREATE OR REPLACE FUNCTION public.fn_competitor_scan_ingest(p_scan_id bigint, p_
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare s public.competitor_scan; c public.competitor; v_text text; v_hash text; prev public.competitor_scan; v_held bigint; v_first boolean;
+  v_links jsonb; v_feed jsonb;
 begin
   select * into s from public.competitor_scan where id = p_scan_id for update;
   if not found or s.status <> 'fetching' then return jsonb_build_object('scan', p_scan_id, 'skipped', true); end if;
@@ -10075,15 +10157,46 @@ begin
     update public.competitor_scan set status = 'failed', http_status = p_status, error = left(coalesce(p_error, 'empty page'), 500) where id = s.id;
     return jsonb_build_object('scan', s.id, 'status', 'failed');
   end if;
-  v_text := regexp_replace(p_content, '<script[^>]*>.*?</script>', ' ', 'gi');
-  v_text := regexp_replace(v_text, '<style[^>]*>.*?</style>', ' ', 'gi');
+
+  -- A FEED is posts, not a page to compare: its items go to market_intel and the scan row records how many.
+  if s.page_kind = 'feed' then
+    v_feed := public.fn_competitor_feed_ingest(c.id, p_content);
+    if coalesce((v_feed->>'items')::int, 0) = 0 then
+      update public.competitor_scan set status = 'failed', http_status = p_status, error = 'the feed carried no item with a link' where id = s.id;
+      return jsonb_build_object('scan', s.id, 'status', 'failed');
+    end if;
+    update public.competitor_scan set status = 'fetched', http_status = p_status, content_hash = 'v2:' || md5(p_content), fields = v_feed where id = s.id;
+    return jsonb_build_object('scan', s.id, 'status', 'fetched', 'feed', v_feed);
+  end if;
+
+  -- The competitor's own public profile links and feed: filled where empty, never overwritten.
+  if s.page_kind = 'home' then
+    v_links := public.fn_competitor_public_links(p_content, s.url);
+    if v_links <> '{}'::jsonb then
+      update public.competitor set social_handles = v_links || coalesce(social_handles, '{}'::jsonb) where id = c.id;
+    end if;
+  end if;
+
+  -- NON-GREEDY FROM THE FIRST QUANTIFIER: '[^>]*?' makes the whole pattern non-greedy (see the header).
+  v_text := regexp_replace(p_content, '<script[^>]*?>.*?</script>', ' ', 'gi');
+  v_text := regexp_replace(v_text, '<style[^>]*?>.*?</style>', ' ', 'gi');
+  v_text := regexp_replace(v_text, '<!--.*?-->', ' ', 'g');
   v_text := regexp_replace(v_text, '<[^>]+>', ' ', 'g');
   v_text := replace(replace(replace(replace(v_text, '&nbsp;', ' '), '&amp;', '&'), '&#39;', ''''), '&quot;', '"');
   v_text := left(btrim(regexp_replace(v_text, '\s+', ' ', 'g')), 20000);
-  v_hash := md5(v_text);
+  if length(v_text) < 200 or v_text ~* '^request rejected' then
+    update public.competitor_scan set status = 'failed', http_status = p_status,
+      error = case when v_text ~* '^request rejected' then 'the site''s firewall rejected the request'
+                   else 'no readable text (' || length(v_text) || ' characters): a script shell or a blocked page' end
+     where id = s.id;
+    return jsonb_build_object('scan', s.id, 'status', 'failed', 'chars', length(v_text));
+  end if;
+  v_hash := 'v2:' || md5(v_text);
 
+  -- compared only with a v2 reading: the empty shells of 24 Sep are never "the last reading"
   select * into prev from public.competitor_scan
    where competitor_id = s.competitor_id and page_kind = s.page_kind and id <> s.id and status in ('unchanged', 'fetched', 'reasoned')
+     and content_hash like 'v2:%'
    order by requested_at desc limit 1;
   v_first := prev.id is null;
   if not v_first and prev.content_hash = v_hash then
@@ -10091,8 +10204,15 @@ begin
     update public.competitor set verified_at = (now() at time zone 'Asia/Dubai')::date where id = c.id;
     return jsonb_build_object('scan', s.id, 'status', 'unchanged');
   end if;
+  if not v_first and prev.page_text is null then
+    select * into prev from public.competitor_scan
+     where competitor_id = s.competitor_id and page_kind = s.page_kind and id <> s.id and page_text is not null and content_hash like 'v2:%'
+     order by requested_at desc limit 1;
+    v_first := prev.id is null;
+  end if;
 
   update public.competitor_scan set status = 'fetched', http_status = p_status, content_hash = v_hash, page_text = v_text where id = s.id;
+  update public.competitor set verified_at = (now() at time zone 'Asia/Dubai')::date where id = c.id;
   v_held := public.fn_seat_duty_reason('marketing', 'marketing.competitor_change',
     case when v_first then
       'Read this competitor''s public ' || s.page_kind || ' page for the first time and record its pricing, positioning and features '
@@ -10117,7 +10237,7 @@ begin
     jsonb_build_object('key', 'features', 'question', 'the features that compete with QuotesDone'),
     jsonb_build_object('key', 'what_changed', 'question', 'for changed: exactly what changed and why it matters to us')));
   update public.competitor_scan set held_id = v_held where id = s.id;
-  return jsonb_build_object('scan', s.id, 'status', 'fetched', 'held', v_held, 'first', v_first);
+  return jsonb_build_object('scan', s.id, 'status', 'fetched', 'held', v_held, 'first', v_first, 'chars', length(v_text));
 end $function$
 
 
@@ -11133,6 +11253,83 @@ begin
   end loop;
   return n;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_account_active_compose(p customers)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_site text; v_link text; v_name text := nullif(btrim(coalesce(p.full_name, '')), '');
+  v_ar boolean := public.fn_registered_locale('customer', p.id, null, p.email) = 'ar';
+begin
+  select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
+  v_link := coalesce(v_site, 'https://quotesdone.com') || '/me';
+  if v_ar then
+    return jsonb_build_object('lang', 'ar', 'link', v_link,
+      'subject', 'أصبح حسابكم على QuotesDone مفعّلًا',
+      'body', coalesce('السادة/ ' || v_name || ' المحترمين،', 'السادة المحترمين،') || E'\n\n'
+        || 'مرحبًا بكم في QuotesDone. أصبح حسابكم مفعّلًا الآن.' || E'\n\n'
+        || 'يمكنكم نشر طلبكم الأول في أي وقت: صِفوا ما تحتاجون إليه، ويرسل إليكم موردون موثّقون في الإمارات عروض أسعارهم لتقارنوا بينها.' || E'\n\n'
+        || 'حسابكم: ' || v_link || E'\n\n'
+        || 'للمساعدة، يسعدنا ردّكم على هذه الرسالة أو مراسلتنا عبر واتساب.' || E'\n\n'
+        || 'مع أطيب التحيات،' || E'\n' || 'فريق دعم العملاء في QuotesDone');
+  end if;
+  return jsonb_build_object('lang', 'en', 'link', v_link,
+    'subject', 'Your QuotesDone account is active',
+    'body', coalesce('Dear ' || v_name || ',', 'Dear customer,') || E'\n\n'
+      || 'Welcome to QuotesDone. Your account is now active.' || E'\n\n'
+      || 'You can post your first request at any time: describe what you need, and verified suppliers in the UAE send you their quotes to compare.' || E'\n\n'
+      || 'Your account: ' || v_link || E'\n\n'
+      || 'Need help? Reply to this e-mail or message us on WhatsApp.' || E'\n\n'
+      || 'Kind regards,' || E'\n' || 'QuotesDone Customer Support');
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_account_active_notice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_to text := lower(btrim(coalesce(new.email, ''))); v_why text; m jsonb;
+begin
+  v_why := public.fn_seat_clock_refusal(public.fn_is_demo_email(v_to), v_to, 'customer_account_active');
+  if v_why is null then
+    m := public.fn_customer_account_active_compose(new);
+    -- Queued directly by its own seat: z90_every_send_is_tracked files the delivery and tracks it to delivery.
+    insert into public.notifications (type, kind, channel, to_email, to_role, subject, body, lang, status,
+                                      requested_by, sender, dedupe_key)
+    values ('customer_account_active', 'customer_support_customer_account_active', 'email', v_to, 'customer',
+            m->>'subject', m->>'body', m->>'lang', 'queued', 'customer_support', 'customer_support',
+            'customer_account_active:' || new.id)
+    on conflict (dedupe_key) where dedupe_key is not null do nothing;
+  else
+    -- NOT SENT IS RECORDED, NEVER SILENT.
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    values ('customer_support', 'customer_account_active_notice', 'skipped', 'low',
+            left('Account-active notice not sent (' || v_why || ')', 200),
+            jsonb_build_object('customer_id', new.id, 'to_email', nullif(v_to, ''), 'not_sent', v_why),
+            'customers', new.id::text);
+  end if;
+  return null;
+exception when others then
+  -- The acceptance stands whatever happens here; the failure is on the record for customer_support. The record is
+  -- itself guarded: if even that insert fails, a warning is all that is left, never a refused acceptance.
+  begin
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    values ('customer_support', 'customer_account_active_notice', 'failed', 'medium',
+            left('Account-active notice failed for customer ' || new.id, 200),
+            jsonb_build_object('customer_id', new.id, 'error', left(sqlerrm, 500)), 'customers', new.id::text);
+  exception when others then
+    raise warning 'fn_customer_account_active_notice: customer % not told and not recorded: %', new.id, sqlerrm;
+  end;
+  return null;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_customer_concierge(p_customer uuid, p_category text DEFAULT NULL::text, p_lang text DEFAULT NULL::text, p_inquiry uuid DEFAULT NULL::uuid)
