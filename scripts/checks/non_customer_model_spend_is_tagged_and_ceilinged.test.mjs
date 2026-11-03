@@ -27,7 +27,9 @@ test('every request the WhatsApp exchange driver makes carries the run tag and i
   assert.match(d, /if \(!cfg\.e2e\?\.tag \|\| !cfg\.e2e\?\.secret\) throw/, 'an exchange without a tag must refuse to run');
   const m = read('scripts/e2e/wa_exchange_real.mjs');
   assert.match(m, /e2e: \{ tag, secret: await internalCred\(\) \}, \.\.\.\(SCRIPT/, 'every run, not only a scripted one, hands the driver its tag');
-  assert.match(m, /note = \$\{q\('code=' \+ CODE\)\} and ended_at is not null/, 'a re-run of the same code is refused');
+  assert.match(m, /note = \$\{q\('code=' \+ CODE \+ ':passed'\)\}/, 'a re-run of code that already passed is refused');
+  assert.match(m, /if \(!SCRIPT && !process\.exitCode\) await mgmtFixture\(REF, `update public\.rehearsal_window set note = \$\{q\('code=' \+ CODE \+ ':passed'\)\}/,
+    'only a run whose verdicts all passed marks its code exchanged');
 });
 
 test('ai_gateway checks the daily ceiling after the fixture check and before the provider key; a skip is not an error', () => {
@@ -42,10 +44,12 @@ test('ai_gateway checks the daily ceiling after the fixture check and before the
   assert.match(ob, /ann\?\.skipped === true\) return 'skipped'/);
 });
 
-test('only resilience_ping, marketing and knowledge_exam declare internal duty spend, and only for an internal audience', () => {
-  const sc = read('supabase/functions/_shared/spend_ceiling.ts');
-  assert.match(sc, /INTERNAL_DUTY_FNS: ReadonlySet<string> = new Set\(\['resilience_ping', 'marketing', 'knowledge_exam'\]\)/);
+test('internal duty spend is DECLARED per surface by the replay, never inferred from the audience or the function', () => {
   const th = read('supabase/functions/_shared/think.ts');
-  assert.match(th, /o\.internal === true && INTERNAL_DUTY_FNS\.has\(fn\) \? 'internal'/);
-  assert.match(th, /internal: INTERNAL_AUDIENCES\.has\(audience\)/);
+  assert.match(th, /const internalDuty = req\.internalDuty === true && INTERNAL_AUDIENCES\.has\(audience\);/);
+  assert.match(th, /internalDuty: INTERNAL_DUTY_SURFACE\.test\(row\.surface\)/, 'only replayHeld declares it, by surface');
+  assert.match(th, /const spendClass = o\.internal === true \? 'internal' as const : undefined;/);
+  // nothing else in the functions tree may declare it
+  const gw = read('supabase/functions/ai_gateway/index.ts');
+  assert.doesNotMatch(gw, /spend_class: 'internal'/);
 });

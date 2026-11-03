@@ -573,8 +573,8 @@ async function handle(req: Request): Promise<Response> {
     // (fn_ai_spend_ceiling, it_threshold). Past it the call is SKIPPED: a no-spend row is logged and the run row reads
     // 'skipped', never 'error'. A request that is neither is a customer's, a supplier's or a visitor's and is never
     // counted or refused. The rehearsal window's own cap still applies to a test run (fn_kernel_paid_provider_gate).
+    const spendClass = spendClassOf(e2eRunTag(), body.spend_class);
     {
-      const spendClass = spendClassOf(e2eRunTag(), body.spend_class);
       if (spendClass) {
         let cv: unknown = null; let ce: unknown = null;
         try { const res = await admin.rpc('fn_ai_spend_ceiling', { p_class: spendClass }); cv = res.data; ce = res.error; }
@@ -995,10 +995,11 @@ async function handle(req: Request): Promise<Response> {
           // the 220-of-228 case: a valid chat.completion body carrying no content, which every
           // monitor read as a healthy response.
           await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr, String(j?.choices?.[0]?.finish_reason ?? '') || undefined, j?.usage);
-          // A 200 with no content was paid for. The SAME model is not asked again (that was the second payment on
-          // 3 Nov); the next model on the ladder may be, and if there is none the request fails here.
+          // A 200 with no content was paid for. For OUR OWN work (a test run or an internal duty) the SAME model is not
+          // asked again (that was the second payment on 3 Nov); the next model on the ladder may be. A customer's,
+          // supplier's or visitor's request keeps its retry: an empty reply is sometimes a blip, and their answer matters more.
           if (r.ok && !j?.error) {
-            emptyPaid = true; anyEmptyPaid = true;
+            emptyPaid = spendClass !== null; anyEmptyPaid = true;
             await logFailedAttempt(m, j?.usage ?? null, j?.id, lastErr, Date.now() - attemptStartedAt);
           }
         } catch (e) {

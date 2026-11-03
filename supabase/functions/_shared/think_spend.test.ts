@@ -37,15 +37,31 @@ Deno.test("a seat's own high-stakes answer whose every figure is in the settled 
     assert(m.calls.some((c) => c.phase === 'verify')); }
 });
 
-Deno.test("an easy run asks its judgement on the routine route, and an internal question is marked internal for the duty ceiling", async () => {
+Deno.test("an easy run asks its judgement on the routine route; only a DECLARED duty for an internal audience counts as internal", async () => {
   const m = mock('Done.');
-  await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.knowledge_refresh', question: 'q', easy: true });
+  await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.knowledge_refresh', question: 'q', easy: true, internalDuty: true });
   const synth = m.calls.find((c) => c.phase === 'synthesise')!;
   assertEquals(synth.o.taskClass, 'routine_employee_reasoning');
   assertEquals(synth.o.internal, true);
+  // an internal judgement about a real supplier (no declaration) is never counted (review of this PR, finding 1)
+  const s = mock('Done.');
+  await think(s.deps, { context: { audience: 'internal' }, seat: 'sales_engineer', surface: 'sql.fn_supplier_twin', question: 'q' });
+  assert(s.calls.every((x) => x.o.internal === false));
+  // a declaration for an outside audience is never counted either
   const c = mock('Done.');
-  await think(c.deps, { context: { audience: 'customer' }, seat: 'customer_support', surface: 'x', question: 'q' });
+  await think(c.deps, { context: { audience: 'customer' }, seat: 'customer_support', surface: 'x', question: 'q', internalDuty: true });
   assert(c.calls.every((x) => x.o.internal === false));
+});
+
+Deno.test('a daily-ceiling skip holds the question as the hold does, so it keeps its tries', async () => {
+  const deps = mock('x').deps;
+  const held: string[] = [];
+  const d: ThinkDeps = { ...deps,
+    llm: () => Promise.resolve({ content: null, error: 'gateway_http_503:daily_ceiling:the internal model spend today is USD 2.01' } as LlmReply),
+    rpc: (fn, a) => { if (fn === 'fn_reason_hold') held.push(String(a.p_reason)); return Promise.resolve({ data: fn === 'fn_case_recall' ? { cases: [] } : 1, error: null }); } };
+  const r = await think(d, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.knowledge_refresh', question: 'q', internalDuty: true });
+  assertEquals(r.status, 'held');
+  assertEquals(held, ['model_hold']);
 });
 
 Deno.test("the CEO's quarterly knowledge re-check is an easy duty: its judgement goes on the routine route, nothing else moves", () => {
@@ -60,13 +76,18 @@ Deno.test("the CEO's quarterly knowledge re-check is an easy duty: its judgement
 });
 
 Deno.test('code agrees only when EVERY figure, with the word after it, is printed in the sources', () => {
-  const src = 'Suppliers pay AED 1,500 a year. A reveal costs 3% of the quote. Refunds are paid within 14 working days.';
+  const src = ['Suppliers pay AED 1,500 a year. A reveal costs 3% of the quote.', 'Refunds are paid within 14 working days.'];
   assert(figuresGrounded('The fee is AED 1500 a year and a reveal costs 3%.', src));
-  assert(figuresGrounded('Refunds take 14 working days.', src));
-  assert(figuresGrounded('الاشتراك ١٥٠٠ a year', src));                              // Arabic-Indic digits are the same figure
-  assert(!figuresGrounded('Refunds take 14 days.', src.replace('14 working', '10 working') + ' 14 suppliers'));  // "14 days" is not printed
-  assert(!figuresGrounded('Refunds take 7 working days.', src));
+  assert(figuresGrounded('Refunds are paid in 14 working days.', src));
+  assert(figuresGrounded('suppliers pay aed ١٥٠٠ a year', src));                     // Arabic-Indic digits are the same figure
+  // the reviewer's cases (review of this PR): a different period, currency, or unit after the figure is not the same figure
+  assert(!figuresGrounded('Suppliers pay AED 1,500 a month.', src));
+  assert(!figuresGrounded('Suppliers pay USD 1,500 a year.', src));
+  assert(!figuresGrounded('Refunds take 14 days.', src));
+  assert(!figuresGrounded('Refunds are paid within 7 working days.', src));
   assert(!figuresGrounded('The fee is AED 1500 a year and a reveal costs 5%.', src));  // one ungrounded figure sends it to the model
   assert(!figuresGrounded('You need a permit from the municipality.', src));          // no figure: code cannot judge it
-  assertEquals(figuresOf('AED 1,500 a year, 3 %'), ['1500 a', '3 %']);
+  // a figure must be printed in ONE source with its words, never stitched across two
+  assert(!figuresGrounded('pay AED 14 working', ['pay AED 99', '14 working']));
+  assertEquals(figuresOf('AED 1,500 a year, 3 %').map((f) => [f.before, f.num, f.after]), [['aed', '1500', 'year'], ['year', '3', '%']]);
 });

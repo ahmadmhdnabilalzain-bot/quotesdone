@@ -11,7 +11,11 @@
 -- WHAT THIS ADDS. public.fn_ai_spend_ceiling(p_class) answers ai_gateway (_shared/spend_ceiling.ts) whether one more call
 -- of a class may run today (Asia/Dubai day, the day openrouter_day keeps):
 --   'test'     - rows carrying a run tag (ai_cost_log.e2e_run_tag, stamped only for a PROVEN sandbox run);
---   'internal' - rows ai_gateway marked "| spend_class=internal" (an internal duty its caller declared).
+--   'internal' - rows ai_gateway marked "| spend_class=internal" (an internal duty its caller declared: think.ts sets it
+--                only for a seat's own scheduled work replayed from its queue - knowledge_refresh, postmortem, root_cause,
+--                ceo_revision and the like - never for a judgement about a real customer, supplier or visitor).
+-- A ceiling skip holds a queued question as the founder's hold does (think.ts 'model_hold'), so it keeps its tries and is
+-- answered on a later day; it is never failed for it.
 -- The ceilings are it_threshold rows, so changing one is a data change: llm_daily_ceiling_test_usd 10 and
 -- llm_daily_ceiling_internal_usd 2 (the founder's idle rule of 24 Sep 2026, instruction 986: USD 1-2 a day with no
 -- customers). A missing or null row means no ceiling for that class.
@@ -28,7 +32,7 @@ insert into public.it_threshold (key, value, unit, basis) values
   ('llm_daily_ceiling_test_usd', 10, 'usd',
    'it_engineer, 3 Nov 2026: tagged test traffic (ai_cost_log.e2e_run_tag) per Asia/Dubai day. Measured 7 days to 3 Nov: USD 141.20 billed, nearly all tests. Past it ai_gateway SKIPS the call (no provider call, run row skipped).'),
   ('llm_daily_ceiling_internal_usd', 2, 'usd',
-   'it_engineer, 3 Nov 2026: internal duties (resilience_ping, marketing, knowledge_exam asking an internal-audience question) per Asia/Dubai day. The founder''s idle rule of 24 Sep 2026 (instruction 986): USD 1-2 a day with no customers.')
+   'it_engineer, 3 Nov 2026: internal duties (a seat''s own scheduled work replayed from its queue: knowledge_refresh, postmortem, root_cause, ceo_revision and the like) per Asia/Dubai day. The founder''s idle rule of 24 Sep 2026 (instruction 986): USD 1-2 a day with no customers.')
 on conflict (key) do nothing;
 
 create or replace function public.fn_ai_spend_ceiling(p_class text)
@@ -51,13 +55,20 @@ begin
   if v_ceiling is null then
     return jsonb_build_object('allowed', true, 'class', p_class, 'why', 'no ceiling set');
   end if;
-  -- OpenRouter's own charge where it reported one, else our price list (cost_aed at the fixed AED peg).
-  select coalesce(sum(coalesce(l.cost_usd_reported, l.cost_aed / 3.6725)), 0) into v_spent
-    from public.ai_cost_log l
-   where (l.occurred_at at time zone 'Asia/Dubai')::date = v_day
-     and l.model_used is distinct from 'none'
-     and case p_class when 'test' then l.e2e_run_tag is not null
-                      else l.e2e_run_tag is null and l.model_selected_because like '%| spend_class=internal%' end;
+  -- OpenRouter's own charge where it reported one, else our price list (cost_aed at the fixed AED peg). The day predicate
+  -- is the expression of ai_cost_log_dubai_day_idx; two plain branches so each plan keeps its own predicate.
+  if p_class = 'test' then
+    select coalesce(sum(coalesce(l.cost_usd_reported, l.cost_aed / 3.6725)), 0) into v_spent
+      from public.ai_cost_log l
+     where (l.occurred_at at time zone 'Asia/Dubai')::date = v_day
+       and l.e2e_run_tag is not null and l.model_used is distinct from 'none';
+  else
+    select coalesce(sum(coalesce(l.cost_usd_reported, l.cost_aed / 3.6725)), 0) into v_spent
+      from public.ai_cost_log l
+     where (l.occurred_at at time zone 'Asia/Dubai')::date = v_day
+       and l.e2e_run_tag is null and l.model_used is distinct from 'none'
+       and l.model_selected_because like '%| spend_class=internal%';
+  end if;
   return jsonb_build_object('allowed', v_spent < v_ceiling, 'class', p_class, 'spent_usd', round(v_spent, 4),
                             'ceiling_usd', v_ceiling, 'day', v_day);
 end $fn$;

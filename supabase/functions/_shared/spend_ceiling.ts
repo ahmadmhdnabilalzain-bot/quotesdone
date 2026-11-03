@@ -7,19 +7,15 @@
 // bound at all. Two classes of spend are counted against a daily ceiling (it_threshold rows, read by
 // public.fn_ai_spend_ceiling, scripts/sql/the_non_customer_model_spend_stops_at_a_daily_ceiling.sql):
 //   'test'     - a request that carries a PROVEN sandbox run tag (e2e_run.ts). Only the harness can prove one.
-//   'internal' - a request its internal caller DECLARED as an internal duty (think.ts defaultDeps: an internal-audience
-//                question asked by a scheduled duty function, INTERNAL_DUTY_FNS).
-// Everything else is not counted and never refused. The class is OPT-IN by construction: a request that names neither
-// is a customer's, a supplier's or a visitor's, whatever function it came from — so a held customer reply replayed by
-// resilience_ping, a supplier's email answered by email_triage, or a portal turn can never be skipped by a ceiling.
-// prevented by: _shared/spend_ceiling.test.ts
+//   'internal' - a request its internal caller DECLARED as an internal duty: think() asked with req.internalDuty, which
+//                replayHeld sets only for a seat's own scheduled work (think.ts INTERNAL_DUTY_SURFACE: knowledge_refresh,
+//                postmortem, root_cause, ceo_revision ...), and only for an internal audience.
+// Everything else is not counted and never refused. The class is OPT-IN by construction and never inferred from the
+// audience or the calling function: an internal judgement about a real supplier or visitor (a held supplier-profile read,
+// a routing decision), a held customer reply replayed by resilience_ping, a supplier's email answered by email_triage, or
+// a portal turn can never be skipped by a ceiling. prevented by: _shared/spend_ceiling.test.ts, _shared/think_spend.test.ts
 
 export type SpendClass = 'test' | 'internal';
-
-/** The functions whose INTERNAL-audience questions are internal duties: the heartbeat that replays the seats' own
- *  queues, the marketing seat's scheduled work, and the seat exams. email_triage is deliberately absent: it answers
- *  real mail from real suppliers and customers. */
-export const INTERNAL_DUTY_FNS: ReadonlySet<string> = new Set(['resilience_ping', 'marketing', 'knowledge_exam']);
 
 /** The marker written into ai_cost_log.model_selected_because, which the database sums for the internal ceiling. */
 export const INTERNAL_MARKER = ' | spend_class=internal';

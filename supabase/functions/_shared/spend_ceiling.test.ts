@@ -1,5 +1,6 @@
 import { assertEquals } from 'jsr:@std/assert@1';
-import { ceilingVerdict, INTERNAL_DUTY_FNS, spendClassOf } from './spend_ceiling.ts';
+import { ceilingVerdict, spendClassOf } from './spend_ceiling.ts';
+import { INTERNAL_DUTY_SURFACE } from './think.ts';
 
 Deno.test('a request that is neither a proven test run nor a declared internal duty is never counted, so never refused', () => {
   assertEquals(spendClassOf(null, undefined), null);
@@ -10,10 +11,9 @@ Deno.test('a request that is neither a proven test run nor a declared internal d
   assertEquals(spendClassOf(null, 'internal'), 'internal');
 });
 
-Deno.test('email_triage answers real mail and is never an internal duty', () => {
-  assertEquals(INTERNAL_DUTY_FNS.has('email_triage'), false);
-  assertEquals(INTERNAL_DUTY_FNS.has('wa_inbound'), false);
-  assertEquals(INTERNAL_DUTY_FNS.has('resilience_ping'), true);
+Deno.test("only a seat's own scheduled work is an internal duty; a person's case never is", () => {
+  for (const s of ['ceo.knowledge_refresh', 'it_engineer.postmortem', 'sales_engineer.root_cause', 'marketing.ceo_revision']) assertEquals(INTERNAL_DUTY_SURFACE.test(s), true, s);
+  for (const s of ['wa_inbound.unwritten_reply', 'sql.fn_supplier_twin', 'sales_engineer.document_arabic', 'site_assistant.person', 'supplier_documents.subject', 'wa_inbound.needs_a_person']) assertEquals(INTERNAL_DUTY_SURFACE.test(s), false, s);
 });
 
 Deno.test('the ceiling refuses only on an explicit allowed:false; an error or an odd shape lets the duty run', () => {

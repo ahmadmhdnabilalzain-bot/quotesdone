@@ -48,7 +48,6 @@ import { heldFromGate, HOLD_PROBE_MODEL, type GateAnswer } from './llm_hold.ts';
 import { recallCases } from './case_recall.ts';
 import { e2eRunTag } from './e2e_run.ts';
 import { rehearsalLetsFixtureThrough } from './spend_guards.ts';
-import { INTERNAL_DUTY_FNS } from './spend_ceiling.ts';
 import { gteReads } from './ml_embed_recipe.ts';
 import {
   SEAT_CARD_ACCOUNTANT, SEAT_CARD_CEO, SEAT_CARD_CUSTOMER_SUPPORT, SEAT_CARD_IT_ENGINEER, SEAT_CARD_MARKETING, SEAT_CARD_SALES_ENGINEER,
@@ -138,7 +137,14 @@ export interface ThinkRequest {
   // HARD tasks only). Every internal_judgement step of this run is asked as routine_employee_reasoning, which fn_ai_route
   // gives every seat on its cheap model. Set by replayHeld for EASY_DUTY_SURFACES; a caller may set it for its own duty.
   easy?: boolean;
+  // AN INTERNAL DUTY (it_engineer, 3 Nov 2026; spend_ceiling.ts): the seat's own scheduled work, counted against the daily
+  // internal-duty ceiling. DECLARED, never inferred from the audience: an internal-audience judgement about a real supplier
+  // or visitor (a held supplier-profile read, a routing decision) is not a duty and is never counted or skipped. Set by
+  // replayHeld for INTERNAL_DUTY_SURFACE only.
+  internalDuty?: boolean;
 }
+/** The held-question surfaces that are a seat's own scheduled work about the company, never about a person's case. */
+export const INTERNAL_DUTY_SURFACE = /^[a-z_]+\.(knowledge_refresh|postmortem|root_cause|ceo_revision|management_review|target_forecast|marketing_month_plan|experiment_approval|experiment_verdict)$/;
 /** The class a step is asked as: an easy run's own judgement goes on the seat's routine route (see ThinkRequest.easy). */
 export function easyClass(taskClass: string, easy: boolean | undefined): string {
   return easy === true && taskClass === 'internal_judgement' ? 'routine_employee_reasoning' : taskClass;
@@ -147,19 +153,37 @@ export function easyClass(taskClass: string, easy: boolean | undefined): string 
  *  confirms an entry against its source. Measured on the CEO's (ceo.knowledge_refresh): Opus, about USD 0.6 a day, and on
  *  3 Nov every second attempt came back an empty completion at 35-38 s, paid twice. prevented by: _shared/think_spend.test.ts */
 export const EASY_DUTY_SURFACE = /\.knowledge_refresh$/;
+/** A daily-ceiling skip held as the founder's hold is held: it keeps its tries and is asked again tomorrow. */
+const CEILING_HOLD = 'daily_ceiling';
 /** Arabic-Indic and Eastern Arabic-Indic digits as ASCII, so a figure written either way is the same figure. */
 const asciiDigits = (s: string) => s.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
-const norm = (s: string) => asciiDigits(String(s ?? '').toLowerCase()).replace(/(\d),(?=\d{3})/g, '$1').replace(/\s+/g, ' ');
-/** Every figure in the answer with the word (or %) right after it: "15 working", "375000 a", "3 %". */
-export function figuresOf(answer: string): string[] {
-  return [...new Set([...norm(answer).matchAll(/(\d+(?:\.\d+)?)\s*(%|[\p{L}]+)?/gu)].map((m) => (m[1] + ' ' + (m[2] ?? '')).trim()))];
+/** Lower case, ASCII digits, no thousands commas, split into words, numbers and '%'. */
+const toks = (s: string) => asciiDigits(String(s ?? '').toLowerCase()).replace(/(\d),(?=\d{3})/g, '$1').match(/\d+(?:\.\d+)?|%|[\p{L}]+/gu) ?? [];
+const FUNCTION_WORDS = new Set(['a', 'an', 'the', 'per', 'of', 'to', 'for', 'in', 'on', 'at', 'and', 'or', 'is', 'are', 'be', 'by', 'up', 'within', 'about']);
+const isNum = (t: string) => /^\d/.test(t);
+/** A figure in context: the word before it and the first content word (or %) after it, as they appear in the text. */
+export type Figure = { num: string; before: string | null; after: string | null };
+function figuresIn(t: string[]): Figure[] {
+  return t.flatMap((x, i) => {
+    if (!isNum(x)) return [];
+    const prev = t.slice(Math.max(0, i - 3), i).reverse().find((y) => !FUNCTION_WORDS.has(y)) ?? null;
+    const before = prev && !isNum(prev) ? prev : null;
+    const after = t.slice(i + 1, i + 4).find((y) => !FUNCTION_WORDS.has(y)) ?? null;
+    return [{ num: x, before, after: after && !isNum(after) ? after : null }];
+  });
 }
-/** True only when the answer states at least one figure and EVERY figure, with its following word, is in `sources`. */
-export function figuresGrounded(answer: string, sources: string): boolean {
+export function figuresOf(answer: string): Figure[] { return figuresIn(toks(answer)); }
+/**
+ * True only when the answer states at least one figure and EVERY figure is printed in ONE of the sources with the same
+ * word before it and the same content word after it ("AED 1500 ... month" is not "AED 1500 ... year"; "USD 1500" is not
+ * "AED 1500"). Anything else - no figure, or one figure that differs - goes to the independent model.
+ */
+export function figuresGrounded(answer: string, sources: string[]): boolean {
   const figs = figuresOf(answer);
   if (!figs.length) return false;
-  const hay = ' ' + norm(sources).replace(/(\d)\s*%/g, '$1 %') + ' ';
-  return figs.every((f) => new RegExp('(^|[^\\d.])' + f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s*') + '(?![\\p{L}\\d])', 'u').test(hay));
+  const inSrc = sources.map((s) => figuresIn(toks(s)));
+  const same = (a: Figure, b: Figure) => a.num === b.num && a.before === b.before && a.after === b.after;
+  return figs.every((f) => inSrc.some((src) => src.some((g) => same(f, g))));
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -550,7 +574,7 @@ export function readerOfTheirOwnText(goal: string): Pick<ThinkRequest, 'plan' | 
 /** The planner ran out of time or the provider failed (not a hold): answer from a one-step plan instead. */
 export function planTimedOut(error: unknown): boolean {
   const e = String(error ?? '');
-  return !/circuit_open|open-circuit|founder_hold|model_hold/.test(e) && /gateway_deadline|gateway_http_5\d\d|timeout|aborted/i.test(e);
+  return !/circuit_open|open-circuit|founder_hold|model_hold|daily_ceiling/.test(e) && /gateway_deadline|gateway_http_5\d\d|timeout|aborted/i.test(e);
 }
 
 export function isFixtureRequest(req: Pick<ThinkRequest, 'subject'>): boolean {
@@ -626,18 +650,21 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     steps.push({ id: 'fixture', kind: 'hold', goal: 'our own test traffic is never sent to a paid model', status: 'skipped', detail: 'subject.fixture' });
     return await hold('fixture_no_spend', {});
   }
-  // internal: the question is the seat's own (audience internal or founder), so the live deps may count it as an internal
-  // duty's spend (defaultDeps, spend_ceiling.ts); a customer's, supplier's or visitor's question never is. easy: see easyClass.
-  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, taskClass: easyClass(o.taskClass, req.easy), subject: req.subject ?? null, internal: INTERNAL_AUDIENCES.has(audience), ...(req.temperature != null ? { temperature: req.temperature } : {}) }) }; }
+  // internal: a DECLARED internal duty asked for an internal audience, so the live deps count it against the internal-duty
+  // ceiling (defaultDeps, spend_ceiling.ts); anything else - every customer's, supplier's or visitor's case - never is.
+  const internalDuty = req.internalDuty === true && INTERNAL_AUDIENCES.has(audience);
+  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, taskClass: easyClass(o.taskClass, req.easy), subject: req.subject ?? null, internal: internalDuty, ...(req.temperature != null ? { temperature: req.temperature } : {}) }) }; }
   // A PROVIDER BLIP IS RETRIED ONCE (ceo, ledger 1003 stage 2, 19 Oct 2026). Measured on the real-model seat exam: 27 of
   // 633 questions were held for one 502/503/546 or a gateway deadline on the plan or the answer, not for anything the
   // model said. A model call writes nothing, so one more try is safe; a hold, an open circuit or a refusal is not retried.
   { const base = deps; deps = { ...base, llm: async (p, s, i, o) => {
     const r = await base.llm(p, s, i, o);
     const e = String(r.error ?? '');
-    // ...but never after a model was PAID for an empty answer, or a daily ceiling skipped the call (it_engineer, 3 Nov 2026):
-    // asking again buys the same nothing twice (the CEO's Opus replays, 3 Nov) or meets the same ceiling.
-    if (r.content || p === 'verify' || !TRANSIENT_MODEL_ERROR.test(e) || SLOW_MODEL_ERROR.test(e) || /circuit_open|open-circuit|founder_hold|empty_completion|daily_ceiling/.test(e)) return r;
+    // ...but never after a daily ceiling skipped the call, and never for our own work (an internal duty or a test run) after
+    // a model was PAID for an empty answer (it_engineer, 3 Nov 2026): asking again bought the same nothing twice (the CEO's
+    // Opus replays, 3 Nov). A customer's, supplier's or visitor's turn keeps its second chance.
+    const ownWork = internalDuty || !!e2eRunTag();
+    if (r.content || p === 'verify' || !TRANSIENT_MODEL_ERROR.test(e) || SLOW_MODEL_ERROR.test(e) || /circuit_open|open-circuit|founder_hold|daily_ceiling/.test(e) || (ownWork && /empty_completion/.test(e))) return r;
     steps.push({ id: p + '.retry', kind: p, goal: 'one retry after a provider error', status: 'done', detail: r.error });
     return await base.llm(p, s, i, o);
   } }; }
@@ -678,7 +705,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
   if (!plan || !Array.isArray(plan.steps)) {
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: d0.error ?? 'no plan' });
-    return await hold(/circuit_open|open-circuit|founder_hold/.test(String(d0.error ?? '')) ? 'model_hold' : 'model_failed: decompose', {});
+    // daily_ceiling (spend_ceiling.ts) is a hold too: the row waits for tomorrow and keeps its tries (fn_reason_held_resolve)
+    return await hold(/circuit_open|open-circuit|founder_hold|daily_ceiling/.test(String(d0.error ?? '')) ? 'model_hold' : 'model_failed: decompose', {});
   }
   const planSteps = plan.steps.slice(0, MAX_STEPS).map((s, i) => ({ id: String(s.id || 's' + (i + 1)), goal: String(s.goal || ''), query: String(s.query || s.goal || req.question), needs: s.needs_knowledge !== false }));
   // UNDERSTAND THE QUESTION FIRST: the caller's trade wins, else the planner's reading of the question. Either is only
@@ -798,13 +826,13 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
       const dropped = keepProvenFields(draft, req.decision, textOf(ctx) + '\n' + req.question);
       if (dropped.length) steps.push({ id: 'synthesise.' + pass + '.fields', kind: 'synthesise', goal: 'keep only the fields the person\'s own words prove', status: 'done', detail: { dropped } });
     }
-    if (!r.content) { steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: 'failed', detail: r.error }); refusal = 'no reply'; break; }
+    if (!r.content) { steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: 'failed', detail: r.error }); refusal = /daily_ceiling/.test(String(r.error ?? '')) ? CEILING_HOLD : 'no reply'; break; }
     groundDraft(draft, missing);
     refusal = refuse(draft, { allowDecline: req.allowDecline === true, missing, sourceIds: citable(sourceIds, facts0, draft), decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true, ...(req.reader ? { minEvidence: READER_MIN_EVIDENCE } : {}) });
     steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: refusal ? 'refused' : 'done', detail: refusal ?? undefined });
     if (!refusal) break;
   }
-  if (refusal || !draft) return await hold('model_failed: ' + (refusal ?? 'no draft'), { plan: planSteps, facts, sources: sources.map((s) => s.id) });
+  if (refusal || !draft) return await hold(refusal === CEILING_HOLD ? 'model_hold' : 'model_failed: ' + (refusal ?? 'no draft'), { plan: planSteps, facts, sources: sources.map((s) => s.id) });
 
   // f. VERIFY — high stakes, by a model of another family (#877)
   let verified: ThinkResult['verified'] = { status: 'not_needed', by: null, notes: '' };
@@ -823,7 +851,7 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
     // An answer with no figure, or with one the sources do not print, still goes to the independent model. So does every
     // answer a customer, supplier or visitor reads (their text is checked whole, review of #1330), and every request whose
     // caller DEMANDED the check (stakes 'high'): code decides only the seat's own answers the planner judged high-stakes.
-    if (INTERNAL_AUDIENCES.has(audience) && req.stakes !== 'high' && figuresGrounded(String(draft.answer ?? ''), [facts0, ...sources.map((s) => s.title + '\n' + s.excerpt)].join('\n'))) {
+    if (INTERNAL_AUDIENCES.has(audience) && req.stakes !== 'high' && figuresGrounded(String(draft.answer ?? ''), [facts0, ...sources.map((s) => s.title + '\n' + s.excerpt)])) {
       verified = { status: 'agreed', by: 'code', notes: 'every figure in the answer is printed in the sources or the settled facts' };
       steps.push({ id: 'verify', kind: 'verify', goal: 'independent check of a high-stakes answer', status: 'done', detail: verified });
     } else {
@@ -928,8 +956,8 @@ export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement; e
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      // An internal-audience question asked by a scheduled duty function is an internal duty's spend (spend_ceiling.ts).
-      const spendClass = o.internal === true && INTERNAL_DUTY_FNS.has(fn) ? 'internal' as const : undefined;
+      // A declared internal duty (think: req.internalDuty for an internal audience) is counted as one (spend_ceiling.ts).
+      const spendClass = o.internal === true ? 'internal' as const : undefined;
       const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: o.timeoutMs ?? 45_000, cacheTtlMin: memoMin, ...(memoMin > 0 ? { cacheExact: true } : {}), ...(spendClass ? { spendClass } : {}), json: true, temperature: o.temperature ?? (phase === 'verify' ? 0 : 0.2), ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
       // A photo or drawing the person sent rides as image parts; the gateway routes it to a vision-capable model.
       const last = o.images?.length ? { role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] } : { role: 'user', content: input };
@@ -1059,7 +1087,7 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
   const one = async (row: HeldRow) => {
     // One row's failure never abandons the batch: a throw is resolved as still held, and counted.
     let r: ThinkResult;
-    try { r = await think(d, { ...row.request, context: { ...row.request.context } as ThinkContext, queueWhenHeld: false, easy: row.request.easy ?? EASY_DUTY_SURFACE.test(row.surface) }); }
+    try { r = await think(d, { ...row.request, context: { ...row.request.context } as ThinkContext, queueWhenHeld: false, easy: row.request.easy ?? EASY_DUTY_SURFACE.test(row.surface), internalDuty: INTERNAL_DUTY_SURFACE.test(row.surface) }); }
     catch (err) { r = { status: 'held', answer: '', steps: [], context_used: {}, missing_context: [], sources: [], confidence: 0, reason: 'threw: ' + String((err as Error)?.message || err).slice(0, 200) }; }
     const { data: res, error: e } = await d.rpc('fn_reason_held_resolve', { p_id: row.id, p_result: r });
     // The answer goes back on the channel it came from (_shared/reasoned_delivery.ts) - for this row and for every row

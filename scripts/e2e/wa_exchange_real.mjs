@@ -24,8 +24,9 @@ if (process.env.QD_E2E_RUN_TAGS) (await import('node:fs')).appendFileSync(proces
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 // ONCE PER CHANGE, NEVER ON A LOOP (it_engineer, 3 Nov 2026). Measured: 48 runs of this exchange on 2-3 Nov, most of
 // them the same code exercised again. The code it exercises is fingerprinted (wa_inbound, _shared, this script and its
-// driver) and written on the run's rehearsal window; a run of a fingerprint that already completed is refused before
-// anything is created or spent. QD_EXCHANGE_AGAIN=1 runs it anyway (a deliberate re-run, by hand). A scripted run
+// driver) and written on the run's rehearsal window, marked ':passed' only when every verdict passed; a run of a
+// fingerprint that already PASSED is refused before anything is created or spent (exit 0: that code was exchanged and
+// passed). A failed or crashed run never marks it, so its re-run goes ahead. QD_EXCHANGE_AGAIN=1 runs it anyway (a deliberate re-run, by hand). A scripted run
 // (QD_CONV_SCRIPT) is one conversation of conversation_quality.mjs's sample and is not fingerprinted here.
 const CODE = await (async () => {
   const { createHash } = await import('node:crypto');
@@ -36,8 +37,8 @@ const CODE = await (async () => {
   return h.digest('hex').slice(0, 16) + (MEDIA_ONLY ? ':media' : ':full');
 })();
 if (!SCRIPT && process.env.QD_EXCHANGE_AGAIN !== '1') {
-  const done = await mgmtRead(REF, `select run_tag, ended_at from public.rehearsal_window where opened_by = 'wa_exchange_real' and note = ${q('code=' + CODE)} and ended_at is not null order by ended_at desc limit 1`);
-  if (done.length) { console.log(`REFUSED: this code (${CODE}) was already exchanged by ${done[0].run_tag}, ended ${done[0].ended_at}; QD_EXCHANGE_AGAIN=1 runs it again`); process.exit(0); }
+  const done = await mgmtRead(REF, `select run_tag, ended_at from public.rehearsal_window where opened_by = 'wa_exchange_real' and note = ${q('code=' + CODE + ':passed')} order by started_at desc limit 1`);
+  if (done.length) { console.log(`REFUSED: this code (${CODE}) was already exchanged and passed in ${done[0].run_tag} (ended ${done[0].ended_at}); QD_EXCHANGE_AGAIN=1 runs it again`); process.exit(0); }
 }
 // A scripted run (QD_CONV_SCRIPT) may run beside another (the before and after jobs of conversation-quality.yml), so its
 // no-account number is a run-allocated fixture number with no conversation on it, never the shared +971500000097.
@@ -131,6 +132,8 @@ try {
     const cost = (await mgmtRead(REF, `select coalesce(sum(cost_aed),0)::float aed from public.ai_cost_log where occurred_at >= ${q(started)}`))[0];
     console.log('COST_AED_SINCE_START(all callers)=' + cost.aed + ' (USD ' + (cost.aed / 3.6725).toFixed(2) + ')');
   } catch (e) { console.log('cost read failed: ' + String(e).slice(0, 200)); }
+  // Only a run whose every verdict passed marks its code as exchanged: a failed or crashed run never blocks the next one.
+  if (!SCRIPT && !process.exitCode) await mgmtFixture(REF, `update public.rehearsal_window set note = ${q('code=' + CODE + ':passed')} where run_tag = 'qd_run:${tag}'`, 'mark the code exchanged');
 } finally {
   for (const p of [sup && (await mgmtRead(REF, `select phone from public.leads where id=${sup.leadId}`).then((x) => x[0]?.phone).catch(() => null)), STRANGER, '+971500000094', '+971500000095'].filter(Boolean)) {
     const d = p.replace(/\D/g, '');

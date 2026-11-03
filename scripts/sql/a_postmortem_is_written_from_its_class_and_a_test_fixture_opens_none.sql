@@ -11,7 +11,8 @@
 -- later redefinitions; same signature, CREATE OR REPLACE keeps its grants):
 --   1. A finding raised by a test fixture opens NO incident and no question: the nightly journey's keys (duty:journey:*,
 --      scripts/e2e/journeys.mjs drives ZZ DEMO fixtures) and any finding whose detail or evidence names a fixture
---      (ZZ DEMO, @example.invalid, a qd_run: tag). The finding itself is untouched; it_engineer still sees it.
+--      (an @example.invalid address, a qd_run: tag). The finding itself is untouched; it_engineer still sees it. A fixture
+--      incident opened before this file is not reported as incomplete either.
 --   2. The CLASS is the first two parts of the key (fn_it_postmortem_class_key: 'duty:journey', 'duty:advisory_triage',
 --      'duty:latency_slo', 'acct:owner_card'; a one-part key is its own class). An incident of a class with a recorded
 --      cause is written from a code template naming that earlier incident and this occurrence - no model.
@@ -40,7 +41,9 @@ immutable
 set search_path to 'public', 'pg_temp'
 as $fn$
   select coalesce(p_detail ->> 'issue_key', '') like 'duty:journey:%'
-      or (coalesce(p_detail::text, '') || ' ' || coalesce(p_evidence::text, '')) ~* '(zz demo|@example\.invalid|qd_run:)';
+      or (coalesce(p_detail::text, '') || ' ' || coalesce(p_evidence::text, '')) ~* '(@example\.invalid|qd_run:)';
+  -- NOT the "ZZ DEMO" name alone: a probe of this very duty names its own findings that way and must still open
+  -- incidents (scripts/checks/it_engineer_gap_duties_act.test.mjs); a harness run's fixtures carry its qd-<tag> address.
 $fn$;
 revoke execute on function public.fn_it_finding_is_fixture(jsonb, jsonb) from public, anon, authenticated;
 grant execute on function public.fn_it_finding_is_fixture(jsonb, jsonb) to service_role;
@@ -52,7 +55,7 @@ security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare h record; v_inc bigint; p public.it_playbook; v_since timestamptz; n_open int := 0; n_play int := 0; n_asked int := 0;
-        n_known int := 0; n_waiting int := 0; v_cause text; v_prev bigint; v_hid bigint; n_fixture int := 0;
+        n_known int := 0; n_waiting int := 0; v_cause text; v_prev bigint; v_check text; v_hid bigint; n_fixture int := 0;
         v_hist int; v_late int; v_ids jsonb; v_items jsonb := '[]'::jsonb; f public.it_engineer_finding;
 begin
   select created_at into v_since from public.seat_duty where duty = 'it_engineer.postmortem';
@@ -99,16 +102,18 @@ begin
        and not public.fn_it_finding_is_fixture(a.detail, a.evidence)
      order by i.id
   loop
-    v_cause := null; v_prev := null;
-    select i2.id, i2.cause into v_prev, v_cause from public.it_incident i2 join public.agent_actions a2 on a2.id = i2.handoff_id
+    v_cause := null; v_prev := null; v_check := null;
+    select i2.id, i2.cause, i2.regression_check into v_prev, v_cause, v_check from public.it_incident i2 join public.agent_actions a2 on a2.id = i2.handoff_id
      where i2.id <> h.inc_id and coalesce(btrim(i2.cause), '') <> '' and public.fn_it_postmortem_class_key(a2.detail) = h.ck
      order by i2.id desc limit 1;
     if v_cause is not null then
       -- the earlier cause without the template's own wrapping, so a template never wraps a template
-      v_cause := regexp_replace(split_part(v_cause, ' | This occurrence: ', 1), '^Known class [^ ]+ \(incident [0-9]+\): ', '');
+      -- (.+? and not [^ ]+: a class key may hold a space, e.g. an advisor routine's 'p_request uuid')
+      v_cause := regexp_replace(split_part(v_cause, ' | This occurrence: ', 1), '^Known class .+? \(incident [0-9]+\): ', '');
       update public.it_incident
          set cause = left('Known class ' || h.ck || ' (incident ' || v_prev || '): ' || v_cause
                           || ' | This occurrence: ' || coalesce(h.detail->>'title', h.detail->>'issue_key', 'untitled'), 2000),
+             regression_check = coalesce(nullif(btrim(regression_check), ''), v_check),
              recorded_by = 'it_engineer.postmortem (template: known class ' || h.ck || ')', updated_at = now()
        where id = h.inc_id;
       n_known := n_known + 1;
@@ -144,8 +149,10 @@ begin
 
   select count(*), coalesce(jsonb_agg(id order by id) filter (where rn <= 20), '[]') into v_late, v_ids
     from (select i.id, row_number() over (order by i.id) rn from public.it_incident i
+            join public.agent_actions a on a.id = i.handoff_id
            where i.ended_at < now() - interval '72 hours' and i.created_at >= v_since
-             and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = '')) z;
+             and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = '')
+             and not public.fn_it_finding_is_fixture(a.detail, a.evidence)) z;
   if v_late > 0 then
     v_items := jsonb_build_array(jsonb_build_object('item', 'incomplete', 'owner_seat', 'it_engineer', 'blast', 'internal', 'affected', v_late,
       'title', v_late || ' closed incident(s) have no root cause or no regression check 72 hours after they closed',
@@ -170,5 +177,7 @@ select case
   when public.fn_it_postmortem_class_key('{}') is not null then 'PROBE FAILED: a finding that names nothing has a class'
   when not public.fn_it_finding_is_fixture('{"issue_key":"duty:journey:f-drawings/x:y"}', null) then 'PROBE FAILED: a journey finding is not a fixture'
   when not public.fn_it_finding_is_fixture('{"issue_key":"duty:delivery:x","title":"to qd-ab12-c@example.invalid"}', null) then 'PROBE FAILED: a fixture address is not a fixture'
+  when public.fn_it_finding_is_fixture('{"issue_key":"zz_demo_new_class:a","title":"ZZ DEMO new class 1"}', null) then 'PROBE FAILED: the duty''s own probe findings would open no incident'
+  when public.fn_it_postmortem_class_key('{"issue_key":"duty:advisory_triage:supabase:x"}') is distinct from 'duty:advisory_triage' then 'PROBE FAILED: class key'
   when public.fn_it_finding_is_fixture('{"issue_key":"duty:latency_slo:kyc:error_budget","title":"kyc is burning its error budget"}', '{}') then 'PROBE FAILED: a real finding reads as a fixture'
   else 'PROBE OK' end as verdict;
