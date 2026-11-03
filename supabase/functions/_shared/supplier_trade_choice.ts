@@ -37,7 +37,7 @@ const companyLine = (company?: string | null) => company ? `The company register
 // now the reader's own text cap, so nothing code read is withheld; a document is cut into CHUNK_CHARS requests, CHOICE_CONCURRENCY
 // at a time. What it costs (ai_cost_log, 30 days to 3 Nov 2026: 1,254 supplier_trade_choice calls, AED 0.0027 each on average):
 // a 270,000-character profile is 20 chunks x 2-3 readings + one check, about AED 0.15, once per supplier.
-export const CHOICE_TEXT_MAX = 400_000;   // = doc_read/types.ts LIMITS.maxTextChars (asserted in supplier_trade_choice.test.ts)
+export const CHOICE_TEXT_MAX = 400_000;   // = doc_read/types.ts LIMITS.maxTextChars (asserted in long_document_reading.test.ts)
 export const CHOICE_CONCURRENCY = 5;
 /** fn over items, at most n at a time, results in order. */
 export async function inPool<T, R>(items: T[], n: number, fn: (x: T, i: number) => Promise<R>): Promise<R[]> {
