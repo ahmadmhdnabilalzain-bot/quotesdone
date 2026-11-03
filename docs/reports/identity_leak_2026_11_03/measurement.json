@@ -3071,5 +3071,60 @@
   "probe_main.ts": "39/39 lines x scrubbers kept; 3/3 trade-named firms kept",
   "probe_reveal.ts": "4/4 party chips name the supplier",
   "probe_cmp.ts": "3/3 kept"
+ },
+ "after_second_review_with_ocr": {
+  "measured_at": "2026-11-03T18:12:47.530Z",
+  "seed": 20261103,
+  "repeats": 3,
+  "out": "C:\\Users\\Opera\\AppData\\Local\\Temp\\claude\\C--Users-Opera-quotesdone\\cb0a3e96-2789-4224-a360-e068884b5c7b\\scratchpad\\leak_run4",
+  "trials": 480,
+  "leaked_trials": 0,
+  "table": [
+   {
+    "family": "drawing",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "quotation",
+    "trials": 300,
+    "shared": 300,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "comparison",
+    "trials": 60,
+    "shared": 60,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "qa",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   }
+  ],
+  "by_class": {},
+  "by_surface": {},
+  "held": {
+   "drawing:model_path": 36
+  },
+  "model_path_drawings": 36,
+  "ocr_control": {
+   "tokens": 1583,
+   "read": 1405,
+   "rate": 0.888
+  },
+  "image_control": {
+   "planted": 324,
+   "seen_on_original": 324
+  },
+  "leaks": [],
+  "note": "Second independent review of #1838 and its adversarial re-review fixed (head 093db57d). The corpus plants CN licences six- and seven-digit, dashed, spaced and joined again (60 / 51 / 47 / 51 distinct planted forms in this run). No model calls, USD 0."
  }
 }
