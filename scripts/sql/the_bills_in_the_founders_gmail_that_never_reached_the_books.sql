@@ -75,7 +75,7 @@ with candidate(vendor, category, amount, currency, charged_on, vat_amount, sourc
   -- CHATGPT AUGUST, on the founder's word.
   ('OpenAI','Subscription',200.00,'USD',date '2026-08-19',null,'founder_reported','founder_statement',
    'receipt not in any mailbox; founder 3 Nov 2026 (instruction 1538): "chatgpt subscription (200 usd monthly for the last 3 months, won''t happen anymore as i stopped it)". Date is his billing day from the 24 Sep ruling (~19th).',
-   'founder:1538:chatgpt:2026-08',true,
+   'stated:1538:chatgpt:2026-08',true,
    'ChatGPT Pro, August 2026, USD 200 as stated by the founder (1538). The other two of his three months are booked: 29 Jul AED 385 (receipt, preferred over the stated figure) and 19 Sep AED 799 (his statement of 24 Sep). Owner''s card (before 29 Sep): moved to 2500.'),
 
   -- OPENROUTER, the one top-up before the daily meter began on 7 Oct. Company card 0841.
@@ -133,7 +133,7 @@ select public.fn_expense_post_to_gl(e.id)
    'resend:6817002c-ce8f-4373-a605-1a6a6c34db99','resend:5c485805-8ef2-499f-9e5d-9b45dbfa106d','resend:2aed15a7-c867-4bec-b3fe-0b30710a5713',
    'resend:e694d394-c918-49cd-b100-6be139d7d826','resend:b84a6468-f28e-44ba-8bc4-867e4be87dd5','resend:b8b7d17b-6e89-4635-aa88-3a8840f8650d',
    'resend:c7731ece-06ca-4d64-830e-62e38ab90d89','resend:ed3b6452-2011-425c-a173-cf8b2e3c5ee6','resend:e0efca20-4f8c-494f-9968-b6d1cd85960e',
-   'gmail:1a0db2fe04b6e6f4','founder:1538:chatgpt:2026-08','gmail:1a0d2e81229becc1',
+   'gmail:1a0db2fe04b6e6f4','stated:1538:chatgpt:2026-08','gmail:1a0d2e81229becc1',
    'gmail:1a0e3495f2df81af','gmail:1a1311e4f8203d12','gmail:1a17c8dbca648b40',
    'resend:83a048cb-6bbe-48ec-9c41-c7030215c233','gmail:1a12783d752a511f',
    'resend:4973c87e-a028-4128-b0bd-ffd8a0a375cc','gmail:1a134c67dde065d6',
@@ -154,7 +154,7 @@ select public.fn_gl_entry(j.entry_date,
    'resend:6817002c-ce8f-4373-a605-1a6a6c34db99','resend:5c485805-8ef2-499f-9e5d-9b45dbfa106d','resend:2aed15a7-c867-4bec-b3fe-0b30710a5713',
    'resend:e694d394-c918-49cd-b100-6be139d7d826','resend:b84a6468-f28e-44ba-8bc4-867e4be87dd5','resend:b8b7d17b-6e89-4635-aa88-3a8840f8650d',
    'resend:c7731ece-06ca-4d64-830e-62e38ab90d89','resend:ed3b6452-2011-425c-a173-cf8b2e3c5ee6','resend:e0efca20-4f8c-494f-9968-b6d1cd85960e',
-   'gmail:1a0db2fe04b6e6f4','founder:1538:chatgpt:2026-08','gmail:1a0e3495f2df81af',
+   'gmail:1a0db2fe04b6e6f4','stated:1538:chatgpt:2026-08','gmail:1a0e3495f2df81af',
    'resend:83a048cb-6bbe-48ec-9c41-c7030215c233','resend:4973c87e-a028-4128-b0bd-ffd8a0a375cc','gmail:1a134c67dde065d6',
    'gmail:1a1988ac33bc052b')
    and not exists (select 1 from public.gl_journal x where x.source = 'bank_reconciliation' and x.source_ref = j.id::text);
@@ -170,7 +170,7 @@ with mine as (
    'resend:6817002c-ce8f-4373-a605-1a6a6c34db99','resend:5c485805-8ef2-499f-9e5d-9b45dbfa106d','resend:2aed15a7-c867-4bec-b3fe-0b30710a5713',
    'resend:e694d394-c918-49cd-b100-6be139d7d826','resend:b84a6468-f28e-44ba-8bc4-867e4be87dd5','resend:b8b7d17b-6e89-4635-aa88-3a8840f8650d',
    'resend:c7731ece-06ca-4d64-830e-62e38ab90d89','resend:ed3b6452-2011-425c-a173-cf8b2e3c5ee6','resend:e0efca20-4f8c-494f-9968-b6d1cd85960e',
-   'gmail:1a0db2fe04b6e6f4','founder:1538:chatgpt:2026-08','gmail:1a0d2e81229becc1',
+   'gmail:1a0db2fe04b6e6f4','stated:1538:chatgpt:2026-08','gmail:1a0d2e81229becc1',
    'gmail:1a0e3495f2df81af','gmail:1a1311e4f8203d12','gmail:1a17c8dbca648b40',
    'resend:83a048cb-6bbe-48ec-9c41-c7030215c233','gmail:1a12783d752a511f',
    'resend:4973c87e-a028-4128-b0bd-ffd8a0a375cc','gmail:1a134c67dde065d6',
