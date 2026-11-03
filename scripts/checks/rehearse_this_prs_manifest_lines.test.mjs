@@ -24,17 +24,20 @@ globalThis.fetch = async (url, init) => {
   appendFileSync(process.env.FIXTURE_LOG, JSON.stringify(q) + '\\n');
   const err = (message) => new Response(JSON.stringify({ message }), { status: 400 });
   if (q.includes('pg_get_functiondef')) return new Response(JSON.stringify([{ fp: 'unchanged' }]), { status: 200 });
-  if (!q.includes('SAFE_REPLAY_ROLLBACK')) return new Response('[]', { status: 200 });   // apply_sql's callee reads: nothing live
+  if (!q.includes('SAFE_REPLAY_ROLLBACK')) {   // apply_sql's callee reads: what production holds today
+    const live = JSON.parse(q.includes('pg_class') ? process.env.FIXTURE_LIVE_RELATIONS : process.env.FIXTURE_LIVE);
+    return new Response(JSON.stringify(live.map((n) => ({ n }))), { status: 200 });
+  }
   if (q.includes('FAILME')) return err('ERROR: 42601: syntax error at or near "FAILME"');
   if (q.includes('SAFE_REPLAY_ROWS')) return err('ERROR: P0001: SAFE_REPLAY_ROWS<<' + process.env.FIXTURE_ROWS + '>>SAFE_REPLAY_ROWS');
   if (q.includes("raise exception 'PROBE OK'")) return err('ERROR: P0001: CHK<<PROBE OK>>');
   return err('ERROR: P0001: SAFE_REPLAY_ROLLBACK: the replay is always rolled back');
 };\n`;
 const fn = (name, body) => `create or replace function public.${name}() returns int language plpgsql as $f$ begin ${body} end $f$;\n`;
-const ROWS = [{ proname: 'fn_a', prosrc: 'a' }, { proname: 'fn_b', prosrc: 'b' }, { proname: 'fn_c', prosrc: 'c' }];
+const ROWS = ['a', 'b', 'c'].map((x) => ({ kind: 'routine', name: `fn_${x}`, prosrc: x }));
 const dirs = [];
 
-function rehearse({ a = 'return 1;', aAlso = '', b = 'return public.fn_a();', c = 'return 3;', rows = ROWS } = {}) {
+function rehearse({ a = 'return 1;', aAlso = '', b = 'return public.fn_a();', c = 'return 3;', rows = ROWS, live = [], liveRelations = [] } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'rehearse-pr-')); dirs.push(dir);
   const put = (p, text) => { mkdirSync(join(dir, p, '..'), { recursive: true }); writeFileSync(join(dir, p), text); };
   const git = (...a) => execFileSync('git', ['-c', 'core.autocrlf=false', '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', ...a],
@@ -53,6 +56,7 @@ function rehearse({ a = 'return 1;', aAlso = '', b = 'return public.fn_a();', c 
   git('add', '-A'); git('commit', '-qm', 'the pull request');
   const log = join(dir, 'queries.log'), out = join(dir, 'results.json');
   const env = { ...process.env, SUPABASE_ACCESS_TOKEN: 'fixture-not-a-token', FIXTURE_LOG: log, FIXTURE_ROWS: JSON.stringify(rows),
+    FIXTURE_LIVE: JSON.stringify(live), FIXTURE_LIVE_RELATIONS: JSON.stringify(liveRelations),
     NODE_OPTIONS: `--import=${pathToFileURL(join(dir, 'stub_fetch.mjs')).href}` };
   const r = spawnSync(process.execPath, ['scripts/ci/rehearse_this_prs_manifest_lines.mjs', base, out], { cwd: dir, env, encoding: 'utf8' });
   const queries = existsSync(log) ? readFileSync(log, 'utf8').trim().split('\n').map((l) => JSON.parse(l)) : [];
@@ -93,24 +97,51 @@ test('apply_sql.mjs\'s guards run first: a callee nobody defines is refused, one
   assert.ok(!replays.some((q) => q.includes('SAFE_REPLAY_ROWS')), 'a read-back ran after a refusal');
 });
 
-test('a commented-out or dropped definition in an earlier file is no credit: the merge\'s dry run would refuse the call', () => {
-  for (const [why, aAlso] of [
-    ['commented out', '-- retired: create or replace function public.fn_ghost(\n'],
-    ['defined, then dropped', fn('fn_ghost', 'return 9;') + 'drop function public.fn_ghost();\n'],
+test('a commented-out or dropped definition in an earlier file is no credit, and a call to it fails', () => {
+  for (const [why, aAlso, said] of [
+    ['commented out', '-- retired: create or replace function public.fn_ghost(\n', /apply_sql\.mjs refused it \(exit 4\)[\s\S]*fn_ghost/],
+    ['defined, then dropped', fn('fn_ghost', 'return 9;') + 'drop function public.fn_ghost();\n', /calls fn_ghost, which an earlier file of this PR drops/],
   ]) {
     const { code, stdout, results, replays } = rehearse({ aAlso, c: 'return public.fn_ghost();' });
     assert.equal(code, 0, stdout);
     assert.deepEqual(verdicts(results), ['NOT REHEARSED', 'PROBE OK', 'FAILED'], `${why}:\n${stdout}`);
-    assert.match(results.files[2].verdict, /apply_sql\.mjs refused it \(exit 4\)[\s\S]*fn_ghost/, `${why}: ${results.files[2].verdict}`);
+    assert.match(results.files[2].verdict, said, `${why}: ${results.files[2].verdict}`);
     assert.ok(!replays.some((q) => q.includes('SAFE_REPLAY_ROWS')), `${why}: a read-back ran after a refusal`);
   }
 });
 
-test('a credited routine the read-back does not hold fails the file that called it', () => {
-  const { code, stdout, results } = rehearse({ rows: ROWS.filter((r) => r.proname !== 'fn_a') });
+test('a routine LIVE today that an earlier file drops fails the later file that calls it, the drop plain or in a string', () => {
+  for (const [why, aAlso] of [
+    ['plain drop', 'drop function public.fn_ghost();\n'],
+    ['drop inside an execute string', "do $d$ begin execute 'drop function if exists public.fn_ghost()'; end $d$;\n"],
+  ]) {
+    const { code, stdout, results } = rehearse({ aAlso, c: 'return public.fn_ghost();', live: ['fn_ghost'],
+      rows: [...ROWS, { kind: 'routine', name: 'fn_ghost', prosrc: 'x' }] });
+    assert.equal(code, 0, stdout);
+    assert.deepEqual(verdicts(results), ['NOT REHEARSED', 'PROBE OK', 'FAILED'], `${why}:\n${stdout}`);
+    assert.match(results.files[2].verdict, /calls fn_ghost, which an earlier file of this PR drops/, `${why}: ${results.files[2].verdict}`);
+  }
+});
+
+test('anything a file calls that the read-back after every file does not hold fails it: credited, or live today', () => {
+  const credited = rehearse({ rows: ROWS.filter((r) => r.name !== 'fn_a') });
+  assert.equal(credited.code, 0, credited.stdout);
+  assert.deepEqual(verdicts(credited.results), ['REHEARSED', 'FAILED', 'REHEARSED'], credited.stdout);
+  assert.match(credited.results.files[1].verdict, /calls fn_a, and the read-back after every file of this PR holds no such routine or relation/);
+  // live today, gone where no pattern can see it: the dry run passes, the read-back does not
+  const liveToday = rehearse({ c: 'return public.fn_live();', live: ['fn_live'] });
+  assert.deepEqual(verdicts(liveToday.results), ['REHEARSED', 'PROBE OK', 'FAILED'], liveToday.stdout);
+  assert.match(liveToday.results.files[2].verdict, /calls fn_live, and the read-back/);
+  const readBack = liveToday.replays.find((q) => q.includes('SAFE_REPLAY_ROWS')) || '';
+  assert.match(readBack, /p\.proname = any\(array\[[^\]]*'fn_live'/, 'the read-back never asked for the callee:\n' + readBack);
+  assert.match(readBack, /c\.relname = any\(array\[[^\]]*'fn_live'/, 'the read-back never asked whether the callee is a relation:\n' + readBack);
+});
+
+test('a call-shaped name that is a relation in the read-back is not a missing routine', () => {
+  const { code, stdout, results } = rehearse({ c: 'insert into public.fn_tbl (x) values (1); return 3;', liveRelations: ['fn_tbl'],
+    rows: [...ROWS, { kind: 'relation', name: 'fn_tbl', prosrc: null }] });
   assert.equal(code, 0, stdout);
-  assert.deepEqual(verdicts(results), ['REHEARSED', 'FAILED', 'REHEARSED'], stdout);
-  assert.match(results.files[1].verdict, /calls on fn_a, credited to an earlier file/, results.files[1].verdict);
+  assert.deepEqual(verdicts(results), ['REHEARSED', 'PROBE OK', 'REHEARSED'], stdout);
 });
 
 test.after(() => { for (const d of dirs) rmSync(d, { recursive: true, force: true }); });

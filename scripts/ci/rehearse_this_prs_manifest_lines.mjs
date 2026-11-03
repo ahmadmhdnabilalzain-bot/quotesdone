@@ -1,18 +1,24 @@
 #!/usr/bin/env node
 // THIS PULL REQUEST'S NEW MANIFEST LINES, REHEARSED THE WAY THE MERGE WILL APPLY THEM (it_engineer, 3 Nov 2026).
 // scripts/lib/applies_at_merge.mjs says why. In MANIFEST order, for each file k:
-//   1. apply_sql.mjs's own pre-write guards, as a DRY RUN (refused statements, a foreign project ref, a callee the
-//      database does not have). A routine an earlier file of this PR defines counts as present, because the merge
-//      applies that file first: its name is handed to the dry run as a comment, which apply_sql reads as defined.
-//      The credit is read from code only, less what an earlier file drops, and the read-back must then hold every
-//      credited routine, or the file that leaned on it FAILS.
-//   2. Only when k has a _probe.sql: files 1..k replayed with the probe, which must answer PROBE OK.
-// Then ONE replay of all the files together, reading back every routine they define from inside the rolled-back
-// transaction: that read-back is what production will hold once the merge has applied them, and it is the
-// rehearsal of every file without a probe. Every replay starts with a lock and statement timeout, so a rehearsal
-// that would hold production's locks fails instead, and the finding counts. Nothing commits: safe_replay refuses
-// transaction control and fingerprints the routines before and after.
+//   1. What files 1..k-1 leave behind, from their text in statement order: a routine created in CODE (comments,
+//      strings and bodies masked) is credited; a `drop function|procedure` ANYWHERE in the text, a string or comment
+//      included, takes the credit away and marks the routine GONE. File k FAILS when it calls a gone routine that it
+//      does not define itself: at merge it would run after the drop, whatever production holds today.
+//   2. apply_sql.mjs's own pre-write guards, as a DRY RUN (refused statements, a foreign project ref, a callee the
+//      database does not have), with the credited routines handed to it as comments, which apply_sql reads as defined.
+//   3. Only when k has a _probe.sql: files 1..k replayed with the probe, which must answer PROBE OK.
+// Then ONE replay of all the files together, reading back from inside the rolled-back transaction every routine they
+// define or call, and every relation a call might name: that read-back is what production will hold once the merge
+// has applied them, and it is the rehearsal of every file without a probe. A file FAILS when something it calls
+// (apply_sql's callee pattern, less what it defines) is neither a routine nor a relation in that read-back.
+// Every replay starts with a lock and statement timeout, so a rehearsal that would hold production's locks fails
+// instead, and the finding counts. Nothing commits: safe_replay refuses transaction control and fingerprints the
+// routines before and after.
 //
+// KNOWN LIMIT (review of #1825): a routine dropped by an earlier file through text no pattern can see — built at run
+// time, e.g. `execute format('drop function %s', ...)` — and recreated by a file AFTER k passes here and stops the
+// merge at k. The dry run asks production as it is now, and the read-back sees the state after every file.
 // What the merge does that this does not: the release guard (it passes on main by construction) and the seat (the
 // merge always names one). The rehearsal runs against production as it is NOW; the merge runs minutes or days later.
 //   node scripts/ci/rehearse_this_prs_manifest_lines.mjs <base-sha> <results.json>
@@ -35,29 +41,49 @@ if (error || !files.length) {
 }
 
 const { rehearse } = await import('./rehearse_sql.mjs');
-const { replaySql, createdObjects } = await import('../lib/safe_replay.mjs');
+const { replaySql } = await import('../lib/safe_replay.mjs');
 const { maskSql } = await import('../lib/sql_text.mjs');
 // A rehearsal that waits on a lock is one holding production up; it fails, and the finding counts (review of #1825).
 const LIMITS = "set local lock_timeout = '5s';\nset local statement_timeout = '90s';\n";
 const texts = files.map((f) => readFileSync(f, 'utf8'));
 const upTo = (k) => LIMITS + texts.slice(0, k + 1).join('\n;\n');
-// The routines files 1..k-1 leave behind, read from CODE (comments, strings and bodies masked), in apply order: a
-// commented-out definition, or one an earlier file creates and then drops, is never credited (re-review of #1825).
-const DROPS = /\bdrop\s+(?:function|procedure)\s+(?:if\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi;
-const credited = [];
-const creditFor = (k) => {
-  const left = new Set();
-  for (const t of texts.slice(0, k)) {
-    for (const n of createdObjects(t).routines) if (n.startsWith('public.')) left.add(n.slice('public.'.length));
-    for (const m of maskSql(t).matchAll(DROPS)) left.delete(m[1].toLowerCase());
-  }
-  return [...left];
+const bare = (n) => n.replace(/"/g, '').toLowerCase().replace(/^public\./, '');
+
+// apply_sql.mjs's own patterns: what a file defines, what it calls, and the drops that are not calls.
+const DEFINES = /create\s+or\s+replace\s+function\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi;
+const CALLEE = /public\.((?:fn|trg|qd|run)_[a-z0-9_]+)\s*\(/g;
+const DROPPED_HERE = /drop\s+(?:function|procedure)\s+(?:if\s+exists\s+)?public\.[a-z0-9_]+\s*\(/gi;
+const callsOf = (t) => {
+  const own = new Set([...t.matchAll(DEFINES)].map((m) => m[1].toLowerCase()));
+  return [...new Set([...t.replace(DROPPED_HERE, '').matchAll(CALLEE)].map((m) => m[1].toLowerCase()))].filter((c) => !own.has(c));
 };
+const calls = texts.map(callsOf);
+
+// Statement order inside each earlier file. maskSql keeps every offset, so masked creates and raw drops share one axis.
+const CREATES = /\bcreate\s+(?:or\s+replace\s+)?(?:function|procedure)\s+([a-z0-9_."]+)\s*\(/gi;
+const DROPS = /\bdrop\s+(?:function|procedure)\s+(?:if\s+exists\s+)?([a-z0-9_."]+)/gi;
+const credited = [], gone = [];
+{
+  const left = new Set(), dropped = new Set();
+  for (const [k, t] of texts.entries()) {
+    credited[k] = [...left]; gone[k] = [...dropped];
+    const events = [
+      ...[...maskSql(t).matchAll(CREATES)].map((m) => ({ at: m.index, name: m[1], create: true })),
+      ...[...t.matchAll(DROPS)].map((m) => ({ at: m.index, name: m[1], create: false })),
+    ].filter((e) => !e.name.includes('.') || /^"?public"?\./i.test(e.name)).sort((a, b) => a.at - b.at);
+    for (const e of events) {
+      const n = bare(e.name);
+      if (e.create) { left.add(n); dropped.delete(n); } else { left.delete(n); dropped.add(n); }
+    }
+  }
+}
+
 const scratch = mkdtempSync(join(tmpdir(), 'qd-rehearse-'));
 const guards = (k) => {
-  const earlier = credited[k] = creditFor(k);
+  const after = calls[k].filter((c) => gone[k].includes(c));
+  if (after.length) throw new Error(`it calls ${after.join(', ')}, which an earlier file of this PR drops; at merge it runs after that drop`);
   const file = join(scratch, files[k].split('/').pop());
-  writeFileSync(file, texts[k] + '\n' + earlier.map((n) => `-- applied by an earlier file of this PR: create or replace function public.${n}(\n`).join(''));
+  writeFileSync(file, texts[k] + '\n' + credited[k].map((n) => `-- applied by an earlier file of this PR: create or replace function public.${n}(\n`).join(''));
   try {
     execFileSync(process.execPath, ['scripts/apply_sql.mjs', file, '--ddl', '--seat', 'it_engineer'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   } catch (e) {
@@ -87,26 +113,30 @@ for (const [k, file] of files.entries()) {
 rmSync(scratch, { recursive: true, force: true });
 
 if (!failed) {
-  // Every name a `create function` in these files mentions, the same pattern canonical_routine_manifest reads.
+  // Every name a `create function` in these files mentions (canonical_routine_manifest's pattern), and every callee.
+  const callees = [...new Set(calls.flat())];
   const names = [...new Set([...texts.join('\n;\n').matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\(/gi)]
-    .map((m) => m[1].toLowerCase()).concat(credited.flat()))];
+    .map((m) => m[1].toLowerCase()).concat(callees))];
+  const arr = (xs) => `array[${xs.map((n) => `'${n}'`).join(',') || "''"}]::text[]`;
   const unprobed = results.files.filter((r) => !r.probe);
   try {
-    const list = names.map((n) => `'${n}'`).join(',') || "''";
-    const rows = await replaySql(`${upTo(files.length - 1)}\n;\nselect p.proname, p.prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-      where n.nspname = 'public' and p.proname = any(array[${list}]::text[])`, { label: 'this PR\'s files, read back', rows: true });
-    const routines = {};
-    for (const r of rows) (routines[r.proname] ??= []).push(r.prosrc);
+    const rows = await replaySql(`${upTo(files.length - 1)}\n;\nselect 'routine' as kind, p.proname as name, p.prosrc
+        from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = any(${arr(names)})
+      union all
+      select 'relation', c.relname, null from pg_class c join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public' and c.relkind in ('r','p','v','m','f') and c.relname = any(${arr(callees)})`,
+    { label: 'this PR\'s files, read back', rows: true });
+    const routines = {}, relations = new Set();
+    for (const r of rows) if (r.kind === 'relation') relations.add(r.name); else (routines[r.name] ??= []).push(r.prosrc);
     results.post_state = { ok: true, routines };
     for (const r of unprobed) r.verdict = 'REHEARSED';
-    // A credit the read-back does not hold was never real: the merge's own dry run of that file would refuse it.
+    // Something a file calls that the merged state does not hold: the merge's own dry run of it would refuse it,
+    // or it throws the first time it runs. Fails closed whether the name was credited or live today.
     for (const [k, r] of results.files.entries()) {
-      // the credited names this file calls, by apply_sql.mjs's own callee pattern over the file as the merge sends it
-      const calls = new Set([...texts[k].matchAll(/public\.((?:fn|trg|qd|run)_[a-z0-9_]+)\s*\(/g)].map((m) => m[1].toLowerCase()));
-      const absent = (credited[k] || []).filter((n) => calls.has(n) && !routines[n]);
-      if (absent.length) r.verdict = `FAILED: it calls on ${absent.join(', ')}, credited to an earlier file of this PR, and the read-back after every file holds none`;
+      const absent = calls[k].filter((c) => !routines[c] && !relations.has(c));
+      if (absent.length) r.verdict = `FAILED: it calls ${absent.join(', ')}, and the read-back after every file of this PR holds no such routine or relation`;
     }
-    console.log(`read back ${rows.length} routine body(ies) of ${names.length} name(s) after all ${files.length} file(s), rolled back`);
+    console.log(`read back ${rows.length} routine/relation row(s) for ${names.length} name(s) after all ${files.length} file(s), rolled back`);
   } catch (e) {
     results.post_state = { ok: false, error: String(e?.message ?? e).slice(0, 2000) };
     for (const r of unprobed) r.verdict = `FAILED: the replay of every file failed: ${results.post_state.error.slice(0, 300)}`;
