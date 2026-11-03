@@ -30,7 +30,22 @@ export type ChoiceResult =
 export type TradeChooser = (text: string, kind: 'profile' | 'catalogue', company?: string | null) => Promise<ChoiceResult>;
 const companyLine = (company?: string | null) => company ? `The company registered as: ${String(company).slice(0, 160)}\n\n` : '';
 
-export const CHOICE_TEXT_MAX = 40_000;
+// THE MODEL READS EVERYTHING CODE READ (3 Nov 2026, sales_engineer; founder: "a supplier attaches a company profile of 300 pages
+// and the sales agent must go through it properly"). This was 40,000 characters: measured by scripts/e2e/document_reading_qualification.ts,
+// a 300-page text profile (270,000 characters) whose services are stated on page 160 as division pages, with no offer heading or
+// offer sentence for offerText to bring forward, was cut at about page 45 and its three trades never reached the model. The cap is
+// now the reader's own text cap, so nothing code read is withheld; a document is cut into CHUNK_CHARS requests, CHOICE_CONCURRENCY
+// at a time. What it costs (ai_cost_log, 30 days to 3 Nov 2026: 1,254 supplier_trade_choice calls, AED 0.0027 each on average):
+// a 270,000-character profile is 20 chunks x 2-3 readings + one check, about AED 0.15, once per supplier.
+export const CHOICE_TEXT_MAX = 400_000;   // = doc_read/types.ts LIMITS.maxTextChars (asserted in supplier_trade_choice.test.ts)
+export const CHOICE_CONCURRENCY = 5;
+/** fn over items, at most n at a time, results in order. */
+export async function inPool<T, R>(items: T[], n: number, fn: (x: T, i: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (next < items.length) { const i = next++; out[i] = await fn(items[i], i); } }));
+  return out;
+}
 // The route (model_policy). QD_CHOICE_TASK_CLASS lets the accuracy harness measure on another class's model before the
 // new row is applied at merge; production never sets it.
 export function choiceTaskClass(): string {
@@ -86,6 +101,10 @@ export function textChunks(text: string, max = CHUNK_CHARS): string[] {
   if (cur.trim() || !out.length) out.push(cur);
   return out;
 }
+/** The parts of a document's text the chooser hands the model, one per request. One definition, read by liveTradeChooser and by
+ *  scripts/e2e/document_reading_qualification.ts, so what the qualification says reached the model is what reaches it. */
+export const modelParts = (text: string): string[] => textChunks(String(text ?? '').slice(0, CHOICE_TEXT_MAX));
+export const modelText = (text: string): string => modelParts(text).join('\n');
 /** Codes a reading NAMED: proposed, or proposed with a quote code could not find. */
 const namedBy = (r: Extract<ChoiceResult, { ok: true }>) => new Set([...r.trades.map((t) => t.code), ...r.rejected.filter((x) => x.why.startsWith('the quote is not in the document')).map((x) => x.code)]);
 /** A third reading is needed when one of two readings is empty or they named different codes. */
@@ -211,13 +230,13 @@ export function liveTradeChooser(admin: any, opts: { subject?: unknown; headers?
       // CHUNKED (19 Oct 2026): one request over a long document hit the gateway's CPU cap (N05, HTTP 546) and its 55 s
       // wall deadline (H02, gateway_deadline). Each chunk is chosen on its own, in parallel, and the proven choices merged;
       // one second look then judges the merged list against the whole text.
-      const parts = textChunks(text.slice(0, CHOICE_TEXT_MAX));
+      const parts = modelParts(text);
       // A later chunk is read with the document's opening (title, about, services) as context, so a list item is judged
       // as part of the company it belongs to; only the chunk itself may be quoted.
       const head = parts.length > 1 ? parts[0].slice(0, 2500) : '';
       // one reading of the whole document: every chunk read once, merged; an error only when a chunk could not be read twice
       const readOnce = async (): Promise<ChoiceResult> => {
-        const each = await Promise.all(parts.map((p, i) => twice(async () => { const g = await gateway(choiceRequest(i && head ? `[The document opens with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n${p}` : p, kind, d, opts.subject, company)); if (g.ok && (globalThis as any).Deno?.env?.get('QD_CHOICE_DEBUG')) console.error('CHOICE_RAW', i, String(g.content).slice(0, 1500)); return g.ok ? checkChoice(g.content, p, d) : g; })));
+        const each = await inPool(parts, CHOICE_CONCURRENCY, (p, i) => twice(async () => { const g = await gateway(choiceRequest(i && head ? `[The document opens with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n${p}` : p, kind, d, opts.subject, company)); if (g.ok && (globalThis as any).Deno?.env?.get('QD_CHOICE_DEBUG')) console.error('CHOICE_RAW', i, String(g.content).slice(0, 1500)); return g.ok ? checkChoice(g.content, p, d) : g; }));
         const bad = each.find((x) => !x.ok);
         return bad ?? mergeChoices(each as Extract<ChoiceResult, { ok: true }>[]);
       };

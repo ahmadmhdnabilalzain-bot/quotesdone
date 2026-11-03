@@ -37,9 +37,12 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const EXPIRY_KEYWORDS = [
   'expiry date', 'expiry', 'expires on', 'expires', 'expiration date', 'expiration', 'date of expiry',
   'valid until', 'valid till', 'valid to', 'valid upto', 'valid up to',
+  // 3 Nov 2026 (certificate_period_expiry.test.ts, 120 certificates): 'End Date: B' beside 'Start Date: A' read nothing
+  'end date',
   'تاريخ الانتهاء', 'تاريخ انتهاء', 'الانتهاء', 'ينتهي في', 'ينتهي', 'صالحة حتى', 'صالح حتى', 'سارية حتى', 'ساري حتى',
 ];
-const PERIOD_KEYWORDS = ['validity', 'period of insurance', 'صلاحية'];
+// 3 Nov 2026 (certificate_period_expiry.test.ts): 'Policy Period: A - B' read nothing (8 of the 120 certificates)
+const PERIOD_KEYWORDS = ['validity', 'period of insurance', 'policy period', 'period of cover', 'insurance period', 'صلاحية', 'مدة التأمين'];
 // A THIRD KIND, TRIED LAST (1 Nov 2026, sales_engineer; the gap was measured on 28 Oct in the review of #1708). START
 // keywords name where a period begins: "Valid From: 15/03/2025 To: 14/03/2028" and "valid between 01/01/2026 and
 // 31/12/2026" print no keyword of the other two kinds, and both read null. A start keyword is read only through the
@@ -478,8 +481,23 @@ const hexString = (h: string) => { const clean = h.replace(/\s+/g, ''); let s = 
 const TEXT_OF = new WeakMap<Uint8Array, Promise<string | null>>();
 export function pdfText(bytes: Uint8Array): Promise<string | null> {
   let p = TEXT_OF.get(bytes);
-  if (!p) { p = readPdfText(bytes); TEXT_OF.set(bytes, p); }
+  if (!p) { p = readPdfText(bytes).then((t) => readable(t) ? t : pdfjsFallback(bytes, t)); TEXT_OF.set(bytes, p); }
   return p;
+}
+// A TEXT LICENCE WRITTEN WITH AN EMBEDDED FONT (3 Nov 2026, sales_engineer; scripts/e2e/document_reading_qualification.ts). The reader
+// below decodes a string one byte per character, which is right for the Standard-14 fonts and wrong for a Type0 / Identity-H font
+// (two-byte glyph ids, mapped to letters only by the font's ToUnicode CMap) - the way most generators write a PDF today. Such a
+// licence, English or Arabic, read as control characters: 1 of 8 fields, and a supplier with a perfectly readable licence was sent
+// to the model or held. When this reader's text is not readable words, pdf.js (doc_read/pdf.ts, which applies ToUnicode) reads the
+// file instead; its text is taken when it holds more letters. Never a guess: both are the file's own text layer.
+const lettersOf = (t: string | null) => (t ?? '').replace(/[^\p{L}]/gu, '').length;
+const readable = (t: string | null) => !!t && lettersOf(t) >= 0.5 * t.replace(/\s/g, '').length;
+async function pdfjsFallback(bytes: Uint8Array, own: string | null): Promise<string | null> {
+  try {
+    const { pdfjsText } = await import('./doc_read/pdf.ts');
+    const r = await pdfjsText(bytes, 20);
+    return r.status === 'text' && lettersOf(r.text) > lettersOf(own) ? r.text : own;
+  } catch { return own; }
 }
 async function readPdfText(bytes: Uint8Array): Promise<string | null> {
   const raw = new TextDecoder('latin1').decode(bytes);
@@ -593,9 +611,43 @@ export function emirateOfAuthority(a: string | null | undefined): string | null 
   for (const [re, e] of AUTHORITY_EMIRATE) if (re.test(String(a ?? ''))) return e;
   return null;
 }
+// ACTIVITIES PRINTED ONE PER LINE UNDER THEIR LABEL (3 Nov 2026, sales_engineer; scripts/e2e/document_reading_qualification.ts). A DET
+// licence lists its activities as rows under "Business Activities"; the label's own line then holds no value, so `labelled` read
+// nothing and a four-activity licence proposed no trade at all ("no activities line could be read"). The label alone on its line
+// now takes the lines under it, up to a blank line or the next labelled field, each line one activity (never split at a comma:
+// an activity name may hold one, "Air-Conditioning, Ventilation & Air Filtration ...").
+const ALL_FIELD_LABELS = () => [...Object.values(LABELS).flat(), ...NAME_LABELS, 'expiry date', 'valid until', 'تاريخ الانتهاء'];
+function activitiesBlock(text: string): string[] | null {
+  const lines = text.split(/\r?\n/);
+  for (const label of LABELS.activities) {
+    const re = new RegExp('^[ \\t]*' + esc(label) + '[ \\t]*[:：\\-]?[ \\t]*$', 'iu');
+    const i = lines.findIndex((l) => re.test(l));
+    if (i < 0) continue;
+    const isLabel = (l: string) => ALL_FIELD_LABELS().some((k) => new RegExp('^[ \\t]*' + esc(k) + '(?![\\p{L}])', 'iu').test(l));
+    // The content-stream reader puts a blank line between lines that each have their own BT..ET (most generators), so ONE
+    // blank line is a line break and TWO end the list. ponytail: layout rule; a list followed by an unlabelled paragraph after a
+    // single break would take it in (measured on none so far).
+    const out: string[] = [];
+    let blank = 0;
+    for (let k = i + 1; k < lines.length && out.length < 30; k++) {
+      const l = lines[k].replace(/^[ \t]*(?:[-•*·]|\d{1,2}[.)])[ \t]*/, '').trim();
+      if (!l) { if (++blank >= 2 && out.length) break; continue; }
+      blank = 0;
+      if (isLabel(lines[k]) || /^\(/.test(l)) break;
+      if (l.length >= 3 && /\p{L}{2}/u.test(l)) out.push(l);
+    }
+    if (out.length) return out;
+  }
+  return null;
+}
 export function licenceFieldsFromText(text: string): LicenceFields {
   const t = String(text || '');
-  const noRaw = labelled(t, LABELS.licence_no);
+  // A NUMBER ON AN ARABIC LINE IS NOT READ BY CODE (3 Nov 2026, sales_engineer; document_reading_qualification L07). An Arabic text
+  // licence printing "رقم الرخصة: 1100237" was read as 7320011: the text layer of a right-to-left line carries its digits in whatever
+  // order the producer wrote its glyphs, and a reversed number is a valid-looking WRONG number, believed downstream. Unread, the
+  // model reads it from the page (licenceNeedsModel) and mergeLicenceReads takes the model's - never a number in the wrong order.
+  const noLine = labelled(t, LABELS.licence_no);
+  const noRaw = noLine && !/[؀-ۿ]/.test((t.split(/\r?\n/).find((l) => l.includes(noLine)) ?? '')) ? noLine : null;
   const licence_no = noRaw ? (/[A-Z0-9][A-Z0-9\-/.]*\d[A-Z0-9\-/.]*/i.exec(noRaw)?.[0].replace(/[.\-/]+$/, '') ?? null) : null;
   const legal = labelled(t, LEGAL_NAME_LABELS);
   const authority = labelled(t, LABELS.authority);
@@ -609,7 +661,7 @@ export function licenceFieldsFromText(text: string): LicenceFields {
     trade_name: labelled(t, TRADE_NAME_LABELS), legal_form: labelled(t, LABELS.legal_form), authority,
     emirate: emirateOf(emirateRaw) ?? emirateOfAuthority(authority),
     issue_date: issueRaw ? parseDate(issueRaw) : null, expiry_date: expiryFromText(t)?.expiry ?? null,
-    activities: acts ? acts.split(/[,،;؛]/).map((a) => a.trim()).filter((a) => a.length >= 3) : null,
+    activities: acts ? acts.split(/[,،;؛]/).map((a) => a.trim()).filter((a) => a.length >= 3) : activitiesBlock(t),
   };
 }
 const NO_FIELDS: LicenceFields = { licence_no: null, legal_name_en: null, legal_name_ar: null, trade_name: null, legal_form: null, authority: null, emirate: null, issue_date: null, expiry_date: null, activities: null };
@@ -619,6 +671,16 @@ export async function readLicenceFields(bytes: Uint8Array, mime: string): Promis
   const text = await pdfText(bytes);
   return text ? licenceFieldsFromText(text) : { ...NO_FIELDS };
 }
+// A FILE TOO LARGE TO READ IS REFUSED BEFORE IT IS PARSED (3 Nov 2026, sales_engineer; defect of the 28 Oct document walk,
+// docs/reports/supplier_documents_28_oct). A 24 MB licence ended supplier_portal at the edge's CPU cap (HTTP 546), and after #1721
+// supplier_api process_docs still did at 19.3 MB (9.66 MB passed both, measured on production 1 Nov). The browser refuses above 10 MB
+// (#1720); this is the same ceiling on the server, so a caller that skips the browser cannot reach the parse. Suppliers read English.
+export const READ_MAX_BYTES = 10 * 1024 * 1024;
+/** The decoded size of a base64 string (a data: prefix ignored), without decoding it. */
+export const b64Size = (b64: unknown) => { const s = String(b64 ?? '').replace(/^data:[^,]*,/, '').replace(/\s/g, ''); return Math.floor(s.length * 3 / 4) - (s.endsWith('==') ? 2 : s.endsWith('=') ? 1 : 0); };
+export const tooLargeToRead = (bytes: number, what: string) =>
+  ({ error: 'file_too_large_read', code: 'file_too_large_read', message: `That ${what} is ${(bytes / 1048576).toFixed(1)} MB. We can read files of up to 10 MB. Please upload a smaller copy: a compressed PDF, or a clear photo of each page.` });
+
 /** The model is asked whenever code left one of the four fields the gate stands on unread. */
 export const licenceNeedsModel = (c: Partial<LicenceFields> | null | undefined) => !c?.legal_name_en || !c?.licence_no || !c?.expiry_date || !c?.authority;
 

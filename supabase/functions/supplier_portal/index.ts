@@ -23,7 +23,7 @@ import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
 // instruction 524, 21 Sep 2026). _shared/document_expiry.ts reads the expiry off the bytes by code
 // before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
-import { licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type ExpiryRead, type LicenceFields } from '../_shared/document_expiry.ts';
+import { licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, b64Size, READ_MAX_BYTES, tooLargeToRead, type ExpiryRead, type LicenceFields } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { productsAsked } from '../_shared/reasoned_matching.ts';
@@ -514,6 +514,9 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           if (kind.nameCol) upd[kind.nameCol] = safeFilename(it.filename || 'profile', String(it.mime || 'application/pdf')).slice(0, 200);
           readQueue.push({ path: String(it.path), name: String(it.filename || 'profile'), kind: 'profile', mime: it.mime ? String(it.mime) : undefined, gate: true });
         } else if (it.original_b64) {
+          // A licence or certificate is read in this request (name, fields, expiry): above READ_MAX_BYTES it is refused before
+          // it is decoded or parsed (a 24 MB licence was HTTP 546 here, 28 Oct; document_expiry.ts READ_MAX_BYTES).
+          if (b64Size(it.original_b64) > READ_MAX_BYTES) { failedUploads.push({ kind: kindStr, reason: tooLargeToRead(b64Size(it.original_b64), kindStr === 'license' ? 'trade licence' : 'document').message }); continue; }
           // Previously any upload failure was swallowed and the kind was still reported as
           // saved, so a supplier could be told their trade licence was on file when the
           // storage write had failed. Failures are now returned to the caller.
