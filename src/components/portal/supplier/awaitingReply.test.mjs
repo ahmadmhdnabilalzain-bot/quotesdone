@@ -26,3 +26,14 @@ test('the chat polls the thread while it waits for the engineer', () => {
   assert.match(src, /const waitingFor = awaitingReply\(th\);/);
   assert.match(src, /if \(!waitingFor \|\| busy\) return;\s*const h = setInterval\(async \(\) => \{ const n = \+\+seq\.current; adopt\(await qr\.thread\(token, inquiryId, lang\), n\); \}, 4000\);/);
 });
+
+// Branch nightly 41650411756 (3 Nov 2026), mobile: the submission went through (quote_reviews 'submitted', quote
+// 'submitted') and the chat never said so - the portal gave up at the 20 s default. This fails if a review write
+// action is cut off at 20 s again, or if an answer lost in transit leaves the old screen standing.
+test('the review write actions wait for their reasoned answer, and a lost answer re-reads the thread', () => {
+  const api = readFileSync(new URL('./quoteReviewApi.ts', import.meta.url), 'utf8');
+  assert.match(api, /const reasoned = <T>\(body: Record<string, unknown>, token: string\): Promise<Result<T>> =>\s*call\('supplier_api', body, token, \{ timeoutMs: REASONING_TIMEOUT_MS \}\);/);
+  for (const a of ['review_start', 'review_message', 'review_upload', 'review_choose', 'review_submit']) assert.ok(api.includes(`reasoned<ThreadView>({ action: '${a}'`), `${a} must wait REASONING_TIMEOUT_MS`);
+  const chat = readFileSync(new URL('./QuoteReviewChat.tsx', import.meta.url), 'utf8');
+  assert.match(chat, /if \(code === 'timeout' \|\| code === 'network'\) \{ const m = \+\+seq\.current; adopt\(await qr\.thread\(token, inquiryId, lang\), m\); \}/);
+});

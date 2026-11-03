@@ -203,6 +203,11 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
     if (kind === 'upload') { const wait = 900 - (Date.now() - started); if (wait > 0) await new Promise((r) => setTimeout(r, wait)); }
     if (!alive.current) return;
     setBusy(null); adopt(j, n);
+    // An answer lost in transit is not a failed action: the server may have finished it, or still be on it (a running
+    // submission reads 'reviewing', which the 2 s poll above follows). Read the thread again rather than leave the
+    // supplier looking at the state from before they pressed.
+    const code = (j as { code?: string; error?: string } | null)?.code ?? (j as { error?: string } | null)?.error;
+    if (code === 'timeout' || code === 'network') { const m = ++seq.current; adopt(await qr.thread(token, inquiryId, lang), m); }
     if (onChanged && !failed(j as ThreadView)) onChanged();
   };
   const onFile = async (f: File | undefined) => {
