@@ -9,7 +9,7 @@
 // queue replays the question the moment the hold lifts. The registry of every decision point, migrated
 // and not yet, is decision_points.json beside this file; scripts/checks/decision_points_are_reasoned.test.mjs
 // fails when a migrated one goes back to a word list.
-import { think, type ThinkDeps, type ThinkResult, type Turn } from './think.ts';
+import { readerOfTheirOwnText, think, withDeadline, type ThinkDeps, type ThinkResult, type Turn } from './think.ts';
 
 export type Reasoned<T> = { value: T | null; result: ThinkResult };
 
@@ -50,25 +50,46 @@ export async function commandIntent(deps: ThinkDeps, o: {
   return { value: result.status === 'answered' ? result.decision?.choice ?? null : null, result };
 }
 
+// THE TWO INTAKE DECISIONS RUN INSIDE THE TURN (sales_engineer, 27 Oct 2026; inquiry_intake/turn_clock.ts has the
+// measurements). Both ran the whole think() chain inside a customer's interview turn: a plan on gpt-6-luna-pro (p50
+// 20.0 s, p95 29.8 s) and an answer pass on a ~51k-token prompt (p50 25.3 s, p95 41.9 s), sometimes twice, for turns of
+// 88-130 s against a portal that waits 30 s. Neither decision has anything to plan or look up:
+//   - the trade is a choice among given options, which needs no planner (needsAPerson, the same measurement);
+//   - the stated specs are a READER of the customer's own words (think.ts readerOfTheirOwnText): one fixed step, no
+//     retrieval, and the evidence guard per field, so a field whose value is not inside the customer's own words,
+//     copied verbatim, is dropped and asked, while the proven ones are kept (exact specs or nothing, unchanged).
+// `deadline` (epoch ms) cuts every model call at the turn's clock (turn_clock.ts withDeadline). A decision cut there is
+// held like any model that did not answer: nothing is chosen and nothing is filled.
+
 /** Intake: the model's trade and the checklist evidence disagree — which trade is it? (surface inquiry_intake.trade) */
 export async function tradeOf(deps: ThinkDeps, o: {
-  conversation: string; candidates: { slug: string; label: string }[]; dedupeKey?: string; subject?: Record<string, unknown>;
+  conversation: string; candidates: { slug: string; label: string }[]; dedupeKey?: string; subject?: Record<string, unknown>; deadline?: number;
 }): Promise<Reasoned<string>> {
-  const result = await think(deps, {
+  const result = await think(o.deadline ? withDeadline(deps, o.deadline) : deps, {
     seat: 'sales_engineer', surface: 'inquiry_intake.trade', question: o.conversation.slice(0, 4000), dedupeKey: o.dedupeKey, subject: o.subject,
     context: { audience: 'customer' },
+    plan: { steps: [] }, effort: 'low',
     decision: { name: 'trade', options: o.candidates.map((c) => ({ id: c.slug, meaning: `the job is ${c.label} work` })) },
   });
   return { value: result.status === 'answered' ? result.decision?.choice ?? null : null, result };
 }
 
-/** Intake: which required spec fields has the customer ALREADY stated, in their own words? (surface inquiry_intake.exact_spec) */
+/** Intake: which required spec fields has the customer ALREADY stated, in their own words? (surface inquiry_intake.exact_spec)
+ *  Not queued when held: nothing replays it (fn_reason_held_resolve has no case for this surface), and the field is
+ *  asked of the customer on this very turn instead.
+ *  MEASURED through production's gateway on 6 ZZ DEMO readings each way (27 Oct 2026, run 57a34ffb): as a reader, one
+ *  answer pass on customer_communication (gpt-6-luna-pro, ~20k prompt tokens) took 13.3-17.4 s and kept up to 4 proven
+ *  fields; routed instead as the interview's own class (claude-sonnet-5.5) it took 8.8-13.4 s and kept 1-2, the rest
+ *  failing the evidence guard. So the class stays, and inquiry_intake starts this reading ALONGSIDE its interview call
+ *  rather than after it (index.ts specRead): the turn costs the longer of the two, not their sum. */
 export async function statedSpecs(deps: ThinkDeps, o: {
-  conversation: string; fields: { key: string; question: string }[]; category: string; dedupeKey?: string;
+  conversation: string; fields: { key: string; question: string }[]; category: string; dedupeKey?: string; deadline?: number;
 }): Promise<Reasoned<Record<string, { value: string; evidence: string }>>> {
-  const result = await think(deps, {
+  const result = await think(o.deadline ? withDeadline(deps, o.deadline) : deps, {
     seat: 'sales_engineer', surface: 'inquiry_intake.exact_spec', question: o.conversation.slice(0, 4000), dedupeKey: o.dedupeKey,
     context: { audience: 'customer', trade: o.category, conversation: [{ role: 'customer', text: o.conversation.slice(0, 4000) }] },
+    ...readerOfTheirOwnText('which of the listed specs the customer has already stated, each with their own words as evidence'),
+    effort: 'low', queueWhenHeld: false,
     decision: { name: 'stated_specs', fields: o.fields },
   });
   return { value: result.status === 'answered' ? result.decision?.fields ?? {} : null, result };

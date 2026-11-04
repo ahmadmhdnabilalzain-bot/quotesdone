@@ -1,5 +1,5 @@
 // deno test --no-lock supabase/functions/resilience_ping/steps.test.ts
-import { detachedItems, failureOf, runSteps } from './steps.ts';
+import { detachedItems, failureOf, runSteps, stepClock } from './steps.ts';
 
 const eq = (a: unknown, b: unknown, m: string) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
@@ -143,4 +143,30 @@ Deno.test('detachedItems reads a nested map per entry and a flat result as the s
   eq(detachedItems("marketing", { status: 200, ok: true }, false).length, 0, "passing");
   // a nested run that hit the cap or threw is one failing item, never an empty list that closes findings
   eq(detachedItems("itlater", { ok: false, error: "detached itlater passed its 120000 ms limit" }, true).map((i) => i.item), ["itlater"], "nested timeout");
+});
+
+// 27 Oct 2026 (it_engineer): duty:detached_itlater:itlater reopened at 22:03:12Z saying only "passed its 120000 ms limit".
+// The run's own clock outlives the race, so the finding names the step still running and every finished step's ms.
+Deno.test('a detached run that overruns names the step it was in, and every finished step carries its ms', () => {
+  let t = 1_000;
+  const clock = stepClock(() => t);
+  clock.begin('renewal'); t += 400; clock.end('renewal', true);
+  clock.begin('review_requests'); t += 12_000; clock.end('review_requests', true);
+  clock.begin('routine_judgements'); t += 107_600;           // the cap fires here, mid-step
+  const timing = clock.snapshot();
+  eq(timing.running, { step: 'routine_judgements', ms: 107_600 }, 'the step still running when the cap fired');
+  eq(timing.steps, [{ step: 'renewal', ms: 400, ok: true }, { step: 'review_requests', ms: 12_000, ok: true }], 'finished steps');
+  eq(timing.total_ms, 120_000, 'the run total');
+  const [f] = detachedItems('itlater', { ok: false, error: 'detached itlater passed its 120000 ms limit' }, true, timing);
+  eq(f.item, 'itlater', 'one whole-run item, as before');
+  if (!f.title.includes('running routine_judgements for 107600 ms')) throw new Error('title does not name the running step: ' + f.title);
+  if (!f.title.includes('slowest finished review_requests 12000 ms')) throw new Error('title does not name the slowest step: ' + f.title);
+  eq((f.evidence as { timing?: unknown }).timing, timing, 'the evidence carries the whole timing');
+  // a per-step failure carries that step's own ms
+  const c2 = stepClock(() => t);
+  c2.begin('usage'); t += 2_500; c2.end('usage', false);
+  const [u] = detachedItems('itlater', { usage: { ok: false, error: 'boom' }, renewal: { ok: true } }, true, c2.snapshot());
+  eq((u.evidence as { ms?: number }).ms, 2_500, 'the failing step names its own ms');
+  // without a timing the items are exactly what they were
+  eq(detachedItems('marketing', { ok: false, error: 'x' }, false)[0].title, 'detached marketing failed: x', 'no timing, old title');
 });

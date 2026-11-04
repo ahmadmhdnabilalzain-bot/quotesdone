@@ -1,0 +1,6 @@
+A PROBE, so it is never applied at all - it is READ through node scripts/qsql.mjs. Before
+every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql is applied, read it
+concatenated after that file in one transaction (the raise rolls both back); after, read it on its own. It must
+print PROBE OK inside its CHK<<...>> message. It writes a ZZ DEMO case's three handoffs straight into
+public.agent_actions (no handler runs) and asserts no notification was queued. This note stays for the life of
+the file. Seat: ceo.

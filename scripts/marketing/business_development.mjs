@@ -19,14 +19,17 @@
 // Then run: node scripts/checks/blog_index_matches_data.mjs
 //
 // UTF-8 throughout (a Windows-shell curl once sent Arabic as question marks). Never prints a key.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sanitizeBlogHtml } from '../lib/sanitize_blog_html.mjs';   // published HTML is allow-listed (Aikido, 19 Oct 2026)
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const [cmd, a1] = process.argv.slice(2);
-const mgmtToken = () => (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmtToken = () => supabaseAccessToken();
 
 async function sql(query) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
@@ -40,7 +43,7 @@ async function sql(query) {
 
 async function call(action, payload) {
   const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmtToken() } })).json();
-  const service = keys.find?.((k) => k.name === 'service_role')?.api_key;
+  const service = pickApiKey(keys, 'secret');
   const cred = (await sql("select value from public.app_secrets where key = 'cred_fn_marketing_outreach'"))[0]?.value;
   if (!service || !cred) throw new Error('could not read the service key or cred_fn_marketing_outreach');
   const r = await fetch(`https://${REF}.supabase.co/functions/v1/marketing_outreach`, {
@@ -62,11 +65,11 @@ async function main() {
     for (const r of rows) {
       if (!blog[r.slug]) added++;
       blog[r.slug] = {
-        slug: r.slug, title: r.title_en, excerpt: r.excerpt_en, meta_desc: r.meta_desc_en, body_html: r.body_html_en,
+        slug: r.slug, title: r.title_en, excerpt: r.excerpt_en, meta_desc: r.meta_desc_en, body_html: sanitizeBlogHtml(r.body_html_en),
         author: 'QuotesDone', category: r.category_en, published_at: r.released_at,
         // newest first on /blog: the index sorts ascending, the 32 June guides use 10..320
         sort: -Number(String(r.released_at).slice(0, 10).replace(/-/g, '')),
-        ar: { title: r.title_ar, excerpt: r.excerpt_ar, meta_desc: r.meta_desc_ar, category: r.category_ar, body_html: r.body_html_ar },
+        ar: { title: r.title_ar, excerpt: r.excerpt_ar, meta_desc: r.meta_desc_ar, category: r.category_ar, body_html: sanitizeBlogHtml(r.body_html_ar) },
       };
     }
     writeFileSync(file, JSON.stringify(blog, null, 2) + '\n');   // the file's own format: a bake adds lines, never reflows

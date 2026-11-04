@@ -1,0 +1,62 @@
+name: Supplier document walk (demo data)
+
+# Founder ledger 1442, 1457, 1467, 1468: a supplier's real files, through the portal's own form in a real browser on the
+# live site, to a decision, and permanently on GitHub so no session has to be open. ZZ DEMO leads at @example.invalid
+# only; teardown removes the run by its tag. Runs on push of its own two paths (as a workflow not yet on main cannot be
+# dispatched) and on dispatch once it is.
+on:
+  workflow_dispatch:
+    inputs:
+      walk:
+        description: 'licences = the licence form (default); profiles = the company profile, its summary and keywords, confirmed by the supplier (ledger 1469); pictures = a scanned or photographed profile read by this checkout against the real model (ledger 1442). By hand only, never on push to main.'
+        type: choice
+        options: [licences, profiles, pictures]
+        default: licences
+
+jobs:
+  walk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QD_FIXTURES: '1'
+      QD_E2E_RUN_TAGS: e2e-run-tags.txt
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Install the locked dependencies and the browser
+        run: npm ci && npx playwright install --with-deps chromium
+        timeout-minutes: 8
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        if: ${{ inputs.walk == 'pictures' }}
+      - name: A scanned or photographed company profile is read and its trades are proposed (this checkout's chain, the real model, USD 2 cap)
+        if: ${{ inputs.walk == 'pictures' }}
+        run: node scripts/e2e/profile_picture_read_proof.mjs --json picture-proof.json
+        timeout-minutes: 25
+      - name: Walk the supplier's documents
+        if: ${{ inputs.walk != 'profiles' && inputs.walk != 'pictures' }}
+        run: node scripts/e2e/supplier_document_read_walk.mjs --browser --case t_text_pdf,t_scanned_pdf,t_png,t_jpg,t_blank_pdf,t_wrong_company,t_expired --json walk.json --shots walk-shots
+        timeout-minutes: 30
+      # The judge's own known-bad controls first: a judge that cannot fail would make the walk below a pass by default.
+      - name: Walk the supplier's company profiles (summary and keywords against the file, USD 2 budget)
+        if: ${{ inputs.walk == 'profiles' }}
+        run: node --test scripts/checks/supplier_profile_read_judge.test.mjs && node scripts/e2e/supplier_profile_read_walk.mjs --json profile-walk.json --shots profile-walk-shots
+        timeout-minutes: 45
+      # Runs even when the walk failed or was cancelled; touches only the tags this job wrote.
+      - name: Close this job's rehearsal windows
+        if: always()
+        run: node scripts/e2e/close_job_windows.mjs "$QD_E2E_RUN_TAGS"
+      - name: Keep the result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supplier-document-walk
+          path: |
+            walk.json
+            walk-shots
+            profile-walk.json
+            picture-proof.json
+            profile-walk-shots
+          if-no-files-found: warn

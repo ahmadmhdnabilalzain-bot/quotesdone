@@ -53,8 +53,8 @@
       "action": "Store a Gmail refresh token (scope gmail.readonly) as app_secrets.gmail_seed_refresh_token and the Microsoft Graph app's tenant, client id and secret as ms_graph_tenant_id / ms_graph_client_id / ms_graph_client_secret", "link": "https://console.cloud.google.com/apis/credentials"
     },
     "m365_invitation_lane": {
-      "what": "the supplier invitation sent from the company's Microsoft 365 mailbox (app_secrets.invite_m365_mailbox) through Microsoft Graph sendMail with client credentials, only while app_secrets.invite_m365_enabled is true (or for a --lane=m365 seed); send_outbox/m365_lane.ts holds the invitations and files invite_m365_lane_refused when the token or a send is refused (5 Oct 2026, ledger 1115)",
-      "hosts": ["graph.microsoft.com", "login.microsoftonline.com"],
+      "what": "the supplier invitation sent from the company's Microsoft 365 mailbox (app_secrets.invite_m365_mailbox) through Microsoft Graph sendMail with client credentials, only while app_secrets.invite_m365_enabled is true (or for a --lane=m365 seed); send_outbox/m365_lane.ts holds the invitations and files invite_m365_lane_refused when the token or a send is refused (5 Oct 2026, ledger 1115). The same app is asked, read-only, whether it holds Exchange admin rights (it_engineer/exo_transport_rule.ts, outlook.office365.com, 27 Oct 2026)",
+      "hosts": ["graph.microsoft.com", "login.microsoftonline.com", "outlook.office365.com"],
       "secrets": ["invite_m365_enabled", "invite_m365_mailbox"],
       "env": ["MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET"],
       "owner_seat": "it_engineer", "blast": "customer_facing",
@@ -122,7 +122,7 @@
       "owner_seat": "it_engineer", "blast": "internal",
       "probe": { "kind": "http", "method": "GET", "url": "https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone", "auth": "bearer:github_token", "ok": [200], "every_minutes": 60 },
       "self_fix": "retried once after 3 s",
-      "action": "Issue a new GitHub token with repo read scope and store it as app_secrets.github_token", "link": "https://github.com/settings/tokens"
+      "action": "Issue a GitHub token for this repository only that keeps the read access the IT readings use AND has Actions: Read and write (customer_api dispatches cad-read-worker.yml; repo read alone answers that dispatch 403), and store it as app_secrets.github_token", "link": "https://github.com/settings/personal-access-tokens"
     },
     "github_actions": {
       "what": "CI on main", "hosts": [], "secrets": [],
@@ -141,8 +141,8 @@
     },
     "supabase": {
       "what": "the database, auth, storage and every edge function",
-      "hosts": ["htdblwldjkcgjvmqkbeh.supabase.co"], "secrets": ["anon_key", "project_ref"],
-      "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SB_REGION", "QD_OTP_RACE_PG"],
+      "hosts": ["htdblwldjkcgjvmqkbeh.supabase.co"], "secrets": ["anon_key", "publishable_key", "project_ref"],
+      "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "SB_REGION", "QD_OTP_RACE_PG"],
       "owner_seat": "it_engineer", "blast": "customer_facing",
       "probe": { "kind": "http", "method": "GET", "url": "{env:SUPABASE_URL}/auth/v1/health", "auth": "apikey:SUPABASE_ANON_KEY", "ok": [200] },
       "self_fix": "retried once after 3 s",
@@ -234,8 +234,8 @@
       "action": "Store the TikTok business account token and id in app_secrets (tiktok_business_token, tiktok_business_id)"
     },
     "code_cdns": {
-      "what": "modules and model files the edge functions load at boot",
-      "hosts": ["esm.sh", "cdn.jsdelivr.net", "deno.land", "huggingface.co"], "secrets": [],
+      "what": "modules and model files the edge functions load at boot, and the pinned LibreDWG .wasm doc_read/dwg.ts fetches on first DWG (cdn.jsdelivr.net, else the same checksum-verified file out of its registry.npmjs.org tarball)",
+      "hosts": ["esm.sh", "cdn.jsdelivr.net", "deno.land", "huggingface.co", "registry.npmjs.org"], "secrets": [],
       "owner_seat": "it_engineer", "blast": "internal",
       "notify_founder": false, "notify_why": "nothing he can do about a public CDN; the finding stays with the IT engineer",
       "probe": { "kind": "http", "method": "GET", "url": "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/package.json", "auth": "none", "ok": [200], "every_minutes": 60 },
@@ -278,7 +278,7 @@
       "www.stripestatus.com": "Stripe public status page, read hourly by it_provider_readings.ts", "resend-status.com": "Resend public status page, read hourly", "status.twilio.com": "Twilio public status page, read hourly", "www.vercel-status.com": "Vercel public status page, read hourly", "status.dropbox.com": "Dropbox public status page, read hourly",
       "schema.org": "structured-data vocabulary in page markup", "www.w3.org": "SVG/XML namespace", "www.sitemaps.org": "sitemap XML namespace",
       "schemas.openxmlformats.org": "Office XML namespace in a parser fixture", "www.gaeb.de": "GAEB XML namespace in a parser fixture",
-      "evil.example": "reserved test domain in a fixture", "example.invalid": "reserved test domain", "db.invalid": "reserved test domain in a harness", "fn.invalid": "reserved test domain in a harness",
+      "zz-noor.example.invalid": "reserved test domain in the drawing bench fixture (bench.fixtures.ts)", "evil.example": "reserved test domain in a fixture", "example.invalid": "reserved test domain", "db.invalid": "reserved test domain in a harness", "fn.invalid": "reserved test domain in a harness",
       "wa.me": "a click-to-chat link shown to people", "x.com": "footer link", "www.instagram.com": "footer link", "www.facebook.com": "footer link",
       "consumerrights.ae": "a link shown to a complainant", "status.supabase.com": "the status page named in this registry", "status.esm.sh": "the status page named in this registry"
     }
@@ -287,11 +287,16 @@
     "_about": "Secrets and env the company mints itself or plain settings stored beside the credentials. Nothing outside answers for them, so there is nothing external to probe; internal credentials are rotated by fn_it_credential_rotate.",
     "prefixes": { "cred_": "an internal credential between our own functions (internal_credential)" },
     "secrets": {
+      "invite_open_tracking": "setting",
+      "email_open_ip_salt": "minted by us: keys the hash of an invitation open's network address (fn_email_open_record)",
+      "m365_tenant_mailboxes": "setting",
+      "m365_tenant_strangers_from": "setting",
+      "m365_financial_domains": "setting",
       "lead_sourcing_daily_quota": "setting",
       "wa_supplier_invite_golive": "setting", "lead_sourcing_daily_serper_usd": "setting", "lead_sourcing_daily_llm_usd": "setting", "lead_sourcing_usd_per_credit": "setting",
       "admin_emails": "setting", "backup_prune_mode": "setting", "conversation_retention_mode": "setting", "document_expiry_ai": "setting", "admin_mfa_phone": "setting", "email_triage_enabled": "setting", "invite_preheader": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",
       "customer_terms_label": "setting", "customer_terms_version": "setting", "supplier_terms_html": "setting", "supplier_terms_label": "setting",
-      "supplier_terms_version": "setting", "terms_version": "setting", "daily_send_cap": "setting", "drawing_boq_confirm_enabled": "setting",
+      "supplier_terms_version": "setting", "supplier_terms_carries_from": "setting", "terms_version": "setting", "daily_send_cap": "setting", "drawing_boq_confirm_enabled": "setting", "drawing_vision_count_enabled": "setting",
       "email_asset_public_base": "setting", "email_enabled": "setting", "email_from_info": "setting", "email_from_supplier": "setting",
       "email_logo_url": "setting", "email_reply_info": "setting", "email_reply_supplier": "setting", "email_reply_supplier_docs": "setting",
       "email_signature_name": "setting", "email_signature_name_ar": "setting", "email_signature_title": "setting", "email_stale_hours": "setting",

@@ -31,6 +31,14 @@ import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
 import { catalogueCategoryOf } from '../_shared/reasoned_matching.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+// GTE-SMALL RUNS IN embed_ml, NEVER IN THIS WORKER (it_engineer, 2 Nov 2026). Measured on production 1-2 Nov:
+// 57 public_site POSTs in 24 h were killed at the 2 s edge CPU cap (function_logs "CPU Time exceeded", 546 after
+// 1.0-2.4 s). A cold price_guidance embeds the question plus the 8 PRICE_EXEMPLARS in-process (9 gte-small runs at a
+// median 324 ms CPU each, think.ts) and route_brief's think() embeds its steps the same way. Remote placement is
+// the same model and space, one embed_ml worker per text, as the heartbeat already does (heartbeatDeps).
+// prevented by: _shared/held_replay_keeps_gte_out_of_the_worker.test.ts (public_site case)
+// A visitor is waiting on the page: 3 s per embedding, not 8; a timeout is the null path (no vector, no block).
+// Written out at each call, so the decision-point guards (decision_points.json) still read the reasoned call itself.
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
@@ -70,7 +78,12 @@ export function detectEmirate(t: string): string | null {
   return null;
 }
 
-async function routeBrief(text: string, lang: 'en' | 'ar') {
+// THE SAME QUESTION IS ANSWERED ONCE (it_engineer, 3 Nov 2026). Measured (ai_cost_log, 7 days): 809 public_site model calls
+// on 73 distinct prompts, 0 cache hits. The prompt carries the price bands and catalogue it was answered from, so a changed
+// band is a new prompt; an identical prompt is replayed for 6 hours by its exact hash, never by similarity (cacheExact).
+const PUBLIC_MEMO_MIN = 360;
+
+async function routeBrief(text: string, lang: 'en' | 'ar', ip = 'unknown') {
   const emirate = detectEmirate(text);
   // WHICH CATEGORY IS REASONED, NOT ALIAS-MATCHED (founder_instruction 886-903; decision point 24). The
   // router hands back the activated categories; think() reads the visitor's words over them
@@ -80,7 +93,7 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
   if (error) return { ok: false, error: 'router_unavailable' };
   const cats = ((open as any)?.candidates || []) as { catalog_num: number; live_name: string }[];
   // A visitor has no channel to be answered on later, so a held question is not queued: he is asked now.
-  const pick = cats.length ? await catalogueCategoryOf(defaultDeps(admin, 'public_site'), { text, categories: cats, audience: 'visitor', queue: false }) : null;
+  const pick = cats.length ? await catalogueCategoryOf(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000, cacheTtlMin: PUBLIC_MEMO_MIN }), { text, categories: cats, audience: 'visitor', queue: false }) : null;
   let d: any = open || {};
   if (pick?.value) {
     const { data: routed, error: re } = await admin.rpc('fn_kb_route_decide', { p_text: text.slice(0, 1000), p_catalog_num: pick.value });
@@ -93,6 +106,11 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
     const { data: mapped } = await admin.rpc('fn_intake_slug_for_catalog', { p_catalog_slug: liveSlug });
     if (mapped) category = String(mapped);
   }
+  // DEMAND SIGNAL (backlog T4, sales_engineer): a recognised trade is a visitor searching for it. Recorded as
+  // trade + emirate only (no text), read by fn_demand_forecast_tick. Never blocks the answer.
+  // At most 5 recorded searches per IP per day, so one visitor cannot inflate a trade's search count; searches
+  // alone never start recruitment (fn_demand_forecast_tick acts on forecast inquiries only).
+  if (category && await rl('demand_search_ip:' + ip, 5, 86400)) await admin.rpc('fn_demand_search_record', { p_category: category, p_emirate: emirate }).then(() => {}, () => {});
   if (!category) {
     return {
       ok: true, recognised: false, emirate,
@@ -161,7 +179,7 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
 // _shared/reasoned_suppliers.ts priceGuidanceFor; founder_instruction 886-903) — fn_price_guidance no
 // longer reads the question. Held (the model hold): no band is offered on a guess; reason 'held'.
 async function priceGuidance(question: string, ip: string) {
-  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site'), question.slice(0, 300), 6, 'visitor', 'ip:' + ip);
+  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000, cacheTtlMin: PUBLIC_MEMO_MIN }), question.slice(0, 300), 6, 'visitor', 'ip:' + ip);
   if (p.ok && Array.isArray(p.bands)) {
     // Only the band itself. The evidence text and the kb_chunk/blog source ids stay server-side.
     const bands = p.bands.slice(0, 4).map((b: any) => ({
@@ -176,7 +194,14 @@ async function priceGuidance(question: string, ip: string) {
   return { ok: false, reason: String(p.reason || 'no_match') };
 }
 
+// Any throw outside the per-action try blocks (the counters, worked_case and trade_needs reads) still
+// answers WITH the CORS headers; without them the browser reports a plain 500 as a CORS failure.
+// (A 546 CPU kill or a gateway 502 never reaches this code: those are met by the client retry.)
 Deno.serve(async (req) => {
+  try { return await handle(req); } catch (_e) { return J({ ok: false, error: 'internal' }, 500); }
+});
+
+async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return J({ error: 'method' }, 405);
   const b = await req.json().catch(() => ({} as any));
@@ -260,7 +285,7 @@ Deno.serve(async (req) => {
     if (action === 'route_brief') {
       const text = String(b.text || '').trim();
       if (text.length < 3) return J({ ok: false, error: 'empty' }, 400);
-      return J(await routeBrief(text.slice(0, 1000), lang));
+      return J(await routeBrief(text.slice(0, 1000), lang, ip));
     }
     if (action === 'price_guidance') {
       const q = String(b.question || '').trim() || (b.topic ? `How much does ${String(b.topic).slice(0, 80)} cost per square metre in the UAE?` : '');
@@ -271,4 +296,4 @@ Deno.serve(async (req) => {
   } catch (_e) {
     return J({ ok: false, error: 'internal' }, 500);
   }
-});
+}

@@ -1,0 +1,35 @@
+{
+ "mode": "apply records + moves",
+ "date": "2026-10-19",
+ "before": {
+  "merge": 0,
+  "ownerless": 1,
+  "demo": 0,
+  "superseded": 0,
+  "record": 0,
+  "collisions": 0
+ },
+ "excluded_kinds": [],
+ "records_held_by_cap": 0,
+ "records": [],
+ "records_failed": 0,
+ "moves": [
+  {
+   "kind": "ownerless",
+   "id": 565398,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/146073/0c8bdea2-d562-4d5a-a8dc-703a81b6e2f5/1792373310217_desktop_quotation.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/146073/0c8bdea2-d562-4d5a-a8dc-703a81b6e2f5/1792373310217_desktop_quotation.pdf",
+   "hash": "4c7e93b0695d623bcf3e26ecca50eed4c7b0f2a538d84c2c8ecf748f73e96301",
+   "result": "moved, hash verified"
+  }
+ ],
+ "founder_ok": "1180",
+ "after": {
+  "merge": 0,
+  "ownerless": 0,
+  "demo": 0,
+  "superseded": 0,
+  "record": 0,
+  "collisions": 0
+ }
+}

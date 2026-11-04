@@ -681,6 +681,93 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_demand_forecast_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_method constant text := 'blended daily rate 0.6*r30 + 0.4*r90, times 30 / 90 days; searches projected separately, never added';
+  v_rows int; v_acted int;
+begin
+  delete from public.demand_forecast where run_on = v_today;   -- a re-run the same day replaces its own rows
+  delete from public.demand_search where searched_at < now() - interval '90 days';   -- nothing reads older rows
+
+  with inq as (
+    -- distinct: an inquiry's trades usually already contain its category's code, and must count once
+    select i.created_at, array(select distinct t from unnest(coalesce(i.trades, '{}') || public.fn_taxonomy_trades_for(array[i.category])) t) as trades, i.emirate
+      from public.inquiries i
+      left join public.customers c on c.id = i.customer_id
+     where i.created_at > now() - interval '90 days' and i.parent_inquiry_id is null
+       -- DEMO IS NEVER DEMAND (a_demo_request_is_never_supply_gap_demand.sql): a request with no customer, or a
+       -- fixture customer's (is_demo, ZZ DEMO name, @example.invalid email), never starts real recruitment
+       and i.customer_id is not null and not coalesce(public.fn_seat_clock_customer_is_fixture(c), false)
+  ), srch as (
+    select s.searched_at as created_at, s.trades, s.emirate
+      from public.demand_search s where s.searched_at > now() - interval '90 days' and s.source <> 'fixture'
+  ), ev as (
+    select 'i' as k, created_at, t as trade, emirate from inq, unnest(trades) t
+    union all
+    select 's', created_at, t, emirate from srch, unnest(trades) t
+  ), ev2 as (                                  -- each event counts for its emirate and for the UAE roll-up
+    select k, created_at, trade, emirate from ev where emirate is not null
+    union all
+    select k, created_at, trade, 'UAE' from ev
+  ), agg as (
+    select trade, emirate,
+           count(*) filter (where k = 'i' and created_at > now() - interval '30 days')::int as i30,
+           count(*) filter (where k = 'i')::int as i90,
+           count(*) filter (where k = 's' and created_at > now() - interval '30 days')::int as s30,
+           count(*) filter (where k = 's')::int as s90
+      from ev2 group by trade, emirate
+  )
+  insert into public.demand_forecast (run_on, trade, emirate, inquiries_30d, inquiries_90d, searches_30d, searches_90d,
+         forecast_30d, forecast_90d, searches_forecast_30d, searches_forecast_90d, method, sufficient_data, matchable, target)
+  select v_today, a.trade, a.emirate, a.i30, a.i90, a.s30, a.s90,
+         round((0.6 * a.i30 / 30.0 + 0.4 * a.i90 / 90.0) * 30, 1), round((0.6 * a.i30 / 30.0 + 0.4 * a.i90 / 90.0) * 90, 1),
+         round((0.6 * a.s30 / 30.0 + 0.4 * a.s90 / 90.0) * 30, 1), round((0.6 * a.s30 / 30.0 + 0.4 * a.s90 / 90.0) * 90, 1),
+         v_method || case when a.i90 < 10 then '; insufficient_data (' || a.i90 || ' inquiries in 90 days)' else '' end,
+         a.i90 >= 10, g.matchable, g.target
+    from agg a left join public.supply_gap g on g.trade = a.trade and g.emirate = a.emirate;
+  get diagnostics v_rows = row_count;
+
+  -- ACT: recruit ahead of forecast demand, on the supply-gap path the sales engineer already owns.
+  with hit as (
+    update public.supply_gap g set status = 'recruit', decided_by = 'rule:forecast_demand', decided_at = now()
+      from public.demand_forecast f
+     where f.run_on = v_today and f.trade = g.trade and f.emirate = g.emirate
+       and g.matchable < g.target and g.status in ('open', 'deciding', 'deferred')
+       and g.uninvited_pool > 0 and g.decided_by is distinct from 'rule:no_uninvited_leads'   -- nobody to invite: stays deferred
+       and f.forecast_90d >= 1   -- real inquiries only: searches are anonymous and never start recruitment
+    returning g.trade, g.emirate
+  )
+  update public.demand_forecast f set acted = 'supply_gap -> recruit (rule:forecast_demand)'
+    from hit where f.run_on = v_today and f.trade = hit.trade and f.emirate = hit.emirate;
+  get diagnostics v_acted = row_count;
+
+  return jsonb_build_object('run_on', v_today, 'basis', 'estimate', 'method', v_method, 'rows', v_rows,
+    'recruit_started', v_acted,
+    'top', (select coalesce(jsonb_agg(x), '[]'::jsonb) from (
+              select trade, emirate, forecast_30d, forecast_90d, searches_30d, sufficient_data from public.demand_forecast
+               where run_on = v_today order by forecast_90d desc, searches_30d desc limit 10) x));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_demand_search_record(p_category text, p_emirate text)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  insert into public.demand_search (category, trades, emirate)
+  select p_category, public.fn_taxonomy_trades_for(array[p_category]),
+         case when p_emirate in ('Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah') then p_emirate end
+   where p_category ~ '^[a-z][a-z0-9_-]{1,59}$';
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_demo_and_real_never_pair()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1970,6 +2057,70 @@ AS $function$
     when exists (select 1 from public.free_email_domain f, d where f.domain = d.dom) then 'free'
     else 'company' end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_open_classify(p_user_agent text, p_ip inet, p_seconds numeric, OUT classification text, OUT rule text)
+ RETURNS record
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare ua text := btrim(coalesce(p_user_agent, '')); ipc text := public.fn_email_open_ip_class(p_ip); c_fast constant numeric := 60;
+begin
+  if p_seconds is null then classification := 'unknown'; rule := 'no send time on the notification'; return; end if;
+  if ua ~* '(bot\M|crawl|spider|scanner|barracuda|mimecast|proofpoint|ppops|forcepoint|symantec|messagelabs|trend ?micro|sophos|fortinet|fortimail|ironport|cisco|zscaler|libwww|python|curl/|wget|go-http|java/|okhttp|axios|node-fetch|undici|headless|phantomjs|link ?check|urlscan|safelinks|existence discovery)' then
+    classification := 'machine_prefetch'; rule := 'scanner or bot user agent'; return; end if;
+  if ua ~* '(googleimageproxy|ggpht\.com|yahoomailproxy)' then
+    if p_seconds < c_fast then classification := 'machine_prefetch'; rule := 'mail image proxy within 60 s of the send';
+    else classification := 'likely_human'; rule := 'mail image proxy fetch after 60 s (fetched when the message is opened)'; end if;
+    return; end if;
+  if ua = 'Mozilla/5.0' or ipc = 'apple' then classification := 'machine_prefetch'; rule := 'Apple Mail Privacy Protection'; return; end if;
+  if ipc = 'microsoft_eop' then classification := 'machine_prefetch'; rule := 'Microsoft Exchange Online Protection address'; return; end if;
+  if p_seconds < c_fast then classification := 'machine_prefetch'; rule := 'loaded within 60 s of the send'; return; end if;
+  if ua ~* '(outlook|microsoft office|thunderbird|windows nt|macintosh|iphone|ipad|android|applewebkit|gecko|chrome|safari)' then
+    classification := 'likely_human'; rule := 'mail client or browser user agent after 60 s'; return; end if;
+  classification := 'unknown'; rule := case when ua = '' then 'no user agent' else 'unrecognised user agent' end;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_open_ip_class(p_ip inet)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_ip is null then null
+    when family(p_ip) = 4 and p_ip << inet '17.0.0.0/8' then 'apple'
+    when (family(p_ip) = 4 and (p_ip << inet '40.92.0.0/15' or p_ip << inet '40.107.0.0/16' or p_ip << inet '52.100.0.0/14' or p_ip << inet '104.47.0.0/17'))
+      or (family(p_ip) = 6 and (p_ip << inet '2a01:111:f400::/48' or p_ip << inet '2a01:111:f403::/48')) then 'microsoft_eop'
+  end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_open_record(p_token text, p_user_agent text DEFAULT NULL::text, p_ip text DEFAULT NULL::text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare t public.email_open_token%rowtype; v_sent timestamptz; v_ip inet; v_secs numeric; v_salt text; c record;
+begin
+  if p_token is null or p_token !~ '^[0-9a-f]{32}$' then return 'bad_token'; end if;
+  select * into t from public.email_open_token where token = p_token;
+  if not found then return 'unknown_token'; end if;
+  if (select count(*) from public.email_open_event where token = p_token) >= 50 then return 'capped'; end if;
+  select sent_at into v_sent from public.notifications where id = t.notification_id;
+  begin v_ip := nullif(btrim(split_part(coalesce(p_ip, ''), ',', 1)), '')::inet; exception when others then v_ip := null; end;
+  v_secs := case when v_sent is null then null else round(extract(epoch from (now() - v_sent))::numeric, 1) end;
+  select * into c from public.fn_email_open_classify(p_user_agent, v_ip, v_secs);
+  v_salt := (select value from public.app_secrets where key = 'email_open_ip_salt');
+  insert into public.email_open_event (token, notification_id, seconds_after_send, user_agent, ip_hash, ip_class, classification, rule)
+  values (p_token, t.notification_id, v_secs, left(p_user_agent, 300),
+          case when v_ip is not null and coalesce(v_salt, '') <> '' then encode(sha256(convert_to(v_salt || '|' || host(v_ip), 'UTF8')), 'hex') end,
+          public.fn_email_open_ip_class(v_ip), c.classification, c.rule);
+  return c.classification;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text)
@@ -4868,6 +5019,19 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_gateway_client_key()
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- the new key first; the legacy anon JWT only while the publishable_key row is absent (TEMPORARY, 27 Oct 2026)
+  select coalesce(
+    (select nullif(btrim(value), '') from public.app_secrets where key = 'publishable_key'),
+    (select nullif(btrim(value), '') from public.app_secrets where key = 'anon_key'));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_gl_entry(p_date date, p_memo text, p_source text, p_ref text, p_lines jsonb, p_created_by text DEFAULT 'system'::text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -5371,6 +5535,20 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_glockapps_provider_class(p_name text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when lower(btrim(coalesce(p_name, ''))) ~ '^(outlook|hotmail|live|msn|exchange|office ?365|microsoft)' then 'microsoft'
+    when lower(btrim(coalesce(p_name, ''))) ~ '^(gmail|google|g ?suite)' then 'google'
+    when lower(btrim(coalesce(p_name, ''))) ~ '^(yahoo|aol)' then 'yahoo_aol'
+    else 'other' end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_goal_attainment(p_horizon text DEFAULT 'monthly'::text)
  RETURNS jsonb
  LANGUAGE sql
@@ -5430,6 +5608,33 @@ begin
   end if;
   return NEW;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_handoff_citation_gaps(p_since timestamp with time zone DEFAULT (now() - '1 day'::interval))
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with c as (
+    select a.id,
+           (a.evidence->'cites_note'->>'handoff_id') = a.id::text as cited,
+           nullif(btrim(coalesce(a.evidence->'not_cited'->>'reason', '')), '') is not null as reasoned,
+           coalesce(a.evidence->'not_cited'->>'by', 'unnamed') as reason_by
+      from public.agent_actions a
+     where a.kind = 'handoff' and a.status = 'done' and a.decided_at >= p_since
+       and a.detail->'summary' ?& array['context','decision','open_asks','deadline'])
+  select jsonb_build_object(
+    'since', p_since,
+    'closed_with_note', count(*),
+    'cited', count(*) filter (where cited),
+    'reason_recorded', count(*) filter (where not coalesce(cited, false) and reasoned),
+    'reason_by', coalesce((select jsonb_object_agg(reason_by, n) from (select reason_by, count(*) n from c
+                             where not coalesce(cited, false) and reasoned group by 1) r), '{}'::jsonb),
+    'neither', count(*) filter (where not coalesce(cited, false) and not reasoned),
+    'uncited_ids', coalesce(jsonb_agg(id order by id) filter (where not coalesce(cited, false) and not reasoned), '[]'::jsonb))
+    from c;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_handoff_contract_guard()
@@ -5519,6 +5724,34 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_handoff_note_citation(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('handoff_id', a.id, 'read_by', a.agent, 'read_at', now(),
+                            'deadline', a.detail->'summary'->'deadline',
+                            'open_asks', a.detail->'summary'->'open_asks',
+                            'on_time', now() <= (a.detail->'summary'->>'deadline')::timestamptz)
+    from public.agent_actions a
+   where a.id = p_id and a.kind = 'handoff';
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_handoff_redact(p jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ IMMUTABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select regexp_replace(regexp_replace(
+           regexp_replace(p::text, '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}', '[email]', 'g'),
+           '([+]|\m00)[0-9][0-9 -]{5,}[0-9]', '[phone]', 'g'),
+           '\m0[1-9]([ -]?[0-9]){7,8}\M', '[phone]', 'g')::jsonb;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_handoff_summary(p_detail jsonb, p_agent text, p_target_table text, p_target_id text, p_title text DEFAULT NULL::text, p_recommendation text DEFAULT NULL::text, p_self_id bigint DEFAULT NULL::bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5537,6 +5770,13 @@ declare
   v_cases  jsonb;
   v_needed jsonb;
   v_links  jsonb;
+  v_context  text;
+  v_decision text;
+  v_asks     jsonb;
+  v_deadline timestamptz;
+  v_dsource  text;
+  v_row      jsonb;
+  v_col      text;
 begin
   if v_id is null then
     raise exception 'a handoff must name its case (subject_id or target_id) - refused, no note can be built';
@@ -5551,6 +5791,8 @@ begin
     from jsonb_each(d) e
    where e.key not in ('type','from','from_name','to','subject_table','subject_id','summary','error',
                        'awaiting','replied_at','subject')
+     -- 1013 review: no contact detail is a fact; a key naming one is dropped (its value is redacted below too)
+     and e.key !~* '(mail|phone|mobile|whatsapp|msisdn|tel|contact|address|wa_?id|number$)'
      and jsonb_typeof(e.value) in ('string','number','boolean');
 
   -- What was already done on this case: earlier actions (any seat, any kind), newest first.
@@ -5591,13 +5833,72 @@ begin
     union all select 'public.seat_case_memory?id=eq.' || (c->>'case_id') from jsonb_array_elements(v_cases) c
   ) z;
 
-  return jsonb_build_object(
+  -- 1013: CONTEXT. One sentence a colleague reads first.
+  v_context := format('%s handed %s on %s#%s to %s.%s Earlier on this case: %s action(s), %s remembered decision(s).',
+    coalesce(v_from, 'a seat'), v_type, v_table, v_id, p_agent,
+    case when v_facts = '{}'::jsonb then '' else ' Facts: ' || left(v_facts::text, 400) || '.' end,
+    jsonb_array_length(v_tried), jsonb_array_length(v_cases));
+
+  -- 1013: DECISION. What the sender decided.
+  v_decision := coalesce(
+    nullif(btrim(d->>'decision'), ''),
+    (select left(m.decision, 300) from public.seat_case_memory m
+      where m.source_table = v_table and m.source_id = v_id and m.seat = v_from
+        and nullif(btrim(m.decision), '') is not null order by m.id desc limit 1),
+    case when v_from is not null
+         then v_from || ' decided this needs ' || p_agent || ': ' || (v_needed->>'ask') end);
+
+  -- 1013: OPEN ASKS. What the receiver must do, as a list.
+  select coalesce(jsonb_agg(distinct q), '[]'::jsonb) into v_asks
+    from (select v_needed->>'ask' as q
+          union all select jsonb_array_elements_text(case when jsonb_typeof(d->'asks') = 'array' then d->'asks' else '[]'::jsonb end)
+          union all select d->>'question') s
+   where nullif(btrim(q), '') is not null;
+
+  -- 1013: DEADLINE. The sender's own date, the conversation's window, the case's due date, else 24 h.
+  begin
+    v_deadline := nullif(coalesce(d->>'deadline', d->>'due_at'), '')::timestamptz;
+    if v_deadline is not null then v_dsource := 'set by ' || coalesce(v_from, 'the sender'); end if;
+  exception when others then v_deadline := null;
+  end;
+  if v_deadline is null and k.reply_within is not null then
+    v_deadline := now() + k.reply_within; v_dsource := 'reply window of ' || v_type || ' (' || k.reply_within::text || ')';
+  end if;
+  if v_deadline is null and v_table ~ '^[a-z_][a-z0-9_]*$'
+     and exists (select 1 from information_schema.columns c where c.table_schema = 'public' and c.table_name = v_table and c.column_name = 'id') then
+    begin
+      execute format('select to_jsonb(t) from public.%I t where t.id::text = $1 limit 1', v_table) into v_row using v_id;
+      foreach v_col in array array['due_at','deadline','due_date','response_due_at','expires_at'] loop
+        if v_row ? v_col and nullif(v_row->>v_col, '') is not null then
+          v_deadline := (v_row->>v_col)::timestamptz; v_dsource := 'case due date ' || v_table || '.' || v_col; exit;
+        end if;
+      end loop;
+    exception when others then v_deadline := null;
+    end;
+  end if;
+  if v_deadline is null then
+    v_deadline := now() + interval '24 hours'; v_dsource := 'default handoff window (24 hours)';
+  end if;
+
+  if nullif(btrim(v_context), '') is null or nullif(btrim(v_decision), '') is null
+     or jsonb_array_length(v_asks) = 0 or v_deadline is null then
+    raise exception 'handoff % on %#% cannot state its context, decision, open asks and deadline - refused', v_type, v_table, v_id;
+  end if;
+
+  -- 1013 review: the note is read by other seats and by a model; no e-mail address or phone number lands
+  -- in it, whichever field carried it (a fact, the question, the decision, the title).
+  return public.fn_handoff_redact(jsonb_build_object(
+    'context', v_context,
+    'decision', v_decision,
+    'open_asks', v_asks,
+    'deadline', v_deadline,
+    'deadline_source', v_dsource,
     'known', jsonb_build_object('case', v_table || '#' || v_id, 'conversation', v_type,
                                 'from', v_from, 'to', p_agent, 'means', k.meaning, 'facts', v_facts),
     'tried', jsonb_build_object('actions', v_tried, 'case_memory', v_cases),
     'needed', v_needed,
     'evidence', coalesce(v_links, '[]'::jsonb),
-    'built_by', 'fn_handoff_summary');
+    'built_by', 'fn_handoff_summary'));
 end $function$
 
 

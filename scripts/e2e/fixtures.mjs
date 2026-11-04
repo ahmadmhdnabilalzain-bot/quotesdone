@@ -23,12 +23,37 @@
 //   The EMAIL verification still runs through the real login_otp endpoint (the code is seeded hashed,
 //   exactly as login_otp stores it; only delivery is skipped). The MOBILE verification is recorded
 //   directly: Twilio Verify cannot be driven without sending an SMS, and the number is fake by design.
-import { readFileSync } from 'node:fs';
-import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE, demoMobile, EMIRATES } from '../lib/demo_factory.mjs';
+import { appendFileSync, readFileSync } from 'node:fs';
+import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call as rawCall, keys, uploadObject, q, num, REF, BASE, demoMobile, EMIRATES } from '../lib/demo_factory.mjs';
 import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
 
-export { REF, BASE, call };
+export { REF, BASE };
+
+// A FIXTURE'S SESSION OUTLIVES ITS ACCESS TOKEN (19 Oct 2026, run qd_run:0a717394, S22). Each fixture
+// signs in once; GoTrue's access token lives expires_in = 3600 s. The run opened 10:49 and S20-S22 ran
+// after 11:50, so every call with a fixture JWT from then on got the gateway's HTTP 401
+// UNAUTHORIZED_ASYMMETRIC_JWT "Invalid JWT" (verify_jwt = true rejects an expired token under that code;
+// the function never ran). The portal never hits this: supabase-js refreshes its session. The harness
+// now does the same: a token owned by a fixture and within REFRESH_MARGIN_S of expiry is re-issued
+// through the fixture's newSession() before the call, and fixture.jwt / fixture.session move with it.
+// Guard: scripts/e2e/fixtures_session.test.mjs.
+// QD_E2E_REFRESH_MARGIN_S=3600 makes every fixture call use a re-issued token: how a short run proves the path.
+export const REFRESH_MARGIN_S = Number(process.env.QD_E2E_REFRESH_MARGIN_S || 120);
+const owners = new Map();   // access_token -> fixture
+export function trackSession(fx) { if (fx?.jwt && fx.newSession) owners.set(fx.jwt, fx); return fx; }
+export const tokenIsStale = (session, nowS = Date.now() / 1000) =>
+  !session?.expires_at || Number(session.expires_at) - nowS < REFRESH_MARGIN_S;
+export async function freshJwt(jwt, nowS) {
+  const fx = owners.get(jwt);
+  if (!fx || !tokenIsStale(fx.session, nowS)) return jwt;
+  const s = await fx.newSession();
+  owners.delete(jwt);
+  fx.session = s; fx.jwt = s.access_token;
+  owners.set(fx.jwt, fx);
+  return fx.jwt;
+}
+export const call = async (slug, jwt, body, timeoutMs) => rawCall(slug, await freshJwt(jwt), body, timeoutMs);
 export const read = (sql) => mgmtRead(REF, sql);
 export const write = (sql, where = 'e2e fixture') => mgmtFixture(REF, sql, where);
 
@@ -51,6 +76,11 @@ export async function openRun(opts = {}) {
   const { capUsd = 15, minutes: _minutes, ...rest } = opts;   // ledger 1247: no spend limit on tests; 15 is the CHECK maximum, 120 min the window limit
   const run = newRun({ quiet: true, ...rest });
   run.ids = { inquiries: new Set(), quotes: new Set(), leads: new Set(), customers: new Set(), storage: [] };
+  // THE JOB KNOWS EVERY WINDOW IT OPENED (18 Oct 2026). A script killed from outside never reaches closeRun's finally:
+  // every_drawing_format_is_read was SIGTERMed at drawing_journeys_into_report's 12-minute ceiling every night 13-18 Oct
+  // (qd_run:566956ec ... ad52831d stayed open past expires_at). With QD_E2E_RUN_TAGS set the tag is written BEFORE the
+  // window opens, so the parent and the workflow's always() step tear it down and close it by its exact tag.
+  if (process.env.QD_E2E_RUN_TAGS) appendFileSync(process.env.QD_E2E_RUN_TAGS, run.tag + '\n');
   // The window's run time is its expires_at: fn_rehearsal_window_sweep closes it after that if this process died.
   // QD_E2E_WINDOW_MIN = the workflow's job wall + teardown (smoke 33, nightly 120); an explicit opts.minutes wins;
   // unset or bad = the 2 h maximum.
@@ -91,9 +121,10 @@ export async function staleRunTags({ graceMinutes = 60 } = {}) {
 }
 
 /** Remove the fixtures of runs that are over, each with the harness's own teardown by its exact tag. */
+// opts.limit bounds how many runs one call removes (withRun sweeps a few per start; run.mjs takes them all).
 export async function sweepStaleRuns(opts = {}) {
   const out = [];
-  for (const tag of await staleRunTags(opts)) {
+  for (const tag of (await staleRunTags(opts)).slice(0, opts.limit ?? Infinity)) {
     if (NEVER_SWEPT.has(tag)) continue;   // belt and braces: never the founder's demo accounts
     const t = await teardown(newRun({ tag, quiet: true }));
     out.push({ tag, summary: t.summary });
@@ -189,8 +220,8 @@ export async function makeDemoCustomer(run, opts = {}) {
     if (!id) throw new Error(`customer row not created for ${email}: save HTTP ${steps.save.status} ${steps.save.text}`);
     run.ids.customers.add(id);
     const session = await passwordSession(email, u.password);
-    return { kind: 'customer', email, phone, fullName, locale, customerId: id, steps, session, jwt: session.access_token,
-             newSession: () => passwordSession(email, u.password) };
+    return trackSession({ kind: 'customer', email, phone, fullName, locale, customerId: id, steps, session, jwt: session.access_token,
+             newSession: () => passwordSession(email, u.password) });
   }
   // Sign-up asks "Is <mobile> also your WhatsApp number?" and kyc accept_terms refuses without the
   // answer (15 Sep 2026). 'same' = the verified fixture mobile above; notices to it are captured.
@@ -203,8 +234,8 @@ export async function makeDemoCustomer(run, opts = {}) {
   if (!row) throw new Error(`customer row not created for ${email}: save HTTP ${steps.save.status} ${steps.save.text}`);
   run.ids.customers.add(row.id);
   const session = await passwordSession(email, u.password);
-  return { kind: 'customer', email, phone, fullName, locale, customerId: row.id, row, steps, session, jwt: session.access_token,
-           newSession: () => passwordSession(email, u.password) };
+  return trackSession({ kind: 'customer', email, phone, fullName, locale, customerId: row.id, row, steps, session, jwt: session.access_token,
+           newSession: () => passwordSession(email, u.password) });
 }
 
 /**
@@ -268,8 +299,8 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
   }
   const session = await passwordSession(email, s.password);
   const services = await stateServices(s.leadId, session.access_token, trade);
-  return { kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, session, jwt: session.access_token, services,
-           newSession: () => passwordSession(email, s.password) };
+  return trackSession({ kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, session, jwt: session.access_token, services,
+           newSession: () => passwordSession(email, s.password) });
 }
 
 // THE SERVICES A REAL SUPPLIER STATES (22 Sep 2026, sales_engineer). MEASURED: the portal walk of 21 Sep
@@ -283,9 +314,24 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
 // services_rewrite, then services_save_rewrite with what the rewrite named. A trade with no sentence
 // here gets no services and says so; the caller that needs routing must add one.
 const SERVICE_WORDS = {
-  aluminium: 'Aluminium windows and doors, curtain wall, ACP cladding, pergolas and louvres',
-  gypsum: 'Gypsum partitions, false ceilings, decorative gypsum and bulkheads',
-  painting: 'Interior painting and exterior painting',
+  // 2 Nov 2026, nightly run 41417049225: "Aluminium windows and doors" is not a label, so the exact rewrite
+  // never confirmed aluminium.windows_doors and the journey's window request routed to none of the three.
+  // Every phrase is now an exact label. prevented by: scripts/checks/every_demo_service_sentence_names_exact_taxonomy_labels.test.mjs
+  aluminium: 'Aluminium windows & doors, Curtain wall, ACP cladding, Pergolas & shades, Louvres',
+  gypsum: 'Gypsum partitions, False ceilings, Decorative gypsum',
+  painting: 'Interior painting, Exterior painting',
+  // 19 Oct 2026, stage2 run 0a717394: these trades had no sentence, so their demo supplier confirmed no
+  // service and fn_match_capability's services gate dropped it from every request that named one
+  // (6 of 9 routed to nobody; hvac passed only because its brief named none). Exact taxonomy labels.
+  // prevented by: scripts/checks/every_stage2_supplier_trade_states_its_services.test.mjs
+  electrical: 'Wiring & electrical installation, Distribution boards & switchgear, Cable trays & containment, Lighting supply & installation, Electrical maintenance',
+  plumbing: 'Water supply piping, Drainage & sewerage, Sanitary fixtures installation, Water heaters & pumps, Plumbing maintenance',
+  hvac: 'Supply & installation of AC units, Ducting & ventilation, VRF & chiller systems, Testing & commissioning, Maintenance & annual contracts',
+  flooring: 'Tiling, Marble & granite, Parquet & vinyl, Epoxy flooring, Carpet',
+  joinery: 'Kitchens, Wardrobes & closets, Wooden doors, Wood panelling, Custom furniture',
+  glazing: 'Frameless glazing, Glass façades, Shower & glass partitions, Tempered & laminated glass, Mirrors',
+  waterproofing: 'Roof waterproofing, Wet-area waterproofing, Basement & foundation waterproofing, Thermal insulation, Acoustic insulation',
+  landscaping: 'Softscape & planting, Hardscape, Irrigation systems, Artificial grass, Garden maintenance',
 };
 async function stateServices(leadId, jwt, trade) {
   const text = SERVICE_WORDS[trade];

@@ -14,7 +14,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { embedLine } from '../_shared/gte_embed.ts';
-import { carriedFailures, detachedItems, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
+import { carriedFailures, detachedItems, type Failure, failureOf, httpHopError, runSteps, type Step, type StepClock, stepClock, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
@@ -24,12 +24,14 @@ import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { rotateAndSettle } from '../_shared/it_rotate_by_api.ts';
 import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
+import { notReached } from '../_shared/not_reached.ts';
+import { anotherRound, ARCHIVE_HARD_MS, isolateOffsets, type SliceOut } from './archive_rounds.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
-import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
+import { pollReplyInbox, pollTenantMailboxes, PROOF_LABEL, type SenderKind } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
-import { defaultDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
+import { heartbeatDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
 import { drain as drainRoutineJudgements } from '../_shared/routine_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
@@ -157,17 +159,31 @@ const ARCHIVE_SWEEPS = 4, ARCHIVE_BATCH = 4;
 async function archiveTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
-    const one = async (offset: number) => {
+    // A sweep is idempotent (oldest-first, recorded by upsert), so one the platform refused before any worker ran it
+    // is asked once more (2 Nov 2026: 7 conversation_archive 503s in a day, each ~10 s with no execution_id and
+    // x-served-by base/server - the worker never started). _shared/not_reached.ts decides what "refused" means.
+    const signal = AbortSignal.timeout(ARCHIVE_HARD_MS);   // one clock for every call of every round
+    const one = async (offset: number, limit = ARCHIVE_BATCH): Promise<SliceOut & { ok?: boolean; error?: string }> => {
       try {
-        const r = await fetch(FN + '/conversation_archive', {
+        const ask = () => fetch(FN + '/conversation_archive', {
           method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
-          body: JSON.stringify({ __secret: secret, action: 'sweep', limit: ARCHIVE_BATCH, offset }), signal: AbortSignal.timeout(50000),
+          body: JSON.stringify({ __secret: secret, action: 'sweep', limit, offset }), signal: signal,
         });
+        let r = await ask();
+        if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
         return { offset, status: r.status, result: await r.json().catch(() => null) };
       } catch (e) { return { offset, ok: false, error: String((e as Error)?.message || e) }; }
     };
-    const sweeps = await Promise.all(Array.from({ length: ARCHIVE_SWEEPS }, (_, i) => one(i * ARCHIVE_BATCH)));
-    return { status: (sweeps[0] as { status?: number }).status, result: (sweeps[0] as { result?: unknown }).result, sweeps };
+    // ROUNDS UNTIL THE BACKLOG IS CLEAR, AND A DEAD SLICE RE-RUN ONE MESSAGE PER WORKER (archive_rounds.ts).
+    const t0 = Date.now(); const rounds: unknown[] = []; let sweeps: SliceOut[] = [];
+    for (let round = 0; ; round++) {
+      sweeps = await Promise.all(Array.from({ length: ARCHIVE_SWEEPS }, (_, i) => one(i * ARCHIVE_BATCH)));
+      const iso = isolateOffsets(sweeps, ARCHIVE_BATCH);
+      const isolated = iso.length ? await Promise.all(iso.map((o) => one(o, 1))) : [];
+      rounds.push({ sweeps, isolated });
+      if (!anotherRound(sweeps, round, Date.now() - t0)) break;
+    }
+    return { status: sweeps[0]?.status, result: sweeps[0]?.result, rounds: rounds.length, detail: rounds };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -212,18 +228,12 @@ async function orgTaskTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
-// THE SALES ENGINEER'S DAILY SUPPLIER OUTREACH (21 Sep 2026). enqueue_supplier_invites had no caller
-// after pg_cron went (last plan 7 Sep); fn_sales_engineer_supplier_outreach_tick is its caller now, and
-// adds the day-2/day-6 registration reminders and the 24-hour clock on a submitted registration. The
-// routine gates itself to once per Dubai day and holds — recording the held day — while the campaign
-// gates are off (the_invitations_go_out_every_day_and_a_started_registration_is_followed.sql).
-async function supplierOutreachTick(): Promise<unknown> {
-  try {
-    const { data, error } = await admin.rpc('fn_sales_engineer_supplier_outreach_tick');
-    if (error) return { ok: false, error: error.message };
-    return data;
-  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
-}
+// THE SALES ENGINEER'S DAILY SUPPLIER OUTREACH LEFT THIS TICK ON 28 OCT 2026 (sales_engineer). It ran here as the step
+// `supplierOutreach` from 21 Sep, through PostgREST, where the authenticator's statement_timeout is 8 s. The held path
+// fits; an open day does not (measured 28 Oct: enqueue_supplier_invites alone took 13.4 s), so on the first open day
+// every beat from 09:16 Dubai was cancelled and nothing was invited. fn_sales_engineer_supplier_outreach_tick is now the
+// seat duty sales_engineer.supplier_outreach on its own 60 s pg_cron job
+// (the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql). Do not bring it back here.
 
 // A BOUNCE REPORT IS PROVEN TO ARRIVE EVERY DAY (21 Sep 2026, customer_support). Before the supplier
 // campaign the last bounce resend_webhook had recorded was 15 Aug, and nothing could tell "no bounces"
@@ -261,6 +271,36 @@ async function seatDutiesTick(): Promise<unknown> {
     if (error) return { ok: false, error: error.message };
     return data;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// CUSTOMER SUPPORT'S DUTY UPDATES ARE THE MODEL'S (27 Oct 2026, customer_support; founder_instruction 1339: "the
+// engineer and customer support never replies without llm unless the server of open router is down"). The complaint
+// update and the incident holding/resolved notices are recorded as owed by their SQL duties; this writes them with the
+// model and sends the recorded draft only on an OpenRouter outage (_shared/duty_voice.ts). Three voice groups a run.
+// THE HELD REPLAY, IN ITS OWN DETACHED RUN (it_engineer, 27 Oct 2026; review of #1688). Kicked by itlater's
+// reasoning_held step. The run is raced at DETACHED_MS, so replayHeld is handed that deadline and keeps
+// REPLAY_RESERVE_MS of it for the settle: a run that starts late claims nothing and the rows wait for the next tick.
+// At most REPLAY_CLAIM rows are in think() at once and no model call outlives the budget (_shared/think.ts).
+// prevented by: _shared/think_replay_concurrency.test.ts, resilience_ping/held_replay_runs_detached.test.ts
+async function heldReplayTick(): Promise<unknown> {
+  const deadline = Date.now() + DETACHED_MS;
+  return await replayHeld(admin, REPLAY_CLAIM, heartbeatDeps(admin), (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
+    { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS, deadline });
+}
+
+// THE ROUTINE JUDGEMENTS, IN THEIR OWN DETACHED RUN (it_engineer, 27 Oct 2026). Kicked by itlater's routine_judgements
+// step. Handed this run's deadline, so a claim starts only while a whole judgement fits and no model call outlives it
+// (_shared/routine_judgements.ts drain, JUDGE_ROW_MS / JUDGE_RESERVE_MS). heartbeatDeps: gte-small runs in embed_ml.
+// prevented by: _shared/routine_judgements_keep_a_deadline.test.ts, resilience_ping/held_replay_runs_detached.test.ts
+async function routineJudgementsTick(): Promise<unknown> {
+  const deadline = Date.now() + DETACHED_MS;
+  return await drainRoutineJudgements(heartbeatDeps(admin), 5, null, { deadline });
+}
+
+async function supportVoiceTick(): Promise<unknown> {
+  const { writeOwedDutyMessages, liveVoiceIO } = await import('../_shared/duty_voice.ts');
+  // heartbeatDeps: any embedding this step ever asks for runs in embed_ml, never in this worker (2 s CPU cap, #1678)
+  return await writeOwedDutyMessages(liveVoiceIO(admin, heartbeatDeps(admin)), 3);
 }
 
 async function outboxTick(): Promise<unknown> {
@@ -497,11 +537,13 @@ async function learningMeasureTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 // Hourly, no model: embed + group in SQL. Weekly (learningDistil): reason only what crossed the threshold.
+// Both on heartbeatDeps (27 Oct 2026, it_engineer): each unembedded finding (up to 8 a tick) is embedded in embed_ml,
+// never in this worker, whose 2 s CPU cap killed the held replay (_shared/think.ts, above defaultDeps).
 async function learningGroupTick(): Promise<unknown> {
-  try { return await distilLessons(admin, undefined, 2, { reason: false }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+  try { return await distilLessons(admin, heartbeatDeps(admin), 2, { reason: false }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 async function learningDistilTick(): Promise<unknown> {
-  try { return await distilLessons(admin, undefined, 2, { reason: true }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+  try { return await distilLessons(admin, heartbeatDeps(admin), 2, { reason: true }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
 async function refundLadderTick(): Promise<unknown> {
@@ -643,7 +685,9 @@ async function dropboxVerifyTick(): Promise<unknown> {
 // Read only: the project, its domains, its env var NAMES (never decrypted, and vercel_snapshot.ts drops every value
 // again) and its crons. The JSON goes to the private backups bucket and is filed for Dropbox under Company/Vercel/.
 // The env vars the site reads are the names in the site's own code (src/: process.env.*), listed here.
-const SITE_ENV_NAMES = ['CRON_SECRET', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SITE_ERROR_INGEST_SECRET', 'SUPABASE_SERVICE_ROLE_KEY'];
+// 27 Oct 2026: the site reads the new keys first (NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY) and the legacy
+// ones only as the temporary fallback; drop the two legacy names with that fallback.
+const SITE_ENV_NAMES = ['CRON_SECRET', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SITE_ERROR_INGEST_SECRET', 'SUPABASE_SECRET_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
 async function vercelSnapshotTick(): Promise<unknown> {
   try {
     const [token, pid, team] = await Promise.all([sec('vercel_token'), sec('vercel_project_id'), sec('vercel_team_id')]);
@@ -978,6 +1022,18 @@ async function whatsappTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE WHATSAPP SENDER'S RATING, READ WITHOUT A MESSAGE (2 Nov 2026, ceo). The supplier invitation gate needs a reading
+// under 26 hours old, and until now only a queued invitation caused one, so the channel could never open.
+async function waSenderQualityTick(): Promise<unknown> {
+  try {
+    const r = await fetch(FN + '/send_whatsapp', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
+      body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), read_sender_quality: true }), signal: AbortSignal.timeout(8500),
+    });
+    return { ok: r.ok, status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE ACCOUNTANT'S WEEKLY FINANCIAL REPORT HANGS HERE FOR THE FOURTH TIME, AND FOR THE SAME REASON.
 // The founder, 9 Sep 2026: the accountant must "create weekly report as pdf and share it with me and
 // the CEO". A weekly report needs a schedule and pg_cron is not one any more, so the once-per-ISO-week
@@ -1162,29 +1218,65 @@ async function itIntegrationsTick(): Promise<unknown> {
     } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
   })();
   const replies = m365Replies();   // a third independent path (6 Oct 2026): replies to the Microsoft 365 mailbox
+  // a fourth (2 Nov 2026): every other mailbox of the tenant, after supplier@, so one message addressed to both is taken once
+  const tenantMail = replies.then(() => m365TenantMail());
   const [integ, placement] = await Promise.all([integrations, inboxPlacement()]);
   const inbox = await replies;
+  const tenantInbox = await tenantMail;
   // Either path failing is this step's failure (duty:heartbeat:itintegrations), so it reaches the IT engineer's loop
   // the same beat. The batch is held by the gate regardless. placement carries counts and verdicts only (public).
   const errors = [integ.ok === false ? String(integ.error) : null, placement.ok === false ? 'inbox placement: ' + String(placement.error) : null,
-    inbox.ok === false ? 'm365 reply inbox: ' + String(inbox.why) : null].filter(Boolean);
-  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement, m365_reply_inbox: inbox };
+    inbox.ok === false ? 'm365 reply inbox: ' + String(inbox.why) : null,
+    tenantInbox.ok === false ? 'm365 tenant mailboxes: ' + String(tenantInbox.why) : null].filter(Boolean);
+  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement, m365_reply_inbox: inbox, m365_tenant_mailboxes: tenantInbox };
 }
 
 // REPLIES TO supplier@quotesdone.com (6 Oct 2026, it_engineer + customer_support; _shared/m365_reply_inbox.ts).
 // The invitation lane sends without a Reply-To once this reader is proven, so a supplier's answer lands in that
 // mailbox; this reads it and hands every new message to resend_inbound, the handler every other reply goes through.
+const m365OnFile = async (ids: string[]) => {
+  const { data, error } = await admin.from('inbound_messages').select('provider_email_id').in('provider_email_id', ids);
+  if (error) throw new Error('inbound_messages: ' + error.message);
+  return new Set((data || []).map((r) => String(r.provider_email_id)));
+};
+const m365MessageOnFile = async (ids: string[]) => {
+  const { data, error } = await admin.from('inbound_messages').select('message_id:raw->>message_id').in('raw->>message_id', ids);
+  if (error) throw new Error('inbound_messages: ' + error.message);
+  return new Set((data || []).map((r) => String((r as { message_id: unknown }).message_id)));
+};
+// Who wrote, read only: the founder or staff; a lead (leads.email or claimed_by) or a customer; else a stranger.
+async function m365Sender(address: string): Promise<SenderKind> {
+  const [own, rel] = await Promise.all([admin.rpc('fn_is_founder_own_inbox', { p_addr: address }), admin.rpc('fn_mail_sender_known', { p_email: address })]);
+  if (own.error || rel.error) throw new Error('sender lookup failed');
+  if (own.data === true || rel.data === 'staff') return 'founder';
+  if (rel.data) return 'known';
+  const { data, error } = await admin.from('leads').select('id').ilike('claimed_by', address.replace(/[\\%_]/g, '\\$&')).limit(1);
+  if (error) throw new Error('sender lookup failed');
+  return data?.length ? 'known' : null;
+}
+async function m365TenantMail(): Promise<Record<string, unknown>> {
+  try {
+    return await pollTenantMailboxes({
+      fetchFn: (u, i) => timedFetch(u, i || {}, 25_000), env: (k) => Deno.env.get(k),
+      inviteMailbox: await sec('invite_m365_mailbox'), listedMailboxes: await sec('m365_tenant_mailboxes'),
+      strangersFrom: await sec('m365_tenant_strangers_from'), financialDomains: await sec('m365_financial_domains'), messageOnFile: m365MessageOnFile,
+      inboundToken: await sec('resend_inbound_token'), signingSecret: await sec('resend_inbound_signing_secret'), inboundUrl: FN + '/resend_inbound',
+      onFile: m365OnFile, sender: m365Sender,
+      // counts.m365_tenant and never counts.m365_inbox: send_outbox's proof read cannot select this row.
+      record: async (status, counts, note) => {
+        await admin.from('agent_runs').insert({ agent: PROOF_LABEL, status, counts, note: note.slice(0, 500),
+          started_at: new Date().toISOString(), finished_at: new Date().toISOString() });
+      },
+    });
+  } catch (e) { return { ok: false, why: String((e as Error)?.message || e).slice(0, 200) }; }
+}
 async function m365Replies(): Promise<Record<string, unknown>> {
   try {
     return await pollReplyInbox({
       fetchFn: (u, i) => timedFetch(u, i || {}, 25_000), env: (k) => Deno.env.get(k),
       mailbox: await sec('invite_m365_mailbox'), inboundToken: await sec('resend_inbound_token'),
       signingSecret: await sec('resend_inbound_signing_secret'), inboundUrl: FN + '/resend_inbound',
-      onFile: async (ids) => {
-        const { data, error } = await admin.from('inbound_messages').select('provider_email_id').in('provider_email_id', ids);
-        if (error) throw new Error('inbound_messages: ' + error.message);
-        return new Set((data || []).map((r) => String(r.provider_email_id)));
-      },
+      onFile: m365OnFile, sender: m365Sender, messageOnFile: m365MessageOnFile,
       fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; },
       record: async (status, counts, note) => {
         await admin.from('agent_runs').insert({ agent: PROOF_LABEL, status, counts, note: note.slice(0, 500),
@@ -1225,7 +1317,7 @@ async function itScheduledTick(): Promise<unknown> {
 // Duty 19's file half is duty 9's sample (itScheduledTick); 21 is duty 10's sender check; 23's patch PR
 // runs in .github/workflows/it-weekly-readings.yml. Runs before the alert tick, so anything raised here
 // goes round the IT loop on this same pass.
-async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
+async function itLaterDutiesTick(clock: StepClock = stepClock()): Promise<Record<string, unknown>> {
   const out: Record<string, unknown> = {};
   const rpc = async (fn: string, args?: Record<string, unknown>) => {
     const { data, error } = await admin.rpc(fn, args);
@@ -1235,7 +1327,10 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   const pause = await pausedDuties(admin);
   const step = async (name: string, run: () => Promise<unknown>) => {
     if (pause.has('resilience_ping.' + name)) { out[name] = PAUSED; return; }
+    // every step is timed on the run's clock, which outlives the 120 s race (steps.ts stepClock)
+    clock.begin(name);
     try { out[name] = await run(); } catch (e) { out[name] = { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
+    clock.end(name, !failureOf(out[name]));
   };
   await step('renewal', async () => { await rpc('fn_it_renewal_watch'); return { ok: true }; });
   await step('changes', async () => {
@@ -1295,6 +1390,11 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;
     return { due: true, approved_rechecked: r?.approved_rechecked, registrations_closed: r?.registrations_closed };
   });
+  await step('held_registrations', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('held_registrations')) return { due: false };
+    const unreached = await rpc('fn_sales_engineer_closes_unreached_requests');
+    return { due: true, ...((await rpc('fn_sales_engineer_decides_held_registrations')) as Record<string, unknown>), unreached };
+  });
   // Its own step, never behind fn_it_restore_table_due: a drill that stops completing is a finding.
   await step('restore_overdue', async () => rpc('fn_it_restore_table_overdue'));
   // Two seats never agree on one model family (founder_instruction 873). The review steps are routed and
@@ -1317,12 +1417,18 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
   // returns nothing and no model is asked, so this step costs one gate read. Since 7 Oct (ledger 1175) a tick claims REPLAY_CLAIM
   // at a time, concurrently, up to REPLAY_MAX_ROWS within REPLAY_BUDGET_MS, a slice that fits every tick (12 Oct).
-  await step('reasoning_held', async () => replayHeld(admin, REPLAY_CLAIM, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
-    { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS }));
+  // 27 Oct 2026 (review of #1688): the replay no longer runs here. It is KICKED into its own detached invocation
+  // (heldReplayTick, its own DETACHED_MS), so its model calls can never eat the time of the steps after it
+  // (reasoning_escalate's owed holding notices, routine_judgements, wa_arrival_sweep, ceo_support_replies). Measured:
+  // duty:detached_itlater:itlater "passed its 120000 ms limit", seen 51 times 16:17-20:32Z with a 25 s replay budget.
+  await step('reasoning_held', async () => kickDetached('heldReplay'));
   // The four routine judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
   // (scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql).
-  await step('routine_judgements', async () => drainRoutineJudgements(defaultDeps(admin, 'resilience_ping'), 5));
+  // 27 Oct 2026 (it_engineer): KICKED into its own detached run (routineJudgementsTick), the same move #1688 made for the
+  // replay. Measured: the 22:01:12Z itlater run claimed five rows here at 22:01:27 and judged them one after another at
+  // ~60 s each (two model calls of 19-31 s apiece); the run's cap fired at 22:03:12 with this step still going.
+  await step('routine_judgements', async () => kickDetached('routineJudgements'));
   // A WHATSAPP TURN THAT CRASHED (customer_support, 19 Oct 2026): a wa_messages row still at stage 'received' after 5 minutes
   // goes to customer_support once and into the held-question queue (so reasoning_escalate below sends the holding notice in the same tick); never replayed
   // (scripts/sql/a_whatsapp_message_whose_turn_crashed_reaches_customer_support_in_five_minutes.sql).
@@ -1626,6 +1732,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   ceoWeeklyReview: { run: ceoWeeklyReviewTick },
   ceoDecisions: { run: ceoDecisionsTick },
   ceoPlan: { run: ceoPlanTick },
+  waSenderQuality: { run: waSenderQualityTick },
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
   caseMemory: { run: caseMemoryEmbedTick },
@@ -1646,10 +1753,11 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   itlater: { run: () => kickDetached('itlater') },
   specoffer: { run: specOfferTick },
   marketingOutreach: { run: marketingOutreachTick },
-  supplierOutreach: { run: supplierOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
   seatClocks: { run: seatClocksTick },
   seatDuties: { run: seatDutiesTick },
+  // customer_support's duty updates written by the model (founder_instruction 1339): detached, its own 120 s.
+  supportVoice: { run: () => kickDetached('supportVoice') },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.
@@ -1684,9 +1792,12 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
 // 120 s for the run itself, raced in runDetached so a hung RPC is cut off with time left inside the ~150 s
 // wall clock for fn_it_duty_settle to record it; the marketing fetch waits the same 120 s.
 const DETACHED_MS = 120_000;
-const DETACHED: Record<string, { run: () => Promise<unknown>; nested?: boolean }> = {
+const DETACHED: Record<string, { run: (clock: StepClock) => Promise<unknown>; nested?: boolean }> = {
   marketing: { run: marketingTick },
+  supportVoice: { run: supportVoiceTick },
   itlater: { run: itLaterDutiesTick, nested: true },
+  heldReplay: { run: heldReplayTick },
+  routineJudgements: { run: routineJudgementsTick },
 };
 async function kickDetached(name: string): Promise<unknown> {
   try {
@@ -1702,10 +1813,14 @@ async function runDetached(name: string): Promise<void> {
   const d = DETACHED[name];
   let out: unknown;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const clock = stepClock();
   const cap = new Promise<unknown>((res) => { timer = setTimeout(() => res({ ok: false, error: 'detached ' + name + ' passed its ' + DETACHED_MS + ' ms limit' }), DETACHED_MS); });
-  try { out = await Promise.race([d.run(), cap]); } catch (e) { out = { ok: false, error: String((e as Error)?.message || e) }; }
+  try { out = await Promise.race([d.run(clock), cap]); } catch (e) { out = { ok: false, error: String((e as Error)?.message || e) }; }
   finally { clearTimeout(timer); }
-  try { await admin.rpc('fn_it_duty_settle', { p_duty: 'detached_' + name, p_items: detachedItems(name, out, !!d.nested) }); }
+  // read the clock where the race left it: on an overrun, `running` is the step that was still going
+  const timing = clock.snapshot();
+  console.log(JSON.stringify({ detached_timing: name, ok: !failureOf(out), ...timing }));
+  try { await admin.rpc('fn_it_duty_settle', { p_duty: 'detached_' + name, p_items: detachedItems(name, out, !!d.nested, timing) }); }
   catch (_e) { /* the next run settles again; a failed settle must not throw out of waitUntil */ }
 }
 

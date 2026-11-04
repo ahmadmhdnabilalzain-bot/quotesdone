@@ -13,7 +13,7 @@ do $probe$
 declare
   f text[] := '{}';
   v_fn text; v_n int; v_n2 int; v_before bigint; v_ticket text; v jsonb; v_inq uuid; v_tx uuid; v_q uuid;
-  v_window numeric; v_left int; v_log bigint; v_lead bigint; v_chat0 int;
+  v_window numeric; v_cust uuid; v_left int; v_log bigint; v_lead bigint; v_chat0 int;
 begin
   -- ── structure ──
   foreach v_fn in array array['public.fn_seat_clocks_tick()', 'public.fn_complaint_clock_tick(boolean)',
@@ -109,50 +109,39 @@ begin
       f := f || text 'the seat''s complaint item stayed open after the final response'; end if;
 
     -- ── a request short of quotes: widen once, remind once, tell the customer once ──
-    select i.id into v_inq from public.inquiries i join public.customers c on c.id = i.customer_id
-     where i.status in ('sent', 'quoted') and public.fn_seat_clock_customer_is_fixture(c)
-       and exists (select 1 from public.inquiry_matches m join public.leads l on l.id = m.supplier_id
-                    where m.inquiry_id = i.id and public.fn_seat_clock_lead_is_fixture(l)
-                      and not exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = m.supplier_id))
-       and (select count(*) from public.quotes q where q.inquiry_id = i.id) < 3
-     order by i.created_at desc limit 1;
-    -- NO LEFTOVER TO BORROW (22 Sep 2026, it_engineer). This used to find its subject only among OTHER
-    -- runs' leftover fixtures: it passed on run 12ddadff's request, and the nightly's sweep of runs that
-    -- are over (scripts/e2e/fixtures.mjs sweepStaleRuns) left none. A probe must not depend on litter.
-    -- When nothing is short of quotes, it makes a request short of quotes here: an open fixture request
-    -- gains one invited ZZ DEMO supplier (@example.invalid) who has not quoted. Both rows exist only
-    -- inside this block, which its own raise rolls back; the zero-residue assertion below still holds.
-    if v_inq is null then
-      select i.id into v_inq from public.inquiries i join public.customers c on c.id = i.customer_id
-       where i.status in ('sent', 'quoted') and public.fn_seat_clock_customer_is_fixture(c)
-         and (select count(*) from public.quotes q where q.inquiry_id = i.id) < 3
-       order by i.created_at desc limit 1;
-      if v_inq is not null then
-        insert into public.leads (company_name, email) values ('ZZ DEMO clock probe supplier', 'zz.clock.supplier@example.invalid')
-        returning id into v_lead;
-        insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (v_inq, v_lead, 'ZZ DEMO clock probe: invited, not quoted');
-      end if;
-    end if;
-    if v_inq is null then
-      f := f || text 'no open ZZ DEMO request exists to rehearse on';
-    else
-      select nullif(regexp_replace(coalesce(value, ''), '[^0-9.]', '', 'g'), '')::numeric into v_window
-        from public.app_secrets where key = 'sla_quote_hours';
-      update public.inquiry_matches set sent_at = now() - make_interval(secs => ((coalesce(v_window, 24) + 1) * 3600)::double precision)
-       where inquiry_id = v_inq;
-      update public.inquiries set routing = coalesce(routing, '{}'::jsonb) - 'short_sweep' where id = v_inq;
-      perform public.fn_rfq_short_of_quotes_tick(true);
-      select count(*) into v_n from public.notifications where id > v_before and inquiry_id = v_inq;
-      perform public.fn_rfq_short_of_quotes_tick(true);
-      select count(*) into v_n2 from public.notifications where id > v_before and inquiry_id = v_inq;
-      if v_n2 <> v_n then f := f || ('a second sweep wrote ' || (v_n2 - v_n) || ' more message(s) about the same request'); end if;
-      if not exists (select 1 from public.inquiries where id = v_inq and routing ? 'short_sweep') then
-        f := f || text 'the widening round was not recorded on the request'; end if;
-      if (select count(*) from public.notifications where id > v_before and inquiry_id = v_inq and type = 'rfq_quote_reminder') < 1 then
-        f := f || text 'no invited supplier was reminded'; end if;
-      if (select count(*) from public.notifications where id > v_before and inquiry_id = v_inq and type = 'rfq_short_of_quotes'
-            and to_role = 'customer' and coalesce(channel, 'email') = 'email') <> 1 then
-        f := f || text 'the customer was not told exactly once at the deadline'; end if;
+    -- THE PROBE OWNS ITS REQUEST AND ITS CUSTOMER (2 Nov 2026, customer_support). It used to borrow the newest open
+    -- fixture request, which on a night with a walk running is the WALK's live request (#1771 made it create its own
+    -- request). That still borrowed the walk's CUSTOMER: walk customers are demo rows with a real-looking test address
+    -- (delivered+qd-...@resend.dev), and the gate rightly refuses a fixture subject writing to a real address, so the
+    -- customer was told zero times -- "the customer was not told exactly once" on PR #1775, green on a rerun. Measured
+    -- 2 Nov: 15 of 18 fixture customers carry such an address. A real customer is never a fixture, so none of this
+    -- can reach one. Nothing else can touch rows born in this block, which its own raise rolls back.
+    insert into public.customers (full_name, email, locale)
+    values ('ZZ DEMO clock probe customer', 'zz.clock.customer@example.invalid', 'en') returning id into v_cust;
+    insert into public.inquiries (customer_id, status, category, emirate) values (v_cust, 'sent', 'aluminium', 'Dubai')
+    returning id into v_inq;
+    insert into public.leads (company_name, email) values ('ZZ DEMO clock probe supplier', 'zz.clock.supplier@example.invalid')
+    returning id into v_lead;
+    insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (v_inq, v_lead, 'ZZ DEMO clock probe: invited, not quoted');
+    select nullif(regexp_replace(coalesce(value, ''), '[^0-9.]', '', 'g'), '')::numeric into v_window
+      from public.app_secrets where key = 'sla_quote_hours';
+    update public.inquiry_matches set sent_at = now() - make_interval(secs => ((coalesce(v_window, 24) + 1) * 3600)::double precision)
+     where inquiry_id = v_inq;
+    perform public.fn_rfq_short_of_quotes_tick(true);
+    select count(*) into v_n from public.notifications where id > v_before and inquiry_id = v_inq;
+    perform public.fn_rfq_short_of_quotes_tick(true);
+    select count(*) into v_n2 from public.notifications where id > v_before and inquiry_id = v_inq;
+    if v_n2 <> v_n then f := f || ('a second sweep wrote ' || (v_n2 - v_n) || ' more message(s) about the same request'); end if;
+    if not exists (select 1 from public.inquiries where id = v_inq and routing ? 'short_sweep') then
+      f := f || text 'the widening round was not recorded on the request'; end if;
+    if (select count(*) from public.notifications where id > v_before and inquiry_id = v_inq and type = 'rfq_quote_reminder') < 1 then
+      f := f || text 'no invited supplier was reminded'; end if;
+    select count(*) into v_n from public.notifications where id > v_before and inquiry_id = v_inq and type = 'rfq_short_of_quotes'
+       and to_role = 'customer' and coalesce(channel, 'email') = 'email';
+    if v_n <> 1 then
+      f := f || ('the customer was not told exactly once at the deadline (' || v_n || ' notice(s): '
+        || coalesce((select string_agg(coalesce(channel, 'email') || '/' || status, ', ') from public.notifications
+                      where id > v_before and inquiry_id = v_inq and type = 'rfq_short_of_quotes'), 'none') || ')');
     end if;
 
     -- ── seven days after a reveal: once, only inside the window before the rating ask ──
@@ -194,8 +183,14 @@ begin
       f := f || text 'the reply finding did not close once the channel was clear'; end if;
 
     -- ── nothing to a real address, nothing to the founder, and the whole step runs ──
+    -- ONLY THIS REHEARSAL'S OWN WRITES (2 Nov 2026, customer_support). `id > v_before` also matched rows other sessions committed
+    -- while the probe ran: PR #1650's run counted a live WhatsApp walk's support_reply (id 122777, channel whatsapp, status
+    -- skipped, to_email null -- and not fn_is_demo_email(null) is true), not one the clocks wrote. A row born in this
+    -- transaction has created_at = now() (the column default; now() is the transaction's start and is fixed for it); another
+    -- session's row is stamped by its own transaction. The assertion is unchanged: nothing the clocks wrote reaches a real address.
     select count(*) into v_n from public.notifications
-     where id > v_before and (not public.fn_is_demo_email(to_email) or to_role in ('founder', 'admin') or type = 'founder_alert');
+     where id > v_before and created_at = now()
+       and (not public.fn_is_demo_email(to_email) or to_role in ('founder', 'admin') or type = 'founder_alert');
     if v_n <> 0 then f := f || (v_n || ' message(s) went to a real address or to the founder'); end if;
     v := public.fn_seat_clocks_tick();
     if not coalesce((v->>'ok')::boolean, false) then f := f || ('fn_seat_clocks_tick did not run clean: ' || left(v::text, 300)); end if;

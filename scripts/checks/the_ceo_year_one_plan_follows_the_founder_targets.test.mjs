@@ -26,7 +26,9 @@ const MINE = 'scripts/sql/the_ceo_runs_the_company_on_the_founders_year_one_targ
 const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql',
   'scripts/sql/the_ceo_reviews_the_week_watches_pricing_and_forecasts_the_target.sql',
   'scripts/sql/the_ceo_sets_the_target_runs_experiments_and_watches_competitors.sql', MINE,
-  'scripts/sql/the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run.sql'];
+  'scripts/sql/the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run.sql',
+  // the sweep's 30 s budget on its own job (27 Oct 2026): with the 2 s one it never settles in one run on production
+  'scripts/sql/the_ceo_improvement_sweep_settles_in_one_run_on_its_own_job.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 const code = (p) => read(p).split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 
@@ -83,14 +85,41 @@ test('static: every routine pinned and revoked, every table RLS + policy, duties
   assert.ok(pending(MINE) !== manifest.includes(MINE), 'exactly one of a pending note and a MANIFEST line');
 });
 
+test('static: the probe empties the hold\'s target_keys only, never its flag', () => {
+  const src = read('scripts/checks/the_ceo_year_one_plan_follows_the_founder_targets.test.mjs');
+  const writes = [...src.matchAll(/update public\.founder_hold set ([^;]*);/g)].map((m) => m[1]);
+  assert.deepEqual(writes, ["target_keys = '{}' where hold_key = 'supplier_campaign'"], 'the probe writes the hold beyond its target_keys');
+  assert.ok(!/(update|insert into|delete from) public\.app_secrets/i.test(src), 'the probe writes app_secrets: the hold\'s flag is the founder\'s');
+});
+
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token';
+
+// The hold pauses, it does not hide: with the founder's hold on, every held target reads 'paused' and every other
+// target reads exactly what it reads without the hold. And while the hold is on, at least one held target must be one
+// that would otherwise have missed, or the held pass proves nothing about the hold.
+function assertHoldPauses(held, free) {
+  assert.ok(held && held.day && free, 'the probe did not read the day with and without the hold');
+  for (const [m, s] of Object.entries(free)) {
+    const want = held.keys.includes(m) ? 'paused' : s;
+    assert.equal(held.day[m], want, `with the founder's hold on, ${m} read ${held.day[m]}, expected ${want}`);
+  }
+  assert.deepEqual(Object.keys(held.day).sort(), Object.keys(free).sort(), 'the hold dropped a target from the day');
+  if (held.keys.length) assert.ok(held.keys.some((k) => free[k] === 'miss'), `the hold is on (${held.keys}) but no held target would have missed: the held pass is vacuous`);
+}
+
+async function liveHold() {
+  const { sql } = await import('../lib/db.mjs');
+  return (await sql(`select h.target_keys, (select value from public.app_secrets where key = h.flag_key) is not distinct from h.flag_released_value released
+                       from public.founder_hold h where hold_key = 'supplier_campaign'`, { readOnly: true }))[0];
+}
 
 async function probe(block) {
   const { sql } = await import('../lib/db.mjs');
   try { await replaySql(FILES.filter(pending).map(read).join('\n') + '\n' + block, { retry: false }); }
   catch (e) {
-    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    // e.message is capped at 2,000 characters by db.mjs; the full answer is on e.body
+    const m = String(e.body ?? e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 1500));
     return JSON.parse(m[1].replace(/\\"/g, '"'));
   }
@@ -98,8 +127,9 @@ async function probe(block) {
 }
 
 test('production, aborted: the path, the day, the month and the improvements act', { skip: SKIP }, async () => {
+  const hold = await liveHold();
   const o = await probe(String.raw`
-do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; begin
+do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; hk text[]; begin
   perform set_config('app.qd_stub_founder_notify', 'on', true);
   select id into c from public.target_contract where contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30';
   o := o || jsonb_build_object('contracts', (select jsonb_object_agg(contract_key, status) from public.target_contract
@@ -112,9 +142,23 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; begin
   -- a November day with nothing measured, and a cost over its ceiling
   insert into public.expense_entries (vendor, category, amount, currency, charged_on, note, source)
   values ('ZZ DEMO vendor', 'probe', 30000, 'AED', date '2026-11-05', 'ZZ DEMO probe', 'probe');
+  -- The founder's supplier_campaign hold (ledger 1312) pauses the supplier targets, so with it on a November day has
+  -- fewer misses than the path. First the day as production would read it, in a sub-block that rolls itself back:
+  -- every held target must read 'paused' (never dropped). Then the hold's target_keys are emptied INSIDE THIS ABORTED
+  -- TRANSACTION ONLY (the flag, invite_enabled, is never touched) so the rest of the probe measures the path itself.
+  hk := array(select target_key from public.fn_held_targets() where hold_key = 'supplier_campaign');
+  begin
+    v := public.fn_ceo_target_daily_verdict(timestamptz '2026-11-20 10:00+04');
+    o := o || jsonb_build_object('held', jsonb_build_object('keys', to_jsonb(hk), 'misses', v->'misses',
+      'day', (select jsonb_object_agg(metric_key, status) from public.target_daily_verdict where contract_id = c and day = date '2026-11-20')));
+    raise exception 'ZZ_HELD_PASS_ROLLED_BACK';
+  exception when raise_exception then if sqlerrm <> 'ZZ_HELD_PASS_ROLLED_BACK' then raise; end if;
+  end;
+  update public.founder_hold set target_keys = '{}' where hold_key = 'supplier_campaign';
   select coalesce(max(id), 0) into n from public.agent_actions;
   v := public.fn_ceo_target_daily_verdict(timestamptz '2026-11-20 10:00+04');
   o := o || jsonb_build_object('nov_misses', v->'misses', 'nov_opened', v->'tasks_opened',
+    'nov_day', (select jsonb_object_agg(metric_key, status) from public.target_daily_verdict where contract_id = c and day = date '2026-11-20'),
     'cost_status', (select status from public.target_daily_verdict where contract_id = c and day = date '2026-11-20' and metric_key = 'costs_aed'),
     'root_cause_to', (select jsonb_agg(distinct agent order by agent) from public.agent_actions where id > n and kind = 'handoff' and detail->>'type' = 'ceo.root_cause'));
 
@@ -168,6 +212,7 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; begin
     'forecast_reads_it', public.fn_ceo_target_forecast()->'verdicts' @> '[{"contract":"FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30"}]');
   raise exception 'CHK<<%>>', o::text;
 end $$;`);
+  assert.deepEqual(await liveHold(), hold, 'the founder\'s hold changed in production: the probe must touch it only inside its aborted transaction');
 
   assert.deepEqual(o.contracts, { FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30: 'active', REVEAL_FEES_BASE_PATH_BY_2027_08_31: 'superseded',
     REVENUE_AED_1M_BY_2027_10_01: 'superseded', SUPPLIERS_1000_BY_2027_10_01: 'superseded' }, 'a replaced target is still in force');
@@ -175,6 +220,7 @@ end $$;`);
   assert.deepEqual(o.plan_month_oct, { verified: 125, inquiries: 0, fee: 0 }, 'the CEO month plan does not follow the path');
   assert.ok(o.mandate >= 20, 'the mandate is missing');
   assert.ok(o.nov_misses >= 4 && o.nov_opened === o.nov_misses, `a November day with nothing measured: ${o.nov_misses} misses, ${o.nov_opened} tasks`);
+  assertHoldPauses(o.held, o.nov_day);
   assert.equal(o.cost_status, 'miss', 'a cost over its month ceiling is not a miss');
   assert.ok(o.root_cause_to.includes('accountant') && o.root_cause_to.includes('sales_engineer'), `root cause went to ${o.root_cause_to}`);
   assert.equal(o.day.stuck_new >= 1, true, 'the stuck handoff was not found');

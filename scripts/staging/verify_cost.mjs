@@ -17,6 +17,7 @@
 //
 //     node scripts/staging/verify_cost.mjs           the zero-cost gate
 //     node scripts/staging/verify_cost.mjs --live    also spends ~0.001 AED to prove the meter
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { assertNotProduction, mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -24,6 +25,7 @@ import { join } from 'node:path';
 // REHOMED 15 AUG 2026: this defaulted to 'pglpqrhvozwepymcuunn', a project deleted that morning.
 // The target now comes from demo_factory, which is the single place that decides it.
 import { REF } from '../lib/demo_factory.mjs';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 const BASE = `https://${REF}.supabase.co`;
 const LIVE = process.argv.includes('--live');
 
@@ -211,11 +213,10 @@ const PROBE_DEPT = 'qd_probe_dept';
 if (LIVE) {
   const cred = (await mgmtRead(REF, "select value from public.app_secrets where key='cred_fn_ai'"))[0]?.value;
   const anon = await (async () => {
-    const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
-      || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+    const mgmt = supabaseAccessToken();
     const k = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
       { headers: { Authorization: 'Bearer ' + mgmt } })).json();
-    return k.find((x) => x.name === 'anon')?.api_key;
+    return pickApiKey(k, 'publishable');
   })();
 
   const gw = async (payload) => {

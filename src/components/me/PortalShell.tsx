@@ -37,6 +37,8 @@ import { cn } from '@/lib/utils';
 import { render } from '@/components/ChatWidget';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { BrandMark } from '@/components/BrandMark';
+import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
+import { lookForStoredAnswer, lookForStoredQuestion, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';
 
 // THE INFORMATION ARCHITECTURE, WRITTEN DOWN.
 //
@@ -103,14 +105,35 @@ const MOBILE_PRIMARY = ['home', 'requests', 'messages', 'documents'];
 // special case for it.
 // THE CUSTOMER'S ONE CONVERSATION (founder ruling 1255): sales_engineer keeps every turn under the account, and the
 // website-widget chat they had before signing up (its id in localStorage) is adopted once, by assist_history on mount.
-const widgetConv = () => { try { return localStorage.getItem('qd-chat-conv') || ''; } catch (_e) { return ''; } };
-async function askAssistant(message, history, token, lang, path, images = []) {
-  const r = await fetch(fnUrl('sales_engineer'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang, ...(images.length ? { images } : {}) }),
-  });
-  return r.json();
+const widgetConv = () => readWidgetConv();
+// THE ANSWER STREAMS (27 Oct 2026, customer_support): a status line at once, then each checked sentence as it is
+// written (src/lib/portalReply.ts). Measured before: every turn waited 58-150 s in silence and one hit the edge's 150 s
+// wall as a 504, whose HTML body made r.json() throw and the panel print its error line. A server that does not stream
+// answers JSON, read the same way; nothing here throws.
+async function askAssistant(message, history, token, lang, path, images = [], on = {}) {
+  try {
+    const r = await fetch(fnUrl('sales_engineer'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json', Authorization: 'Bearer ' + (token || ANON) },
+      body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang, ...(images.length ? { images } : {}) }),
+    });
+    return await readReply(r, on);
+  } catch (e) {
+    return { reply: '', streamed: false, done: null, failed: String((e && e.message) || e) };
+  }
+}
+// A TURN THAT DID NOT REACH THE BROWSER IS LOOKED FOR, NOT REPORTED AS AN ERROR. The server stores every answer under the
+// customer's one conversation (ruling 1255) even when the connection dropped, so the panel reads it back from
+// assist_history for up to LATE_WAIT_MS before it says, calmly, that the question is saved and the answer will appear here.
+const LATE_WAIT_MS = 90_000;
+const LATE_EVERY_MS = 6_000;
+async function storedAnswer(token, question) {
+  return lookForStoredAnswer(async () => {
+    const r = await fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ action: 'assist_history' }) });
+    const j = r.ok ? await r.json() : null;
+    return j && j.turns;
+  }, question, { waitMs: LATE_WAIT_MS, everyMs: LATE_EVERY_MS });
 }
 
 // `suggestions` ARE THE OFFER, and they used to be three constants — the same three questions on a
@@ -123,11 +146,43 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
   const [msgs, setMsgs] = useState([]);
   const [val, setVal] = useState('');
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');   // the server's status line, or the late notice while the stored answer is looked for
+  const [live, setLive] = useState('');       // the checked sentences shown so far, as they are written
   const boxRef = useRef(null);
   const inpRef = useRef(null);
   const fileRef = useRef(null);
   const [photo, setPhoto] = useState('');
   const sentSeed = useRef('');
+  // A TURN STILL OWED THE MODEL'S ANSWER (src/lib/portalReply.ts pendingDue; supabase/functions/_shared/reask.ts). Its
+  // marker (role 'pending') is UI state: "still working on your answer", or "with your sales engineer" once handed off.
+  // It is replaced by the answer when the re-ask fills that turn's row, read back from assist_history every 10 s.
+  const watching = useRef(new Set());
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+  const pendingText = (state) => t(state === 'with_team' ? 'asst_with_team' : 'asst_working');
+  const watch = (question) => {
+    if (!token || watching.current.has(question)) return;
+    watching.current.add(question);
+    (async () => {
+      const until = Date.now() + PENDING_FOR_MS;
+      while (alive.current && Date.now() < until) {
+        await new Promise((res) => setTimeout(res, PENDING_EVERY_MS));
+        try {
+          const r = await fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+            body: JSON.stringify({ action: 'assist_history' }) });
+          const j = r.ok ? await r.json() : null;
+          const a = answerRightAfter(j && j.turns, question);
+          if (a) {
+            setMsgs((m) => m.map((x) => (x.role === 'pending' && x.q === question ? { role: 'assistant', content: a } : x)));
+            break;
+          }
+          const w = waitingOf(j).find((x) => x.message.trim() === question.trim());
+          if (w) setMsgs((m) => m.map((x) => (x.role === 'pending' && x.q === question ? { ...x, content: pendingText(w.state) } : x)));
+        } catch (_e) { /* asked again on the next tick */ }
+      }
+      watching.current.delete(question);
+    })();
+  };
   // redrawn from the database on every visit: a reload, another device or days later shows the whole conversation
   useEffect(() => {
     if (!token) return;
@@ -135,11 +190,24 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
     fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ action: 'assist_history', ...(wc ? { widget_conv: wc, adopt: true } : {}) }) })
       // the widget id is cleared only once the server answered and nothing is left to adopt (moved now, or already moved)
-      .then((r) => (r.ok ? r.json() : null)).then((j) => { if (wc && j && !j.error && !j.pending) { try { localStorage.removeItem('qd-chat-conv'); } catch (_e) { /* storage blocked */ } } if (Array.isArray(j?.turns) && j.turns.length) setMsgs(j.turns); })
+      .then((r) => (r.ok ? r.json() : null)).then((j) => {
+        if (wc && j && !j.error && !j.pending) { forgetWidgetConv(); }
+        if (!(Array.isArray(j?.turns) && j.turns.length)) return;
+        // a turn still owed its answer gets its pending marker right under the question, and is watched
+        const shown = [...j.turns];
+        for (const w of waitingOf(j)) {
+          let k = -1;
+          for (let i = shown.length - 1; i >= 0; i--) if (shown[i].role === 'user' && String(shown[i].content || '').trim() === w.message.trim()) { k = i; break; }
+          if (k < 0 || (shown[k + 1] && shown[k + 1].role === 'assistant')) continue;
+          shown.splice(k + 1, 0, { role: 'pending', q: w.message, content: pendingText(w.state) });
+          watch(w.message);
+        }
+        setMsgs(shown);
+      })
       .catch(() => { /* the next turn still reads the whole conversation on the server */ });
   }, [token]);
 
-  useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy, open]);
+  useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy, open, live, status]);
   useEffect(() => { if (open) setTimeout(() => inpRef.current && inpRef.current.focus(), 80); }, [open]);
 
   const send = async (text) => {
@@ -148,15 +216,40 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
     const images = photo ? [photo] : [];
     setPhoto('');
     setVal(''); setBusy(true);
-    const history = msgs.map((m) => ({ role: m.role, content: m.content }));
+    // a notice is the panel's own line, never a turn of the conversation: it is not sent back as history
+    const history = msgs.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({ role: m.role, content: m.content }));
     setMsgs((m) => [...m, { role: 'user', content: q }]);
-    try {
-      const j = await askAssistant(q, history, token, lang, '/me', images);
-      setMsgs((m) => [...m, { role: 'assistant', content: String((j && j.reply) || t('asst_err')), scope: j && j.scope }]);
-    } catch (_e) {
-      setMsgs((m) => [...m, { role: 'assistant', content: t('asst_err') }]);
+    setStatus(''); setLive('');
+    const j = await askAssistant(q, history, token, lang, '/me', images, { status: setStatus, text: setLive });
+    let reply = j.reply;
+    // only an answer that never ARRIVED is looked for; a turn the server answered with no reply has nothing stored
+    if (!reply && token && noVerdict(j)) {
+      setLive(''); setStatus(t('asst_late'));
+      reply = await storedAnswer(token, q);
     }
+    setLive(''); setStatus('');
+    // "SAVED" IS SAID ONLY OF A QUESTION THAT IS SAVED (browser proof, 2 Nov 2026: an Arabic turn failed before the server logged it
+    // and the panel still said "your question is saved"; after a reload it was gone). The stored conversation is asked; a question
+    // that is not in it is given back to the box with the plain truth.
+    let stored = true;
+    if (!reply && token && !pendingDue(j) && savedLineDue(j, reply)) {
+      stored = await lookForStoredQuestion(async () => {
+        const r = await fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ action: 'assist_history' }) });
+        const x = r.ok ? await r.json() : null;
+        return x && x.turns;
+      }, q);
+      if (!stored) setVal(q);
+    }
+    // the saved line only on a transport failure or when OpenRouter was down (1339, savedLineDue); with the model up and
+    // nothing sendable, no code-written text is shown
+    // a turn filed for the re-ask (model up, every draft refused): the pending state, then the model's answer (never silence)
+    setMsgs((m) => reply
+      ? [...m, { role: 'assistant', content: reply, scope: j.done && j.done.scope }]
+      : pendingDue(j) ? [...m, { role: 'pending', q, content: t('asst_working') }]
+      : savedLineDue(j, reply) ? [...m, { role: 'notice', content: t(stored ? 'asst_saved' : 'asst_not_sent') }] : m);
     setBusy(false);
+    if (!reply && pendingDue(j)) watch(q);
   };
 
   // A question typed into the top bar opens this panel already carrying it, so the widest element
@@ -173,9 +266,9 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
       className={cn(
         // THE MOBILE TAB BAR STAYS TAPPABLE (E2E stage 1, D7, 30 Sep 2026): below md the panel stops above the
         // 56px tab bar instead of covering it (inset-y-0 put it over the menu; 18 nav taps timed out at 375px).
-        'fixed top-0 bottom-[var(--qd-tabbar-h,0px)] md:bottom-0 z-40 flex w-full flex-col border-border bg-card shadow-e3',
+        'fixed top-0 bottom-(--qd-tabbar-h,0px) md:bottom-0 z-40 flex w-full flex-col border-border bg-card shadow-e3',
         // max-w, not w: a fixed 420px panel is 45px wider than a 375px viewport and cannot shrink.
-        'end-0 sm:w-full sm:max-w-[420px] sm:border-s',
+        'inset-e-0 sm:w-full sm:max-w-[420px] sm:border-s',
         'motion-safe:animate-in motion-safe:slide-in-from-bottom-4 sm:motion-safe:slide-in-from-right-4 motion-safe:duration-300',
       )}
     >
@@ -214,18 +307,35 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
                   renderer escapes then wraps each in <bdi>; without it they scramble in Arabic. */}
               {m.role === 'assistant'
                 ? <span dangerouslySetInnerHTML={{ __html: render(m.content) }} />
+                : m.role === 'notice' ? <span className="italic text-muted-foreground">{m.content}</span>
+                : m.role === 'pending' ? (
+                  <span className="flex items-center gap-1.5 italic text-muted-foreground" aria-live="polite">
+                    {[0, 1, 2].map((d) => (
+                      <span key={d} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 motion-safe:animate-pulse" style={{ animationDelay: d * 180 + 'ms' }} />
+                    ))}
+                    <span className="ms-1">{m.content}</span>
+                  </span>)
                 : m.content}
             </div>
           </div>
         ))}
-        {busy && (
-          <div className="flex justify-start">
-            <div className="flex items-center gap-1 rounded-2xl border border-border bg-secondary/30 px-3.5 py-3">
+        {busy && live && (
+          <div className="flex justify-start" aria-live="polite">
+            <div className="max-w-[86%] rounded-2xl border border-border bg-secondary/30 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-foreground">
+              <span dangerouslySetInnerHTML={{ __html: render(live) }} />
+            </div>
+          </div>
+        )}
+        {busy && !live && (
+          <div className="flex justify-start" aria-live="polite">
+            <div className="flex items-center gap-1.5 rounded-2xl border border-border bg-secondary/30 px-3.5 py-3">
               {[0, 1, 2].map((d) => (
                 <span key={d} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 motion-safe:animate-pulse"
                   style={{ animationDelay: d * 180 + 'ms' }} />
               ))}
-              <span className="sr-only">{t('asst_thinking')}</span>
+              {status
+                ? <span className="ms-1 text-[12.5px] italic text-muted-foreground">{status}</span>
+                : <span className="sr-only">{t('asst_thinking')}</span>}
             </div>
           </div>
         )}
@@ -241,7 +351,7 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
         </Button>
         <input ref={inpRef} value={val} onChange={(e) => setVal(e.target.value)} disabled={busy}
           aria-label={t('asst_ph')} placeholder={t('asst_ph')}
-          className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3.5 text-[13.5px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3.5 text-[13.5px] text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" />
         <Button type="submit" size="sm" className="h-11 px-3.5" disabled={busy || (!val.trim() && !photo)} aria-label={t('asst_send')}>
           <Send className={cn('h-4 w-4', rtl && 'rotate-180')} aria-hidden />
         </Button>
@@ -262,10 +372,10 @@ export function StatTile({ icon: Icon, label, value, hint, tone = 'default' }) {
       tone === 'accent' && 'border-primary/40',
     )}>
       {/* The kit's lit top edge, on the tile that is asking for a decision. */}
-      {tone === 'accent' ? <span aria-hidden className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" /> : null}
+      {tone === 'accent' ? <span aria-hidden className="absolute inset-x-6 top-0 h-px bg-linear-to-r from-transparent via-primary/80 to-transparent" /> : null}
       <div className="flex items-start justify-between gap-2">
         {/* Wraps, never truncates: "AWAITING YOUR DECISI…" cut the tile's one word that mattered. */}
-        <div className="min-w-0 break-words font-mono text-label uppercase tracking-caps text-muted-foreground">{label}</div>
+        <div className="min-w-0 wrap-break-word font-mono text-label uppercase tracking-caps text-muted-foreground">{label}</div>
         <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-panel border',
           tone === 'accent' ? 'border-primary/35 bg-primary/12 text-primary' : 'border-border bg-secondary/40 text-muted-foreground')}>
           <Icon className="h-4 w-4" aria-hidden />
@@ -421,14 +531,14 @@ export function PortalShell({
         style={{ order: rankOf(item.id, order) }}
         className={cn(
           'group relative flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[14px] font-medium transition-colors duration-200',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
           active ? 'bg-primary/14 font-semibold text-primary' : 'text-foreground/80 hover:bg-secondary/50 hover:text-foreground',
         )}
       >
         {/* The active marker is on the INLINE START edge so it lands on the correct side in Arabic. */}
-        {active ? <span className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-primary" aria-hidden /> : null}
+        {active ? <span className="absolute inset-y-1.5 inset-s-0 w-[3px] rounded-full bg-primary" aria-hidden /> : null}
         <Icon className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-        <span className="min-w-0 flex-1 break-words text-start leading-snug">{t(item.label)}</span>
+        <span className="min-w-0 flex-1 wrap-break-word text-start leading-snug">{t(item.label)}</span>
         {item.badge === 'unread' && unread > 0
           ? <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span>
           : null}
@@ -483,18 +593,18 @@ export function PortalShell({
             <form onSubmit={submitAsk} className="min-w-0 flex-1" role="search">
               <label className="sr-only" htmlFor="qd-ask">{t('ask_ph')}</label>
               <div className="group relative flex items-center">
-                <Sparkles className="pointer-events-none absolute start-3.5 h-4 w-4 text-primary" aria-hidden />
+                <Sparkles className="pointer-events-none absolute inset-s-3.5 h-4 w-4 text-primary" aria-hidden />
                 <input
                   id="qd-ask" ref={searchRef} value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder={narrow ? t('ask_ph_short') : t('ask_ph')} autoComplete="off"
                   className={cn(
                     'h-11 w-full rounded-btn border border-input bg-card ps-11 pe-3 sm:pe-16 text-[13.5px] text-foreground shadow-e1',
-                    'placeholder:text-muted-foreground focus-visible:outline-none',
+                    'placeholder:text-muted-foreground focus-visible:outline-hidden',
                     'focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/25',
                     'transition-[border-color,box-shadow] duration-200',
                   )}
                 />
-                <kbd className="pointer-events-none absolute end-3 hidden rounded border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:block">⌘K</kbd>
+                <kbd className="pointer-events-none absolute inset-e-3 hidden rounded border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:block">⌘K</kbd>
               </div>
             </form>
 
@@ -505,14 +615,14 @@ export function PortalShell({
             <div className="relative shrink-0">
               <button type="button" ref={bellBtn} onClick={() => setBellOpen((v) => !v)}
                 aria-label={t('alerts_label')} aria-expanded={bellOpen}
-                className="relative grid h-10 w-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                className="relative grid h-10 w-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
                 <Bell className="h-[18px] w-[18px]" aria-hidden />
-                {alerts > 0 ? <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" aria-hidden /> : null}
+                {alerts > 0 ? <span className="absolute inset-e-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" aria-hidden /> : null}
               </button>
               {bellOpen && (
                 <>
                   <button type="button" aria-label={t('close')} onClick={() => setBellOpen(false)} className="fixed inset-0 z-40 cursor-default" />
-                  <div className="absolute end-0 z-50 mt-2 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-xl border border-border bg-card shadow-lg motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200">
+                  <div className="absolute inset-e-0 z-50 mt-2 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-xl border border-border bg-card shadow-lg motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200">
                     <div className="border-b border-border px-4 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70">{t('alerts_label')}</div>
                     {!alertList.length ? (
                       <p className="px-4 py-4 text-[13px] text-muted-foreground">{t('attention_none')}</p>
@@ -523,7 +633,7 @@ export function PortalShell({
                         {alertList.map((a, i) => (
                           <li key={i}>
                             <button type="button" onClick={() => { setBellOpen(false); if (onAlert) onAlert(a); }}
-                              className="flex w-full items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                              className="flex w-full items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-secondary/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                               <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full',
                                 a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} aria-hidden />
                               <span className="min-w-0 flex-1">
@@ -544,7 +654,7 @@ export function PortalShell({
             {/* Its name is the customer's INITIAL below lg, where the name span is hidden — one
                 letter, for a control that opens Account (a11y review, 18 Sep 2026). */}
             <button type="button" onClick={() => go('account')} aria-label={t('mod_account')}
-              className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl py-1 ps-1 pe-2 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl py-1 ps-1 pe-2 transition-colors hover:bg-secondary/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
               <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-[12px] font-bold text-primary">
                 {String(customerName || '?').trim().charAt(0).toUpperCase()}
               </span>
@@ -580,16 +690,16 @@ export function PortalShell({
           return (
             <button key={item.id} type="button" onClick={() => go(item.id)} aria-current={active ? 'page' : undefined}
               className={cn('relative flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[11.5px] font-semibold leading-tight transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                 active ? 'text-primary' : 'text-foreground/75')}>
               <Icon className="h-[18px] w-[18px]" aria-hidden />
               {/* Wraps to a second line before it would ever be cut. */}
-              <span className="max-w-full break-words text-center">{t(item.label)}</span>
+              <span className="max-w-full wrap-break-word text-center">{t(item.label)}</span>
               {/* The dot is decoration; the COUNT is the information, and the sidebar says it out
                   loud (line above). A phone must not tell a screen-reader user less than a desktop
                   does about the same state (a11y review, 18 Sep 2026). */}
               {item.badge === 'unread' && unread > 0 ? <>
-                <span className="absolute end-[22%] top-1.5 h-2 w-2 rounded-full bg-primary" aria-hidden />
+                <span className="absolute inset-e-[22%] top-1.5 h-2 w-2 rounded-full bg-primary" aria-hidden />
                 <span className="sr-only">{unread}</span>
               </> : null}
               {active ? <span className="absolute inset-x-5 top-0 h-[2px] rounded-full bg-primary" aria-hidden /> : null}
@@ -598,7 +708,7 @@ export function PortalShell({
         })}
         <button type="button" ref={moreBtn} onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-controls="qd-nav-more"
           className={cn('flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[11.5px] font-semibold leading-tight transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+            'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
             moreOpen ? 'text-primary' : 'text-foreground/75')}>
           {moreOpen ? <X className="h-[19px] w-[19px]" aria-hidden /> : <Menu className="h-[19px] w-[19px]" aria-hidden />}
           <span>{t('nav_more')}</span>
@@ -612,7 +722,7 @@ export function PortalShell({
           {/* THE SHEET GIVES FULL NAMES, one per row: a two-column grid cut "What you may need
               next" at 375px. */}
           <nav id="qd-nav-more" aria-label={t('nav_more_title')}
-            className="fixed inset-x-0 bottom-[var(--qd-tabbar-h,0px)] z-40 max-h-[70vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
+            className="fixed inset-x-0 bottom-(--qd-tabbar-h,0px) z-40 max-h-[70vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
             {overflowGroups.map((g) => (
               <div key={g.caption} role="group" aria-labelledby={'qd-more-' + g.caption} className="mb-3">
                 <div id={'qd-more-' + g.caption} className="px-1 pb-1 text-[12.5px] font-semibold text-muted-foreground">{t(g.caption)}</div>
@@ -623,10 +733,10 @@ export function PortalShell({
                     return (
                       <button key={item.id} type="button" onClick={() => go(item.id)} aria-current={active ? 'page' : undefined}
                         className={cn('flex min-h-11 items-center gap-2.5 rounded-xl border px-3 py-2 text-start text-[14px] font-medium',
-                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                           active ? 'border-primary/40 bg-primary/12 text-primary' : 'border-border bg-secondary/25 text-foreground')}>
                         <Icon className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                        <span className="min-w-0 flex-1 break-words leading-snug">{t(item.label)}</span>
+                        <span className="min-w-0 flex-1 wrap-break-word leading-snug">{t(item.label)}</span>
                       </button>
                     );
                   })}

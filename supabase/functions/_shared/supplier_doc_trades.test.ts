@@ -2,7 +2,7 @@
 // by an exact code or by meaning, never by the document's alias words (ruling 890, ledger 1054).
 // deno test --no-lock --node-modules-dir=auto supabase/functions/_shared/supplier_doc_trades.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { mergeEvidence, modelReadText, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { docTradesHeld, mergeEvidence, modelReadText, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import type { MeaningService } from './service_meaning.ts';
 import { makeDrawingPdf } from './pdf_measure.fixtures.ts';
 
@@ -222,6 +222,26 @@ Deno.test('on a supplier document a meaning hit stands only when the line holds 
   assertEquals(proposeByMeaning([{ text: 'Management 1', vec: [0.95, 0, 0.3], space: 'gte' }], S, { tradeLabels: labels }).map((x) => x.trade), ['accounting_bookkeeping']);
 });
 
+// 2 Nov 2026, profile-read walk on the live site: the licence of a general trader ("Activities: General Trading, Import and Export")
+// was read as steel_stock, via the service "pipes & hollow sections" (snippet "General Trading"), because "trading" is a WHOLE part of the
+// name "Steel stock & trading". "Trading" says how a company sells, never what it sells.
+Deno.test('"General Trading" holds a whole part of "Steel stock & trading" and still names no trade; a steel line still does', () => {
+  const S: MeaningService[] = [
+    { trade_code: 'steel_stock', code: 'pipes', label_en: 'Pipes & hollow sections', label_ar: '', aliases: [], vec: [1, 0] },
+    { trade_code: 'plumbing', code: 'maintenance', label_en: 'Plumbing maintenance contracts', label_ar: '', aliases: [], vec: [0, 1] },
+  ];
+  const labels = { steel_stock: 'Steel stock & trading', plumbing: 'Plumbing & sanitary' };
+  const read = (text: string, vec: number[], tradeAliases?: Record<string, string[]>) => proposeByMeaning([{ text, vec, space: 'gte' }], S, { tradeLabels: labels, ...(tradeAliases ? { tradeAliases } : {}) }).map((x) => [x.trade, x.because]);
+  for (const a of [undefined, { steel_stock: ['steel stockist'] }]) {
+    assertEquals(read('General Trading', [0.95, 0.1], a), [], 'a trader is not a steel stockist');
+    assertEquals(read('Import and Export', [0.95, 0.1], a), []);
+  }
+  // known-good controls: the trade's other whole part, and a service line with its own head word, still stand
+  assertEquals(read('Steel stock', [0.95, 0.1]), [['steel_stock', 'trade_word']]);
+  assertEquals(read('Trading of pipes and hollow sections', [0.95, 0.1]), [['steel_stock', 'head_word']]);
+  assertEquals(read('Plumbing works', [0.05, 0.99]), [['plumbing', 'trade_word']]);
+});
+
 // ── ARABIC (review of #1404; measured on the BCG Arabic brochure, 69 pages) ─────────────────────────────────────────
 import { arabicLigatureFix } from './doc_read/pdf.ts';
 Deno.test('Arabic: the reversed lam-alef at a word start is repaired; an alef-lam inside a word is left alone', () => {
@@ -271,11 +291,11 @@ Deno.test('a read killed partway (the worker dies at its CPU cap) leaves the doc
 import { pdfjsText, PDFJS_BUDGET_MS } from './doc_read/pdf.ts';
 import { LIMITS } from './doc_read/types.ts';
 /** A PDF of `n` pages, each printing "Page k fire pumps" in Helvetica. */
-function pagesPdf(n: number): Uint8Array {
+function pagesPdf(n: number, line = (k: number) => `Page ${k} fire pumps`): Uint8Array {
   const objs: string[] = ['<< /Type /Catalog /Pages 2 0 R >>', ''];
   const kids: string[] = [];
   for (let k = 1; k <= n; k++) {
-    const ops = `BT /F1 12 Tf 72 700 Td (Page ${k} fire pumps) Tj ET`;
+    const ops = `BT /F1 12 Tf 72 700 Td (${line(k)}) Tj ET`;
     const page = objs.length + 1; kids.push(`${page} 0 R`);
     objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${page + 1} 0 R /Resources << /Font << /F1 ${3 + 2 * n} 0 R >> >> >>`);
     objs.push(`<< /Length ${ops.length} >>\nstream\n${ops}\nendstream`);
@@ -308,4 +328,38 @@ Deno.test('a file over 25 MB is refused before pdf.js opens it, and is held unre
   const ev = await readDocForTrades({ path: 'profiles/1/big.pdf', name: 'big.pdf', kind: 'profile', bytes: huge, mime: 'application/pdf' }, deps());
   assertEquals(ev.status, 'unreadable');
   assert(/file_too_large/.test(ev.reason || ''), ev.reason);
+});
+Deno.test('a busy worker that spends the budget opening the file still reads page 1, never calling a text PDF a scan (N01)', async () => {
+  let t = 0; const clock = () => (t += 5_000);   // the open alone is over budget
+  const r = await pdfjsText(pagesPdf(6), 250, PDFJS_BUDGET_MS, clock);
+  assertEquals(r.status, 'text');
+  assert(r.text.includes('Page 1 fire pumps'), r.text);
+});
+
+// Review of #1483: readings that agree on no trade HOLD the document - a distinct outcome from a model outage - and one
+// pending agent_actions item (kind doc_trades_held) goes to the sales engineer with the readings.
+Deno.test('a document whose readings agree on nothing is held, not unavailable, and files one doc_trades_held handoff', async () => {
+  const readings = [[{ code: 'doors', quote: 'Doors' }], [{ code: 'joinery', quote: 'Kitchens' }]];
+  const deps = { chooseTrades: async () => ({ ok: false as const, error: 'the readings did not agree on any trade: held for the sales engineer', held: { readings } }) } as unknown as TradeResolveDeps;
+  const ev = await readDocForTrades({ path: 'profiles/7/p.pdf', name: 'p.pdf', kind: 'profile', photo_text: undefined, ocr_text: 'ZZ DEMO Doors and Kitchens LLC. '.repeat(10) }, deps);
+  assertEquals([ev.choice, ev.trades.length], ['held', 0]);
+  assertEquals(ev.held_readings, readings);
+  const rows: Record<string, unknown>[] = [];
+  const admin = { from: () => ({
+    select: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ limit: async () => ({ data: rows.filter((r) => r.status === 'pending') }) }) }) }) }),
+    insert: async (r: Record<string, unknown>) => { rows.push(r); return { error: null }; } }) };
+  await docTradesHeld(admin, 7, ev);
+  await docTradesHeld(admin, 7, ev);   // a second call files nothing more
+  assertEquals(rows.length, 1);
+  assertEquals([rows[0].agent, rows[0].kind, rows[0].status, rows[0].target_id], ['sales_engineer', 'doc_trades_held', 'pending', '7:profiles/7/p.pdf']);
+  const det = rows[0].detail as Record<string, unknown>;
+  assertEquals([det.supplier_id, det.path, det.readings], [7, 'profiles/7/p.pdf', readings]);
+});
+Deno.test('a scan with a stray text layer is read from the OCR, not from its 20 stray characters (M12)', async () => {
+  let seen = '';
+  const deps = { chooseTrades: async (t: string) => { seen = t; return { ok: true as const, trades: [], rejected: [] }; } } as unknown as TradeResolveDeps;
+  const ocr = 'ZZ DEMO Group of Companies. GENERAL CONTRACTING. TURNKEY CONTRACTS. Portable cabins, Camps & Mobile Houses. '.repeat(4);
+  // M12's real stray layer, as the reader reads it: "58" and "GLOBAL REACH" - 13 letters and digits, under the 200 threshold
+  await readDocForTrades({ path: 'profiles/9/s.pdf', name: 's.pdf', kind: 'profile', bytes: pagesPdf(1, () => '58 GLOBAL REACH'), mime: 'application/pdf', ocr_text: ocr }, deps);
+  assert(seen.includes('Portable cabins'), seen.slice(0, 200));
 });

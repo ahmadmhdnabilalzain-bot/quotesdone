@@ -71,3 +71,42 @@ Deno.test('the e-mail is the model reply between a fixed greeting and sign-off, 
   const ar = composeMailReply({ lang: 'ar', answer: 'تدفع 3% فقط عند الكشف.' });
   assertEquals(ar.startsWith('مرحباً') && ar.includes('تدفع 3% فقط عند الكشف.'), true);
 });
+
+// PREVENTED BY (28 Oct 2026, sales_engineer, ledger 1375): every reply to the invitation mailbox read "Not answered
+// automatically: internal" (inbound_messages 653-655 on 27 Oct; a ZZ DEMO invited lead's "yes" probed 28 Oct).
+import { INVITATION_MAILBOX, invitationReplyAnswerable } from './customer_mail.ts';
+const yes = (o: Record<string, unknown> = {}) => ({ from_email: 'sales@glassco.ae', to_email: INVITATION_MAILBOX, body: 'Yes, we are interested.', raw: {}, ...o });
+Deno.test('an invited supplier\'s reply to supplier@ is answerable, and passes every other rule', () => {
+  assertEquals(noAutoReply(yes(), FOUNDER), 'internal');            // the mailbox alone made it internal
+  assertEquals(invitationReplyAnswerable(yes(), 'supplier'), true);
+  assertEquals(noAutoReply({ ...yes(), to_email: '' }, FOUNDER), null);
+  assertEquals(invitationReplyAnswerable(yes({ to_email: 'QuotesDone <supplier@quotesdone.com>' }), 'supplier'), true);
+});
+Deno.test('anyone who is not a lead writing to supplier@ stays unanswered (the founder\'s warm-up contacts included)', () => {
+  for (const rel of [null, undefined, 'customer', 'staff']) assertEquals(invitationReplyAnswerable(yes(), rel), false);
+});
+Deno.test('a back-office row, a seat-owned row, our own domain or another internal box is never made answerable', () => {
+  assertEquals(invitationReplyAnswerable(yes({ owner_role: 'accountant' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(yes({ body: '[expense subscription] x' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(yes({ from_email: 'someone@quotesdone.com' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(yes({ to_email: 'supplier@quotesdone.com, expenses@mail.quotesdone.com' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(yes({ to_email: 'docs@quotesdone.com' }), 'supplier'), false);
+});
+Deno.test('a bounce or an auto-reply to supplier@ is still not answered once the mailbox exception applies', () => {
+  assertEquals(noAutoReply({ ...yes({ raw: { auto_submitted: 'auto-replied' } }), to_email: '' }, FOUNDER), 'auto_submitted');
+  assertEquals(noAutoReply({ ...yes({ from_email: 'mailer-daemon@glassco.ae' }), to_email: '' }, FOUNDER), 'bounce');
+});
+
+Deno.test('an invited supplier who said stop, is suppressed, or is an auto-reply is never answered through supplier@ (review of #1699)', () => {
+  const m = (o: Record<string, unknown> = {}) => ({ from_email: 'info@acme-fitout.ae', to_email: INVITATION_MAILBOX, body: 'Yes, please send me the details', ...o });
+  assertEquals(invitationReplyAnswerable(m(), 'supplier'), true);                                           // the plain yes still is
+  assertEquals(invitationReplyAnswerable(m(), 'supplier', true), false);                                    // in email_suppressions
+  assertEquals(invitationReplyAnswerable(m({ body: '[UNSUBSCRIBE REQUEST NOT APPLIED: x. customer_support to review.]\n\nstop' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ body: 'stop' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ subject: 'Unsubscribe' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ subject: 'Automatic reply: Would your company like requests?' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ subject: 'Out of Office' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ raw: { x_autoreply: 'yes' } }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ raw: { precedence: 'auto_reply' } }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ raw: { precedence: 'bulk' } }), 'supplier'), false);
+});

@@ -73,7 +73,8 @@ test('v10 stays readable, with its date, at /supplier-agreement/v10', () => {
   assert.match(text(old.ar.html), /حلّ محلّها الإصدار v11 بتاريخ 14 سبتمبر 2026/);
   assert.match(text(old.en.html), /Notices to the Supplier may be sent to the registered email or shown in the supplier portal/);
   assert.ok(existsSync(join(ROOT, 'src/app/[locale]/supplier-agreement/v10/page.tsx')));
-  assert.match(read('src/app/sitemap.xml/route.ts'), /replace\(\/-\(v\\d\+\)\$\/, '\/\$1'\)/);
+  // 2 Nov 2026 (ceo, ledger 1482): the sitemap no longer LISTS a superseded version (they print the founder's former mobile); the page stays served and noindex.
+  assert.match(read('src/app/sitemap.xml/route.ts'), /if \(\/-v\\d\+\(\?:\\\.\\d\+\)\?\$\/\.test\(slug\)\) continue;/);
   assert.match(sa.en.html, /href="\/supplier-agreement\/v10\/"/); assert.match(sa.ar.html, /href="\/ar\/supplier-agreement\/v10\/"/);
 });
 

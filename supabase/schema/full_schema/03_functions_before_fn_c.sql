@@ -118,7 +118,7 @@ declare
   v_hol_name text; v_hol_action text; v_hol_end date;
   v_cfg jsonb := coalesce((select nullif(value,'')::jsonb from app_secrets where key = 'invite_warmup'), '{}'::jsonb);
   v_win_start timestamptz; v_win_end timestamptz;
-  v_gate text;
+  v_gate text; v_open text[];
 begin
   select c.event_name, c.action, c.ends_on into v_hol_name, v_hol_action, v_hol_end
     from public.company_calendar c
@@ -148,6 +148,7 @@ begin
   v_cap := coalesce((select nullif(value,'')::int from app_secrets where key='invite_daily_cap'), 10);
   -- founder ruling 1231: never more than the dated founder cap, whatever invite_daily_cap holds.
   v_cap := least(v_cap, public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
+  v_cap := public.fn_invite_restart_cap(v_cap);   -- a small first batch after a restart
   select count(*) into v_pool from leads l where public.fn_supplier_invite_eligible(l);
   v_planned := least(coalesce(p_cap, v_cap), v_cap, v_pool);
   insert into invite_schedule(day, planned, status, note)
@@ -172,16 +173,20 @@ begin
   end if;
   if v_planned <= 0 then return 0; end if;
 
-  -- PLACEMENT GATE (24 Sep 2026, it_engineer). Nothing is queued unless this morning's seed invitation landed
-  -- in the Inbox of both seed mailboxes under today's effective sender (fn_invite_placement_gate). Fail closed: a check
-  -- that is still running, failed, or never ran all hold the batch.
-  v_gate := public.fn_invite_placement_gate((now() at time zone 'Asia/Dubai')::date);
-  if v_gate <> 'pass' then
+  -- PLACEMENT GATE, PER MAILBOX CLASS (27 Oct 2026, it_engineer; was the morning seed, retired by #1696). Recipients
+  -- go only in a class whose latest GlockApps verdict meets public.invite_placement_bar (fn_invite_placement_open_providers);
+  -- the others are skipped, not failed. No class open, no verdict, or a stale one: the whole batch is held.
+  v_open := public.fn_invite_placement_open_providers((now() at time zone 'Asia/Dubai')::date);
+  v_gate := public.fn_invite_placement_class_verdicts(now()) ->> 'strict';
+  if cardinality(v_open) = 0 then
     update invite_schedule set status = 'pending', note = coalesce(note,'') || '; held: inbox placement ' || v_gate where day = v_today;
     insert into agent_runs(agent, status, counts, note, started_at, finished_at)
     values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'planned', v_planned, 'placement_gate', v_gate, 'held', true),
-            'Invites held: the morning inbox placement check answered ' || v_gate || ', so nothing was written to the outbox.', now(), now());
+            'Invites held: the GlockApps inbox placement verdict answered ' || v_gate || ' for every mailbox class, so nothing was written to the outbox.', now(), now());
     return 0;
+  end if;
+  if v_gate <> 'pass' then
+    update invite_schedule set note = coalesce(note,'') || '; placement ' || v_gate || ': invited only ' || array_to_string(v_open, ', ') where day = v_today;
   end if;
 
   -- THE SENDING WINDOW (22 Sep 2026). Invitations leave between the later of now and the window's start
@@ -200,8 +205,9 @@ begin
   end if;
 
   v_max_rate := coalesce((select nullif(value,'')::numeric from app_secrets where key='invite_max_bounce_rate'), 0.08);
-  select count(*) into v_inv_recent from leads where invited_at > now() - interval '3 days';
-  select count(*) into v_bounced_recent from leads where invite_status='bounced' and invited_at > now() - interval '3 days';
+  -- 2 Nov 2026: real sends only. A restart never resets this window.
+  select h.sent, h.bounced into v_inv_recent, v_bounced_recent
+    from public.fn_invite_send_health(now() - interval '3 days') h;
   v_rate := round(v_bounced_recent::numeric / greatest(v_inv_recent,1), 3);
 
   if v_inv_recent >= 15 and v_rate > v_max_rate then
@@ -215,12 +221,13 @@ begin
 
   if v_pause then
     update app_secrets set value='false' where key='invite_enabled';
+    insert into public.invite_brake(source, why) values ('enqueue_supplier_invites', v_why) on conflict do nothing;
     update invite_schedule set status = 'pending', note = coalesce(note,'') || '; auto-paused: ' || v_why where day = v_today;
     if not exists (select 1 from founder_alerts where event='invite_paused_bounce' and created_at > now()-interval '24 hours') then
       insert into founder_alerts(level,event,detail,channel)
-        values('crit','invite_paused_bounce','Supplier invites AUTO-PAUSED: '||v_why||'. Clean the list before resuming.','system');
+        values('crit','invite_paused_bounce','Supplier invites AUTO-PAUSED: '||v_why||'. The sales engineer may resume once, after a 3-day cooldown; a second breach stays paused and goes to the CEO seat.','system');
       insert into notifications(type,to_email,to_role,channel,subject,body,status)
-        values('invite_paused_bounce', coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com'),'admin','email','Supplier invites paused - deliverability risk','Invites were auto-paused: '||v_why||'. Validate the list, then re-enable.','queued');
+        values('invite_paused_bounce', coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com'),'admin','email','Supplier invites paused - deliverability risk','Invites were auto-paused: '||v_why||'. The sales engineer may resume once, after a 3-day cooldown; a second breach stays paused and goes to the CEO seat.','queued');
     end if;
     return 0;
   end if;
@@ -236,7 +243,7 @@ begin
 
   with c as (
     select c.*, row_number() over () as rn, count(*) over () as n
-      from public.fn_supplier_invite_candidates(v_remaining) c
+      from public.fn_supplier_invite_candidates(v_remaining, v_open) c
   ), ins as (
     insert into notifications(type, to_email, to_role, lead_id, subject, body, lang, status, created_at, not_before)
     select 'supplier_invite', c.to_email, 'supplier', c.lead_id, c.subject, c.body, c.lang, 'queued', now(),
@@ -248,11 +255,11 @@ begin
   update leads set invite_status='queued', invited_at=now()
   where invite_status is null and id in (select lead_id from ins);
   get diagnostics v_count = row_count;
-  update invite_schedule set sent = sent + v_count where day = v_today;
+  -- invite_schedule.sent is written when the outbox sends (trg_invite_schedule_counts_a_real_send), never here at queue time
   insert into agent_runs(agent, status, counts, note, started_at, finished_at)
   values ('supplier_invites', 'ok',
           jsonb_build_object('queued', v_count, 'planned', v_planned, 'pool', v_pool, 'cap', v_cap, 'held', false,
-                             'window_ends', v_win_end),
+                             'window_ends', v_win_end, 'placement_gate', v_gate, 'open_providers', to_jsonb(v_open)),
           'Invites: ' || v_count || ' queued of ' || v_planned || ' planned (pool ' || v_pool || ', cap ' || v_cap
           || '), spread until ' || to_char(v_win_end at time zone 'Asia/Dubai', 'HH24:MI') || ' Dubai.', now(), now());
   return v_count;
@@ -1945,47 +1952,98 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_dispute_evidence(p_id text)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  d public.stripe_dispute; t public.transactions; c record; v_inq text; v_sup text; v_window int;
-  v_msgs int; v_sup_msgs int; v_first timestamptz; v_deliv text; v_log text;
+  d public.stripe_dispute; t public.transactions; c public.customers; v_inq text; v_job text; v_sup text; v_window int;
+  v_msgs int; v_sup_msgs int; v_first timestamptz; v_deliv text; v_log text; v_terms text; v_basis text;
+  v_policy text; v_policy_v text; v_words text; v_wa text; v_prior int;
 begin
   select * into d from public.stripe_dispute where id = p_id;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no dispute ' || p_id); end if;
   select * into t from public.transactions where id = d.transaction_id;
   if not found then return jsonb_build_object('ok', false, 'reason', 'dispute ' || p_id || ' names payment ' || coalesce(d.payment_intent, '?') || ', which no transaction records'); end if;
-  select full_name, email into c from public.customers where id = t.customer_id;
-  select summary into v_inq from public.inquiries where id = t.inquiry_id;
+  select * into c from public.customers where id = t.customer_id;
+  select summary, coalesce(rfq_no::text, upper(left(id::text, 8))) into v_inq, v_job from public.inquiries where id = t.inquiry_id;
   select company_name into v_sup from public.leads where id = t.supplier_id;
   select refund_window_working_days into v_window from public.pricing_config order by id limit 1;
   select count(*), count(*) filter (where sender = 'supplier') into v_msgs, v_sup_msgs
     from public.messages where inquiry_id = t.inquiry_id and supplier_id = t.supplier_id and created_at >= t.revealed_at;
   select min(first_response_at) into v_first from public.supplier_response_watch where transaction_id = t.id;
-  select string_agg(n.type || ' email to ' || n.to_role || ' sent ' || to_char(n.sent_at at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI')
-                    || ' (provider id ' || n.provider_message_id || ')', '; ' order by n.sent_at)
+  -- every provider-confirmed delivery about this sale, email and WhatsApp alike
+  select string_agg(coalesce(n.channel, 'email') || ' ' || n.type || ' to ' || coalesce(n.to_role, '?') || ' sent '
+                    || to_char(n.sent_at at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' (provider id ' || n.provider_message_id || ')',
+                    '; ' order by n.sent_at)
     into v_deliv from public.notifications n
    where n.quote_id = t.quote_id and n.status = 'sent' and coalesce(n.provider_message_id, '') <> '';
+
+  -- the fee the customer saw before paying: the Checkout line reads "Reveal fee (3% of AED <quote>)"
+  v_basis := 'Fee shown to the customer before payment: AED ' || t.reveal_fee
+    || case when coalesce(t.quote_amount, 0) > 0
+            then ' = ' || regexp_replace(round(t.reveal_fee / t.quote_amount * 100, 2)::text, '\.?0+$', '') || '% of AED ' || t.quote_amount
+                 || ', the supplier''s quoted price' else '' end
+    || '. Total charged AED ' || coalesce(t.total_charged, t.reveal_fee) || '.';
+
+  v_terms := case when c.tos_accepted_at is null then 'No terms acceptance is recorded for this customer.'
+    else 'The customer accepted the QuotesDone customer terms ' || coalesce(c.tos_version, '(version not recorded)') || ' on '
+      || to_char(c.tos_accepted_at at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' (Dubai)'
+      || coalesce(' from IP ' || c.tos_ip, '') || coalesce(', document SHA-256 ' || c.tos_sha256, '')
+      || case when coalesce(c.signed_terms_path, '') <> '' then '; the signed acceptance certificate is on record' else '' end
+      || ', before paying for this reveal.' end;
+
+  select version, left(btrim(regexp_replace(regexp_replace(replace(replace(body_html, '&amp;', '&'), '&nbsp;', ' '),
+                                                           '<[^>]+>', ' ', 'g'), '\s+', ' ', 'g')), 15000)
+    into v_policy_v, v_policy from public.legal_documents where slug = 'refund-policy';
+
+  -- the customer's own words: portal messages on this request, and WhatsApp messages from their number
+  select string_agg(to_char(m.created_at at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' portal: ' || left(m.body, 300), E'\n' order by m.created_at)
+    into v_words
+    from (select * from public.messages where inquiry_id = t.inquiry_id and sender = 'customer' order by created_at desc limit 20) m;
+  select string_agg(to_char(w.created_at at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' WhatsApp: ' || left(w.inbound, 300), E'\n' order by w.created_at)
+    into v_wa
+    from (select * from public.wa_messages
+           where coalesce(inbound, '') <> ''
+             and right(regexp_replace(wa_from, '\D', '', 'g'), 9) <> ''
+             and right(regexp_replace(wa_from, '\D', '', 'g'), 9) in (right(regexp_replace(coalesce(c.whatsapp_phone, ''), '\D', '', 'g'), 9),
+                                                                      right(regexp_replace(coalesce(c.phone, ''), '\D', '', 'g'), 9))
+           order by created_at desc limit 20) w;
+
+  select count(*) into v_prior from public.stripe_dispute x join public.transactions y on y.id = x.transaction_id
+   where y.customer_id = t.customer_id and x.id <> d.id;
+
   v_log := 'Reveal paid ' || to_char(t.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' (Dubai), payment ' || t.payment_ref
         || '. The supplier''s contact details were released in the customer''s QuotesDone portal at that moment. '
         || v_msgs || ' portal message(s) exchanged after the reveal, ' || v_sup_msgs || ' from the supplier'
-        || coalesce('; supplier first responded ' || to_char(v_first at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI'), '') || '.';
+        || coalesce('; supplier first responded ' || to_char(v_first at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI'), '') || '. '
+        || v_terms;
+
   return jsonb_build_object('ok', true, 'dispute', d.id, 'livemode', d.livemode, 'transaction_id', t.id,
     'fields', jsonb_strip_nulls(jsonb_build_object(
       'customer_name', c.full_name,
       'customer_email_address', c.email,
       'service_date', to_char(t.revealed_at at time zone 'Asia/Dubai', 'YYYY-MM-DD'),
-      'product_description', 'A paid reveal on QuotesDone, a UAE procurement marketplace: the customer paid to release the contact details of '
-        || coalesce(v_sup, 'a supplier') || ', whose quote they chose for their request "' || left(coalesce(v_inq, 'a procurement request'), 200)
-        || '". The charge is the 3% reveal fee plus card processing, AED ' || coalesce(t.total_charged, t.reveal_fee)
-        || ', and is a digital service delivered at the moment of payment.',
+      'product_description', 'A paid reveal on QuotesDone, a UAE procurement marketplace' || coalesce(', job ' || v_job, '')
+        || ': the customer paid to release the contact details of ' || coalesce(v_sup, 'a supplier')
+        || ', whose quote they chose for their request "' || left(coalesce(v_inq, 'a procurement request'), 200)
+        || '". ' || v_basis || ' It is a digital service delivered at the moment of payment.',
       'access_activity_log', v_log,
       'refund_policy_disclosure', 'The customer''s receipt and the terms state that if the supplier does not respond within '
         || coalesce(v_window, 5) || ' working days the customer is refunded everything they paid. Refund status of this payment: '
-        || coalesce(t.refund_status, 'none requested') || '.',
-      'uncategorized_text', 'Stripe invoice ' || coalesce(t.stripe_invoice_number, t.stripe_invoice_id, 'not recorded')
-        || ' for AED ' || coalesce(t.total_charged, t.reveal_fee) || ' (reveal fee AED ' || t.reveal_fee
-        || coalesce(', card processing AED ' || t.processing_fee, '') || '). Delivery records: '
-        || coalesce(v_deliv, 'no provider-confirmed delivery on record') || '.')),
+        || coalesce(t.refund_status, 'none requested') || '.'
+        || coalesce(E'\n\nQuotesDone refund policy ' || v_policy_v || ', as published:\n' || v_policy, ''),
+      'uncategorized_text', 'Checkout record: payment ' || coalesce(t.payment_ref, '?') || ', Stripe invoice '
+        || coalesce(t.stripe_invoice_number, t.stripe_invoice_id, 'not recorded') || ', AED ' || coalesce(t.total_charged, t.reveal_fee)
+        || ', paid ' || to_char(t.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' (Dubai). ' || v_basis
+        || E'\nDelivery records: ' || coalesce(v_deliv, 'no provider-confirmed delivery on record') || '.'
+        || E'\nTerms: ' || v_terms
+        || E'\nThe customer''s own messages: ' || coalesce(nullif(concat_ws(E'\n', v_words, v_wa), ''), 'none on record') || '.',
+      -- for the CEO's review only; disputeEvidenceForm never sends a field Stripe does not name
+      'ceo_prior_disputes', v_prior,
+      'ceo_summary', 'AED ' || round(d.amount_fils / 100.0, 2) || ', reason ' || coalesce(d.reason, '?') || ', due '
+        || coalesce(to_char(d.evidence_due_by at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai', '?')
+        || case when v_prior > 0 then '. REPEAT DISPUTER: ' || v_prior || ' earlier dispute(s) by this customer' else '' end
+        || case when c.tos_accepted_at is null then '. No terms acceptance on record' else '' end || '.')),
     'receipt', case when coalesce(t.doc_path, '') <> '' then jsonb_build_object('bucket', 'finance-docs', 'path', t.doc_path,
-                                                                                'name', coalesce(t.doc_name, 'invoice.pdf')) end);
+                                                                                'name', coalesce(t.doc_name, 'invoice.pdf')) end,
+    'terms_certificate', case when coalesce(c.signed_terms_path, '') <> '' then jsonb_build_object('bucket', 'signed-terms',
+                                                                                'path', c.signed_terms_path, 'name', 'signed-terms-certificate.pdf') end);
 end $function$
 
 
@@ -2492,6 +2550,7 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_files_reveal_invoice()
 AS $function$
 declare
   v_doc bigint;
+  v_h   bigint;
 begin
   if new.doc_path is null or new.doc_path !~ '^invoices/' then return new; end if;
   if tg_op = 'UPDATE' and old.doc_path is not distinct from new.doc_path then return new; end if;
@@ -2510,15 +2569,32 @@ begin
                        'customer_id', new.customer_id, 'invoice_id', new.stripe_invoice_id,
                        'invoice_number', new.stripe_invoice_number, 'total_charged', new.total_charged));
 
-  insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('sales_engineer', 'handoff', 'pending', 'low',
-          'Reveal invoice filed - tell the customer it is ready',
-          'The Stripe invoice is in the customer''s Documents and on the revealed quote card.',
-          jsonb_build_object('from', 'accountant', 'from_name', 'Accountant', 'subject', 'reveal_invoice',
-                             'transaction_id', new.id, 'quote_id', new.quote_id, 'inquiry_id', new.inquiry_id,
-                             'customer_id', new.customer_id, 'document_id', v_doc,
-                             'invoice_number', new.stripe_invoice_number),
-          'transactions', new.id::text);
+  -- The handoff names its conversation, its case, its decision and its ask, so its note can be stated.
+  -- If it still cannot be filed, the invoice stays filed and the IT engineer is told which case lost it.
+  begin
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+    values ('sales_engineer', 'handoff', 'pending', 'low',
+            'Reveal invoice filed - tell the customer it is ready',
+            'The Stripe invoice is in the customer''s Documents and on the revealed quote card.',
+            jsonb_build_object('type', 'invoice.issued', 'from', 'accountant', 'from_name', 'Accountant', 'to', 'sales_engineer',
+                               'subject', 'reveal_invoice', 'subject_table', 'transactions', 'subject_id', new.id::text,
+                               'decision', 'accountant filed the Stripe reveal invoice into the customer''s Documents (document '
+                                           || v_doc || ') and hands the notice to the sales engineer',
+                               'question', 'Tell the customer their reveal invoice is ready, in the inquiry''s language.',
+                               'transaction_id', new.id, 'quote_id', new.quote_id, 'inquiry_id', new.inquiry_id,
+                               'customer_id', new.customer_id, 'document_id', v_doc,
+                               'invoice_number', new.stripe_invoice_number),
+            'transactions', new.id::text)
+    returning id into v_h;
+    perform public.fn_seat_handoff_event(v_h, 'sent');
+  exception when others then
+    perform public.fn_it_engineer_finding_upsert(
+      'monitor:reveal_invoice_handoff_not_filed:' || new.id,
+      'Reveal invoice filed but its handoff to the sales engineer was refused: ' || left(sqlerrm, 200),
+      'public.fn_accountant_files_reveal_invoice (caller: accountant)', 'customer_facing', 1,
+      jsonb_build_object('transaction_id', new.id, 'document_id', v_doc, 'error', left(sqlerrm, 500), 'owner_seat', 'accountant'),
+      '{}'::text[], array['why the reveal_invoice handoff could not be filed for this transaction'], 'fn_accountant_files_reveal_invoice');
+  end;
   return new;
 end
 $function$
@@ -5123,6 +5199,205 @@ begin
       p_review_in => interval '1 day', p_source_agent => 'accountant');
   end if;
   return jsonb_build_object('paid_reveals', v_n, 'incomplete', jsonb_array_length(v_gaps), 'gaps', v_gaps);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_reveal_reconcile_findings()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb; v_last public.accountant_reveal_reconcile_run; v_live jsonb; v_req timestamptz;
+begin
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'item', i.outcome || ':' || i.key,
+      'owner_seat', case when i.outcome = 'second_payment' then 'ceo' else 'accountant' end,
+      'subject', 'transactions',
+      'title', case i.outcome
+        when 'failed' then 'A paid reveal has no sale: Stripe ' || i.key || ' (AED ' || round(coalesce(i.amount_fils, 0) / 100.0, 2)
+                           || ', quote ' || i.quote_id || ') could not be recorded: ' || coalesce(left(i.error, 160), 'no reason given')
+        when 'refunded_unrecorded' then 'A paid reveal with no sale was partly refunded: Stripe ' || i.key || ' (quote ' || i.quote_id
+                           || '); decide whether the sale is recorded or the rest refunded'
+        when 'test_mode_not_demo' then 'A TEST-mode Stripe payment names a quote that is not a demo account''s, so it was not recorded: ' || i.key
+                           || ' (AED ' || round(coalesce(i.amount_fils, 0) / 100.0, 2) || ', quote ' || i.quote_id || ')'
+        when 'second_payment' then 'A revealed quote was paid a second time: ' || coalesce(i.payment_intent, i.key)
+                           || ' (AED ' || round(coalesce(i.amount_fils, 0) / 100.0, 2) || ', quote ' || i.quote_id || ') must be refunded'
+        else 'A paid reveal has waited over 3 hours to be recorded: Stripe ' || i.key || ' is past the sweep''s per-run bound' end,
+      'blast', 'customer_facing', 'affected', 1, 'demo', false,
+      'evidence', jsonb_build_object('stripe', i.key, 'livemode', i.livemode, 'quote_id', i.quote_id, 'invoice_id', i.invoice_id,
+        'payment_intent', i.payment_intent, 'amount_fils', i.amount_fils, 'currency', i.currency, 'paid_at', i.paid_at,
+        'outcome', i.outcome, 'error', i.error, 'attempts', i.attempts, 'first_seen_at', i.first_seen_at,
+        'transaction_id', i.transaction_id,
+        'remedy', case i.outcome
+          when 'failed' then 'the hourly sweep retries it; read the error (a quote that no longer exists, or a PaymentIntent Stripe would not return)'
+          when 'test_mode_not_demo' then 'a test-mode payment may only touch demo data (stripe_webhook rule): find who paid the real quote through the test key; nothing was written'
+          when 'second_payment' then 'a CEO-approved refund of the second payment; the first payment is the sale'
+          when 'refunded_unrecorded' then 'the accountant decides: record the sale, or refund the remainder through the CEO'
+          else 'more than 50 unmatched live payments an hour (the sweep''s per-run bound): read the failed and second-payment items first' end))
+    order by i.first_seen_at), '[]'::jsonb)
+    into v_items
+    from public.accountant_reveal_reconcile_item i
+   where i.resolved_at is null and not i.demo
+     and (i.outcome in ('failed', 'refunded_unrecorded', 'second_payment', 'test_mode_not_demo')
+          or (i.outcome = 'deferred' and i.first_seen_at < now() - interval '3 hours'))
+     -- #1835: recordRevealSale raises reveal:second_payment:<pi> itself; the same payment is not filed twice.
+     and not (i.outcome = 'second_payment' and exists (select 1 from public.it_engineer_finding f
+                where f.issue_key = 'reveal:second_payment:' || i.payment_intent and f.closed_at is null));
+
+  -- The sweep's own health, from its last report.
+  select r.* into v_last from public.accountant_reveal_reconcile_run r where r.reported_at is not null order by r.reported_at desc, r.id desc limit 1;
+  select min(r.requested_at) into v_req from public.accountant_reveal_reconcile_run r
+   where r.requested_at > coalesce(v_last.reported_at, '-infinity') and r.requested_at < now() - interval '2 hours';
+  if v_req is not null and (v_last.id is null or v_last.reported_at < now() - interval '3 hours') then
+    v_items := v_items || jsonb_build_array(jsonb_build_object('item', 'sweep_silent', 'owner_seat', 'accountant', 'subject', 'accountant_reveal_reconcile_run',
+      'title', 'The reveal sweep has not reported since ' || coalesce(to_char(v_last.reported_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai', 'it was registered')
+               || ': a paid reveal with no sale would go unseen',
+      'blast', 'agent_facing', 'affected', 1,
+      'evidence', jsonb_build_object('last_reported_at', v_last.reported_at, 'unanswered_since', v_req,
+        'last_dispatches', (select coalesce(jsonb_agg(jsonb_build_object('id', r.id, 'requested_at', r.requested_at, 'http_status', r.http_status,
+                              'http_error', left(r.http_error, 200)) order by r.id desc), '[]'::jsonb)
+                              from (select * from public.accountant_reveal_reconcile_run order by id desc limit 3) r),
+        'remedy', 'read the accountant function''s logs for action reveal_reconcile; cred_fn_accountant and project_ref must be in app_secrets')));
+  end if;
+  if v_last.id is not null then
+    v_live := v_last.result->'modes'->'live';
+    if v_last.result ? 'error' then
+      v_items := v_items || jsonb_build_array(jsonb_build_object('item', 'sweep_error', 'owner_seat', 'accountant', 'subject', 'accountant_reveal_reconcile_run',
+        'title', 'The reveal sweep stopped before it compared anything: ' || left(v_last.result->>'error', 200),
+        'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('run', v_last.id, 'reported_at', v_last.reported_at, 'error', v_last.result->>'error')));
+    elsif coalesce(v_live->>'basis', 'not_read') <> 'measured' then
+      v_items := v_items || jsonb_build_array(jsonb_build_object('item', 'stripe_live_unread', 'owner_seat', 'accountant', 'subject', 'accountant_reveal_reconcile_run',
+        'title', 'The reveal sweep could not read live Stripe (' || coalesce(v_live->>'basis', 'not_read') || '): live reveals are not being compared with the books',
+        'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('run', v_last.id, 'reported_at', v_last.reported_at, 'live', v_live)));
+    elsif coalesce((v_live->>'truncated')::boolean, false) then
+      v_items := v_items || jsonb_build_array(jsonb_build_object('item', 'listing_truncated', 'owner_seat', 'accountant', 'subject', 'accountant_reveal_reconcile_run',
+        'title', 'Live Stripe holds more paid payments in the reveal sweep''s window than it reads (5 pages of 100): shorten gl_settings.reveal_reconcile_window_days or raise the bound',
+        'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('run', v_last.id, 'window_days', v_last.window_days, 'live', v_live)));
+    end if;
+  end if;
+  return public.fn_accountant_duty_settle('reveal_reconcile', v_items);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_reveal_reconcile_record(p_run_id bigint, p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_run bigint; x jsonb; n_kept int := 0; n_refused int := 0; n_resolved int := 0; v_demo boolean; v_qid uuid;
+  c_uuid constant text := '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
+begin
+  if jsonb_typeof(p_r) is distinct from 'object' or jsonb_typeof(coalesce(p_r->'outcomes', '[]'::jsonb)) is distinct from 'array' then
+    raise exception 'fn_accountant_reveal_reconcile_record(run, readings): readings must be an object with an outcomes array';
+  end if;
+  select id into v_run from public.accountant_reveal_reconcile_run where id = p_run_id;
+  if v_run is null then   -- a call the duty did not dispatch (the founder, by hand): it is a run of its own
+    insert into public.accountant_reveal_reconcile_run (window_days)
+    values (greatest(1, least(90, coalesce(nullif(p_r->>'days', '')::int, 30)))) returning id into v_run;
+  end if;
+  update public.accountant_reveal_reconcile_run
+     set reported_at = now(),
+         result = (p_r - 'outcomes') || jsonb_build_object('reported', jsonb_array_length(coalesce(p_r->'outcomes', '[]'::jsonb)))
+   where id = v_run;
+
+  for x in select e from jsonb_array_elements(coalesce(p_r->'outcomes', '[]'::jsonb)) e loop
+    if coalesce(x->>'key', '') !~ '^(in|pi)_[A-Za-z0-9_]+$' or coalesce(btrim(x->>'quote_id'), '') = ''
+       or coalesce(x->>'outcome', '') not in ('recovered', 'second_payment', 'refunded', 'refunded_unrecorded', 'failed', 'deferred', 'test_mode_not_demo')
+       or coalesce(x->>'source', '') not in ('invoice', 'payment_intent') then
+      n_refused := n_refused + 1;   -- 'recorded' (a plain match) never needs a row; anything malformed is refused, not guessed
+      continue;
+    end if;
+    v_qid := case when x->>'quote_id' ~ c_uuid then (x->>'quote_id')::uuid end;
+    -- DEMO: a test-mode payment, an email the one demo rule names, or a customer the database marks is_demo.
+    -- 'test_mode_not_demo': a test payment whose quote is not provably a demo account's. It reaches the findings,
+    -- unless Stripe's own customer e-mail is a demo address (fn_is_demo_email, the identity that picks the Stripe test
+    -- key, #1835): the e2e teardown deletes a demo quote while its paid test invoice stays in the window, and that is
+    -- demo, not a finding.
+    v_demo := case when x->>'outcome' = 'test_mode_not_demo' then public.fn_is_demo_email(x->>'customer_email')
+      else (not coalesce((x->>'livemode')::boolean, false)
+           or public.fn_is_demo_email(x->>'customer_email')
+           or exists (select 1 from public.customers c where c.is_demo and c.id::text = x->>'customer_id')
+           or exists (select 1 from public.quotes q join public.inquiries iq on iq.id = q.inquiry_id
+                        join public.customers c on c.id = iq.customer_id where q.id = v_qid and c.is_demo)) end;
+    insert into public.accountant_reveal_reconcile_item as it (key, livemode, source, quote_id, invoice_id, payment_intent,
+        customer_id, customer_email, amount_fils, currency, paid_at, demo, outcome, transaction_id, error, last_run_id, resolved_at)
+    values (x->>'key', coalesce((x->>'livemode')::boolean, false), x->>'source', x->>'quote_id', nullif(x->>'invoice_id', ''),
+        nullif(x->>'payment_intent', ''), nullif(x->>'customer_id', ''), lower(nullif(x->>'customer_email', '')),
+        nullif(x->>'amount_fils', '')::bigint, nullif(x->>'currency', ''),
+        case when x->>'paid_at' ~ '^[0-9]+$' then to_timestamp((x->>'paid_at')::bigint) end,
+        v_demo, x->>'outcome', case when x->>'transaction_id' ~ c_uuid then (x->>'transaction_id')::uuid end,
+        left(nullif(x->>'error', ''), 1000), v_run,
+        case when x->>'outcome' in ('recovered', 'refunded') then now() end)
+    -- 'deferred' says only "not looked at this run": it never overwrites what an earlier run found (failed, second payment).
+    on conflict (key) do update set
+        outcome = case when excluded.outcome = 'deferred' and it.resolved_at is null then it.outcome else excluded.outcome end,
+        error = case when excluded.outcome = 'deferred' and it.resolved_at is null then it.error else excluded.error end,
+        demo = excluded.demo,
+        payment_intent = coalesce(excluded.payment_intent, it.payment_intent),
+        customer_email = coalesce(excluded.customer_email, it.customer_email),
+        transaction_id = coalesce(excluded.transaction_id, it.transaction_id),
+        attempts = it.attempts + 1, last_seen_at = now(), last_run_id = excluded.last_run_id,
+        resolved_at = case when excluded.outcome in ('recovered', 'refunded') then coalesce(it.resolved_at, now())
+                           when excluded.outcome = 'deferred' then null end;
+    n_kept := n_kept + 1;
+  end loop;
+
+  -- A payment the books now hold by another path (the webhook, a by-hand recording) is resolved, whatever this run saw.
+  update public.accountant_reveal_reconcile_item i
+     set outcome = 'recorded_elsewhere', resolved_at = now(), transaction_id = t.id
+    from public.transactions t
+   where i.resolved_at is null and i.outcome in ('failed', 'refunded_unrecorded', 'deferred')
+     and ((i.invoice_id is not null and t.stripe_invoice_id = i.invoice_id) or (i.payment_intent is not null and t.payment_ref = i.payment_intent));
+  get diagnostics n_resolved = row_count;
+
+  return jsonb_build_object('run', v_run, 'kept', n_kept, 'refused', n_refused, 'resolved_elsewhere', n_resolved,
+    'findings', public.fn_accountant_reveal_reconcile_findings());
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_reveal_reconcile_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_days int; v_ref text; v_key text; v_cred text; v_run bigint; v_req bigint; v_harvested int := 0; v_pruned int := 0;
+begin
+  -- The last dispatches' HTTP answers (pg_net keeps responses 6 hours; this runs every hour).
+  update public.accountant_reveal_reconcile_run r
+     set http_status = coalesce(h.status_code, 0),
+         http_error = case when h.status_code = 200 then null else left(coalesce(h.error_msg, h.content::text, 'no answer'), 500) end
+    from net._http_response h
+   where h.id = r.request_id and r.http_status is null;
+  get diagnostics v_harvested = row_count;
+  delete from public.accountant_reveal_reconcile_run where requested_at < now() - interval '60 days';
+  get diagnostics v_pruned = row_count;
+
+  -- One sweep at a time: none is sent while the last is unanswered and under 30 minutes old.
+  if exists (select 1 from public.accountant_reveal_reconcile_run
+              where reported_at is null and http_status is null and requested_at > now() - interval '30 minutes') then
+    return jsonb_build_object('dispatched', false, 'why', 'a sweep is in flight', 'harvested', v_harvested,
+                              'findings', public.fn_accountant_reveal_reconcile_findings());
+  end if;
+
+  v_days := greatest(1, least(90, coalesce((select num_value::int from public.gl_settings where key = 'reveal_reconcile_window_days'), 30)));
+  select value into v_ref from public.app_secrets where key = 'project_ref';
+  v_key := public.fn_gateway_client_key();
+  select value into v_cred from public.app_secrets where key = 'cred_fn_accountant';
+  if coalesce(v_ref, '') = '' or coalesce(v_key, '') = '' or coalesce(v_cred, '') = '' then
+    -- A duty that cannot send has failed: the seat shows red (fn_seat_duty_health), it does not report green.
+    raise exception 'fn_accountant_reveal_reconcile_tick: project_ref, the gateway key or cred_fn_accountant is missing from app_secrets';
+  end if;
+  insert into public.accountant_reveal_reconcile_run (window_days) values (v_days) returning id into v_run;
+  v_req := net.http_post(url := 'https://' || v_ref || '.supabase.co/functions/v1/accountant',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_key, 'apikey', v_key),
+    body := jsonb_build_object('__secret', v_cred, 'action', 'reveal_reconcile', 'run_id', v_run, 'days', v_days),
+    timeout_milliseconds := 140000);
+  update public.accountant_reveal_reconcile_run set request_id = v_req where id = v_run;
+  return jsonb_build_object('dispatched', true, 'run', v_run, 'request', v_req, 'window_days', v_days, 'harvested', v_harvested,
+                            'pruned', v_pruned, 'findings', public.fn_accountant_reveal_reconcile_findings());
 end $function$
 
 
@@ -8094,6 +8369,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -8119,16 +8404,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -8843,135 +9118,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -9487,6 +9633,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -10121,6 +10396,23 @@ begin
 exception when others then
   new.e2e_run_tag := null;   -- the cost record is never lost to a malformed header
   return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ai_cost_log_releases_rehearsal_reservation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.e2e_run_tag is not null and new.model_used is distinct from 'none' and not coalesce(new.cached, false)
+     and greatest(coalesce(new.cost_usd_reported, 0), coalesce(new.cost_aed, 0)) > 0 then
+    delete from public.rehearsal_spend_reservation
+     where id = (select id from public.rehearsal_spend_reservation
+                  where e2e_run_tag = new.e2e_run_tag order by created_at limit 1);
+  end if;
+  return null;
 end $function$
 
 
@@ -10968,6 +11260,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_app_secrets_no_paid_ai_stays_off()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.key = 'no_paid_ai' and lower(coalesce(new.value, '')) in ('1','true','yes','on')
+     and not public.fn_founder_hold_change_allowed() then
+    raise exception 'RULING_1260: OpenRouter stays on; app_secrets.no_paid_ai is switched on only by the founder (set local app.change_reason = ''founder:<ledger id>'').'
+      using errcode = 'P0001';
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_apply_playbook(p_agent_key text, p_query_embedding vector, p_query_text text, p_min_similarity real DEFAULT 0.85, p_k integer DEFAULT 20)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -11129,6 +11437,45 @@ AS $function$
       'اااايهوي0123456789'
     )
   end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_arabic_compare_wait(p_inquiry text, p_texts text[])
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  insert into public.arabic_compare_waiter (inquiry_id, texts) values (p_inquiry, p_texts)
+  on conflict (inquiry_id) do update set texts = excluded.texts
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_arabic_compare_waiters_ready(p_limit integer DEFAULT 10)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with ready as (
+    select d.inquiry_id from public.arabic_compare_waiter d
+     where d.attempts < 5   -- a render that keeps failing stops costing replays (customer_api tells the sales engineer)
+       and (d.last_offered_at is null or d.last_offered_at < now() - interval '2 minutes')
+       and (
+         not exists (select 1 from unnest(d.texts) t
+                      where not exists (select 1 from public.arabic_translation a where a.source_md5 = md5(t)))
+         -- the clock: a waiter that is still incomplete is looked at again at least hourly from its first hour
+         or (d.created_at < now() - interval '1 hour' and (d.last_offered_at is null or d.last_offered_at < now() - interval '1 hour'))
+       )
+     order by d.attempts, d.last_offered_at nulls first, d.created_at
+     limit greatest(1, least(coalesce(p_limit, 10), 100))
+     for update skip locked
+  ), offered as (
+    update public.arabic_compare_waiter w set last_offered_at = now()
+      from ready where w.inquiry_id = ready.inquiry_id
+    returning w.inquiry_id
+  )
+  select coalesce(jsonb_agg(inquiry_id), '[]'::jsonb) from offered
 $function$
 
 
@@ -11660,8 +12007,9 @@ begin
      or exists (select 1 from public.agent_runs where agent = 'backup_kick' and status = 'ok'
                 and started_at > now() - interval '60 seconds') then
     -- 7 Oct 2026: the scheduler's call is recorded, so its heartbeat sees that it ran (dropbox_kick, handoff
-    -- 130872). Only 'github_actions': the per-document trigger kicks debounce in bursts and nothing reads them.
-    if p_reason = 'github_actions' then
+    -- 130872). Only the two second schedulers (GitHub until 26 Oct 2026, pg_cron from then): the per-document
+    -- trigger kicks debounce in bursts and nothing reads them.
+    if p_reason in ('github_actions', 'pg_cron_second_scheduler') then
       insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
       values ('backup_kick', 'skipped', jsonb_build_object('reason', p_reason, 'mode', p_mode, 'debounced', true),
               left('dropbox_backup not kicked (' || p_mode || '): debounced, a kick in the last 60 seconds is still draining: ' || p_reason, 500),
@@ -12092,6 +12440,9 @@ AS $function$
     ('social-media',     'bucket', 'social-media',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (generated post cards and avatars; not in the repository)', null),
     ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
     ('company-seal',     'bucket', 'company-seal',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the company stamp and signature, private since 6 Oct 2026; read by pdf_native with the service role)', null),
+    ('evidence',         'bucket', 'evidence',         true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the laptop''s sandbox and campaign evidence moved off the Desktop on 26 Oct 2026: screenshots, recordings, files over 5 MB and real third parties'' documents kept out of git; private, service role only; indexed by sha256 in docs/reports/EVIDENCE_INDEX.md)', null),
+    ('review-photos',    'bucket', 'review-photos',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (customers'' post-job review photos, EXIF stripped; private, signed links only)', null),
+    ('reviews.photo_paths',                  'column', 'review-photos', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (review-photos)', null),
     ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),
     ('site',             'bucket', 'site',             true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the static website pages as first published)', null),
     ('marketing-media',  'bucket', 'marketing-media',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the media of the posts the founder and Claude ingest to the marketing seat; private, not in the repository)', null),

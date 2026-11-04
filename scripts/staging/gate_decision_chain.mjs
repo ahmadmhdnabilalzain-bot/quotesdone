@@ -18,11 +18,11 @@
 // NOT IDEMPOTENT, DELIBERATELY. Each run takes two REAL decisions and so adds two decision_record
 // rows. That is the point — the chain is proved by running it, not by inspecting it — but it means
 // this belongs in a hand or a CI step, never in a loop or a cron.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { PROD_REF } from '../lib/qd_guard.mjs';
 
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 async function sql(q, attempt = 0) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/database/query`, {

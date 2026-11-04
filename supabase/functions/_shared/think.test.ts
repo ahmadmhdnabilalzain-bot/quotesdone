@@ -1,7 +1,7 @@
 // think() with a mocked model, embedder and database. No network, no env, no paid call.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import type { GateAnswer } from './llm_hold.ts';
-import { authoritative, isFixtureRequest, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
+import { authoritative, isFixtureRequest, planTimedOut, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
 
 type Call = { phase: Phase; system: string; input: string; o: Record<string, unknown> };
 function mock(o: {
@@ -51,7 +51,7 @@ Deno.test('the founder\'s pool question: steps, sources, and a question back ALO
   const r = await think(m.deps, { seat: 'customer_support', surface: 'think.answer', question: 'I want to build a pool at my villa — what depth, what is legal?', context: { audience: 'customer' } });
   assertEquals(r.status, 'answered');
   assert(r.steps.some((s) => s.kind === 'decompose' && s.status === 'done'));
-  assertEquals(r.steps.filter((s) => s.kind === 'retrieve').length, 2);
+  assertEquals(r.steps.filter((s) => s.kind === 'retrieve').length, 3);   // two planned steps and the question as asked
   assertEquals(r.sources.map((s) => s.id), ['kb_chunks:7']);
   assertEquals(r.missing_context.map((f) => f.name), ['emirate', 'community']);
   assertMatch(String(r.asked_back), /emirate/);
@@ -241,7 +241,7 @@ Deno.test('replayHeld claims again while each claim comes back full, and stops a
   m.deps.rpc = (fn, args) => fn === 'fn_reason_held_due'
     ? (m.rpcs.push([fn, args]), Promise.resolve({ data: Array.from({ length: Number(args.p_limit) }, row), error: null }))
     : base(fn, args);
-  const out = await replayHeld(null, 2, m.deps, undefined, { maxRows: 5 }) as { replayed: number };
+  const out = await replayHeld(null, 2, m.deps, undefined, { maxRows: 5, rowMs: 0 }) as { replayed: number };
   assertEquals(out.replayed, 5, 'two full claims of 2, then a last claim of 1');
   assertEquals(m.rpcs.filter(([f]) => f === 'fn_reason_held_due').map(([, a]) => a.p_limit), [2, 2, 1]);
 });
@@ -253,7 +253,7 @@ Deno.test('replayHeld stops claiming when the time budget is spent', async () =>
   m.deps.rpc = (fn, args) => fn === 'fn_reason_held_due'
     ? (t += 1000, Promise.resolve({ data: [{ id: t, seat: 'ceo', surface: 'ceo.command_intent', request: { seat: 'ceo' } }], error: null }))
     : base(fn, args);
-  const out = await replayHeld(null, 1, m.deps, undefined, { maxRows: 50, budgetMs: 2500, now: () => t }) as { replayed: number };
+  const out = await replayHeld(null, 1, m.deps, undefined, { maxRows: 50, budgetMs: 2500, rowMs: 0, now: () => t }) as { replayed: number };
   assertEquals(out.replayed, 3, 'claims at t=1000, 2000, 3000; the budget (2500) stops the fourth');
 });
 
@@ -437,6 +437,17 @@ Deno.test('customer A never sees customer B\'s quote case in the chat context; a
   }
   const internal = await run('internal');
   assert(internal.leaked, 'an internal seat lost its case memory');
+});
+
+Deno.test('a planner that runs out of time still answers from a one-step plan; a hold still holds', async () => {
+  const good = J({ answer: 'The CEO seat approves refunds; the founder is not asked.', reasoning: ['s1: the refund rule'], cited: ['kb_chunks:7'], confidence: 0.8 });
+  const m = mock({ gate: { allowed: true }, retrieve: KB, replies: {
+    decompose: [{ content: null, error: 'gateway_http_502:gateway_deadline' }], synthesise: [good], verify: [J({ agree: true, problems: [] })] } });
+  const r = await think(m.deps, { seat: 'ceo', surface: 'think.answer', question: 'who approves a refund?', context: { audience: 'internal' } });
+  assertEquals(r.status, 'answered');
+  assert(r.steps.some((s) => s.kind === 'decompose' && s.status === 'failed' && /one-step plan used/.test(String(s.detail))), JSON.stringify(r.steps));
+  assert(planTimedOut('gateway_http_503') && planTimedOut('The signal has been aborted'));
+  assert(!planTimedOut('circuit_open') && !planTimedOut('founder_hold') && !planTimedOut('no mock reply') && !planTimedOut(null));
 });
 
 Deno.test('a choice among options is not refused for a question added beside it; an answer still is', () => {

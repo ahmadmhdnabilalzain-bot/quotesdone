@@ -66,7 +66,7 @@ async function probe(block) {
 
 test('production, aborted: the gap duties raise, act and close', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const o = await probe(String.raw`
-do $$ declare o jsonb := '{}'; v jsonb; qid uuid; hid bigint; inc public.it_incident; i int; begin
+do $$ declare o jsonb := '{}'; v jsonb; qid uuid; hid bigint; fix_id bigint; inc public.it_incident; i int; begin
   -- provider status and firewall
   v := public.fn_it_provider_watch('{"providers":[{"provider":"twilio","basis":"measured","indicator":"major","description":"ZZ DEMO outage"},
       {"provider":"stripe","basis":"unavailable","reason":"ZZ DEMO 404"},{"provider":"vercel","basis":"measured","indicator":"minor"}],
@@ -123,16 +123,31 @@ do $$ declare o jsonb := '{}'; v jsonb; qid uuid; hid bigint; inc public.it_inci
     exit when (v->>'asked')::int = 0 and (v->>'opened')::int = 0;
   end loop;
   -- postmortem: a high-severity fault of a known class, closed after the duty went live
-  -- a handoff names its case and what it needs (trg_handoff_carries_its_note refuses one that does not), so the fixture does too
-  insert into public.agent_actions (agent, kind, status, target_id, title, detail, decided_at, evidence)
-  values ('sales_engineer', 'handoff', 'done', 'it.finding:duty:latency_slo:zz_demo_portal', 'ZZ DEMO slow', jsonb_build_object('type', 'it.finding', 'severity', 'high',
-          'issue_key', 'duty:latency_slo:zz_demo_portal', 'title', 'ZZ DEMO slow', 'occurrence_started_at', now() - interval '2 hours'),
-          now(), '{"answer":"ZZ DEMO bounded"}')
+  -- a handoff names its case and what it needs (trg_handoff_carries_its_note refuses one that does not), so the fixture does too;
+  -- since #1578 (every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql,
+  -- ledger 1013) it must also name its sender, or the note has no decision and a01_handoff_carries_its_note refuses it.
+  -- An it.finding handoff is the it_engineer's.
+  -- The fixtures are CLOSED through fn_seat_handoff_complete, the door every real close uses, which cites the handover
+  -- note. Since 27 Oct (a_handoff_closes_only_when_its_receiver_cites_the_note_or_says_why_not.sql, ledger 1013) trigger
+  -- a02 refuses a handoff that reaches 'done' citing nothing; the old insert-as-done fixtures were refused with 23514.
+  -- The guard is right; the fixtures now close the way production does. The it_engineer is the originator, so it closes.
+  perform set_config('qd.handoff_closer', 'it_engineer', true);
+  insert into public.agent_actions (agent, kind, status, target_id, title, detail)
+  values ('sales_engineer', 'handoff', 'pending', 'it.finding:duty:latency_slo:zz_demo_portal', 'ZZ DEMO slow', jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'severity', 'high',
+          'issue_key', 'duty:latency_slo:zz_demo_portal', 'title', 'ZZ DEMO slow', 'occurrence_started_at', now() - interval '2 hours'))
   returning id into hid;
-  insert into public.agent_actions (agent, kind, status, target_id, title, detail, decided_at)
-  select 'ceo', 'handoff', 'done', 'it.finding:zz_demo_new_class:' || g, 'ZZ DEMO new class ' || g, jsonb_build_object('type', 'it.finding', 'severity', 'critical',
-          'issue_key', 'zz_demo_new_class:' || chr(96 + g), 'title', 'ZZ DEMO new class ' || g, 'occurrence_started_at', now() - interval '2 hours'), now()
-    from generate_series(1, 4) g;  -- four distinct faults: one postmortem per fault keys on the issue_key with digits stripped
+  if not coalesce((public.fn_seat_handoff_complete(hid, '{"answer":"ZZ DEMO bounded"}'::jsonb)->>'ok')::boolean, false) then
+    raise exception 'ZZ DEMO probe: fn_seat_handoff_complete did not close handoff %', hid;
+  end if;
+  for i in 1..4 loop  -- four distinct faults: one postmortem per fault keys on the issue_key with digits stripped
+    insert into public.agent_actions (agent, kind, status, target_id, title, detail)
+    values ('ceo', 'handoff', 'pending', 'it.finding:zz_demo_new_class:' || i, 'ZZ DEMO new class ' || i, jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'severity', 'critical',
+            'issue_key', 'zz_demo_new_class:' || chr(96 + i), 'title', 'ZZ DEMO new class ' || i, 'occurrence_started_at', now() - interval '2 hours'))
+    returning id into fix_id;
+    if not coalesce((public.fn_seat_handoff_complete(fix_id, '{}'::jsonb)->>'ok')::boolean, false) then
+      raise exception 'ZZ DEMO probe: fn_seat_handoff_complete did not close handoff %', fix_id;
+    end if;
+  end loop;
   v := public.fn_it_engineer_postmortem();
   perform public.fn_it_engineer_postmortem();
   select * into inc from public.it_incident where handoff_id = hid;

@@ -6,9 +6,12 @@
 import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
 import {
   M365_HARD_CEILING, M365_ID_PREFIX, M365_OFF, M365_REFUSED_ISSUE, M365_SEED_KIND, graphSend, holdForM365, m365Body, m365Carries,
-  companyName, m365CopyLint, m365InvitationText, m365Mime, m365Subject, m365Text, messageIdFor, resolveM365, scrub, switchOn, type Fetch, type M365,
-  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo,
+  companyName, m365CopyLint, m365InvitationText, m365Mime, m365Subject, messageIdFor, resolveM365, scrub, switchOn, type Fetch, type M365, STOP_LINE,
+  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo, conversationReplyTo, withPlacementRef, campaignMail,
+  M365_PACE_MS, M365_PER_RUN, paceM365, qpEncode,
 } from './m365_lane.ts';
+import { M365_FROM_NAME } from './m365_lane.ts';
+import { resendPayload } from './payload.ts';
 import { INVITE_LANE_TYPES } from './invite_lane.ts';
 
 const SECRET = 'zz-demo-client-secret-value-1234567890';
@@ -105,41 +108,110 @@ Deno.test('hold: refused -> unverified; shared invite cap and the 150 ceiling ->
   assertEquals(holdForM365({ m365: ON, type: 'supplier_invite_seed', cappedSentToday: 0, inviteCap: 30, m365SentToday: M365_HARD_CEILING }), 'cap');
 });
 
-Deno.test('the plain invitation: one link, English, no AI, ends with one question, 1,000 with no date, top 3 only as the report', () => {
-  const body = m365InvitationText(LINK);
-  const lint = m365CopyLint({ subject: 'Your company page on QuotesDone', body });
-  for (const l of lint) assert(l.ok, `${l.rule}: ${l.detail}`);
-  assert(body.includes('registration costs nothing for the first 1,000 supplier registrations') && body.includes('no commission') && body.includes('Any number of suppliers') && body.includes('top three quotes'));
-  assertEquals(m365Body('supplier_invite', 'Dear ZZ DEMO Supplier,\n\nRegister: ' + LINK + '\n\nThanks.'), body, 'an invitation with one portal link gets the plain variant');
-  assert(m365Body('supplier_invite_nudge', 'Reminder ' + LINK).endsWith('?'), 'a nudge keeps its own body and gets the question');
+// VARIANT A, 27 Oct 2026 (it_engineer; the founder delegated the choice: "approved. dont ask me"), word for word.
+const APPROVED = `Hi Sigma Ceramics team,
+
+I'm Ahmad, founder of QuotesDone in Dubai. QuotesDone is a platform where companies in the UAE post requests for quotation, and each request goes only to suppliers who work in that exact trade.
+
+We are putting together our list of tiling suppliers now, before buyers start sending requests. Would your company like to receive tiling requests when they come in?
+
+Best regards,
+Ahmad Alzain
+Founder, QuotesDone
+QuotesDone Technologies · Dubai, UAE
+
+If this isn't relevant, reply "stop" and we won't contact you again.`;
+
+/** RFC 2045 quoted-printable decode of a MIME text part, for the assertions below. */
+function qpDecode(s: string): string {
+  const joined = s.replace(/=\r\n/g, '');
+  const bytes: number[] = [];
+  for (let i = 0; i < joined.length; i++) {
+    if (joined[i] === '=' && /^[0-9A-F]{2}$/.test(joined.slice(i + 1, i + 3))) { bytes.push(parseInt(joined.slice(i + 1, i + 3), 16)); i += 2; }
+    else bytes.push(joined.charCodeAt(i));
+  }
+  return new TextDecoder().decode(Uint8Array.from(bytes));
+}
+
+Deno.test('the invitation is variant A, word for word, and passes every rule', () => {
+  const who = { company: 'Sigma Ceramics', trade: 'tiling' };
+  assertEquals(m365InvitationText(who), APPROVED);
+  assertEquals(m365Subject(who), 'A question about your tiling work');
+  assertEquals(m365Subject({ company: 'Sigma Ceramics' }), 'A question about your work in the UAE');
+  for (const l of m365CopyLint({ subject: m365Subject(who), body: APPROVED })) assert(l.ok, `${l.rule}: ${l.detail}`);
+  // neutral variant: no company, no trade
+  const neutral = m365InvitationText();
+  assert(neutral.startsWith('Hello,\n\n') && neutral.includes('We are putting together our list of suppliers now, before buyers start sending requests.'));
+  assert(neutral.includes('Would your company like to receive the requests that match your trade when they come in?'));
+  for (const l of m365CopyLint({ subject: m365Subject({}), body: neutral })) assert(l.ok, `${l.rule}: ${l.detail}`);
 });
 
-Deno.test('copy rules bite: two links, HTML, a dated offer, a capped quote count, the word AI, Arabic', () => {
+// GlockApps 2026-10-27-09:33:53:634t: the offer-list text went to Junk at 18 of 18 Microsoft seeds. Variant A carries
+// none of its offer phrases, is short, and its last paragraph before the signature is one question to answer by reply.
+Deno.test('variant A: no offer phrase, no domain written out, short, and the message asks one question before the signature', () => {
+  for (const who of [{ company: 'Sigma Ceramics', trade: 'tiling' }, {}, { company: 'Sigma Ceramics' }]) {
+    const t = m365InvitationText(who); const s = m365Subject(who);
+    assertFalse(/\b(free|join|register|registration|commission|opportunity|offer|exclusive|invitation|onboarding|1,000)\b|what you get|quotesdone\.com/i.test(t + ' ' + s), t);
+    assertFalse(/^\s*[–•*-]\s/m.test(t), 'a bullet list came back');
+    const words = t.split(/\s+/).filter(Boolean).length;
+    assert(words <= 110, `variant A grew to ${words} words`);
+    const paras = t.split('\n\n');
+    const ask = paras[paras.indexOf(paras.find((p) => p.startsWith('Best regards'))!) - 1];
+    assert(ask.trimEnd().endsWith('?') && (ask.match(/\?/g) || []).length === 1, 'the paragraph before the signature is no longer one question');
+  }
+});
+
+Deno.test('the invitation, its nudge and a stored body that still carries a link all send the same no-link text', () => {
+  const who = { company: 'Sigma Ceramics', trade: 'tiling' };
+  for (const type of ['supplier_invite', 'supplier_invite_nudge', 'supplier_invite_seed']) {
+    for (const stored of ['Dear X,\n\nRegister: ' + LINK + '\n\nThanks.', 'Reminder ' + LINK, 'Hi {{company}} team,\n\nno link here']) {
+      const body = m365Body(type, stored, null, who);
+      assertEquals(body, APPROVED, `${type} did not send the approved text`);
+      assertFalse(/https?:\/\/|www\./.test(body), 'a link reached the body');
+    }
+  }
+});
+
+Deno.test('copy rules bite: any link, HTML, a dated offer, a capped quote count, the word AI, Arabic, Al Furjan or a permit, a missing stop line', () => {
   const bad = (body: string, subject = 'x') => m365CopyLint({ subject, body }).filter((l) => !l.ok).map((l) => l.rule);
-  assert(bad(m365InvitationText(LINK) + '\n\nhttps://quotesdone.com').length);
-  assert(bad(m365InvitationText(LINK).replace('Hello,', '<b>Hello</b>,')).some((r) => r.includes('HTML')));
-  assert(bad(m365InvitationText(LINK).replace('1,000 supplier registrations', '1,000 supplier registrations until December 2026')).some((r) => r.includes('date')));
-  assert(bad(m365InvitationText(LINK).replace('Any number of suppliers', 'Up to ' + 'three suppliers')).some((r) => r.includes('any number may quote')));
-  assert(bad(m365InvitationText(LINK).replace('founder of QuotesDone', 'founder of QuotesDone AI')).length);
-  assert(bad(m365InvitationText(LINK).replace('Hello', 'مرحبا')).length);
+  const t = m365InvitationText({ company: 'Sigma Ceramics', trade: 'tiling' });
+  for (const link of ['https://quotesdone.com', 'http://x.co', 'www.quotesdone.com', 'quotesdone.com/en/portal', LINK]) {
+    assert(bad(t.replace('founder of QuotesDone in Dubai', 'founder of QuotesDone in Dubai, see ' + link)).some((r) => r.includes('no link')), link);
+  }
+  assert(bad(t, 'see https://quotesdone.com').some((r) => r.includes('no link')), 'a link in the subject');
+  assert(bad(t.replace('Hi Sigma', '<b>Hi</b> Sigma')).some((r) => r.includes('HTML')));
+  assert(bad(t.replace('when they come in?', 'when they come in, from December 2026?')).some((r) => r.includes('date')));
+  assert(bad(t.replace('each request goes only to suppliers', 'each request goes to up to ' + 'three suppliers')).some((r) => r.includes('any number may quote')));
+  assert(bad(t.replace('founder of QuotesDone', 'founder of QuotesDone AI')).length);
+  assert(bad(t.replace('Hi Sigma', 'مرحبا Sigma')).length);
+  assert(bad(t.replace('Technologies · Dubai', 'Technologies · Al Furjan, Dubai')).some((r) => r.includes('street address')));
+  assert(bad(t.replace('Dubai, UAE', 'Dubai, UAE · TDRA NOL-26-100000665')).some((r) => r.includes('permit')));
+  assert(bad(t.replace(STOP_LINE, 'Thanks.')).some((r) => r.includes('stop')));
 });
 
 const unb64 = (s: string) => new TextDecoder().decode(Uint8Array.from(atob(s), (c) => c.charCodeAt(0)));
+/** Header and body of a MIME message: split at the FIRST blank line (a quoted-printable body has blank lines of its own). */
+const splitMime = (raw: string): [string, string] => { const i = raw.indexOf('\r\n\r\n'); return [raw.slice(0, i), raw.slice(i + 4)]; };
 
 Deno.test('MIME: List-Unsubscribe is a real header, plain text only, body carries the unsubscribe line', () => {
   const now = new Date(Date.UTC(2026, 9, 5, 8));
   const mid = messageIdFor(42, now);
   const unsub = 'https://quotesdone.com/u/unsubscribe?e=zz&t=1';
   const raw = unb64(m365Mime({ from: 'QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: 'suppliers@mail.quotesdone.com',
-    subject: 'Your company page', text: m365Text(m365InvitationText(LINK), unsub), unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: mid, now }));
-  const [head, bodyB64] = raw.split('\r\n\r\n');
+    subject: 'Your company page', text: m365InvitationText(), unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: mid, now }));
+  const [head, bodyB64] = splitMime(raw);
   assert(head.includes(`List-Unsubscribe: <${unsub}>, <mailto:unsubscribe@mail.quotesdone.com?subject=unsubscribe>`));
   assert(head.includes('List-Unsubscribe-Post: List-Unsubscribe=One-Click'));
   assert(head.includes('Content-Type: text/plain; charset=utf-8') && !/text\/html/.test(raw));
+  assert(head.includes('Content-Transfer-Encoding: quoted-printable') && !head.includes('Content-Transfer-Encoding: base64'), 'the text part is base64 again');
   assert(head.includes('Message-ID: <qd-notif-42.') && head.includes('Reply-To: suppliers@mail.quotesdone.com'));
-  const text = unb64(bodyB64.replace(/\r\n/g, ''));
-  assert(text.includes(LINK) && text.includes('Reply "stop"'));
-  assertEquals((text.match(/https?:\/\//g) || []).length, 1, 'ledger 1113: the portal link is the only URL in the body; unsubscribe is in the header');
+  // quoted-printable: the English words are readable on the wire, every line is at most 76 characters
+  assert(bodyB64.includes('I\'m Ahmad, founder of QuotesDone in Dubai.'), 'the text part is not readable quoted-printable');
+  for (const l of bodyB64.split('\r\n')) assert(l.length <= 76, `a ${l.length}-character line`);
+  const text = qpDecode(bodyB64).replace(/\r\n/g, '\n');
+  assertEquals(text, m365InvitationText(), 'quoted-printable did not round-trip the text');
+  assert(text.trimEnd().endsWith(STOP_LINE) && text.includes('Would your company like'));
+  assertEquals((text.match(/https?:\/\/|www\./g) || []).length, 0, '27 Oct 2026: no URL in the body; unsubscribe is in the header');
   // a header injection through the subject is flattened
   const inj = unb64(m365Mime({ from: 'a@b.co', to: 'c@d.co', reply: 'e@f.co', subject: 'x\r\nBcc: evil@x.co', text: 't', unsub: '', unsubMailto: '', messageId: mid, now }));
   assertFalse(/\r\nBcc:/.test(inj));
@@ -161,19 +233,19 @@ Deno.test('graphSend: 202 records m365:<Message-ID>; a refusal is returned, not 
 // 5 Oct 2026: m365Body rebuilt the seed text from the link alone and dropped GlockApps' inbox-test ID; 0 of 80 matched.
 Deno.test('a placement seed keeps its trailing inbox-test ID; a real invitation never carries one', () => {
   const ID = 'id:2026-10-05-18:36:55:550t';
-  const row = 'Dear ZZ DEMO Supplier,\n\nRegister: ' + LINK + '\n\nThanks.\n\n' + ID;
+  const row = 'Hi ZZ DEMO Supplier team,\n\nRegister.\n\nThanks.\n\n' + ID;
   const seed = m365Body('supplier_invite_seed', row, M365_SEED_KIND);
   assert(seed.endsWith('\n\n' + ID), 'the seed ends with its ID line');
-  assertEquals(seed, m365InvitationText(LINK) + '\n\n' + ID);
-  for (const l of m365CopyLint({ subject: 'Your company page on QuotesDone', body: seed, seed: true })) assert(l.ok, `${l.rule}: ${l.detail}`);
+  assertEquals(seed, m365InvitationText() + '\n\n' + ID);
+  for (const l of m365CopyLint({ subject: 'A question about your work in the UAE', body: seed, seed: true })) assert(l.ok, `${l.rule}: ${l.detail}`);
   // the same body is NOT exempt when it is not linted as a seed: the year in the ID is a date
   assert(m365CopyLint({ subject: 'x', body: seed }).some((l) => !l.ok && l.rule.includes('date')));
   // a real invitation or nudge with an id: line never carries it
   assertFalse(m365Body('supplier_invite', row).includes(ID), 'a real invite drops it');
   assertFalse(m365Body('supplier_invite', row, 'supplier_invite').includes(ID));
-  assert(m365Body('supplier_invite_nudge', 'Reminder ' + LINK + '\n\n' + ID, 'supplier_invite_nudge').endsWith('?'), 'a nudge is not given the marker');
+  assertFalse(m365Body('supplier_invite_nudge', 'Reminder\n\n' + ID, 'supplier_invite_nudge').includes(ID), 'a nudge is not given the marker');
   // the marker is the only exemption: a date elsewhere in a seed still fails, and so do the content rules
-  const dated = seed.replace('1,000 supplier registrations', '1,000 supplier registrations until December 2026');
+  const dated = seed.replace('when they come in?', 'when they come in, from December 2026?');
   assert(m365CopyLint({ subject: 'x', body: dated, seed: true }).some((l) => !l.ok && l.rule.includes('date')));
   assert(m365CopyLint({ subject: 'x', body: seed.replace('founder of QuotesDone', 'founder of QuotesDone AI'), seed: true }).some((l) => !l.ok));
   // a line that is not exactly the marker shape is not carried
@@ -194,10 +266,27 @@ Deno.test('Reply-To (6 Oct 2026): dropped only while the reply reader is proven 
   assertEquals(M365_INBOX_AGENT, 'resend_inbound');
 });
 
+Deno.test('an answer to a supplier replies into the read supplier mailbox; every control keeps the old Reply-To', () => {
+  const now = new Date('2026-11-02T12:00:00Z');
+  const base = { type: 'inbound_reply', toSupplier: true, mailbox: 'supplier@quotesdone.com', proofAt: '2026-11-02T11:50:00Z', now, fallback: 'info@quotesdone.com' };
+  assertEquals(conversationReplyTo(base), 'supplier@quotesdone.com');
+  assertEquals(conversationReplyTo({ ...base, toSupplier: false }), 'info@quotesdone.com', 'a customer');
+  assertEquals(conversationReplyTo({ ...base, type: 'login_otp' }), 'info@quotesdone.com', 'another mail type');
+  assertEquals(conversationReplyTo({ ...base, proofAt: null }), 'info@quotesdone.com', 'an unproven reader');
+  assertEquals(conversationReplyTo({ ...base, mailbox: 'x@elsewhere.example.invalid' }), 'info@quotesdone.com', 'a cross-domain Reply-To');
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  assert(src.includes("n.type === 'inbound_reply' ? await inboundReplyTo(n.to_email, replyInfo)"), 'send_outbox no longer asks for the conversation Reply-To');
+});
+
 Deno.test('wiring: send_outbox passes the lane Reply-To through m365ReplyTo, reading the proof under the reader\'s label', () => {
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assert(/m365Mime\(\{[^}]*reply: m365ReplyTo\(\{ proofAt: m365ProofAt, now, fallback: reply \}\)/.test(src), 'the lane MIME no longer asks m365ReplyTo');
   assert(src.includes(".eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1')"), 'the proof read no longer selects the reader rows');
+  // 27 Oct 2026: the MIME text is the built body itself (no second signature or opt-out appended), and every lane row,
+  // the nudge included, takes the one subject function; only withPlacementRef can add a token, and only to a seed.
+  assert(/subject: mSubject, text: mBody, unsub/.test(src), 'the lane MIME no longer sends the built body as is');
+  const lane = Deno.readTextFileSync(new URL('./m365_lane.ts', import.meta.url));
+  assert(/const subject = withPlacementRef\(m365Subject\(/.test(lane), 'the campaign subject is no longer m365Subject + withPlacementRef for every row');
 });
 
 Deno.test('the refusal finding closes on a 2xx sendMail, never on a token alone (review of #1473)', async () => {
@@ -223,10 +312,10 @@ Deno.test('the invitation names the company and its trade, and the subject carri
   assertEquals(companyName('ZZ DEMO Supplier'), '');
   const who = { company: 'Sigma Ceramics Building Materials Trading LLC', trade: 'building_materials' };
   const subject = m365Subject(who);
-  assertEquals(subject, 'Building materials quote requests for Sigma Ceramics Building Materials Trading LLC');
-  assertEquals(m365Subject({}), 'Quote requests in the UAE');
-  const body = m365InvitationText(LINK, who);
-  assert(body.startsWith('Hi Sigma Ceramics Building Materials Trading LLC team,') && body.includes('lining up building materials suppliers'));
+  assertEquals(subject, 'A question about your building materials work');
+  assertEquals(m365Subject({}), 'A question about your work in the UAE');
+  const body = m365InvitationText(who);
+  assert(body.startsWith('Hi Sigma Ceramics Building Materials Trading LLC team,') && body.includes('We are putting together our list of building materials suppliers now'));
   const opening = subject + ' ' + body.split('\n\n').slice(0, 2).join(' ');
   assertFalse(/\b(free|commission|invitation|invite|exclusive|AI)\b/i.test(opening), opening);
   for (const l of m365CopyLint({ subject, body })) assert(l.ok, `${l.rule}: ${l.detail}`);
@@ -237,8 +326,8 @@ Deno.test('the invitation names the company and its trade, and the subject carri
 Deno.test('opt-out: one-click List-Unsubscribe with -Post in the MIME, and a "stop" reply is an unsubscribe request', async () => {
   const { isUnsubscribeRequest } = await import('../_shared/unsubscribe_mailbox.ts');
   const unsub = 'https://quotesdone.com/u/unsubscribe?e=zz&t=1';
-  const head = unb64(m365Mime({ from: 'Ahmad Alzain at QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '',
-    subject: 's', text: m365Text(m365InvitationText(LINK)), unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: '<m@q>', now: new Date() })).split('\r\n\r\n')[0];
+  const head = unb64(m365Mime({ from: M365_FROM_NAME + ' <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '',
+    subject: 's', text: m365InvitationText(), unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: '<m@q>', now: new Date() })).split('\r\n\r\n')[0];
   assert(head.includes(`List-Unsubscribe: <${unsub}>, <mailto:unsubscribe@mail.quotesdone.com?subject=unsubscribe>`));
   assert(head.includes('List-Unsubscribe-Post: List-Unsubscribe=One-Click'));
   // a reply to the M365 mailbox reaches resend_inbound through _shared/m365_reply_inbox.ts; its first line decides
@@ -246,6 +335,209 @@ Deno.test('opt-out: one-click List-Unsubscribe with -Post in the MIME, and a "st
     assert(isUnsubscribeRequest({ to: 'supplier@quotesdone.com', subject: 'Re: Quote requests for X', text }), text);
   }
   assertFalse(isUnsubscribeRequest({ to: 'supplier@quotesdone.com', subject: 'Re: x', text: 'We cover tiling. Please stop by.' }));
-  const sent = m365Text(m365InvitationText(LINK));
-  assert(sent.includes('Reply "stop"') && sent.includes('QuotesDone Technologies'), 'the legal identity line is in the signature');
+  const sent = m365InvitationText();
+  assert(sent.trimEnd().endsWith(STOP_LINE) && sent.includes('QuotesDone Technologies · Dubai, UAE'), 'the legal identity line is in the signature');
+  assert(isUnsubscribeRequest({ to: 'supplier@quotesdone.com', subject: 'Re: Quote requests for X', text: 'stop\n\n> ' + sent.split('\n').join('\n> ') }),
+    'a "stop" reply quoting the new email is still an unsubscribe');
+});
+
+Deno.test('the morning placement seed keeps its (ref QD…) token on the rebuilt subject; nothing else gains one', () => {
+  const row = { type: 'supplier_invite_seed', subject: 'Invitation: become a founding supplier on QuotesDone (free, no commission) (ref QD8F6C46AE93)' };
+  const subject = withPlacementRef(m365Subject({}), row);
+  assertEquals(subject, 'A question about your work in the UAE (ref QD8F6C46AE93)');
+  // the reader (_shared/inbox_placement.ts) matches the token in the subject that actually leaves, i.e. the MIME's
+  const now = new Date('2026-10-27T04:30:00Z');
+  const mime = atob(m365Mime({ from: 'QuotesDone <supplier@quotesdone.com>', to: 'management@quotesdone.com', reply: '', subject, text: 'x',
+    unsub: '', unsubMailto: 'supplier@quotesdone.com', messageId: messageIdFor(1, now), now }));
+  assert(mime.includes('Subject: A question about your work in the UAE (ref QD8F6C46AE93)'), 'the token is in the sent Subject header');
+  // and the copy rules still pass, so the seed is not held for its token
+  const body = m365Body('supplier_invite_seed', 'Hi ZZ DEMO Supplier team,\n\nI\'m Ahmad, founder of QuotesDone.', 'supplier_invite_seed');
+  assertEquals(body, m365InvitationText(), 'the seed sends the same email a supplier gets (neutral variant for the ZZ DEMO name)');
+  assertEquals(m365CopyLint({ subject, body }).filter((l) => !l.ok), []);
+  assertEquals(withPlacementRef('X', { type: 'supplier_invite', subject: 'Y (ref QD8F6C46AE93)' }), 'X', 'a real invitation never carries a token');
+  assertEquals(withPlacementRef('X', { type: 'supplier_invite_nudge', subject: 'Y (ref QD8F6C46AE93)' }), 'X', 'a nudge never carries a token');
+  assertEquals(withPlacementRef('X', { type: 'supplier_invite_seed', subject: 'no token' }), 'X');
+  assertEquals(withPlacementRef('X (ref QD8F6C46AE93)', row), 'X (ref QD8F6C46AE93)', 'never doubled');
+});
+
+// 27 Oct 2026 (coordinator, follow-up to #1614): a lane switch can never send the old email. Both routes build the
+// supplier campaign email with campaignMail; the Resend fallback sends it as plain text with no HTML frame.
+Deno.test('both routes send the identical approved body and subject: Microsoft 365 MIME and the Resend fallback payload', () => {
+  const who = { company: 'Sigma Ceramics', trade: 'tiling' };
+  const unsub = 'https://quotesdone.com/u/unsubscribe?e=zz&t=1';
+  const OLD = 'Dear {{company}},\n\nRegister here: ' + LINK + '\n\nWe look forward to welcoming you.';
+  const rows = [
+    { type: 'supplier_invite', subject: 'Invitation: become a founding supplier', body: OLD, kind: null },
+    { type: 'supplier_invite_nudge', subject: 'Reminder', body: 'Reminder ' + LINK, kind: null },
+    { type: 'supplier_invite_seed', subject: 'Invitation (ref QD8F6C46AE93)', body: 'Hi ZZ DEMO Supplier team,\n\nx', kind: 'supplier_invite_seed' },
+  ];
+  for (const row of rows) {
+    const c = campaignMail(row, row.type === 'supplier_invite_seed' ? {} : who);
+    assertEquals(c.bad, [], `${row.type} fails a copy rule`);
+    // route 1: the Microsoft 365 MIME, as index.ts builds it
+    const raw = unb64(m365Mime({ from: M365_FROM_NAME + ' <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '', subject: c.subject,
+      text: c.text, unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: '<m@q>', now: new Date('2026-10-27T04:30:00Z') }));
+    const [head, qp] = splitMime(raw);
+    const m365Text = qpDecode(qp).replace(/\r\n/g, '\n');
+    // route 2: the Resend fallback payload, as index.ts builds it for a campaign row
+    const mail = resendPayload({ from: 'QuotesDone <invite@hello.quotesdone.com>', to: 'zz-demo@example.invalid', reply: 'suppliers@mail.quotesdone.com',
+      subject: c.subject, html: '', text: c.text, unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com' });
+    assertEquals(mail.text, m365Text, `${row.type}: the two routes send different bodies`);
+    assert(head.includes('Subject: ' + c.subject) && mail.subject === c.subject, `${row.type}: the two routes send different subjects`);
+    assertFalse('html' in mail, 'the fallback sends no HTML frame (no logo or unsubscribe link, no Al Furjan footer)');
+    assertFalse(/https?:\/\/|www\.|al furjan|NOL-|which trades does your company cover/i.test(mail.text), 'an old-email trace reached the fallback');
+    assert(mail.text.trimEnd().endsWith(STOP_LINE));
+    assertEquals(mail.headers?.['List-Unsubscribe-Post'], 'List-Unsubscribe=One-Click');
+  }
+  assertEquals(campaignMail(rows[0], who).text, APPROVED, 'the invitation on either route is variant A word for word');
+  assert(campaignMail(rows[2]).subject.endsWith('(ref QD8F6C46AE93)') && !campaignMail({ ...rows[0], subject: 'x (ref QD8F6C46AE93)' }, who).subject.includes('ref QD'));
+});
+
+Deno.test('wiring: index.ts builds the campaign email with campaignMail on BOTH routes, and the fallback sends it text-only', () => {
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  // 3 Nov 2026: a mailbox reply sends its own text (replyMail); every other lane row still sends campaignMail.
+  assert(/const \{ subject: mSubject, text: mBody, bad \} = rm \? [^\n]*: await campaignFor\(n\);/.test(src), 'the Microsoft 365 lane no longer uses campaignMail');
+  assert(/const rm = isReply \? replyMail\(n\) : null;/.test(src), 'only a mailbox reply may skip campaignMail');
+  assert(/const camp = supplierSide && isLaneType\(n\.type\) \? await campaignFor\(n\) : null;/.test(src), 'the Resend fallback no longer uses campaignMail');
+  assert(/camp\s*\? resendPayload\(\{ from, to: n\.to_email, reply, subject: camp\.subject, html: '', text: camp\.text, unsub,/.test(src), 'the fallback no longer sends the campaign text without HTML');
+  assert(/return campaignMail\(n, /.test(src));
+});
+
+// 27 Oct 2026 (review of #1614): the copy rules read OUR copy, not the supplier's registered name. Measured that day,
+// 11 of 17,401 eligible leads were held for their own names; each is replayed here and must now pass and be sent.
+Deno.test('a supplier\'s own name never holds its email: dates, month-like words and "AI" in a name pass; a web address in a name gives "Hello,"', () => {
+  const HELD_27_OCT = [
+    ['Eastlake Dec.Design & Fitout LLC', 'interior_fitout'], ['ROYAL TALENT INTERIOR DEC CO LLC', 'interior_fitout'],
+    ['2003 ALUMINIUM WORKS & CARPENTRY LLC', 'aluminium'], ['WELCOME ARTS 2000', 'signage'], ['PETRO SEP MEMBRANE TECHNOLOGIES INC', 'chemicals'],
+    ['QARYAT AL FAAN AL KASHMIRI NOV &#038; CARPETS', 'flooring'], ['CHINA 2008 BUILDING MATERIAL LLC', 'building_materials'],
+    ['AI TRADING EST', 'steel'], ['AL FAYAD CARPETS &#038; NOV TRADING', 'flooring'], ['JAN DE NUL DREDGING LTD', undefined],
+  ] as const;
+  for (const [company, trade] of HELD_27_OCT) {
+    const c = campaignMail({ type: 'supplier_invite', body: '' }, { company, trade });
+    assertEquals(c.bad, [], `${company} is still held`);
+    assert(c.text.startsWith(`Hi ${companyName(company)} team,`), `${company}: not greeted by name`);
+  }
+  const web = campaignMail({ type: 'supplier_invite', body: '' }, { company: 'www.khaazay.com online division of Al Twat Trading LLC', trade: 'building_materials' });
+  assertEquals(web.bad, []); assert(web.text.startsWith('Hello,\n\n') && !/khaazay/.test(web.text + web.subject), 'a web address in a name reached the email');
+  assertEquals(companyName('Acme.ae Trading'), '');
+  // the masking is only of the name: our own copy is still held for the same faults
+  const t = campaignMail({ type: 'supplier_invite', body: '' }, { company: 'AI TRADING EST', trade: 'steel' }).text;
+  assert(m365CopyLint({ subject: 'x', body: t.replace('when they come in?', 'when they come in, from December 2026?') }).some((l) => !l.ok && l.rule.includes('date')));
+});
+
+// PACING (27 Oct 2026): the 27 Oct seeds left in bursts of 20 a run, about 4 s apart. The lane now stops at M365_PER_RUN.
+Deno.test('pacing: at most M365_PER_RUN lane sends a run; the rest are re-queued for a later run, not dropped or diverted', () => {
+  assertEquals(M365_PER_RUN, 5);
+  for (let i = 0; i < M365_PER_RUN; i++) assertFalse(paceM365(i), `send ${i + 1} of the run was held`);
+  assert(paceM365(M365_PER_RUN) && paceM365(M365_PER_RUN + 30));
+  assert(M365_PACE_MS >= 5 * 60_000, 'a paced row would come back in the same burst');
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  // 3 Nov 2026: the decision is m365Step, which paces with paceM365 every lane row but a mailbox reply (m365_reply.test.ts).
+  assert(/const step = m365Step\(\{ reply: isReply, hold: mh, sentThisRun: m365SentRun \}\);/.test(src), 'index.ts no longer paces by the run count');
+  const pace = src.indexOf("if (step === 'pace')"); const send = src.indexOf('await campaignFor(n);');
+  assert(pace > 0 && pace < send, 'index.ts no longer checks pacing before building and sending the lane row');
+  assert(/step === 'pace'\) \{\s*await admin\.from\('notifications'\)\.update\(\{ status: 'queued', claimed_at: null, not_before: new Date\(Date\.now\(\) \+ M365_PACE_MS\)/.test(src),
+    'a paced row is no longer put back in the queue with not_before');
+  assert(/sent\+\+; m365SentToday\+\+; m365SentRun\+\+;/.test(src), 'a lane send no longer counts toward the run');
+});
+
+Deno.test('quoted-printable: "=", UTF-8, a trailing space and long lines are encoded per RFC 2045, and it round-trips', () => {
+  const sample = 'a=b · c – d \nx\t\n' + 'y'.repeat(200) + '\n' + '–'.repeat(40);
+  const qp = qpEncode(sample);
+  for (const l of qp.split('\r\n')) assert(l.length <= 76, `a ${l.length}-character line`);
+  assert(qp.startsWith('a=3Db =C2=B7 c =E2=80=93 d=20\r\n'), qp.slice(0, 40));
+  assert(qp.includes('x=09\r\n'), 'a trailing tab is not encoded');
+  assertFalse(/=[0-9A-F]?\r\n[0-9A-F]/.test(qp.replace(/=\r\n/g, '')), 'an =XX was split');
+  assertEquals(qpDecode(qp), sample.replace(/\n/g, '\r\n'));
+});
+
+// sales_engineer, 28 Oct 2026: the greeting reads a company name, not a page title. Every leads.company_name behind
+// notifications 116649-116668 (read-only join, 28 Oct 2026), with the greeting each must render. The first four were
+// real rendered failures; the other sixteen already read well and must keep doing so.
+Deno.test('the greeting reads a company name, not a scraped page title (notifications 116649-116668)', () => {
+  const CASES: ReadonlyArray<readonly [string, string]> = [
+    ['Speed Blast Trading L.L.C &#8211; Top notch Industrial Equipments Suppliers in Dubai, UAE', 'Speed Blast Trading L.L.C'],
+    ['CERAMIC MEGA BUILDING MATERIALS TR LLC (Manufacturer and wholesaler of any kind of porcelain tile.)', 'Ceramic Mega Building Materials TR LLC'],
+    ['NRA INTERNATIONAL', 'NRA International'],
+    ['OFFSHORE MIDDLE EAST MARINE EQUIPMENT TRADING L L C', 'Offshore Middle East Marine Equipment Trading LLC'],
+    ['Zoom Building Materials Trading | Construction Materials Supplier in Abu Dhabi, UAE', 'Zoom Building Materials Trading'],
+    ['Mohd Al Qama - Authorized Dealer of RAK Ceramics', 'Mohd Al Qama'],
+    ['Al Sarai Ceramic - KOHLER SHARJAH', 'Al Sarai Ceramic'],
+    ['RAK TILE LLC - Interlocking Paver Blocks Manufacturer- Marble & Granites- Ras Al Khaimah- UAE', 'RAK Tile LLC'],
+    ['BLUE PEARL MARINE SERVICES FZC', 'Blue Pearl Marine Services FZC'],
+    ['SEASWIFT SUBSEA ENGINEERING LLC', 'Seaswift Subsea Engineering LLC'],
+    ['TOTAL SOLUTIONS', 'Total Solutions'],
+    ['ARABIAN AURORA DETERGENTS TRADING L.L.C', 'Arabian Aurora Detergents Trading L.L.C'],
+    ['Infinite Global Fze', 'Infinite Global FZE'],
+    ['Mohammed Zafar Steel Workshop LLC', 'Mohammed Zafar Steel Workshop LLC'],
+    ['NEELKAMAL PLASTIC FACTORY', 'Neelkamal Plastic Factory'],
+    ['Zainab Building Materials Company LLC', 'Zainab Building Materials Company LLC'],
+    ['Buildline Building Materials Trading LLC', 'Buildline Building Materials Trading LLC'],
+    ['Fujairah General Trading Enterprises', 'Fujairah General Trading Enterprises'],
+    ['SENSI Trading LLC', 'SENSI Trading LLC'],
+    ['Volark Tiles', 'Volark Tiles'],
+  ];
+  for (const [raw, want] of CASES) {
+    assertEquals(companyName(raw), want, raw);
+    assert(m365InvitationText({ company: raw }).startsWith(`Hi ${want} team,\n`), raw);
+  }
+  // every entity form decodes before the cut, hex and double-encoded included
+  assertEquals(companyName('Acme Trading &#x2014; Best Prices'), 'Acme Trading');
+  assertEquals(companyName('Acme Trading &amp;#8211; Best Prices'), 'Acme Trading');
+  assertEquals(companyName('Acme Trading LLC, Sharjah'), 'Acme Trading LLC');
+  assertEquals(companyName('Acme Trading, LLC'), 'Acme Trading, LLC');
+  // still a title after every cut: the neutral greeting, never a sentence addressed as a company
+  const title = 'Leading Supplier of Industrial Valves Pumps and Fittings for Oil Gas and Marine Projects';
+  assertEquals(companyName(title), '');
+  assert(m365InvitationText({ company: title }).startsWith('Hello,\n'));
+  assertEquals(companyName('We supply the best tiles'), '');
+});
+
+// Review of #1706, 28 Oct 2026: the old and the new companyName were run over all 20,249 distinct leads.company_name
+// (read-only). These are the shapes where the first cut of the new function read WORSE than the old one; each must keep
+// the old good reading. A long registered name is still a name, a three-letter word is not an acronym, and a letter after
+// "." or "/" is capitalised.
+Deno.test('a long registered name, a three-letter word and a dotted suffix read as the old function read them', () => {
+  const CASES: ReadonlyArray<readonly [string, string]> = [
+    ['AL MARZOQI AUTO ACCESSORIES &#038; MOBILE PHONE TRADING CO LLC', 'Al Marzoqi Auto Accessories & Mobile Phone Trading Co LLC'],
+    ['AL LAZIM MOBILE PHONES &#038; ELECTRIC DEVICES TRADING LLC', 'Al Lazim Mobile Phones & Electric Devices Trading LLC'],
+    ['AL THURATH AL ASEEL CONT &#038; ELEC MECH LLC', 'Al Thurath Al Aseel Cont & Elec Mech LLC'],
+    ['GHOLAM RASUL GEN TRADING CO LLC', 'Gholam Rasul Gen Trading Co LLC'],
+    ['PETRA ENG ARCHITECTURAL CONSULTANTS', 'Petra Eng Architectural Consultants'],
+    ['BAB AL SHAMS DESERT RESORT & SPA', 'Bab Al Shams Desert Resort & Spa'],
+    ['READY MIX BETON L L C', 'Ready Mix Beton LLC'],
+    ['POLY PRODUCTS CO LTD', 'Poly Products Co Ltd'],
+    ['ARABIAN GULF SECURITY SVCS', 'Arabian Gulf Security Svcs'],
+    ['SKY LINE TRADING LLC', 'Sky Line Trading LLC'],
+    ['SCHEFFER SAFETY TRADING L.L.C.O.P.C ( EYEVEX SAFETY ABU DHABI )', 'Scheffer Safety Trading L.L.C.O.P.C'],
+    ['ORYX HEAVY EQUIP.SPARE PARTS TR L L C', 'Oryx Heavy Equip.Spare Parts TR LLC'],
+    ['AMNA NETWORKING SOLUTIONS LLC-SPC', 'Amna Networking Solutions LLC-SPC'],
+    ['GULF WIRELESS &#038; TV CO LLC', 'Gulf Wireless & TV Co LLC'],
+    ['Leeds Furnishing: Premium Home Furnishing in Dubai & Abu Dhabi | Luxury Home', 'Leeds Furnishing'],
+    ['cctv company in Dubai |CCTV Camera Installation Company in Dubai', 'cctv company in Dubai'],
+    // second pass over the whole table: a hyphen, a digit, a dotted suffix and a two-letter word
+    ['HI-TECH BUILDING CONSTRUCTIONS', 'Hi-Tech Building Constructions'],
+    ['HI TECH BUILDING CONSTRUCTIONS', 'Hi Tech Building Constructions'],
+    ['STUDIO-ATI.FZE', 'Studio-Ati.FZE'],
+    ['M H ALI EL-SAIE, DR', 'M H Ali El-Saie, Dr'],
+    ['THE 18TH STREET TRADING', 'The 18th Street Trading'],
+    ['AL WAHA BLDG MATERIALS', 'Al Waha Bldg Materials'],
+    ['CAMELIA FLOWERS-L L C', 'Camelia Flowers-LLC'],
+  ];
+  for (const [raw, want] of CASES) assertEquals(companyName(raw), want, raw);
+  // a keyword list is a title: the neutral greeting
+  assertEquals(companyName('Office Glass Partition Dubai, Glass Work Dubai, Glass Partition Maker'), '');
+  // it never throws, whatever it is handed
+  const hostile = { toString() { throw new Error('boom'); } };
+  assertEquals(companyName(hostile), '');
+  assert(m365InvitationText({ company: hostile as unknown as string }).startsWith('Hello,\n'));
+  for (const odd of [null, undefined, 0, '', ' ', '&#0;', '&#xD800;', '&#99999999;', '()', ' - ', '|', '&amp;amp;amp;']) {
+    const got = companyName(odd);
+    assert(typeof got === 'string' && got === got.trim() && (got === '' || got.length >= 2), JSON.stringify(odd));
+  }
+});
+
+Deno.test('the display name is quoted so its comma stays one name', () => {
+  const head = unb64(m365Mime({ from: M365_FROM_NAME + ' <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '', subject: 's', text: 'x', unsub: '', unsubMailto: 'u@mail.quotesdone.com', messageId: '<m@q>', now: new Date() })).split('\r\n\r\n')[0];
+  assert(head.includes('From: "Ahmad Alzain, QuotesDone" <supplier@quotesdone.com>'));
 });

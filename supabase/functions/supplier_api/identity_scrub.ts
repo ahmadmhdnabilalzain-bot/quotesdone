@@ -20,29 +20,29 @@ import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.
 // shape quote_extract already writes for the upload path, so both paths are reviewable the
 // same way. It deliberately over-redacts: a false positive costs a line of scope text, a false
 // negative costs the whole commission.
-const CO_SUFFIX = '(?:l\\.?\\s?l\\.?\\s?c\\.?|fz-?llc|fzc|fze|trading|contracting|establishment|est\\.?|general|co\\.?|company|group)';
+import { knownNameRe, scrubIdentityText } from '../_shared/identity_text.ts';
 const ID_PATTERNS: RegExp[] = [
   // A TRN or a licence number finds the company on a public register (founder, 14 Sep 2026). First,
   // so the phone patterns below cannot take a 15-digit TRN apart and leave its label behind.
   TRN_LABELLED, TRN_BARE, LICENCE_NO,
-  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
-  /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
-  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info)(?:\.[A-Za-z]{2})?\b/gi,
-  /\+\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
-  /\b00\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
-  /\b0\d(?:[\s.-]?\d){7,8}\b/g,
+  // E-mail, web addresses and bare domains are read by the shared list (EMAIL / URL / DOMAIN / DOMAIN_LC), adversarial
+  // review of #1838: this copy's case-blind ".info" took "VAT.Info" out of "Price excludes VAT.Info on request" at save.
+  // UAE phones are NOT here any more (3 Nov 2026, review of #1838): "\b0\d(?:[\s.-]?\d){7,8}" took "03 120 4500" out of a
+  // BOQ row and "075 110 160" out of a pipe list, AT SAVE. The shared list (_shared/identity_text.ts, run first in
+  // scrubIdentity) reads phones in the groupings UAE documents print, plus IBANs, P.O. Boxes, licences, addresses,
+  // Arabic and Latin firm names and a person after a label, each held to a must-keep list.
 ];
-const rxEsc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-function companyRe(name: unknown): RegExp | null {
-  const base = String(name || '').replace(new RegExp('\\b' + CO_SUFFIX, 'gi'), ' ').replace(/[^A-Za-z0-9؀-ۿ ]+/g, ' ').trim();
-  const words = base.split(/\s+/).filter((w) => w.length > 1).map(rxEsc);
-  if (!words.length || base.replace(/\s+/g, '').length < 3) return null;
-  try { return new RegExp('\\b' + words.join('[\\s.,_-]*') + '(?:[\\s.,_-]*' + CO_SUFFIX + ')*', 'gi'); } catch (_e) { return null; }
-}
+// The known name is matched by _shared/identity_text.ts knownNameRe since 3 Nov 2026. The pattern that lived here
+// stripped the suffix 'co' with no word end, so the "Co" of "Consultants" went with it and "ZZ … Engineering
+// Consultants LLC" was never matched (68 leaks in 100 quotations); and its word boundary never fires before an Arabic letter.
+// The supplier's OWN text: two words of its name count when one carries a digit ("Oasis Golden UP8 series").
+const companyRe = (n: unknown) => knownNameRe(n, { fragments: true });
 export function scrubIdentity(text: string | null, ownName: unknown, hits: string[]): string | null {
   if (text == null) return text;
   let out = String(text);
   const nameRe = companyRe(ownName);
+  const take = (m: string) => { const t = String(m).trim(); if (t.length < 3) return m; if (!hits.includes(t)) hits.push(t); return '[removed]'; };
+  out = scrubIdentityText(out, take);
   // Contact patterns run BEFORE the company-name pattern on purpose: "www.alnoor.ae" must be
   // taken out whole as a URL, otherwise the name pattern eats "alnoor" first and leaves a
   // half-redacted "www.[removed].ae" that still points at the supplier.
@@ -106,4 +106,16 @@ export function inboxField<T>(v: T | null | undefined, buyerName: string | null,
   if (v == null) return { boq: null, withheld: false };
   const r = redactBoq(scrubDeep(v, buyerName, hits) as T, seeds);
   return r.held ? { boq: null, withheld: true } : { boq: r.boq, withheld: false };
+}
+// EVERY SUPPLIER-TYPED FIELD A CUSTOMER READS BEFORE THE REVEAL (13 Oct 2026, sales_engineer). submit_quote
+// scrubbed notes / scope / conditions / exclusions and nothing else, yet my_inquiries and quote_compare serve
+// lead_time, validity, payment_terms, warranty, terms_spec and every quote_items text column to the customer
+// pre-reveal, verbatim. "Payment: 50% to Al Noor Trading, call 050 123 4567" in payment_terms, or an email in
+// a line's notes, handed over what the reveal fee sells. These two helpers are the same scrub for the rest.
+const LINE_TEXT = ['description', 'brand', 'model', 'specification', 'notes', 'country_of_origin'] as const;
+export function scrubLine<T extends Record<string, unknown>>(it: T, ownName: unknown, hits: string[]): T {
+  const out: Record<string, unknown> = { ...it };
+  for (const k of LINE_TEXT) if (typeof out[k] === 'string') out[k] = scrubIdentity(out[k] as string, ownName, hits);
+  if (out.spec && typeof out.spec === 'object') out.spec = scrubDeep(out.spec, ownName, hits);
+  return out as T;
 }

@@ -12,16 +12,34 @@ import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
 import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
-import { claimQueue, ownsChannel } from './channels.ts';
+import { claimQueue, isStale, ownsChannel, STALE_CEILING_H } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, companyFromBody, graphSend, holdForM365, m365Body, m365Subject, m365Carries, m365CopyLint, m365Mime, m365ReplyTo, m365Text, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
+import { OPEN_TOKEN_MS, invitationHtml, openShare, openTracks, pixelBase, pixelUrl } from './open_tracking.ts';
+import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PENDING_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, afterRefusal, campaignMail, conversationReplyTo, graphSend, holdForM365, isMailboxReply, laneSide, m365Carries, m365Step, replyMail, m365Mime, m365ReplyTo, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
 const MAX_ATTEMPTS = 3;
+// A REFUSAL IS RETRIED LATER, NOT ON THE NEXT POLL, AND A PERMANENT ONE IS NOT RETRIED (it_engineer, 3 Nov 2026, drill D3).
+// MEASURED by the drill: failNote put a refused row straight back to 'queued' with no not_before, so the next 2-minute poll
+// took it again. Three polls, about four minutes, dead-lettered every message in the queue during a Resend outage of that
+// length, and a 422 "Invalid `to` field" was posted twice more before it failed. A retry now waits RETRY_BACKOFF_MS (5, then
+// 20 minutes, or the provider's Retry-After when longer, up to an hour), so three attempts span about 25 minutes; a 400 or
+// 422 (Resend's "this request is wrong", which no retry changes) fails at once. The claim already honours not_before.
+// prevented by: supabase/functions/send_outbox/drill_send_faults.test.ts
+const RETRY_BACKOFF_MS = [5 * 60_000, 20 * 60_000];
+const RETRY_AFTER_MAX_MS = 60 * 60_000;
+const PERMANENT_HTTP = new Set([400, 422]);
+function retryAfterMs(v: string | null): number {
+  if (!v) return 0;
+  const s = Number(v);
+  if (Number.isFinite(s)) return Math.max(0, s * 1000);
+  const t = Date.parse(v);
+  return Number.isFinite(t) ? Math.max(0, t - Date.now()) : 0;
+}
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 // ONE READ FOR THE SETTINGS, NOT TWENTY (it_engineer, 28 Sep 2026, ledger 760). Every call read ~20
 // app_secrets keys one round trip at a time before looking at the queue: an IDLE poll averaged 8.4 s
@@ -34,7 +52,7 @@ export const OUTBOX_KEYS = ['unsubscribe_signing_key', 'email_enabled', 'supplie
   'resend_api_key', 'email_from_supplier', 'email_from_info', 'email_reply_supplier', 'email_reply_supplier_docs',
   'email_reply_info', 'email_logo_url', 'unsubscribe_public_base', 'email_asset_public_base', 'email_signature_name',
   'email_signature_name_ar', 'email_signature_title', 'invite_preheader', 'daily_send_cap', 'invite_lane_enabled',
-  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox'];
+  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox', 'invite_open_tracking'];
 let secCache: Map<string, string | undefined> | null = null;
 async function warmSecrets() {
   secCache = null;
@@ -157,6 +175,15 @@ Deno.serve(observe('send_outbox', async (req) => {
     const replySup = (await setting('email_reply_supplier')) || 'suppliers@mail.quotesdone.com';
     const replyDocs = (await setting('email_reply_supplier_docs')) || 'docs@mail.quotesdone.com';
     const replyInfo = (await setting('email_reply_info')) || 'info@quotesdone.com';
+    // The Reply-To of an automatic answer: supplier@ for a lead (leads.email or claimed_by). A failed read keeps the fallback.
+    const inboundReplyTo = async (to: string, fallback: string) => {
+      const e = String(to || '').trim().toLowerCase();
+      const { data: rel } = await admin.rpc('fn_mail_sender_known', { p_email: e });
+      const { data: claimed } = rel === 'supplier' ? { data: [{}] } : await admin.from('leads').select('id').ilike('claimed_by', e.replace(/[\\%_]/g, '\\$&')).limit(1);
+      if (!claimed?.length) return fallback;
+      const p = await admin.from('agent_runs').select('status,finished_at').eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1').order('finished_at', { ascending: false }).limit(1).maybeSingle();
+      return conversationReplyTo({ type: 'inbound_reply', toSupplier: true, mailbox: await setting('invite_m365_mailbox'), proofAt: !p.error && p.data?.status === 'ok' ? p.data.finished_at as string : null, now: new Date(), fallback });
+    };
     const logo = (await setting('email_logo_url')) || '';
     // OUR OWN DOMAIN IN THE MAIL (22 Sep 2026, payload.ts ownDomain): set once quotesdone.com serves the
     // /u/unsubscribe and /m/brand proxies (next.config.mjs). Unset = the project host, as before.
@@ -193,14 +220,14 @@ Deno.serve(observe('send_outbox', async (req) => {
     // On, it asks Resend whether the lane's subdomain is verified before a single invitation uses it.
     // THE MICROSOFT 365 LANE (5 Oct 2026, ledger 1115; m365_lane.ts). A row it carries never reaches the Resend lanes below.
     const m365Enabled = switchOn(await setting('invite_m365_enabled'));
-    const carries = (r: any) => m365Carries({ enabled: m365Enabled, type: r.type, kind: r.kind, supplierSide: r.to_role === 'supplier' });
+    const carries = (r: any) => m365Carries({ enabled: m365Enabled, type: r.type, kind: r.kind, supplierSide: laneSide(r) });
     const fileFinding = async (args: Record<string, unknown>) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; };
     let m365 = await resolveM365({ needed: rows.some(carries), mailbox: await setting('invite_m365_mailbox'), env: (k) => Deno.env.get(k),
       fetchFn: (u, i) => timedFetch(u, i || {}, 10_000), fileFinding });
     // The refusal finding closes on the first 2xx sendMail of the run (graphSend), never on a token alone.
     let m365Closed = false;
     const closeFinding = async (k: string, note: string) => { if (m365Closed) return; const { error } = await admin.rpc('fn_it_engineer_finding_close', { p_issue_key: k, p_note: note }); if (error) throw error; m365Closed = true; };
-    let cappedSentToday = 0, m365SentToday = 0, m365ProofAt: string | null = null;
+    let cappedSentToday = 0, m365SentToday = 0, m365SentRun = 0, m365ProofAt: string | null = null;
     if (m365.active) {
       // Reply-To is dropped only while the reply reader is proven (m365ReplyTo); an unreadable row keeps the old one.
       const p = await admin.from('agent_runs').select('status,finished_at').eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1').order('finished_at', { ascending: false }).limit(1).maybeSingle();
@@ -227,14 +254,43 @@ Deno.serve(observe('send_outbox', async (req) => {
     let laneHeld = 0;
     const supReason = new Map<string, string>();
     if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email,reason').in('email', toEmails); for (const s of (sup || []) as any[]) supReason.set(foldEmail(s.email), String(s.reason || '')); }
-    let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0, unconfirmed = 0;
-    const failNote = async (n: any, msg: string) => {
+    let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0, unconfirmed = 0, writeFailed = 0;
+    // provider_message_id is cleared: a row that is not sent has no provider message, and this also clears the Microsoft 365
+    // pending marker (M365_PENDING_PREFIX) of a mailbox reply Graph refused and Resend then refused, so it is retried, not
+    // mistaken next run for a send whose outcome was lost.
+    const failNote = async (n: any, msg: string, o: { permanent?: boolean; retryAfterMs?: number } = {}) => {
       const att = (Number(n.attempts) || 0) + 1;
-      const dead = att >= MAX_ATTEMPTS;
-      await admin.from('notifications').update({ status: dead ? 'failed' : 'queued', attempts: att, last_error: String(msg).slice(0, 500) }).eq('id', n.id);
+      const dead = !!o.permanent || att >= MAX_ATTEMPTS;
+      const waitMs = Math.max(RETRY_BACKOFF_MS[Math.min(att, RETRY_BACKOFF_MS.length) - 1], Math.min(o.retryAfterMs || 0, RETRY_AFTER_MAX_MS));
+      await admin.from('notifications').update({ status: dead ? 'failed' : 'queued', attempts: att, last_error: String(msg).slice(0, 500), provider_message_id: null,
+        ...(dead ? {} : { not_before: new Date(Date.now() + waitMs).toISOString() }) }).eq('id', n.id);
       failed++; if (dead) deadlettered++; else retried++;
     };
     let lastErr = '';
+    // THE SUPPLIER CAMPAIGN EMAIL, BOTH ROUTES (27 Oct 2026): the subject and text come from campaignMail
+    // (m365_lane.ts) whether the Microsoft 365 lane or the Resend fallback carries the row. ledger 1113: the note
+    // names the company and its trade, read from the lead (a seed has none: its body's opening).
+    const campaignFor = async (n: any) => {
+      const { data: lead } = n.kind === M365_SEED_KIND ? { data: null } : await admin.from('leads').select('company_name,invite_trades').ilike('email', String(n.to_email).trim().replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
+      // NO TRADE IS GUESSED (1 Nov 2026, ledger 1423): invite_trades[0] is the first slug alphabetically, so on 30 Oct a cleaning
+      // company and a fire-safety trainer were asked about their "civil works work". GlockApps tested the neutral wording.
+      return campaignMail(n, { company: (lead as any)?.company_name ?? undefined });
+    };
+    // THE INVITATION OPEN (3 Nov 2026, marketing; open_tracking.ts). Share 0 / 'off' or no first-party base: no call, and
+    // the email is exactly the untracked one. Otherwise the database picks the arm and the token; a failed call or no
+    // token sends the untracked email (an open is never worth a held invitation). The call is cut at OPEN_TOKEN_MS, so a
+    // hung database call cannot delay an invitation. Only the Microsoft 365 lane carries the twin: the Resend fallback stays
+    // text-only, so a provider's own open or click tracking can never be added to an invitation (review of #1831).
+    const openPct = openShare(await setting('invite_open_tracking'));
+    const openBase = pixelBase(unsubBase);
+    const openHtmlFor = async (n: { id: number; type?: unknown; kind?: unknown; to_role?: unknown; lang?: unknown }, text: string): Promise<string> => {
+      if (!openPct || !openBase || !openTracks(n)) return '';
+      try {
+        const { data, error } = await admin.rpc('fn_invite_open_token', { p_notification_id: n.id }).abortSignal(AbortSignal.timeout(OPEN_TOKEN_MS));
+        const pixel = error ? '' : pixelUrl(openBase, data);
+        return pixel ? invitationHtml(text, pixel) : '';
+      } catch { return ''; }
+    };
     for (const n of rows) {
       // WHATSAPP ROWS EATEN 27 Jul 2026 - the select above pulls every queued row of EVERY channel but
       // this line excluded only 'sms', and the next line marks any row with no to_email as 'skipped'.
@@ -247,6 +303,21 @@ Deno.serve(observe('send_outbox', async (req) => {
       // fire; it stays as defence in depth, still leaving the row untouched for its own sender.
       if (!ownsChannel(n.channel)) { skipped++; continue; }
       if (!n.to_email) { await admin.from('notifications').update({ status: 'skipped' }).eq('id', n.id); continue; }
+      // A ROW THAT WAS HANDED TO MICROSOFT GRAPH IS NEVER SENT AGAIN, BY EITHER LANE (it_engineer, 3 Nov 2026, drill D6/D10).
+      // MEASURED by the drill: Graph accepted a sendMail (202), the 'sent' write then failed, and the row went back on the
+      // queue (this function's finally, or fn_notifications_claim's 5-minute expiry), so the next tick sent the supplier a
+      // second copy. Graph has no idempotency key, so this side must remember: the lane writes M365_PENDING_PREFIX + the
+      // Message-ID onto the row BEFORE the POST, and a row that comes back carrying it is recorded sent-unconfirmed (sent,
+      // provider_message_id NULL, the reason in last_error: the estate's existing shape for "it left, the answer did not")
+      // and never posted again. Checked before the suppression and lane rules on purpose: the lane being switched off since
+      // must not send it through Resend instead.
+      // prevented by: supabase/functions/send_outbox/drill_send_faults.test.ts
+      if (String(n.provider_message_id || '').startsWith(M365_PENDING_PREFIX)) {
+        await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: null,
+          last_error: ('a previous run handed this message to Microsoft Graph (' + String(n.provider_message_id).slice(M365_PENDING_PREFIX.length) +
+            ') and could not record the outcome; sent-unconfirmed, NOT sent again').slice(0, 500) }).eq('id', n.id);
+        unconfirmed++; continue;
+      }
       // 3 SEP 2026: RFC 2606 reserved domains (example.com/net/org, .test, .example, .invalid,
       // localhost) are never deliverable — Resend answers 422 "Invalid to field" and this loop used
       // to log it as a failed run and retry. The demo fixtures address every ZZ DEMO party there on
@@ -254,12 +325,16 @@ Deno.serve(observe('send_outbox', async (req) => {
       // never emails a fixture address.
       if (RESERVED_TEST_DOMAIN.test(n.to_email)) { await admin.from('notifications').update({ status: 'skipped', last_error: 'reserved test domain (RFC 2606): never deliverable, refused before any provider call' }).eq('id', n.id); skipped++; continue; }
       if (supReason.has(foldEmail(n.to_email)) && suppressionStops(supReason.get(foldEmail(n.to_email)), n.type)) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
-      const ageH = (Date.now() - new Date(n.created_at).getTime()) / 3.6e6;
-      if (ageH > staleH) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
-      const supplierSide = n.to_role === 'supplier';
+      const age = isStale(n.created_at, n.not_before, isLaneType(n.type), staleH, new Date());
+      if (age.stale) { await admin.from('notifications').update({ status: 'held', last_error: 'held: stale, ' + Math.round(age.hours) + 'h past due (email_stale_hours ' + staleH + ', ceiling ' + STALE_CEILING_H + 'h from creation)' }).eq('id', n.id); held++; continue; }
+      // A REPLY IN A CONVERSATION KEEPS ITS RESEND HANDLING (sales_engineer, 3 Nov 2026). fn_inbox_send now writes
+      // to_role 'supplier' on a reply to a supplier (so the lead's history counts it); on the Resend route that row
+      // is sent exactly as before, when its to_role was NULL: From info@, inboundReplyTo's Reply-To, no supplier frame,
+      // gate or unsubscribe footer. Only the Microsoft 365 lane reads the role (carries, above).
+      const supplierSide = n.to_role === 'supplier' && n.type !== 'inbound_reply';
       const internal = n.to_role === 'admin' || n.to_role === 'founder';
       const docReq = supplierSide && isDocRequest(n.type);
-      if (supplierSide && !supEnabled && !docReq) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
+      if (supplierSide && !supEnabled && !docReq) { await admin.from('notifications').update({ status: 'held', last_error: 'held: supplier_emails_enabled is off' }).eq('id', n.id); held++; continue; }
       // A LANE INVITATION IS HELD, NEVER DIVERTED (review of #963; invite_lane.ts holdFor). Left 'queued' with
       // not_before moved on, so it does not come back into the next claim and crowd out other mail.
       const laneHold = holdFor({ lane, type: n.type, supplierSide: supplierSide && !carries(n), laneSentToday, laneCap });
@@ -274,7 +349,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       const from = senderFor({ type: n.type, supplierSide, fromSup, fromInfo, lane });
       // A row may name its own Reply-To (notifications.reply_to, constrained to our inbound subdomain): the monthly
       // social calendar carries calendar+<token>@mail.quotesdone.com so the founder's reply reaches resend_inbound.
-      const reply = n.reply_to || (supplierSide ? (docReq ? replyDocs : replySup) : replyInfo);
+      const reply = n.reply_to || (supplierSide ? (docReq ? replyDocs : replySup) : n.type === 'inbound_reply' ? await inboundReplyTo(n.to_email, replyInfo) : replyInfo);
       const unsub = (supplierSide && unsubKey) ? `${unsubBase}?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, unsubKey)}` : '';
       // NO UNSUBSCRIBE, NO SUPPLIER MARKETING (21 Sep 2026). The link and the RFC 8058 headers are only
       // built when unsubscribe_signing_key reads back; when it did not, supplier mail used to go out with
@@ -283,43 +358,68 @@ Deno.serve(observe('send_outbox', async (req) => {
       // NEVER AN ARABIC INVITATION (24 Sep 2026, marketing, ledger 993): held with its reason, not sent.
       if (holdArabicInvitation(n.type, n.lang, supplierSide)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: supplier mail is English only (ledger 993; founder 28 Sep 2026); this row was queued in Arabic' }).eq('id', n.id); held++; continue; }
       if (carries(n)) {
-        // Held, never diverted to Resend: refused lane, shared invite cap or the mailbox's ceiling.
+        // An invitation is held, never diverted to Resend: refused lane, shared invite cap or the mailbox's ceiling.
+        // A mailbox reply (m365_lane.ts isMailboxReply) is never held or paced: when the lane cannot carry it, it
+        // falls through to the Resend route below, exactly as before this lane carried replies (m365Step).
+        const isReply = isMailboxReply(n);
         const mh = holdForM365({ m365, type: n.type, cappedSentToday, inviteCap: laneCap, m365SentToday });
-        if (mh) {
-          await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil(mh, new Date()).toISOString(),
+        const step = m365Step({ reply: isReply, hold: mh, sentThisRun: m365SentRun });
+        if (step === 'hold') {
+          await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil(mh!, new Date()).toISOString(),
             last_error: mh === 'cap' ? 'held: the Microsoft 365 lane reached invite_daily_cap or its ' + M365_HARD_CEILING + '/day ceiling'
                                      : 'held: the Microsoft 365 lane is on but ' + m365.why + '; never sent through Resend' }).eq('id', n.id);
           laneHeld++; continue;
         }
-        // ledger 1113: the note names the company and its trade, read from the lead (a seed has none: its body's opening).
-        const { data: lead } = n.kind === M365_SEED_KIND ? { data: null } : await admin.from('leads').select('company_name,invite_trades').ilike('email', String(n.to_email).trim().replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
-        const who = { company: (lead as any)?.company_name ?? undefined, trade: ((lead as any)?.invite_trades || [])[0] };
-        const mBody = m365Body(n.type, n.body || '', n.kind, who);
-        const mSubject = n.type === 'supplier_invite_nudge' ? (n.subject || 'QuotesDone') : m365Subject({ company: who.company ?? companyFromBody(n.body || ''), trade: who.trade });
-        const bad = m365CopyLint({ subject: mSubject, body: mBody, seed: n.kind === M365_SEED_KIND }).filter((l) => !l.ok);
-        if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 invitation copy rule failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
-        const now = new Date(); const mid = messageIdFor(n.id, now);
-        const mime = m365Mime({ from: 'Ahmad Alzain at QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: m365Text(mBody), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
-        try {
-          const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
-          if (r.ok) {
-            await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: r.providerId }).eq('id', n.id);
-            sent++; m365SentToday++; if (LANE_CAPPED_TYPES.includes(n.type)) cappedSentToday++;
-          } else {
-            // Graph refused: this row and every later one in the run are held, one finding says why.
-            m365 = { ...m365, active: false, refused: true, why: 'refused: ' + r.status };
-            try { await fileFinding(refusalFinding(m365.mailbox, r.status, M365_SECRET_NAMES.filter((k) => !!Deno.env.get(k)))); } catch (_e) { /* the hold below still happens */ }
-            await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil('unverified', new Date()).toISOString(),
-              last_error: ('held: ' + r.status + '; never sent through Resend').slice(0, 500) }).eq('id', n.id);
-            laneHeld++;
-          }
-        } catch (e) {
-          // No answer: sent-unconfirmed, never sent again (the same rule as the Resend path below).
-          lastErr = String((e as Error)?.message || e).slice(0, 200); unconfirmed++;
-          await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: null,
-            last_error: ('the POST to Microsoft Graph did not return (' + lastErr + '); sent-unconfirmed, will NOT be sent again').slice(0, 500) }).eq('id', n.id);
+        // PACING (27 Oct 2026, m365_lane.ts paceM365): at most M365_PER_RUN lane sends a run; the rest go back to the queue.
+        if (step === 'pace') {
+          await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: new Date(Date.now() + M365_PACE_MS).toISOString(),
+            last_error: 'paced: the Microsoft 365 lane sends at most ' + M365_PER_RUN + ' a run; queued for a later run' }).eq('id', n.id);
+          laneHeld++; continue;
         }
-        continue;
+        let toResend = step === 'resend';
+        if (!toResend) {
+          // 27 Oct 2026: the invitation, its nudge and the seed send one approved email (campaignMail, shared with the
+          // Resend fallback below); only the seed keeps its (ref QD…) token. A reply sends its own text, threaded.
+          const rm = isReply ? replyMail(n) : null;
+          const { subject: mSubject, text: mBody, bad } = rm ? { subject: rm.subject, text: rm.text, bad: rm.bad.map((rule) => ({ rule, ok: false, detail: '' })) } : await campaignFor(n);
+          if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 ' + (isReply ? 'reply' : 'invitation copy rule') + ' failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
+          // The open-tracking twin is for a campaign row only (open_tracking.ts openTracks); a reply is never tracked.
+          const mHtml = rm ? '' : await openHtmlFor(n, mBody);
+          const now = new Date(); const mid = messageIdFor(n.id, now);
+          // A reply is one person answering another: no List-Unsubscribe, as on its Resend route.
+          const mime = m365Mime({ from: M365_FROM_NAME + ' <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub: isReply ? '' : unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now, inReplyTo: rm?.inReplyTo, html: mHtml });
+          // The pending marker (see M365_PENDING_PREFIX above). If it cannot be written nothing is sent: the finally gives
+          // the claim back and a later run tries again, which costs a delay and never a duplicate.
+          const mark = await admin.from('notifications').update({ provider_message_id: M365_PENDING_PREFIX + mid }).eq('id', n.id);
+          if (mark.error) { writeFailed++; lastErr = ('could not mark the row before the Graph send: ' + mark.error.message).slice(0, 200); continue; }
+          try {
+            const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
+            if (r.ok) {
+              const w = await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: r.providerId }).eq('id', n.id);
+              // Graph has the message; a failed write leaves the marker, so the next run records it and does not resend.
+              if (w.error) { writeFailed++; lastErr = ('Graph accepted notification ' + n.id + ' but the sent write failed: ' + w.error.message).slice(0, 200); }
+              // this lane has no Resend webhook, so the lead moves here (1 Nov 2026: 52 sent invitations still read 'queued')
+              if (n.type === 'supplier_invite' && n.lead_id) await admin.from('leads').update({ invite_status: 'sent' }).eq('id', n.lead_id).eq('invite_status', 'queued');
+              sent++; m365SentToday++; m365SentRun++; if (LANE_CAPPED_TYPES.includes(n.type)) cappedSentToday++;
+            } else {
+              // Graph refused: every later lane row in the run is held (a reply: sent through Resend), one finding says why.
+              m365 = { ...m365, active: false, refused: true, why: 'refused: ' + r.status };
+              try { await fileFinding(refusalFinding(m365.mailbox, r.status, M365_SECRET_NAMES.filter((k) => !!Deno.env.get(k)))); } catch (_e) { /* the hold below still happens */ }
+              if (afterRefusal(isReply) === 'resend') toResend = true;
+              else {
+                await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil('unverified', new Date()).toISOString(), provider_message_id: null,
+                  last_error: ('held: ' + r.status + '; never sent through Resend').slice(0, 500) }).eq('id', n.id);
+                laneHeld++;
+              }
+            }
+          } catch (e) {
+            // No answer: sent-unconfirmed, never sent again (the same rule as the Resend path below).
+            lastErr = String((e as Error)?.message || e).slice(0, 200); unconfirmed++;
+            await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: null,
+              last_error: ('the POST to Microsoft Graph did not return (' + lastErr + '); sent-unconfirmed, will NOT be sent again').slice(0, 500) }).eq('id', n.id);
+          }
+        }
+        if (!toResend) continue;
       }
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
@@ -337,6 +437,11 @@ Deno.serve(observe('send_outbox', async (req) => {
       // is the desk it sits at, in both languages.
       // THE INVITATION ENDS WITH ONE QUESTION (24 Sep 2026, marketing): an English supplier invitation whose
       // stored body does not end with a question gets invitation_copy.ts's, after the link and before the footer.
+      // 27 Oct 2026: a supplier campaign row on this fallback route sends the SAME plain-text email as the Microsoft
+      // 365 lane (campaignMail): no HTML frame, no link, no closing question, no Al Furjan footer, the opt-out in the
+      // List-Unsubscribe headers and the body's own "stop" line. A copy rule failure holds it, as on that lane.
+      const camp = supplierSide && isLaneType(n.type) ? await campaignFor(n) : null;
+      if (camp?.bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: supplier campaign copy rule failed: ' + camp.bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
       const inviteEn = String(n.type || '').startsWith('supplier_invite') && !arMail;
       const mailBody = inviteEn ? withReplyQuestion(n.body || '') : (n.body || '');
       const htmlBody0 = tmpl({ body: mailBody, logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'فريق المبيعات' : 'Sales team') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '', preheader: inviteEn ? invitePreheader : '' });
@@ -356,7 +461,9 @@ Deno.serve(observe('send_outbox', async (req) => {
         // The text/plain part is written, not left to be derived from the dark HTML frame: it carries
         // the body, the footer and the unsubscribe URL in the recipient's language.
         // payload.ts builds it (22 Sep 2026) so the exact message can be rendered and inbox-linted offline.
-        const mail: Record<string, unknown> = resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
+        const mail: Record<string, unknown> = camp
+          ? resendPayload({ from, to: n.to_email, reply, subject: camp.subject, html: '', text: camp.text, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX })
+          : resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
           // The mailto half goes to the mailbox resend_inbound reads (_shared/unsubscribe_mailbox.ts), not to
           // the reply-to address.
           text: plainTextPart({ body: mailBody, unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, inReplyTo: n.in_reply_to });
@@ -378,16 +485,30 @@ Deno.serve(observe('send_outbox', async (req) => {
           sent++;
           if (lane.active && LANE_CAPPED_TYPES.includes(n.type) && from === lane.from) laneSentToday++;
         }
-        else { const t = await r.text(); lastErr = String(t).slice(0, 200); await failNote(n, t); console.error('resend fail', n.id, t); }
+        else {
+          const t = await r.text(); lastErr = ('HTTP ' + r.status + ': ' + t).slice(0, 200);
+          await failNote(n, 'Resend answered HTTP ' + r.status + ': ' + t, { permanent: PERMANENT_HTTP.has(r.status), retryAfterMs: retryAfterMs(r.headers.get('retry-after')) });
+          console.error('resend fail', n.id, r.status, t);
+        }
       } catch (e) {
         // A THROW HERE MEANS THE REQUEST LEFT AND THE ANSWER DID NOT (22 Sep 2026, it_engineer, CONN-03).
-        // It used to go to failNote, which puts the row back to 'queued' — so a timeout on a message
-        // Resend had in fact accepted sent it again on the next pass. The row is marked 'sent' with
-        // provider_message_id NULL and the reason in last_error, which is this estate's existing way of
-        // saying UNCONFIRMED: fn_customer_support_delivery_watch returns 'sent_unconfirmed' for exactly
-        // that shape, and fn_originator_checks_delivery refuses to re-send on it. True, never repeated,
-        // and visible to the two routines that judge delivery.
+        // Before the Idempotency-Key it went to failNote and a timeout on a message Resend had accepted sent
+        // it again on the next pass; so the row was marked sent-unconfirmed at once and never retried.
+        // RETRIED UNDER THE SAME KEY BEFORE THE CEILING (it_engineer, 3 Nov 2026, drill D3). MEASURED by the drill:
+        // with no retry, a message Resend never received was lost (sent-unconfirmed, delivered 0 times), where the
+        // qualification matrix (F09.03, D3) asks for "exactly once after recovery". The key above is what makes
+        // the retry safe: Resend answers a repeated accepted key with its first answer and sends nothing (24 h;
+        // the retries here span about 25 minutes, RETRY_BACKOFF_MS). Only at the ceiling is the row marked 'sent'
+        // with provider_message_id NULL and the reason in last_error, this estate's existing way of saying
+        // UNCONFIRMED: fn_customer_support_delivery_watch returns 'sent_unconfirmed' for exactly that shape, and
+        // fn_originator_checks_delivery refuses to re-send on it.
+        // prevented by: supabase/functions/send_outbox/drill_send_faults.test.ts
         lastErr = String((e as Error)?.message || e).slice(0, 200);
+        if ((Number(n.attempts) || 0) + 1 < MAX_ATTEMPTS) {
+          await failNote(n, 'the POST to Resend did not return (' + lastErr + '); retried later under the same Idempotency-Key (qd-notif-' + n.id + '), so a message Resend did accept is not sent twice');
+          console.error(e);
+          continue;
+        }
         unconfirmed++;
         await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: null,
           last_error: ('the POST to Resend did not return (' + lastErr + '); it may or may not have been accepted, so this row is sent-unconfirmed and will NOT be sent again').slice(0, 500) }).eq('id', n.id);
@@ -396,11 +517,14 @@ Deno.serve(observe('send_outbox', async (req) => {
     }
     // Only log runs that did something. Idle polls (nothing queued) stay out of agent_runs
     // so a real event is never buried under 720 empty rows a day.
-    const didWork = sent || failed || suppressed || held || skipped || laneHeld;
-    if (deadlettered) await logRun('error', { sent, failed, retried, deadlettered, suppressed, held, skipped, pending: rows.length }, deadlettered + ' email(s) permanently dead-lettered after ' + MAX_ATTEMPTS + ' attempts and will never be delivered. Last error: ' + lastErr);
+    const didWork = sent || failed || suppressed || held || skipped || laneHeld || unconfirmed || writeFailed;
+    if (deadlettered) await logRun('error', { sent, failed, retried, deadlettered, suppressed, held, skipped, pending: rows.length }, deadlettered + ' email(s) permanently dead-lettered after ' + MAX_ATTEMPTS + ' attempts (or at once on a permanent 400/422 refusal) and will never be delivered. Last error: ' + lastErr);
     else if (failed) await logRun('error', { sent, failed, retried, suppressed, held, skipped, pending: rows.length }, 'Resend rejected ' + failed + ' email(s), will retry. Last error: ' + lastErr);
+    // A database write around a Graph send failed (the marker before it, or the 'sent' record after it): visible here, and
+    // the marker makes the next run record the row rather than send it twice.
+    else if (writeFailed) await logRun('error', { sent, write_failed: writeFailed, unconfirmed, held, pending: rows.length }, writeFailed + ' notification write(s) around a Microsoft 365 send failed; none is sent twice. Last error: ' + lastErr);
     else if (didWork) await logRun('ok', { sent, suppressed, held, skipped, pending: rows.length, remaining_today: Math.max(0, remaining - sent) }, held ? (held + ' held (supplier sending gate or stale)') : '');
-    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent), invite_lane: lane.active ? lane.domain : lane.why, invite_m365: m365.active ? m365.mailbox : m365.why, invite_lane_held: laneHeld });
+    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, write_failed: writeFailed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent), invite_lane: lane.active ? lane.domain : lane.why, invite_m365: m365.active ? m365.mailbox : m365.why, invite_lane_held: laneHeld });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
   finally {
     // Rows this run resolved are no longer 'sending', so the status filter makes this exact: only a

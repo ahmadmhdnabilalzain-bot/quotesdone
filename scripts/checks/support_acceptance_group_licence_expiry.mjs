@@ -12,6 +12,10 @@
 // one never chased until the licence had already expired. Only a test with a lead on each side of
 // the line can tell which of those is happening.
 //
+// 13 OCT 2026 (ruling 1209): the asks are at 30 and 7 days only. Day 0 is the PAUSE day (fn_reconcile_doc_blocks pauses
+// matching and tells the supplier, the one message for that threshold) and day -1 is already paused, so neither gets a
+// sweep ask any more (they were t_minus_7 and expired). a_licence_is_asked_for_at_30_and_7_days_and_paused_on_its_expiry_day.sql.
+//
 // AND THE SWEEP IS RUN FOR REAL, not in dry-run. The dry run returns a SAMPLE capped at ten rows
 // ordered by expiry, so a lead created for a test can be absent from it while having been processed
 // perfectly. Reading that sample and calling the absence a failure would be measuring the wrong
@@ -27,8 +31,8 @@ export const G8 = {
     S('day_30_is_the_first_day_asked', '1'),
     S('day_29_is_asked', '1'),
     S('day_1_is_asked', '1'),
-    S('day_0_is_asked_and_not_yet_expired', 't_minus_7'),
-    S('day_minus_1_is_expired', 'expired'),
+    S('day_0_is_the_pause_day_not_an_ask', '(absent)'),
+    S('day_minus_1_is_not_asked', '(absent)'),
     S('unknown_expiry_is_never_chased', '0'),
     S('a_blocked_channel_is_recorded_not_hidden', 'true'),
     S('one_ask_per_band_per_channel_ever', '1', true),
@@ -90,7 +94,7 @@ begin
   select count(*) into v_sent from public.licence_renewal_ask
    where lead_id=v_1 and sent and answered_at is not null;
 
-  raise exception 'CHK<<day_31_is_outside_the_window=%||day_30_is_the_first_day_asked=%||day_29_is_asked=%||day_1_is_asked=%||day_0_is_asked_and_not_yet_expired=%||day_minus_1_is_expired=%||unknown_expiry_is_never_chased=%||a_blocked_channel_is_recorded_not_hidden=%||one_ask_per_band_per_channel_ever=%||email_arrival_stops_the_chase=%||portal_arrival_stops_the_chase=%||a_held_document_stops_nothing=%||a_message_going_out_answers_nothing=%>>',
+  raise exception 'CHK<<day_31_is_outside_the_window=%||day_30_is_the_first_day_asked=%||day_29_is_asked=%||day_1_is_asked=%||day_0_is_the_pause_day_not_an_ask=%||day_minus_1_is_not_asked=%||unknown_expiry_is_never_chased=%||a_blocked_channel_is_recorded_not_hidden=%||one_ask_per_band_per_channel_ever=%||email_arrival_stops_the_chase=%||portal_arrival_stops_the_chase=%||a_held_document_stops_nothing=%||a_message_going_out_answers_nothing=%>>',
     n31, n30, n29, n1, coalesce(b0,'(absent)'), coalesce(bm1,'(absent)'), nnone, v_wa,
     nrepeat, v_c1, v_c2, v_c3, v_sent;
 end $p$;`,

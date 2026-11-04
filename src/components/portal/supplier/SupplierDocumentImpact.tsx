@@ -120,13 +120,13 @@ export default function SupplierDocumentImpact({ token, lang = 'en', goTo, initi
 
       <div className="space-y-1.5">
         {docs.map((x) => (
-          <div key={x.key} className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
+          <div key={x.key} className="rounded-lg border border-white/10 bg-white/2 px-3 py-2">
             <div className="flex justify-between items-start gap-3">
               <span className="text-[13px]">{docLabel(lang, x)}</span>
               <span className={'shrink-0 rounded-full border px-2 py-0.5 text-[10px] '
-                + (x.expired ? 'text-danger-fg border-danger/25 bg-danger/[0.06]'
-                  : x.on_file ? 'text-ok-fg border-ok/25 bg-ok/[0.06]'
-                  : 'text-warn-fg border-warn/25 bg-warn/[0.06]')}>
+                + (x.expired ? 'text-danger-fg border-danger/25 bg-danger/6'
+                  : x.on_file ? 'text-ok-fg border-ok/25 bg-ok/6'
+                  : 'text-warn-fg border-warn/25 bg-warn/6')}>
                 {x.expired ? t(lang, 'expired') : x.on_file ? t(lang, 'onFile') : t(lang, 'missing')}
               </span>
             </div>

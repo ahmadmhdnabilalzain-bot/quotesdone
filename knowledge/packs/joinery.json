@@ -60,6 +60,89 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "joinery:product-distinctions",
+      "topic": "Joinery: board materials, finishes and what fitted items are made from",
+      "topic_ar": "النجارة: مواد الألواح والتشطيبات ومواد القطع المركبة",
+      "kind": "product_distinctions",
+      "body_en": "Fitted joinery (kitchens, wardrobes, vanities, doors and frames, wall panelling, reception counters, bespoke furniture) is built from panel materials and solid timber. Panels: MDF (smooth, ideal for painted and lacquered fronts; standard, moisture-resistant green MR MDF for kitchens and bathrooms, fire-retardant red or blue FR MDF for public buildings), plywood (stronger, holds screws, marine or WBP grades for wet areas), particleboard and melamine-faced chipboard (economical carcasses), HMR (high-moisture-resistant) board, and solid hardwoods (oak, walnut, ash, teak, iroko) or engineered timber. Formaldehyde emission class E1 or lower should be specified for indoor air quality. Finishes: melamine and HPL laminates, natural wood veneers, PU lacquer or spray paint in matt or gloss, acrylic and high-gloss panels, and edge banding (ABS or PVC) that seals the board. Hardware drives function and life: soft-close hinges and drawer runners (Blum, Hettich, Grass), lift systems, handles and push-to-open. Shop drawings and samples are approved before production; site measurements after walls and floors are finished prevent misfits.",
+      "body_ar": "تُصنع النجارة المركبة (المطابخ، خزائن الملابس، وحدات المغاسل، الأبواب وإطاراتها، تكسيات الجدران، كاونترات الاستقبال، الأثاث المخصص) من ألواح وخشب صلب. والألواح: MDF (ناعم ومثالي للواجهات المدهونة والمطلية بالورنيش؛ عادي، ومقاوم للرطوبة الأخضر للمطابخ والحمامات، ومقاوم للحريق الأحمر أو الأزرق للمباني العامة)، والأبلكاش (أقوى، يمسك البراغي، بدرجات بحرية أو مقاومة للماء للمناطق الرطبة)، وألواح الحبيبات والخشب المضغوط المغطى بالميلامين (هياكل اقتصادية)، والألواح عالية المقاومة للرطوبة، والأخشاب الصلبة (البلوط، الجوز، الدردار، الساج، الإيروكو) أو الخشب الهندسي. ويجب تحديد فئة انبعاث الفورمالديهايد E1 أو أقل لجودة الهواء الداخلي. والتشطيبات: الميلامين ورقائق HPL، والقشرة الخشبية الطبيعية، وورنيش البولي يوريثان أو الدهان بالرش المطفي أو اللامع، والألواح الأكريليكية عالية اللمعان، وأشرطة الحواف (ABS أو PVC) التي تحكم إغلاق اللوح. والإكسسوارات تحدد الوظيفة والعمر: مفصلات ومجاري أدراج بإغلاق ناعم (Blum، Hettich، Grass)، وأنظمة الرفع، والمقابض والفتح بالضغط. وتُعتمد الرسومات التنفيذية والعينات قبل الإنتاج؛ والقياس في الموقع بعد إنهاء الجدران والأرضيات يمنع عدم المطابقة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Medium-density_fibreboard"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: moisture-resistant (green) and fire-retardant (red or blue) MDF; the E1 formaldehyde class -> confirmed."
+    },
+    {
+      "id": "joinery:lead-times-and-quoting",
+      "topic": "Joinery & carpentry - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "النجارة وأعمال الخشب: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Design and shop drawings: 1-3 weeks; production 3-8 weeks; installation days per room. A joinery company needs drawings or the design intent, site measurements, materials and finish choices, hardware brand, appliances for kitchens, quantities, and the programme. A quote states per item board type and grade, finish, edge band, hardware brand and series, worktops, installation, shop drawings and samples, warranty and validity.",
+      "body_ar": "التصميم والرسومات التنفيذية: 1-3 أسابيع؛ والإنتاج 3-8 أسابيع؛ والتركيب أيام لكل غرفة. وتحتاج شركة النجارة المخططات أو فكرة التصميم، وقياسات الموقع، واختيارات المواد والتشطيب، وعلامة الإكسسوارات، والأجهزة للمطابخ، والكميات، والبرنامج الزمني. ويذكر العرض لكل قطعة نوع اللوح ودرجته والتشطيب وشريط الحافة وعلامة الإكسسوارات وسلسلتها وأسطح العمل والتركيب والرسومات التنفيذية والعينات والضمان والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "joinery:mdf-vs-plywood-vs-solid-wood",
+      "topic": "MDF vs plywood vs solid wood for cabinets and doors",
+      "topic_ar": "الـMDF مقابل الخشب الرقائقي (البلايوود) مقابل الخشب الطبيعي للخزائن والأبواب",
+      "kind": "comparison",
+      "body_en": "The three materials are chosen per part, not per job. Plywood (cross-laminated veneers) is the strongest all-round carcass board: the cross-grain makes it stable, it resists shrinking, swelling and warping better than solid wood, and it holds screws best, so it is preferred for boxes, shelves and sink units. MDF is smooth and uniform, which gives crisp edges and a flat surface for paint and lacquer, so it is the usual core for painted and profiled doors; its weaknesses are screw holding (hinges and runners can pull out under heavy stress) and water: it swells, goes fuzzy or crumbles if moisture gets into edges or unsealed cuts, so every cut edge must be sealed or edge-banded and moisture-resistant grades used near water. Solid wood (oak, walnut, maple, teak) holds screws well and is chosen for face frames, stain-grade doors and visible solid parts, but it moves with humidity and can warp, which matters in air-conditioned UAE interiors next to humid kitchens. A common split is plywood boxes, MDF painted doors and solid hardwood frames. On a quote ask the supplier to state the material and thickness of carcass, back, shelves and doors separately, not one word for the whole unit. Not established here: screw-withdrawal test values; the sources were trade guides, not test reports.",
+      "body_ar": "تُختار المواد الثلاث لكل جزء على حدة لا للعمل كله. فالخشب الرقائقي (البلايوود، قشور متعامدة الألياف) أقوى ألواح الهياكل عموماً: التعامد يجعله ثابتاً، ويقاوم الانكماش والانتفاخ والالتواء أفضل من الخشب الطبيعي، ويمسك البراغي أفضل، لذا يُفضَّل للصناديق والرفوف ووحدات المغاسل. أما الـMDF فناعم ومتجانس، فيعطي حوافاً حادة وسطحاً مستوياً للدهان واللكر، ولذلك هو القلب المعتاد للأبواب المدهونة والمشكّلة؛ ونقاط ضعفه مسك البراغي (قد تنخلع المفصلات والمجاري تحت الإجهاد الشديد) والماء: إذ ينتفخ أو يتليّف أو يتفتت إذا دخلت الرطوبة إلى الحواف أو القطوع غير المغلقة، فيجب إغلاق كل حافة مقطوعة أو تغطيتها بشريط حواف واستخدام الدرجات المقاومة للرطوبة قرب الماء. والخشب الطبيعي (البلوط والجوز والقيقب والساج) يمسك البراغي جيداً ويُختار للإطارات الأمامية والأبواب المصبوغة والأجزاء الظاهرة، لكنه يتحرك مع الرطوبة وقد يلتوي، وهذا مهم في الشقق المكيفة في الإمارات بجوار المطابخ الرطبة. والتقسيم الشائع: صناديق بلايوود وأبواب MDF مدهونة وإطارات من الخشب الصلب. اطلب من المورد أن يذكر في عرض السعر مادة وسماكة الهيكل والظهر والرفوف والأبواب كلٌّ على حدة، لا كلمة واحدة للوحدة كلها. لم يُثبت هنا: قيم اختبار سحب البراغي؛ فالمصادر أدلة تجارية لا تقارير اختبار.",
+      "sources": [
+        "https://robamliving.com/blogs/news/kitchen-cabinets-mdf-vs-plywood-which-material-is-better",
+        "https://cabinetiq.com/learn/mdf-kitchen-cabinets/",
+        "https://cabinetiq.com/learn/solid-wood-vs-engineered-cabinets/",
+        "https://kitchencabinetkings.com/guides/mdf-vs-plywood-cabinets"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: plywood cross-grain strong and stable, resists shrink/swell/warp better than solid wood, best screw holding; MDF weaker screw holding, swells/crumbles at unsealed edges, preferred for paint-grade doors; solid wood moves with humidity; common split plywood boxes / MDF doors / hardwood frames -> confirmed. One source's claim that MDF warps less than solid wood was not used. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "joinery:hpl-vs-melamine-faced-board",
+      "topic": "HPL vs melamine-faced board (low-pressure laminate)",
+      "topic_ar": "اللامينيت عالي الضغط HPL مقابل الألواح المكسوة بالميلامين (لامينيت منخفض الضغط)",
+      "kind": "comparison",
+      "body_en": "Both are 'laminate' finishes on a board, but they are made differently. Melamine-faced board (MFB, low-pressure laminate) is decor paper impregnated with melamine resin and fused straight onto particleboard or MDF in the press, with no glue and at low pressure; it is the economical finish for carcasses and plain doors. HPL (high-pressure laminate, EN 438) is a separate sheet, typically about 0.6-0.8 mm thick, made under high pressure with a protective melamine overlay, then glued onto the substrate; the overlay gives it higher impact, scratch and abrasion resistance, so it is used on worktops, counters, reception desks and doors that take knocks. EN 438-2 sets the HPL test methods (for example impact by small and large diameter ball), and makers publish results against them, so an HPL can be compared on its data sheet. On a quote ask: MFB or HPL, the HPL grade and thickness, the substrate under it, edge-band material and thickness, and the decor code. Not established here: EN 438 values for melamine-faced board itself, and which EN 438 part governs low-pressure products.",
+      "body_ar": "كلاهما تشطيب 'لامينيت' على لوح لكنهما يُصنعان بطريقة مختلفة. فاللوح المكسو بالميلامين (MFB، لامينيت منخفض الضغط) ورق زخرفي مشبع براتنج الميلامين يُدمج مباشرة على لوح الخشب الحبيبي أو الـMDF في المكبس دون غراء وبضغط منخفض؛ وهو التشطيب الاقتصادي للهياكل والأبواب البسيطة. أما HPL (اللامينيت عالي الضغط، EN 438) فلوح مستقل بسماكة نحو 0.6-0.8 مم عادةً، يُصنع تحت ضغط عالٍ مع طبقة حماية من الميلامين، ثم يُلصق على اللوح؛ وتمنحه طبقة الحماية مقاومة أعلى للصدم والخدش والاحتكاك، لذا يُستخدم لأسطح العمل والكاونترات ومكاتب الاستقبال والأبواب المعرضة للصدمات. وتحدد EN 438-2 طرق اختبار HPL (مثل الصدم بكرة صغيرة القطر وكبيرة القطر) وينشر المصنعون نتائجهم وفقها، فيمكن مقارنة HPL من ورقة بياناته. اطلب في عرض السعر: MFB أم HPL، ودرجة HPL وسماكته، واللوح تحته، ومادة شريط الحواف وسماكته، ورمز الزخرفة. لم يُثبت هنا: قيم EN 438 للألواح المكسوة بالميلامين نفسها، وأي جزء من EN 438 يحكم المنتجات منخفضة الضغط.",
+      "sources": [
+        "https://hvgbuilding.com.au/wp-content/uploads/2024/04/Wilsonart-HPL-Understanding-HPL-Laminate.pdf",
+        "https://www.swisskrono.com/fileadmin/esign/HPL_ProductDatasheet_10276_EN_350058.pdf",
+        "https://www.specifiedby.com/polyrey-uk/hpl-composite-panels/Polyrey_HPL_Technical_PDS.pdf",
+        "https://infostore.saiglobal.com/en-us/Standards/BS-EN-438-2-2016-1849755/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: LPL bonded at lower pressure with no adhesive, aka melamine face board (Wilsonart); HPL protective overlay gives higher impact/scratch/abrasion; HPL nominal 0.6-0.8 mm (Swiss Krono EN 438-3 datasheet); EN 438-2 small/large ball impact; makers publish results (Polyrey) -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "joinery:formaldehyde-e1-e0-carb",
+      "topic": "Formaldehyde classes on boards: E1, 'E0' and CARB P2",
+      "topic_ar": "فئات انبعاث الفورمالديهايد في الألواح: E1 و'E0' وCARB P2",
+      "kind": "standard",
+      "body_en": "MDF, particleboard and plywood are bonded with resins that can emit formaldehyde, so the emission class belongs on every joinery quote for homes, schools and hotels. Under Annex B of EN 13986 (the harmonised European standard for wood-based panels used in construction, the basis of CE marking) a panel is E1 when its emission is at or below 0.1 ppm (0.124 mg/m3) in the 28-day EN 717-1 chamber test; the standard defines two classes, E1 and E2. 'E0' and 'E0.5' are market terms for boards emitting less than E1, made with low-formaldehyde glues; they are not formal EN classes and an 'E0' claim cannot be certified as such, so ask what test and value stand behind it. CARB P2 (California) and TSCA Title VI (USA) are separate certification schemes that low-emission boards are often sold under. On a quote ask for the emission class of each board with its certificate. Not established here: the numeric CARB Phase 2 limits, and any UAE rule fixing a class for joinery.",
+      "body_ar": "تُلصق ألواح الـMDF والخشب الحبيبي والبلايوود براتنجات قد تطلق الفورمالديهايد، لذا يجب أن تُذكر فئة الانبعاث في كل عرض سعر نجارة للمنازل والمدارس والفنادق. وفق الملحق B من EN 13986 (المواصفة الأوروبية الموحدة للألواح الخشبية المستخدمة في البناء وأساس علامة CE) يكون اللوح من فئة E1 إذا كان انبعاثه 0.1 جزء في المليون (0.124 ملغ/م3) أو أقل في اختبار الحجرة لمدة 28 يوماً وفق EN 717-1؛ وتحدد المواصفة فئتين هما E1 وE2. أما 'E0' و'E0.5' فمصطلحات سوقية لألواح أقل انبعاثاً من E1 تُصنع بغراء منخفض الفورمالديهايد، وليست فئات رسمية في المواصفة الأوروبية ولا يمكن اعتماد ادعاء 'E0' بذاته، فاسأل عن الاختبار والقيمة التي تدعمه. وCARB P2 (كاليفورنيا) وTSCA Title VI (الولايات المتحدة) نظاما اعتماد منفصلان تُباع بهما غالباً الألواح منخفضة الانبعاث. اطلب في عرض السعر فئة الانبعاث لكل لوح مع شهادتها. لم يُثبت هنا: الحدود الرقمية لـCARB المرحلة الثانية، وأي قاعدة إماراتية تحدد فئة لأعمال النجارة.",
+      "sources": [
+        "https://www.upphandlingsmyndigheten.se/en/criteria/toxic-free-preschool/furniture/furniture/formaldehyde-in-wood-based-panels/",
+        "https://catas.com/en-GB/read-faq/247",
+        "https://europanels.org/?p=2773"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: EN 13986 Annex B E1 <= 0.1 ppm (0.124 mg/m3) 28-day EN 717-1 chamber; EN 13986 defines E1 and E2; E0/E0.5 unofficial, cannot be certified; CARB P2 and TSCA Title VI named as certification schemes (CATAS) -> confirmed. CARB numeric limit deliberately not stated. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -85,6 +168,14 @@
       ],
       "why": "No entry of this pack answered it (no entry on moisture-resistant MDF or marine ply for kitchen cabinets in humid apartments). joinery:moisture-resistant-carcass-boards was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from joinery.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What board should our bathroom vanity be made of so it does not swell?",
+      "q_ar": "من وش نوع اللوح نسوي خزانة المغسلة عشان ما تنفخ؟",
+      "expected_entry_ids": [
+        "joinery:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -103,6 +194,67 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "joinery:moisture-resistant-carcass-boards"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "joinery:product-distinctions"
+      ],
+      "stored_not_served": [
+        "joinery:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Medium-density_fibreboard"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    },
+    "authored_27_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-27",
+      "pages_opened": [],
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
+      "reason": "Trade had 5 entries against 560 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
+      "ledger": [
+        893,
+        899
+      ],
+      "held_unverified": [
+        "joinery:mdf-vs-plywood-vs-solid-wood",
+        "joinery:hpl-vs-melamine-faced-board",
+        "joinery:formaldehyde-e1-e0-carb"
+      ],
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "Is MDF or plywood better for the cabinet under a kitchen sink?",
+          "q_ar": "أيهما أفضل للخزانة تحت مغسلة المطبخ: الـMDF أم البلايوود؟",
+          "expected_entry_ids": [
+            "joinery:mdf-vs-plywood-vs-solid-wood"
+          ]
+        },
+        {
+          "q_en": "What is the difference between HPL and melamine on a reception desk?",
+          "q_ar": "ما الفرق بين HPL والميلامين لمكتب استقبال؟",
+          "expected_entry_ids": [
+            "joinery:hpl-vs-melamine-faced-board"
+          ]
+        },
+        {
+          "q_en": "The carpenter says the boards are E0. Is that a real certificate?",
+          "q_ar": "يقول النجار إن الألواح E0، فهل هذه شهادة حقيقية؟",
+          "expected_entry_ids": [
+            "joinery:formaldehyde-e1-e0-carb"
+          ]
+        }
+      ]
+    }
   }
 }

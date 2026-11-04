@@ -12,10 +12,12 @@
 
 name: ml embedding backfill
 
+# founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
+# on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
 on:
-  schedule:
+  # schedule:
     # 02:50 UTC = 06:50 Dubai, after kb-embed-backfill (02:20) and before the working day.
-    - cron: '50 2 * * *'
+    # - cron: '50 2 * * *'
   workflow_dispatch:
     inputs:
       minutes:
@@ -29,10 +31,12 @@ concurrency:
 
 jobs:
   backfill:
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -41,4 +45,5 @@ jobs:
       - name: embed the backlog, highest priority first
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: node scripts/kb/run_ml_embed_backfill.mjs --minutes=${{ github.event.inputs.minutes || '40' }} --claim=64
+          IN_MINUTES: ${{ github.event.inputs.minutes || '40' }}
+        run: node scripts/kb/run_ml_embed_backfill.mjs --minutes="$IN_MINUTES" --claim=64

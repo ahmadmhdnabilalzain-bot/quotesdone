@@ -24,10 +24,12 @@
 //   node scripts/expense_documents_backfill.mjs --report
 //
 // Exit 0 = every document that is claimed is really there and really says what it is.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql, PROJECT_REF } from '../lib/db.mjs';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 // THE CI CHECKS JOB HAS NO MANAGEMENT TOKEN, and every assertion below reads production. Without
 // one this does not fail meaningfully — it fails on the connection and says nothing about whether
@@ -55,12 +57,11 @@ ok(Number(C.entries) > 0, 'public.expense_entries holds rows to check');
 // ---------------------------------------------------------------------------------------------
 // 1. Nothing points at nothing. Every stored object is fetched.
 // ---------------------------------------------------------------------------------------------
-const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmt = supabaseAccessToken();
 const kj = await (await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/api-keys?reveal=true`,
   { headers: { Authorization: 'Bearer ' + mgmt } })).json();
-const ANON = kj.find((x) => x.name === 'anon')?.api_key;
-const SERVICE = kj.find((x) => x.name === 'service_role')?.api_key;
+const ANON = pickApiKey(kj, 'publishable');
+const SERVICE = pickApiKey(kj, 'secret');
 if (!ANON || !SERVICE) { console.error('FAIL  could not read the project api keys'); process.exit(1); }
 
 const rows = await sql('select id, vendor, doc_path, doc_kind, doc_content_type '
@@ -68,7 +69,7 @@ const rows = await sql('select id, vendor, doc_path, doc_kind, doc_content_type 
 const bad = [];
 for (const r of rows) {
   const g = await fetch(`https://${PROJECT_REF}.supabase.co/storage/v1/object/receipt-files/${encodeURI(r.doc_path)}`,
-    { headers: { Authorization: 'Bearer ' + SERVICE } });
+    { headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } });   // a new secret key needs apikey: Bearer alone reads as anon on Storage
   if (!g.ok) { bad.push(`#${r.id} ${r.vendor}: HTTP ${g.status} on ${r.doc_path}`); continue; }
   const b = new Uint8Array(await g.arrayBuffer());
   if (!b.length) bad.push(`#${r.id} ${r.vendor}: the object is empty`);

@@ -8,14 +8,16 @@ name: Marketing asset features
 # a tone), measured twice. Only a push to main's schedule or a dispatch reads production.
 # Cost: ~3 Actions-minutes per run for 12 videos; no model call, no paid API.
 
+# founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
+# on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
 on:
-  schedule:
-    - cron: '41 3 * * 1'
+  # schedule:
+    # - cron: '41 3 * * 1'
   workflow_dispatch: {}
   pull_request:
     paths:
-      - 'scripts/media/**'
-      - '.github/workflows/marketing-asset-features.yml'
+      # - 'scripts/media/**'
+      # - '.github/workflows/marketing-asset-features.yml'
 
 permissions:
   contents: read
@@ -26,10 +28,12 @@ concurrency:
 
 jobs:
   measure:
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'

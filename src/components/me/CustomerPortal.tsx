@@ -5,6 +5,7 @@ import { useFailover } from '@/lib/otpFailover';
 import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
 import { supaClient } from '@/lib/supaClient';
 import { takeAuthFragment } from '@/lib/authFragment';
+import { forgetWidgetConv } from '@/lib/widgetConv';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -95,6 +96,7 @@ import { FileText, MessageSquareQuote, BellRing, KeyRound, Plus, X, Sparkles, Up
 // decides whether a customer pays a reveal fee on a lapsed price, so it lives in a file that can be
 // executed — see quoteExpiry.test.mjs — rather than inline in this one.
 import { expiryOf } from './quoteExpiry';
+import { trackerOf } from './requestTracker';
 import { parseQuoteLink, resolveQuoteLink } from '@/lib/portalLink';
 // Website audit 14 Sep 2026: the intake composer, the pre-reveal Q&A, the Reveal Guarantee and the
 // in-page confirm each live in their own file under src/components/me; this file wires them in.
@@ -120,6 +122,7 @@ import { useReducedMotion } from 'motion/react';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import SupportRatingPrompt from '@/components/portal/SupportRatingPrompt';
 import { signupEmailProblem } from '@/lib/signupEmail';
+import { retryRead, isReadAction } from '@/lib/fetchRetry';
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
 // mount while the Supabase client refreshes asynchronously, so for the first moment after a page
@@ -134,12 +137,16 @@ const tokenAlive = (t) => {
   catch (_e) { return true; } // unparseable: let the endpoint be the judge, do not lock anyone out
 };
 const CALL_TIMEOUT_MS = 30000; // longer than any endpoint's own budget; this is the hang, not the slow answer
-async function call(path, body, token) {
+// The comparison report is the one call whose own budget is longer: quote_compare can take ~56 s on its own and the
+// Arabic build may then reason until 90 s (customer_api ARABIC_COMPARE_BUDGET_MS), inside the 150 s edge wall. Cut
+// at 30 s, the customer saw "timed out" instead of the 202 that says the Arabic report will be sent (PR #1574).
+const COMPARE_PDF_TIMEOUT_MS = 150000;
+async function call(path, body, token, timeoutMs = CALL_TIMEOUT_MS) {
   const ac = typeof AbortController === 'function' ? new AbortController() : null;
-  const timer = ac ? setTimeout(() => ac.abort(), CALL_TIMEOUT_MS) : null;
+  const timer = ac ? setTimeout(() => ac.abort(), timeoutMs) : null;
   let r;
   try {
-    r = await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined });
+    r = await retryRead(async () => await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined }), isReadAction(body), 2, () => !!(ac && ac.signal.aborted));
   } catch (e) {
     return { ok: false, error: (e && e.name === 'AbortError') ? 'qd_timeout' : 'qd_network' };
   } finally { if (timer) clearTimeout(timer); }
@@ -236,8 +243,8 @@ const S = {
   tab: 'flex min-h-11 items-center justify-center rounded-md px-3.5 py-2 text-[13px] font-semibold text-muted-foreground cursor-pointer border-0 bg-transparent',
   tabOn: 'bg-primary/15 text-primary',
   list: 'flex flex-col gap-3',
-  field: 'mt-3 flex h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-  area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y',
+  field: 'mt-3 flex h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring',
+  area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring resize-y',
   fileInput: 'text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
 };
 
@@ -323,6 +330,7 @@ function CustomerPortalView() {
   const signOutBusy = useBusy();
   const doSignOut = () => signOutBusy.run('out', async () => {
     try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {}
+    forgetWidgetConv();   // a pending widget chat must never be retried into the next account on this browser
     try { await SB().auth.signOut(); } catch (_e) {}
     setToken(''); setPhase('login');
   });
@@ -404,7 +412,7 @@ function Login({ onAuth, lang }) {
     try { await onAuth(j.access_token, j.refresh_token, j.locale); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); } };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (<AuthShell lang={lang}><Card className="relative w-full overflow-hidden p-6 shadow-e3 sm:p-8">
-    <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
+    <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-linear-to-r from-transparent via-primary/80 to-transparent" />
     <div className="mb-5 md:hidden"><Kicker>{t(lang, 'auth_kicker')}</Kicker></div>
     <div className={cn(S.tabsWrap, 'mb-5 w-full rounded-btn border border-border bg-secondary/40')} role="tablist">
       <button role="tab" aria-selected={!isSignup} className={cn(S.tab, 'flex-1 transition-colors', !isSignup && cn(S.tabOn, 'shadow-e1'))} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button>
@@ -437,6 +445,9 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
     setErr('');
     take(token, 'kyc', () => call('kyc', { action: 'state' }, token)).then(async (j) => {
       if (!alive.current) return;
+      // A warmed (boot-prefetch) answer that failed in transit is asked once more, fresh (call() itself retries a read),
+      // before the customer sees "Couldn't load your account".
+      if (transportFailed(j)) { j = await call('kyc', { action: 'state' }, token); if (!alive.current) return; }
       if (j && j.error === 'unauthorized') {
         if (retried) { setErr('unauth'); return; }
         try {
@@ -489,20 +500,33 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [full_name, setFullName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
   const [terms, setTerms] = useState(false); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
+  // Promotional messages are opt-in (19 Oct 2026, founder, legal finding 2): a SEPARATE box, never pre-ticked,
+  // never required. Guarded by scripts/checks/promotional_messages_are_opt_in.test.mjs.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { if (transportFailed(j)) { setMsg(t(lang, 'load_failed')); return; } setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
+  // A HOOK BELONGS ABOVE THE EARLY RETURN (2 Nov 2026, customer sign-up walk, React error #310): this sat below
+  // `if (!st) return`, so the render that first had the state called one more hook than the loading render and
+  // every new customer's "Complete your account" crashed to "This page couldn't load".
+  const failover = useFailover();
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
   const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob, lang }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
   // sentSms carries the CHANNEL, not a boolean: kyc falls back to a voice call when the number is a
   // landline, and telling someone to check their junk folder for a code that is being read down the
   // phone is the wrong instruction.
   // The first code to a UAE mobile goes by WhatsApp (kyc nextChannel, 18 Oct 2026); 'sms' is the explicit failover.
-  const failover = useFailover();
   const sendSms = async (channel?: 'sms' | 'whatsapp') => { if (!phone) { setMsg(t(lang, 'enter_mobile_first')); return; } setBusy('sms'); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone, ...(channel ? { channel } : {}) }, token); setBusy(''); if (j && j.ok) { setSentSms(j.channel || 'sms'); if (j.channel === 'whatsapp') failover(() => call('kyc', { action: 'phone_failover', phone }, token), () => setSentSms('sms_failover')); } else setMsg(errText(j, lang, 'err_code_send')); };
   const verifySms = async () => { setBusy('vsms'); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone, code: smsCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
   const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg(errText(j, lang, 'err_code_send')); };
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
-  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg(errText(j, lang, 'load_failed')); };
+  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms', marketing_consent: marketingOptIn === true }, token); if (j && j.ok) {
+      // THE CERTIFICATE LANDS AFTER THE ANSWER (kyc accept_terms renders the signed PDF in the background), and the account is
+      // complete only once it has (terms_signed). Reading the state once left the customer on this unchanged form, with no word,
+      // until they reloaded (measured 2 Nov 2026 by the sign-up walk: still here 60 s after "Finish & continue"). The button
+      // stays on "Finishing…" while the state is asked again, every 2.5 s for up to two minutes.
+      for (let i = 0; i < 48; i++) { const s = await call('kyc', { action: 'state' }, token).catch(() => null); if (s && s.terms_signed) break; await new Promise((r) => setTimeout(r, 2500)); }
+      setBusy(''); onDone();
+    } else { setBusy(''); setMsg(errText(j, lang, 'load_failed')); } };
   // DOB IS REQUIRED AGAIN (founder's account rule, 14 Sep 2026: name, date of birth with under-18
   // rejected, OTP-verified mobile/email, Terms). The 6 Sep change made it optional because a customer
   // without one was silently stuck; the fix for silence is a message, not dropping the field. kyc now
@@ -534,6 +558,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
         : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" placeholder={t(lang, 'code_placeholder')} value={emCode} onChange={(e) => setEmCode(e.target.value)} /><Button size="sm" disabled={busy === 'vem'} onClick={verifyEmail}>{t(lang, 'verify')}</Button></div></>)}
       {st.phone_verified && st.email_verified && waSignupSettled(st.whatsapp) && <>
         <label className="flex gap-2 items-center mt-4 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/terms" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
+        <label className="flex gap-2 items-start mt-3 text-[13px] text-muted-foreground"><input type="checkbox" className="mt-0.5" checked={marketingOptIn} onChange={(e) => setMarketingOptIn(e.target.checked)} /> {t(lang, 'marketing_opt_in')}</label>
         <Button className="w-full mt-3" disabled={busy === 'terms'} onClick={acceptTerms}>{busy === 'terms' ? t(lang, 'finishing') : t(lang, 'finish_continue')}</Button>
       </>}
     </>}
@@ -856,7 +881,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         // The request just posted is opened by its stable id: a split opens its combined parent, which
         // lists one card per trade; the note says how many trades were sent separately.
         const n = r && Array.isArray(r.child_ids) ? r.child_ids.length : 0;
-        setNote(n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
+        setNote(r && r.none ? '' : n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
         // The first-request concierge (founder ledger 1018): a first request, or one held for its specs, gets the
         // steps and what is missing on screen as well as by e-mail.
         const g = r && r.concierge;
@@ -870,7 +895,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     {/* Each alert opens what it is about (onAlert): "2 quotes to review on HVAC" was a box you could
         read and not act on, and the request it named was somewhere further down the page. */}
     {ov && !!(ov.alerts || []).length && <div className="mb-5 flex flex-col gap-2">{ov.alerts.map((a, i) => (
-      <button key={i} type="button" onClick={() => onAlert(a)} className="flex w-full items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-start transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <button key={i} type="button" onClick={() => onAlert(a)} className="flex w-full items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-start transition-colors hover:border-primary/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
         <span className={cn('mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg',
           a.severity === 'high' ? 'bg-danger/15 text-danger' : a.severity === 'medium' ? 'bg-warn/15 text-warn-fg' : 'bg-primary/15 text-primary')}>
           <BellRing className="h-3.5 w-3.5" aria-hidden />
@@ -932,7 +957,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
             return (<Card key={p.project_id} role="button" tabIndex={0} aria-label={p.name}
               onClick={() => openProject(p.project_id)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProject(p.project_id); } }}
-              className="cursor-pointer p-3.5 transition-colors duration-200 hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              className="cursor-pointer p-3.5 transition-colors duration-200 hover:border-primary/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
               <div className="flex justify-between items-center gap-2"><b className="text-[13.5px] text-foreground">{p.name}</b><span className={S.sub}>{projectStatusLabel(lang, p.status)}</span></div>
               <div className={cn(S.sub, 'mt-1')}>{tf(lang, 'rfqs_open_line', { open: openN, total: totalN })}{' · '}{tf(lang, 'suppliers_engaged_line', { n: Number(p.supplier_count) || 0 })}</div>
               <div className={cn(S.sub, 'mt-0.5')}>{budget == null ? t(lang, 'no_budget_set') : (t(lang, 'budget_label') + ': ' + aed(budget))}</div>
@@ -966,7 +991,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
           .filter(([k, n]) => k === 'all' || n > 0)
           .map(([k, n]) => (
             <button key={k} type="button" onClick={() => setBallFilter(k)} aria-pressed={ballFilter === k}
-              className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                 ballFilter === k ? 'border-primary/45 bg-primary/12 text-primary' : 'border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground')}>
               {t(lang, 'ball_' + k)}
               <span className="tabular-nums opacity-70">{n}</span>
@@ -1129,7 +1154,7 @@ function QuickActions({ lang, onNew, onUpload, onCompare, comparable }) {
       <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:grid-cols-4">
         {rows.map(({ icon: Icon, label, run, off, why }) => (
           <button key={label} type="button" onClick={run} disabled={!!off} title={off ? t(lang, why) : undefined}
-            className={cn('group flex items-center gap-3 rounded-xl border border-border bg-card/60 px-3.5 py-3 text-start transition-[border-color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            className={cn('group flex items-center gap-3 rounded-xl border border-border bg-card/60 px-3.5 py-3 text-start transition-[border-color,transform] duration-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
               off ? 'cursor-not-allowed opacity-55' : 'hover:border-primary/40 motion-safe:hover:-translate-y-0.5')}>
             <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-lg', off ? 'bg-secondary/60 text-muted-foreground' : 'bg-primary/12 text-primary')}><Icon className="h-4 w-4" aria-hidden /></span>
             <span className="min-w-0 flex-1">
@@ -1174,17 +1199,21 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const vmap = (() => { const m = {}; if (!quotes.length) return m; const ps = quotes.map((q) => Number(q.price) || 0).filter((p) => p > 0); const minP = ps.length ? Math.min(...ps) : 0, maxP = ps.length ? Math.max(...ps) : 0; for (const q of quotes) { const p = Number(q.price) || 0; const priceScore = (!p || maxP === minP) ? 70 : Math.round(100 - ((p - minP) / (maxP - minP)) * 55); const ratingScore = ratingScoreOf(q.rating); const compScore = Math.min(100, 50 + (q.scope ? 20 : 0) + (q.warranty ? 10 : 0) + (q.lead_time ? 10 : 0) + (q.verified ? 10 : 0)); m[q.id] = ratingScore == null ? Math.round((priceScore * 0.5 + compScore * 0.2) / 0.7) : Math.round(priceScore * 0.5 + ratingScore * 0.3 + compScore * 0.2); } return m; })();
   // "Best value" is a comparison; with one quote there is nothing it beat (audit 21 Sep 2026, item 27).
   const bestId = quotes.length >= 2 ? quotes.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
-  const stepIdx = rfqStageIdx(inq, quotes);
   // window.confirm was an English-only browser box (audit 14 Sep 2026); useConfirm is in-page and bilingual.
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
   const [repeating, setRepeating] = useState(false);
   const [repeated, setRepeated] = useState('');
-  const doRepeat = async (e) => { e.stopPropagation(); if (repeating) return; if (!(await ask(t(lang, 'rc_repeat_confirm'), { title: t(lang, 'rc_repeat'), confirm: t(lang, 'rc_repeat') }))) return; setRepeating(true); setErr(''); setRepeated(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { setRepeated(t(lang, 'rc_repeat_done')); onChange(); } else { setErr(errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
+  // REPEAT (founder_instruction 1028): one click opens the same specs as an editable copy; nothing is posted until
+  // the customer presses Post. The server checks the copy can be posted before it shows it (preview).
+  const [rDraft, setRDraft] = useState(null);
+  const openRepeat = async (e) => { e.stopPropagation(); if (repeating) return; setRepeating(true); setErr(''); setRepeated(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, preview: true }, token); if (j && j.ok && j.draft) { setRDraft({ summary: j.draft.summary || '', budget: j.draft.budget || '', emirate: j.draft.emirate || '', required_by: j.draft.required_by || '' }); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
+  // busy-exempt: setRepeating is the busy state; it disables the Post button and shows rc_repeating while it waits.
+  const postRepeat = async () => { if (repeating || !rDraft) return; setRepeating(true); setErr(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, edits: rDraft }, token); if (j && j.ok) { setRDraft(null); setRepeated(t(lang, 'rc_repeat_done')); onChange(); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
   const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
   return (<Card ref={cardRef} id={'inq-' + inq.id} className={cn('scroll-mt-20 p-4 shadow-e1 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-e2 sm:p-5', open && 'border-primary/25 shadow-e2')}>{dialog}
     {/* A11Y (5 Aug 2026): role+tabIndex+onKeyDown rather than a <button>, because this wraps <div>
         children and <div> inside <button> is an invalid content model. */}
-    <div className="flex justify-between items-center gap-2.5 cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setOpen(!open)}
+    <div className="flex justify-between items-center gap-2.5 cursor-pointer rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setOpen(!open)}
       role="button" tabIndex={0} aria-expanded={open}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}>
       <div className="min-w-0">
@@ -1227,12 +1256,26 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
     </div>}
     {/* REPEAT IN ONE CLICK (founder_instruction 1028): the same specs posted again as a new request, through the
         same posting door (customer_api repeat_inquiry -> create_inquiry). */}
-    {!editing && <div className="flex gap-2.5 flex-wrap items-center mt-1">
-      <Button variant="link" className="px-0 h-auto" disabled={repeating} onClick={doRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat')}</Button>
+    {!editing && !rDraft && <div className="flex gap-2.5 flex-wrap items-center mt-1">
+      <Button variant="link" className="px-0 h-auto" disabled={repeating} onClick={openRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat')}</Button>
       {repeated ? <span className={S.sub} role="status">{repeated}</span> : null}
     </div>}
+    {rDraft && <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+      <div className={S.sub}>{t(lang, 'rc_repeat_confirm')}</div>
+      <label className="sr-only" htmlFor={'qd-rep-' + inq.id}>{t(lang, 'rc_describe')}</label>
+      <textarea id={'qd-rep-' + inq.id} className={S.area} rows={3} value={rDraft.summary} onChange={(e) => setRDraft({ ...rDraft, summary: e.target.value })} placeholder={t(lang, 'rc_describe')} />
+      <div className={S.frow}>
+        <select className={cn(S.field, 'bg-background')} aria-label={t(lang, 'rc_emirate_opt')} value={rDraft.emirate} onChange={(e) => setRDraft({ ...rDraft, emirate: e.target.value })}><option value="">{t(lang, 'rc_emirate_opt')}</option>{EMIRATES.map((em) => <option key={em} value={em}>{emirateName(em, lang)}</option>)}</select>
+        <Input aria-label={t(lang, 'rc_budget_opt')} placeholder={t(lang, 'rc_budget_opt')} value={rDraft.budget} onChange={(e) => setRDraft({ ...rDraft, budget: e.target.value })} />
+        <Input type="date" aria-label={t(lang, 'rc_repeat_date')} title={t(lang, 'rc_repeat_date')} value={rDraft.required_by} onChange={(e) => setRDraft({ ...rDraft, required_by: e.target.value })} />
+      </div>
+      <div className="flex gap-2.5 flex-wrap items-center mt-2.5">
+        <Button disabled={repeating || !rDraft.summary.trim()} onClick={postRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat_post')}</Button>
+        <Button variant="link" className="px-0 h-auto" onClick={() => { setRDraft(null); setErr(''); }}>{t(lang, 'rc_cancel_edit')}</Button>
+      </div>
+    </div>}
     {err && <div className={S.err} role="alert">{err}</div>}
-    <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} revealed={anyRevealed} />
+    <RequestTracker inq={inq} quotes={quotes} lang={lang} />
     {/* No supplier could quote the exact spec (founder_instruction #321): the customer picks an
         alternative or says no. OUTSIDE the collapsible details on purpose — a question the customer
         has to open the card to find is a question that goes unanswered, and the reply window runs. */}
@@ -1258,7 +1301,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
             <div className="flex h-10 items-center gap-2.5 border-b border-border bg-secondary/40 px-3.5">
               <span className="hidden gap-1.5 sm:flex" aria-hidden><i className="h-2 w-2 rounded-full bg-primary/25" /><i className="h-2 w-2 rounded-full bg-primary/25" /><i className="h-2 w-2 rounded-full bg-primary/25" /></span>
               <div className="min-w-0 truncate font-mono text-label text-foreground">{tf(lang, 'rc_quotes_received', { n: quotes.length })}</div>
-              <Badge variant={anyRevealed ? 'revealed' : 'sealed'} dot className={cn('ms-auto shrink-0', anyRevealed && '!text-accent')}>{t(lang, anyRevealed ? 'lv_open' : 'lv_sealed')}</Badge>
+              <Badge variant={anyRevealed ? 'revealed' : 'sealed'} dot className={cn('ms-auto shrink-0', anyRevealed && 'text-accent!')}>{t(lang, anyRevealed ? 'lv_open' : 'lv_sealed')}</Badge>
             </div>
             <LevelledRows quotes={quotes} vmap={vmap} bestId={bestId} lang={lang} />
             {/* A quote withheld with no word said is its own defect: my_inquiries counts the ones
@@ -1291,7 +1334,7 @@ function LevelledRows({ quotes, vmap, bestId, lang }) {
                 <span role="cell" className="flex min-w-0 flex-col gap-1">
                   <span className="truncate font-medium text-foreground">{supLabel(q.label, lang)}</span>
                   {q.revealed
-                    ? (q.supplier_name ? <Seal open className="qd-revealed !text-accent max-w-full truncate text-label">{q.supplier_name}</Seal> : null)
+                    ? (q.supplier_name ? <Seal open className="qd-revealed text-accent! max-w-full truncate text-label">{q.supplier_name}</Seal> : null)
                     : <span aria-hidden className="leading-none"><Seal className="text-label">{'••••••••••'}</Seal></span>}
                 </span>
                 <span role="cell" className={cn('tabular text-end font-mono', best ? 'font-semibold text-primary' : 'text-foreground')}>{Number(q.price) > 0 ? aed(q.price) : miss}</span>
@@ -1310,7 +1353,7 @@ function LevelledRows({ quotes, vmap, bestId, lang }) {
 function OpenSeal({ play, children }) {
   const [open, setOpen] = useState(!play);
   useEffect(() => { if (open) return; const id = setTimeout(() => setOpen(true), 80); return () => clearTimeout(id); }, []);
-  return <Seal open={open} className="qd-revealed !text-accent max-w-full">{children}</Seal>;
+  return <Seal open={open} className="qd-revealed text-accent! max-w-full">{children}</Seal>;
 }
 
 // A window opened after an await is a popup: see src/lib/openDocument.ts (shared with the supplier portal).
@@ -1478,7 +1521,7 @@ function ExportComparison({ inqId, token, lang }) {
   const go = (docLang) => async () => {
     setBusy(true); setErr(''); let j = null;
     try {
-      const ok = await openDocument(lang, async () => { j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang: docLang }, token); return j && (j.url || j.pdf_url || j.file_url) || null; });
+      const ok = await openDocument(lang, async () => { j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang: docLang }, token, COMPARE_PDF_TIMEOUT_MS); return j && (j.url || j.pdf_url || j.file_url) || null; });
       if (!ok) setErr(errText(j, lang, 'cmp_save_fail'));
     } catch (_e) {
       setErr(t(lang, 'cmp_save_fail'));
@@ -1589,7 +1632,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   // sitting on 'settling' until the customer reloaded — the copy promises it opens by itself.
   useEffect(() => { if (q.revealed && state !== 'revealed') setState('revealed'); }, [q.revealed]);
   const revealed = state === 'revealed';
-  return (<div ref={hlRef} id={'quote-' + q.id} className={cn('scroll-mt-24 rounded-card border p-3.5 transition-colors duration-500 sm:p-4', lit && 'ring-2 ring-primary ring-offset-2 ring-offset-background', revealed ? 'border-accent/40 bg-accent/[0.04]' : best ? 'border-primary/35 bg-primary/[0.03]' : 'border-border bg-secondary/15')}>{dialog}
+  return (<div ref={hlRef} id={'quote-' + q.id} className={cn('scroll-mt-24 rounded-card border p-3.5 transition-colors duration-500 sm:p-4', lit && 'ring-2 ring-primary ring-offset-2 ring-offset-background', revealed ? 'border-accent/40 bg-accent/4' : best ? 'border-primary/35 bg-primary/3' : 'border-border bg-secondary/15')}>{dialog}
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0"><b className="font-head font-semibold tracking-snug">{supLabel(q.label, lang)}</b>{!revealed ? <span aria-hidden className="ms-2 inline-block align-middle leading-none"><Seal className="text-[11px]">{'••••••••••'}</Seal></span> : null}{best ? <span className="ms-1.5 rounded-chip border border-primary/30 bg-primary/12 px-1.5 py-0.5 align-middle font-mono text-[10px] font-semibold text-primary">{t(lang, 'q_best')}</span> : null}{q.verified ? <span className="text-[11px] font-bold text-primary"> ✓ {t(lang, 'q_verified')}</span> : null}{q.rating != null ? <span className="text-[12px] font-semibold text-accent"> ★ {q.rating}{q.rating_count != null ? ' (' + q.rating_count + ')' : ''}</span> : <span className="text-[11px] text-muted-foreground" title={t(lang, 'q_unrated_tip')}> {t(lang, 'q_unrated')}</span>}</div>
       <div className="shrink-0 text-end"><div className="tabular font-mono text-[18px] font-semibold text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="tabular font-mono text-[10.5px] text-muted-foreground" title={t(lang, 'q_value_tip')}>{t(lang, 'q_value')} {vscore}/100</div> : null}</div>
@@ -1639,7 +1682,7 @@ function RevealMoment({ play, children }) {
   if (!play) return children;
   return (<div className="relative">
     <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}>{children}</M.div>
-    <M.span aria-hidden className="redact pointer-events-none absolute inset-x-3 top-5 !block h-5" style={{ transformOrigin: 'right center' }}
+    <M.span aria-hidden className="redact pointer-events-none absolute inset-x-3 top-5 block! h-5" style={{ transformOrigin: 'right center' }}
       initial={{ scaleX: 1, opacity: 1 }} animate={{ scaleX: 0, opacity: 0 }} transition={{ duration: 0.75, delay: 0.1, ease: [0.7, 0, 0.3, 1] }} />
   </div>);
 }
@@ -1655,6 +1698,34 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   // a customer who writes nothing has still rated and a customer who writes something is adding to
   // a rating that is already counted. Nothing here can block a rating.
   const [note, setNote] = useState(''); const [noteSaved, setNoteSaved] = useState(false); const [noteErr, setNoteErr] = useState('');
+  // PHOTOS OF THE FINISHED JOB (T2): offered once the rating is saved, up to 5, sent ONE request per
+  // photo so no request carries more than one 5 MB image. The server re-checks everything
+  // (customer_api/review_photos.ts); the checks here only spare the customer a wasted upload.
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]); const [phErr, setPhErr] = useState(''); const [phDone, setPhDone] = useState('');
+  // A rated review may already carry photos from an earlier visit: show them and count them.
+  useEffect(() => {
+    if (!rated || !q || !q.id) return;
+    let live = true;
+    call('customer_api', { action: 'review_photos', quote_id: q.id }, token).then((j) => { if (live && j && j.ok) setPhotoUrls(j.photo_urls || []); }).catch(() => {});
+    return () => { live = false; };
+  }, [rated, q && q.id, token]);
+  const addPhotos = (files: FileList | null) => act.run('photos', async () => {
+    setPhErr(''); setPhDone('');
+    const list = Array.from(files || []);
+    if (!list.length) return;
+    if (photoUrls.length + list.length > 5) { setPhErr(t(lang, 'err_photo_count')); return; }
+    for (const f of list) {
+      if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { setPhErr(t(lang, 'err_photo_type')); return; }
+      if (f.size > 5 * 1024 * 1024) { setPhErr(t(lang, 'err_photo_size')); return; }
+    }
+    for (const f of list) {
+      const b64 = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); }).catch(() => '');
+      const j = await call('customer_api', { action: 'add_review_photos', quote_id: q.id, photos: [{ b64 }] }, token).catch(() => null);
+      if (!(j && j.ok)) { setPhErr(errText(j, lang, 'err_photo_fail')); return; }
+      setPhotoUrls(j.photo_urls || []);
+    }
+    setPhDone(t(lang, 'c_ph_done'));
+  });
   const [dialog, ask] = useConfirm(lang);
   const g = terms || {};
   // The three actions on a revealed supplier are all round trips and none of them said so: the stars
@@ -1679,8 +1750,8 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   const hire = async () => { if (!(await ask(t(lang, 'c_hire_confirm'), { title: t(lang, 'c_hire'), confirm: t(lang, 'c_hire') }))) return; await act.run('hire', async () => { const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token).catch(() => null); if (j && j.ok) { setDone(t(lang, 'c_hired')); onChange && onChange(); } else setDone(errText(j, lang, 'c_update_fail')); }); };
   const date = (d) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   return (<div className="mt-2.5 flex flex-col gap-2.5">{dialog}
-    <div className="rounded-card border border-accent/35 bg-accent/[0.06] p-3.5">
-      <div className="flex flex-wrap items-center gap-2"><Badge variant="revealed" dot className="!text-accent font-mono uppercase tracking-caps">{t(lang, 'q_unlocked')}</Badge><div className="min-w-0 font-head text-[16px] font-semibold tracking-snug"><OpenSeal play={play}>{s.company_name || t(lang, 'c_supplier')}</OpenSeal></div></div>
+    <div className="rounded-card border border-accent/35 bg-accent/6 p-3.5">
+      <div className="flex flex-wrap items-center gap-2"><Badge variant="revealed" dot className="text-accent! font-mono uppercase tracking-caps">{t(lang, 'q_unlocked')}</Badge><div className="min-w-0 font-head text-[16px] font-semibold tracking-snug"><OpenSeal play={play}>{s.company_name || t(lang, 'c_supplier')}</OpenSeal></div></div>
       {q && q.revealed_at ? <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_revealed_on', { d: date(q.revealed_at) })}</div> : null}
       {won ? <div className="mt-0.5 text-[12px] font-bold text-primary">🏆 {t(lang, 'c_hired_badge')}</div> : null}
       <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_paid', { fee: aed(q.total_charged ?? q.reveal_fee) })}</div>
@@ -1718,6 +1789,19 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
           </div>
           <div id={'rv-hint-' + q.id} className={S.hint}>{t(lang, 'c_note_min')}</div>
           {noteErr && <div id={'rv-err-' + q.id} className={S.err} role="alert">{noteErr}</div>}
+        </div>
+      ) : null}
+      {rated ? (
+        <div className="mt-2.5 border-t border-accent/25 pt-2.5">
+          <label className="block text-[12px] font-semibold text-muted-foreground" htmlFor={'rp-' + q.id}>{t(lang, 'c_ph_h')}</label>
+          {photoUrls.length ? <div className="mt-1.5 flex flex-wrap gap-2">{photoUrls.map((u, i) => <img key={u} src={u} alt={tf(lang, 'c_ph_alt', { n: i + 1 })} width={64} height={64} loading="lazy" className="size-16 rounded-md border border-border object-cover" />)}</div> : null}
+          {photoUrls.length < 5 ? <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <input id={'rp-' + q.id} type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={act.pending} aria-describedby={'rp-hint-' + q.id + (phErr ? ' rp-err-' + q.id : '')} aria-invalid={phErr ? true : undefined} onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }} className="min-w-0 max-w-full text-[13px] file:me-2 file:rounded-md file:border file:border-border file:bg-background file:px-2.5 file:py-1 file:text-[13px] file:font-semibold" />
+            <BusyNote busy={act.busy && act.key === 'photos'}>{t(lang, 'q_wait')}</BusyNote>
+          </div> : null}
+          <div id={'rp-hint-' + q.id} className={S.hint}>{t(lang, 'c_ph_hint')}</div>
+          {phDone && <div className={cn(S.sub, 'mt-1 text-primary')} role="status">{phDone}</div>}
+          {phErr && <div id={'rp-err-' + q.id} className={S.err} role="alert">{phErr}</div>}
         </div>
       ) : null}
       {gq.refund_ref ? <div className={cn(S.sub, 'mt-1.5')}>{tf(lang, 'c_refund_ref', { r: gq.refund_ref })}{' · '}{gq.decision_ref ? tf(lang, 'c_decision_ref', { d: gq.decision_ref }) : t(lang, 'c_decision_wait')}</div> : null}
@@ -1783,7 +1867,7 @@ function ModuleWindow({ id, onClose, onOpenRfq, projectId, token, lang, inqs, on
   return (<section className="mx-auto w-full max-w-[1240px] px-4 py-5 sm:px-6">
     <div className="mb-4 flex items-center gap-3">
       <button type="button" onClick={onClose}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={t(lang, 'nav_overview')}>
         <ArrowRight className={cn('h-4 w-4', !rtl && 'rotate-180')} aria-hidden />
       </button>
@@ -1980,50 +2064,32 @@ function AccountSettings({ token, lang, onChanged }) {
   </div>);
 }
 
-// THE REQUEST'S OWN JOURNEY. What stood here was five words separated by chevrons with 1.5px dots —
-// technically a stepper, visually a sentence. The stage a request is at is the single thing a
-// customer opening the portal wants to know, so it gets a rail: completed segments filled, the
-// current one pulsing, the rest quiet. `matched` is substituted into the third label when the
-// server knows the number, because "Matched to 8 suppliers" is a fact and "Matched" is a mood.
-//
-// Horizontal on a desktop, and the labels drop to a single current-stage line under 640px rather
-// than wrapping into three lines of chevrons on a phone.
-const JOURNEY = ['jr_described', 'jr_structured', 'jr_matched', 'jr_quotes', 'jr_compare', 'jr_reveal'];
-function Journey({ idx, lang, matched, revealed = false }) {
-  // rfqStageIdx returns 0..4 over five RFQ stages; the journey the founder asked for has six, with
-  // "structured" split out of "sent". Map rather than invent: a stage must never be claimed.
-  //
-  // REVEAL IS ITS OWN FACT (production journey, 17 Sep 2026). rfqStageIdx reaches 4 only when a
-  // supplier is HIRED — completed, hired_supplier_id or pipeline_stage 'won' — so a request whose
-  // customer had paid to reveal a supplier still showed 'jr_reveal' greyed out, telling them they
-  // had not done the thing they had just paid for. Revealing is not winning, so rfqStageIdx is left
-  // alone (its index 4 is labelled "Awarded" and must not be claimed for a reveal); the last node is
-  // lit from the reveal itself instead.
-  const step = revealed ? JOURNEY.length - 1 : [0, 2, 3, 4, 5][Math.max(0, Math.min(4, Number(idx) || 0))];
-  const label = (k, i) => (i === 2 && Number(matched) > 0)
-    ? (lang === 'ar' ? ('مطابَق مع ' + countPhrase('ar', matched, 'supplier', { oblique: true })) : ('Matched to ' + countPhrase('en', matched, 'supplier')))
-    : t(lang, k);
+// THE LIVE REQUEST TRACKER (T2, sales_engineer, 5 Oct 2026). Replaced the six-node Journey rail,
+// which was aria-hidden, had no timestamps, no held-for-specs stage and no next step. The stages are
+// computed in requestTracker.ts (executed by scripts/checks/the_request_tracker_reads_the_stage_from_the_servers_fields.test.mjs)
+// from my_inquiries fields only; the card refreshes with the portal's existing 60-second poll.
+// An ordered list, the current stage marked aria-current="step"; logical start/end so RTL mirrors.
+function RequestTracker({ inq, quotes, lang }) {
+  const tr = trackerOf(inq, quotes, lang);
+  const fmt = (d) => { try { return new Date(d).toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (_e) { return ''; } };
   return (
     <div className="mt-3">
-      {/* The kit Stepper laid flat: a node per stage (done filled, current lit, next hollow) joined
-          by a rail, so a request reads as a position on a track rather than a bar of pills. */}
-      <div className="flex items-center" aria-hidden>
-        {JOURNEY.map((k, i) => (
-          <div key={k} className={cn('flex min-w-0 items-center', i < JOURNEY.length - 1 && 'flex-1')}>
-            <span className={cn('grid h-2.5 w-2.5 shrink-0 place-items-center rounded-full border transition-colors duration-500',
-              i < step ? 'border-primary bg-primary' : i === step ? 'border-primary bg-primary/25 shadow-glow-teal motion-safe:animate-pulse' : 'border-border bg-card')} />
-            {i < JOURNEY.length - 1 ? <span className={cn('h-px flex-1 transition-colors duration-500', i < step ? 'bg-primary' : 'bg-border')} /> : null}
-          </div>
+      <ol className="flex flex-col gap-1.5 sm:flex-row sm:gap-0" aria-label={lang === 'ar' ? 'مراحل تقدّم الطلب' : 'Request progress'}>
+        {tr.stages.map((st, i) => (
+          <li key={st.key} aria-current={st.current ? 'step' : undefined} className="flex min-w-0 items-start gap-2 sm:flex-1 sm:flex-col sm:gap-1">
+            <div className="flex items-center sm:w-full">
+              <span aria-hidden className={cn('h-2.5 w-2.5 shrink-0 rounded-full border transition-colors duration-500',
+                st.done ? 'border-primary bg-primary' : st.current ? (tr.held && st.key === 'specs' ? 'border-warn bg-warn/30' : 'border-primary bg-primary/25 shadow-glow-teal motion-safe:animate-pulse') : 'border-border bg-card')} />
+              {i < tr.stages.length - 1 ? <span aria-hidden className={cn('hidden h-px flex-1 sm:block', st.done ? 'bg-primary' : 'bg-border')} /> : null}
+            </div>
+            <div className="min-w-0 pe-1">
+              <div className={cn('text-[11px] leading-tight', st.done ? 'text-muted-foreground' : st.current ? 'font-semibold text-primary' : 'text-muted-foreground/60')}>{st.label}</div>
+              {st.at ? <time dateTime={st.at} className="block text-[10.5px] text-muted-foreground/80">{fmt(st.at)}</time> : null}
+            </div>
+          </li>
         ))}
-      </div>
-      <div className="mt-1.5 hidden items-center justify-between gap-2 sm:flex">
-        {JOURNEY.map((k, i) => (
-          <span key={k} className={cn('min-w-0 flex-1 truncate font-mono text-[10.5px]',
-            i < step ? 'text-muted-foreground' : i === step ? 'font-semibold text-primary' : 'text-muted-foreground/50',
-            i === 0 ? 'text-start' : i === JOURNEY.length - 1 ? 'text-end' : 'text-center')}>{label(k, i)}</span>
-        ))}
-      </div>
-      <div className="mt-1.5 text-[11.5px] font-semibold text-primary sm:hidden">{label(JOURNEY[step], step)}</div>
+      </ol>
+      <div className={cn(S.sub, 'mt-2', tr.held ? 'text-warn-fg' : '')} aria-live="polite">{tr.next}</div>
     </div>
   );
 }
@@ -2063,7 +2129,7 @@ function QuoteSpread({ quotes, lang }) {
           </div>
           {/* One band. Not one bar per quote. */}
           <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-secondary/70">
-            <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-primary/35 via-primary/70 to-primary/35 motion-safe:transition-[width] motion-safe:duration-700" style={{ marginInlineStart: '25%' }} />
+            <div className="h-full w-1/2 rounded-full bg-linear-to-r from-primary/35 via-primary/70 to-primary/35 motion-safe:transition-[width] motion-safe:duration-700" style={{ marginInlineStart: '25%' }} />
           </div>
         </>
       ) : (

@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { compileBrief, renderModule } from '../kb/compile_brief.mjs';
+import { approxTokens, compileBrief, renderModule } from '../kb/compile_brief.mjs';
 
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 
@@ -30,4 +30,28 @@ test('every regulation digest names its sources and access date', () => {
     assert.match(t, /https?:\/\//, `${f} has no source URL`);
     assert.match(t, /2026-10-12/, `${f} has no access date`);
   }
+});
+
+// Ruling 1209 (13 Oct 2026): the contract-practice and materials digests carry sources and an access date the
+// same way, and the whole always-included block stays under the ~120k-token ceiling the ruling set.
+test('contract practice and every materials digest name sources and access date', () => {
+  const dir = new URL('../../knowledge/brief/uae_materials_brands/', import.meta.url);
+  const files = readdirSync(dir).filter((x) => x.endsWith('.md')).map((f) => new URL(f, dir));
+  assert.equal(files.length, 10, 'one materials digest per trade group');
+  for (const u of [new URL('../../knowledge/brief/uae_contract_practice.md', import.meta.url), ...files]) {
+    const t = readFileSync(u, 'utf8');
+    assert.match(t, /https?:\/\//, `${u.pathname} has no source URL`);
+    assert.match(t, /2026-10-13/, `${u.pathname} has no access date`);
+  }
+});
+
+// 3 Nov 2026: a reply carries the core, the supplier part and at most one pack, never the whole compilation; the most
+// any reply carries of it stays under the ruling's ceiling (the per-reply cap of 40k is brief_budget.test.ts's).
+test('the most compiled knowledge one reply carries stays under 120k tokens', () => {
+  const b = compileBrief();
+  const byId = new Map(b.partIds.map((id, i) => [id, b.partText[i]]));
+  const pack = Math.max(...b.packs.map(([, , ...ids]) => approxTokens(ids.map((id) => byId.get(id)).join('\n\n'))));
+  const most = b.approxTokens + approxTokens(b.supplier) + pack;
+  assert.ok(most < 120000, `~${most} tokens`);
+  assert.ok(most < 40000, `the core, the supplier part and the largest pack are ~${most} tokens, over the 40k a reply may carry`);
 });

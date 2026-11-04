@@ -58,6 +58,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "industrial_textiles:product-distinctions",
+      "topic": "Geosynthetics and industrial textiles: product types and functions",
+      "topic_ar": "المواد الجيوتركيبية والمنسوجات الصناعية: الأنواع والوظائف",
+      "kind": "product_distinctions",
+      "body_en": "Geotextiles are woven (slit-film or multifilament, high strength, for reinforcement and separation under heavy loads) or non-woven (needle-punched, felt-like, for filtration, drainage and protection of membranes), specified by mass in g/m2, tensile strength, puncture resistance (CBR), opening size and permeability. Other geosynthetics: geogrids (uniaxial for retaining walls, biaxial or triaxial for road base stabilisation), geomembranes (HDPE or LLDPE liners, by thickness such as 1.5 or 2.0 mm, for landfills, ponds and tanks, welded and tested on site), geosynthetic clay liners, geocells for slope and load support, drainage composites, and erosion-control mats. Industrial textiles beyond ground works: technical fabrics for filtration, conveyor belting fabrics, tarpaulins and covers (PVC-coated polyester, PE), shade cloth, safety netting and debris netting, fire blankets and welding curtains, and coated fabrics for tents and tensile structures. Selection follows the engineer's design and specification, and products are supplied with test certificates against standard methods (ISO or ASTM) and installation guidance.",
+      "body_ar": "المنسوجات الأرضية منسوجة (شرائح أو خيوط متعددة، عالية المتانة، للتسليح والفصل تحت الأحمال الثقيلة) أو غير منسوجة (مثقبة بالإبر، تشبه اللباد، للترشيح والتصريف وحماية الأغشية)، وتُحدد بالكتلة بالغرام للمتر المربع، ومقاومة الشد، ومقاومة الثقب، وحجم الفتحات، والنفاذية. ومواد جيوتركيبية أخرى: الشبكات الأرضية (أحادية الاتجاه للجدران الساندة، وثنائية أو ثلاثية لتثبيت طبقات أساس الطرق)، والأغشية الأرضية (بطانات HDPE أو LLDPE حسب السماكة مثل 1.5 أو 2.0 مم للمرادم والبرك والخزانات، تُلحم وتُختبر في الموقع)، وبطانات الطين الجيوتركيبية، والخلايا الأرضية لدعم المنحدرات والأحمال، ومركبات التصريف، وحصائر مكافحة التعرية. والمنسوجات الصناعية خارج أعمال التربة: الأقمشة الفنية للترشيح، وأقمشة السيور الناقلة، والمشمعات والأغطية (بوليستر مطلي بـ PVC، بولي إيثيلين)، وقماش الظل، وشبكات السلامة والحطام، وبطانيات الحريق وستائر اللحام، والأقمشة المطلية للخيام والهياكل الشدية. ويتبع الاختيار تصميم المهندس ومواصفته، وتُورد المنتجات بشهادات اختبار وفق طرق معيارية (ISO أو ASTM) وإرشادات التركيب.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Geotextile"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: woven versus non-woven geotextiles; separation, filtration, reinforcement, protection and drainage functions -> confirmed."
+    },
+    {
+      "id": "industrial_textiles:lead-times-and-quoting",
+      "topic": "Industrial textiles & geosynthetics - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المنسوجات الصناعية والمواد الجيوتركيبية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock rolls: days; specific grades or large quantities 2-6 weeks; geomembrane installation scheduled with earthworks. A supplier needs the application, the specification values, area or quantity, roll sizes, installation needs, and test certificate requirements. A quote states product, manufacturer, properties against the specification, roll dimensions, quantity with overlaps, test certificates, installation and QA testing if included, delivery and validity.",
+      "body_ar": "اللفات المتوفرة: أيام؛ والدرجات الخاصة أو الكميات الكبيرة 2-6 أسابيع؛ وتركيب الأغشية الأرضية يُجدول مع أعمال التربة. ويحتاج المورد التطبيق، وقيم المواصفة، والمساحة أو الكمية، ومقاسات اللفات، واحتياجات التركيب، ومتطلبات شهادات الاختبار. ويذكر العرض المنتج والصانع والخصائص مقابل المواصفة وأبعاد اللفات والكمية مع التداخلات وشهادات الاختبار والتركيب واختبارات الجودة إن كانت مشمولة والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry covers HDPE geomembrane landfill liner thickness (for example 1.5-2.0 mm)). industrial_textiles:landfill-hdpe-geomembrane-thickness was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from industrial_textiles.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Woven or non-woven geotextile under a gravel access road on soft ground?",
+      "q_ar": "منسوج ولا غير منسوج تحت طريق حصى على أرض لينة؟",
+      "expected_entry_ids": [
+        "industrial_textiles:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -102,6 +140,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "industrial_textiles:landfill-hdpe-geomembrane-thickness"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "industrial_textiles:product-distinctions"
+      ],
+      "stored_not_served": [
+        "industrial_textiles:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Geotextile"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

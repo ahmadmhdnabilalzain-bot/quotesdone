@@ -74,8 +74,12 @@ import { isDemoEmail } from '../_shared/demo_identity.ts';
 import { revealChargeFor, absorbedStripeCost } from '../_shared/reveal_fee.ts';
 import { readStatement } from '../_shared/bank_statement_parse.ts';
 import { statementRowText, takeInStatement } from '../_shared/bank_statement_intake.ts';
-import { disputeEvidenceForm } from '../_shared/dispute_evidence.ts';
+import { draftDisputes } from '../_shared/dispute_draft.ts';
 import { type InboundItem, type MailboxMessage, mailboxMessages, registerRowsFor } from '../_shared/expense_mailbox.ts';
+// 3 Nov 2026 — a paid reveal with no sale is found and recorded within the hour (action 'reveal_reconcile').
+import { recordRevealSale } from '../_shared/reveal_sale.ts';
+import { clampDays, reportable, sweepReveals, type Mode } from '../_shared/reveal_reconcile.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -1432,33 +1436,7 @@ Deno.serve(observe('accountant', async (req) => {
       // assembled, and the CEO gets a review item; (2) it is submitted only when
       // fn_accountant_disputes_to_submit names a trigger: the CEO's approval, or his silence at T-24h.
       const answered: Record<string, unknown>[] = [];
-      const { data: toDraft } = await admin.rpc('fn_accountant_disputes_to_draft');
-      for (const ev of (toDraft || []) as Record<string, any>[]) {
-        if (ev?.ok !== true) continue;
-        const key = ev.livemode ? keys.live : keys.test;
-        if (!key) { await admin.rpc('fn_accountant_dispute_drafted', { p_id: ev.dispute, p_ok: false, p_response: null, p_error: 'no Stripe key for this mode' }); continue; }
-        let fileId: string | undefined;
-        if (ev.receipt?.path) {
-          const { data: blob } = await admin.storage.from(String(ev.receipt.bucket)).download(String(ev.receipt.path));
-          if (blob) {
-            const fd = new FormData();
-            fd.set('purpose', 'dispute_evidence');
-            fd.set('file', blob, String(ev.receipt.name || 'invoice.pdf'));
-            const fr = await fetch('https://files.stripe.com/v1/files', { method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd });
-            const fj = await fr.json().catch(() => ({}));
-            if (fr.ok && fj?.id) fileId = String(fj.id);
-          }
-        }
-        const r = await fetch('https://api.stripe.com/v1/disputes/' + encodeURIComponent(String(ev.dispute)), {
-          method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: disputeEvidenceForm(ev.fields || {}, { receipt: fileId }, false).toString(),   // a DRAFT: submit=false
-        });
-        const j = await r.json().catch(() => ({}));
-        await admin.rpc('fn_accountant_dispute_drafted', { p_id: ev.dispute, p_ok: r.ok,
-          p_response: r.ok ? { id: j.id, status: j.status, receipt_file: fileId ?? null, draft: true } : null,
-          p_error: r.ok ? null : 'HTTP ' + r.status + ': ' + String(j?.error?.message || '').slice(0, 300) });
-        answered.push({ dispute: ev.dispute, drafted: r.ok, receipt_file: fileId ?? null });
-      }
+      answered.push(...await draftDisputes(admin, keys));   // _shared/dispute_draft.ts; stripe_webhook runs it on charge.dispute.created too
       const { data: toSubmit } = await admin.rpc('fn_accountant_disputes_to_submit');
       for (const s of (toSubmit || []) as Record<string, any>[]) {
         const key = s.livemode ? keys.live : keys.test;
@@ -1588,6 +1566,86 @@ Deno.serve(observe('accountant', async (req) => {
       await run('duties', 'ok', { mailbox: (mailbox as Record<string, unknown>)?.verdict ?? null, bank_lines: bankLines, disputes_answered: answered.length, months_rendered: rendered.length, year_end: yearEnd.length,
         stripe_live: (stripe.live as Record<string, unknown>)?.basis, stripe_test: (stripe.test as Record<string, unknown>)?.basis });
       return J({ ok: true, seat: 'accountant', result: out, mailbox, disputes_answered: answered, months_rendered: rendered, year_end: yearEnd });
+    }
+
+    // ── REVEAL_RECONCILE: a paid reveal with no sale is found and recorded (3 Nov 2026) ───────────
+    // The seat duty accountant.reveal_reconcile (scripts/sql/a_paid_reveal_with_no_sale_is_found_and_recorded_within_the_hour.sql)
+    // calls this every hour with its run id. The sweep is _shared/reveal_reconcile.ts: Stripe's paid reveal invoices
+    // and PaymentIntents of the last N days against transactions, each one missing recorded through recordRevealSale.
+    // Both keys are swept. A test-mode payment is recorded only when its quote belongs to a demo account (the rule
+    // stripe_webhook's testEventIsDemo applies); any other is outcome 'test_mode_not_demo', a finding, never a ledger row.
+    if (action === 'reveal_reconcile') {
+      const runId = Number.isSafeInteger(Number(body.run_id)) && Number(body.run_id) > 0 ? Number(body.run_id) : null;
+      const days = clampDays(body.days ?? 30);
+      const keys: Record<Mode, string | undefined> = { live: await sec('stripe_secret_key'), test: await sec('stripe_secret_key_test') };
+      // deno-lint-ignore no-explicit-any
+      const S = async (mode: Mode, path: string): Promise<any | null> => {
+        try {
+          const r = await timedFetch('https://api.stripe.com/v1/' + path, { headers: { Authorization: 'Bearer ' + keys[mode] } });
+          return r.ok ? await r.json().catch(() => null) : null;
+        } catch (_e) { return null; }
+      };
+      const modes = (['live', 'test'] as Mode[]).filter((m) => keys[m]);
+      let swept;
+      try {
+        swept = await sweepReveals({
+          modes,
+          list: async (mode, path) => { const j = await S(mode, path); return j && Array.isArray(j.data) ? { data: j.data, has_more: j.has_more === true } : null; },
+          invoicePayment: async (mode, id) => {
+            const j = await S(mode, 'invoice_payments?invoice=' + encodeURIComponent(id));
+            const list = ((j?.data || []) as { status?: string; payment?: { payment_intent?: unknown } }[]).filter((x) => x?.payment?.payment_intent);
+            const p = (list.find((x) => x.status === 'paid') || list[0])?.payment?.payment_intent as string | { id: string } | undefined;
+            return p ? String(typeof p === 'string' ? p : p.id) : null;
+          },
+          readPayment: async (mode, pi) => {
+            const j = await S(mode, 'payment_intents/' + encodeURIComponent(pi) + '?expand[]=latest_charge.balance_transaction');
+            if (!j?.id) return null;
+            const bt = j.latest_charge?.balance_transaction;
+            return { status: String(j.status), amount_received: Number(j.amount_received || 0), amount_refunded: Number(j.latest_charge?.amount_refunded || 0),
+              fee_fils: typeof bt?.fee === 'number' ? bt.fee : null, fee_details: bt?.fee_details ?? null };
+          },
+          findTransactions: async (q) => {
+            const cols = 'id,quote_id,payment_ref,stripe_invoice_id';
+            // 100 ids a request: a 30-day window of every paid reveal would otherwise be one URL of many kilobytes.
+            const chunks = (xs: string[]) => Array.from({ length: Math.ceil(xs.length / 100) }, (_, i) => xs.slice(i * 100, i * 100 + 100));
+            const parts = [];
+            for (const [col, ids] of [['stripe_invoice_id', q.invoices], ['payment_ref', q.refs], ['quote_id', q.quotes]] as const) {
+              for (const part of chunks(ids)) parts.push(await admin.from('transactions').select(cols).in(col, part));
+            }
+            const bad = parts.find((p) => p.error);
+            // An unread book is not an empty book: recording against it could write a second sale.
+            if (bad?.error) throw new Error('transactions could not be read: ' + bad.error.message);
+            const seen = new Map<string, { id: string; quote_id: string | null; payment_ref: string | null; stripe_invoice_id: string | null }>();
+            for (const p of parts) for (const t of (p.data || []) as { id: string; quote_id: string | null; payment_ref: string | null; stripe_invoice_id: string | null }[]) seen.set(String(t.id), { ...t, id: String(t.id) });
+            return [...seen.values()];
+          },
+          isDemoQuote: async (quoteId) => {
+            const { data: q } = await admin.from('quotes').select('inquiry_id').eq('id', quoteId).maybeSingle();
+            if (!q?.inquiry_id) return false;
+            const { data } = await admin.rpc('fn_inquiry_is_demo', { p_inquiry: q.inquiry_id });
+            return data === true;
+          },
+          record: (a) => recordRevealSale(admin, a),
+          // What Stripe kept, write-once, exactly as stripe_webhook's recordStripeFee: fn_gl_sync_business books it to 6100.
+          recordFee: async (txId, feeFils, details) => {
+            await admin.from('transactions').update({ stripe_fee_fils: feeFils, stripe_fee_details: details }).eq('id', txId).is('stripe_fee_fils', null);
+          },
+        }, { days, nowSec: Math.floor(Date.now() / 1000), maxPages: 5, maxRecords: 25, maxAttempts: 50, graceSeconds: 900 });
+      } catch (e) {
+        const msg = String((e as Error)?.message || e).slice(0, 300);
+        await admin.rpc('fn_accountant_reveal_reconcile_record', { p_run_id: runId, p_r: { days, error: msg, modes: {}, outcomes: [] } });
+        await run('reveal_reconcile', 'error', { run_id: runId }, 'the reveal sweep stopped: ' + msg);
+        return J({ ok: false, error: msg }, 500);
+      }
+      for (const m of ['live', 'test'] as Mode[]) if (!keys[m]) swept.modes[m] = { basis: 'not_configured', invoices: 0, payment_intents: 0, truncated: false, reason: 'app_secrets holds no Stripe ' + m + ' key' };
+      const { data: out, error: rErr } = await admin.rpc('fn_accountant_reveal_reconcile_record', { p_run_id: runId,
+        p_r: { days, modes: swept.modes, checked: swept.checked, too_recent: swept.too_recent, outcomes: reportable(swept.outcomes) } });
+      const tally: Record<string, number> = {};
+      for (const o of swept.outcomes) tally[o.outcome] = (tally[o.outcome] || 0) + 1;
+      await run('reveal_reconcile', rErr ? 'error' : 'ok', { run_id: runId, days, checked: swept.checked, ...tally },
+        rErr ? 'fn_accountant_reveal_reconcile_record raised: ' + rErr.message : undefined);
+      // The result names counts and ids only: this endpoint answers every caller holding the seat's credential.
+      return rErr ? J({ ok: false, error: rErr.message, outcomes: tally }, 500) : J({ ok: true, seat: 'accountant', outcomes: tally, result: out });
     }
 
     // ── BANK_STATEMENT: a statement handed in directly (CSV export or text) ───────────────────────

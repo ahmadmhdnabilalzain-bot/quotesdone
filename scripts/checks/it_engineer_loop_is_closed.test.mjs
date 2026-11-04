@@ -120,15 +120,24 @@ test('a receiving seat cannot close an it_engineer handoff; the it_engineer can'
         values (t.to_seat, 'handoff', 'pending', 'low', 'ZZ DEMO close probe',
                 jsonb_build_object('type', t.type, 'from', 'it_engineer', 'to', t.to_seat), 'probe', 'zz_probe:' || n)
         returning id into v_id;
+        -- Both attempts CITE the handover note (evidence.cites_note from fn_handoff_note_citation, what
+        -- fn_seat_handoff_complete writes). Since 27 Oct (a_handoff_closes_only_when_its_receiver_cites_the_note_or_
+        -- says_why_not.sql, ledger 1013) trigger a02 refuses an uncited close with 23514, which failed the
+        -- originator's close here AND would have let a02, not z61, account for the receiver's refusal. With the note
+        -- cited, z61 is the only thing that can refuse the receiver, which is what this test is about.
         begin
           perform set_config('qd.handoff_closer', t.to_seat, true);
           perform set_config('qd.backup_closer', t.to_seat, true);
-          update public.agent_actions set status = 'done' where id = v_id;
+          update public.agent_actions set status = 'done', evidence = coalesce(evidence, '{}'::jsonb)
+                 || jsonb_build_object('cites_note', public.fn_handoff_note_citation(v_id))
+           where id = v_id;
         exception when others then refused := refused + 1; end;
         -- qd.backup_closer too: the backup build's own trigger (z60) reads that name for its two types.
         perform set_config('qd.handoff_closer', 'it_engineer', true);
         perform set_config('qd.backup_closer', 'it_engineer', true);
-        update public.agent_actions set status = 'done' where id = v_id and status <> 'done';
+        update public.agent_actions set status = 'done', evidence = coalesce(evidence, '{}'::jsonb)
+               || jsonb_build_object('cites_note', public.fn_handoff_note_citation(v_id))
+         where id = v_id and status <> 'done';
         if found then closed := closed + 1; end if;
       end loop;
       raise exception 'CHK<<%>>', json_build_object('conversations', n, 'refused', refused, 'originator_closed', closed);
@@ -300,7 +309,14 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
        where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
          and a.status in ('pending','failed')
          and (f.issue_key is null or f.closed_at is not null
-              or f.started_at > (a.detail->>'occurrence_started_at')::timestamptz);
+              or f.started_at > (a.detail->>'occurrence_started_at')::timestamptz)
+         -- 27 Oct 2026: and only a handoff that BECAME an incident. fn_it_learning_from_playbook returns null for
+         -- one with no it_incident row ("No incident row -- the handoff never became a new bug. Nothing to learn,
+         -- and nothing is wrong."; the row is opened by fn_ceo_it_escalation_decide on escalation), and reverify
+         -- simply closes it. Counting those made it learned 42 / covered 108 on 27 Oct: the 66 extra were cleared,
+         -- never-escalated handoffs piled up while the alert tick was rolled back every tick (#1613), not a gate
+         -- that failed to open. Measured the same day: cleared + covered + with an incident = 42 = learned.
+         and exists (select 1 from public.it_incident i where i.handoff_id = a.id);
       v := public.fn_it_loop_reverify();
       select count(*),
              count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null)
@@ -312,6 +328,7 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
         'parked_after', v_after, 'parked_after_but_covered', v_parked_covered,
         'covered_by_playbook', v_known, 'not_covered', v_unknown,
         'closed', (v->>'closed')::int, 'learned_from_playbook', (v->>'learned_from_playbook')::int,
+        'left_for_next_tick', coalesce((v->>'left_for_next_tick')::int, 0),
         'known_class', (public.fn_it_playbook_for('duty:heartbeat:ZZ DEMO probe step')).failure_class,
         'narrower_class_without_a_cause', (public.fn_it_playbook_for('duty:demo:window:ZZ DEMO')).failure_class,
         'unknown_class_opened', (public.fn_it_playbook_for('duty:zz_demo_no_such_class:ZZ DEMO')).failure_class);
@@ -321,8 +338,11 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
   assert.equal(r.narrower_class_without_a_cause, null,
     'a key whose own class has no written cause borrowed a broader class: the gate opened on a guess');
   assert.equal(r.known_class, 'heartbeat_step', 'the playbook no longer covers duty:heartbeat:');
+  // STRICT, ALWAYS (release review of #1618, 27 Oct): one pass must learn every covered handoff and leave none parked.
+  // A pass that stops early (#1613's budget, left_for_next_tick > 0) is red here until the walk reaches every
+  // handoff in one pass - never a weaker "no more than covered".
   assert.equal(r.learned_from_playbook, r.covered_by_playbook,
-    'a cleared handoff whose class the playbook covers was not filled from it');
+    `a cleared handoff whose class the playbook covers was not filled from it (left for next tick: ${r.left_for_next_tick})`);
   assert.equal(r.parked_after_but_covered, 0, 'a handoff the playbook covers is still parked after the pass');
   // Deliberately NO assertion that either count is above zero. Both are a snapshot of production's
   // backlog: a floor on them would turn a drained queue -- the thing this build is for -- into a red
@@ -338,7 +358,9 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
 // transaction that rolls back. A pending file that redefines the tick is replayed first in the same request, so a
 // PR is measured against the routine it will apply. 6000 ms, as for fn_it_detect above: 2 s of headroom.
 const PENDING_TICK = manifestWithPending().filter((f) => !applied.has(f))
-  .map((f) => readFileSync(join(REPO, f), 'utf8')).filter((t) => /function public\.fn_it_(loop_tick|engineer_alert_tick)\(/i.test(t));
+  // fn_it_loop_reverify too (27 Oct 2026): the tick runs it first, and its walk over ~1,000 handoffs is what took the
+  // tick past 8 s (the_it_loop_reverify_works_within_a_budget_so_the_alert_tick_commits.sql)
+  .map((f) => readFileSync(join(REPO, f), 'utf8')).filter((t) => /function public\.fn_it_(loop_tick|engineer_alert_tick|loop_reverify)\(/i.test(t));
 test('the alert tick fits the 8 s statement timeout and escalates before it opens', { skip: SKIP }, async () => {
   const block = `do $p$
     declare t0 timestamptz; v jsonb;
@@ -368,4 +390,59 @@ test('the alert tick fits the 8 s statement timeout and escalates before it open
   assert.ok(r.opened <= 50, `the open step opened ${r.opened} findings in one tick; it is capped at 50`);
   assert.equal(r.silence_ran, true, 'the silence watch was due and did not run: the worst case was not measured');
   assert.equal(r.floor_4_5, true, 'the forced open floor is no longer 4.5 s after the statement began');
+});
+
+// RE-VERIFY WORKS WITHIN A BUDGET AND STILL REACHES THE TAIL (it_engineer, 27 Oct 2026). fn_it_loop_reverify stops 1 s
+// after it began (the_it_loop_reverify_works_within_a_budget_so_the_alert_tick_commits.sql) and walks oldest first, so
+// the risk is a head of handoffs it passes without closing, walked again every tick, that keeps the closable ones
+// behind it from ever being reached. This measures it instead of arguing it: successive calls in ONE transaction that
+// always rolls back (each sees what the last wrote, as committed ticks do), on production's real backlog, until a call
+// leaves nothing for the next; then one more call must find nothing left to close or escalate. Measured 27 Oct 2026:
+// 48 calls, 973 pending -> 562, left_for_next_tick 950 -> 0, the last call 77 ms with 0 closed.
+test('successive reverify calls reach and close the closable tail', { skip: SKIP }, async () => {
+  const block = `do $p$
+    declare v jsonb; t timestamptz; n int := 0; slowest int := 0; ms int;
+    begin
+      perform set_config('app.qd_stub_founder_notify', 'on', true);
+      loop
+        n := n + 1;
+        t := clock_timestamp(); v := public.fn_it_loop_reverify();
+        ms := round(extract(epoch from clock_timestamp() - t) * 1000); slowest := greatest(slowest, ms);
+        exit when coalesce((v->>'left_for_next_tick')::int, -1) = 0 or n >= 150;
+      end loop;
+      t := clock_timestamp(); v := public.fn_it_loop_reverify();
+      raise exception 'CHK<<%>>', json_build_object('calls', n, 'slowest_ms', slowest,
+        'final_ms', round(extract(epoch from clock_timestamp() - t) * 1000), 'final_left', v->'left_for_next_tick',
+        'final_closed', v->'closed', 'final_escalated', v->'escalated');
+    end $p$;`;
+  let r;
+  try {
+    await replaySql([...PENDING_TICK, block].join('\n;\n'), { retry: false, label: 'reverify drains' });
+  } catch (e) {
+    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    if (!m) throw e;
+    r = JSON.parse(m[1].replace(/\\"/g, '"'));
+  }
+  assert.ok(r, 'the probe committed instead of rolling back');
+  assert.ok(r.calls < 150, `150 successive calls still left handoffs for the next one: the walk does not reach the tail ${JSON.stringify(r)}`);
+  assert.equal(r.final_left, 0, `a call after the drain still ran out of budget ${JSON.stringify(r)}`);
+  assert.equal(r.final_closed, 0, `a call after the drain still found handoffs to close: earlier calls never reached them ${JSON.stringify(r)}`);
+  assert.equal(r.final_escalated, 0, `a call after the drain still found handoffs to escalate ${JSON.stringify(r)}`);
+  assert.ok(r.slowest_ms < 3000, `one reverify call took ${r.slowest_ms} ms; its budget is 1 s`);
+});
+
+// CLEARED FINDINGS FIRST (it_engineer, 27 Oct 2026). With escalations at ~150-200 ms each, an oldest-first walk spent its
+// 1 s before reaching the newest ~280 handoffs, so a seat whose fix cleared its finding stayed open behind the backlog:
+// the_accountant_closes_every_loop_it_opens failed with "handoff 308365 ... reads pending after re-verification", and
+// one call closed 0 where the cleared-first walk closed 21 (rolled back, production). The body that will run (the
+// last MANIFEST or pending file that defines it) must order the walk by the cleared test before the id.
+// the_it_loop_reverify_walks_cleared_findings_first_so_a_close_is_never_starved.sql
+test('the reverify walk takes cleared findings first, then the rest by id', () => {
+  const def = manifestWithPending().map((f) => readFileSync(join(REPO, f), 'utf8'))
+    .filter((t) => /function public\.fn_it_loop_reverify\(\)/i.test(t)).pop();
+  assert.ok(def, 'no file defines fn_it_loop_reverify');
+  const body = def.slice(def.search(/function public\.fn_it_loop_reverify\(\)/i));
+  const walk = body.slice(body.indexOf('for h in select'), body.indexOf(' loop', body.indexOf('for h in select')) + 5);
+  assert.match(walk, /order by coalesce\(f0\.issue_key is null or f0\.closed_at is not null\s+or f0\.started_at > \(a\.detail->>'occurrence_started_at'\)::timestamptz, false\) desc,\s+a\.id loop/,
+    'fn_it_loop_reverify walks oldest first again: a cleared handoff can wait behind the escalation backlog for ever');
 });

@@ -16,6 +16,7 @@
 // IN USE means n > 0. A probe that returns 0 makes this scorecard say NO on its own.
 //
 //   node scripts/kb/pack_scorecard.mjs --ref=<project> --packs=<extracted packs dir>
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -23,7 +24,7 @@ const arg = (n) => (process.argv.find(a => a.startsWith(`--${n}=`)) || '').split
 const REF = arg('ref'), PACKS = arg('packs');
 if (!/^[a-z]{20}$/.test(REF) || !PACKS) throw new Error('--ref and --packs are required');
 const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8').trim());
+  || readFileSync(SUPABASE_TOKEN_FILE, 'utf8').trim());
 
 async function q(sql, attempt = 0) {
   let r, b;

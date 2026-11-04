@@ -87,7 +87,10 @@ test('every public table is exported every day or excluded with a reason', () =>
 });
 
 test('every registry row names a real table, an exclusion names a known category with a reason, frozen ones only shrink', () => {
-  const gone = [...REG.keys()].filter((t) => !TABLES.has(t) && !(RUNTIME_TABLES.has(t) && !REG.get(t).exported));
+  // A table is real if the mirror has it, or if the very file that registers it creates it and is already in MANIFEST: the
+  // mirror is regenerated from production AFTER the release train applies that file, so until then it cannot have the table.
+  const createdByItsOwnRow = (t) => createdIn(read(REG.get(t).file)).includes(t) && !DROPPED_PENDING.has(t);
+  const gone = [...REG.keys()].filter((t) => !TABLES.has(t) && !createdByItsOwnRow(t) && !(RUNTIME_TABLES.has(t) && !REG.get(t).exported));
   assert.deepEqual(gone, [], 'registry rows for tables that no longer exist - the daily export fails on them; set exported = false or drop the row');
   const bad = [...REG.values()].filter((r) => !r.exported && !EXCLUSION_CATEGORIES.includes(r.category)).map((r) => `${r.table}: ${r.category} (${r.file})`);
   assert.deepEqual(bad, [], `an exclusion is one of ${EXCLUSION_CATEGORIES.join(', ')}; "backlog" is gone for good`);

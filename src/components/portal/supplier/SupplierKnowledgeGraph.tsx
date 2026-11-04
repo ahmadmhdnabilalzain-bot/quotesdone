@@ -64,7 +64,7 @@ function Share({ n, max }: { n: number; max: number }) {
   return (
     <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mt-1">
       <div
-        className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all duration-700"
+        className="h-full rounded-full bg-linear-to-r from-emerald-400 to-teal-300 transition-all duration-700"
         style={{ width: Math.max(3, (n / Math.max(max, 1)) * 100) + '%' }}
       />
     </div>
@@ -93,7 +93,7 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
 
   return (
     <div className="space-y-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline mb-3">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'title')}</h3>
           <span className="text-[10px] opacity-40">
@@ -112,8 +112,8 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
                   key={c.slug}
                   className={'rounded-full border px-2.5 py-1 text-[11px] '
                     + (c.primary
-                      ? 'border-ok/30 bg-ok/[0.08] text-ok-fg'
-                      : 'border-white/12 bg-white/[0.03] opacity-80')}
+                      ? 'border-ok/30 bg-ok/8 text-ok-fg'
+                      : 'border-white/12 bg-white/3 opacity-80')}
                 >
                   {(lang === 'ar' && c.label_ar) || categoryLabel(c.label || c.slug, lang)}
                   {c.companies != null && <span className="opacity-55 ms-1.5 tabular-nums">{num(c.companies)}</span>}
@@ -127,7 +127,7 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
       </section>
 
       {mine.length > 0 && (
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+        <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
           <h3 className="text-xs uppercase tracking-wide opacity-60 mb-3">{t(lang, 'adjacent')}</h3>
           {adj.length === 0 ? (
             <p className="text-[12px] opacity-55 leading-snug">{t(lang, 'noneAdj')}</p>

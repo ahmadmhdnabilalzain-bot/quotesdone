@@ -753,7 +753,7 @@
     {
      "file": "supabase/functions/public_site/index.ts",
      "must_contain": [
-      "catalogueCategoryOf(defaultDeps(admin, 'public_site')"
+      "catalogueCategoryOf(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000, cacheTtlMin: PUBLIC_MEMO_MIN })"
      ]
     },
     {
@@ -1103,7 +1103,7 @@
     {
      "file": "supabase/functions/public_site/index.ts",
      "must_contain": [
-      "priceGuidanceFor(defaultDeps(admin, 'public_site')"
+      "priceGuidanceFor(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000, cacheTtlMin: PUBLIC_MEMO_MIN })"
      ],
      "must_not_contain": [
       "p_question"
@@ -2356,9 +2356,15 @@
     },
     {
      "file": "supabase/functions/sales_engineer/index.ts",
+     "note": "27 Oct 2026 (#1640, ruling 1195): the portal turn no longer DECIDES which quote field a question asks about. Every quote is one facts block and the reply model answers from it in the same call; neither the word match nor the think() pick is on the path.",
      "must_contain": [
-      "quoteQuestion(defaultDeps(admin, 'sales_engineer')",
-      "quoteAnswer(choice, shown, lang, message)"
+      "const shown = quotes.slice(0, 15).map(",
+      "'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\\n' + ownQuote"
+     ],
+     "must_not_contain": [
+      "quoteAnswer(",
+      "FIELD_RE",
+      "QUOTE_RE"
      ]
     },
     {
@@ -2382,8 +2388,10 @@
    "proof": [
     {
      "file": "supabase/functions/sales_engineer/index.ts",
+     "note": "27 Oct 2026 (#1640): the portal turn is one streamed answerFromBrief call (supportReply/think() is off the path). No passage is chosen by a shared word: the seat's retrieved records pass customerSafe and are given to the model as facts, which answers from them.",
      "must_contain": [
-      "const sr = await supportReply(defaultDeps(admin, 'sales_engineer')"
+      "const all = await customerSafe(",
+      "const a = key ? await answerFromBrief({"
      ],
      "must_not_contain": [
       "onTopic("
@@ -3016,7 +3024,8 @@
     {
      "file": "supabase/functions/wa_inbound/index.ts",
      "must_contain": [
-      "await fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp'"
+      "? fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp'",
+      "await reviewP;"
      ]
     },
     {

@@ -21,6 +21,7 @@
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --apply    # apply, then verify by read-back
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --promote  # accepted alias for --apply (history)
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --apply --ddl   # file also carries schema changes
+import { supabaseAccessToken } from './lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
@@ -54,8 +55,7 @@ const sql = readFileSync(file, 'utf8');
 }
 const one = (rows) => (rows && rows[0]) ? Object.values(rows[0])[0] : null;
 
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 // RETRIES, BECAUSE THE FAILURE MODE HERE IS A HALF-APPLIED DATABASE. The management API
 // rate-limits hard after a heavy session, so a 429 arriving between two routines in the same file
@@ -167,6 +167,18 @@ if (wanted.length) {
       from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
      where ns.nspname='public' and lower(p.proname) in (${wanted.map(w => `'${w}'`).join(',')})`);
   const have = new Set(rows.map(r => r.n));
+  // A TABLE NAMED LIKE A ROUTINE IS NOT A CALLEE (27 Oct 2026, it_engineer). `insert into public.fn_task_class (fn, …)`
+  // matched CALLEE and refused the_portal_turn_has_its_task_class.sql (#1640) as "calls public.fn_task_class()", which
+  // is a table. A name is excused only when it is an existing relation in public and no routine; a missing routine is
+  // still refused exactly as before.
+  const notFound = wanted.filter(w => !have.has(w));
+  if (notFound.length) {
+    const rels = await mgmtRead(PROD_REF, `select distinct lower(c.relname) n from pg_class c
+        join pg_namespace ns on ns.oid = c.relnamespace
+       where ns.nspname='public' and c.relkind in ('r','p','v','m','f')
+         and lower(c.relname) in (${notFound.map(w => `'${w}'`).join(',')})`);
+    for (const r of rels) have.add(r.n);
+  }
   const missing = wanted.filter(w => !have.has(w));
   if (missing.length) {
     console.error('REFUSED: this file defines a routine that calls something the database does not have.');

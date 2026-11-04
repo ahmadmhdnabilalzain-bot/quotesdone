@@ -1,3 +1,34 @@
+CREATE OR REPLACE FUNCTION public.fn_pack_rows_without_fresh_ml_vector(p_grace interval DEFAULT '01:00:00'::interval)
+ RETURNS TABLE(src text, pack_rows integer, without_fresh integer, overdue integer, oldest_due timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with last_load as (
+    select max(r.finished_at) t from public.agent_runs r
+     where r.agent = 'it_engineer' and r.counts->>'job' = 'verified_pack_load'
+  ), pack as (
+              select 'ceo_knowledge'::text src, c.record_id, null::timestamptz upd from public.ceo_knowledge c where c.tags @> array['verified_pack']
+    union all select 'support_knowledge', s.record_id, null from public.support_knowledge s where s.tags @> array['verified_pack']
+    union all select 'accountant_knowledge', a.record_id, a.updated_at from public.accountant_knowledge a where a.tags @> array['verified_pack']
+    union all select 'it_engineer_knowledge', i.record_id, i.updated_at from public.it_engineer_knowledge i where i.tags @> array['verified_pack']
+    union all select 'marketing_knowledge', m.record_id, m.updated_at from public.marketing_knowledge m where m.tags @> array['verified_pack']
+    union all select 'sales_knowledge', k.record_id, k.updated_at from public.sales_knowledge k where k.tags @> array['verified_pack']
+  ), j as (
+    -- Only what the queue can claim: an eligible row (it is in the view) with a body.
+    select p.src, (v.row_id is not null) fresh, coalesce(p.upd, (select t from last_load), '-infinity'::timestamptz) due
+      from pack p
+      join public.v_knowledge_ml_source s on s.src = p.src and s.row_id = p.record_id and btrim(coalesce(s.body, '')) <> ''
+      left join public.knowledge_vector_ml v on v.src = p.src and v.row_id = p.record_id
+            and v.text_hash = md5(coalesce(s.title, '') || E'\n' || coalesce(s.body, ''))
+  )
+  select j.src, count(*)::int, count(*) filter (where not j.fresh)::int,
+         count(*) filter (where not j.fresh and j.due < now() - p_grace)::int,
+         min(j.due) filter (where not j.fresh)
+    from j group by j.src order by j.src;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_page_high_agent_action()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -382,6 +413,71 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_phone_code_issue(p_phone text, p_purpose text, p_hash text, p_kind text, p_email text, p_ttl_seconds integer DEFAULT 600)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_id bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('phone_code:' || p_purpose || ':' || p_phone));
+  update public.phone_code set used_at = now()
+   where phone = p_phone and purpose = p_purpose and used_at is null;
+  insert into public.phone_code (phone, purpose, user_kind, email, code_hash, expires_at)
+  values (p_phone, p_purpose, p_kind, p_email, p_hash, now() + make_interval(secs => p_ttl_seconds))
+  returning id into v_id;
+  return v_id;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_phone_code_sent(p_id bigint, p_message_sid text, p_accepted boolean)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  update public.phone_code
+     set message_sid = p_message_sid,
+         used_at = case when p_accepted then used_at else coalesce(used_at, now()) end
+   where id = p_id;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_phone_code_verify(p_phone text, p_purpose text, p_hash text, p_max_attempts integer DEFAULT 5)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record;
+begin
+  select id, expires_at, attempts, code_hash
+    into r
+    from public.phone_code
+   where phone = p_phone and purpose = p_purpose and used_at is null
+   order by created_at desc, id desc
+   limit 1
+   for update;
+  if not found then return 'no_code'; end if;
+  if r.expires_at < now() then return 'expired'; end if;
+  if r.attempts >= p_max_attempts then
+    update public.phone_code set used_at = now() where id = r.id and used_at is null;
+    return 'burned';
+  end if;
+  update public.phone_code set attempts = attempts + 1 where id = r.id;
+  if r.code_hash = p_hash then
+    update public.phone_code set used_at = now() where id = r.id and used_at is null;
+    if found then return 'ok'; end if;
+  end if;
+  return 'wrong';
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_pick_reviewer(p_dept_key text, p_author text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -506,6 +602,101 @@ begin
     'delegated_from', v_head, 'basis', coalesce(v_basis, 'delegation'));
 end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_plain_language_score(p_text text, p_lang text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c_max_sentence constant int := 28;      -- MAX_SENTENCE_WORDS
+  c_max_avg      constant int := 20;      -- MAX_AVG_SENTENCE_WORDS
+  c_min_for_avg  constant int := 3;       -- MIN_SENTENCES_FOR_AVERAGE
+  c_jargon_en constant text[] := array['pursuant', 'herein', 'hereby', 'aforementioned', 'heretofore', 'notwithstanding',
+    'utilise', 'utilize', 'leverage', 'synergy', 'facilitate', 'escalation matrix', 'ticket id', 'workflow', 'backend',
+    'endpoint', 'payload', 'webhook', 'database', 'null', 'undefined', 'rfq', 'sla', 'kyc', 'api', 'rls', 'sku', 'moq',
+    'incoterm'];
+  c_jargon_ar constant text[] := array['بموجب', 'المذكور أعلاه', 'آنف الذكر', 'حيثما ينطبق', 'قاعدة البيانات'];
+  c_acronyms constant text[] := array['UAE', 'AED', 'VAT', 'FAQ', 'PDF', 'OTP', 'USD', 'GCC', 'DED', 'LLC', 'FZE', 'FZCO', 'OK'];
+  -- letters: any alphabetic character (Latin, accented, Arabic)
+  c_letter constant text := '[[:alpha:]]';
+  v_body text; v_lower text;
+  v_counts int[] := '{}'; v_s text; v_n int; v_max int := 0; v_avg numeric := 0; v_sentences int := 0;
+  v_jargon text[] := '{}'; j text;
+  v_ar int; v_la int; v_share numeric := 0;
+  v_issues text[] := '{}'; v_score numeric := 100; v_tone numeric := 100; v_averaged boolean;
+  v_shout int := 0;
+begin
+  v_body := btrim(regexp_replace(coalesce(p_text, ''), 'https?://\S+|www\.\S+|\S+@\S+\.\S+', ' ', 'g'));
+
+  -- a sentence ends at . ! ? ؟ or a line break; a decimal point inside a number is not an end
+  for v_s in select btrim(x) from regexp_split_to_table(v_body, '(?<![0-9])[.!?؟]+(?![0-9])|\n+') x loop
+    continue when v_s !~ '[[:alnum:]]';
+    select count(*) into v_n from regexp_split_to_table(v_s, '\s+') w where w ~ c_letter;
+    v_counts := v_counts || v_n;
+  end loop;
+  v_sentences := coalesce(cardinality(v_counts), 0);
+  if v_sentences > 0 then
+    select max(c), round(avg(c), 1) into v_max, v_avg from unnest(v_counts) c;
+  end if;
+
+  v_lower := lower(v_body);
+  foreach j in array c_jargon_en loop
+    if v_lower ~ ('(^|[^[:alpha:]])' || replace(j, ' ', '\s+') || '([^[:alpha:]]|$)') then v_jargon := v_jargon || j; end if;
+  end loop;
+  foreach j in array c_jargon_ar loop
+    if position(j in v_body) > 0 then v_jargon := v_jargon || j; end if;
+  end loop;
+  -- anything shaped like an internal identifier (snake_case, fn_ names)
+  v_jargon := v_jargon || coalesce((select array_agg(x[1]) from regexp_matches(v_body, '(\m[a-z]+(?:_[a-z0-9]+)+\M)', 'g') x), '{}');
+  -- distinct, first-seen order kept (the TypeScript reports [...new Set(jargon)])
+  select coalesce(array_agg(x order by o), '{}') into v_jargon
+    from (select x, min(o) o from unnest(v_jargon) with ordinality u(x, o) where x is not null group by x) d;
+
+  v_ar := length(regexp_replace(v_body, '[^؀-ۿ]', '', 'g'));
+  v_la := length(regexp_replace(v_body, '[^A-Za-z]', '', 'g'));
+  if v_ar + v_la > 0 then v_share := round(v_ar::numeric / (v_ar + v_la), 2); end if;
+
+  v_averaged := v_sentences >= c_min_for_avg;
+  if v_max > c_max_sentence then v_issues := v_issues || ('long_sentence:' || v_max); end if;
+  -- printed as JavaScript prints a number: 22, not 22.0
+  if v_averaged and v_avg > c_max_avg then
+    v_issues := v_issues || ('long_average:' || case when v_avg = trunc(v_avg) then trunc(v_avg)::text else v_avg::text end);
+  end if;
+  if cardinality(v_jargon) > 0 then
+    v_issues := v_issues || ('jargon:' || array_to_string((select array_agg(x) from (select x from unnest(v_jargon) x limit 5) z), ','));
+  end if;
+  if v_ar + v_la > 0 and p_lang = 'ar' and v_share < 0.6 then v_issues := v_issues || 'wrong_language:expected_ar'::text; end if;
+  if v_ar + v_la > 0 and p_lang = 'en' and v_share > 0.1 then v_issues := v_issues || 'wrong_language:expected_en'::text; end if;
+
+  v_score := v_score - greatest(0, v_max - c_max_sentence) * 2;
+  if v_averaged then v_score := v_score - greatest(0, v_avg - c_max_avg) * 3; end if;
+  v_score := v_score - cardinality(v_jargon) * 10;
+  if exists (select 1 from unnest(v_issues) i where i like 'wrong_language%') then v_score := v_score - 50; end if;
+
+  select count(*) into v_shout from regexp_matches(v_body, '\m([A-Z]{4,})\M', 'g') x where not (x[1] = any (c_acronyms));
+  v_tone := v_tone - v_shout * 10;
+  v_tone := v_tone - (select count(*) from regexp_matches(v_body, '!{2,}', 'g')) * 10;
+  v_tone := v_tone - 20 * ((v_body ~* '\myou (failed|forgot|should have|must have|did not read|didn''?t read)\M')::int
+                         + (v_body ~* '\myour fault\M')::int
+                         + (v_body ~* '\mobviously\M')::int
+                         + (v_body ~* '\mas (i|we) (already )?(said|explained|told you)\M')::int
+                         + (v_body ~ 'كما ذكرنا سابقا')::int
+                         + (v_body ~ 'خطؤك')::int);
+
+  return jsonb_build_object(
+    'ok', cardinality(v_issues) = 0,
+    'score', greatest(0, least(100, round(v_score)))::int,
+    'tone', greatest(0, least(100, round(v_tone)))::int,
+    'issues', to_jsonb(v_issues),
+    'sentences', v_sentences,
+    'max_sentence_words', v_max,
+    'avg_sentence_words', v_avg,
+    'jargon', to_jsonb(v_jargon),
+    'arabic_share', v_share);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_po_approve(p_po bigint, p_by text DEFAULT NULL::text)
@@ -699,6 +890,7 @@ AS $function$
              || coalesce(' (as of ' || pb.as_of::text || ')', '') as line
       from public.price_benchmark pb
      where pb.source_kind <> 'gap' and pb.item is not null and pb.low is not null
+       and pb.confidence = 'published'
      order by pb.category, pb.item, pb.unit, (case when pb.source_kind = 'blog_post' then 0 else 1 end), pb.as_of desc nulls last, pb.id
   )
   select '## PUBLISHED PRICE GUIDE (UAE ranges QuotesDone publishes; quote them as a range and say it is a guide, not a quotation — suppliers price the work)'
@@ -1045,6 +1237,29 @@ begin
     'note', case when nq=1 then 'Only one quote so far — comparison needs at least two.' else null end
   );
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_promotional_consent(p_email text, p_phone text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when nullif(btrim(p_email), '') is not null and exists (
+      select 1 from public.email_suppressions s where lower(s.email) = lower(btrim(p_email)) and lower(s.reason) = 'unsubscribe') then false
+    else exists (
+      select 1 from public.customers c
+       where c.marketing_consent
+         and ((nullif(btrim(p_email), '') is not null and lower(c.email) = lower(btrim(p_email)))
+           or (nullif(btrim(p_phone), '') is not null and (c.phone = btrim(p_phone) or c.whatsapp_phone = btrim(p_phone))))
+      union all
+      select 1 from public.leads l
+       where l.marketing_consent and l.claimed_by is not null
+         and ((nullif(btrim(p_email), '') is not null and lower(l.claimed_by) = lower(btrim(p_email)))
+           or (nullif(btrim(p_phone), '') is not null and (l.phone_e164 = btrim(p_phone) or l.whatsapp_phone = btrim(p_phone)))))
+  end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_prompt_approve_draft(p_key text, p_version integer, p_by text DEFAULT 'founder'::text)
@@ -1866,6 +2081,269 @@ begin
   update ai_rate_limit set count = count + 1 where bucket = p_bucket;
   return jsonb_build_object('allowed', true, 'count', r.count + 1, 'limit', p_limit);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_any_due()
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_gate jsonb;
+begin
+  if exists (select 1 from public.reasoning_held_question
+              where surface = any(public.fn_reask_surfaces()) and status in ('held', 'failed')
+                and (result ->> 'reask_sending_at')::timestamptz < now() - interval '5 minutes') then
+    return true;   -- a stale send to hand to the seat (fn_reask_due's first statement; no model call)
+  end if;
+  v_gate := public.fn_kernel_paid_provider_gate('hold-probe/not-a-model');
+  if coalesce(v_gate->>'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state') then
+    return false;
+  end if;
+  return exists (select 1 from public.reasoning_held_question h
+                  where h.surface = any(public.fn_reask_surfaces())
+                    and h.result ->> 'reask_sending_at' is null
+                    and (   (h.status = 'held' and h.attempts < 3 and h.created_at <= now() - interval '30 seconds'
+                             and (h.last_attempt_at is null or h.last_attempt_at <= now() - interval '50 seconds'))
+                         or (h.status in ('held', 'failed') and h.result ->> 'reviewed_state' = 'due')));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_due(p_limit integer DEFAULT 5)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_gate jsonb; v jsonb;
+begin
+  -- a send that started and never recorded is never repeated: the seat has it (one reply per turn). The marker moves to
+  -- reask_send_unrecorded_at (review of #1657, 27 Oct 2026): left in place, this row matched the kick's predicate for ever,
+  -- and the kick posted to sales_engineer every minute while this update rewrote the same row every minute.
+  update public.reasoning_held_question
+     set status = 'failed',
+         result = coalesce(result, '{}'::jsonb) - 'reask_sending_at'
+                  || jsonb_build_object('reask_send_unrecorded_at', result ->> 'reask_sending_at',
+                                        'reask_handed_off', 'its send started at '
+                  || (result ->> 'reask_sending_at') || ' and never recorded an outcome; not sent again'),
+         notice_delivered_at = coalesce(notice_delivered_at, now())   -- the person may have the answer: no notice on top
+   where surface = any(public.fn_reask_surfaces()) and status in ('held', 'failed')
+     and (result ->> 'reask_sending_at')::timestamptz < now() - interval '5 minutes';
+
+  v_gate := public.fn_kernel_paid_provider_gate('hold-probe/not-a-model');
+  if coalesce(v_gate->>'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state') then
+    return '[]'::jsonb;
+  end if;
+  with due as (
+    select h.id from public.reasoning_held_question h
+     where h.surface = any(public.fn_reask_surfaces())
+       and h.result ->> 'reask_sending_at' is null
+       and (   (h.status = 'held' and h.attempts < 3 and h.created_at <= now() - interval '30 seconds'
+                and (h.last_attempt_at is null or h.last_attempt_at <= now() - interval '50 seconds'))
+            -- a reviewed reply after the hand-off: the row is 'failed' (handed off) or 'held'; fn_reason_held_sweep turns
+            -- a held row at 3 attempts into 'failed', so both are open here
+            or  (h.status in ('held', 'failed') and h.result ->> 'reviewed_state' = 'due'))
+     order by h.created_at
+     limit greatest(1, least(coalesce(p_limit, 5), 20))
+     for update skip locked
+  ), claimed as (
+    update public.reasoning_held_question h
+       set attempts = h.attempts + case when h.result ->> 'reviewed_state' = 'due' then 0 else 1 end, last_attempt_at = now()
+      from due where h.id = due.id
+    returning h.id, h.seat, h.surface, h.request, h.subject, h.attempts, h.result, h.created_at
+  )
+  select coalesce(jsonb_agg(to_jsonb(claimed)), '[]'::jsonb) into v from claimed;
+  return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_hand_off(p_id bigint)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.reasoning_held_question;
+begin
+  update public.reasoning_held_question set escalated_at = now()
+   where id = p_id and escalated_at is null
+  returning * into h;
+  if h.id is null then return; end if;
+  insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+  values (h.seat, 'held_question', 'pending', 'medium',
+          left('A ' || coalesce(h.request -> 'context' ->> 'audience', 'customer') || ' on ' || h.surface
+               || ' has no reply: every model answer was refused. Write the reply.', 200),
+          jsonb_build_object('held_id', h.id, 'surface', h.surface, 'question', left(h.question, 1000), 'subject', h.subject,
+                             'held_since', h.created_at, 'status', h.status,
+                             'refused_for', coalesce(h.result -> 'reask_problems', '[]'::jsonb),
+                             'needed', 'write the reply and pass it to public.fn_reask_reviewed_reply(' || h.id
+                                       || ', <reply>, <who>): it is checked by the same gates and delivered into the same conversation'),
+          'reasoning_held_question', h.id::text);
+  if h.subject ->> 'log_id' ~ '^[0-9]+$' then
+    update public.assistant_logs set path = 'portal:with_team'
+     where id = (h.subject ->> 'log_id')::bigint and reply is null and path = 'portal:pending';
+  end if;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_kick()
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ref text; v_key text; v_cred text;
+begin
+  -- no request unless fn_reask_due would act: no edge call, no cost
+  if not public.fn_reask_any_due() then
+    return null;
+  end if;
+  select value into v_ref  from public.app_secrets where key = 'project_ref';
+  -- the gateway key through the one helper (the_lead_sourcing_kick_sends_the_publishable_key_not_the_legacy_anon_jwt.sql):
+  -- the legacy anon JWT is signed with the leaked HS256 secret, which can be revoked only once no routine sends it
+  v_key := public.fn_gateway_client_key();
+  select value into v_cred from public.app_secrets where key = 'cred_fn_sales_engineer';
+  if v_ref is null or v_key is null or v_cred is null then
+    raise exception 'fn_reask_kick: project_ref, publishable_key (or anon_key) or cred_fn_sales_engineer missing from app_secrets';
+  end if;
+  return net.http_post(url := 'https://' || v_ref || '.supabase.co/functions/v1/sales_engineer',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_key, 'apikey', v_key),
+    body := jsonb_build_object('__secret', v_cred, 'action', 'reask_turns'), timeout_milliseconds := 140000);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_record(p_id bigint, p_outcome jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.reasoning_held_question; v_problems jsonb; v_log text; v_title text;
+begin
+  select * into h from public.reasoning_held_question where id = p_id for update;
+  if h.id is null then return jsonb_build_object('id', p_id, 'status', 'missing'); end if;
+  if not (h.surface = any(public.fn_reask_surfaces())) then
+    raise exception 'fn_reask_record: % is not a re-ask surface', h.surface using errcode = '22023';
+  end if;
+  v_log := h.subject ->> 'log_id';
+
+  -- 0. a run that LOST the 'sending' claim to another run sent nothing and owns nothing: no change (review of #1657, 27 Oct
+  --    2026). Recorded as an ordinary failure, it fell into branch 3 below on the WINNER's marker: the row was failed and
+  --    handed to the seat while the winner was still delivering, and the winner's own failure could no longer be told.
+  if p_outcome ->> 'via' = 'not_yours' then
+    return jsonb_build_object('id', p_id, 'status', 'not_yours');
+  end if;
+
+  -- 1. claimed for ONE send: an open row nobody else is sending. 'failed' is open too: fn_reason_held_sweep turns a held
+  --    row at 3 attempts into 'failed' while its third re-ask is running, and a reviewed reply is sent from 'failed'.
+  if p_outcome ->> 'phase' = 'sending' then
+    if h.status not in ('held', 'failed') or h.result ? 'reask_sending_at' then
+      return jsonb_build_object('id', p_id, 'status', 'not_yours');
+    end if;
+    update public.reasoning_held_question set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('reask_sending_at', now())
+     where id = p_id;
+    return jsonb_build_object('id', p_id, 'status', 'sending');
+  end if;
+
+  -- 2. delivered into the conversation: the turn is answered, no holding notice is owed
+  if coalesce((p_outcome ->> 'delivered')::boolean, false) then
+    update public.reasoning_held_question
+       set status = 'applied', applied_at = now(), notice_delivered_at = coalesce(notice_delivered_at, now()),
+           result = coalesce(result, '{}'::jsonb) - 'reask_sending_at'
+                    || jsonb_build_object('reask_delivery', p_outcome, 'reask_delivered_at', now(),
+                                          'reviewed_state', case when h.result ->> 'reviewed_state' = 'due' then 'sent' else h.result ->> 'reviewed_state' end)
+     where id = p_id;
+    -- the seat's open item for this turn (if it was handed off) is done: the person has their reply
+    update public.agent_actions set status = 'done', decided_at = now(), decided_by = 'fn_reask_record'
+     where target_table = 'reasoning_held_question' and target_id = p_id::text and kind = 'held_question' and status = 'pending';
+    return jsonb_build_object('id', p_id, 'status', 'delivered');
+  end if;
+
+  -- 3. a send that started and failed (the channel refused it): the seat has it, never sent a second time
+  if h.result ? 'reask_sending_at' then
+    update public.reasoning_held_question
+       set status = 'failed', result = result - 'reask_sending_at' || jsonb_build_object('reask_delivery', p_outcome,
+             'reask_handed_off', 'the send failed: ' || coalesce(p_outcome ->> 'detail', p_outcome ->> 'via', '?'))
+     where id = p_id;
+    perform public.fn_reask_hand_off(p_id);
+    return jsonb_build_object('id', p_id, 'status', 'handed_off');
+  end if;
+
+  -- 4. a reviewed reply the gates refused: it stays with the seat, with what was wrong
+  if coalesce((p_outcome ->> 'reviewed')::boolean, false) then
+    update public.reasoning_held_question
+       set status = 'failed', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('reviewed_state', 'refused',
+             'reviewed_problems', coalesce(p_outcome -> 'problems', '[]'::jsonb), 'reviewed_refused_at', now())
+     where id = p_id;
+    perform public.fn_reask_hand_off(p_id);
+    return jsonb_build_object('id', p_id, 'status', 'handed_off');
+  end if;
+
+  -- 5. OpenRouter down: the attempt is given back; nothing code-written goes out from here (the turn's own notice did).
+  --    BOUNDED (review of #1657, 27 Oct 2026): for the turn's first 24 hours only. A re-ask row has no expires_at (only
+  --    fn_reason_held_due sets one, and it no longer claims these surfaces), and 'deadline' counts as an outage, so a
+  --    model that kept answering past the 45 s clock was asked every minute for ever, each call possibly billed. After
+  --    24 hours an outage spends its attempt like a refusal; at 3 the sweep fails the row and the seat has it.
+  if coalesce((p_outcome ->> 'outage')::boolean, false) then
+    update public.reasoning_held_question
+       set attempts = case when created_at > now() - interval '24 hours' then greatest(attempts - 1, 0) else attempts end,
+           result = coalesce(result, '{}'::jsonb) || jsonb_build_object('reask_last', p_outcome, 'reask_last_at', now())
+     where id = p_id;
+    return jsonb_build_object('id', p_id, 'status', 'outage');
+  end if;
+
+  -- 6. the model answered and nothing passed: keep its problems for the next ask; the last attempt hands it off
+  select coalesce(jsonb_agg(distinct x), '[]'::jsonb) into v_problems
+    from (select x from jsonb_array_elements_text(coalesce(h.result -> 'reask_problems', '[]'::jsonb)) x
+          union select x from jsonb_array_elements_text(case when jsonb_typeof(p_outcome -> 'problems') = 'array' then p_outcome -> 'problems' else '[]'::jsonb end) x) z;
+  update public.reasoning_held_question
+     set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('reask_problems', v_problems, 'reask_last', p_outcome, 'reask_last_at', now())
+   where id = p_id;
+  if h.attempts >= 3 then
+    update public.reasoning_held_question
+       set status = 'failed', result = result || jsonb_build_object('reask_handed_off', h.attempts || ' re-asks, every answer refused by the guards')
+     where id = p_id;
+    perform public.fn_reask_hand_off(p_id);
+    return jsonb_build_object('id', p_id, 'status', 'handed_off');
+  end if;
+  return jsonb_build_object('id', p_id, 'status', 'asked_again_later', 'attempts', h.attempts);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_reviewed_reply(p_id bigint, p_reply text, p_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.reasoning_held_question;
+begin
+  if btrim(coalesce(p_reply, '')) = '' or btrim(coalesce(p_by, '')) = '' then
+    raise exception 'fn_reask_reviewed_reply: a reply and who wrote it are required' using errcode = '22023';
+  end if;
+  select * into h from public.reasoning_held_question where id = p_id for update;
+  if h.id is null or not (h.surface = any(public.fn_reask_surfaces())) then
+    raise exception 'fn_reask_reviewed_reply: % is not a held re-ask turn', p_id using errcode = '22023';
+  end if;
+  if h.status not in ('held', 'failed') then return jsonb_build_object('id', p_id, 'status', 'closed: ' || h.status); end if;
+  update public.reasoning_held_question
+     set result = coalesce(result, '{}'::jsonb) - 'reask_sending_at'
+                  || jsonb_build_object('reviewed_reply', left(p_reply, 4000), 'reviewed_by', left(p_by, 120),
+                                        'reviewed_at', now(), 'reviewed_state', 'due')
+   where id = p_id;
+  return jsonb_build_object('id', p_id, 'status', 'queued_for_the_gates');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_surfaces()
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select array['wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten', 'sales_engineer.portal_unwritten',
+               'inquiry_intake.unwritten_reply']::text[];
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_accountant__bank_line(p_id bigint, p_result jsonb)
@@ -3042,7 +3520,10 @@ declare v_n int; v_ids jsonb;
 begin
   update public.reasoning_held_question
      set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('delivery', p_delivery),
-         status = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then 'applied' else status end,
+         status = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then 'applied'
+                       -- the model was up and nothing it wrote passed: asked again by the replay, escalated at its last try
+                       when p_delivery->>'via' = 'unwritten' then case when attempts >= 3 then 'failed' else 'held' end
+                       else status end,
          applied_at = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then now() else applied_at end
    where id = p_id;
   if p_delivery->>'via' = 'held_for_review' then
@@ -3077,13 +3558,14 @@ begin
     select distinct on (surface, coalesce(qhash, id::text)) id, attempts, last_attempt_at, created_at
       from public.reasoning_held_question
      where status = 'held' and attempts < 3
+       and not (surface = any(public.fn_reask_surfaces()))   -- 27 Oct 2026: asked again by fn_reask_due, every minute
      order by surface, coalesce(qhash, id::text), attempts desc, id
   ), due as (
     select h.id from public.reasoning_held_question h
      where h.id in (select id from lead where last_attempt_at is null or last_attempt_at < now() - interval '10 minutes')
-     -- 6 Oct: the NEWEST due question first; a retry (last_attempt_at set) still waits its 10 minutes, then goes
-     -- behind untried rows exactly as before, so it is never starved past its three tries.
-     order by h.last_attempt_at nulls first, h.created_at desc
+     -- 27 Oct: the OLDEST due question first (was: untried first, then newest, 6 Oct). A retry still waits its 10
+     -- minutes; after that its age alone decides. The three-try bound keeps one failing row from holding the head.
+     order by h.created_at, h.id
      limit greatest(1, least(coalesce(p_limit, 3), 10))
      for update skip locked
   ), claimed as (
@@ -3113,7 +3595,7 @@ begin
        and (status = 'failed'
             or (status = 'held' and created_at <= now() - interval '48 hours')
             -- a person is waiting on a conversation reply no model could write: 15 minutes, not 48 hours
-            or (status = 'held' and surface in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten')
+            or (status = 'held' and surface = any(public.fn_reask_surfaces())
                 and created_at <= now() - interval '15 minutes'))
      order by created_at
      limit greatest(1, least(coalesce(p_limit, 20), 100))
@@ -3126,8 +3608,8 @@ begin
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     select m.seat, 'held_question', 'pending', 'low',
            left('A question held ' || case when m.status = 'failed' then 'after 5 failed reasonings'
-                                           when m.surface in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten')
-                                             then '15 minutes with no model-written reply (the person has only the held notice)'
+                                           when m.surface = any(public.fn_reask_surfaces())
+                                             then '15 minutes with no model-written reply'
                                            else 'for 48 hours' end
                 || ' on ' || m.surface || ' needs you', 200),
            jsonb_build_object('held_id', m.id, 'surface', m.surface, 'question', left(m.question, 1000), 'subject', m.subject,
@@ -3140,6 +3622,12 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'seat', m.seat, 'surface', m.surface, 'question', left(m.question, 500),
                                               'subject', m.subject, 'status', m.status)), '[]'::jsonb)
     into v from marked m where (select count(*) from filed) >= 0;
+  -- the portal turn reads 'with_team' once its seat has it
+  update public.assistant_logs l set path = 'portal:with_team'
+    from public.reasoning_held_question h
+   where h.surface = 'sales_engineer.portal_unwritten' and h.escalated_at is not null and h.status <> 'applied'
+     and h.subject ->> 'log_id' ~ '^[0-9]+$' and l.id = (h.subject ->> 'log_id')::bigint
+     and l.reply is null and l.path = 'portal:pending';
   return v;
 end $function$
 
@@ -3150,14 +3638,30 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_expire(p_ids bigint[], p_by tex
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare n_exp int; n_handoff int;
+declare n_exp int; n_handoff int; n_kept int := 0; h record; c jsonb; v_ids bigint[] := p_ids;
 begin
+  for h in select id from public.reasoning_held_question where id = any(p_ids) and status = 'held' loop
+    c := public.fn_cs_held_question_contact(h.id);
+    if (nullif(c->>'email', '') is not null and not public.fn_is_demo_email(c->>'email'))
+       or (nullif(c->>'phone', '') is not null and c->>'phone' !~ '^\+?97150000') then
+      update public.reasoning_held_question
+         set expires_at = now() + interval '14 days',
+             result = coalesce(result, '{}'::jsonb) || jsonb_build_object('kept_for_a_person_at', now(), 'would_have_expired_because', p_why)
+       where id = h.id;
+      perform public.fn_cs_held_question_message(h.id, 'support_question_ack',
+        case when c ->> 'lang' = 'ar' then 'سؤالكم لدى فريقنا' else 'Your question is with our team' end,
+        case when c ->> 'lang' = 'ar' then 'وصلنا سؤالكم وهو لدى فريقنا، وسنعود إليكم بالإجابة. لا حاجة لأي إجراء إضافي منكم.'
+             else 'We have your question and it is with our team. We will reply here; there is nothing more you need to do.' end);
+      v_ids := array_remove(v_ids, h.id);
+      n_kept := n_kept + 1;
+    end if;
+  end loop;
   with gone as (
-    update public.reasoning_held_question h
-       set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
-     where h.id = any(p_ids) and h.status = 'held'
-    returning h.id, h.seat, h.surface, h.question, h.subject, h.created_at,
-              coalesce(h.request -> 'context' ->> 'audience', '') audience
+    update public.reasoning_held_question q
+       set status = 'expired', result = coalesce(q.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
+     where q.id = any(v_ids) and q.status = 'held'
+    returning q.id, q.seat, q.surface, q.question, q.subject, q.created_at,
+              coalesce(q.request -> 'context' ->> 'audience', '') audience
   ), filed as (
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     select g.seat, 'held_question_expired', 'pending', 'low',
@@ -3174,7 +3678,7 @@ begin
     returning id
   )
   select (select count(*) from gone), (select count(*) from filed) into n_exp, n_handoff;
-  return jsonb_build_object('expired', n_exp, 'handoffs', n_handoff);
+  return jsonb_build_object('expired', n_exp, 'handoffs', n_handoff, 'kept_for_a_person', n_kept);
 end $function$
 
 
@@ -3186,15 +3690,22 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_notice_due(p_limit integer DEFA
 AS $function$
 declare v jsonb; v_dead int;
 begin
-  select coalesce(jsonb_agg(jsonb_build_object('id', h.id, 'seat', h.seat, 'surface', h.surface, 'question', left(h.question, 500),
-                                               'subject', h.subject, 'attempts', h.notice_attempts) order by h.escalated_at), '[]'::jsonb)
-    into v
-    from (select * from public.reasoning_held_question
-           where escalated_at is not null and notice_delivered_at is null
-             and coalesce(subject->>'phone', '') <> '' and notice_attempts < 8
-             and (notice_last_at is null or notice_last_at < now() - interval '30 minutes')
-           order by escalated_at
-           limit greatest(1, least(coalesce(p_limit, 20), 100))) h;
+  with due as (
+    select h.id from public.reasoning_held_question h
+     where h.escalated_at is not null and h.notice_delivered_at is null
+       and coalesce(h.subject->>'phone', '') <> '' and h.notice_attempts < 8
+       and (h.notice_last_at is null or h.notice_last_at < now() - interval '30 minutes')
+     order by h.escalated_at
+     limit greatest(1, least(coalesce(p_limit, 20), 100))
+     for update skip locked
+  ), claimed as (
+    update public.reasoning_held_question h set notice_last_at = now()
+      from due where h.id = due.id
+    returning h.id, h.seat, h.surface, h.question, h.subject, h.notice_attempts, h.escalated_at
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'seat', c.seat, 'surface', c.surface, 'question', left(c.question, 500),
+                                               'subject', c.subject, 'attempts', c.notice_attempts) order by c.escalated_at), '[]'::jsonb)
+    into v from claimed c;
 
   select count(*) into v_dead from public.reasoning_held_question
    where escalated_at is not null and notice_delivered_at is null and coalesce(subject->>'phone', '') <> '' and notice_attempts >= 8;
@@ -3476,6 +3987,12 @@ declare
   -- ONLY AN AUDIENCE NAMED internal OR founder reads the company's own facts and gets the own-row reservation.
   -- customer, supplier, visitor, a NULL or any other value: external (fails closed, as settledFacts() in think.ts).
   v_internal constant boolean := lower(btrim(coalesce(p_audience, ''))) in ('internal', 'founder');
+  -- MARKET OR PRICING, BY MEANING: the kind tags a trade's market and pricing entries carry. The planner names a kind
+  -- (think.ts ENTRY_KINDS, chosen by the model from the question's meaning); no word of the question is read here.
+  v_market constant text[] := array['kind:uae_market_products', 'kind:uae_market_brands', 'kind:uae_market_sizes',
+    'kind:price_driver', 'kind:price_drivers', 'kind:pricing_basis', 'kind:pricing_rule', 'kind:pricing_structure',
+    'kind:pricing_reference', 'kind:pricing_benchmark', 'kind:market_practice', 'kind:market_reference'];
+  v_lead_market boolean;   -- the trade resolved and the planner says the question is about its market or pricing
 begin
   -- 1. RESOLVE, exactly or not at all. The trade through the estate's exact resolver; the kind and the area only
   --    when a row of this trade / of this seat's own table is tagged with exactly that value. No word is read.
@@ -3483,6 +4000,7 @@ begin
   v_kind := nullif(lower(btrim(coalesce(p_kind, ''))), '');
   if v_trade is null or (v_kind is not null and not exists (select 1 from public.sales_knowledge x
        where x.tags && v_trade and x.tags @> array['kind:' || v_kind])) then v_kind := null; end if;
+  v_lead_market := coalesce(v_trade is not null and ('kind:' || v_kind) = any(v_market), false);   -- never NULL: a NULL would sort FIRST under DESC
   v_area := nullif(lower(btrim(coalesce(p_area, ''))), '');
   if v_area is not null and not exists (
        select 1 from public.sales_knowledge x        where p_seat = 'sales_engineer'   and x.tags @> array['area:' || v_area]
@@ -3500,6 +4018,8 @@ begin
     (select 'kb_chunks' src, c.id::text id, c.title, left(c.content, 1200) excerpt, c.citation,
             1 - (c.embedding_gte <=> p_embedding) sim, 'reviewed' trust, false mine
        from public.kb_chunks c where c.embedding_gte is not null
+        -- founder ruling 1338 (27 Oct 2026): a row a model or an agent wrote is never told to an outside audience
+        and (v_internal or coalesce(c.source_kind not in ('generated', 'memory'), false))
       order by c.embedding_gte <=> p_embedding limit k)
     union all
     (select 'ops_knowledge', o.record_id, o.title, left(o.content, 1200), o.source_path,
@@ -3507,6 +4027,8 @@ begin
        from public.ops_knowledge o
       where o.embedding_gte is not null and o.runtime_eligible and o.supersession_state = 'current'
         and o.scope_type in ('company', 'external_source', 'category') and o.dept_key is null
+        -- founder ruling 1338: an outside audience is given an operations row only when it is confidentiality 'public'
+        and (v_internal or o.confidentiality = 'public')
       order by o.embedding_gte <=> p_embedding limit k)
     union all
     (select 'agent_knowledge', a.id::text, a.topic, left(a.content, 1200), a.source_ref,
@@ -3520,45 +4042,45 @@ begin
        from public.company_faq f where f.embedding_gte is not null and f.status = 'approved'
       order by f.embedding_gte <=> p_embedding limit k)
     union all
-    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id,
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.sales_knowledge s
       where s.embedding_gte is not null and s.runtime_index_eligible
         and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and s.pack_id like 'verified:trade:%'))
         and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
-             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
+             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind] or (('kind:' || v_kind) = any(v_market) and s.tags && v_market))))
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
-      order by s.embedding_gte <=> p_embedding limit k)
+      order by (v_trade is not null and s.tags && v_trade) desc, s.embedding_gte <=> p_embedding limit case when v_trade is null then k else 128 end)
     union all
-    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id,
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.accountant_knowledge s
       where p_seat = 'accountant' and s.embedding_gte is not null and s.runtime_index_eligible
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
-    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id,
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.it_engineer_knowledge s
       where p_seat = 'it_engineer' and s.embedding_gte is not null and s.runtime_index_eligible
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
-    (select 'support_knowledge', s.record_id, s.title, left(s.body, 1200), coalesce(s.source_path, s.pack_id),
+    (select 'support_knowledge', s.record_id, s.title, left(s.body, 2400), coalesce(s.source_path, s.pack_id),
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.support_knowledge s
       where p_seat = 'customer_support' and s.embedding_gte is not null and coalesce(s.runtime_index_eligible, true)
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
-    (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 1200), coalesce(s.source_path, s.pack_fingerprint),
+    (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 2400), coalesce(s.source_path, s.pack_fingerprint),
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.ceo_knowledge s
       where p_seat = 'ceo' and s.embedding_gte is not null and s.runtime_index_eligible
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
-    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id,
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.marketing_knowledge s
       where p_seat = 'marketing' and s.embedding_gte is not null and s.runtime_index_eligible
@@ -3571,13 +4093,105 @@ begin
       where r.embedding_gte is not null and r.status <> 'rejected' and (v_internal or r.status = 'approved')
       order by r.embedding_gte <=> p_embedding limit k)
   )
-  -- THE SEAT'S OWN ROWS FILL AT LEAST HALF, FOR AN INTERNAL AUDIENCE: its best k own rows (its pack, its agent_knowledge)
-  -- are reserved and come first; the rest of the k * 2 is the best of everything else. External: ranked by similarity only.
+  -- THE TRADE'S OWN PACK FIRST, THEN THE SEAT'S OWN ROWS (internal only), THEN THE REST. When the trade resolves, its
+  -- best k pack rows (base and market) are reserved, by similarity; when the planner says the question is about the
+  -- market or pricing, its market and pricing rows lead them. Trade packs are public, so this holds for every audience; #1567's
+  -- audience guard has already removed any internal row.
   select coalesce(jsonb_agg(jsonb_build_object('source', src, 'id', id, 'title', title, 'excerpt', excerpt,
-           'citation', citation, 'similarity', round(sim::numeric, 4), 'trust', trust, 'own', mine) order by reserved desc, sim desc), '[]'::jsonb)
+           'citation', citation, 'similarity', round(sim::numeric, 4), 'trust', trust, 'own', mine) order by reserved desc, tr nulls last, sim desc), '[]'::jsonb)
     into out
-    from (select * from (select h.*, v_internal and h.mine and row_number() over (partition by h.mine order by h.sim desc) <= k reserved from hits h) x
-           order by reserved desc, sim desc limit k * 2) t;
+    from (select * from (
+            select h.*, t.tr,
+                   case when t.tr <= k then 2
+                        when v_internal and h.mine and t.tr is null
+                         and row_number() over (partition by h.mine and t.tr is null order by h.sim desc) <= k then 1
+                        else 0 end reserved
+              from hits h
+              left join (select h2.id, row_number() over (order by (v_lead_market and s.tags && v_market) desc, h2.sim desc) tr
+                           from hits h2 join public.sales_knowledge s on h2.src = 'sales_knowledge' and s.record_id = h2.id
+                          where v_trade is not null and s.tags && v_trade) t on h.src = 'sales_knowledge' and t.id = h.id) x
+           order by reserved desc, tr nulls last, sim desc limit k * 2) y;
+  return out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_retrieve_library(p_seat text, p_embedding vector, p_k integer DEFAULT 6, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+ SET "hnsw.iterative_scan" TO 'relaxed_order'
+ SET "hnsw.ef_search" TO '100'
+AS $function$
+declare
+  k   integer := greatest(1, least(coalesce(p_k, 6), 12));
+  out jsonb := '[]'::jsonb;
+  v_seats constant text[] := array[p_seat, '*'];
+  v_trade text[];
+  v_kind  text;
+  v_area  text;
+begin
+  select array_agg('trade:' || c) into v_trade from unnest(public.fn_norm_trades(p_trade)) c;
+  v_kind := nullif(lower(btrim(coalesce(p_kind, ''))), '');
+  if v_trade is null or (v_kind is not null and not exists (select 1 from public.knowledge_library x
+       where x.origin_store = 'sales_knowledge' and x.tags && v_trade and x.tags @> array['kind:' || v_kind])) then v_kind := null; end if;
+  v_area := nullif(lower(btrim(coalesce(p_area, ''))), '');
+  if v_area is not null and not exists (select 1 from public.knowledge_library x
+       where x.origin_store = public.fn_knowledge_library_seat_store(p_seat) and x.tags @> array['area:' || v_area]) then
+    v_area := null;
+  end if;
+  if p_embedding is null then return out; end if;
+
+  with lib as (
+    select l.*, 1 - (l.embedding_gte <=> p_embedding) sim from public.knowledge_library l
+     where false
+  ), hits as (
+    (select 'kb_chunks' src, l.origin_id id, l.title, left(l.content, 1200) excerpt, l.source_ref citation,
+            1 - (l.embedding_gte <=> p_embedding) sim, 'reviewed' trust
+       from public.knowledge_library l
+      where l.origin_store = 'kb_chunks' and l.embedding_gte is not null and l.runtime_eligible and l.seats && v_seats
+      order by l.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'ops_knowledge', l.origin_id, l.title, left(l.content, 1200), l.source_ref, 1 - (l.embedding_gte <=> p_embedding), 'reviewed'
+       from public.knowledge_library l
+      where l.origin_store = 'ops_knowledge' and l.embedding_gte is not null and l.runtime_eligible and l.seats && v_seats
+      order by l.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'agent_knowledge', l.origin_id, l.title, left(l.content, 1200), l.source_ref, 1 - (l.embedding_gte <=> p_embedding), 'reviewed'
+       from public.knowledge_library l
+      where l.origin_store = 'agent_knowledge' and l.embedding_gte is not null and l.runtime_eligible and l.seats && v_seats
+      order by l.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'company_faq', f.id::text, f.question, left(f.answer, 1200), 'FAQ ' || f.id,
+            1 - (f.embedding_gte <=> p_embedding), 'reviewed'
+       from public.company_faq f where f.embedding_gte is not null and f.status = 'approved'
+      order by f.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'sales_knowledge', l.origin_id, l.title, left(l.content, 1200), l.source_ref, 1 - (l.embedding_gte <=> p_embedding), 'reviewed'
+       from public.knowledge_library l
+      where l.origin_store = 'sales_knowledge' and l.embedding_gte is not null and l.runtime_eligible and l.seats && v_seats
+        and (v_trade is null or not exists (select 1 from unnest(l.tags) t where t like 'trade:%')
+             or (l.tags && v_trade and (v_kind is null or l.tags @> array['kind:' || v_kind])))
+        and (v_area is null or l.tags @> array['area:' || v_area] or not exists (select 1 from unnest(l.tags) t where t like 'area:%'))
+      order by l.embedding_gte <=> p_embedding limit k)
+    union all
+    (select l.origin_store, l.origin_id, l.title, left(l.content, 1200), l.source_ref, 1 - (l.embedding_gte <=> p_embedding), 'reviewed'
+       from public.knowledge_library l
+      where l.origin_store = public.fn_knowledge_library_seat_store(p_seat) and l.origin_store <> 'sales_knowledge'
+        and l.embedding_gte is not null and l.runtime_eligible and l.seats && v_seats
+        and (v_area is null or l.tags @> array['area:' || v_area] or not exists (select 1 from unnest(l.tags) t where t like 'area:%'))
+      order by l.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'research', r.id::text, left(r.question, 200), r.finding, r.sources->0->>'url',
+            1 - (r.embedding_gte <=> p_embedding), case when r.status = 'approved' then 'reviewed' else 'pending_review' end
+       from public.reasoning_knowledge_candidate r
+      where r.embedding_gte is not null and r.status <> 'rejected'
+      order by r.embedding_gte <=> p_embedding limit k)
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('source', src, 'id', id, 'title', title, 'excerpt', excerpt,
+           'citation', citation, 'similarity', round(sim::numeric, 4), 'trust', trust) order by sim desc), '[]'::jsonb)
+    into out
+    from (select * from hits order by sim desc limit k * 2) t;
   return out;
 end $function$
 
@@ -3603,6 +4217,12 @@ declare
   -- ONLY AN AUDIENCE NAMED internal OR founder reads the company's own facts and gets the own-row reservation.
   -- customer, supplier, visitor, a NULL or any other value: external (fails closed, as settledFacts() in think.ts).
   v_internal constant boolean := lower(btrim(coalesce(p_audience, ''))) in ('internal', 'founder');
+  -- MARKET OR PRICING, BY MEANING: the kind tags a trade's market and pricing entries carry. The planner names a kind
+  -- (think.ts ENTRY_KINDS, chosen by the model from the question's meaning); no word of the question is read here.
+  v_market constant text[] := array['kind:uae_market_products', 'kind:uae_market_brands', 'kind:uae_market_sizes',
+    'kind:price_driver', 'kind:price_drivers', 'kind:pricing_basis', 'kind:pricing_rule', 'kind:pricing_structure',
+    'kind:pricing_reference', 'kind:pricing_benchmark', 'kind:market_practice', 'kind:market_reference'];
+  v_lead_market boolean;   -- the trade resolved and the planner says the question is about its market or pricing
 begin
   -- 1. RESOLVE, exactly or not at all. The trade through the estate's exact resolver; the kind and the area only
   --    when a row of this trade / of this seat's own table is tagged with exactly that value. No word is read.
@@ -3610,6 +4230,7 @@ begin
   v_kind := nullif(lower(btrim(coalesce(p_kind, ''))), '');
   if v_trade is null or (v_kind is not null and not exists (select 1 from public.sales_knowledge x
        where x.tags && v_trade and x.tags @> array['kind:' || v_kind])) then v_kind := null; end if;
+  v_lead_market := coalesce(v_trade is not null and ('kind:' || v_kind) = any(v_market), false);   -- never NULL: a NULL would sort FIRST under DESC
   v_area := nullif(lower(btrim(coalesce(p_area, ''))), '');
   if v_area is not null and not exists (
        select 1 from public.sales_knowledge x        where p_seat = 'sales_engineer'   and x.tags @> array['area:' || v_area]
@@ -3650,16 +4271,22 @@ begin
     union (select 'sales_knowledge', s.record_id from public.knowledge_vector_ml v join public.sales_knowledge s on v.src = 'sales_knowledge' and s.record_id = v.row_id
             where s.runtime_index_eligible and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
             and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
-             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
+             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind] or (('kind:' || v_kind) = any(v_market) and s.tags && v_market))))
             and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
             order by v.embedding <=> m limit n)
     union (select 'sales_knowledge', s.record_id from public.sales_knowledge s
             where g is not null and s.embedding_gte is not null and s.runtime_index_eligible
               and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
             and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
-             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
+             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind] or (('kind:' || v_kind) = any(v_market) and s.tags && v_market))))
             and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
             order by s.embedding_gte <=> g limit n)
+    -- every row of the resolved trade's own pack is a candidate, whatever its rank in either space
+    union (select 'sales_knowledge', s.record_id from public.sales_knowledge s
+            where v_trade is not null and s.runtime_index_eligible and s.tags && v_trade
+              and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
+              and (v_kind is null or s.tags @> array['kind:' || v_kind] or (('kind:' || v_kind) = any(v_market) and s.tags && v_market))
+              and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))))
     union (select 'accountant_knowledge', s.record_id from public.knowledge_vector_ml v join public.accountant_knowledge s on v.src = 'accountant_knowledge' and s.record_id = v.row_id
             where p_seat = 'accountant' and s.runtime_index_eligible
             and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
@@ -3726,10 +4353,14 @@ begin
     -- a bigint key is cast only inside its own source's rows (scored is materialised; the filter runs first)
     (select 'kb_chunks' src, c.id::text id, c.title, left(c.content, 1200) excerpt, c.citation, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed' trust, false mine
        from (select *, row_id::bigint key from scored where src = 'kb_chunks') sc join public.kb_chunks c on c.id = sc.key
+      -- founder ruling 1338 (27 Oct 2026): a row a model or an agent wrote is never told to an outside audience
+      where v_internal or coalesce(c.source_kind not in ('generated', 'memory'), false)
       order by sc.score desc limit k)
     union all
     (select 'ops_knowledge', o.record_id, o.title, left(o.content, 1200), o.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', false
        from scored sc join public.ops_knowledge o on sc.src = 'ops_knowledge' and o.record_id = sc.row_id
+      -- founder ruling 1338: an outside audience is given an operations row only when it is confidentiality 'public'
+      where v_internal or o.confidentiality = 'public'
       order by sc.score desc limit k)
     union all
     (select 'agent_knowledge', a.id::text, a.topic, left(a.content, 1200), a.source_ref, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', a.agent_key = p_seat
@@ -3746,28 +4377,172 @@ begin
       where r.status <> 'rejected' and (v_internal or r.status = 'approved')
       order by sc.score desc limit k)
     union all
-    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.sales_knowledge s on sc.src = 'sales_knowledge' and s.record_id = sc.row_id
-      order by sc.score desc limit k)
+      order by sc.score desc limit case when v_trade is null then k else 128 end)
     union all
-    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.accountant_knowledge s on sc.src = 'accountant_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.it_engineer_knowledge s on sc.src = 'it_engineer_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.marketing_knowledge s on sc.src = 'marketing_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 1200), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 2400), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.ceo_knowledge s on sc.src = 'ceo_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
-    (select 'support_knowledge', s.record_id, s.title, left(s.body, 1200), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
+    (select 'support_knowledge', s.record_id, s.title, left(s.body, 2400), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.support_knowledge s on sc.src = 'support_knowledge' and s.record_id = sc.row_id
+      order by sc.score desc limit k)
+  ), trade_rows as (
+    -- THE TRADE'S OWN PACK FIRST, THEN THE SEAT'S OWN ROWS (internal only), THEN THE REST. When the trade resolves, its
+    -- best k pack rows (base and market) are reserved, by similarity; when the planner says the question is about the
+    -- market or pricing, its market and pricing rows lead them. Trade packs are public, so this holds for every audience; #1567's
+    -- audience guard has already removed any internal row.
+    select h.*, row_number() over (order by (v_lead_market and s.tags && v_market) desc, h.score desc) tr
+      from hits h join public.sales_knowledge s on h.src = 'sales_knowledge' and s.record_id = h.id
+     where v_trade is not null and s.tags && v_trade
+     order by tr limit k
+  ), own_rows as (
+    select h.*, null::bigint tr from hits h
+     where h.mine and not exists (select 1 from trade_rows t where t.src = h.src and t.id = h.id)
+     order by h.score desc limit least(own, k * 2 - (select count(*) from trade_rows))
+  ), chosen as (
+    select t.*, 2 reserved from trade_rows t
+    union all
+    select o.*, 1 from own_rows o
+    union all
+    select *, 0 from (select h.*, null::bigint tr from hits h
+                       where not exists (select 1 from trade_rows t where t.src = h.src and t.id = h.id)
+                         and not exists (select 1 from own_rows o where o.src = h.src and o.id = h.id)
+                       order by h.score desc limit greatest(k * 2 - (select count(*) from trade_rows) - (select count(*) from own_rows), 0)) rest
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('source', src, 'id', id, 'title', title, 'excerpt', excerpt,
+           'citation', citation, 'similarity', round(coalesce(s_ml, 0)::numeric, 4), 'score', round(score::numeric, 6),
+           'trust', trust, 'own', mine) order by reserved desc, tr nulls last, score desc), '[]'::jsonb)
+    into out
+    from chosen;
+  return out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_retrieve_ml_library(p_seat text, p_embedding vector, p_embedding_gte vector DEFAULT NULL::vector, p_k integer DEFAULT 6, p_own integer DEFAULT 3, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'extensions', 'pg_temp'
+ SET "hnsw.iterative_scan" TO 'relaxed_order'
+ SET "hnsw.ef_search" TO '100'
+AS $function$
+declare
+  k    integer := greatest(1, least(coalesce(p_k, 6), 12));
+  own  integer := greatest(0, least(coalesce(p_own, 3), 2 * k));
+  n    constant integer := 20;
+  g    vector(384) := p_embedding_gte;
+  m    vector(384) := p_embedding;
+  out  jsonb := '[]'::jsonb;
+  v_seats constant text[] := array[p_seat, '*'];
+  v_own_store constant text := public.fn_knowledge_library_seat_store(p_seat);
+  v_trade text[];
+  v_kind  text;
+  v_area  text;
+begin
+  select array_agg('trade:' || c) into v_trade from unnest(public.fn_norm_trades(p_trade)) c;
+  v_kind := nullif(lower(btrim(coalesce(p_kind, ''))), '');
+  if v_trade is null or (v_kind is not null and not exists (select 1 from public.knowledge_library x
+       where x.origin_store = 'sales_knowledge' and x.tags && v_trade and x.tags @> array['kind:' || v_kind])) then v_kind := null; end if;
+  v_area := nullif(lower(btrim(coalesce(p_area, ''))), '');
+  if v_area is not null and not exists (select 1 from public.knowledge_library x
+       where x.origin_store = v_own_store and x.tags @> array['area:' || v_area]) then
+    v_area := null;
+  end if;
+  if m is null then return out; end if;
+  with elig as materialized (
+    -- every non-kb library row this seat may read, with the legacy reader's store predicates: the trade only on
+    -- sales_knowledge, the area only on the seat stores (sales_knowledge and the seat's own)
+    select l.id, l.origin_store, l.origin_id from public.knowledge_library l
+     where l.origin_store in ('ops_knowledge', 'agent_knowledge', 'sales_knowledge', v_own_store)
+       and l.runtime_eligible and l.seats && v_seats
+       and (l.origin_store <> 'sales_knowledge' or v_trade is null or not exists (select 1 from unnest(l.tags) t where t like 'trade:%')
+            or (l.tags && v_trade and (v_kind is null or l.tags @> array['kind:' || v_kind])))
+       and (l.origin_store in ('ops_knowledge', 'agent_knowledge') or v_area is null
+            or l.tags @> array['area:' || v_area] or not exists (select 1 from unnest(l.tags) t where t like 'area:%'))
+  ), cand as (
+    (select 'kb_chunks' src, l.origin_id row_id, l.id lib_id from public.knowledge_vector_ml v
+       join public.knowledge_library l on v.src = 'knowledge_library' and l.id = v.row_id::bigint
+      where l.origin_store = 'kb_chunks' and l.runtime_eligible and l.seats && v_seats
+      order by v.embedding <=> m limit n)
+    union (select 'kb_chunks', l.origin_id, l.id from public.knowledge_library l
+            where g is not null and l.origin_store = 'kb_chunks' and l.embedding_gte is not null and l.runtime_eligible and l.seats && v_seats
+            order by l.embedding_gte <=> g limit n)
+    union (select x.src, x.row_id, x.lib_id from (
+             select e.origin_store src, e.origin_id row_id, e.id lib_id, row_number() over (partition by e.origin_store order by e.d) rn
+               from (select e.*, (select v.embedding <=> m from public.knowledge_vector_ml v      -- one pkey probe a row: a join
+                                   where v.src = 'knowledge_library' and v.row_id = e.id::text) d -- here was planned as 2,303
+                       from elig e) e                                                             -- seq scans (4.5 s)
+              where e.d is not null) x
+            where x.rn <= n)
+    union (select x.src, x.row_id, x.lib_id from (
+             select e.origin_store src, e.origin_id row_id, e.id lib_id,
+                    row_number() over (partition by e.origin_store order by l.embedding_gte <=> g) rn
+               from elig e join public.knowledge_library l on l.id = e.id
+              where g is not null and l.embedding_gte is not null) x
+            where x.rn <= n)
+    union (select 'company_faq', f.id::text, null::bigint from public.knowledge_vector_ml v join public.company_faq f on v.src = 'company_faq' and f.id::text = v.row_id
+            where f.status = 'approved' order by v.embedding <=> m limit n)
+    union (select 'company_faq', f.id::text, null::bigint from public.company_faq f
+            where g is not null and f.embedding_gte is not null and f.status = 'approved' order by f.embedding_gte <=> g limit n)
+    union (select 'reasoning_knowledge_candidate', r.id::text, null::bigint from public.knowledge_vector_ml v
+             join public.reasoning_knowledge_candidate r on v.src = 'reasoning_knowledge_candidate' and r.id::text = v.row_id
+            where r.status <> 'rejected' order by v.embedding <=> m limit n)
+    union (select 'reasoning_knowledge_candidate', r.id::text, null::bigint from public.reasoning_knowledge_candidate r
+            where g is not null and r.embedding_gte is not null and r.status <> 'rejected' order by r.embedding_gte <=> g limit n)
+  ), sims as (
+    select c.src, c.row_id, c.lib_id,
+           case when c.lib_id is not null
+                then (select 1 - (v.embedding <=> m) from public.knowledge_vector_ml v where v.src = 'knowledge_library' and v.row_id = c.lib_id::text)
+                else (select 1 - (v.embedding <=> m) from public.knowledge_vector_ml v where v.src = c.src and v.row_id = c.row_id) end s_ml,
+           case when g is null then null
+                when c.lib_id is not null then (select 1 - (x.embedding_gte <=> g) from public.knowledge_library x where x.id = c.lib_id)
+                when c.src = 'company_faq' then (select 1 - (x.embedding_gte <=> g) from public.company_faq x where x.id = c.row_id::bigint)
+                else (select 1 - (x.embedding_gte <=> g) from public.reasoning_knowledge_candidate x where x.id = c.row_id::bigint)
+           end s_gte
+      from cand c
+  ), ranked as (
+    select s.*,
+           case when s_ml is not null then row_number() over (order by s_ml desc nulls last) end r_ml,
+           case when s_gte is not null then row_number() over (order by s_gte desc nulls last) end r_gte
+      from sims s
+  ), gaps as (
+    select coalesce(max(s_ml) - coalesce(max(s_ml) filter (where r_ml = n + 1), min(s_ml)), 0) d_ml,
+           coalesce(max(s_gte) - coalesce(max(s_gte) filter (where r_gte = n + 1), min(s_gte)), 0) d_gte
+      from ranked
+  ), scored as materialized (
+    select r.*,
+           coalesce(case when gp.d_ml + gp.d_gte > 0 then gp.d_ml / (gp.d_ml + gp.d_gte) else 1 end / (60 + r.r_ml), 0)
+         + coalesce(case when gp.d_ml + gp.d_gte > 0 then gp.d_gte / (gp.d_ml + gp.d_gte) else 0 end / (60 + r.r_gte), 0) score
+      from ranked r cross join gaps gp
+  ), lib_hits as (
+    select l.origin_store src, l.origin_id id, l.title, left(l.content, 1200) excerpt, l.source_ref citation, sc.s_ml, sc.score,
+           'reviewed' trust, not ('*' = any(l.seats)) mine,
+           row_number() over (partition by l.origin_store order by sc.score desc) rn
+      from scored sc join public.knowledge_library l on l.id = sc.lib_id
+  ), hits as (
+    select src, id, title, excerpt, citation, s_ml, score, trust, mine from lib_hits where rn <= k
+    union all
+    (select 'company_faq', f.id::text, f.question, left(f.answer, 1200), 'FAQ ' || f.id, sc.s_ml, sc.score, 'reviewed', false
+       from (select *, row_id::bigint key from scored where src = 'company_faq') sc join public.company_faq f on f.id = sc.key
+      order by sc.score desc limit k)
+    union all
+    (select 'research', r.id::text, left(r.question, 200), r.finding, r.sources->0->>'url', sc.s_ml, sc.score,
+            case when r.status = 'approved' then 'reviewed' else 'pending_review' end, false
+       from (select *, row_id::bigint key from scored where src = 'reasoning_knowledge_candidate') sc join public.reasoning_knowledge_candidate r on r.id = sc.key
       order by sc.score desc limit k)
   ), own_rows as (
     select * from hits where mine order by score desc limit own
@@ -4149,7 +4924,11 @@ CREATE OR REPLACE FUNCTION public.fn_reconcile_doc_blocks(p_grace_days integer D
 AS $function$
 declare
   v_lic_susp int := 0; v_ins_susp int := 0; v_restored int := 0;
-  v_cut date := current_date - make_interval(days => p_grace_days);
+  -- THE EXPIRY DAY IS THE PAUSE DAY (ruling 1209): a document is paused ON its expiry date, the Dubai calendar day
+  -- (current_date is the database's UTC day, four hours behind Dubai each midnight). It is restored only when the
+  -- date on file is AFTER today, i.e. a renewed document was approved (rulings 1176/1177: a new licence whose
+  -- expiry is unread is held, never approved, so the date does not move until it is).
+  v_cut date := (now() at time zone 'Asia/Dubai')::date - p_grace_days;
   rec record;
 begin
   -- ---- SUSPEND: trade licence expired -------------------------------------------------
@@ -4159,7 +4938,7 @@ begin
     select id, company_name, claimed_by, email, phone, whatsapp, license_expiry
       from leads
      where approval_status = 'approved' and coalesce(banned,false) = false
-       and license_expiry is not null and license_expiry < v_cut
+       and license_expiry is not null and license_expiry <= v_cut
        and (coalesce(matching_blocked,false) = false
             or matching_block_reason in ('licence_expired','insurance_expired'))
        and coalesce(matching_block_reason,'') is distinct from 'licence_expired'
@@ -4181,7 +4960,7 @@ begin
     select id, company_name, claimed_by, email, insurance_expiry
       from leads
      where approval_status = 'approved' and coalesce(banned,false) = false
-       and insurance_expiry is not null and insurance_expiry < v_cut
+       and insurance_expiry is not null and insurance_expiry <= v_cut
        and (coalesce(matching_blocked,false) = false
             or matching_block_reason in ('licence_expired','insurance_expired'))
        and coalesce(matching_block_reason,'') is distinct from 'insurance_expired'
@@ -4207,9 +4986,9 @@ begin
       from leads
      where matching_block_reason in ('licence_expired','insurance_expired')
        and ((matching_block_reason = 'licence_expired'
-             and (license_expiry is null or license_expiry >= v_cut))
+             and (license_expiry is null or license_expiry > v_cut))
          or (matching_block_reason = 'insurance_expired'
-             and (insurance_expiry is null or insurance_expiry >= v_cut)))
+             and (insurance_expiry is null or insurance_expiry > v_cut)))
   loop
     update leads set matching_blocked = false, matching_block_reason = null where id = rec.id;
     v_restored := v_restored + 1;
@@ -4223,6 +5002,123 @@ begin
 
   return json_build_object('licence_suspended', v_lic_susp, 'insurance_suspended', v_ins_susp,
                            'restored', v_restored, 'grace_days', p_grace_days, 'ran_at', now());
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_record_inbox_placement_verdict(p_result jsonb, p_from text, p_recorded_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_test text := btrim(coalesce(p_result ->> 'testId', p_result ->> 'test_id', ''));
+  v_tested timestamptz; v_from text := public.fn_mailbox_fold(p_from); v_dom text; v_rates jsonb := '{}'; v_verdict jsonb;
+  e jsonb; c text; t record; v_sum jsonb; v_seed_rows int;
+begin
+  if v_test !~ '^[0-9A-Za-z:_-]{6,64}$' then
+    raise exception 'fn_record_inbox_placement_verdict: testId % is not a GlockApps test id', v_test using errcode = 'check_violation'; end if;
+  begin v_tested := (p_result ->> 'created')::timestamptz;
+  exception when others then v_tested := null; end;
+  if v_tested is null then
+    raise exception 'fn_record_inbox_placement_verdict: created (when the test ran) is missing or unreadable' using errcode = 'check_violation'; end if;
+  if v_from !~ '^[^@\s]+@[^@\s]+\.[a-z]{2,}$' then
+    raise exception 'fn_record_inbox_placement_verdict: from % is not a mailbox', p_from using errcode = 'check_violation'; end if;
+  v_dom := lower(btrim(coalesce(p_result #>> '{sender,senderDomain}', '')));
+  if v_dom <> '' and v_dom <> split_part(v_from, '@', 2) then
+    raise exception 'fn_record_inbox_placement_verdict: GlockApps saw sender domain %, not the domain of %', v_dom, v_from
+      using errcode = 'check_violation'; end if;
+  if not exists (select 1 from public.org_role r where r.role_id = p_recorded_by and r.status = 'active') then
+    raise exception 'fn_record_inbox_placement_verdict: % is not a live seat', p_recorded_by using errcode = 'check_violation'; end if;
+  if jsonb_typeof(p_result -> 'providerRollup') is distinct from 'array' or jsonb_array_length(p_result -> 'providerRollup') = 0 then
+    raise exception 'fn_record_inbox_placement_verdict: providerRollup is missing; call get_results with detail ''providers'''
+      using errcode = 'check_violation'; end if;
+  for e in select x from jsonb_array_elements(p_result -> 'providerRollup') x loop
+    if coalesce(btrim(e ->> 'providerGroupName'), '') = ''
+       or (e ->> 'total')::int is distinct from coalesce((e ->> 'inbox')::int, -1) + coalesce((e ->> 'spam')::int, -1)
+                                               + coalesce((e ->> 'other')::int, -1) + coalesce((e ->> 'notDelivered')::int, -1) then
+      raise exception 'fn_record_inbox_placement_verdict: provider % does not add up (total = inbox + spam + other + notDelivered)', e
+        using errcode = 'check_violation'; end if;
+  end loop;
+
+  select count(*) into v_seed_rows from public.notifications n
+   where n.kind = 'invite_m365_seed' and rtrim(n.body) like '%id:' || v_test;
+
+  insert into public.deliverability_test as d (test_id, project_id, from_address, reason, requested_by, marker, status,
+         stats, tested_at, recorded_by, recorded_at, source, verdict, decided_at)
+  values (v_test, p_result ->> 'projectId', v_from, 'recorded from the GlockApps connector (get_results, detail providers)',
+          p_recorded_by, 'id:' || v_test,
+          case when coalesce((p_result ->> 'finished')::boolean, false) then 'complete' else 'incomplete' end,
+          coalesce(p_result -> 'stats', '{}'::jsonb) || jsonb_build_object('finished', p_result -> 'finished',
+            'trackedSeeds', p_result -> 'trackedSeeds', 'authSummary', p_result -> 'authSummary', 'sender', p_result -> 'sender',
+            'seed_notifications', v_seed_rows),
+          v_tested, p_recorded_by, null, 'glockapps_connector', 'pending', null)
+  on conflict (test_id) do update set project_id = excluded.project_id, from_address = excluded.from_address,
+         status = excluded.status, stats = excluded.stats, tested_at = excluded.tested_at, recorded_by = excluded.recorded_by,
+         recorded_at = null, source = excluded.source;
+
+  delete from public.deliverability_test_provider where test_id = v_test;
+  insert into public.deliverability_test_provider (test_id, provider, provider_group_id, is_outlook, seeds, inbox, spam,
+         tabs, missing, inbox_pct, raw_itypes, provider_class)
+  select v_test, g.name, min(g.gid), public.fn_glockapps_provider_class(g.name) = 'microsoft',
+         sum(g.total), sum(g.inbox), sum(g.spam), sum(g.tabs), sum(g.missing),
+         round(100.0 * sum(g.inbox) / nullif(sum(g.total), 0), 1),
+         jsonb_build_object('tabs', jsonb_agg(g.tablist) filter (where g.tablist is not null)),
+         public.fn_glockapps_provider_class(g.name)
+    from (select btrim(x ->> 'providerGroupName') name, x ->> 'providerGroupId' gid, (x ->> 'total')::int total,
+                 (x ->> 'inbox')::int inbox, (x ->> 'spam')::int spam, (x ->> 'other')::int tabs,
+                 (x ->> 'notDelivered')::int missing, x -> 'tabs' tablist
+            from jsonb_array_elements(p_result -> 'providerRollup') x) g
+   group by g.name;
+
+  -- THE OVERALL FIGURE IS GLOCKAPPS' OWN (stats), when it gives one. Measured on test 2026-10-27-09:33:53:634t: stats
+  -- covers 111 tracked seeds (44 inbox, 21 tabs, 41 spam, 5 missing) while the providerRollup rows add up to 106 (41, 21,
+  -- 39, 5): GlockApps leaves 5 seeds out of its provider breakdown. Those 5 cannot be put in a class, so the classes are
+  -- judged on the rollup and 'overall' carries 'unclassified' = stats total - rollup total, said rather than hidden.
+  for c in select unnest(array['microsoft', 'google', 'yahoo_aol', 'other', 'overall']) loop
+    if c = 'overall' and (p_result #>> '{stats,inbox}') ~ '^\d+$' and (p_result #>> '{stats,other}') ~ '^\d+$'
+       and (p_result #>> '{stats,spam}') ~ '^\d+$' and (p_result #>> '{stats,notDelivered}') ~ '^\d+$' then
+      select (p_result #>> '{stats,inbox}')::bigint + (p_result #>> '{stats,other}')::bigint + (p_result #>> '{stats,spam}')::bigint
+               + (p_result #>> '{stats,notDelivered}')::bigint s,
+             (p_result #>> '{stats,inbox}')::bigint i, (p_result #>> '{stats,other}')::bigint tb,
+             (p_result #>> '{stats,spam}')::bigint sp, (p_result #>> '{stats,notDelivered}')::bigint m into t;
+    else
+      select coalesce(sum(p.seeds), 0) s, coalesce(sum(p.inbox), 0) i, coalesce(sum(p.tabs), 0) tb,
+             coalesce(sum(p.spam), 0) sp, coalesce(sum(p.missing), 0) m into t
+        from public.deliverability_test_provider p
+       where p.test_id = v_test and (c = 'overall' or p.provider_class = c);
+    end if;
+    v_rates := v_rates || jsonb_build_object(c, jsonb_build_object('seeds', t.s, 'inbox', t.i, 'tabs', t.tb, 'spam', t.sp,
+      'missing', t.m,
+      'inbox_pct', round(100.0 * t.i / nullif(t.s, 0), 1), 'tabs_pct', round(100.0 * t.tb / nullif(t.s, 0), 1),
+      'spam_pct', round(100.0 * t.sp / nullif(t.s, 0), 1), 'missing_pct', round(100.0 * t.m / nullif(t.s, 0), 1),
+      'delivered_pct', round(100.0 * (t.i + t.tb) / nullif(t.s, 0), 1)));
+  end loop;
+  v_rates := jsonb_set(v_rates, '{overall,unclassified}', to_jsonb((v_rates #>> '{overall,seeds}')::int
+               - (select coalesce(sum(p.seeds), 0)::int from public.deliverability_test_provider p where p.test_id = v_test)));
+  v_verdict := public.fn_invite_placement_rates_verdict(v_rates);
+  v_sum := v_rates -> 'overall';
+
+  update public.deliverability_test set
+         class_rates = v_rates, outlook = v_rates -> 'microsoft',
+         outlook_inbox_pct = (v_rates #>> '{microsoft,inbox_pct}')::numeric,
+         overall_inbox_pct = (v_sum ->> 'inbox_pct')::numeric, overall_tabs_pct = (v_sum ->> 'tabs_pct')::numeric,
+         overall_spam_pct = (v_sum ->> 'spam_pct')::numeric, overall_missing_pct = (v_sum ->> 'missing_pct')::numeric,
+         verdict = case when v_verdict ->> 'strict' = 'pass' then 'pass' else 'fail' end, decided_at = now(),
+         recorded_at = now(),
+         summary = format('GlockApps %s from %s, tested %s: Microsoft %s/%s inbox (%s%%), Google %s inbox + %s tabs of %s (spam %s%%), '
+                          || 'Yahoo/AOL %s/%s inbox (spam %s%%), overall %s/%s inbox (%s%%). Against the bar: %s.',
+                          v_test, v_from, to_char(v_tested at time zone 'UTC', 'YYYY-MM-DD HH24:MI"Z"'),
+                          v_rates #>> '{microsoft,inbox}', v_rates #>> '{microsoft,seeds}', coalesce(v_rates #>> '{microsoft,inbox_pct}', '-'),
+                          v_rates #>> '{google,inbox}', v_rates #>> '{google,tabs}', v_rates #>> '{google,seeds}',
+                          coalesce(v_rates #>> '{google,spam_pct}', '-'),
+                          v_rates #>> '{yahoo_aol,inbox}', v_rates #>> '{yahoo_aol,seeds}', coalesce(v_rates #>> '{yahoo_aol,spam_pct}', '-'),
+                          v_sum ->> 'inbox', v_sum ->> 'seeds', coalesce(v_sum ->> 'inbox_pct', '-'), v_verdict::text)
+   where test_id = v_test;
+
+  return jsonb_build_object('recorded', true, 'test_id', v_test, 'from', v_from, 'tested_at', v_tested,
+    'recorded_by', p_recorded_by, 'seed_notifications', v_seed_rows, 'class_rates', v_rates,
+    'against_the_bar', v_verdict, 'gate_now', public.fn_invite_placement_class_verdicts(now()));
 end $function$
 
 
@@ -5065,7 +5961,7 @@ CREATE OR REPLACE FUNCTION public.fn_refund_open_from_customer(p_transaction_id 
 AS $function$
 declare
   t public.transactions; c record; v_id bigint; v_open bigint; v_locale text; v_code text; v_en text; v_ar text;
-  v_later boolean := false; v_paid text; v_decide text; v_req bigint; v_amt numeric;
+  v_later boolean := false; v_paid text; v_decide text; v_req bigint; v_amt numeric; v_out bigint;
 begin
   select * into t from public.transactions where id = p_transaction_id;
   if not found then
@@ -5102,6 +5998,21 @@ begin
     v_code := 'already_refunded';
     v_en := 'This reveal has already been refunded (AED ' || coalesce(t.refund_amount_aed, v_amt) || '). Banks take 7 to 14 working days to show it.';
     v_ar := 'سبق أن استُردّت رسوم عملية الكشف هذه (' || coalesce(t.refund_amount_aed, v_amt) || ' درهم)، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهار المبلغ.';
+  -- MONEY ALREADY RETURNED ON THIS PAYMENT (3 Nov 2026, accountant, gap #8 R4). A refund issued in the Stripe dashboard
+  -- is recorded by fn_refund_settle (requested_by stripe_webhook) and leaves the sale's refund_status empty, so this
+  -- fell through to the insert below, which must equal everything paid; a01 then refused it as more than the payment
+  -- still holds, and customer_api answered the customer HTTP 500. Measured on ZZ DEMO run acpay01: AED 10 of 30 refunded
+  -- outside the platform, request -> 23514 refund_exceeds_what_was_paid. The answer is now a refusal in words; the rest
+  -- of the payment is the CEO's refund_incident (under_refund -> refund_difference), opened when the refund settled.
+  elsif (select coalesce(sum(r.amount_fils), 0) from public.refunds r
+          where (r.transaction_id = t.id or r.stripe_payment_intent = t.payment_ref)
+            and r.status not in ('rejected', 'failed', 'cancelled')) > 0 then
+    v_out := (select coalesce(sum(r.amount_fils), 0) from public.refunds r
+               where (r.transaction_id = t.id or r.stripe_payment_intent = t.payment_ref)
+                 and r.status not in ('rejected', 'failed', 'cancelled'));
+    v_code := 'already_refunded';
+    v_en := 'AED ' || round(v_out / 100.0, 2) || ' of this payment has already been refunded to your original payment method, so a new refund case cannot be opened for it. Banks take 7 to 14 working days to show it. If you think more is owed, write to us from your portal and we will check the record.';
+    v_ar := 'سبق أن استُردّ ' || round(v_out / 100.0, 2) || ' درهم من هذه الدفعة إلى وسيلة الدفع الأصلية، لذا لا يمكن فتح حالة استرداد جديدة لها. وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهار المبلغ. وإن رأيتم أن هناك مبلغًا آخر مستحقًا، فيُرجى مراسلتنا من بوابتكم لنراجع السجل.';
   elsif exists (select 1 from public.refunds r where r.transaction_id = t.id and r.status = 'rejected'
                   and lower(coalesce(r.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')) then
     v_code := 'already_declined';
@@ -5655,6 +6566,71 @@ AS $function$
           where p_email is not null and lower(c.email) = lower(btrim(p_email)) limit 1))
     end as x) s
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_rehearsal_call_estimate_usd(p_tag text)
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(avg(x.usd), 0.01)
+    from (select greatest(coalesce(c.cost_usd_reported, 0), coalesce(c.cost_aed, 0) / 3.6725) as usd
+            from public.ai_cost_log c
+           where c.e2e_run_tag = p_tag and c.model_used is distinct from 'none' and not coalesce(c.cached, false)) x
+   where x.usd > 0;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_rehearsal_committed_usd(p_tag text)
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select (select coalesce(sum(greatest(coalesce(c.cost_usd_reported, 0), coalesce(c.cost_aed, 0) / 3.6725)), 0)
+            from public.ai_cost_log c where c.e2e_run_tag = p_tag)
+       + (select coalesce(sum(r.reserved_usd), 0) from public.rehearsal_spend_reservation r
+           where r.e2e_run_tag = p_tag and r.created_at > now() - interval '10 minutes');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_rehearsal_spend_reserve()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_tag text := public.fn_e2e_run_tag_current();
+  v_cap numeric; v_committed numeric; v_est numeric;
+begin
+  if v_tag is null then
+    return jsonb_build_object('allowed', true, 'rule', 'not_a_rehearsal');
+  end if;
+  perform pg_advisory_xact_lock(hashtext('rehearsal_spend:' || v_tag));
+  select w.cap_usd into v_cap from public.rehearsal_window w
+   where w.run_tag = 'qd_run:' || v_tag and w.ended_at is null and w.models_allowed
+     and (w.expires_at is null or w.expires_at > now())
+   order by w.started_at desc limit 1;
+  v_committed := public.fn_rehearsal_committed_usd(v_tag);
+  v_est := public.fn_rehearsal_call_estimate_usd(v_tag);
+  if v_cap is null or v_committed is null or v_est is null then
+    return jsonb_build_object('allowed', false, 'rule', 'rehearsal_cap_unreadable',
+      'reason', 'sandbox run ' || v_tag || ': no open window cap, or its spend could not be read');
+  end if;
+  if v_committed + v_est >= v_cap then
+    return jsonb_build_object('allowed', false, 'rule', 'rehearsal_cap',
+      'reason', 'sandbox run ' || v_tag || ' has committed USD ' || round(v_committed, 4) || ' (spent + reserved); one more call ('
+             || round(v_est, 4) || ') would reach its USD ' || v_cap || ' cap');
+  end if;
+  insert into public.rehearsal_spend_reservation (e2e_run_tag, reserved_usd) values (v_tag, v_est);
+  return jsonb_build_object('allowed', true, 'rule', 'reserved', 'reserved_usd', v_est,
+    'committed_usd', v_committed + v_est, 'cap_usd', v_cap);
+exception when others then
+  return jsonb_build_object('allowed', false, 'rule', 'rehearsal_cap_unreadable',
+    'reason', 'the reservation could not be made: ' || sqlstate || ' ' || sqlerrm);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_rehearsal_window_covers(p_at timestamp with time zone)
@@ -7058,10 +8034,16 @@ begin
     end if;
 
     -- (b) remind each invited supplier who has not quoted, once. Not one invited in the last 2 hours.
+    --     NO SUPPLIER IS NUDGED TWICE IN 24 HOURS (ruling 1209): a supplier invited to several short requests gets one
+    --     reminder a day across all of them. The one deferred here is reminded on a later tick (its dedupe key is per
+    --     request and supplier, so it still gets exactly one for this request) while the request is still short.
     for l in select ld.* from public.inquiry_matches m join public.leads ld on ld.id = m.supplier_id
               where m.inquiry_id = r.id and m.sent_at < now() - interval '2 hours'
                 and not exists (select 1 from public.quotes q where q.inquiry_id = r.id and q.supplier_id = m.supplier_id)
-                and public.fn_seat_clock_lead_is_fixture(ld) = r.fixture loop
+                and public.fn_seat_clock_lead_is_fixture(ld) = r.fixture
+                and not exists (select 1 from public.notifications n
+                                 where n.lead_id = ld.id and n.type = 'rfq_quote_reminder'
+                                   and n.created_at > now() - interval '24 hours' and coalesce(n.status, '') <> 'failed') loop
       v := public.fn_seat_clock_deliver('sales_engineer', 'rfq_quote_reminder', 'supplier',
              lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email))), r.fixture, 'en', 'rfq_quote_reminder',   -- suppliers are always written in English (founder, 28 Sep 2026)
              

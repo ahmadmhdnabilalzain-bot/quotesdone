@@ -96,7 +96,7 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
     const reason = String(r.matching_block_reason || '');
     if (reason === 'licence_expired') {
       blocking.push({ code: 'licence_expired', params: { date: r.license_expiry || null }, title: 'Your account is paused - trade licence expired',
-        detail: 'Your trade licence expired on ' + (r.license_expiry || 'an earlier date') + '. Upload a valid copy and your account is restored automatically, usually within a day. There is no fee.',
+        detail: 'Your trade licence expired on ' + (r.license_expiry || 'an earlier date') + '. Upload a valid copy and your account is restored automatically at our daily document check once the new licence reads as in date, so within a day. If it cannot be read, we tell you what to upload again. There is no fee.',
         fix: 'documents' });
     } else if (reason === 'insurance_expired') {
       blocking.push({ code: 'insurance_expired', params: { date: r.insurance_expiry || null }, title: 'Your account is paused - insurance expired',
@@ -124,7 +124,7 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
   // can reach and 15,306.
   if (!cap?.confirmed_at) blocking.push({ code: 'scope_unconfirmed',
     title: 'Confirm what your company can quote for',
-    detail: 'We never guess a supplier’s scope on their behalf, so no request is sent to you until you have confirmed it yourself. We have already filled in the trades and role we hold for your company — you only correct them and press confirm. It takes about a minute, once.',
+    detail: 'We never guess a supplier’s scope on their behalf, so no request is sent to you until you have confirmed it yourself. We have already filled in the trades and role we hold for your company — you only correct them and press confirm. It takes about a minute, once. It is also the last step of verification: until you confirm, your registration stays Pending.',
     fix: 'scope' });
 
   // Discoverability: the query matches on sector OR keywords across these four columns.

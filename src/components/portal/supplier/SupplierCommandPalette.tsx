@@ -35,7 +35,7 @@ export default function SupplierCommandPalette({ tabs, labels, onGo, lang = 'en'
         className="qd-link hidden min-h-11 min-w-11 items-center text-xs text-muted-foreground sm:inline-flex">{L.hint}</button>
 
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50 pt-[12vh] backdrop-blur-sm"
+        <div className="fixed inset-0 z-60 flex items-start justify-center bg-black/50 pt-[12vh] backdrop-blur-xs"
           onClick={() => setOpen(false)}>
           <Command
             label={L.placeholder}
@@ -43,8 +43,8 @@ export default function SupplierCommandPalette({ tabs, labels, onGo, lang = 'en'
             onClick={(e) => e.stopPropagation()}
           >
             <Command.Input autoFocus placeholder={L.placeholder}
-              className="w-full border-b border-white/10 bg-transparent px-4 py-3 text-[13.5px] text-white outline-none placeholder:text-muted-foreground" />
-            <Command.List className="max-h-[18rem] overflow-y-auto p-1.5">
+              className="w-full border-b border-white/10 bg-transparent px-4 py-3 text-[13.5px] text-white outline-hidden placeholder:text-muted-foreground" />
+            <Command.List className="max-h-72 overflow-y-auto p-1.5">
               <Command.Empty className="px-3 py-6 text-center text-xs text-muted-foreground">{L.empty}</Command.Empty>
               <Command.Group heading={L.go} className="px-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                 {tabs.map((k) => (

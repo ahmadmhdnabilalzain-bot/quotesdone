@@ -21,7 +21,12 @@
 // public.fn_opt_out_types() (scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql);
 // scripts/checks/every_duty_has_an_owner_and_a_clock.test.mjs fails if the two lists differ.
 
-export const OPT_OUT_TYPES: readonly string[] = ['supplier_invite', 'supplier_registration_reminder', 'supplier_rfq_widened_invite'];
+// 'supplier_invite_nudge' (28 Oct 2026, sales_engineer; ledger 1401 audit, S6): the day-3/7/14 reminder of an unopened
+// invitation is the same cold outreach. It was missing, so an unsubscribe did not stop a nudge already queued (the
+// onboarding duty queues it after midnight Dubai for the 09:00 window): send_outbox's suppressionStops answered false.
+// fn_email_type_is_marketing already counted it as marketing; the SQL mirror moves with this list
+// (scripts/sql/a_supplier_who_said_stop_is_never_nudged.sql).
+export const OPT_OUT_TYPES: readonly string[] = ['supplier_invite', 'supplier_invite_nudge', 'supplier_registration_reminder', 'supplier_rfq_widened_invite'];
 
 /** A preference row (the person unsubscribed), as opposed to a deliverability fact. */
 export function isOptOut(reason: unknown): boolean {
@@ -127,10 +132,42 @@ export function microsoftDomainAuthenticated(authResults: unknown, fromEmail: st
   return clausesAuthenticate(clauses, dom);
 }
 
+/** Did the receiving server authenticate the From domain, read on the lane the mail arrived by: EOP's verdict for a reply
+ *  handed in from the Microsoft 365 mailbox (provider id 'm365:...', set only by our own signed handover), SES's for the
+ *  rest. Review of #1699, 28 Oct 2026: raw.sender_authenticated used SES's reader alone, so every invited supplier's reply
+ *  (they all arrive through the M365 mailbox) was stored unauthenticated (3 of 3 live m365 rows) and email_triage never
+ *  gave a verified lead its own facts. The unsubscribe path above already read the lane this way. */
+export function senderAuthenticated(providerEmailId: unknown, authResults: unknown, fromEmail: string): boolean {
+  return String(providerEmailId || '').startsWith('m365:') ? microsoftDomainAuthenticated(authResults, fromEmail)
+    : fromDomainAuthenticated(authResults, fromEmail);
+}
+
 /** Addresses no email may ever suppress: our own domains and the people who run the company. */
 export function neverSuppressible(email: string, protectedList: string[]): boolean {
   const e = String(email || '').trim().toLowerCase();
   const dom = e.split('@')[1] || '';
   if (/(^|\.)quotesdone\.(com|ae)$/.test(dom)) return true;
   return protectedList.map((x) => x.trim().toLowerCase()).filter(Boolean).includes(e);
+}
+
+// ── THE THREE GATES BEFORE A REPLY'S "STOP" IS APPLIED, IN ONE PLACE (28 Oct 2026, sales_engineer; founder ledger 1401) ──
+// resend_inbound has applied them since 22 Sep 2026 (a From header can be forged; Svix proves Resend delivered the mail,
+// not who wrote it). email_triage's opt_out backstop (email_triage/opt_out_backstop.ts) now applies a stop the word list
+// missed, and it must stand behind exactly the same gates, so they moved here unchanged, in the same order, with the
+// same reasons:
+//   1. never our own domains, the admin addresses, the expense forwarders or the expense mailbox (protectedList);
+//   2. the receiving server must have authenticated the From domain (`authenticated`, read lazily: resend_inbound
+//      fetches the headers only when gate 1 passed);
+//   3. we must actually have sent this address an invitation or reminder (a 'sent' notification of OPT_OUT_TYPES) --
+//      the only mail an opt-out stops.
+// '' when the stop may be applied; otherwise the reason it may not, for the row a person reviews.
+// deno-lint-ignore no-explicit-any
+type StopDb = any;
+export async function replyStopRefusal(admin: StopDb, o: { from: string; protectedList: string[]; authenticated: () => boolean | Promise<boolean> }): Promise<string> {
+  const from = String(o.from || '').trim().toLowerCase();
+  if (neverSuppressible(from, o.protectedList)) return 'a protected address (our own domain, an admin address or an expense forwarder)';
+  if (!(await o.authenticated())) return 'the receiving server did not authenticate the sender domain (no aligned DMARC, DKIM or SPF pass)';
+  const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
+    .ilike('to_email', from.replace(/[\\%_]/g, '\\$&')).in('type', [...OPT_OUT_TYPES]).eq('status', 'sent');
+  return count ? '' : 'we never sent this address an invitation or reminder';
 }

@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "perfumes_wholesale:product-distinctions",
+      "topic": "Perfumes and oud: concentrations, product types and stock grades",
+      "topic_ar": "العطور والعود: التركيزات وأنواع المنتجات ودرجات البضاعة",
+      "kind": "product_distinctions",
+      "body_en": "Alcohol-based fragrances are classed by concentration of aromatic compounds: parfum or extrait (highest, often 20-30%), eau de parfum (about 15-20%), eau de toilette (about 5-15%) and eau de cologne (lower), which affects longevity and price. Oil-based perfumes (concentrated perfume oils and attars, alcohol-free) and Arabian perfumery (oud oil from agarwood, bakhoor incense chips and blends, mukhallat blends, musk, rose and amber) form a separate category, graded by origin, age and purity of the oud and by blend quality. Products also include body mists, deodorants, home fragrance and diffusers, and gift sets. Stock types: designer brands through authorised distributors, parallel or grey imports, testers (genuine but unboxed or plain-boxed, not for resale as new), niche houses, private label and white-label fragrance made by contract manufacturers with a fragrance house's oil, and counterfeit copies (illegal). What separates an offer: genuineness and batch codes, concentration, bottle size, manufacture date and storage (heat and light degrade perfume), packaging condition, cosmetic product registration where required, and dangerous-goods handling for shipping (alcohol-based perfume is flammable).",
+      "body_ar": "تُصنف العطور الكحولية حسب تركيز المركبات العطرية: البارفان أو الخلاصة (الأعلى، غالباً 20-30%)، وماء العطر (نحو 15-20%)، وماء التواليت (نحو 5-15%)، وماء الكولونيا (أقل)، وهذا يؤثر على الثبات والسعر. والعطور الزيتية (زيوت العطر المركزة والعطور الزيتية الخالية من الكحول) والعطور العربية (دهن العود من خشب العود، والبخور ورقائقه وخلطاته، والمخلطات، والمسك، والورد، والعنبر) فئة منفصلة، تُصنف حسب منشأ العود وعمره ونقاوته وجودة الخلطة. وتشمل المنتجات أيضاً معطرات الجسم، ومزيلات العرق، وعطور المنزل والفواحات، وأطقم الهدايا. وأنواع البضاعة: علامات المصممين عبر الموزعين المعتمدين، أو استيراد موازٍ، أو عينات التجربة (أصلية لكن دون علبة أو بعلبة سادة، لا تُباع كجديدة)، أو دور عطور متخصصة، أو علامة خاصة يصنعها مصنعون تعاقديون بزيت من دار عطور، أو نسخ مقلدة (غير قانونية). وما يميز العرض: الأصالة وأرقام الدفعات، والتركيز، وحجم القارورة، وتاريخ الإنتاج والتخزين (الحرارة والضوء يتلفان العطر)، وحالة التغليف، وتسجيل منتج التجميل حيث يُشترط، والتعامل مع البضائع الخطرة في الشحن (العطر الكحولي قابل للاشتعال).",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Perfume"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: concentration classes parfum, eau de parfum, eau de toilette, eau de cologne and perfume oils -> confirmed."
+    },
+    {
+      "id": "perfumes_wholesale:lead-times-and-quoting",
+      "topic": "Perfumes & oud wholesale - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تجارة العطور والعود بالجملة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Distributor stock: days; private label 6-12 weeks including oil selection, bottles and boxes. A supplier needs the brands or fragrance types, sizes and concentrations, quantities, stock type accepted, and destination market. A quote states per SKU brand, concentration, size, stock type, batch and date, origin, registration, carton pack, shipping class, delivery, payment and validity.",
+      "body_ar": "مخزون الموزع: أيام؛ والعلامة الخاصة 6-12 أسبوعاً شاملة اختيار الزيت والقوارير والعلب. ويحتاج المورد العلامات أو أنواع العطور، والأحجام والتركيزات، والكميات، ونوع البضاعة المقبول، والسوق المقصودة. ويذكر العرض لكل صنف العلامة والتركيز والحجم ونوع البضاعة والدفعة والتاريخ والمنشأ والتسجيل وعدد القطع في الكرتون وفئة الشحن والتسليم والدفع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (no entry on oud oil pricing or the tola (about 11.66 g / 12 ml)). perfumes_wholesale:oud-oil-tola-pricing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from perfumes_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Are perfume testers OK to resell in my shop?",
+      "q_ar": "هل عينات التجربة للعطور يصلح أبيعها في محلي؟",
+      "expected_entry_ids": [
+        "perfumes_wholesale:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "perfumes_wholesale:oud-oil-tola-pricing"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "perfumes_wholesale:product-distinctions"
+      ],
+      "stored_not_served": [
+        "perfumes_wholesale:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Perfume"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

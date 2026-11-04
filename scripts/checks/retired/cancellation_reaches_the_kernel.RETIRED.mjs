@@ -34,9 +34,10 @@
 //   node scripts/checks/cancellation_reaches_the_kernel.test.mjs
 //
 // READ-ONLY except for one probe that runs inside a transaction which always aborts.
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 const PROD = 'htdblwldjkcgjvmqkbeh';
-const LOCAL = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN || (existsSync(LOCAL) ? readFileSync(LOCAL, 'utf8') : '')).trim();
 if (!token) { console.log('SKIPPED: no management token, so this asserted nothing.'); process.exit(0); }
 const q = async text => {

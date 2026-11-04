@@ -32,10 +32,11 @@
 //
 // Commands that are DO blocks or CALLs cannot be planned without executing them; they are covered by
 // (1) and (3) and are COUNTED AND NAMED in the output rather than quietly reported as checked.
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 
 const REF_TOKEN = /\b[a-z]{20}\b/;
-const LOCAL = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL) ? readFileSync(LOCAL, 'utf8') : '')).trim();
 if (!token) {

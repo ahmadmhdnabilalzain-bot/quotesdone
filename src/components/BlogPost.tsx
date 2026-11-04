@@ -24,6 +24,8 @@ export const BLOG_T = {
     cta: 'Get quotes', onlyEnglish: '', indexH: 'QuotesDone blog',
     indexLead: 'Practical guides for buying building, fit-out and home services in the UAE — real price ranges, checklists and the right questions to ask suppliers before you sign.',
     read: 'Read guide →', author: 'QuotesDone', contents: 'In this guide',
+    // Legal review 19 Oct, finding 12: every post's price ranges are indicative, not an offer.
+    priceNotice: 'Prices are indicative market ranges at the date of writing, not an offer or a quotation. Ask for quotes on QuotesDone for your exact scope.',
   },
   ar: {
     home: 'الرئيسية', blog: 'المدوّنة', crumb: 'مسار التنقل', ready: 'جاهزون متى شئت',
@@ -32,6 +34,7 @@ export const BLOG_T = {
     cta: 'احصل على عروض الأسعار', onlyEnglish: 'هذا المقال متاح حالياً باللغة الإنجليزية فقط.', indexH: 'مدوّنة QuotesDone',
     indexLead: 'أدلة عملية لشراء خدمات البناء والتشطيبات الداخلية والخدمات المنزلية في الإمارات — نطاقات أسعار حقيقية وقوائم تحقق والأسئلة الصحيحة التي تطرحها على الموردين قبل التوقيع.',
     read: 'اقرأ الدليل ←', author: 'QuotesDone', contents: 'في هذا الدليل',
+    priceNotice: 'الأسعار الواردة نطاقات سوقية استرشادية في تاريخ كتابة المقال، وليست عرضًا ولا عرض سعر. اطلب عروض أسعار على QuotesDone لنطاق عملك تحديدًا.',
   },
 } as const;
 export const blogT = (locale: string) => (locale === 'ar' ? BLOG_T.ar : BLOG_T.en);
@@ -110,7 +113,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
             )}
             <p className="mt-8 flex flex-wrap items-center gap-3 font-mono text-label text-faint">
               {p.author ? <span>{p.author}</span> : null}
-              {p.author && date ? <span aria-hidden className="h-3 w-px bg-[var(--line2)]" /> : null}
+              {p.author && date ? <span aria-hidden className="h-3 w-px bg-(--line2)" /> : null}
               {date ? <span>{date}</span> : null}
             </p>
           </div>
@@ -119,7 +122,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
         <div className="container-x grid gap-10 py-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-16">
           <article className="min-w-0 max-w-[720px]">
             {locale === 'ar' && !rtl && (
-              <p className="mb-10 rounded-panel border border-line2 bg-teal-light/[0.05] px-4 py-3 text-small text-muted">
+              <p className="mb-10 rounded-panel border border-line2 bg-teal-light/5 px-4 py-3 text-small text-muted">
                 {T.onlyEnglish}
               </p>
             )}
@@ -131,8 +134,9 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
               className="qd-prose [&_h2]:scroll-mt-28"
               dangerouslySetInnerHTML={{ __html: body }}
             />
+            <p className="mt-10 border-t pt-4 text-sm text-muted-foreground">{T.priceNotice}</p>
           </article>
-          {list.length > 2 ? <aside className="-order-1 min-w-0 lg:order-none"><ContentsRail title={T.contents} list={list} /></aside> : null}
+          {list.length > 2 ? <aside className="-order-1 min-w-0 lg:order-0"><ContentsRail title={T.contents} list={list} /></aside> : null}
         </div>
 
         <CtaPanel kicker={T.ready} title={T.ctaH} body={T.ctaP}>

@@ -43,6 +43,15 @@ test('the check catches each shape, and a comment describing it does not trip it
   ]) assert.equal(findingsFor(red, shape).length, 1, shape);
   // What the editor really does is not flagged: load, read the pages, save.
   assert.equal(findingsFor(red, "const doc = await PDFDocument.load(bytes, { updateMetadata: false }); const pl = doc.getPages(); const out = await doc.save({ useObjectStreams: false });").length, 0);
+  // Review of #1796: a dynamic import() of the library is caught like a static one, anywhere but the two editors.
+  assert.equal(findingsFor(fn, "const { PDFDocument } = await import('https://esm.sh/pdf-lib@1.17.1');").length, 1);
+  assert.equal(findingsFor(fn, 'const m = await import(`npm:jspdf`);').length, 1);
+  // The profile cutter may load, remove pages and save the supplier's own PDF, and nothing more.
+  const cut = 'supabase/functions/_shared/supplier_docs_later.ts';
+  assert.equal(findingsFor(cut, "const { PDFDocument } = await import('https://esm.sh/pdf-lib@1.17.1'); const doc = await PDFDocument.load(b); doc.removePage(11); await doc.save();").length, 0);
+  assert.equal(findingsFor(cut, "const out = await PDFDocument.create();").length, 1);
+  assert.equal(findingsFor(cut, 'const [p] = await out.copyPages(src, [0]);').length, 1);
+  assert.equal(findingsFor(cut, "return new Response(b, { headers: { 'Content-Type': 'application/pdf' } });").length, 1);
 });
 
 // 22 Sep 2026 (audit finding 2): supplier_pay turned invoice_creation on for both supplier checkouts, so a

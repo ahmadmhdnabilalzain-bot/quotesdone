@@ -23,10 +23,12 @@
 //                  "alt_text": "...", "title": "(YouTube title; defaults to video.title)", "first_comment": "...",
 //                  "cta_url": "https://...", "rationale": "...", "music": { "bpm": 100, "mood": "..." },
 //                  "post_type": "(optional: reel|short|post|video)", "language": "(optional: en|ar|bi)" } ] }
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { tagCalendar } from './utm.mjs';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const BUCKET = 'marketing-media';
@@ -60,9 +62,9 @@ async function main() {
   if (!file) { console.error('usage: node scripts/marketing/load_calendar.mjs <calendar.json> [--dry-run]'); process.exit(2); }
   // every quotesdone link names its post (utm.mjs) BEFORE the load, so the approved text already carries it
   const calendar = tagCalendar(JSON.parse(readFileSync(file, 'utf8')));
-  const mgmt = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  const mgmt = supabaseAccessToken();
   const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmt } })).json();
-  const service = keys.find?.((k) => k.name === 'service_role')?.api_key;
+  const service = pickApiKey(keys, 'secret');
   if (!service) { console.error('could not read the service key'); process.exit(1); }
   const H = { Authorization: 'Bearer ' + service, apikey: service };
   const problems = await verifyAssets(calendar, async (path) => {

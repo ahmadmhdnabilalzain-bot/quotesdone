@@ -79,14 +79,16 @@ const FIXTURE: Record<string, string> = {
   // of the lighting/power sheet because these were missing). Counted per occurrence, like a fixture.
   LT: 'Light fitting', LF: 'Light fitting', EL: 'Emergency light fitting', DS: 'Double socket outlet', SSO: 'Single socket outlet',
   SW: 'Light switch', SD: 'Smoke detector', HD: 'Heat detector', MCP: 'Manual call point', D: 'Door', DR: 'Door',
+  // 19 Oct 2026 drawing bench: windows tagged W1.. and sockets tagged SKT were read as nothing.
+  W: 'Window', WN: 'Window', SKT: 'Socket outlet',
 };
 // Section of a counted fixture line; a type not listed is a plumbing fixture (the table's original scope).
 const SECTION_OF: Record<string, string> = {
   LT: 'Electrical devices', LF: 'Electrical devices', EL: 'Electrical devices', DS: 'Electrical devices', SSO: 'Electrical devices', SW: 'Electrical devices',
-  SD: 'Fire alarm devices', HD: 'Fire alarm devices', MCP: 'Fire alarm devices', D: 'Doors', DR: 'Doors',
+  SD: 'Fire alarm devices', HD: 'Fire alarm devices', MCP: 'Fire alarm devices', D: 'Doors', DR: 'Doors', W: 'Windows', WN: 'Windows', SKT: 'Electrical devices',
 };
 // Types written with no number are rare and specific; anything else needs a number to be a tag.
-const NO_NUMBER_OK = new Set(['EWC', 'FCO', 'DF', 'WCO', 'CO', 'SD', 'HD', 'MCP']);
+const NO_NUMBER_OK = new Set(['EWC', 'FCO', 'DF', 'WCO', 'CO', 'SD', 'HD', 'MCP', 'SKT']);
 const SHEET_NO = /^[A-Z]{1,2}-?\d{1,2}\.\d{1,2}[A-Z]?$/;
 const PREFIX = /^\((E|R|N|D|ER|EX)\)\s*/;
 const statusOf = (p: string | undefined): Status => p === 'E' || p === 'EX' ? 'existing' : p === 'R' || p === 'ER' ? 'relocate' : p === 'D' ? 'demolish' : 'new';
@@ -155,14 +157,24 @@ function abbreviations(pages: PdfPage[]): Map<string, string> {
 
 type Consumed = Set<TextRun>;
 
+/** A tag drawn as a LEGEND sample: under a LEGEND / KEY / SYMBOLS heading in the same column (within a quarter of the
+ *  sheet), with a description of two or more words beside it on its own line. */
+const LEGEND_HEAD = /^(?:(?:electrical|fire\s*alarm|symbols?)\s+)?(?:legend|key|symbols?)(?:\s+(?:of\s+)?symbols?)?\s*:?$/i;
+function legendSample(r: TextRun, runs: TextRun[]): boolean {
+  if (!runs.some((h) => LEGEND_HEAD.test(h.text.trim()) && h.y < r.y && r.y - h.y < 0.25 && Math.abs(r.x - h.x) < 0.05)) return false;
+  return runs.some((o) => o !== r && Math.abs(cy(o) - cy(r)) < r.h * 0.6 && o.x > r.x + r.w && o.x - (r.x + r.w) < 0.06 && /[A-Za-z]{3,}\s+\S{2,}/.test(o.text));
+}
+
 /** Every tag on one sheet, drawing area only (the title strip is excluded by the caller). */
 export function tagsOnSheet(p: PdfPage, pi: number, strip: Box | null, airTypes: Iterable<string> = []): { hits: TagHit[]; diffusers: Diffuser[]; consumed: Consumed } {
   const runs = p.runs.filter((r) => !inBox(r, strip));
   const consumed: Consumed = new Set();
   const hits: TagHit[] = [];
-  // 1. Single-run tags.
+  // 1. Single-run tags. A legend's sample tag is not work (founder 580): the drawing bench counted one extra of
+  //    every tag its legend listed.
   for (const r of runs) {
     const t = parseTag(r.text); if (!t) continue;
+    if (legendSample(r, runs)) { consumed.add(r); continue; }
     hits.push({ tag: t.tag, type: t.type, status: t.status, page: pi + 1, x: cx(r), y: cy(r) }); consumed.add(r);
   }
   // 2. Tag bubbles: a type code with its number directly below (same centre line, within 1.8 heights).
@@ -207,6 +219,38 @@ export function tagsOnSheet(p: PdfPage, pi: number, strip: Box | null, airTypes:
     diffusers.push({ letter: t, neck: '', cfm: '', x: cx(r), y: cy(r), ...(series.has(t) ? { inferred: true } : {}) }); consumed.add(r);
   }
   return { hits, diffusers, consumed };
+}
+
+/** Runs on a plan that are SHAPED like a tag but that tagsOnSheet did not read: one run "IDU-4" / "(E)CRAC-2", or a
+ *  2-4 letter code with a number directly below it (the bubble geometry of tagsOnSheet step 2) whose code is not in the
+ *  vocabulary. These are what the reader would miss: a type it has no word for. A legend sample is already consumed. */
+const TAG_SHAPE = /^(?:\((?:E|R|N|D|ER|EX)\)\s*)?[A-Z]{1,4}(?:\/[A-Z]{1,3})?-?\d{1,3}[A-Z]?(?:-\d{1,2})?(?:-H)?$/;
+// A SERIES (independent review of 29dda0b5a, 27 Oct 2026): TAG_SHAPE alone let a plan through with 2 of 14 units read
+// when the 12 it missed were spelled IDU-GF-01, IDU 1, IDU-1001, VRF-IDU-1, SPLIT-1 or IDU-1.01 (floor codes, a space,
+// four digits, a hyphenated or five-letter type, a dotted number: all common on UAE MEP sets). Any one of those shapes
+// written once is too close to a room label ("OFFICE 101") to call a tag, but the SAME letter prefix written with two or
+// more different numbers is a tagged series, and an unread series means the count is incomplete.
+// set_before_model.test.ts holds each spelling.
+const SERIES = /^(?:\((?:E|R|N|D|ER|EX)\)\s*)?([A-Z]{1,6}(?:[-\/][A-Z]{1,4})?)[\s.\-]*((?:[A-Z]{0,2}\d{0,2}[-.])?\d{1,4}[A-Z]?(?:[-.]\d{1,3})?)$/;
+export function unreadTagLike(p: PdfPage, strip: Box | null, consumed: Consumed): number {
+  const all = p.runs.filter((r) => !inBox(r, strip));
+  const runs = all.filter((r) => !consumed.has(r) && !legendSample(r, all));
+  let n = 0;
+  const used = new Set<TextRun>();
+  for (const r of runs) if (TAG_SHAPE.test(r.text.trim().toUpperCase())) { n++; used.add(r); }
+  const series = new Map<string, { nums: Set<string>; runs: TextRun[] }>();
+  for (const r of runs) {
+    const s = r.text.trim().toUpperCase();
+    const m = SERIES.exec(s); if (!m || SHEET_NO.test(s)) continue; // "M-5.01" is a sheet reference, not a unit
+    const e = series.get(m[1]) || { nums: new Set<string>(), runs: [] }; e.nums.add(m[2]); e.runs.push(r); series.set(m[1], e);
+  }
+  for (const e of series.values()) if (e.nums.size >= 2) for (const r of e.runs) if (!used.has(r)) { n++; used.add(r); }
+  for (const r of runs) {
+    if (used.has(r) || r.vertical || !/^[A-Z]{2,4}$/.test(r.text.trim())) continue;
+    const below = runs.find((o) => !used.has(o) && o !== r && /^\d{1,3}[A-Z]?$/.test(o.text.trim()) && Math.abs(cx(o) - cx(r)) < Math.max(r.w, 0.004) && o.y > r.y && o.y - r.y < r.h * 1.8);
+    if (below) { n++; used.add(r); used.add(below); }
+  }
+  return n;
 }
 
 /** Keyed notes of a sheet ("4. DEMO AND REMOVE …", continuation lines joined) and the bubbles carrying each number. */
@@ -312,14 +356,23 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
   const notes: { sheet: Sheet; n: number; text: string; bubbles: number; outlined: boolean }[] = [];
   const measured: { sheet: Sheet; m: Measured }[] = []; const dense: string[] = [];
   const sizes: { sheet: Sheet; duct: Map<string, number>; pipe: Map<string, { n: number; status: Status }>; louver: Map<string, number> }[] = [];
+  const coverage = { tags_read: 0, tag_like_unread: 0 };
   pages.forEach((p, i) => {
     const sh = sheets[i];
     // Only PLANS are counted. A cover sheet's legend and abbreviation table ("CO2 CARBON DIOXIDE", a
     // legend "A") and a detail sheet's callouts are not items: measured 21 Sep 2026, counting every
     // sheet added a phantom CO-2 and a 13th type-A diffuser from the mechanical cover sheet.
-    if (sh.kind !== 'plan' && sh.kind !== 'demolition_plan') { sizes.push({ sheet: sh, duct: new Map(), pipe: new Map(), louver: new Map() }); return; }
+    if (sh.kind !== 'plan' && sh.kind !== 'demolition_plan') {
+      // A sheet that is not a plan by its title is not counted, so a tag on it is not read either: "GROUND FLOOR AC
+      // LAYOUT" (no PLAN in the title) carrying FCU-1..12 beside a PLAN sheet with EF-1, EF-2 read 2 of 14 (independent
+      // review, 27 Oct 2026). Its tagged runs count as unread, so the set goes to the model. A schedule is not a plan
+      // by design (its rows are read in schedule_tables). Legend and abbreviation samples are left out by unreadTagLike.
+      if (sh.kind === 'other') coverage.tag_like_unread += unreadTagLike(p, strips[i], new Set());
+      sizes.push({ sheet: sh, duct: new Map(), pipe: new Map(), louver: new Map() }); return;
+    }
     const { hits, diffusers: dfs, consumed } = tagsOnSheet(p, i, strips[i], airLetters);
     const demoSheet = sh.kind === 'demolition_plan';
+    coverage.tags_read += hits.length; coverage.tag_like_unread += unreadTagLike(p, strips[i], consumed);
     for (const h of hits) {
       const k = parseTag(h.tag)!;
       if (k.kind === 'fixture') {
@@ -460,7 +513,7 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
     const t = parseTag(tag); if (!t && !/^[A-Z]$/.test(tag)) continue;
     lines.push({ section: 'From the schedule (not found on a plan)', type: `sched:${tag}`, status: 'new', item: `${tag} ${t ? nameOf(t.type) : 'air device'}`, description: `${tag} — ${spec}`, qty: 1, estimate: 1, unit: 'nos', qty_status: 'to_confirm', confidence: 'low', sheets: [], basis: 'row of a schedule read by OCR; no plan tag carries it — quantity and model to confirm' });
   }
-  return { sheets, lines, strips, dense };
+  return { sheets, lines, strips, dense, coverage };
 }
 
 /** Measured runs -> BOQ lines, one per system and size across the set. */
@@ -566,9 +619,42 @@ export function boqFromDrawingSet(pages: PdfPage[], hint = '', schedules: Schedu
     total_area_sqm: null as number | null, area_tags_sqm: [] as number[],
     boq, keywords: [...new Set(boq.map((l) => l.section.toLowerCase()))].slice(0, 10), assumptions: [
       'Counted from the drawing set\'s own text: one unit per equipment tag id; fixtures at their largest count on one plan (the same fixture is drawn on each system\'s plan); air devices by their tag letters.',
-    ], missing_info: missing, confidence: 'low' as const, method: 'drawing_set', pages_read: pages.length,
+    ], missing_info: missing, confidence: 'low' as const, method: 'drawing_set', pages_read: pages.length, coverage: t.coverage,
     sheets: t.sheets.map((s) => ({ number: s.number, title: clean(s.title), scale: s.scale, kind: s.kind })),
   };
+}
+
+// ── THE COVERAGE FLOOR OF THE EARLY PATH (27 Oct 2026, sales_engineer; founder ledger 580) ──────────────────────────
+// drawing_boq answers a PDF set with boqFromDrawingSet BEFORE the vision model is asked (set_before_model.test.ts). An
+// independent review found the hole in that: a set where code reads a few tags and misses most (a type the vocabulary
+// has no word for: IDU-1..IDU-12 of a VRF system beside two EF fans) would return 2 lines and never reach the model;
+// only the customer's confirm step stood between that and an under-counted inquiry. So the early path answers only
+// when the count is plausibly complete; otherwise the model drafts exactly as before.
+//
+// THE SIGNAL is what the text layer itself exposes: on every plan sheet, the runs SHAPED like a tag (unreadTagLike)
+// that the reader did not read. THE FLOOR is all of them read (share 1.0, i.e. 0 unread) and at least one tag read.
+// MEASURED 27 Oct 2026 on every PDF drawing fixture in the repository, reader as it stands:
+//   drawing_set.fixtures sheetPdf          8 read / 0 unread     bench.fixtures benchPdf             24 read / 0 unread
+//   zz_demo_drawings zzPdfSet             20 read / 0 unread     zz_demo_drawings zzPdfSheet         15 read / 0 unread
+//   drawing_reaches_suppliers stressSetPdf(8), the ledger-580 set the model got 2/7 on:     5 read / 0 unread
+//   drawing_lengths.fixtures layeredSetPdf  0 read / 0 unread (sizes and keyed notes only, no tag: nothing to judge,
+//                                                               so it goes to the model, as it did before this path)
+// No fixture has a single unread tag-shaped run that was rightly left out, so any allowance above 0 would be a number
+// with nothing under it. The two errors are not equal either: falling through costs only the pre-27-Oct behaviour (the
+// model drafts; boqFromDrawingSet still answers if the model refuses), while a wrong early return under-counts with
+// only the confirm step behind it. A real set with a stray tag-shaped run (a room "G01" the vocabulary reads as nothing)
+// therefore goes to the model; that is the safe side. Independent review, same day: the signal also counts an unread
+// SERIES (one letter prefix with two or more numbers, any spelling: IDU-GF-01, IDU 1, IDU-1001, VRF-IDU-1) and the
+// tagged runs of a sheet whose title does not say PLAN ("AC LAYOUT"); the fixtures above still read 0 unread with both.
+// Not measured by this floor: a single unread tag in a spelling TAG_SHAPE does not know, and air devices drawn with
+// no letter.
+export function countedCompletely(set: { coverage: { tags_read: number; tag_like_unread: number } } | null): boolean {
+  return !!set && set.coverage.tags_read > 0 && set.coverage.tag_like_unread === 0;
+}
+/** The early answer drawing_boq gives before the model: the coded set when countedCompletely, else null (the model drafts). */
+export function setBeforeModel(pages: PdfPage[], hint = '', schedules: ScheduleTable[] = []) {
+  const set = boqFromDrawingSet(pages, hint, schedules);
+  return countedCompletely(set) ? set : null;
 }
 
 // ── THE LENGTHS ARE A SECOND CALL (22 Sep 2026) ──────────────────────────────────────────────────────

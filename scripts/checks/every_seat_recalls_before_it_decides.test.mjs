@@ -48,7 +48,7 @@ export const DECISION_PATHS = [
   ['supabase/functions/marketing/index.ts', 'marketing', 'assist', 'return error ? J('],
   ['supabase/functions/marketing_social_inbox/index.ts', 'marketing', 'social_reply', 'const text = await writeSocial(ev.text'],
   // The comment answer is think() (socialReply) since #898; the recall still comes first and rides with the question.
-  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'const a = await aiReply(defaultDeps(admin'],
+  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'const a = await aiReply(deps ?? defaultDeps(admin'],
   ['supabase/functions/marketing_channels/index.ts', 'marketing', 'plan', "admin.rpc('fn_marketing_campaign_hash'"],
 ];
 export const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
@@ -135,7 +135,10 @@ test('a reworded case from another customer recalls the finalised one, masked; a
   const run = async (body) => {
     try { await replaySql((live ? '' : read(SQL_FILE) + '\n') + body, { retry: false }); }
     catch (e) {
-      const m = String(e.message).match(/CHK<<(.*?)>>/s);
+      // e.message is cut at 2000 characters (lib/db.mjs); e.body is the whole answer. Measured 27 Oct 2026: the
+      // recall now returns five production cases with their full situations, so the verdict ran past 2000 and its
+      // closing >> was cut off (the CHK<< was there, the test threw the raw error).
+      const m = String(e.body ?? e.message).match(/CHK<<(.*?)>>/s);
       if (!m) throw e;
       return JSON.parse(m[1].replace(/\\"/g, '"'));
     }

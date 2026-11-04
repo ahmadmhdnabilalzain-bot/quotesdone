@@ -564,7 +564,7 @@ Four things: (1) Anonymity — buyers and sellers don''t exchange contact detail
 It is a licensed Dubai business (QuotesDone Technologies, DET E-Trader Licence No. 1633275). Suppliers are vetted (licence/KYC checks). Buyer and seller details stay masked until a paid reveal, protecting both sides. Quotes are structured and quality-gated so buyers compare like-for-like. The Smart Engine is governed and grounded — it answers from verified company and regulatory knowledge rather than guessing, sensitive actions are logged and reversible, and data is handled under UAE PDPL with security controls.
 
 ## [Company Policies] Supplier onboarding policy
-Suppliers self-register or claim an existing listing, submit their trade licence and KYC documents, and are verified before going live (verification within a maximum of 3 working days; suppliers are not auto-approved). Approval is merit-based — there is no paid ranking or advertising. Registration is free for all suppliers until 31 July 2027; from 1 August 2027 an annual subscription of AED 1,000 applies, except for the first 1,000 registered suppliers, who remain free permanently.
+Suppliers self-register or claim an existing listing, submit their trade licence and KYC documents, and are verified before going live (verification within a maximum of 3 working days; approval is automatic once the documents pass these checks and the supplier has confirmed its services, and a licence from a foreign or unconfirmed issuing authority is held). Approval is merit-based — there is no paid ranking or advertising. Registration is free for all suppliers until 31 July 2027; from 1 August 2027 an annual subscription of AED 1,000 applies, except for the first 1,000 registered suppliers, who remain free permanently.
 
 ## [Company Policies] Customer onboarding policy
 Customers sign up with phone/email verification and accept the Terms & Conditions (a signed copy is stored). Posting requests, receiving and comparing quotes is free; a customer pays only the 3% reveal fee on the quote they choose to unlock. Customers remain anonymous to suppliers until they reveal.
@@ -2282,7 +2282,7 @@ Professional movers and packers UAE (insurance/goods-in-transit reference) - htt
 - DON''T imply suppliers pay commission on won jobs (they don''t).
 
 ## Contact
-- Web: quotesdone.com  ·  Support: management@quotesdone.com  ·  Mobile/WhatsApp: +971 50 931 9355
+- Web: quotesdone.com  ·  Support: management@quotesdone.com  ·  Phone: +971 56 791 8605  ·  WhatsApp: +1 218 316 6814
 '),
 ('_global','Asset text: WHERE_TO_USE.txt',45,'From company asset "WHERE_TO_USE.txt" (Dropbox: /QuotesDone Backup/Assets/QuotesDone_Brand_Kit/QuotesDone_Brand_Kit/WHERE_TO_USE.txt)
 
@@ -2385,7 +2385,7 @@ All files are editable (SVG / DOCX / HTML) or print-ready (PDF / 300-DPI PNG).
 COMPANY
   QuotesDone Technologies · DET E-Trader Licence No. 1633275
   Ahmad Alzain — Founder & Managing Director
-  management@quotesdone.com · +971 50 931 9355 · quotesdone.com · Dubai, UAE
+  management@quotesdone.com · +971 56 791 8605 · WhatsApp +1 218 316 6814 · quotesdone.com · Dubai, UAE
 
 TIP: To sign a PDF/Word doc, drop in signature_plus_stamp.png (or the stamp PNG
 + a signature PNG separately) and resize. For new printed stamps/cards, send the
@@ -2401,9 +2401,9 @@ SVG or PDF files to your supplier.
 .body{min-height:760px;padding-top:30px;color:#94a3b8;font-size:12px}
 .ft{position:absolute;left:0;right:0;bottom:0;border-top:1px solid #e2e8f0;text-align:center;color:#7a8aa0;font-size:10px;padding:10px 48px;line-height:1.6}</style></head>
 <body><div class="pg"><div class="lh"><img src="https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/qd_lockup_dark.png">
-<div class="co"><div class="nm">QuotesDone Technologies</div><div>DET E-Trader (Professional) Licence No. 1633275</div><div>Dubai, United Arab Emirates</div><div>management@quotesdone.com · +971 50 931 9355</div></div></div>
+<div class="co"><div class="nm">QuotesDone Technologies</div><div>DET E-Trader (Professional) Licence No. 1633275</div><div>Dubai, United Arab Emirates</div><div>management@quotesdone.com · +971 56 791 8605 · WhatsApp +1 218 316 6814</div></div></div>
 <div class="body">[ Your letter content goes here ]</div>
-<div class="ft">QuotesDone Technologies · DET E-Trader (Professional) Licence No. 1633275 · Dubai, United Arab Emirates<br>management@quotesdone.com · +971 50 931 9355 · quotesdone.com</div></div></body></html>'),
+<div class="ft">QuotesDone Technologies · DET E-Trader (Professional) Licence No. 1633275 · Dubai, United Arab Emirates<br>management@quotesdone.com · +971 56 791 8605 · WhatsApp +1 218 316 6814 · quotesdone.com</div></div></body></html>'),
 ('cat:plumbing','Pricing benchmarks & red flags',7,'Indicative Dubai ranges (label indicative, confirm per site, exclude 5% VAT). Call-out fee: roughly AED 50-100, often credited against the final bill. Plumber labour: roughly AED 120-160 per hour for routine work, up to AED 300-500+ per hour for complex/emergency jobs. Water-heater replacement: a standard 80L unit roughly AED 850-1,250 supplied and installed (some basic units/labour-only from around AED 350); allow an extra AED 500-1,500 where ceiling/access works are needed. Re-piping, drainage and full fit-outs are quoted per project after survey. Price DRIVERS: supply-and-install vs labour-only; pipe material and PN class; fixture/heater brand and capacity; access and make-good (opening ceilings/walls/tiles); emergency/after-hours premiums; DEWA approval/NOC where applicable; and warranty. RED FLAGS: a price far below market usually means supply-only quoted against supply-and-install, thinner pipe or lower PN class, or unbranded/low-capacity fixtures; no pressure/leak test; ceiling/wall make-good and debris disposal excluded then billed; call-out fee not credited; supply-side work offered without DEWA-approved personnel; no parts-and-labour warranty; VAT and access works hidden until invoicing. Compare like-for-like material spec and what''s included, not just the headline number.'),
 ('cat:curtains-blinds','Standards, materials & specifications',8,'Fire-retardant standards for drapery/upholstery fabrics: NFPA 701 (Standard Methods of Fire Tests for Flame Propagation of Textiles and Films) is the US benchmark widely cited in UAE projects, and BS 5867 Part 2 (specification for fabrics for curtains, drapes and window blinds - flammability) with Type B as a common minimum and Type C for high-occupancy areas (corridors, ballrooms). French M1 classification is also seen on imported hotel fabrics. Insist on inherent FR (fibre is permanently flame-retardant) over treated/topical FR (coating that can wash out) for durable compliance, and request the original accredited test certificate naming the specific fabric/batch, not a generic supplier declaration. Motorisation: Somfy is the reference brand - tubular motors (Sonesse, Irismo) for blinds and Glydea track motors for curtains; controls via RTS/Zigbee/Wi-Fi (TaHoma hub) or RF remotes. Materials/vocabulary: gsm (fabric weight), blackout vs dimout lining, railroading (sideways weave to avoid seams), bendable aluminium track for bays, side channels/cassette for full blackout on blinds, fascia/valance, eyelet/grommet, pinch pleat, wave heading tape. Blinds: roller, zebra/day-night, roman, venetian (aluminium/wooden), honeycomb/cellular (insulating), panel glide, vertical.'),
 ('cat:landscaping','Regulations, licensing & approvals',8,'Landscaping contractors need a Dubai Department of Economy and Tourism (DET) trade licence covering landscaping/gardening/landscape contracting activities. Dubai Municipality (DM) is the principal authority for landscaping, irrigation and the use of treated water: under Local Order No. (8) of 2002 concerning Sewerage, Irrigation and Water Drainage, use of TSE (treated sewage effluent) for irrigation requires a prior permit from the competent department, which specifies the approved use and maximum quantity; TSE must run on separate pipework with clear signage and no cross-connection to potable systems, and a backflow preventer is required to protect the water supply. Sweet/mains irrigation water is supplied via DEWA. For villas, hardscape structures matter: pergolas/gazebos generally need a permit if over ~20 sqm or ~3 m high, must use approved materials and meet wind-load requirements, and any garden works in master communities require a two-tier approval - a master-developer/community NOC (Emaar, Nakheel, Meraas, DAMAC) followed by a DM or free-zone (Trakhees/DDA) permit. Drainage rules require runoff to be retained within the plot, not discharged to roads or storm drains. Approvals commonly take ~3-7 working days. Verify the contractor''s DET activity, that TSE connections carry a DM permit, and that any pergola/structure has the required permit and NOC.'),
@@ -2430,7 +2430,8 @@ COMPANY
   Address    : Dubai, United Arab Emirates
   Signatory  : Ahmad Alzain — Founder & Managing Director
   Email      : management@quotesdone.com
-  Mobile/WA  : +971 50 931 9355
+  Phone      : +971 56 791 8605
+  WhatsApp   : +1 218 316 6814
   Website    : quotesdone.com
 '),
 ('_global','Asset text: email_signature.html',45,'From company asset "email_signature.html" (Dropbox: /QuotesDone Backup/Assets/QuotesDone_Corporate_Kit/06_Templates/email_signature.html)
@@ -2442,7 +2443,7 @@ COMPANY
 <div style="font-weight:bold;font-size:15px">Ahmad Alzain</div>
 <div style="color:#0b5c54">Founder & Managing Director · QuotesDone Technologies</div>
 <div style="margin-top:6px;color:#475569">
-<a href="tel:+971509319355" style="color:#475569;text-decoration:none">+971 50 931 9355</a> &nbsp;|&nbsp;
+<a href="tel:+971567918605" style="color:#475569;text-decoration:none">+971 56 791 8605</a> &nbsp;|&nbsp;
 <a href="mailto:management@quotesdone.com" style="color:#475569;text-decoration:none">management@quotesdone.com</a><br>
 <a href="https://quotesdone.com" style="color:#0b5c54;text-decoration:none">quotesdone.com</a> · Dubai, United Arab Emirates</div></td></tr></table>'),
 ('_global','Asset text: README.md',45,'From company asset "README.md" (Dropbox: /QuotesDone Backup/Assets/Engineering_Backend_Engine_2026-07-05/README.md)
@@ -4653,7 +4654,7 @@ tbody tr:hover{background:var(--panel2)}
 <script src=''https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2''></script>
 <script>
 var URL_=''https://htdblwldjkcgjvmqkbeh.supabase.co'';
-var ANON=''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo'';
+var ANON=''LEGACY-ANON-KEY-REMOVED-27-OCT-2026'';
 var sb=supabase.createClient(URL_,ANON,{auth:{persistSession:true,autoRefreshToken:true}});
 var TOKEN=null;
 var $=function(id){return document.getElementById(id)};

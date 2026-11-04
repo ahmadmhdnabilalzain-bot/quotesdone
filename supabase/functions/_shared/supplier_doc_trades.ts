@@ -46,11 +46,17 @@ export type DocKind = 'licence' | 'profile' | 'catalogue';
 // `photo_text` is the text the supplier's own browser recognised in a photo or a scanned page
 // (tesseract.js, the same self-hosted OCR the customer side uses). It is untrusted words like any other
 // upload, read through the same path, and the evidence says it came from a photo.
-export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead; photo_text?: string;
+// `ocr_text` (19 Oct 2026) is a scan's or photo's words read by CODE (tesseract.js OCR, in the supplier's browser as the
+// catalogue upload already does, or scripts/e2e/scan_ocr.mjs in the harness). Unlike photo_text, which the vision model
+// transcribed, these are code's reading of the file, so a quote checked against them is checked against the file: its
+// trades are proposed like a text layer's (N07, N09, H01 were held, every core trade "missed").
+export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead; photo_text?: string; ocr_text?: string;
   /** names the company is known by (registered, licence legal name read by code or model): never read as a trade */
   names?: (string | null)[];
   /** set by supplier_docs_later.gateStored when the stored bytes failed the type / malware gate: recorded, never read */
-  refused?: string };
+  refused?: string;
+  /** set by supplier_docs_later.readProfileByModel when it did not send the file to the model (too big, too many pages): the reason, worded for the supplier */
+  unread_reason?: string };
 export type DocEvidence = {
   path: string; name: string; kind: DocKind;
   /** 'reading': marked BEFORE the parse (markReading); if the worker is killed mid-parse it stays, and it proposes nothing.
@@ -59,14 +65,16 @@ export type DocEvidence = {
   /** a 'reading' mark set by the sweep's one re-read (supplier_docs_later.rereadStuck); a second stall is escalated */
   retry?: boolean;
   reason?: string; format?: string; trades: TradeHit[]; read_at: string;
-  source?: 'document_text' | 'photo_text'; supply_only?: boolean;
+  source?: 'document_text' | 'photo_text' | 'ocr_text'; supply_only?: boolean;
   /** how each path fared on this document (reader @3 on) */
   exact?: ExactState; meaning?: MeaningState;
   /** profile / catalogue: 'on' = the model chose the trades and each was proven by its quote; 'unavailable' = it could not
    *  be asked, so NOTHING was proposed (reason says why); rejected = codes the model named that code refused */
-  choice?: 'on' | 'unavailable'; rejected?: { code: string; why: string }[];
-  /** trades read off a PICTURE (image, or a PDF with no text layer): their quotes are lines the vision model transcribed,
-   *  which code cannot check against the file, so they are never proposed - held here for the sales engineer to confirm */
+  choice?: 'on' | 'unavailable' | 'held'; rejected?: { code: string; why: string }[];
+  /** choice 'held': the readings, which did not agree on any trade; the sales engineer decides (agent_actions doc_trades_held) */
+  held_readings?: { code: string; quote: string }[][];
+  /** LEGACY (records written before 2 Nov 2026): trades read off a PICTURE were held here for the sales engineer. Since ledger 1442 they are
+   *  proposed in `trades` like any other and the supplier confirms them on the Services tab; nothing writes this field any more. */
   vision_held?: TradeHit[];
 };
 export const PHOTO_TEXT_MAX = 60_000;
@@ -148,7 +156,8 @@ export function offerText(text: string): string | null {
 export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Promise<DocEvidence> {
   const base = { path: doc.path, name: doc.name, kind: doc.kind, read_at: new Date().toISOString() };
   const photo = String(doc.photo_text ?? '').slice(0, PHOTO_TEXT_MAX);
-  const found = async (text: string, source: 'document_text' | 'photo_text', format?: string): Promise<DocEvidence> => {
+  const ocr = String(doc.ocr_text ?? '').slice(0, PHOTO_TEXT_MAX);
+  const found = async (text: string, source: 'document_text' | 'photo_text' | 'ocr_text', format?: string): Promise<DocEvidence> => {
     // A LICENCE NAMES ITS TRADES IN ITS ACTIVITIES, NOWHERE ELSE (7 Oct 2026, accuracy suite ledger 1162). The whole
     // licence was read, so the company's NAME line proposed trades: "Company Name: ZZ DEMO Horizon Floor LLC" ->
     // floor cleaners and mezzanine floors, on 4 of 22 text licences of scripts/e2e/document_intake_corpus.mjs. Only
@@ -176,13 +185,16 @@ ${whole}`;
       const ch = await deps.chooseTrades(forModel, doc.kind, (doc.names ?? []).find((n) => !!n) ?? null);
       if (!ch.ok) {
         console.error(JSON.stringify({ at: 'supplier_doc_trades.choice', path: doc.path, error: ch.error }));
+        // HELD, NOT UNAVAILABLE (review of #1483): the model answered, but its readings did not agree on any trade. That is a
+        // decision for the sales engineer (doc_trades_held), not a model outage to retry.
+        if (ch.held) return { ...base, status: 'read', format, source, reason: ch.error, trades: [], choice: 'held', held_readings: ch.held.readings, ...(c ? { supply_only: c.supply_only } : {}) };
         return { ...base, status: 'read', format, source, reason: `the trades could not be chosen: ${ch.error}`, trades: [], choice: 'unavailable', ...(c ? { supply_only: c.supply_only } : {}) };
       }
       const hits = ch.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.reason], snippet: t.quote }));
-      // HELD, NOT PROPOSED (review of #1412, 18 Oct 2026): a picture's quote is checked only against the vision model's own
-      // transcription, so a line it invented would pass. Those trades wait for the sales engineer (vision_trades_confirm).
-      if (source === 'photo_text') return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}),
-        reason: 'read off a picture by the vision model; held for the sales engineer to confirm against the file', trades: [], vision_held: hits };
+      // A PICTURE'S TRADES ARE PROPOSED (2 Nov 2026, ledger 1442; they were HELD for the sales engineer after the review of #1412). A quote
+      // here is checked only against the vision model's own transcription, which is why the model is given only the lines the page PRINTS
+      // (license_extract profile.lines, verbatim: H01 proved a summary phrase is refused). The proposal is the supplier's to confirm on the
+      // Services tab, with the printed line beside it, so a line the model invented is struck out by the one person who has the file.
       return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}), trades: hits };
     }
     const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
@@ -191,11 +203,17 @@ ${whole}`;
   if (doc.refused) return { ...base, status: 'refused', reason: doc.refused.slice(0, 200), trades: [] };
   const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes }) : null);
   const text = r && r.ok ? allText(r) : '';
-  // The file's own text layer wins; the photo text is read only when the file has none of its own.
+  // The file's own text layer wins; then code's OCR of the scan; the vision model's transcription only when neither exists.
+  // A SCAN WITH A STRAY TEXT LAYER (M12, 19 Oct 2026): the group profile is an image-only scan whose PDF still carries a stray text
+  // layer: the reader reads 71 characters, 13 of them letters or digits ("58", "GLOBAL REACH"; measured 19 Oct 2026). That non-empty layer won over code's 15,179-character OCR, so the model was given
+  // the stray words and named nothing (measured: 3 readings of {"trades":[]}; the same file with the OCR text read all 5 core
+  // trades). Code's OCR now wins whenever the text layer holds fewer than 200 letters or digits and the OCR holds more.
+  const layerChars = text.replace(/[^\p{L}\p{N}]/gu, '').length, ocrChars = ocr.replace(/[^\p{L}\p{N}]/gu, '').length;
+  if (ocrChars >= 200 && layerChars < 200 && ocrChars > layerChars) return await found(ocr, 'ocr_text', r && r.ok ? r.kind : undefined);
   if (!text.trim() && photo.trim()) return await found(photo, 'photo_text', r && r.ok ? r.kind : undefined);
   if (!r) return { ...base, status: 'unreadable', reason: 'the file could not be fetched from storage', trades: [] };
   if (!r.ok) return { ...base, status: 'unreadable', reason: `${r.error}: ${r.detail}`.slice(0, 200), trades: [] };
-  if (!text.trim() && r.needs === 'ocr') return { ...base, status: 'needs_ocr', format: r.kind, reason: r.notes.join(' ').slice(0, 200), trades: [] };
+  if (!text.trim() && r.needs === 'ocr') return { ...base, status: 'needs_ocr', format: r.kind, reason: (doc.unread_reason || r.notes.join(' ')).slice(0, 200), trades: [] };
   if (!text.trim() && r.needs) return { ...base, status: 'needs_cad_conversion', format: r.kind, reason: r.notes.join(' ').slice(0, 200), trades: [] };
   return await found(text, 'document_text', r.kind);
 }
@@ -214,19 +232,20 @@ export function mergeEvidence(prev: DocEvidence[], fresh: DocEvidence[]): DocEvi
 }
 
 /** One pending sales_engineer item per supplier document whose trades were read off a picture (never filed twice). */
-async function visionHeld(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
+/** A document whose readings agreed on no trade: one pending agent_actions item (kind doc_trades_held) per supplier and
+ *  document, for the sales engineer, with the readings. Exported for the test. */
+export async function docTradesHeld(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
   const target = `${supplierId}:${d.path}`;
   try {
-    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'vision_trades_confirm').eq('status', 'pending').eq('target_id', target).limit(1);
+    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'doc_trades_held').eq('status', 'pending').eq('target_id', target).limit(1);
     if (open?.length) return;
-    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'vision_trades_confirm', status: 'pending', risk: 'low',
-      title: ('Confirm trades read off a picture: ' + d.name).slice(0, 200),
-      detail: { supplier_id: supplierId, path: d.path, kind: d.kind, held: d.vision_held!.map((t) => ({ code: t.code, quote: t.snippet })),
-                waiting_for: 'sales_engineer to check each quote against the file and confirm or drop the trade' },
+    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'doc_trades_held', status: 'pending', risk: 'low',
+      title: ('Read the trades of a document the model could not agree on: ' + d.name).slice(0, 200),
+      detail: { supplier_id: supplierId, path: d.path, kind: d.kind, readings: d.held_readings ?? [], reason: d.reason ?? null,
+                waiting_for: 'sales_engineer to read the document and confirm its trades with the supplier' },
       target_table: 'supplier_capabilities', target_id: target });
-    // 23505: the table's one-pending-per-document index refused a second item filed at the same moment - already filed
-    if (error && error.code !== '23505') console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: error.message }));
-  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
+    if (error) console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
 }
 
 export const proposedFrom = (docs: DocEvidence[]): string[] =>
@@ -281,7 +300,7 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
     const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], fresh);
     const proposed = proposedFrom(merged);
-    for (const d of fresh) if (d.vision_held?.length) await visionHeld(admin, supplierId, d);
+    for (const d of fresh) if (d.choice === 'held') await docTradesHeld(admin, supplierId, d);
     const { error } = await admin.from('supplier_capabilities').upsert({
       supplier_id: supplierId, proposed_trades: proposed,
       source_docs: { ...prevSrc, reader: READER, docs: merged }, extracted_at: new Date().toISOString(),

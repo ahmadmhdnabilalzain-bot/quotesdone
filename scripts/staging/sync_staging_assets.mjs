@@ -15,8 +15,10 @@
 // moves nothing that was not public.
 //
 //   node scripts/staging/sync_staging_assets.mjs [--dry]
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { resolveStagingRef, PROD_REF, mgmtRead } from '../lib/qd_guard.mjs';
 import { readFileSync } from 'node:fs';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 // 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is
 // no second project — pglpqrhvozwepymcuunn was deleted. It is kept rather than retired because it
@@ -26,12 +28,11 @@ const REF = resolveStagingRef(process.env.QD_STAGING_REF);
 const DRY = process.argv.includes('--dry');
 const BUCKET = 'brand';
 
-const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmt = supabaseAccessToken();
 
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
   { headers: { Authorization: 'Bearer ' + mgmt } })).json();
-const SERVICE = keys.find(k => k.name === 'service_role')?.api_key;
+const SERVICE = pickApiKey(keys, 'secret');
 if (!SERVICE) { console.error('FAIL: could not read the staging service key'); process.exit(1); }
 
 const want = await mgmtRead(PROD_REF,
@@ -53,7 +54,7 @@ for (const o of want) {
   const bytes = new Uint8Array(await src.arrayBuffer());
   const up = await fetch(`https://${REF}.supabase.co/storage/v1/object/${BUCKET}/${o.name}`, {
     method: 'POST',
-    headers: { Authorization: 'Bearer ' + SERVICE, 'Content-Type': o.mime, 'x-upsert': 'true' },
+    headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': o.mime, 'x-upsert': 'true' },
     body: bytes,
   });
   if (!up.ok) { console.log(`  FAIL write ${o.name}: HTTP ${up.status} ${(await up.text()).slice(0, 120)}`); failed++; continue; }

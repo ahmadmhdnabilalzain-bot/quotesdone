@@ -23,14 +23,14 @@ export const ARABIC_BATCH_CHARS = 600;
 
 // A script test, not a meaning test: does the string already carry Arabic letters / any Latin letters.
 const arabicScript = (s: string) => /[؀-ۿ]/.test(s);
-const latinScript = (s: string) => /[A-Za-z]/.test(s);
 /** May a reply equal to its source stand as its Arabic-page text? Only when it has the SHAPE of a code: every
  * letter-bearing token is all capitals or carries a digit ("IP65", "BS EN 1090", "FTKF50TV", "SS304"). Any word
  * with a lowercase letter and no digit ("Wardrobe", "Painting of walls", even a brand like "Daikin") is not kept:
  * the model must write it in Arabic script. A case-shape test on our own reply, not a reading of meaning. */
 export const keptAsWritten = (s: string) => /[A-Za-z]/.test(s) && s.split(/[^A-Za-z0-9]+/).every((w) => !/[a-z]/.test(w) || /\d/.test(w));
-/** A line that needs translating: it has Latin letters (a line wholly in Arabic, or only digits, needs none). */
-export const needsArabic = (s: string) => !!s && latinScript(s);
+/** A line that needs translating: mostly Latin letters (Arabic with a label or code in it, or only digits, needs none). */
+import { needsArabic } from './arabic_script.ts';
+export { needsArabic };
 
 /** The question one batch asks. The answer must be ONE JSON object keyed by the line numbers. */
 export function arabicQuestion(texts: string[]): string {
@@ -73,7 +73,10 @@ export type ArabicOf = { map: Record<string, string>; complete: boolean; missing
  * no Arabic yet (held under the hold, or the model failed) — the caller must not print it half-translated. */
 /** fileOnly: a request path (a portal list, a WhatsApp webhook) never waits on a model — the cache answers what it can
  * and every missing batch is FILED for the replay (fn_reason_hold, exactly the request think() would file). */
-export async function arabicOf(deps: ThinkDeps, o: { texts: string[]; subject?: Record<string, unknown>; fileOnly?: boolean }): Promise<ArabicOf> {
+/** deadline (epoch ms): past it, a batch is FILED instead of reasoned. 19 Oct 2026 (run 0a717394, S09): the Arabic
+ * comparison spent 56 s on Opus in quote_compare, then customer_api reasoned the report's lines batch after batch and
+ * hit the 150 s edge wall at 150,269 ms — HTTP 504, while quote_compare itself had answered 200. */
+export async function arabicOf(deps: ThinkDeps, o: { texts: string[]; subject?: Record<string, unknown>; fileOnly?: boolean; deadline?: number }): Promise<ArabicOf> {
   const texts = [...new Set(o.texts.map((t) => String(t ?? '').trim()).filter(needsArabic))];
   const map: Record<string, string> = {};
   const results: ThinkResult[] = [];
@@ -86,7 +89,7 @@ export async function arabicOf(deps: ThinkDeps, o: { texts: string[]; subject?: 
       context: { audience: 'customer' as const, language: 'ar' as const }, research: false,
       subject: { ...(o.subject ?? {}), sources: chunk }, dedupeKey: 'arabic:' + await sha(chunk.join('\u0001')),
     };
-    if (o.fileOnly) {
+    if (o.fileOnly || (o.deadline !== undefined && Date.now() >= o.deadline)) {
       await deps.rpc('fn_reason_hold', { p_seat: req.seat, p_surface: req.surface, p_question: req.question, p_request: req, p_plan: {},
         p_subject: req.subject, p_reason: 'filed_from_a_request_path', p_dedupe_key: req.dedupeKey });
       continue;
@@ -113,10 +116,10 @@ export async function arabicTextsFor(deps: ThinkDeps, lang: string, texts: strin
 /** Build an Arabic document: the builder reports the lines it could not print (`untranslated`); they are
  * translated by reasoning and the document is rebuilt with them. Any line still without Arabic → held (null). */
 export async function nativeArabic<T extends { untranslated: string[] }>(deps: ThinkDeps, build: (arTexts: Record<string, string>) => T,
-  o: { subject?: Record<string, unknown> } = {}): Promise<{ doc: T | null; held: boolean; missing: string[] }> {
+  o: { subject?: Record<string, unknown>; deadline?: number } = {}): Promise<{ doc: T | null; held: boolean; missing: string[] }> {
   const first = build({});
   if (!first.untranslated.length) return { doc: first, held: false, missing: [] };
-  const r = await arabicOf(deps, { texts: first.untranslated, subject: o.subject });
+  const r = await arabicOf(deps, { texts: first.untranslated, subject: o.subject, deadline: o.deadline });
   if (!r.complete) return { doc: null, held: true, missing: r.missing };
   const second = build(r.map);
   return second.untranslated.length ? { doc: null, held: true, missing: second.untranslated } : { doc: second, held: false, missing: [] };

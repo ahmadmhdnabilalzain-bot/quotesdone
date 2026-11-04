@@ -58,6 +58,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "hand_power_tools:product-distinctions",
+      "topic": "Hand and power tools: grades, battery platforms and specifications",
+      "topic_ar": "العدد اليدوية والكهربائية: الفئات ومنصات البطاريات والمواصفات",
+      "kind": "product_distinctions",
+      "body_en": "Power tools come corded (constant power, for all-day workshop use) or cordless on battery platforms (18 V/20 V max is the mainstream; 36 V/54 V/60 V for heavy cutting and breaking), and batteries rarely fit across brands, so a contractor usually standardises on one platform. Professional tools differ from DIY tools in duty rating, motor and gearbox durability, dust and vibration control, double insulation, and service networks; brushless motors give longer runtime and life. Key specs: drill and driver torque (Nm) and chuck size, SDS-plus versus SDS-max rotary hammers by impact energy (joules), angle grinders by disc size (115/125/230 mm) and power with safety features (anti-kickback, restart protection), saws by blade size and depth of cut, and battery capacity in Ah. Hand tools are graded professional versus consumer by steel (chrome vanadium, S2 for bits), insulated 1000 V VDE tools for electricians, torque wrenches with calibration certificates, and measuring tools (laser levels, distance meters). Workshop equipment (compressors, welding, lifting, benches) and consumables (bits, blades, discs) are bought with the tools. Site safety needs guards and PPE, and portable appliance testing of corded tools.",
+      "body_ar": "تأتي العدد الكهربائية بسلك (طاقة ثابتة للاستخدام طوال اليوم في الورشة) أو لاسلكية على منصات بطاريات (18/20 فولت هي الشائعة، و36/54/60 فولت للقطع والتكسير الثقيل)، ونادراً ما تتوافق البطاريات بين العلامات، لذلك يوحّد المقاول عادة منصة واحدة. وتختلف العدد الاحترافية عن عدد الهواة في تصنيف التشغيل، ومتانة المحرك وصندوق التروس، والتحكم بالغبار والاهتزاز، والعزل المزدوج، وشبكات الخدمة؛ والمحركات بدون فرش تعطي تشغيلاً وعمراً أطول. والمواصفات الأساسية: عزم المثقاب ومفك البراغي (نيوتن متر) ومقاس الظرف، والمطارق الدوارة SDS-plus مقابل SDS-max حسب طاقة الضربة (جول)، والصواريخ حسب مقاس القرص (115/125/230 مم) والقدرة مع خصائص السلامة (منع الارتداد، الحماية من إعادة التشغيل)، والمناشير حسب مقاس الشفرة وعمق القطع، وسعة البطارية بالأمبير ساعة. وتُصنف العدد اليدوية احترافية أو استهلاكية حسب الفولاذ (كروم فاناديوم، S2 للرؤوس)، والعدد المعزولة 1000 فولت VDE للكهربائيين، ومفاتيح العزم مع شهادات المعايرة، وأدوات القياس (موازين الليزر، أجهزة قياس المسافة). وتُشترى معدات الورش (الضواغط، اللحام، الرفع، الطاولات) والمستهلكات (الرؤوس، الشفرات، الأقراص) مع العدد. وتحتاج سلامة الموقع الواقيات ومعدات الوقاية، وفحص الأجهزة المحمولة ذات السلك.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Power_tool"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: corded versus battery tools; battery platforms incompatible across brands; professional tools differ from DIY tools -> confirmed."
+    },
+    {
+      "id": "hand_power_tools:lead-times-and-quoting",
+      "topic": "Hand & power tools - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "العدد اليدوية والكهربائية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stocked tools: same day to 3 days; kits and large orders 1-3 weeks; imported specialist tools 3-8 weeks. A supplier needs the tool list with type and specs or models, battery platform, quantities, professional grade requirement and warranty needs. A quote states make, model, kit contents (batteries, charger, case), voltage and capacity, warranty and service centre, availability and validity.",
+      "body_ar": "العدد المتوفرة: في نفس اليوم حتى 3 أيام؛ والأطقم والطلبات الكبيرة 1-3 أسابيع؛ والعدد المتخصصة المستوردة 3-8 أسابيع. ويحتاج المورد قائمة العدد بالنوع والمواصفات أو الموديلات، ومنصة البطاريات، والكميات، واشتراط الفئة الاحترافية، واحتياجات الضمان. ويذكر العرض الماركة والموديل ومحتويات الطقم (البطاريات، الشاحن، الحقيبة) والجهد والسعة والضمان ومركز الخدمة والتوفر والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (No entry covers SDS-plus vs SDS-max rotary hammer capacity; missing). hand_power_tools:sds-plus-vs-sds-max-capacity was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from hand_power_tools.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should our site team buy SDS-plus or SDS-max hammers for drilling 20 mm anchor holes?",
+      "q_ar": "فريق الموقع يشتري مطارق SDS-plus ولا SDS-max لثقوب براغي 20 مم؟",
+      "expected_entry_ids": [
+        "hand_power_tools:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -102,6 +140,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "hand_power_tools:sds-plus-vs-sds-max-capacity"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "hand_power_tools:product-distinctions"
+      ],
+      "stored_not_served": [
+        "hand_power_tools:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Power_tool"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

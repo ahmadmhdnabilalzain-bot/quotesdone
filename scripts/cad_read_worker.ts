@@ -29,6 +29,7 @@ import { cadSupplierBoq } from '../supabase/functions/_shared/cad_identity.ts';
 import { lengthsForSet, mergeLengths } from '../supabase/functions/drawing_boq/drawing_set.ts';
 import { pdfPages } from '../supabase/functions/_shared/pdf_text_positions.ts';
 import { seedTerms } from '../supabase/functions/_shared/anonymise.ts';
+import { pickApiKey } from './lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const BASE = `https://${REF}.supabase.co`;
@@ -54,7 +55,7 @@ const lit = (s: string) => { let tag = 'qd'; while (s.includes(`$${tag}$`)) tag 
 async function serviceKey(): Promise<string> {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + token } });
   const k = await r.json().catch(() => null) as { name: string; api_key: string }[] | null;
-  const s = Array.isArray(k) ? k.find((x) => x.name === 'service_role')?.api_key : undefined;
+  const s = Array.isArray(k) ? pickApiKey(k, 'secret') : undefined;
   if (!s) throw new Error(`the management api did not return the service key (HTTP ${r.status})`);
   return s;
 }
@@ -232,7 +233,7 @@ async function runJob(job: Job, key: string): Promise<void> {
 }
 
 if (import.meta.main) {
-  token = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? (() => { try { return Deno.readTextFileSync('C:/Users/Opera/.supabase/access-token'); } catch { return ''; } })()).trim();
+  token = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? (() => { try { return Deno.readTextFileSync(`${Deno.env.get('HOME') ?? Deno.env.get('USERPROFILE')}/.supabase/access-token`); } catch { return ''; } })()).trim();
   if (!token) { console.error('SUPABASE_ACCESS_TOKEN is not set'); Deno.exit(2); }
   const jobs = await sql<Job>(`select id, customer_id, owner_email, source_path, file_name, mime, attempts, boq_in, why from public.fn_cad_read_claim(${MAX_JOBS})`);
   console.log(`claimed ${jobs.length} job(s)`);

@@ -24,6 +24,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -83,7 +84,10 @@ test('no migrated decision point is decided by a word list again, and each one a
   assert.ok(th.includes('await recallCases(deps, '), 'think.ts lost its case recall (recallCases)');
   assert.ok(read('supabase/functions/_shared/case_recall.ts').includes("admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {"), 'case_recall.ts lost fn_case_recall');
   // 7 Oct 2026 (ledger 1175), 12 Oct: REPLAY_CLAIM a claim, concurrently, bounded by REPLAY_MAX_ROWS and REPLAY_BUDGET_MS per tick.
-  assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('reasoning_held', async \(\) => replayHeld\(admin, REPLAY_CLAIM, undefined, \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\),\s*\{ maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS \}\)\)/);
+  // 27 Oct (#1687, #1688): on heartbeatDeps(admin), in its own detached run kicked by reasoning_held, handed that run's deadline.
+  const rp = read('supabase/functions/resilience_ping/index.ts');
+  assert.match(rp, /step\('reasoning_held', async \(\) => kickDetached\('heldReplay'\)\)/);
+  assert.match(rp, /replayHeld\(admin, REPLAY_CLAIM, heartbeatDeps\(admin\), \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\),\s*\{ maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS, deadline \}\)/);
 });
 
 test('provider webhooks are acknowledged at once and handled after (reasoning never runs inside Twilio\'s or Meta\'s deadline)', () => {
@@ -226,8 +230,12 @@ begin
   begin perform public.fn_reason_propose_knowledge('customer_support', 'ZZ DEMO q', 'ZZ DEMO finding', '[{"url":"http://x.ae"}]'::jsonb, v_vec);
         o := o || '{"http_source":"accepted"}'; exception when others then o := o || jsonb_build_object('http_source', sqlstate); end;
   perform public.fn_reason_propose_knowledge('customer_support', 'ZZ DEMO q', 'ZZ DEMO a private pool in Dubai needs a permit', '[{"url":"https://www.dm.gov.ae/x","title":"ZZ"}]'::jsonb, v_vec);
-  v := public.fn_reason_retrieve('customer_support', v_vec, 12);
-  o := o || jsonb_build_object('research_trust', (select x->>'trust' from jsonb_array_elements(v) x where x->>'source' = 'research' limit 1));
+  -- Since #1567 (a_seats_own_pack_fills_half_of_every_retrieval.sql) a pending finding reaches only an INTERNAL audience;
+  -- a NULL/external audience gets approved research only (fails closed, as #1591 made every caller name its audience).
+  v := public.fn_reason_retrieve('customer_support', v_vec, 12, p_audience => 'internal');
+  o := o || jsonb_build_object('research_trust', (select x->>'trust' from jsonb_array_elements(v) x where x->>'source' = 'research' and x->>'title' = 'ZZ DEMO q' limit 1));
+  v := public.fn_reason_retrieve('customer_support', v_vec, 12, p_audience => 'customer');
+  o := o || jsonb_build_object('research_external', (select count(*) from jsonb_array_elements(v) x where x->>'source' = 'research' and x->>'trust' = 'pending_review'));
 
   -- 5b. Readiness: no live inquiry the old check called ready is un-readied by the new one.
   o := o || jsonb_build_object('rfq_flipped', (select count(*) from public.inquiries i join zz_rfq_before b on b.id = i.id
@@ -325,7 +333,8 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   assert.ok(out.top_similarity > 0.99, 'a chunk\'s own embedding finds itself first');
   assert.equal(out.top_source, 'kb_chunks');
   assert.equal(out.http_source, '22023');
-  assert.equal(out.research_trust, 'pending_review');
+  assert.equal(out.research_trust, 'pending_review', 'a proposed finding does not reach an internal retrieval as pending_review');
+  assert.equal(out.research_external, 0, 'an unreviewed finding reached an external audience');
 
   assert.equal(out.rfq_flipped, 0, 'an inquiry not yet dispatched that the old check called ready would be un-readied: do not apply');
   // Measured 23 Sep 2026: 3 — the only 3 inquiries on production, all quoted or revealed, so readiness no longer gates them.
@@ -578,7 +587,9 @@ begin
              'fn_reason_apply_ceo__escalation_meaning', 'fn_reason_apply_ceo__refund_off_platform', 'fn_reason_apply_ceo__task_responsibility',
              'fn_reason_apply_ceo__task_collaboration_rule', 'fn_reason_apply_inquiry__same_request')));
   raise exception 'CHK<<%>>', o::text;
-end $p$;`);
+end $p$;`, // Ruling 1199 (#1479) files no handoff for a demo subject; the live payment here is ZZ DEMO, so the refund.remediate
+    // handoffs (rf2_handoffs) are filed only under the rolled-back switch (scripts/lib/seat_work_fixtures.mjs).
+    seatWorkFixtures() + '\n;\n');
   console.log(JSON.stringify(out, null, 1));
   assert.equal(out.frag, null, 'a fragment of a catalogue name is not a desk');
   assert.equal(out.slug, true);
@@ -1072,7 +1083,9 @@ begin
     'old_overloads', (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and ((p.proname = 'fn_challenge' and pronargs = 3) or (p.proname = 'fn_what_if' and pronargs = 2))));
   raise exception 'CHK<<%>>', o::text;
-end $p$;`);
+end $p$;`, // Ruling 1199 (#1479): a000_org_task_demo_files_nothing drops the ZZ DEMO founder-mail task whose level (58) is
+    // read here, so the task is filed only under the rolled-back switch (scripts/lib/seat_work_fixtures.mjs).
+    seatWorkFixtures() + '\n;\n');
   assert.deepEqual([out.demand_invite, out.demand_analysis, out.demand_spelled], [true, false, false], 'the revenue path is a key, not a spelling');
   assert.equal(out.challenge_stance, 'held', 'no stance is taken from the words');
   assert.equal(out.challenge_surface, 'ceo.challenge');

@@ -32,6 +32,9 @@ let REVIEW_API = process.env.QD_REVIEW_API || '';
 /** QD_REVIEW_STANDIN=1 starts review_server.ts here, so a pre-deploy run needs no second terminal. */
 const STANDIN = process.env.QD_REVIEW_STANDIN === '1' && !REVIEW_API;
 const VIEWPORTS = (process.env.QD_VIEWPORTS || 'desktop,mobile').split(',').map((s) => s.trim()).filter(Boolean);
+// Suppliers are English only (founder ruling 1008, #1409): the Arabic passes waited 30 s for an Arabic nav the portal
+// deliberately never renders (18 Oct, run 39079803518, ar/desktop and ar/mobile).
+const SUPPLIER_LANGS = ['en'];
 const FN_URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/supplier_api';
 const REVIEW_ACTIONS = ['inquiries_list', 'inquiry_detail', 'inquiry_documents', 'review_thread', 'review_start', 'review_message', 'review_upload', 'review_choose', 'review_submit'];
 mkdirSync(SHOTS, { recursive: true });
@@ -157,7 +160,26 @@ async function drive(browser, run, supplier, inquiryId, lang, viewport) {
 
     await detail.getByRole('button', { name: L('Send your quotation to the sales engineer', 'إرسال عرض السعر إلى مهندس المبيعات') }).click();
     const chat = page.locator(`#qd-qt-c-${inquiryId}`);
-    await chat.getByText(/is open for your quotation/).first().waitFor({ timeout: 30000 });
+    // THE ENGINEER'S WORDS ARE THE MODEL'S (rulings 1195-1197, #1335 on 13 Oct 2026): every engineer bubble in this chat
+    // is written by a model from what the review decided, so no sentence in it is fixed copy. #1566 (19 Oct) made this
+    // wait for one wording ("Job N is open for your quotation") that the product never had on any branch — production's
+    // greeting facts read "Hello — I am the QuotesDone sales engineer for Job N…" and the model rewrites even that — so the
+    // journey timed out here on every run from 20 Oct (39349907536) to 3 Nov (41598217377). The waits below read only
+    // what CODE puts on screen: the state badge (quoteReviewApi.ts REVIEW_STATE), the engineer's bubbles counted by
+    // their label, the issue list (issue labels are code), the choice buttons and the submitted line; the points
+    // themselves are read from quote_review_request. A model that does not answer is re-asked (_shared/reask.ts), hence
+    // 90 s for a bubble.
+    // prevented by: scripts/checks/the_quote_review_journeys_wait_only_for_what_code_puts_on_screen.test.mjs
+    const badge = (s) => chat.locator('header').getByText(s, { exact: true });
+    const engineer = chat.locator('ul[role="log"] > li').filter({ hasText: /^Sales engineer · / });
+    const spoke = (n) => engineer.nth(n - 1).waitFor({ timeout: 90000 });
+    const points = () => read(`select r.code, r.state from public.quote_review_request r join public.quote_reviews v on v.id = r.review_id
+      where v.inquiry_id = ${q(inquiryId)} and v.supplier_id = ${Number(supplier.leadId)} and r.kind <> 'choice'`);
+    await badge('Waiting for your file').waitFor({ timeout: 30000 });
+    await spoke(1);
+    const hello = (await engineer.first().innerText()).replace(/\s+/g, ' ');
+    step(name('the review opens: the sales engineer writes first'), true, hello.slice(0, 160));
+    step(name('the opening message names the job number'), hello.includes(job), `job ${job}`);
     await shot('03_chat_opened');
 
     const incompletePath = join(SHOTS, `quote_incomplete_${run.tag}_${lang}.csv`); writeFileSync(incompletePath, INCOMPLETE);
@@ -165,27 +187,55 @@ async function drive(browser, run, supplier, inquiryId, lang, viewport) {
     const reviewing = await chat.getByText(L('Reviewing your quotation, please wait…', 'جارٍ مراجعة عرض سعرك، يُرجى الانتظار…')).waitFor({ timeout: 5000 }).then(() => true).catch(() => false);
     if (reviewing) await shot('04_reviewing');
     step(name('"Reviewing your quotation, please wait…" is shown'), reviewing);
-    await chat.getByText(L('Before it can be submitted', 'قبل تقديمه')).first().waitFor({ timeout: 60000 });
+    await badge('Changes requested').waitFor({ timeout: 90000 });
+    await spoke(2);
     const t1 = await chat.innerText();
     step(name('incomplete quotation: the engineer lists what is missing'), [L('BOQ line 2', 'البند 2 من جدول الكميات'), L('valid', 'صلاحية'), L('VAT', 'الضريبة')].every((s) => t1.includes(s)));
     await shot('05_review_comments');
 
+    const p0 = await points();
+    const said = await engineer.count();
     await page.fill(`#qd-rv-${inquiryId}`, L('validity 30 days', 'الصلاحية 30 يومًا'));
     await chat.getByRole('button', { name: L('Send', 'إرسال'), exact: true }).click();
-    await chat.getByText(L('Thank you — noted: validity 30 days', 'شكرًا — سجّلت: الصلاحية 30')).first().waitFor({ timeout: 30000 });
-    step(name('a text reply closes its point'), true);
+    await spoke(said + 1);
+    const p1 = await points();
+    const openOf = (rows) => rows.filter((r) => r.state === 'open');
+    const validity = p1.filter((r) => r.code === 'validity');
+    step(name('a text reply closes its point'), p0.some((r) => r.code === 'validity' && r.state === 'open') && validity.length > 0 && validity.every((r) => r.state !== 'open') && openOf(p1).length === openOf(p0).length - 1,
+      `open points ${openOf(p0).length} -> ${openOf(p1).length}; validity ${validity.map((r) => r.state).join(',') || 'never raised'}`);
     await shot('06_reply_answered');
 
     const completePath = join(SHOTS, `quote_complete_${run.tag}_${lang}.csv`); writeFileSync(completePath, COMPLETE);
+    const said2 = await engineer.count();
     await page.setInputFiles(`#qd-rv-file-${inquiryId}`, completePath);
-    await chat.getByText(L('Quotation approved for submission.', 'تمت الموافقة على عرض السعر للتقديم.')).first().waitFor({ timeout: 60000 });
-    step(name('complete quotation: "Quotation approved for submission"'), true);
+    await badge('Approved — your choice').waitFor({ timeout: 90000 });
+    await spoke(said2 + 1);
+    const p2 = await points();
+    step(name('complete quotation: approved for submission, no point left open'), !openOf(p2).length, `open: ${openOf(p2).map((r) => r.code).join(', ') || 'none'}`);
     await shot('07_approved_choice');
 
+    // "Generate it for me" PREVIEWS the standardised quotation and waits in ready_to_submit for the supplier's own Submit
+    // (supplier_api quote_review_flow.ts decide, SP-F-07 since 22 Sep 2026: nothing goes out in the supplier's name
+    // unseen). This journey pressed Generate and waited for "Submitted", which only Submit produces: branch run
+    // 41623020490 timed out there on both devices once the earlier waits were fixed.
+    const quoteRows = () => read(`select id, status, quote_amount, source from public.quotes where inquiry_id = ${q(inquiryId)} and supplier_id = ${Number(supplier.leadId)}`);
+    const said3 = await engineer.count();
     await chat.getByRole('button', { name: L('Generate it for me', 'أعدّه لي') }).click();
-    await chat.getByText(L('Submitted to the job.', 'قُدّم العرض إلى الطلب.')).first().waitFor({ timeout: 90000 });
+    await badge('Approved — ready to submit').waitFor({ timeout: 90000 });
+    await spoke(said3 + 1);
+    step(name('Generate shows the quotation first and nothing is submitted before Submit'), (await quoteRows()).every((r) => r.status !== 'submitted'));
+    await chat.getByRole('button', { name: `Submit to Job ${job}`, exact: true }).click();
+    // Branch run 41636727579 timed out here with no artifact to say why: on a timeout the review row, the quotes and the
+    // end of the chat are named in the failure, so the run says whether the submission was held, still running, or
+    // submitted and not shown.
+    await chat.getByText(L('Submitted to the job.', 'قُدّم العرض إلى الطلب.')).first().waitFor({ timeout: 120000 }).catch(async (e) => {
+      const rv = await read(`select status, choice, reviewing_since from public.quote_reviews where inquiry_id = ${q(inquiryId)} and supplier_id = ${Number(supplier.leadId)}`).catch(() => []);
+      const qrows = await quoteRows().catch(() => []);
+      const tail = (await chat.innerText().catch(() => '')).replace(/\s+/g, ' ').slice(-400);
+      throw new Error(`${String(e.message).split('\n')[0]} | review ${JSON.stringify(rv)} | quotes ${JSON.stringify(qrows.map((r) => r.status))} | chat ends: ${tail}`);
+    });
     await shot('08_submitted');
-    const qs = await read(`select id, status, quote_amount, source from public.quotes where inquiry_id = ${q(inquiryId)} and supplier_id = ${Number(supplier.leadId)}`);
+    const qs = await quoteRows();
     for (const r of qs) run.ids.quotes.add(r.id);
     step(name('submitted through submit_quote: the quote is with the customer'), qs.some((r) => r.status === 'submitted'), JSON.stringify(qs.map((r) => ({ status: r.status, amount: Number(r.quote_amount), source: r.source }))));
     const errs = realErrors(consoleErrors);
@@ -224,10 +274,10 @@ try {
   const supplier = await makeDemoSupplier(run, { label: 'QR' });
   // One job per journey: a conversation ends submitted, so each language and each viewport gets its own.
   const jobs = {};
-  for (const lang of ['en', 'ar']) for (const vp of VIEWPORTS) jobs[`${lang}_${vp}`] = await job(run, customer, supplier, lang);
+  for (const lang of SUPPLIER_LANGS) for (const vp of VIEWPORTS) jobs[`${lang}_${vp}`] = await job(run, customer, supplier, lang);
   const browser = await launch();
   try {
-    for (const lang of ['en', 'ar']) for (const vp of VIEWPORTS) await drive(browser, run, supplier, jobs[`${lang}_${vp}`], lang, vp);
+    for (const lang of SUPPLIER_LANGS) for (const vp of VIEWPORTS) await drive(browser, run, supplier, jobs[`${lang}_${vp}`], lang, vp);
   } finally { await browser.close(); }
   // The standardised quotation PDFs quote_pdf printed for this supplier (folder supplier/<id>).
   const pdfs = await read(`select bucket_id b, name from storage.objects where name like ${q(`supplier/${Number(supplier.leadId)}/%`)}`);

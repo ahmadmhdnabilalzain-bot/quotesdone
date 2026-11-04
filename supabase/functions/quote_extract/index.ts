@@ -13,10 +13,13 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { scrubIdentityText } from '../_shared/identity_text.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { quoteFromExtracted, quoteText } from './quote_from_document.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
+import { pageB64, pageMime } from '../_shared/licence_extract.ts';
+import { DATA_NOT_INSTRUCTIONS, untrustedBlock } from '../_shared/untrusted.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -40,7 +43,8 @@ function scrub(s: unknown): string {
   t = t.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '█');
   t = t.replace(/https?:\/\/\S+|www\.[\w.-]+\.[a-z]{2,}/gi, '█');
   t = t.replace(/(?:\+?\d[\d\s().-]{6,}\d)/g, (m) => (m.replace(/\D/g,'').length >= 7 ? '█' : m));
-  return t.trim();
+  // 3 Nov 2026: the shared identity shapes too (_shared/identity_text.ts), whatever the model left in.
+  return scrubIdentityText(t, '█').trim();
 }
 const SYS = `You read a supplier's price QUOTATION for a UAE building / fit-out job and convert it into an ANONYMOUS standardized quote for QuotesDone, a marketplace where the customer must PAY to reveal the supplier. The customer must NOT be able to identify the supplier from anything you output.\n\nRead EVERY page and EVERY line item carefully. Extract all commercial figures, then REWRITE every text field so it cannot reveal who the supplier is.\n\nMASK / REMOVE:\n- Company name, logo wording, letterhead, slogan, person names, signatures, stamps.\n- Phone, email, website, address, social handles, trade-license / TRN / VAT numbers, bank details.\n- Brand names, manufacturer names, product model names or numbers, and any proprietary or exclusive product line a customer could search online to identify a specific seller (e.g. a named ceramic line, a named tap/mixer brand, a named pump model). Replace with a neutral equivalent that preserves the spec and quality tier, e.g. 'premium branded 120x60 porcelain', 'premium branded mixer', 'premium variable-speed pump'.\n- Any unusually distinctive wording that could fingerprint the supplier.\n\nKEEP (these matter for comparing quotes): amounts, currency, quantities, dimensions/sizes, generic material & spec, quality tier (standard / premium), finish, lead time, validity, payment terms, warranty, scope, conditions, exclusions.\n\nReturn STRICT JSON only, no prose:\n{\"amount\":number,\"currency\":\"AED\",\"line_items\":[{\"description\":string,\"qty\":string,\"amount\":number}],\"lead_time\":string,\"validity\":string,\"payment_terms\":string,\"warranty\":string,\"scope\":string,\"conditions\":string,\"exclusions\":string,\"notes\":string,\"description_anonymized\":string,\"masked_terms\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\namount = the GRAND TOTAL of the whole quotation (sum / stated total), not a single line. Every string field must ALREADY be anonymized. masked_terms = the original identity-revealing strings you removed (shown ONLY to the supplier for review, never to the customer). If a value is absent, use an empty string (or [] for line_items).`;
 
@@ -84,11 +88,16 @@ Deno.serve(observe('quote_extract', async (req) => {
     if (!secret) { await logRun('error', { quote_extracted: 0, ai_key_present: 0 }, 'quote_extract aborted: the cred_fn_ai credential is missing, so the AI gateway cannot be called and no supplier quotation can be read at all. Every quote uploaded while this persists is silently dropped and the customer sees fewer (or zero) quotes to compare.'); return J({ error: 'no ai key' }, 500); }
     const inq = body.inquiry || {};
 
-    const content: any[] = [{ type: 'text', text: `Job context (for understanding only): category ${inq.category||'-'}${inq.summary?(', summary: '+inq.summary):''}. Read the attached supplier quotation (all pages) and return the anonymized standardized JSON.` }];
+    // the quotation's printed text and the customer's summary are data, never instructions (untrusted.ts, 3 Nov 2026)
+    const content: any[] = [{ type: 'text', text: `Read the attached supplier quotation (all pages) and return the anonymized standardized JSON. ${DATA_NOT_INSTRUCTIONS}\nJob context (for understanding only): category ${inq.category||'-'}.` + (inq.summary ? ' The customer\'s summary:' + untrustedBlock(String(inq.summary), 'NOTE') : '') }];
 
     const imgs: any[] = Array.isArray(body.images) ? body.images : [];
-    if (imgs.length) {
-      for (const im of imgs.slice(0, 8)) { const b = im?.b64 || im; const m = im?.mime || 'image/jpeg'; if (b) content.push({ type: 'image_url', image_url: { url: dataUrl(String(b), String(m)) } }); }
+    // THE PORTAL'S PAGE SHAPE (review of #1707, 28 Oct 2026, sales_engineer). SupplierPortal's fileToImages sends each
+    // quotation page as { mime, data }; this read only `b64`, so a page went out as the text of an object and the
+    // provider refused it - the defect that failed license_extract 38 of 38 calls on 27-28 Oct. One reader for both.
+    const pages = imgs.slice(0, 8).filter((im) => !!pageB64(im));
+    if (pages.length) {
+      for (const im of pages) content.push({ type: 'image_url', image_url: { url: dataUrl(pageB64(im), pageMime(im)) } });
     } else if (body.file_b64) {
       const mime = String(body.mime || 'application/octet-stream');
       if (/^image\//.test(mime)) content.push({ type: 'image_url', image_url: { url: dataUrl(String(body.file_b64), mime) } });

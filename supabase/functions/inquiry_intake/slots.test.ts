@@ -9,7 +9,7 @@
 // Fails on the old code: there, a needs_info turn persisted `prevBrief.details || {}` and the model's
 // own status, missing and sentence, so every assertion on details, missing and the reply breaks.
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
-import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, HELD_FOR_SPECS, slotAskOf, slotKeyFor, heldReasonFor } from './slots.ts';
+import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, HELD_FOR_SPECS, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldQuestions, heldAsk, readHeldAnswer, intakeVoice, replyDown } from './slots.ts';
 import type { SpecField } from './interview.ts';
 
 // production category_specs.fields for `aluminium`, required flags and keys as read on 7 Oct 2026
@@ -254,4 +254,158 @@ Deno.test('next_question.key is set only on an exact match with the slot state\'
   // An exhausted key is never the asked key: the next askable one is.
   assertEquals(slotAskOf({ ...sl, exhausted: ['system_type'], missing: ['Supply or install?'] }), { key: 'scope', text: 'Supply or install?' });
   assertEquals(slotAskOf({ ...sl, exhausted: ['system_type', 'scope'], missing: [] }), null);
+});
+
+// THE HELD REPLY NAMES THE OPEN QUESTION (19 Oct 2026): HELD_FOR_SPECS said only "a few specifications are still open".
+// The model (ruling 1196) is now given each exhausted question in the inquiry language and writes the reply; the deps
+// below record what the model was GIVEN, which is the property under test. Fails on the old code: no heldReply existed.
+Deno.test('a held intake: the model is given the still-open question in Arabic and its reply is what the customer sees', async () => {
+  const seen: { system: string; input: string }[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null), embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: { block: 'REVEAL FEE: 3.00%.' }, error: null }),
+    llm: (_p: string, system: string, input: string) => { seen.push({ system, input }); return Promise.resolve({ content: JSON.stringify({ answer: 'شكرًا لكم. ما زال سؤال واحد مفتوحًا: كم قطعة تحتاج، وما العرض والارتفاع التقريبي لكل قطعة؟ سيساعدكم مهندس المبيعات هنا.' }), model: 'm' }); },
+  } as any;
+  const reply = (await heldReply(deps, ALUMINIUM, ['dimensions_qty'], 'ar', 'لا أعرف', [{ role: 'user', text: 'نوافذ ألمنيوم' }])).text;
+  const q = heldQuestions(ALUMINIUM, ['dimensions_qty'], 'ar')[0];
+  assertEquals(q, ALUMINIUM[1].question_plain_ar);
+  assert(seen[0].input.includes(q), 'the open question rides in the facts, in the inquiry language');
+  assert(seen[0].system.includes('Arabic'), 'the reply is asked for in Arabic');
+  assert(reply.includes('كم قطعة'), 'the customer sees the model reply naming the open question');
+  assertNotEquals(reply, HELD_FOR_SPECS.ar);
+});
+Deno.test('a held field with no question text never sends its raw key to the model', () => {
+  const fields: SpecField[] = [{ key: 'area', required: true } as SpecField, ALUMINIUM[2]];
+  assertEquals(heldQuestions(fields, ['area', 'system_finish'], 'en'), ['System & finish preference?']);
+  assertEquals(heldQuestions(fields, ['area'], 'ar'), []);
+});
+// founder_instruction 1339 (27 Oct 2026): "the engineer and customer support never replies without llm unless the server of
+// open router is down". The code list (handover + open questions) is the OUTAGE fallback only; a model that answered and
+// was refused, or a 4xx, gives '' and index.ts has the model say it again.
+Deno.test('1339: a held intake lists the open questions in code only when OpenRouter is down', async () => {
+  const deps = (llm: () => Promise<unknown>) => ({ gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }), llm }) as any;
+  for (const error of ['gateway_http_502', 'client_timeout_30000ms']) {
+    const r = await heldReply(deps(() => Promise.resolve({ content: null, error })), ALUMINIUM, ['scope'], 'en', 'x', []);
+    assertEquals(r.by, 'outage_fallback', error);
+    assert(r.text.startsWith(HELD_FOR_SPECS.en), r.text);
+    assert(r.text.includes(ALUMINIUM[4].question_plain_en!), 'the outage fallback names the open question too');
+  }
+  const refused = await heldReply(deps(() => Promise.resolve({ content: JSON.stringify({ answer: 'circuit_open from openrouter' }), model: 'm' })), ALUMINIUM, ['scope'], 'en', 'x', []);
+  assertEquals([refused.text, refused.by], ['', 'none'], 'model up: no code-written reply');
+  const fourxx = await heldReply(deps(() => Promise.resolve({ content: null, error: 'gateway_http_400:bad request' })), ALUMINIUM, ['scope'], 'en', 'x', []);
+  assertEquals(fourxx.by, 'none', 'a 4xx is not an outage');
+});
+Deno.test('1339: intakeVoice — the model writes the code-decided reply; the draft only when OpenRouter is down', async () => {
+  const seen: string[] = [];
+  const mk = (llm: (s: string, i: string) => Promise<unknown>) => ({ gate: () => Promise.resolve(null), embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: null, error: null }), llm: (_p: string, s: string, i: string) => llm(s, i) }) as any;
+  const draft = 'Thanks, noted. A few quick questions about materials, installation, warranty and timing. Do you need installation?';
+  const up = await intakeVoice(mk((_s, i) => { seen.push(i); return Promise.resolve({ content: JSON.stringify({ answer: 'Got it. Would you like the supplier to install them as well?' }), model: 'm' }); }),
+    { draft, lang: 'en', message: 'aluminium windows, villa in Dubai', conversation: [], next: { text: 'Do you need installation?', options: ['Yes', 'Supply only'] } });
+  assertEquals(up, { text: 'Got it. Would you like the supplier to install them as well?', outage: false, by: 'model' });
+  assert(seen[0].includes(draft) && seen[0].includes('Do you need installation?') && seen[0].includes('Yes | Supply only'), 'the draft, the one question and its options ride as facts');
+  const down = await intakeVoice(mk(() => Promise.resolve({ content: null, error: 'gateway_http_503:circuit_open' })), { draft, lang: 'en', message: 'x', conversation: [] });
+  assertEquals(down, { text: draft, outage: true, by: 'outage_fallback' });
+  const refused = await intakeVoice(mk(() => Promise.resolve({ content: JSON.stringify({ answer: 'ai_gateway SQLSTATE error' }), model: 'm' })), { draft, lang: 'en', message: 'x', conversation: [] });
+  // the refusals ride out with by 'none', so the turn filed for the re-ask names them to the model (_shared/reask.ts)
+  assertEquals(refused, { text: '', outage: false, by: 'none', problems: ['it breaks the reply rule "internal"'] }, 'model up, nothing safe: no code-written reply');
+});
+Deno.test('1339: replyDown reads an aiReply result without an outage flag from its attempts', () => {
+  assertEquals(replyDown({ reply: '', attempts: ['route:failed gateway_http_502', 'other-family:failed client_timeout_30000ms'] }), true);
+  assertEquals(replyDown({ reply: '', attempts: ['deadline: no time left for another call', 'route:failed no answer'] }), true);
+  assertEquals(replyDown({ reply: '', attempts: ['route:ok', 'rewrite:failed [it breaks the reply rule "internal"]'] }), false);
+  assertEquals(replyDown({ reply: '', attempts: ['route:failed gateway_http_400'] }), false);
+  assertEquals(replyDown({ reply: '', attempts: [] }), false);
+  assertEquals(replyDown({ reply: '', outage: true, attempts: [] }), true, 'aiReply\'s own flag wins where it exists');
+});
+
+// ── HELD WITH 0 QUESTIONS (27 Oct 2026, founder ledger 580, run 6dd2316c) ─────────────────────────────────────
+// Production agent_runs, inquiry_intake, 27 Oct 07:52-07:54 UTC: a ZZ DEMO customer's HVAC drawing intake asked 4, 4
+// and 3 questions, then answered status=held with questions=0 on seven turns in a row; create_inquiry answered 428.
+// The fixtures below are the hvac checklist as production holds it (category_specs, read 27 Oct 2026) and a model
+// that files only `scope` from the customer's messages, which is what the run's readiness 50-80 shows. Fails on the
+// old code: the held branch set questions=[] and missing=[], and heldAsk / readHeldAnswer did not exist.
+const HVAC: SpecField[] = [
+  { key: 'system_type', type: 'select', required: true, question: 'What type of AC system?', options: ['Wall/floor split', 'Ducted (concealed) split', 'Cassette', 'VRF/VRV', 'Chiller (air/water-cooled)', 'Package unit', 'FAHU/AHU (fresh air)', 'Not sure - need site survey'], question_plain_en: 'What kind of air conditioning — wall split units, hidden ducted, ceiling cassettes, a central system, or should the supplier survey and advise?' },
+  { key: 'application_area', type: 'text', required: true, question: 'What is the space used for, and roughly what area?', question_plain_en: 'What is the space used for, and roughly how big is it?' },
+  { key: 'new_or_replace', type: 'select', required: true, question: 'Is this new, replacement, or a service/repair?', options: ['New installation', 'Replacement of existing', 'Extension of existing', 'Service / repair / maintenance'], question_plain_en: 'Is this a new installation, replacing old units, adding more, or a repair?' },
+  { key: 'scope', type: 'select', required: true, question: 'Scope?', options: ['Supply only', 'Supply and install', 'Turnkey (incl. ducting, MEP drawings, testing & commissioning)'], question_plain_en: 'Should the supplier only deliver, install, or do everything including ducts and testing?' },
+  { key: 'location', type: 'text', required: true, question: 'Which emirate/area, floor level, and condenser location?', question_plain_en: 'Which emirate and area, which floor, and where can the outdoor unit go — roof, wall or ground?' },
+];
+const HVAC_TURN = () => ({ category: 'hvac', status: 'needs_info', claims_ready: false, readiness: 60, assistant_message: 'What kind of system is it?', questions: ['What kind of system is it?', 'How big is the space?', 'New or replacement?', 'Where is it?'],
+  brief: { details: { scope: 'Supply and install' } as Record<string, string> } });
+
+/** One turn exactly as index.ts runs it on the model path: read the held answer, settle, ask what the hold waits on. */
+function hvacTurn(prevBrief: any, text: string, turns: any[], modelOut: any = HVAC_TURN()) {
+  const prev = prevBrief?.details || {};
+  const heldKey = prevBrief?.asked_on_hold === true ? String(prevBrief.asked_key || '') : '';
+  const heldVal = heldKey && !(heldKey in prev) ? readHeldAnswer(HVAC, heldKey, text) : null;
+  const s = settleModelTurn(HVAC, heldVal ? { ...prev, [heldKey]: heldVal } : prev, modelOut, 'en', briefOf, openTurnsByKey(turns));
+  const ask = s.held ? heldAsk(HVAC, s.exhausted, 'en') : null;
+  turns.push({ role: 'user', text }, { role: 'assistant', text: modelOut.assistant_message, slots: { missing_keys: s.missingKeys } });
+  return { s, out: modelOut, ask, brief: { details: s.details, ...(ask ? { asked_key: ask.key, asked_on_hold: true } : {}) } };
+}
+
+Deno.test('ledger 580: a held intake always asks the specific open specs (never questions=0)', () => {
+  const turns: any[] = []; let brief: any = {}; let t: any = null;
+  for (let i = 0; i < MAX_OPEN_TURNS + 1; i++) { t = hvacTurn(brief, 'As per the attached drawings.', turns); brief = t.brief; }
+  assertEquals(t.out.status, 'held', 'the hold itself stays: exact specs or nothing goes to a supplier');
+  assertEquals(t.s.exhausted, ['system_type', 'application_area', 'new_or_replace', 'location']);
+  assertEquals(t.out.questions.length, 4, 'every open spec is asked');
+  assertEquals(t.out.questions, heldQuestions(HVAC, t.s.exhausted, 'en'));
+  assertEquals(t.out.missing, t.out.questions, 'missing names the same specs, so remaining_questions is not empty');
+  assertEquals(t.ask?.key, 'system_type', 'next_question names the first open spec');
+  assert(t.s.missingKeys.includes(t.ask!.key), 'and it is a key the hold is waiting on');
+  assertEquals(t.ask?.options?.length, 8, 'with the checklist options to tap');
+});
+
+Deno.test('ledger 580: the held specs, answered one by one, take the intake to ready', () => {
+  const turns: any[] = []; let brief: any = {}; let t: any = null;
+  for (let i = 0; i < MAX_OPEN_TURNS + 1; i++) { t = hvacTurn(brief, 'As per the attached drawings.', turns); brief = t.brief; }
+  const said: Record<string, string> = { system_type: 'Package unit', application_area: 'Offices and storage, about 1,200 square metres', new_or_replace: 'New installation', location: 'Dubai, Al Quoz, ground floor; outdoor units on the roof' };
+  const asked: string[] = [];
+  for (let i = 0; i < 6 && t.out.status !== 'ready'; i++) {
+    assert(t.ask, `turn ${i}: a held turn always has a question`);
+    asked.push(t.ask.key);
+    // The model still files nothing new: the code reads the answer to the question asked.
+    t = hvacTurn(brief, said[t.ask.key], turns); brief = t.brief;
+  }
+  assertEquals(asked, ['system_type', 'application_area', 'new_or_replace', 'location']);
+  assertEquals(t.out.status, 'ready');
+  assertEquals(t.s.details.system_type, 'Package unit');
+  assertEquals(t.s.details.new_or_replace, 'New installation');
+  assertEquals(t.s.details.location, said.location);
+});
+
+Deno.test('a held answer is read by code: an option, the customer\'s words, never a bare not-sure', () => {
+  assertEquals(readHeldAnswer(HVAC, 'system_type', 'Package unit'), 'Package unit');
+  assertEquals(readHeldAnswer(HVAC, 'new_or_replace', 'a replacement of the existing units'), 'Replacement of existing');
+  assertEquals(readHeldAnswer(HVAC, 'new_or_replace', 'replacing the old ones'), 'replacing the old ones', 'no option named: their own words answer the question asked');
+  assertEquals(readHeldAnswer(HVAC, 'system_type', 'not sure'), 'Not sure - need site survey', 'a not-sure option the trade lists is a spec');
+  assertEquals(readHeldAnswer(HVAC, 'application_area', 'not sure'), null, 'a bare not sure fills nothing: the spec stays held');
+  assertEquals(readHeldAnswer(HVAC, 'location', 'Sharjah, first floor, roof'), 'Sharjah, first floor, roof');
+  assertEquals(readHeldAnswer(HVAC, 'location', ''), null);
+  assertEquals(readHeldAnswer(HVAC, null, 'Package unit'), null);
+  assertEquals(readHeldAnswer(HVAC, 'no_such_key', 'Package unit'), null);
+});
+
+// Independent review of #1641 (27 Oct 2026): the run that made the hold answered "As per the attached drawings." three
+// times; the fourth must not become system_type. Fails on the first version of readHeldAnswer, which stored it.
+Deno.test('a held answer that only defers, or says nothing, fills nothing (the spec stays held)', () => {
+  for (const [key, said] of [
+    ['system_type', 'As per the attached drawings.'], ['system_type', 'see drawing'], ['application_area', 'as per drawings'],
+    ['location', 'refer to the attached plan'], ['application_area', 'ok'], ['location', 'any'], ['system_type', 'standard'],
+    ['application_area', "I don't know"], ['location', 'no idea'], ['application_area', 'not sure yet'], ['application_area', '?'],
+    ['location', 'حسب المخطط'], ['application_area', 'لا أعرف'], ['location', 'مرفق'], ['system_type', 'tbd'],
+  ] as const) assertEquals(readHeldAnswer(HVAC, key, said), null, `${key} <- "${said}"`);
+  // a real answer still counts, including one that mentions the drawing among its facts
+  assertEquals(readHeldAnswer(HVAC, 'application_area', 'Offices, about 1,200 m2 as shown on the drawing'), 'Offices, about 1,200 m2 as shown on the drawing');
+  assertEquals(readHeldAnswer(HVAC, 'system_type', 'not sure'), 'Not sure - need site survey', 'a listed option is still the trade\'s own spec');
+});
+
+Deno.test('heldAsk is in checklist order and skips a field with no question text', () => {
+  assertEquals(heldAsk(HVAC, ['location', 'new_or_replace'], 'en')?.key, 'new_or_replace');
+  assertEquals(heldAsk(HVAC, ['location'], 'en'), { key: 'location', text: HVAC[4].question_plain_en!, options: null });
+  assertEquals(heldAsk([{ key: 'area', required: true } as SpecField], ['area'], 'en'), { key: 'area', text: 'area', options: null });
+  assertEquals(heldAsk(HVAC, [], 'en'), null);
 });

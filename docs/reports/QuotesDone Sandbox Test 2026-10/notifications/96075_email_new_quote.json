@@ -1,0 +1,11 @@
+{
+ "id": 96075,
+ "type": "new_quote",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-71b75b60-cust14@example.invalid",
+ "lang": "en",
+ "subject": "You have a new quote on QuotesDone",
+ "body": "A supplier submitted a quote for your request: Replacement of aluminium windows, doors and living-room curtain walling at an occupied Dubai villa.. Log in to view the full quotation and compare.",
+ "html": null
+}

@@ -21,6 +21,8 @@ export interface HandoffType { type: string; from: Seat; to: Seat; }
 export const HANDOFF_TYPES: readonly HandoffType[] = [
   // accountant -> sales engineer: money happened, somebody must be told
   { type: 'reveal.paid', from: 'accountant', to: 'sales_engineer' },
+  // the stored Stripe reveal invoice was filed into the customer's Documents (fn_accountant_files_reveal_invoice)
+  { type: 'invoice.issued', from: 'accountant', to: 'sales_engineer' },
   { type: 'payment.failed', from: 'accountant', to: 'sales_engineer' },
   { type: 'payment.received', from: 'accountant', to: 'sales_engineer' },
   { type: 'refund.request_checked', from: 'accountant', to: 'sales_engineer' },
@@ -51,6 +53,8 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'refund.remediate', from: 'ceo', to: 'accountant' },
   { type: 'refund.remediate', from: 'ceo', to: 'sales_engineer' },
   { type: 'incident.fix', from: 'ceo', to: 'accountant' },
+  // the CEO hands himself yesterday's five numbers every morning (ruling 1209; the_ceo_reads_five_numbers_every_morning.sql)
+  { type: 'report.five_numbers', from: 'ceo', to: 'ceo' },
   // marketing puts its monthly plan before the CEO on the review machine: another model family, blind first
   // (founder_instructions 866 and 873; the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql)
   { type: 'deliberation.review', from: 'marketing', to: 'ceo' },
@@ -97,6 +101,13 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // (scripts/sql/the_whatsapp_menu_answers_like_a_senior_member_of_staff.sql, instruction 763)
   { type: 'support.case_open', from: 'customer_support', to: 'customer_support' },
   { type: 'support.human_requested', from: 'customer_support', to: 'customer_support' },
+  // a question support could not answer goes to the seat that owns the knowledge with a 7-day deadline; support
+  // closes it when the entry lands (scripts/sql/customer_support_closes_every_knowledge_request_by_a_deadline.sql, #1549 CS-C03)
+  { type: 'knowledge.request', from: 'customer_support', to: 'sales_engineer' },
+  { type: 'knowledge.request', from: 'customer_support', to: 'ceo' },
+  // a verified PDPL correction request: it_engineer corrects the record by the due date; support closes the request
+  // (scripts/sql/customer_support_registers_every_personal_data_request_and_keeps_its_clock.sql, #1549 CS-C11)
+  { type: 'data.correction', from: 'customer_support', to: 'it_engineer' },
   // a support cause recurring past the weekly threshold goes to the seat that owns it; customer_support measures
   // the weekly volume afterwards and closes it when it falls
   // (scripts/sql/customer_support_finds_the_root_cause_each_week_and_measures_the_fix.sql, instruction 1009)
@@ -179,7 +190,28 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // closes each once the receiving seat has answered (scripts/sql/the_marketing_seat_answers_comments_on_every_channel.sql)
   { type: 'social.escalation', from: 'marketing', to: 'customer_support' },
   { type: 'social.lead', from: 'marketing', to: 'sales_engineer' },
+  // an invited supplier replied to the invitation (usually with its trades): the sales engineer sets up its company page
+  // (scripts/sql/the_supplier_invitation_carries_no_link_and_a_reply_with_trades_reaches_the_sales_engineer.sql)
+  { type: 'invite.reply', from: 'marketing', to: 'sales_engineer' },
+  // a person who is not an invited lead wrote to the supplier mailbox: the sales engineer reads and answers it in its thread
+  // (scripts/sql/every_reply_and_bounce_in_the_supplier_mailbox_has_an_owning_seat.sql, handler fn_sales_engineer_takes_supplier_mailbox_reply)
+  { type: 'mailbox.supplier_reply', from: 'marketing', to: 'sales_engineer' },
   // a customer answered "not sure" to a spec on a held request: the sales engineer takes that spec up
   // (scripts/sql/a_not_sure_spec_opens_a_handoff_to_the_sales_engineer.sql, handler fn_sales_engineer_spec_handoff_waits)
   { type: 'spec.not_sure', from: 'customer_support', to: 'sales_engineer' },
+  // a lesson version whose CEO re-approval lapsed is escalated to the CEO; its handler asks again and closes once he
+  // decided (#1496, scripts/sql/a_lesson_never_carries_a_case_or_inquiry_id_or_an_amount.sql)
+  { type: 'ceo.lesson_reapproval_overdue', from: 'it_engineer', to: 'ceo' },
+  // a customer or supplier contests an automated decision: support routes it to the seat review_route names as the
+  // decision's owner, to decide on another model family (ledger 1152, #1566,
+  // scripts/sql/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family.sql)
+  { type: 'review.requested', from: 'customer_support', to: 'accountant' },
+  { type: 'review.requested', from: 'customer_support', to: 'ceo' },
+  { type: 'review.requested', from: 'customer_support', to: 'customer_support' },
+  { type: 'review.requested', from: 'customer_support', to: 'it_engineer' },
+  { type: 'review.requested', from: 'customer_support', to: 'sales_engineer' },
+  // a customer asked on WhatsApp about a late request: the sales engineer chases the suppliers who have not quoted, and
+  // customer support closes it once the customer is told (scripts/sql/a_customer_asking_on_whatsapp_reads_their_own_requests_and_every_ask_closes_its_loop.sql,
+  // handler fn_sales_engineer_chases_for_status, closer fn_customer_support_closes_status_chases)
+  { type: 'inquiry.status_chase', from: 'customer_support', to: 'sales_engineer' },
 ] as const;

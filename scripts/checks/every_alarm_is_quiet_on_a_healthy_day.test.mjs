@@ -83,6 +83,22 @@ export const KNOWN_LOUD = [
   { alarm: 'fn_it_detect', at: '2026-09-19T06:00:00Z', key: 'run_silent:send_whatsapp' },
 ];
 
+// A HEALTHY instant was chosen for a quiet HOUR (see HEALTHY). An alarm that judges a longer window can see, inside it, a
+// failure that was real and measured; firing on it is the alarm working, not a false alarm. Each entry here MUST fire at
+// its instant (so it is also a known-bad control: the alarm sees a real outage), and its evidence is written down. It is
+// not KNOWN_LOUD: that list is false alarms owed a fix. If an entry stops firing, the alarm went blind to a measured
+// failure, or retention removed the history; the check fails either way and says which entry.
+export const REAL_FAILURE_IN_WINDOW = [
+  // Measured 2 Nov 2026 on production (agent_runs, 12 Sep 06:00Z to 19 Sep 06:00Z, the 7 days fn_it_engineer_run_clusters
+  // judges at the instant): inquiry_intake ran 704 times, all 704 status error with counts.llm_call_ok 0 - "Intake LLM call
+  // failed for every model", every brief built by the keyword fallback (OpenRouter on hold). No ok row was purged: the
+  // same days keep 8,000-16,000 ok rows each, and inquiry_intake's ok rows from the week of 21 Sep are still there.
+  { alarm: 'fn_it_engineer_run_clusters', at: '2026-09-19T06:00:00Z', key: 'duty:run_cluster:inquiry_intake' },
+  // Same window: send_whatsapp 107 runs, 62 error, every one "WhatsApp notification(s) cannot be sent yet because the
+  // matching template is missing or still awaiting Meta approval" - customers' WhatsApp notices were not delivered.
+  { alarm: 'fn_it_engineer_run_clusters', at: '2026-09-19T06:00:00Z', key: 'duty:run_cluster:send_whatsapp' },
+];
+
 export const REGISTER = {
   // ── REPLAYED ──────────────────────────────────────────────────────────────────────────────────
   fn_it_detect: {
@@ -111,6 +127,42 @@ export const REGISTER = {
   fn_support_reply_watch_tick: {
     replay: 'pg_temp.qd_replay_fn_support_reply_watch_tick()',
     asOf: { inbound_messages: 'created_at', wa_messages: 'created_at', assistant_logs: 'created_at' },
+  },
+  // 19 Oct 2026 (customer_support, #1549, CS-C08). Raises delivery_outcome_unreturned: a delivery.request done or
+  // failed more than 2 h before the instant with no delivery.result returned and no open watch window. It runs
+  // fn_customer_support_delivery_watch first (its returns are written inside the rolled-back replay). A request's
+  // status and result_handoff_id are PRESENT state (same ceiling as fn_support_reply_watch_tick): one returned
+  // after the instant reads as returned then, so it can under-fire, never over-fire.
+  // The watch is stubbed in the replay (review of #1549 after main's row-lock walk): it returns results through
+  // fn_seat_handoff -> act -> complete, which can lock a LIVE refunds or refund_incident row when the asking seat is the
+  // accountant. The alarm's decision does not need it here: result_handoff_id is present state, so a request the watch
+  // returned after the instant already reads as returned, and stubbing can only under-fire.
+  fn_customer_support_delivery_outcome_tick: {
+    stub: { 'public.fn_customer_support_delivery_watch': `'{}'::jsonb` },
+    replay: 'pg_temp.qd_replay_fn_customer_support_delivery_outcome_tick()',
+    asOf: { agent_actions: 'created_at', notifications: 'created_at' },
+  },
+  // 19 Oct 2026 (customer_support, #1549, CS-C06). Raises support_reply_quality:<readability_avg|tone_avg|scored_share>
+  // over the 7 days to the instant. scored_share judges only replies sent after support_reply_scoring_complete_since
+  // (the day every road scores), so an instant before it cannot fire on the gap that file fixed.
+  fn_customer_support_reply_quality_week: {
+    replay: 'pg_temp.qd_replay_fn_customer_support_reply_quality_week()',
+    asOf: { support_reply_readability: 'created_at', assistant_logs: 'created_at', wa_messages: 'created_at', inbound_messages: 'created_at' },
+  },
+  // 19 Oct 2026 (customer_support, #1549, CS-C09). Raises delivery_health:<send_failures|whatsapp_failures|
+  // template_watch|unsubscribe_refusals> over the 24 h to the instant: failures over 5% of 20+ sends, a template
+  // watcher run not ok (or none), a refused unsubscribe from a real address.
+  // Sending the signed opt-out confirmation is the follow-on action, not the alarm: stubbed, so the replay neither
+  // queues a message nor walks fn_customer_support_takes_delivery's handoff chain into a live row lock.
+  fn_customer_support_delivery_health_tick: {
+    stub: { 'public.fn_customer_support_duty_send': `'{}'::jsonb` },
+    replay: 'pg_temp.qd_replay_fn_customer_support_delivery_health_tick()',
+    // unsubscribe_refusal (2 Nov 2026, it_engineer): its arm counts refusals with at > now() - 24 h and no upper bound, so
+    // without the view every refusal recorded AFTER the instant counted at it. Measured: the table's first real row is
+    // 28 Oct 00:55Z (2 real, 9 example.invalid), and the replay fired delivery_health:unsubscribe_refusals at all four
+    // healthy instants of September, a month before the table existed. Main's database check was red on it from then.
+    asOf: { notifications: 'created_at', agent_runs: 'started_at', email_suppressions: 'created_at', inbound_messages: 'created_at',
+            unsubscribe_refusal: 'at' },
   },
   // 23 Sep 2026 (sales_engineer, #869). Raises two findings: a reminder whose handler failed three times,
   // and a reminder whose delivery never became final in 3 days. Both read handoffs and leads that existed
@@ -187,6 +239,12 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_it_engineer_duty_pause_expiry()',
     asOf: { duty_pause: 'paused_at' },
   },
+  // 27 Oct 2026 (it_engineer, 68046f265, ledger 1003 IT-C14). A run label with more than 5 runs in 7 days and more than
+  // half of them not ok is one owned finding. Runs that existed at the instant.
+  fn_it_engineer_run_clusters: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_run_clusters()',
+    asOf: { agent_runs: 'started_at' },
+  },
   fn_ceo_report_answer_sweep: { stub: { 'public.fn_ceo_decide_report': 'null', 'public.fn_ceo_backup_heartbeat_decide': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_report_answer_sweep()', asOf: {} },
   fn_ceo_constraint_lever: { stub: { 'public.fn_ceo_improvement_close': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_constraint_lever()', asOf: {} },
   fn_ceo_marketing_plan_watch: { stub: { 'public.fn_ceo_improvement_open': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_marketing_plan_watch()', asOf: {} },
@@ -234,6 +292,32 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_reputation()',
     asOf: { reviews: 'created_at' },
   },
+  // 19 Oct 2026 (marketing, ledger 1003 C11, #1551). social_inbox:overdue / :signature_rejected / :send_failed: owed
+  // social messages unanswered 2 working hours, signed webhooks rejected, failed replies. Messages and runs that existed
+  // at the instant; a healthy day has none.
+  fn_marketing_social_inbox: {
+    replay: 'pg_temp.qd_replay_fn_marketing_social_inbox()',
+    asOf: { social_message: 'created_at', agent_runs: 'started_at' },
+  },
+  // 19 Oct 2026 (marketing, ledger 1003 C12, #1551). trends:feed_silent when a trend feed is unread for 2 days. Trends
+  // seen by the instant; the 48h decisions it writes are rolled back. Feed read times are present state (header ceiling).
+  fn_marketing_trend_decision: {
+    replay: 'pg_temp.qd_replay_fn_marketing_trend_decision()',
+    asOf: { marketing_trend: 'seen_at' },
+  },
+  // 19 Oct 2026 (marketing, ledger 1003 C14, #1551). facts:surface_stale:<surface> when a fetched public page does not
+  // state a public fact. It checks only responses to its own earlier requests; inside the replay its requests are
+  // rolled back, so a healthy day raises nothing.
+  fn_marketing_fact_register: {
+    replay: 'pg_temp.qd_replay_fn_marketing_fact_register()',
+    asOf: { marketing_duty_record: 'written_at' },
+  },
+  // 19 Oct 2026 (marketing, ledger 1003 C15, #1551). paid:spend_without_budget / paid:spend_not_reported. Spend days
+  // pulled by the instant; a healthy day has no spend while paid is off and every spend day with the accountant.
+  fn_marketing_paid_spend_report: {
+    replay: 'pg_temp.qd_replay_fn_marketing_paid_spend_report()',
+    asOf: { marketing_ad_spend_day: 'pulled_at' },
+  },
   // 29 Sep 2026 (accountant, founder ledger 1018: fraud and risk screening). Raises money_hold_unreviewed:<id> when a
   // reveal or refund the accountant's money screen held has waited 48 hours for review. Holds that existed at the
   // instant; a healthy day has none waiting that long. The party flags it writes and the holds it re-screens are
@@ -272,10 +356,20 @@ export const REGISTER = {
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   trg_high_stakes_review: { relay: 'records the disagreement a second seat recorded with a high-stakes decision that already went ahead; the verdict is the reviewer\'s (seat_deliberation_turn), and a healthy day has none' },
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
+  // 27 Oct 2026 (it_engineer for marketing): the WhatsApp supplier invitation brake (#1634) writes it_watch_finding
+  // directly, and main went red on this check because nobody registered it. It decides nothing itself: its two callers
+  // decide (fn_wa_sender_quality_record on Twilio's own quality reading, fn_wa_supplier_invite_gate on >= 2 STOP replies
+  // and >= 5% of the invitations sent in 7 days), and fn_it_engineer_ingest_watch_findings carries the open row into
+  // the finding ledger. With 0 invitations sent and no reading below HIGH, a healthy day raises nothing.
+  fn_wa_supplier_invite_brake: { relay: 'records the WhatsApp invitation brake that fn_wa_sender_quality_record (a Twilio quality reading below HIGH / ONLINE) or fn_wa_supplier_invite_gate (>= 2 STOPs and >= 5% of 7-day invitations) decided; a healthy day sends no invitation below HIGH and has no STOPs, so it raises nothing' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
+  // 3 Nov 2026 (customer_support, #1844 review). Both record what another routine already decided; a healthy day has neither.
+  fn_customer_support_closes_status_chases: { relay: 'records a status-chase follow-up that fn_customer_support_takes_delivery failed to deliver (or had no channel for) on three ticks; the failure is the delivery door\'s, and a healthy day delivers every follow-up' },
+  fn_wa_customer_request_answer: { relay: 'records a status chase whose handler fn_sales_engineer_chases_for_status failed (fn_seat_handoff marked it failed); the failure is the handler\'s, and a healthy day starts every chase' },
   fn_it_engineer_ingest_watch_findings: { relay: 'copies fn_it_detect\'s open it_watch_finding rows into the finding ledger' },
-  fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_settle reached on a seed message the inbox reader (resilience_ping inboxPlacement) looked at; the folder is the reader\'s reading, and no seed is sent on a healthy day before the morning batch' },
+  fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_judge reached from the latest recorded GlockApps result (public.deliverability_test against public.invite_placement_bar, 28 Oct 2026; the morning seed is retired); it files only on an open sending day, so a held campaign files nothing, and a healthy open day has a passing verdict' },
+  fn_wa_supplier_invite_brake: { relay: 'records the brake a caller pulled on the supplier WhatsApp invitations (the quality or opt-in gate, with its reason); it cancels the queued sends and files deliverability:supplier_invite_wa only when called, and a healthy day never calls it' },
   fn_lesson_reapproval_lapse_escalates: { relay: 'records that the CEO escalation of a lapsed lesson re-approval could not be opened (#1443); fires only when fn_seat_handoff itself errors on that lapse, and a healthy day has none' },
   fn_rehearsal_window_sweep: { relay: 'logs a window it closed as an already-resolved info row (status resolved, severity info); the decision is the window\'s own expires_at (#1401), and no alarm is raised' },
   fn_it_duty_settle: { relay: 'writes the failing items a duty reading hands it; the rule is the duty\'s' },
@@ -288,6 +382,8 @@ export const REGISTER = {
   fn_it_loop_stage: { relay: 'records that an IT loop stage raised; the error is the finding' },
   fn_seat_duty_cross_review: { relay: 'records that a cross-family review could not be opened; the error from fn_seat_deliberation_open is the finding' },
   fn_seat_handoff: { relay: 'records a handoff that could not be opened; the error is the finding' },
+  // 27 Oct 2026 (#1607, accountant): the reveal-invoice trigger raises only in the exception arm of its handoff insert.
+  fn_accountant_files_reveal_invoice: { relay: 'records that the invoice.issued handoff to the sales engineer could not be filed for a transaction whose invoice it just filed; fires only when that insert is refused (the error is the finding), and a healthy day has none' },
   fn_ceo_accountant_notice_report_decide: { relay: 'the CEO\'s decision on an accountant report' },
   fn_ceo_sales_engineer_report_decide: { relay: 'the CEO\'s decision on a sales engineer report' },
   fn_it_journey_ingest: { relay: 'writes the failed steps a nightly journey or smoke run reports' },
@@ -431,6 +527,13 @@ test('the static gate fails a new, unregistered alarm and a new name smuggled in
   assert.match(bad.join('\n'), /fn_zz_demo_smuggled: BASELINE is frozen/);
 });
 
+test('a real failure in an alarm\'s window names a replayed alarm at a healthy instant, and is not a known false alarm', () => {
+  const at = new Set(HEALTHY.map((h) => h.at));
+  const debt = new Set(KNOWN_LOUD.map((k) => `${k.alarm}@${k.at}@${k.key}`));
+  const bad = REAL_FAILURE_IN_WINDOW.filter((r) => !REGISTER[r.alarm]?.replay || !at.has(r.at) || !r.key || debt.has(`${r.alarm}@${r.at}@${r.key}`));
+  assert.deepEqual(bad, []);
+});
+
 test('every REGISTER entry names a routine that still exists in the canonical source', () => {
   const bodies = canonicalBodies();
   const gone = Object.keys(REGISTER).filter((n) => !bodies.has(n));
@@ -446,13 +549,14 @@ test('production: every replayed alarm is quiet at every healthy instant', { ski
   assert.ok(INSTANTS.length > 0, 'HEALTHY names no instant');
   const loud = [];
   const owed = new Set(KNOWN_LOUD.map((k) => `${k.alarm}@${k.at}@${k.key}`));
+  const real = new Set(REAL_FAILURE_IN_WINDOW.map((k) => `${k.alarm}@${k.at}@${k.key}`));
   for (const [name, entry] of Object.entries(REGISTER).filter(([, e]) => e.replay)) {
     const pending = pendingSource(name);
     for (const { at } of INSTANTS) {
       const out = await replay(sql, name, entry, at, '', pending);
       for (const f of out.fired) {
         const id = `${name}@${at}@${f.split(' -- ')[0]}`;
-        if (owed.delete(id)) continue;
+        if (owed.delete(id) || real.delete(id)) continue;
         loud.push(`${name} at ${at} fired: ${f}`);
       }
     }
@@ -460,6 +564,7 @@ test('production: every replayed alarm is quiet at every healthy instant', { ski
   // The debt list only shrinks: an entry that no longer fires must leave it, or a later regression
   // of the same alarm would pass as "already known".
   if (!process.env.QUIET_DAY_AT) for (const id of owed) loud.push(`KNOWN_LOUD ${id} no longer fires -- delete it from KNOWN_LOUD`);
+  if (!process.env.QUIET_DAY_AT) for (const id of real) loud.push(`REAL_FAILURE_IN_WINDOW ${id} no longer fires -- the alarm is blind to a measured failure, or retention removed that history (measure which)`);
   assert.deepEqual(loud, [], loud.join('\n'));
 });
 

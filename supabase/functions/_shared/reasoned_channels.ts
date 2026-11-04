@@ -31,7 +31,7 @@
 //   * portal chat (sales_engineer): nothing is queued; the honest notYet answer files a task with the question.
 //   * website widget: an anonymous visitor has no channel to be answered on later, so nothing is queued; the
 //     widget's own path answers (gateway, price guide, corpus) or files the question as a knowledge gap.
-import { think, type ThinkDeps, type ThinkRequest, type ThinkResult } from './think.ts';
+import { think, type ThinkDeps, type ThinkRequest, type ThinkResult, type Turn } from './think.ts';
 import { FIELD_LABEL, FIELDS, figures, type QuoteForAnswer } from './chat_answers.ts';
 import { NEEDS_PERSON_OPTIONS, type Reasoned } from './reasoned_decisions.ts';
 import { menuOptions } from './reasoned_menus.ts';
@@ -61,6 +61,9 @@ export const COVERAGE_OTHER = 'coverage:other';
  *  usually take?" as off-topic, and fn_wa_route then supplied its off-topic sentence as the reply's facts (19 Oct 2026,
  *  runs 0f48ea10 and c95eb7da, EN and AR). A customer's job question is the business this company exists for. */
 export const INTENT_MEANING: Record<string, string> = {
+  // The lean reading carries no company brief (waLean), and with the label alone it read "you took my money and vanished, this is a
+  // scam" as 'none' where the full shape chose contact_human (run 41530397323). The meaning now says what the person check says.
+  contact_human: 'they ask to speak to a person, or who runs the company, OR they complain, dispute, demand a refund, or accuse us or a supplier of wrongdoing (a matter a person must handle)',
   off_topic: 'nothing to do with building, construction, fit-out, maintenance, a trade, a material, a product, a job, procurement or QuotesDone (the weather, sport, jokes, homework). A question about any job, trade, material, cost, timing, specification or regulation is NEVER this',
 };
 
@@ -80,13 +83,18 @@ export function whatsappOptions(intents: WaIntent[], trades: WaTrade[]): Option[
 export interface WaMeaningInput {
   message: string; intents: WaIntent[]; trades: WaTrade[]; phone: string; messageSid?: string | null;
   audience?: 'customer' | 'supplier' | 'founder' | 'unknown';
+  /** The last few turns of this chat, so "the second one" is read in context. */
+  conversation?: Turn[];
 }
+/** The classification is lean (no company brief). Module state only so the real-model parity run can ask for the old, full shape. */
+export const waLean = { on: true };
 function waRequest(o: WaMeaningInput, queue: boolean): ThinkRequest {
   return {
+    lean: waLean.on,
     seat: 'customer_support', surface: 'wa_inbound.intent_table', question: o.message.slice(0, 4000),
     dedupeKey: 'wa_meaning:' + (o.messageSid || o.phone + ':' + o.message.slice(0, 40)),
     subject: { channel: 'whatsapp', phone: o.phone, message_sid: o.messageSid ?? null },
-    context: { audience: o.audience === 'supplier' ? 'supplier' : o.audience === 'founder' ? 'founder' : 'customer' },
+    context: { audience: o.audience === 'supplier' ? 'supplier' : o.audience === 'founder' ? 'founder' : 'customer', ...(o.conversation?.length ? { conversation: o.conversation.slice(-6) } : {}) },
     decision: { name: 'whatsapp_question', options: whatsappOptions(o.intents, o.trades) },
     // A choice among given options needs no planner: its options are the whole of what it needs (think.ts `plan`).
     // Measured 18 Oct 2026: the plan call was 5-8 s of every one of these, and the plan was never used by a decision.
@@ -104,8 +112,13 @@ export async function whatsappReadings<M extends string>(deps: ThinkDeps, o: WaM
   const req = waRequest(o, false);
   const result = await think(deps, { ...req, also: [{ key: 'needs_a_person', options: NEEDS_PERSON_OPTIONS }, { key: 'menu_meaning', options: menuOptions<M>(true, o.menu) }] });
   const ok = result.status === 'answered';
-  return { intent: ok ? result.decision?.choice ?? null : null,
-           needsPerson: ok && result.also?.needs_a_person ? result.also.needs_a_person === 'needs_a_person' : null,
+  const needsPerson = ok && result.also?.needs_a_person ? result.also.needs_a_person === 'needs_a_person' : null;
+  // ONE CALL, ONE READING (customer_support, 3 Nov 2026): when the same call says a person is needed and no intent row fits,
+  // the row for a person is the one that fits (when the table has it), so the route gives the contact either way and the
+  // lean and full shapes cannot disagree on it. Prevented by: reasoned_channels_lean.test.ts.
+  const choice = ok ? result.decision?.choice ?? null : null;
+  const intent = choice === 'none' && needsPerson === true && o.intents.some((i) => i.intent_key === 'contact_human') ? 'intent:contact_human' : choice;
+  return { intent, needsPerson,
            menu: ok ? result.also?.menu_meaning ?? null : null, result };
 }
 /** The meaning, filed in customer_support's queue for replay when nothing else answered the message — WITHOUT a

@@ -47,6 +47,19 @@ export function paintBoxes(target: Image, gs: Box[], pad = SERVER_MARGIN): void 
   }
 }
 
+/**
+ * The verifier's retry, as its own unit of pixel work (it_engineer, 2 Nov 2026). drawing_redact's model path used to
+ * decode a page, encode it, then paint the retry's boxes and encode it AGAIN in the same worker; on 1 Nov 4 of 4 such
+ * calls died "CPU Time exceeded" (HTTP 546, 5.8-14.4 s wall) and no drawing_redaction_runs row was ever written. The
+ * retry now runs in a fresh worker (mode 'repaint'): it decodes the already-redacted JPEG, paints `regions` and
+ * encodes once, so no worker does more than one decode and one encode of a page.
+ */
+export async function repaintJpeg(jpg: Uint8Array, regions: Box[], pad: number, quality = 82): Promise<Uint8Array> {
+  const img = await Image.decode(jpg) as Image;
+  paintBoxes(img, regions, pad);
+  return await img.encodeJPEG(quality);
+}
+
 /** Customer boxes arrive as untrusted JSON: clamp to 0..1, drop empty ones, at most 60. */
 export function cleanBoxes(mb: unknown): Box[] | null {
   if (!Array.isArray(mb)) return null;

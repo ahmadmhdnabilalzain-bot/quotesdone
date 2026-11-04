@@ -45,7 +45,11 @@ export type CaseMemory = {
 // before its past cases, the way a colleague reads the note on the file before anything else.
 export type HandoffNote = {
   handoff_id: number; from: string | null; conversation: string | null; opened_at: string; status: string;
-  summary: { known: Record<string, unknown>; tried: Record<string, unknown>; needed: Record<string, unknown>; evidence: string[] };
+  summary: {
+    // ledger 1013 (19 Oct 2026): the four fields every note states, built by code in fn_handoff_summary
+    context?: string; decision?: string; open_asks?: string[]; deadline?: string; deadline_source?: string;
+    known: Record<string, unknown>; tried: Record<string, unknown>; needed: Record<string, unknown>; evidence: string[];
+  };
 };
 
 export const RECALL_EMBED_MS = 1500;
@@ -71,6 +75,10 @@ export async function recallCases(admin: Rpc, o: {
   caseKind?: string | null; otherSeats?: boolean; exclude?: { table: string; id: string } | null;
   embedding?: number[] | string | null;
   embeddingMl?: number[] | null;              // a multilingual vector the caller already has: recalled in the ml space
+  // The caller's own embedder (ThinkDeps.embed). Given, the recall never runs gte-small in this worker: both spaces are
+  // asked of it, so a heartbeat caller (heartbeatDeps, gte-small in embed_ml) keeps its 2 s CPU cap even when the
+  // multilingual call fails and the recall falls back to gte. Absent, the recall embeds as it always did.
+  embed?: (text: string, space?: 'gte' | 'ml') => Promise<number[] | null>;
   subject?: Record<string, unknown> | null;   // what the judgement is about; defaults to `exclude`
   record?: boolean;                           // default true: every recall opens its judgement row
 }): Promise<CaseMemory> {
@@ -97,8 +105,12 @@ async function recallOnly(admin: Rpc, o: Parameters<typeof recallCases>[1]): Pro
   try {
     // A caller that already embedded (or tried to) passes `embedding`, even null: a second gte-small
     // session in the same worker is memory the edge runtime does not have to spare.
-    const ml = o.embeddingMl ?? ((await readSpace(admin)) === 'ml' ? await embedQueryMlRemote(admin, text, 'case_recall:' + o.seat, RECALL_EMBED_ML_MS) : null);
-    const vec = ml ?? ('embedding' in o ? o.embedding : await Promise.race([embedLine(text), new Promise<null>((r) => setTimeout(() => r(null), RECALL_EMBED_MS))]));
+    const ask = o.embed;
+    const ml = o.embeddingMl ?? ((await readSpace(admin)) === 'ml'
+      ? await (ask ? ask(text, 'ml').catch(() => null) : embedQueryMlRemote(admin, text, 'case_recall:' + o.seat, RECALL_EMBED_ML_MS)) : null);
+    const vec = ml ?? ('embedding' in o ? o.embedding
+      : ask ? await ask(text, 'gte').catch(() => null)
+      : await Promise.race([embedLine(text), new Promise<null>((r) => setTimeout(() => r(null), RECALL_EMBED_MS))]));
     if (!vec) return { ...base, available: false, reason: 'embedding_unavailable' };
     const { data, error } = await admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {
       p_seat: o.seat, p_embedding: typeof vec === 'string' ? vec : '[' + vec.join(',') + ']',
@@ -134,12 +146,16 @@ export function handoffBlock(m: CaseMemory): string {
   if (!m.handoffs?.length) return '';
   const lines = m.handoffs.map((h) => [
     `handoff #${h.handoff_id} from ${h.from ?? 'a colleague'} (${h.conversation ?? 'handoff'}):`,
+    `  context: ${String(h.summary?.context ?? '').slice(0, 400)}`,
+    `  decision: ${String(h.summary?.decision ?? '').slice(0, 300)}`,
+    `  open asks: ${(h.summary?.open_asks ?? []).slice(0, 5).join(' | ').slice(0, 500)}`,
+    `  deadline: ${h.summary?.deadline ?? 'not stated'}`,
     `  known: ${JSON.stringify(h.summary?.known ?? {}).slice(0, 500)}`,
     `  tried: ${JSON.stringify(h.summary?.tried ?? {}).slice(0, 500)}`,
     `  needed: ${JSON.stringify(h.summary?.needed ?? {}).slice(0, 400)}`,
     `  evidence: ${(h.summary?.evidence ?? []).slice(0, 8).join(', ')}`,
   ].join('\n'));
-  return `\n\nHANDOFF NOTES ON THIS CASE (read these first; internal, never quoted to a customer):\n${lines.join('\n')}`;
+  return `\n\nHANDOFF NOTES ON THIS CASE (read these first; internal, never quoted to a customer). Answer every open ask before its deadline and cite the note you acted on as "handoff #<number>":\n${lines.join('\n')}`;
 }
 
 /**

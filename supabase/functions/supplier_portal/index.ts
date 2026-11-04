@@ -15,16 +15,15 @@ import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { REQUIRED_DOC_KEYS } from '../_shared/supplier_registration.ts';
 import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supplierCard, type Supplier } from './overview.ts';
 import { markReading, modelReadText } from '../_shared/supplier_doc_trades.ts';
-import { afterResponse, ownPath, readStoredDocsLater, type LaterDoc } from '../_shared/supplier_docs_later.ts';
+import { afterResponse, ownPath, readProfileByModel, readStoredDocsLater, type LaterDoc } from '../_shared/supplier_docs_later.ts';
 import { storedAt } from '../_shared/stored_at.ts';
-import { toB64 } from '../_shared/document_expiry.ts';
 import { buildInsightsSummary } from './insights_summary.ts';
 import { deleteSupporting, listSupporting, saveSupporting, urlSupporting } from './supporting_documents.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/sanctioned.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
 // instruction 524, 21 Sep 2026). _shared/document_expiry.ts reads the expiry off the bytes by code
 // before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
-import { licenceNameFromModel, readExpiry, readLicenceFields, readLicenceName, type ExpiryRead, type LicenceFields } from '../_shared/document_expiry.ts';
+import { licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type ExpiryRead, type LicenceFields } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { productsAsked } from '../_shared/reasoned_matching.ts';
@@ -139,6 +138,8 @@ async function listDocuments(supId: number) {
     let status = 'missing';
     if (path) {
       status = 'on_file';
+      // A trade licence whose expiry nobody could read is on file but NOT read: say so on its card, not "On file" (2 Nov 2026, ledger 1467).
+      if (key === 'license' && own && !expiry) status = 'unread';
       if (expiry) {
         const d = Math.round((new Date(expiry).getTime() - today.getTime()) / 864e5);
         status = d < 0 ? 'expired' : d <= 30 ? 'expiring' : 'valid';
@@ -458,6 +459,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const saved: string[] = [];
       let licenceNotice = false;
+      let licIssue: string | null | undefined;   // the licence's printed issue date (2 Nov 2026, ledger 1467); undefined = no licence in this call
       const failedUploads: { kind: string; reason: string }[] = [];  // NOT 'failed' - that name belongs to the module-level refusal helper above, and shadowing it here is how the raw Postgres message stayed in this reply until 22 Sep 2026.
       const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
       const INBOUND_SECRET = (_isec?.value as string) || '';
@@ -539,6 +541,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
         // uploaded document, so the expiry gate can't be bypassed with a self-typed date. The typed
         // value is used only as a fallback when extraction fails or the document has no clear date.
         let licExpiryFromDoc = false;
+        let fieldsLeftUnread = false;
         // INSTRUCTION 524: code reads the date first. For every kind that carries an expiry the
         // stored bytes are read by _shared/document_expiry.ts (text-stream PDFs; a scan returns
         // null and is said so). The licence keeps #86 — a read date is written, a typed one never
@@ -561,7 +564,11 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           // held a clean text licence as licence_number_unread. Same reader as supplier_api; the model fills only gaps.
           let codeFields: Partial<LicenceFields> = {};
           try { codeFields = await readLicenceFields(stored.bytes, stored.mime); } catch (_e) { codeFields = {}; }
+          // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442): supplier_api clears these too.
+          upd.trade_license_no = null; upd.license_authority = null; upd.license_expiry = null; upd.doc_extracted_at = null;
+          fieldsLeftUnread = licenceNeedsModel({ ...codeFields, legal_name_en: codeName });
           if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
+          licIssue = codeFields.issue_date || null;
           if (codeFields.authority) upd.license_authority = codeFields.authority;
           if (codeFields.emirate) upd.emirate = codeFields.emirate;
         }
@@ -585,7 +592,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
         if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && !(aiOn && INBOUND_SECRET)) {
           read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
-        if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && aiOn && INBOUND_SECRET) {
+        if (kindStr === 'license' && (!licExpiryFromDoc || fieldsLeftUnread) && it.original_b64 && aiOn && INBOUND_SECRET) {
           try {
             const isImg = /^image\//.test(String(it.mime || ''));
             const payload: Record<string, unknown> = isImg
@@ -595,8 +602,9 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
             const jd = await r.json();
             if (jd?.ok && jd.doc) {
               const d = jd.doc;
-              if (d.expiry_date) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; read.license = { kind: 'license', expiry: String(d.expiry_date), source: 'ai', needs_confirm: false, typed: null }; }
+              if (d.expiry_date && !licExpiryFromDoc) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; read.license = { kind: 'license', expiry: String(d.expiry_date), source: 'ai', needs_confirm: false, typed: null }; }
               if (d.license_number && !upd.trade_license_no) upd.trade_license_no = d.license_number;
+              if (d.issue_date && !licIssue) licIssue = String(d.issue_date).slice(0, 10);
               if (d.license_authority && !upd.license_authority) upd.license_authority = d.license_authority;
               if (d.city) upd.license_city = d.city;
               if (!upd.licence_legal_name) { const n = licenceNameFromModel(d); if (n) upd.licence_legal_name = n; }
@@ -647,6 +655,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           return failed('save_documents', 'save_failed', 'Your files were uploaded but could not be attached to your profile. Please try again.', updErr, 502);
         }
       }
+      if (licIssue !== undefined) { const ri = await admin.from('leads').update({ license_issue_date: licIssue }).eq('id', sup.id); if (ri.error) console.error('save_documents: licence issue date not saved —', ri.error.message); }
       // REPLACE KEEPS THE PREVIOUS VERSION. After the row write succeeded, every column that held a
       // file and now holds another becomes a doc_versions row (entity 'supplier_document',
       // '<lead>:<kind>'). The old object stays in storage and in the Dropbox backup.
@@ -668,11 +677,16 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
       if (later.length) {
         const markErr = await markReading(admin, Number(sup.id), later);
         if (markErr) console.error(JSON.stringify({ at: 'supplier_portal.save_documents.markReading', supplier: sup.id, error: markErr }));
+        // A PICTURE OR A SCANNED PDF is read by the same model the licence uses, with the licence's two attempts (2 Nov 2026, ledger 1442:
+        // "is our agent actually reading the company profile"). Before, only a picture was sent and a scanned PDF stayed needs_ocr.
+        // When the model cannot read it the document stays needs_ocr: never a false "no trades".
         const profile = async (d: LaterDoc) => {
-          if (!(d.bytes && /^image\//i.test(d.mime || '') && aiOn && INBOUND_SECRET)) return;
-          const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', images: [{ b64: toB64(d.bytes), mime: d.mime }] }) });
-          const jd = await r.json().catch(() => null);
-          if (jd?.ok) d.photo_text = modelReadText('profile', jd.profile?.lines);   // else the document stays needs_ocr: never a false "no trades"
+          if (!(aiOn && INBOUND_SECRET)) return;
+          await readProfileByModel(d, async (b) => {
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', ...b }), signal: AbortSignal.timeout(120_000) });
+            const jd = await r.json().catch(() => null);
+            return { ...(jd ?? {}), status: r.status };
+          }, { subject: { supplier_id: Number(sup.id), email }, admin });
         };
         const w = afterResponse(readStoredDocsLater(admin, Number(sup.id), later, { profile }), 'supplier_portal.save_documents.later'); if (w) await w;
       }

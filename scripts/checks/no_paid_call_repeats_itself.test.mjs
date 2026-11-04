@@ -18,7 +18,8 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 test('ai_gateway: at most two paid calls per request, and none after a refusal that cannot change', () => {
   const gw = read('supabase/functions/ai_gateway/index.ts');
   assert.match(gw, /const plan = attemptPlan\(ladder\)/, 'the paid attempts must come from attemptPlan');
-  assert.match(gw, /pi = nextAttempt\(plan, pi, failureKind\(failStatus\)\)/, 'the next attempt must depend on why the last one failed');
+  // 3 Nov 2026: an empty completion our own work paid for moves to the next model, never the same one again (emptyPaid).
+  assert.match(gw, /pi = nextAttempt\(plan, pi, (emptyPaid \? 'next' : )?failureKind\(failStatus\)\)/, 'the next attempt must depend on why the last one failed');
   assert.doesNotMatch(gw, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/, 'the nested 2-attempts-per-model loop (4 calls a request) is back');
 });
 

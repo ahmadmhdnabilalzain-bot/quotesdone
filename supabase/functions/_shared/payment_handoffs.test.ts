@@ -14,7 +14,11 @@ Deno.test('every conversation is between real seats and listed once', () => {
   // The complaint clock (22 Sep 2026, PR #811) is support's own queue too: it holds each complaint as a
   // complaint.due item until the Complaints Policy's final response is given.
   const selfTalk = (h: { type: string; from: string; to: string }) => h.from === 'customer_support' && h.to === 'customer_support'
-    && (h.type === 'delivery.request' || h.type === 'delivery.result' || h.type === 'complaint.due' || h.type === 'support.case_open' || h.type === 'support.human_requested');
+    && (h.type === 'delivery.request' || h.type === 'delivery.result' || h.type === 'complaint.due' || h.type === 'support.case_open' || h.type === 'support.human_requested'
+        // a contested messaging or account decision is support's own to review on another model family (ledger 1152, #1566)
+        || h.type === 'review.requested')
+    // The CEO's morning five numbers (ruling 1209, #1365): its own daily reading, queued and closed like any other.
+    || (h.from === 'ceo' && h.to === 'ceo' && h.type === 'report.five_numbers');
   for (const h of HANDOFF_TYPES) assert(seats.has(h.from) && seats.has(h.to) && (h.from !== h.to || selfTalk(h)), JSON.stringify(h));
 });
 
@@ -48,6 +52,19 @@ Deno.test('only customer_support delivers, and every seat that asks hears back',
     // — and a fifth (legal finding 1, #1512): an objection to an automated decision that support did not resolve goes
     // to the CEO as support.decision_objection; it asks for the CEO's reply and delivers nothing.
     if (h.type === 'support.decision_objection' && h.to === 'ceo') continue;
+    // — and a sixth (ledger 1152, #1566): a contested automated decision goes to the seat review_route names as its
+    // owner as review.requested; it asks that seat to decide it again on another model family and delivers nothing.
+    if (h.type === 'review.requested') continue;
+    // — and a seventh (#1549 CS-C03): a question support could not answer goes to the seat that owns the knowledge
+    // (sales_engineer or ceo) as knowledge.request with a 7-day deadline; it asks for the entry and delivers nothing.
+    if (h.type === 'knowledge.request' && ['sales_engineer', 'ceo'].includes(h.to)) continue;
+    // — and an eighth (#1549 CS-C11): a verified PDPL correction request goes to it_engineer as data.correction; it asks
+    // for the record to be corrected by the due date and delivers nothing.
+    if (h.type === 'data.correction' && h.to === 'it_engineer') continue;
+    // — and a ninth (3 Nov 2026): a customer asked on WhatsApp about a late request, so support asks the sales engineer to
+    // chase the suppliers who have not quoted as inquiry.status_chase (handler fn_sales_engineer_chases_for_status);
+    // support itself closes it once the customer is told, and the request delivers nothing to the sales engineer.
+    if (h.type === 'inquiry.status_chase' && h.to === 'sales_engineer') continue;
     assertEquals(h.type, 'delivery.result');
   }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {
@@ -82,11 +99,13 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
   // and the daily lead-sourcing report (counts by trade, no company names) as marketing.lead_sourcing (#1304, 12 Oct)
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing' && h.to === 'ceo').map((h) => h.type).sort(), ['ceo.decision_owed', 'deliberation.review', 'marketing.lead_sourcing', 'marketing.report', 'marketing.review']);
   // and marketing asks nobody else; the one exception is a public comment's lead, handed to sales_engineer
-  // (instruction 866, 23 Sep 2026), and the escalation of a comment that must not be answered in public
+  // (instruction 866, 23 Sep 2026), an invited supplier's reply to the invitation, handed to sales_engineer to set up
+  // its company page (founder_instruction 1301, 27 Oct 2026: no link, so a reply is the way in), and the escalation of
+  // a comment that must not be answered in public
   assert(has('social.lead', 'marketing', 'sales_engineer') && has('social.escalation', 'marketing', 'customer_support'));
   for (const h of HANDOFF_TYPES.filter((x) => x.from === 'marketing')) {
-    assert(['ceo', 'accountant', 'customer_support'].includes(h.to) || (h.type === 'social.lead' && h.to === 'sales_engineer'), JSON.stringify(h));
+    assert(['ceo', 'accountant', 'customer_support'].includes(h.to) || ((h.type === 'social.lead' || h.type === 'invite.reply' || h.type === 'mailbox.supplier_reply') && h.to === 'sales_engineer'), JSON.stringify(h));
   }
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing').map((h) => h.type + '>' + h.to).sort(),
-    ['adspend.recorded>accountant', 'ceo.decision_owed>ceo', 'deliberation.review>ceo', 'delivery.request>customer_support', 'marketing.lead_sourcing>ceo', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
+    ['adspend.recorded>accountant', 'ceo.decision_owed>ceo', 'deliberation.review>ceo', 'delivery.request>customer_support', 'invite.reply>sales_engineer', 'mailbox.supplier_reply>sales_engineer', 'marketing.lead_sourcing>ceo', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
 });

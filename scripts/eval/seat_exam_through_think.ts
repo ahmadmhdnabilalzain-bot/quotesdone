@@ -11,6 +11,7 @@
 //                       here grades the answer with a model: a reader (the CEO session) judges each answer against the
 //                       item's `answer_must` and records the verdict in docs/audits (no paid judge). `facts_in_answer`
 //                       is printed only as a hint for the reader.
+//   --trace             (with --answer) also write, per item, the ids of the sources think() returned and its steps.
 //   --reworded          ask each item's q_reworded instead of q_en: the exam is passed on meaning, not on the wording
 //                       its knowledge entry happens to use.
 //
@@ -20,6 +21,7 @@
 //     [--tag <run>] [--exam file.json] [--concurrency 4] [--limit 10] [--out r.json]
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import type { ThinkDeps } from '../../supabase/functions/_shared/think.ts';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const arg = (f: string) => { const i = Deno.args.indexOf(f); return i >= 0 ? Deno.args[i + 1] : null; };
@@ -27,10 +29,15 @@ const seat = arg('--seat') ?? 'sales_engineer';
 const limit = Number(arg('--limit') ?? 1e9);
 const ANSWER = Deno.args.includes('--answer');
 const REWORDED = Deno.args.includes('--reworded');
+const TRACE = Deno.args.includes('--trace');
+// --ids a,b,c or --ids @file (one id per line): only these items (a re-run of the ones that failed).
+const idArg = arg('--ids');
+const IDS = idArg ? (idArg.startsWith('@') ? await Deno.readTextFile(idArg.slice(1)) : idArg).split(/[\s,]+/).filter(Boolean) : null;
 const home = Deno.env.get('USERPROFILE') ?? Deno.env.get('HOME') ?? '';
-const mgmt = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? await Deno.readTextFile(`${home}/.supabase/access-token`)).trim();
+const mgmt = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? await Deno.readTextFile(`${home}/.supabase/access-token`).catch(() => '')).trim();
+if (!mgmt) throw new Error('SUPABASE_ACCESS_TOKEN is not set (docs/runbooks/cloud-sessions.md)');
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
-const service = keys.find((k: { name: string }) => k.name === 'service_role')?.api_key;
+const service = pickApiKey(keys, 'secret');
 if (!service) throw new Error('no service_role key from the management API');
 const admin = createClient(`https://${REF}.supabase.co`, service, { auth: { persistSession: false } });
 // The gateway client (llm.ts) and the run-tag fetch forwarder (e2e_run.ts) read these at import, so they are set first.
@@ -43,7 +50,14 @@ const { E2E_RUN } = await import('../../supabase/functions/_shared/e2e_run.ts');
 const TAG = arg('--tag');
 // The gateway admits only a caller holding its own credential (app_secrets.cred_fn_<fn>). The exam calls as
 // knowledge_exam, the credential that exists for exactly this, so exam spend is never booked as a seat's live work.
-const inRun = <T>(f: () => Promise<T>) => (TAG ? E2E_RUN.run({ tag: TAG, secret: null }, f) : f());
+// The tag must be PROVEN at the gateway or it is refused (19 Oct 2026: qd_run:ceodiag1 sent it with secret null,
+// the gateway dropped it, and USD 13.86 ran untagged past a USD 5 cap). The hop to ai_gateway uses knowledge_exam's
+// own credential, not the service bearer, so it carries the internal secret as x-qd-e2e-secret.
+const RUN_SECRET = TAG
+  ? ((await admin.from('app_secrets').select('value').eq('key', 'cred_db_internal').maybeSingle()).data?.value ?? null) as string | null
+  : null;
+if (TAG && !RUN_SECRET) throw new Error('--tag given but app_secrets.cred_db_internal could not be read; the run could not prove its tag');
+const inRun = <T>(f: () => Promise<T>) => (TAG ? E2E_RUN.run({ tag: TAG, secret: RUN_SECRET }, f) : f());
 
 type Item = { id: string; checklist: string; q_en: string; q_reworded?: string; answer_must?: string[]; expected_entry_ids: string[]; expected_facts: string[] };
 const exam = JSON.parse(await Deno.readTextFile(arg('--exam') ?? `knowledge/exams/${seat}.json`)) as { items: Item[] };
@@ -53,7 +67,7 @@ class Stop extends Error {}
 const out: Record<string, unknown>[] = [];
 let pass = 0, held = 0;
 // --concurrency N: items run N at a time (a full think() answer takes 30-90 s).
-const items = exam.items.slice(0, limit);
+const items = exam.items.filter((x) => !IDS || IDS.includes(x.id)).slice(0, limit);
 let next = 0;
 async function worker() { while (next < items.length) await one(items[next++]); }
 async function one(it: Item) {
@@ -71,15 +85,16 @@ async function one(it: Item) {
       return r;
     },
   };
-  let status = 'stopped', answer = '', model: string | null = null;
+  let status = 'stopped', answer = '', model: string | null = null, trace: unknown = null;
   try {
     const r = await inRun(() => think(deps, { seat: seat as never, surface: 'think.answer', question, context: { audience: 'internal' }, subject: { fixture: true } as never }));
     status = r.status === 'held' ? 'held: ' + ((r as { reason?: string }).reason ?? '') : r.status; answer = r.answer; model = r.model ?? null;
+    if (TRACE) trace = { sources: r.sources.map((s) => s.id), steps: r.steps.map((s) => ({ id: s.id, status: s.status, detail: s.detail })) };
   } catch (e) { if (!(e instanceof Stop)) status = 'error: ' + (e as Error).message; }
   const retrieved = calls.some((c) => c.top.some((r) => it.expected_entry_ids.includes(r.id) && it.expected_facts.every((f) => has(r.excerpt, f))));
   if (ANSWER) {
     if (status !== 'answered') held++;
-    out.push({ id: it.id, checklist: it.checklist, question, answer_must: it.answer_must ?? [], status, model, retrieved, errors, facts_in_answer: it.expected_facts.filter((f) => has(answer, f)).length + '/' + it.expected_facts.length, answer });
+    out.push({ id: it.id, checklist: it.checklist, question, answer_must: it.answer_must ?? [], status, model, retrieved, errors, facts_in_answer: it.expected_facts.filter((f) => has(answer, f)).length + '/' + it.expected_facts.length, answer, ...(TRACE ? { trace } : {}) });
     console.log(`${it.id} ${status} model=${model ?? '-'} retrieved=${retrieved}${errors.length ? ' errors=' + errors.join('; ') : ''}`);
     return;
   }
