@@ -101,7 +101,14 @@ export function classify(http: number): ObserveStatus {
  * hour). Only server code can annotate a Response, so a caller cannot buy itself a 'held'.
  */
 export function statusOf(http: number, ann?: Record<string, unknown>): ObserveStatus {
-  return http >= 500 && ann?.held === true ? 'held' : classify(http);
+  if (http >= 500 && ann?.held === true) return 'held';
+  // 19 Oct 2026 (marketing): a 4xx the handler marked refused_unauthenticated is a caller that presented
+  // NO credential at all (curl with no signature header). It is not a run of the function: 'skipped'.
+  // Measured: fn:marketing_social_inbox read 4 of 8 runs 'warn' over 7 days, and all 4 were one
+  // unauthenticated sweep (curl, 01:45 UTC 19 Oct, no signature header). A PRESENTED-but-wrong
+  // credential is never marked this way and stays 'warn' -- that is the real fault (a rotated secret).
+  if (http >= 400 && http < 500 && ann?.refused_unauthenticated === true) return 'skipped';
+  return classify(http);
 }
 
 /**

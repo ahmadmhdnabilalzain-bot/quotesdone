@@ -56,6 +56,8 @@ import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shar
 import { waRow } from './wa_row.ts';
 import { waConversation } from '../_shared/wa_history.ts';
 import { budgetLeft, holdUnwritten, modelSays, voiceReplyProblems } from './model_says.ts';
+import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
+import { amountInOwnWords, founderDirectiveAllowed, supplierDirectiveAllowed } from './directive_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 // THE QUESTION IS UNDERSTOOD, NOT ONLY MATCHED (instruction 763). Measured 22 Sep 2026: wa_inbound
@@ -426,6 +428,8 @@ async function handleInbound(req: Request): Promise<Response> {
     // NOT the same as `trusted`: a valid Twilio signature also sets trusted. This is true only for
     // an authenticated internal JSON caller, and it is the sole thing that permits inline media.
     let internalCaller = false;
+    // True only when X-Twilio-Signature verified: the one proof a founder setting change accepts (directive_gate.ts).
+    let signatureVerified = false;
     const formParams: Record<string, string> = {}; // every POST param, needed for signature validation
     const ct = req.headers.get('content-type') || '';
 
@@ -501,7 +505,7 @@ async function handleInbound(req: Request): Promise<Response> {
         return TW(403);
       }
       if (sig.checked && sig.valid) {
-        trusted = true; // cryptographic proof - stronger than the provenance lookup, skip it
+        trusted = true; signatureVerified = true; // cryptographic proof - stronger than the provenance lookup, skip it
         await logRun('ok', { authorised: 1, path: 'form', signature_checked: 1, signature_valid: 1 }, 'wa_inbound accepted a webhook on verified X-Twilio-Signature. The provenance lookup was skipped because the signature is cryptographic proof of origin and does not need a confirming REST call.');
       }
     }
@@ -583,11 +587,20 @@ async function handleInbound(req: Request): Promise<Response> {
     let factsAnswer = false;
     // THE WHOLE CONVERSATION, EVERY TURN (2 Nov 2026): this number's earlier turns, read once per turn (_shared/wa_history.ts).
     let history: ReturnType<typeof waConversation> | null = null;
+    // THE OTHER PARTY BEFORE A REVEAL (3 Nov 2026, pre_reveal_identities.ts): read once per turn from the number's confirmed
+    // owner (fn_whatsapp_owner); a reply naming a counterpart not yet revealed to them is refused. No owner: [].
+    let forbidden: Promise<string[]> | null = null;
     // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
     // They are apart so a reply started speculatively (below) that is then discarded can never escalate or flag the turn.
     const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => {
       history ??= waConversation(admin, From, receivedAt, isDemoPhone(From));
-      return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: await history,
+      forbidden ??= (async () => {
+        const { data } = await admin.rpc('fn_whatsapp_owner', { p_phone: From });
+        const o = (Array.isArray(data) ? data[0] : data) as { party_kind?: string; lead_id?: number | null; customer_id?: string | null } | null;
+        return o?.party_kind === 'supplier' && o.lead_id ? preRevealIdentities(admin, { leadId: Number(o.lead_id) })
+          : o?.party_kind === 'customer' && o.customer_id ? preRevealIdentities(admin, { customerId: String(o.customer_id) }) : [];
+      })().catch(() => []);
+      return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: await history, forbidden: await forbidden,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
         // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
         // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
@@ -1047,7 +1060,7 @@ async function handleInbound(req: Request): Promise<Response> {
       const cm = String((cj as { content?: string })?.content || '').match(/\{[\s\S]*\}/);
       return cm ? JSON.parse(cm[0]) : null;
     })().catch(() => null));   // a classifier failure must never swallow their message: it reads as "not a change"
-    if (audience === 'supplier' && typedQuestion) directiveRead();
+    if (supplierDirectiveAllowed({ audience, internalCaller }) && typedQuestion) directiveRead();   // never read for a turn it cannot apply
     const m = await menuTurn(menuDeps, menuIn);
     if (m.handled) {
       specAbort.abort();
@@ -1106,6 +1119,8 @@ async function handleInbound(req: Request): Promise<Response> {
         // through to the deterministic answer below rather than being guessed at. Money, refunds and the
         // three go-live switches are not in the registry and are refused BY NAME, with the list of
         // what can be changed, so a refusal teaches instead of stonewalling.
+        // Only a signature-verified webhook from his number may CHANGE a setting (directive_gate.ts, 3 Nov 2026). Any
+        // other turn is still read, so an instruction that is not applied is told so, never answered as a question.
         try {
           const { data: settings } = await admin.rpc('fn_founder_settings');
           const rows: any[] = Array.isArray(settings) ? settings : [];
@@ -1134,7 +1149,10 @@ async function handleInbound(req: Request): Promise<Response> {
             const cj = readDirectiveReply(await cr.json().catch(() => ({} as any)));
             const m = String(cj?.content || '').match(/\{[\s\S]*\}/);
             const parsed = m ? JSON.parse(m[0]) : null;
-            if (parsed?.directive === true && parsed?.key) {
+            if (parsed?.directive === true && parsed?.key && !founderDirectiveAllowed({ audience, signatureVerified })) {
+              directive = { ok: false, key: String(parsed.key), refusal: 'not applied: this message did not arrive with a verified Twilio signature, so it cannot change a setting' };
+              reply = (await sayFor('founder')('He asked to change the setting ' + String(parsed.key) + ' to ' + String(parsed.value ?? '') + '. It was NOT changed: this message did not arrive with a verified Twilio signature, and only a verified message from his number may change a setting. Nothing else was done; he can send it again.')) || ' ';
+            } else if (parsed?.directive === true && parsed?.key) {
               const { data: applied } = await admin.rpc('fn_founder_apply_setting', {
                 p_key: String(parsed.key), p_value: String(parsed.value ?? ''),
                 p_inbound: question, p_actor: String(known?.name || 'founder'), p_channel: 'whatsapp',
@@ -1326,17 +1344,19 @@ async function handleInbound(req: Request): Promise<Response> {
     // a SEMANTIC lookup at 0.95 over (sys_stable + sys).slice(0,400) + convo.slice(0,800), and a
     // classifier whose system prompt dwarfs its one-line input gets the PREVIOUS caller's answer.
     // Three different founder messages were all classified as the first one's directive that way.
-    if (audience === 'supplier') {
+    // Twilio-vouched only, never the internal JSON path, and only an amount they wrote (directive_gate.ts, 3 Nov 2026).
+    if (supplierDirectiveAllowed({ audience, internalCaller })) {
       try {
         const parsed = await directiveRead();   // started beside the classification (above); asked here when it was not
-        if (parsed?.change === true && parsed?.amount) {
+        const ownAmount = parsed?.change === true ? amountInOwnWords(parsed?.amount, Body) : null;
+        if (ownAmount) {
           const { data: applied } = await admin.rpc('fn_supplier_apply_change', {
-            p_phone: From, p_field: 'quote_price', p_value: String(parsed.amount),
+            p_phone: From, p_field: 'quote_price', p_value: ownAmount,
             p_inbound: Body.slice(0, 1500), p_channel: 'whatsapp',
           });
           if (applied) {
             // The routine decided (re-priced or refused); the model says it to the supplier, in English (1195-1197).
-            const out = await sayFor('supplier')('They asked to change their quotation price to AED ' + String(parsed.amount) + '. The pricing routine result, to report accurately (applied or refused, old and new total, the reason):\n' + JSON.stringify(applied), 'en');
+            const out = await sayFor('supplier')('They asked to change their quotation price to AED ' + ownAmount + '. The pricing routine result, to report accurately (applied or refused, old and new total, the reason):\n' + JSON.stringify(applied), 'en');
             let replyD = out ? toContact(out.slice(0, 1200)) : '';
             const enabledD = (await sec('wa_autoreply_enabled')) === 'true';
             let sentD = false; let sendErrD: string | undefined = replyD ? undefined : 'no_model_reply';

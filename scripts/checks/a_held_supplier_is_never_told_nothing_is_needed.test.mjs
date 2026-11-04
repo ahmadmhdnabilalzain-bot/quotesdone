@@ -16,11 +16,13 @@ test('an unread licence is tested on all three fields', () => {
   for (const f of ['licence_legal_name', 'trade_license_no', 'license_expiry']) assert.ok(src.includes(`!full?.${f} &&`), `the unread test must cover ${f}`);
 });
 
-test('the clearer-licence ask comes straight after approved, before every other message, and keeps what else is missing', () => {
-  const start = src.indexOf("const supplierMail = decision === 'approved'");
+// 3 Nov 2026 (customer_support): supplierMail no longer has an approved branch (an approval is confirmed once, by
+// supplier_approved; supplier_api/one_confirmation_per_activation.test.ts), so it opens with the non-UAE licence branch.
+test('the clearer-licence ask comes first, before every other message, and keeps what else is missing', () => {
+  const start = src.indexOf("const supplierMail = full?.licence_gate_reason === 'licence_authority_not_uae'");
   const ask = src.indexOf('          : licUnreadEn\n', start);
   assert.ok(start > 0 && ask > start, 'the clearer-licence branch is missing from save_profile');
-  assert.ok(!/decision === 'pending'|stillNeeded\.length/.test(src.slice(start, ask)), 'only the approved branch may come before the clearer-licence ask');
+  assert.ok(!/decision === 'pending'|stillNeeded\.length/.test(src.slice(start, ask)), 'only the non-UAE licence branch may come before the clearer-licence ask');
   const branch = src.slice(ask, src.indexOf('\n          : ', ask + 20));
   assert.match(branch, /stillNeeded\.length \? `[^`]*\$\{needEn\}/, 'with other items missing too, the ask must list them (the combined case)');
   assert.ok(src.lastIndexOf('Nothing is needed from you') > ask, '"Nothing is needed" must only be reachable after the ask');
