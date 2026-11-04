@@ -483,9 +483,23 @@ async function handleInbound(req: Request): Promise<Response> {
     // a second wa_messages row. The primary key on wa_inbound_seen IS the guard - the second
     // delivery loses the insert and we return 200 having done nothing. This must stay ABOVE the
     // founder branch below, which deliberately answers after the 15-second wall.
+    // ONLY A UNIQUE VIOLATION IS A REDELIVERY (it_engineer, 3 Nov 2026, failure drill D10). Every error on this insert was
+    // read as "already accepted": a 500, a statement timeout or a connection reset on wa_inbound_seen returned 200 here,
+    // before the arrival row is written, so the message was stored nowhere, answered never, and agent_runs said 'ok'
+    // duplicate. Measured by the drill: 3 of 3 such faults ended with no reply, no row and no finding. Now any other error
+    // falls back to the arrival rows (meta.message_sid, written below for every authenticated message): a row there is a
+    // redelivery; none (or that read failing too) and the turn goes on, answered once, and it_engineer gets a finding.
+    // prevented by: wa_inbound/drill_inbound_faults.test.ts
     if (MessageSid) {
-      const { error: dupErr } = await admin.from('wa_inbound_seen')
+      const { error: seenErr, status: seenStatus } = await admin.from('wa_inbound_seen')
         .insert({ message_sid: MessageSid, wa_from: From });
+      let dupErr = seenErr && (seenStatus === 409 || seenErr.code === '23505') ? seenErr : null;
+      if (seenErr && !dupErr) {
+        const prior = await admin.from('wa_messages').select('id').eq('meta->>message_sid', MessageSid).limit(1);
+        if (!prior.error && (prior.data?.length ?? 0) > 0) dupErr = seenErr;
+        else await itFinding('wa_inbound:seen_insert_failed', 'wa_inbound_seen refused a WhatsApp MessageSid for a reason that is not a duplicate; the message was answered without the redelivery guard',
+          { message_sid: MessageSid, error: seenErr.message, code: seenErr.code ?? null, status: seenStatus ?? null, fallback_read_error: prior.error?.message ?? null });
+      }
       if (dupErr) {
         await logRun('ok', { duplicate: 1, message_sid: MessageSid },
           'Twilio redelivered ' + MessageSid + ' which was already accepted; no second reply was sent.');
@@ -591,10 +605,14 @@ async function handleInbound(req: Request): Promise<Response> {
     // THE OTHER PARTY BEFORE A REVEAL (3 Nov 2026, pre_reveal_identities.ts): read once per turn from the number's confirmed
     // owner (fn_whatsapp_owner); a reply naming a counterpart not yet revealed to them is refused. No owner: [].
     let forbidden: Promise<string[]> | null = null;
+    // A failed history read is the it_engineer's finding (_shared/wa_history.ts, failure drill D10): the reply still goes, thinner.
+    const historyUnavailable = (error: string) => itFinding('wa_inbound:history_unavailable',
+      'the WhatsApp conversation history could not be read, so the model answered this turn without it',
+      { message_sid: MessageSid || null, error });
     // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
     // They are apart so a reply started speculatively (below) that is then discarded can never escalate or flag the turn.
     const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, langGiven?: 'en' | 'ar', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => {
-      history ??= waConversation(admin, From, receivedAt, isDemoPhone(From));
+      history ??= waConversation(admin, From, receivedAt, isDemoPhone(From), historyUnavailable);
       forbidden ??= (async () => {
         const { data } = await admin.rpc('fn_whatsapp_owner', { p_phone: From });
         const o = (Array.isArray(data) ? data[0] : data) as { party_kind?: string; lead_id?: number | null; customer_id?: string | null } | null;
@@ -738,7 +756,7 @@ async function handleInbound(req: Request): Promise<Response> {
       company: soft(admin.rpc('fn_company_context', { p_max_chars: 6000, p_audience: 'public' }), { data: null } as never),
       faq: soft(retrieveFaq(Body), { ctx: '', ids: [] as number[] }),
     };
-    history ??= waConversation(admin, From, receivedAt, isDemoPhone(From));
+    history ??= waConversation(admin, From, receivedAt, isDemoPhone(From), historyUnavailable);
     mark('identified');
 
     // ---- THE WELCOME AND THE MENU (22 Sep 2026, founder_instruction 759) ---------------------------
