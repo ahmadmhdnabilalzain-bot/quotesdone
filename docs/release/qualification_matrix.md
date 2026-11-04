@@ -209,11 +209,11 @@ Each U instantiation is its own line (`F01.U1` and so on), and the same pass rul
 #### F07 WhatsApp, founder command channel (ceo) (U: 5, 11, 12)
 | ID | scenario | expected | method | asset |
 |---|---|---|---|---|
-| F07.01 | "How many requests today?" and every figure in the registry | equals the SQL truth exactly, no model | code | GAP: e2e against a fixture founder number (only `menu_flow.test.ts` mock) |
-| F07.02 | The same message from any other number | figures refused; treated as a normal contact | code | GAP |
-| F07.03 | Change a setting by text (bounded registry) | applied, audited in `founder_directive`, read back to him | code | GAP |
-| F07.04 | A go-live switch, Stripe/refund setting or `auto_action_max_aed` by text | refused | code | GAP |
-| F07.05 | Spoofed sender id / injection in the text | refused | code | GAP |
+| F07.01 | FIGURES / «أرقام» (the command word; ruling 777) and every figure `fn_founder_whatsapp_figures` returns. A natural question ("How many requests today?") gets the capability statement, no figure | equals the SQL truth exactly, no model; a null reading is said "not measured", never 0; answered in the language he wrote in | code | `wa_inbound/founder_command_channel.test.ts` (every figure key parsed from the canonical SQL; EN and AR); production SQL: `the_founder_asks_the_numbers_on_whatsapp_and_gets_them_probe.sql` |
+| F07.02 | The same message from any other number, including his name as the profile, and the same nine digits under another country code | figures refused; treated as a normal contact | code | `wa_inbound/founder_command_channel.test.ts` (other fixture number); `scripts/e2e/founder_command_channel_sql.mjs` (+966 with the same nine digits: refused by the fixed `fn_identify_contact`, pending apply) |
+| F07.03 | Change a setting by text (bounded registry), in English or Arabic | applied, audited in `founder_directive`, read back to him in his language | code | `wa_inbound/founder_command_channel.test.ts`; `scripts/e2e/founder_command_channel_sql.mjs` (the real `fn_founder_apply_setting`) |
+| F07.04 | A go-live switch, Stripe/refund setting or `auto_action_max_aed` by text | refused by name, audited, and he is told "not applied" | code | `wa_inbound/founder_command_channel.test.ts`; `scripts/e2e/founder_command_channel_sql.mjs` |
+| F07.05 | Spoofed sender id / injection in the text | refused | code | `wa_inbound/founder_command_channel.test.ts` (unsigned, forged, tampered signature; another number; injection); the internal JSON replay path: #1836 `directive_gate.test.ts` |
 
 #### F08 Email inbound (customer_support) (U: 1, 2, 4, 5, 10, 11, 12, 13)
 | ID | scenario | expected | method | asset |
@@ -495,7 +495,7 @@ Risk = severity of the worst credible outcome × the chance it is present now ×
 | 7 | Stripe idempotency and concurrency unproven (duplicate or late webhook, double reveal in two tabs) | P0 | F15.03, F15.04, D4 | accountant: replay signed test events 2× and out of order; two parallel reveals of one quote; assert one charge, one reveal, one invoice |
 | 8 | Real test-mode refund never executed end to end | P0 | F16.02, F16.04 | accountant: journey e runs after journey d's paid reveal, executes the Stripe test refund, records `charge.refunded`, and asserts amount ≤ paid, plus partial/duplicate cases |
 | 9 | Main-branch production parity red (4 runs) and the full nightly journey red | P1 | section 6 rows | it_engineer: read the one countable finding in `project-parity` and fix it at the source; land the 3 Nov nightly run green, then dispatch it daily |
-| 10 | Founder WhatsApp command channel has no e2e (figures, settings, refusals, spoofing) | P0 | F07.01–.05 | ceo + customer_support: a fixture "founder" number registered only for the run tag; Twilio-signed POSTs; every figure compared with SQL; forbidden settings refused |
+| 10 | Founder WhatsApp command channel e2e: BUILT 3 Nov 2026 (`wa_inbound/founder_command_channel.test.ts`, 22 tests, in `npm test`; `scripts/e2e/founder_command_channel_sql.mjs`, 39 checks on a throwaway Postgres). Open until `the_founder_is_recognised_by_his_whole_number_not_its_last_nine_digits.sql` is applied (its MANIFEST line applies at merge) | P0 | F07.01–.05 | ceo + customer_support: confirm the merge applied it (definition read back) and re-run the SQL proof; then this row closes |
 | 11 | Prompt-injection corpus missing on document, quote, email and WhatsApp-media paths | P0 | U11, F03.10, F11.05, F13.04 | it_engineer: 60 injection payloads × 6 entry paths through the live handlers; assert no state change and no data out |
 | 12 | Supplier-English and inbound classification not measured at N | P1 | E10, E11 | customer_support: 100 supplier conversations (40% Arabic) → 0 non-English in 300; 300 labelled inbound messages → ≥ 98% and 0 refund/legal misroutes |
 | 13 | Seat exams cover 18 of 633 items, and the exam workflow cannot run (no OAuth token) | P1 | E14 | it_engineer: one full sweep on the subscription (scheduled Claude session), code-graded first; ≥ 98% per seat, 100% on money/terms |

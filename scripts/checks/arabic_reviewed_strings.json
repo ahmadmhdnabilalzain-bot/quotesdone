@@ -7311,8 +7311,10 @@
  ],
  "supabase/functions/wa_inbound/founder_queries.ts": [
   "10cff14a7bd4",
+  "50c474b33f0e",
   "5869f3f18dd2",
   "5b655ee62f9f",
+  "5d85ab97852e",
   "6285916c4a68",
   "64bdc8dd860b",
   "690e31308a62",
@@ -7336,6 +7338,11 @@
   "f00b7f659d1a"
  ],
  "supabase/functions/wa_inbound/menu_flow.ts": [
+  "386dbf2e64e2",
+  "489ec0996c40",
+  "8355f2db4e26",
+  "b97e70303a1e",
+  "bf7fb4e77ce8",
   "dd8eecf60984"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
