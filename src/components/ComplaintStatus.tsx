@@ -86,7 +86,7 @@ export function ComplaintStatus() {
   }
 
   const timer = (label: string, days: string, due: string, doneAt: string | null, left: number) => (
-    <li className="qd-row !gap-x-4 !px-5 !py-4 sm:!grid-cols-[1fr_auto]">
+    <li className="qd-row gap-x-4! px-5! py-4! sm:grid-cols-[1fr_auto]!">
       <span className="text-body text-paper">{label} <strong className="text-white">{fmt(due)}</strong> <span className="text-faint">{days}</span></span>
       <span className={'font-mono text-label ' + (doneAt ? 'text-teal-light' : left > 0 ? 'text-muted' : 'text-warn-fg')}>
         {doneAt ? `${t.met} (${fmt(doneAt)})` : left > 0 ? t.left(left) : t.dueToday}
@@ -95,7 +95,7 @@ export function ComplaintStatus() {
   );
 
   const cur = res ? ORDER.indexOf(res.status) : -1;
-  const inputCls = 'mt-2 h-12 w-full rounded-btn border border-line2 bg-navy-deep/60 px-4 font-mono text-copy text-paper shadow-key outline-none transition-[border-color,box-shadow] duration-base placeholder:text-faint focus:border-teal focus:shadow-ring';
+  const inputCls = 'mt-2 h-12 w-full rounded-btn border border-line2 bg-navy-deep/60 px-4 font-mono text-copy text-paper shadow-key outline-hidden transition-[border-color,box-shadow] duration-base placeholder:text-faint focus:border-teal focus:shadow-ring';
 
   return (
     <main id="main" dir={ar ? 'rtl' : 'ltr'}>

@@ -58,11 +58,11 @@ export async function SupplierNeeds({ service, locale }: { service: string; loca
       <div className="qd-frame-bar"><i /><i /><i />
         <h2 id="supplier-needs" className="ms-2 truncate font-mono text-label text-muted">{t('serviceTitle')}</h2>
       </div>
-      <div className="grid md:grid-cols-2 md:divide-x md:divide-[var(--line)] rtl:md:divide-x-reverse">
+      <div className="grid md:grid-cols-2 md:divide-x md:divide-(--line)">
         {questions.length > 0 && (
           <div className="p-6 md:p-7">
             <h3 className="font-mono text-label uppercase tracking-caps text-teal-light">{t('questions')}</h3>
-            <ol className="mt-4 flex flex-col divide-y divide-[var(--line)]">
+            <ol className="mt-4 flex flex-col divide-y divide-(--line)">
               {questions.map((q, i) => (
                 <li key={q.key} className="flex gap-3 py-3 first:pt-0">
                   <span className="tabular shrink-0 font-mono text-label text-faint">{String(i + 1).padStart(2, '0')}</span>
@@ -75,7 +75,7 @@ export async function SupplierNeeds({ service, locale }: { service: string; loca
         {documents.length > 0 && (
           <div className="border-t border-line p-6 md:border-t-0 md:p-7">
             <h3 className="font-mono text-label uppercase tracking-caps text-teal-light">{t('docs')}</h3>
-            <ul className="mt-4 flex flex-col divide-y divide-[var(--line)]">
+            <ul className="mt-4 flex flex-col divide-y divide-(--line)">
               {documents.map((d) => (
                 <li key={d.item} className="flex flex-col gap-1 py-3 first:pt-0">
                   <span dir="auto" className="text-body text-paper/90">{d.item}</span>

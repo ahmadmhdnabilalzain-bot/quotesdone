@@ -4,22 +4,33 @@
 // with its probe if it has one, through safe_replay, which refuses transaction control and proves production unchanged.
 //   node scripts/ci/rehearse_sql.mjs scripts/sql/x.sql [scripts/sql/x_probe.sql]
 // Exit 0: the file ran, and the probe (if any) answered PROBE OK. Anything else exits 1.
+// rehearse() is the same rule for a caller that rehearses text it assembled (rehearse_this_prs_manifest_lines.mjs).
 import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
 
-const [file, probe] = process.argv.slice(2);
-if (!file) { console.error('usage: rehearse_sql.mjs <file.sql> [probe.sql]'); process.exit(2); }
-const text = readFileSync(file, 'utf8') + '\n' + (probe ? readFileSync(probe, 'utf8') : 'select 1 as rehearsed;');
-try {
-  await replaySql(text, { label: file, rows: !probe });
-  if (probe) throw new Error('the probe returned without its verdict');
-  console.log('REHEARSED, rolled back: ' + file);
-} catch (e) {
-  const message = String(e?.body ?? e?.message ?? e);
-  if (probe && message.includes('PROBE OK') && !message.includes('PROBE FAILED')) {
-    console.log('PROBE OK, rolled back: ' + file);
-    process.exit(0);
+/** 'PROBE OK' or 'REHEARSED' when the text ran and its probe (if any) passed; throws with the reason otherwise. */
+export async function rehearse(sqlText, probeText, label) {
+  const text = sqlText + '\n' + (probeText ?? 'select 1 as rehearsed;');
+  try {
+    await replaySql(text, { label, rows: probeText == null });
+    if (probeText != null) throw new Error('the probe returned without its verdict');
+    return 'REHEARSED';
+  } catch (e) {
+    const message = String(e?.body ?? e?.message ?? e);
+    if (probeText != null && message.includes('PROBE OK') && !message.includes('PROBE FAILED')) return 'PROBE OK';
+    throw new Error(message.slice(0, 4000));
   }
-  console.error(message.slice(0, 4000));
-  process.exit(1);
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const [file, probe] = process.argv.slice(2);
+  if (!file) { console.error('usage: rehearse_sql.mjs <file.sql> [probe.sql]'); process.exit(2); }
+  try {
+    const verdict = await rehearse(readFileSync(file, 'utf8'), probe ? readFileSync(probe, 'utf8') : null, file);
+    console.log(`${verdict}, rolled back: ${file}`);
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
+  }
 }

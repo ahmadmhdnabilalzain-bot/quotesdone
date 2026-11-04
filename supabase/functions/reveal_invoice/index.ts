@@ -6,6 +6,8 @@ import { resolveSale } from './resolve.ts';
 import { jobNoOf } from '../_shared/quote_documents.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
+import { requireInternal } from '../_shared/internal_auth.ts';
+import { attachInvoice, type Rendered } from './attach.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
@@ -48,14 +50,102 @@ function mkLog(t0: number) {
   };
 }
 
+const TX_COLS = 'id,customer_id,inquiry_id,reveal_fee,processing_fee,total_charged,quote_amount,payment_ref,revealed_at,stripe_invoice_number,fee_status,refund_status,refund_amount_aed,refund_confirmed_at,refund_resolved_at';
+type Tx = Record<string, any>;
+type Log = ReturnType<typeof mkLog>;
+
+// The sale as the documents print it, for a transaction that settled. One reader for both doors (the customer's
+// button and the receipt's attachment), so the attached invoice is the one the portal serves.
+async function saleOf(tx: Tx): Promise<{ sale: RevealSale } | { notPaid: true } | { error: string }> {
+  // A PAID document only for a payment that settled; a refund is printed from the refund record.
+  const { data: refundRows, error: refundErr } = await admin.from('refunds').select('status,amount_fils,settled_at,updated_at').eq('transaction_id', tx.id);
+  if (refundErr) return { error: 'refunds unreadable: ' + refundErr.message };
+  const pay = paymentState(tx as any, refundRows || []);
+  if (pay.state !== 'paid') return { notPaid: true };
+  const { data: cust } = await admin.from('customers').select('email,full_name,phone').eq('id', tx.customer_id).maybeSingle();
+  if (!cust?.email) return { error: 'the sale names no customer with an email' };
+  const { data: inq } = await admin.from('inquiries').select('summary,category,rfq_no').eq('id', tx.inquiry_id).maybeSingle();
+  const fee = Number(tx.reveal_fee || 0), processing = Number(tx.processing_fee || 0);
+  return { sale: {
+    tx_id: String(tx.id), invoice_no: String(tx.stripe_invoice_number || '').trim() || null,
+    paid_at: String(tx.revealed_at || new Date().toISOString()),
+    reveal_fee: fee, processing_fee: processing, total_charged: tx.total_charged != null ? Number(tx.total_charged) : fee + processing,
+    quote_amount: tx.quote_amount != null ? Number(tx.quote_amount) : null, payment_ref: String(tx.payment_ref || ''),
+    customer: { name: cust.full_name || null, email: cust.email, phone: cust.phone || null },
+    request: { summary: inq?.summary || null, category: inq?.category || null, ref: 'QD-' + jobNoOf({ id: String(tx.inquiry_id || ''), rfq_no: inq?.rfq_no }) },
+    card: null, refund: pay.refund,
+  } };
+}
+
+// A document already rendered for this sale, kind and language is served again. reveal_invoices keeps one row per
+// sale (the last document made); its file name carries kind, language and version.
+async function documentFor(tx: Tx, sale: RevealSale, kind: 'invoice' | 'receipt', docLang: 'en' | 'ar', logRun: Log):
+    Promise<{ bucket: string; path: string; url: string | null; cached: boolean } | { error: string }> {
+  const probe = (kind === 'invoice' ? revealInvoiceDocument : revealReceiptDocument)(sale, docLang).name;
+  const { data: cached } = await admin.from('reveal_invoices').select('bucket,path').eq('transaction_id', tx.id).maybeSingle();
+  if (cached?.path && String(cached.path).includes(probe)) {
+    const url = await signedDoc(cached.bucket, cached.path);
+    if (url) return { bucket: cached.bucket || 'agent-docs', path: cached.path, url, cached: true };
+  }
+  sale.card = await cardOf(sale.payment_ref);
+  const doc = (kind === 'invoice' ? revealInvoiceDocument : revealReceiptDocument)(sale, docLang);
+  const inbound = await secret('cred_fn_reveal_invoice');
+  const pr = await timedFetch(URL_ + '/functions/v1/pdf_native', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ __secret: inbound, ...doc, folder: 'reveal_invoice/' + String(tx.id).slice(0, 8) }) }, 45_000);
+  const pj = await pr.json().catch(() => null);
+  if (!pj?.ok || !pj.path) { await logRun('error', { tx: String(tx.id).slice(0, 8), doc: kind, lang: docLang }, 'pdf_native failed: ' + String(pj?.error || pj?.detail || pr.status).slice(0, 200)); return { error: 'pdf_failed' }; }
+  const bucket = pj.bucket || 'agent-docs';
+  try { await admin.from('reveal_invoices').upsert({ transaction_id: tx.id, invoice_no: sale.invoice_no, bucket, path: pj.path, created_at: new Date().toISOString() }, { onConflict: 'transaction_id' }); } catch (_e) { /* the document is served either way */ }
+  return { bucket, path: pj.path, url: pj.url || await signedDoc(bucket, pj.path), cached: false };
+}
+
+// THE INVOICE ATTACHED TO "YOUR INVOICE IS READY" (3 Nov 2026, customer_support; attach.ts says why). Called only by
+// z30_invoice_ready_asks_for_its_invoice through pg_net, with the database's internal credential; never by a browser.
+// A refused caller is not logged here: fn_internal_auth already records every refusal, and this door is public
+// (verify_jwt = false), so a log line per refusal would let anyone fill agent_runs.
+const WAITING = ['queued', 'pending'];
+async function attachToNotice(body: Record<string, unknown>, logRun: Log): Promise<Response> {
+  const auth = await requireInternal(admin, body.__secret, 'reveal_invoice');
+  if (!auth.ok) return J({ error: 'forbidden' }, 403);
+  const qid = String(body.quote_id || '');
+  const out = await attachInvoice({
+    notices: async (q) => {
+      const { data, error } = await admin.from('notifications').select('id,channel,lang,body,attachments')
+        .eq('quote_id', q).eq('type', 'invoice_ready').eq('to_role', 'customer').in('status', WAITING).order('id');
+      return error ? { error: error.message } : (data || []);
+    },
+    render: async (lang): Promise<Rendered | { error: string }> => {
+      const { data: tx, error } = await admin.from('transactions').select(TX_COLS).eq('quote_id', qid).maybeSingle();
+      if (error || !tx) return { error: error?.message || 'no transaction for this quote' };
+      const s = await saleOf(tx);
+      if ('notPaid' in s) return { error: NOT_PAID.code };
+      if ('error' in s) return { error: s.error };
+      const d = await documentFor(tx, s.sale, 'invoice', lang, logRun);
+      if ('error' in d) return d;
+      return { bucket: d.bucket, path: d.path, invoice_no: s.sale.invoice_no, ref: s.sale.invoice_no || s.sale.payment_ref };
+    },
+    // A row that left the queue between the read and this write matches nothing and returns no error, so the update must
+    // return exactly that row (review of this PR: an empty match was reported as "attached").
+    update: async (id, patch) => {
+      const { data, error } = await admin.from('notifications').update(patch).eq('id', id).in('status', WAITING).select('id');
+      return error ? error.message : (data?.length === 1 ? null : 'row_no_longer_waiting');
+    },
+  }, qid);
+  // A failure is never quiet: the rows go at the end of their hold as the plain notice, and this line says why.
+  await logRun(out.ok ? 'ok' : 'error', { action: 'attach', quote_id: qid, outcome: out.outcome.slice(0, 60), email_id: out.email_id ?? null, whatsapp: out.whatsapp_ids?.length ?? 0 },
+    out.ok ? '' : '"Your invoice is ready" goes without its invoice: ' + out.outcome.slice(0, 300));
+  return J(out, out.ok ? 200 : (out.outcome === 'bad_quote_id' ? 400 : 200));
+}
+
 Deno.serve(siteCors(observe('reveal_invoice', async (req) => {
   const logRun = mkLog(Date.now());
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
+    const body = await req.json().catch(() => ({}));
+    if (body?.action === 'attach') return await attachToNotice(body, logRun);
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
-    const body = await req.json().catch(() => ({}));
     const qid = String(body.quote_id || '');
     const kind: 'invoice' | 'receipt' = body.doc === 'receipt' ? 'receipt' : 'invoice';
     // The customer's registered language decides the document (founder, 14 Sep 2026); the portal's
@@ -68,48 +158,17 @@ Deno.serve(siteCors(observe('reveal_invoice', async (req) => {
     }, user.email, qid);
     if (!('sale' in res)) { await logRun('error', { quote_id: qid, status: res.status }, 'invoice refused: ' + res.body.error); return J(res.body, res.status); }
 
-    const { data: tx } = await admin.from('transactions').select('id,inquiry_id,reveal_fee,processing_fee,total_charged,quote_amount,payment_ref,revealed_at,stripe_invoice_number,fee_status,refund_status,refund_amount_aed,refund_confirmed_at,refund_resolved_at').eq('id', res.sale.id).maybeSingle();
+    const { data: tx } = await admin.from('transactions').select(TX_COLS).eq('id', res.sale.id).maybeSingle();
     if (!tx) return J({ error: 'No paid reveal found for this quote' }, 404);
-    // A PAID document only for a payment that settled; a refund is printed from the refund record.
-    const { data: refundRows, error: refundErr } = await admin.from('refunds').select('status,amount_fils,settled_at,updated_at').eq('transaction_id', tx.id);
-    if (refundErr) { await logRun('error', { quote_id: qid }, 'refunds unreadable: ' + refundErr.message); return J({ error: 'temporarily_unavailable', code: 'temporarily_unavailable' }, 503); }
-    const pay = paymentState(tx, refundRows || []);
-    if (pay.state !== 'paid') {
+    const s = await saleOf(tx);
+    if ('error' in s) { await logRun('error', { quote_id: qid }, s.error); return J({ error: 'temporarily_unavailable', code: 'temporarily_unavailable' }, 503); }
+    if ('notPaid' in s) {
       await logRun('ok', { quote_id: qid, doc: kind, refused: NOT_PAID.code, fee_status: tx.fee_status }, '');
       return J({ error: NOT_PAID.code, code: NOT_PAID.code, message_en: NOT_PAID.en, message_ar: NOT_PAID.ar }, 409);
     }
-    const { data: cust } = await admin.from('customers').select('email,full_name,phone').eq('email', user.email.toLowerCase()).maybeSingle();
-    const { data: inq } = await admin.from('inquiries').select('summary,category,rfq_no').eq('id', tx.inquiry_id).maybeSingle();
-    const fee = Number(tx.reveal_fee || 0), processing = Number(tx.processing_fee || 0);
-    const sale: RevealSale = {
-      tx_id: String(tx.id), invoice_no: String(tx.stripe_invoice_number || '').trim() || null,
-      paid_at: String(tx.revealed_at || new Date().toISOString()),
-      reveal_fee: fee, processing_fee: processing, total_charged: tx.total_charged != null ? Number(tx.total_charged) : fee + processing,
-      quote_amount: tx.quote_amount != null ? Number(tx.quote_amount) : null, payment_ref: String(tx.payment_ref || ''),
-      customer: { name: cust?.full_name || null, email: cust?.email || user.email, phone: cust?.phone || null },
-      request: { summary: inq?.summary || null, category: inq?.category || null, ref: 'QD-' + jobNoOf({ id: String(tx.inquiry_id || ''), rfq_no: inq?.rfq_no }) },
-      card: null, refund: pay.refund,
-    };
-
-    // A document already rendered for this sale, kind and language is served again. reveal_invoices
-    // keeps one row per sale (the last document made); its file name carries kind, language and version.
-    const probe = (kind === 'invoice' ? revealInvoiceDocument : revealReceiptDocument)(sale, docLang).name;
-    const { data: cached } = await admin.from('reveal_invoices').select('bucket,path').eq('transaction_id', tx.id).maybeSingle();
-    if (cached?.path && String(cached.path).includes(probe)) {
-      const url = await signedDoc(cached.bucket, cached.path);
-      if (url) { await logRun('ok', { quote_id: qid, doc: kind, lang: docLang, cached: true }, ''); return J({ ok: true, url, invoice_no: sale.invoice_no, doc: kind, lang: docLang, cached: true }); }
-    }
-    sale.card = await cardOf(sale.payment_ref);
-    const doc = (kind === 'invoice' ? revealInvoiceDocument : revealReceiptDocument)(sale, docLang);
-    const inbound = await secret('cred_fn_reveal_invoice');
-    const pr = await timedFetch(URL_ + '/functions/v1/pdf_native', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: inbound, ...doc, folder: 'reveal_invoice/' + String(tx.id).slice(0, 8) }) }, 45_000);
-    const pj = await pr.json().catch(() => null);
-    if (!pj?.ok || !pj.path) { await logRun('error', { quote_id: qid, doc: kind, lang: docLang }, 'pdf_native failed: ' + String(pj?.error || pj?.detail || pr.status).slice(0, 200)); return J({ error: 'pdf_failed' }, 502); }
-    const bucket = pj.bucket || 'agent-docs';
-    try { await admin.from('reveal_invoices').upsert({ transaction_id: tx.id, invoice_no: sale.invoice_no, bucket, path: pj.path, created_at: new Date().toISOString() }, { onConflict: 'transaction_id' }); } catch (_e) { /* the document is served either way */ }
-    const url = pj.url || await signedDoc(bucket, pj.path);
-    await logRun('ok', { quote_id: qid, doc: kind, lang: docLang, cached: false }, '');
-    return J({ ok: true, url, invoice_no: sale.invoice_no, doc: kind, lang: docLang });
+    const d = await documentFor(tx, s.sale, kind, docLang, logRun);
+    if ('error' in d) return J({ error: d.error }, 502);
+    await logRun('ok', { quote_id: qid, doc: kind, lang: docLang, cached: d.cached }, '');
+    return J({ ok: true, url: d.url, invoice_no: s.sale.invoice_no, doc: kind, lang: docLang, ...(d.cached ? { cached: true } : {}) });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: 'invoice_failed' }, 500); }
 })));

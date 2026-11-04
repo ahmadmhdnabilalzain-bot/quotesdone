@@ -15,7 +15,7 @@ is applied, right after #1696's `no_test_mail_goes_to_the_founders_own_inboxes.s
   scratchpad, then `node scripts/record_inbox_placement_verdict.mjs --file <answer.json>` (`--dry-run` first). It stores
   counts (`public.deliverability_test`, `deliverability_test_provider`); every rate is computed from them.
 - **The bar is data**, one row in `public.invite_placement_bar`: Microsoft inbox ≥ 80% (1312); Google spam ≤ 20% and
-  inbox + Promotions ≥ 80%; Yahoo/AOL inbox ≥ 80% (no bar of his, so the Microsoft one); 7 days; sender supplier@.
+  inbox + Promotions ≥ 80%; Yahoo/AOL inbox ≥ 80% (no bar of his, so the Microsoft one); a verdict is good for 30 days (was 7, an it_engineer choice, not a founder ruling; 2 Nov 2026, an_inbox_placement_verdict_is_good_for_30_days.sql); sender supplier@.
 - **Per mailbox provider** (ledger 1377, "Outlook inbox bar is the session's job; resume is delegated once the bar is met",
   relayed by the coordinator with this scope; the relay said 1376, which does not exist). A recipient's class comes from its first cached MX host in
   `email_domain_mx`. A class that passes is invited, a failing one is skipped, and `other` follows Microsoft.

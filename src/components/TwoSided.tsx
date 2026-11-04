@@ -18,7 +18,7 @@ function Block({ s: side, href, primary }: { s: Side; href: string; primary: boo
         <h3 className="mt-5 text-balance font-head text-[clamp(24px,2.6vw,34px)] font-semibold leading-[1.08] tracking-[-0.035em] text-white rtl:leading-[1.35] rtl:tracking-normal">
           {side.title}
         </h3>
-        <ol className="mt-8 flex-1 divide-y divide-[var(--line)] border-y border-[var(--line)]">
+        <ol className="mt-8 flex-1 divide-y divide-(--line) border-y border-(--line)">
           {side.bullets.map((b, i) => (
             <li key={b} className="flex gap-4 py-3.5 text-[14.5px] leading-relaxed text-paper/90">
               <span className="mt-[3px] w-5 shrink-0 font-mono text-[12px] tabular text-faint">{String(i + 1).padStart(2, '0')}</span>
@@ -39,7 +39,7 @@ function Block({ s: side, href, primary }: { s: Side; href: string; primary: boo
   );
   return primary
     ? <SealedCard size="lg" className="reveal flex h-full flex-col p-7 pt-12 md:p-10 md:pt-14">{body}</SealedCard>
-    : <div className="reveal flex h-full flex-col border-t border-[var(--line2)] pt-8 md:mt-20 md:pt-10">{body}</div>;
+    : <div className="reveal flex h-full flex-col border-t border-(--line2) pt-8 md:mt-20 md:pt-10">{body}</div>;
 }
 
 export function TwoSided() {

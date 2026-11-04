@@ -23,6 +23,12 @@
 // Prevented by: customer_api/compare_arabic.test.ts.
 
 export const MAX_ATTEMPTS = 5;
+// THE CLOCK (sales_engineer, 2 Nov 2026). A waiter whose lines never all got Arabic was never offered again, so the
+// customer waited forever (3 waiters open, the oldest 16 h, 0 reports sent in 14 days). The replay now offers a
+// waiter at least hourly from its first hour (fn_arabic_compare_waiters_ready): each render re-files what is still
+// missing (deduplicated) for the sales engineer's reasoning queue, and a report still waiting at OVERDUE_HOURS is put in
+// the sales engineer's queue ONCE with its hours. It is never sent half-translated (founder, 14 Sep: Arabic throughout).
+export const OVERDUE_HOURS = 6;
 
 export type Waiter = { inquiry_id: string; created_at: string; attempts: number };
 export type CompareInquiry = { id: string; rfq_no?: string | null; customer_id: string };
@@ -39,6 +45,8 @@ export interface CompareFinishIO {
   done(inquiryId: string): Promise<void>;
   tried(inquiryId: string, attempts: number): Promise<void>;
   tellSalesEngineer(inquiryId: string, last: unknown): Promise<void>;
+  /** The report has waited OVERDUE_HOURS or more: one item in the sales engineer's queue (idempotent per inquiry). */
+  overdue(inquiryId: string, hours: number): Promise<void>;
 }
 
 export type FinishResult =
@@ -63,7 +71,7 @@ export function compareReadyNotice(ref: string, url: string): { subject: string;
   };
 }
 
-export async function finishCompareArabic(io: CompareFinishIO, inquiryId: string): Promise<FinishResult> {
+export async function finishCompareArabic(io: CompareFinishIO, inquiryId: string, now: number = Date.now()): Promise<FinishResult> {
   const w = await io.waiter(inquiryId);
   if (!w) return { ok: false, code: 'no_waiter' };          // already delivered, or already in the customer's hands
   const inq = await io.inquiry(inquiryId);
@@ -73,7 +81,11 @@ export async function finishCompareArabic(io: CompareFinishIO, inquiryId: string
 
   let out: Rendered;
   try { out = await io.render(inq); } catch (e) { out = { error: String((e as Error)?.message || e).slice(0, 200) }; }
-  if ('held' in out) return { ok: false, code: 'still_pending' };   // a line is still missing: it was filed; wait
+  if ('held' in out) {   // a line is still missing: it was filed again; wait, and past the clock the sales engineer owns it
+    const hours = (now - Date.parse(w.created_at)) / 36e5;
+    if (hours >= OVERDUE_HOURS) await io.overdue(inquiryId, Math.floor(hours));
+    return { ok: false, code: 'still_pending' };
+  }
   if ('error' in out) {
     const attempts = w.attempts + 1;
     await io.tried(inquiryId, attempts);

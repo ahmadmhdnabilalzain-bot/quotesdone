@@ -99,6 +99,17 @@ test('fn_suppression_stops answers what suppressionStops answers, on every reaso
   }
 });
 
+// The probe's "nothing to a real address" count must be of ITS OWN writes. Counting every notification with id > the start
+// id also counts another session's rows (2 Nov 2026: a live WhatsApp walk's skipped support_reply, to_email null, failed
+// PR #1650). This fails on the old probe, whose count had no created_at = now() scope.
+test('the real-address count in the probe is scoped to its own transaction, not other sessions rows', () => {
+  const at = PROBE.indexOf('went to a real address or to the founder');
+  assert.ok(at > 0, 'the real-address assertion is gone');
+  const stmt = PROBE.slice(PROBE.lastIndexOf('select count(*) into v_n from public.notifications', at), at);
+  assert.match(stmt, /created_at\s*=\s*now\(\)/, 'the real-address count reads other sessions rows too');
+  assert.match(stmt, /not public\.fn_is_demo_email\(to_email\)[\s\S]*'founder', 'admin'[\s\S]*founder_alert/, 'the assertion was weakened');
+});
+
 test('the rolled-back rehearsal on production answers PROBE OK', { skip: SKIP }, async () => {
   // A deadlock with the live resilience_ping tick is contention, not a finding (12 Oct 2026: 3 of ~10 CI runs). The
   // probe rolls back everything it writes, so it is re-run, at most three times, on that one error and no other.

@@ -116,6 +116,9 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   // opt-in, and the IT incident record and the conversation archive never opted in, so they went out
   // with no issuer and no licence line. Every document now wears it; only an explicit false removes it.
   const letterhead = opt.letterhead !== false, doSign = !!opt.sign, doStamp = !!opt.stamp;
+  // contact:false — a document a SUPPLIER receives before the reveal prints no contact detail of any shape, ours
+  // included (3 Nov 2026; see quote_documents.inquiryDocument). The legal line (issuer, licence, permit) stays.
+  const noContact = opt.contact === false;
   const needAr = lang !== 'en' || hasAr(JSON.stringify(body));
   let arReg = font, arBold = bold;
   if (needAr) { const rb = await fetchBytes('qd_ar_regular.ttf'); const bb = await fetchBytes('qd_ar_bold.ttf'); if (rb) { arReg = await pdf.embedFont(rb, { subset: AR_SUBSET }); arFull = true; } if (bb) arBold = await pdf.embedFont(bb, { subset: AR_SUBSET }); if (arFull) { plainLayout(arReg); plainLayout(arBold); } }
@@ -318,7 +321,7 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   function newPage() { page = armPage(pdf.addPage([PW, PH])); pages.push(page); slimHeader(); }
   function ensure(h: number) { if (y - h < BOTTOM) newPage(); }
   function footers() {
-    const [fl1, fl2] = (RTL ? footerLinesAr(CO) : footerLines(CO)).map((s) => safeText(s));
+    const [fl1, fl2] = (RTL ? footerLinesAr(CO, noContact) : footerLines(CO, noContact)).map((s) => safeText(s));
     const ctl = safeText(control);
     pages.forEach((p, i) => {
       page = p;
@@ -379,7 +382,7 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
     // The licence line in the document's language (22 Sep 2026, audit finding 4: every Arabic page
     // without a cover printed the English "DET Trader License No. 1633275 · TDRA…"). Drawn at the right
     // edge in both languages, away from the lockup on the left: 'e' is the right edge in English, 's' in Arabic.
-    if (letterhead) { const ls = [CO.name, licenceLine(CO, L), CO.email + ' · ' + CO.phone]; let ly = PH - 26; ls.forEach((ln, i) => { const s = i === 0 ? 11 : 8; txt(safeText(ln), M, CW, ly - s, s, { bold: i === 0, color: i === 0 ? WHITE : BANDTXT, align: RTL ? 's' : 'e' }); ly -= (i === 0 ? 15 : 11); }); }
+    if (letterhead) { const ls = [CO.name, licenceLine(CO, L), ...(noContact ? [] : [CO.email + ' · ' + CO.phone])]; let ly = PH - 26; ls.forEach((ln, i) => { const s = i === 0 ? 11 : 8; txt(safeText(ln), M, CW, ly - s, s, { bold: i === 0, color: i === 0 ? WHITE : BANDTXT, align: RTL ? 's' : 'e' }); ly -= (i === 0 ? 15 : 11); }); }
     y = PH - h - 24;
     txt(title, M, CW, y - 18, 20, { bold: true, color: NAVY }); y -= 24;
     const meta = (refText ? (RTL ? 'الرقم المرجعي: ' + refText : 'Ref: ' + refText) + ' · ' : '') + (RTL ? CO_AR.city : CO.city) + ' · ' + dateFor();

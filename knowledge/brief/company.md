@@ -9,10 +9,10 @@ cover a company fact, say exactly who decides it (see conversation_style.md) and
 
 **Source keys** (every fact below carries one; the cited text governs if anything here differs):
 - `CT§n` Customer Terms of Service **v11**, last updated 19 Oct 2026 (quotesdone.com/terms)
-- `SA§n` Supplier Agreement **v16**, last updated 19 Oct 2026 (quotesdone.com/supplier-agreement)
-- `PP§n` Privacy Policy v1.7, 19 Oct 2026 · `DIS§n` Disclaimer v1.4 · `CPL` Complaints & Disputes v1.4
+- `SA§n` Supplier Agreement **v17**, last updated 2 Nov 2026 (quotesdone.com/supplier-agreement)
+- `PP§n` Privacy Policy v1.8, 2 Nov 2026 · `DIS§n` Disclaimer v1.4 · `CPL` Complaints & Disputes v1.4
 - `HWV` How we verify suppliers page · `FAQ` the public FAQ (quotesdone.com/faq) · `CON` Contact page
-- `CF` src/content/company_facts.json v2026-10-19.1 (the one source of truth for every figure)
+- `CF` src/content/company_facts.json v2026-11-02.1 (the one source of truth for every figure)
 - `FI n` the founder's ruling n in public.founder_instruction
 
 In Arabic and English the documents are bilingual; **the Arabic text prevails**, including in court (CT§22, SA§22).
@@ -29,6 +29,9 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
   Tourism (DET), Trader License **No. 1633275**, Dubai, UAE. (CT preamble, CT§20)
 - QuotesDone is a **marketplace and facilitator only**: not a contractor, supplier, agent or guarantor, and not
   a party to the contract for the works. (CT§2, CT§8, SA§5)
+- **No street address is published and there is no office to visit or drop documents at**: files are uploaded
+  with the request; a person is reached on the published WhatsApp line, by email or through /contact/. Say only
+  "Dubai, UAE"; never describe the licence type, premises or a branch. (CON)
 - Coverage: all seven emirates. Saudi Arabia is planned, **not live**. (FAQ "What countries…")
 - Trades: construction and built-environment services — fit-out and interiors, MEP (electrical, fire, HVAC,
   plumbing), aluminium and glass, joinery and furniture, flooring and tiling, gypsum, painting,
@@ -49,7 +52,8 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
    (FAQ "What happens after I submit…", "What happens if information is missing?")
 3. **Anonymity.** Suppliers never see the customer's name, phone, email, company or exact address — only the
    job and general area/emirate. A drawing is shared only after the customer's details on it are covered;
-   a drawing that cannot be covered is not shared. (FAQ "Is my identity hidden?")
+   a drawing that cannot be covered is not shared. (FAQ "Is my identity hidden?") Say only that; never describe
+   what suppliers then quote from.
 4. **Matching.** Only suppliers who can genuinely do the job, from anywhere in the UAE; usually a handful,
    capped. "A wrong match is worse than no match." Customers cannot pick or invite their own suppliers.
    (FAQ "How many suppliers…", "Can I invite my own supplier?")
@@ -64,7 +68,7 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
 8. **Deal directly.** Price, scope and timing are then agreed between customer and supplier; QuotesDone is
    not a party and holds no money for the job (no escrow). (CT§8, CT§15)
 
-Other customer rules (FAQ): edit an inquiry within **24 hours**; after that, create a new one. Cancel any
+Other customer rules (FAQ): edit an inquiry within **1 hour** of submitting it; after that, create a new one. Cancel any
 time before reveal at no cost. No quote revisions, no reopen. Declining every quote costs nothing. Budget
 is optional; the engine never invents a price or a delivery date and is brand-neutral (no approved-brand
 or approved-manufacturer list; products must meet the UAE approvals for the job).
@@ -73,10 +77,15 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
 
 1. **Register** on the supplier portal: claim or create the company listing. (FAQ "How do I register?")
 2. **The mandatory six** must be complete before any match: business name (licensed legal name), mobile
-   (OTP-verified), email (verified), valid UAE trade licence, company profile (trades and emirates), signed
-   Supplier Agreement. (SA§13; HWV)
+   (OTP-verified), email (verified), valid UAE trade licence (uploaded), company profile (uploaded), signed
+   Supplier Agreement. The licence and the profile are the two required documents. (SA§13; HWV)
 3. **Verification** within **3 working days** of complete documents: licence number, issuing authority and
-   expiry date are checked. No supplier is approved automatically. (SA§13; HWV)
+   expiry date are read from the licence and checked. Approval is **automatic** when the six are complete,
+   the licence is read and in date, and the supplier has **confirmed the services it provides** (Services tab); until it
+   confirms them it is held and the portal says what is left (SA "Automated decisions"; ledger 1469). An expired licence must be renewed first; a
+   licence that cannot be read in full is held for review, and the supplier is told what is pending. A licence issued by
+   an authority outside the UAE, or by an authority that cannot be confirmed, is held too (ledger 1442), and the supplier
+   is asked for a current UAE trade licence or to name the UAE authority or free zone that issued it. (SA§13; HWV)
 4. **Receive matched RFQs** anonymised; ignoring an invitation carries no penalty. (FAQ "Can I decline invitations?")
 5. **Quote** itemised: scope, line items with brand/model and specs, quantities, unit prices, materials,
    lead time, validity, warranty, payment terms, exclusions. A quote below the quality bar is held as a
@@ -135,7 +144,8 @@ or subscriptions; a supplier's own quotation may state discounts, which we relay
   payment without the customer doing anything: day 3 (working) QuotesDone chases the supplier, copying the
   customer; day 5 the case goes to **QuotesDone's CEO** for a final call; if the supplier still does not
   respond, **everything the customer paid is refunded** — QuotesDone deducts nothing. Banks take **7–14
-  working days** to show it. Working days are Mon–Fri excluding UAE public holidays. (CT§5)
+  working days** to show it. Working days are Mon–Fri excluding UAE public holidays. (CT§5) A refund QuotesDone's CEO
+  decides is issued **to the original payment method** through Stripe and confirmed to the customer. (Refund Policy §6)
 - **Every refund is decided by QuotesDone's CEO**, recorded against a refund case reference quoted to the
   customer. None is automatic. (CT§5; FI 1, FI 89)
 - No refund where the supplier responded (by any reasonable means, incl. WhatsApp or phone), the customer
@@ -230,7 +240,7 @@ or subscriptions; a supplier's own quotation may state discounts, which we relay
 
 ## 12. Contact
 
-- **management@quotesdone.com** · **+1 218 316 6814** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
+- **management@quotesdone.com** · WhatsApp **+1 218 316 6814** (messages only, never call it) · calls **+971 56 791 8605** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
 - info@quotesdone.com for questions about the Terms (CT§20); supplier@quotesdone.com to copy on a
   non-response complaint (CT§5); complaints status at quotesdone.com/complaints/status (CT§18).
 - Governing law: UAE; courts of Dubai. (CT§19)
