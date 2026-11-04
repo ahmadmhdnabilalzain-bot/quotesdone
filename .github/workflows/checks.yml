@@ -64,13 +64,17 @@ jobs:
         id: ocr
         env:
           EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha }}
-          HEAD: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        # The PR's own file list from the API (the repo is private and the checkout keeps no credentials, so a git fetch of
+        # the base would fail). Every file the two OCR checks import (deno info on both, review of #1863) is matched, plus
+        # the OCR data in public/ocr. Any failure to list the files runs the checks.
         run: |
           if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; echo "not a pull request: run"; exit 0; fi
-          git fetch --no-tags --depth=200 origin "$BASE" "$HEAD" >/dev/null 2>&1 || true
-          files=$(git diff --name-only "$BASE" "$HEAD" 2>/dev/null) || { echo "run=true" >> "$GITHUB_OUTPUT"; echo "diff unavailable: run"; exit 0; }
-          if echo "$files" | grep -qE '^(supabase/functions/(_shared/(scan_|ocr|anonymise|identity|drawing|redact|pdf_|doc_read/|cad)|drawing_|cad_)|scripts/cad|\.github/workflows/checks\.yml|package(-lock)?\.json|deno\.(json|lock))'; then echo "run=true" >> "$GITHUB_OUTPUT"; echo "drawing/OCR code changed: run"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no drawing/OCR change: the OCR steps are skipped on this PR"; fi
+          files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename' 2>/dev/null) || { echo "run=true" >> "$GITHUB_OUTPUT"; echo "file list unavailable: run"; exit 0; }
+          [ -n "$files" ] || { echo "run=true" >> "$GITHUB_OUTPUT"; echo "empty file list: run"; exit 0; }
+          if echo "$files" | grep -qE '^(supabase/functions/(_shared/(scan_|ocr|anonymise|identity|drawing|redact|pdf_|doc_read/|cad|stroke_font|boq_|supplier_copy|attachment|vendor/|zz_demo)|drawing_|cad_)|scripts/(cad|lib/scan_ocr|lib/supabase_keys)|public/ocr/|\.github/workflows/checks\.yml|package(-lock)?\.json|deno\.(json|lock))'; then echo "run=true" >> "$GITHUB_OUTPUT"; echo "drawing/OCR code changed: run"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no drawing/OCR change: the OCR steps are skipped on this PR"; fi
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
