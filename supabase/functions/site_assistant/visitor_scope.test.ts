@@ -15,6 +15,16 @@ Deno.test('general questions: a visitor is told to answer what QuotesDone is, ho
   assertMatch(index, /\$\{who \? '- Answer what they asked[^']*' : visitorRules\(audience, replyLang\)\}/);
 });
 
+// conversation-quality run, 3 Nov 2026: 2 of 5 widget replies told a visitor "your note has been recorded" (تم تسجيل) and
+// in the next sentence that the chat cannot take job details. The widget records nothing on a request.
+Deno.test('a visitor is never told a job detail was recorded', () => {
+  assertMatch(visitorRules('unknown', 'en'), /never say a detail was noted on, recorded, saved or updated in their request/);
+});
+// the same run, the judge's finding: "so you won't need to repeat anything" — a visitor posts the request after sign-up
+Deno.test('a visitor is never promised they will not need to repeat anything', () => {
+  for (const aud of ['unknown', 'customer', 'supplier'] as const) assertMatch(visitorRules(aud, 'en'), /never say they will not need to repeat anything/);
+});
+
 Deno.test('an inquiry leads to sign-up with no spec questions, in the visitor\'s language and seat', () => {
   for (const [aud, lang, url] of [['customer', 'en', '/me'], ['unknown', 'ar', '/ar/me'], ['supplier', 'en', '/portal']] as const) {
     const r = visitorRules(aud, lang);

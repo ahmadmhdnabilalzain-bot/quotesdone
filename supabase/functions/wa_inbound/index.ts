@@ -46,11 +46,13 @@ import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
+import { directiveSystemPrompt, readDirectiveReply } from './founder_directive.ts';
 import { isStop } from '../_shared/marketing_send_gate.ts';
 import { type Audience, humanAlert, type Lang, MENU_IDS, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { turnLang } from '../_shared/chat_answers.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 import { waRow } from './wa_row.ts';
 import { waConversation } from '../_shared/wa_history.ts';
@@ -609,7 +611,7 @@ async function handleInbound(req: Request): Promise<Response> {
       { message_sid: MessageSid || null, error });
     // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
     // They are apart so a reply started speculatively (below) that is then discarded can never escalate or flag the turn.
-    const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => {
+    const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, langGiven?: 'en' | 'ar', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => {
       history ??= waConversation(admin, From, receivedAt, isDemoPhone(From), historyUnavailable);
       forbidden ??= (async () => {
         const { data } = await admin.rpc('fn_whatsapp_owner', { p_phone: From });
@@ -617,7 +619,11 @@ async function handleInbound(req: Request): Promise<Response> {
         return o?.party_kind === 'supplier' && o.lead_id ? preRevealIdentities(admin, { leadId: Number(o.lead_id) })
           : o?.party_kind === 'customer' && o.customer_id ? preRevealIdentities(admin, { customerId: String(o.customer_id) }) : [];
       })().catch(() => []);
-      return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: await history, forbidden: await forbidden,
+      // A MIXED MESSAGE KEEPS THE CONVERSATION'S LANGUAGE (chat_answers.turnLang, 3 Nov 2026): this was "any Arabic letter
+      // in the message = Arabic", the rule the widget's live run measured flipping an English conversation into Arabic.
+      const conv = await history;
+      const lang = langGiven ?? turnLang(Body, '', conv.filter((t) => t.role !== 'seat').map((t) => ({ role: 'user', content: t.text })));
+      return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: conv, forbidden: await forbidden,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
         // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
         // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
@@ -634,7 +640,7 @@ async function handleInbound(req: Request): Promise<Response> {
       sayAttempts = att.length > 8 ? [...att.slice(0, 4), ...att.slice(-4)] : att;   // the head and the tail (the last chance is at the end)
       return r.text;
     };
-    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], extraCheck?: (t: string) => string[]) =>
+    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang?: 'en' | 'ar', must?: string[], extraCheck?: (t: string) => string[]) =>
       adopt(await askModel(aud, situation, lang, must, undefined, extraCheck));
     // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
     const say = (situation: string, lang?: 'en' | 'ar') => sayFor(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : audience === 'founder' ? 'founder' : 'visitor')(situation, lang);
@@ -1118,6 +1124,8 @@ async function handleInbound(req: Request): Promise<Response> {
     // Twilio's webhook wall is 15, so the webhook is acknowledged first and the answer sent when ready.
     if (audience === 'founder') {
       const question = Body.slice(0, 1500);
+      // HIS LANGUAGE IS THE LANGUAGE HE WROTE IN (gap #10): the model's reply, the held notice and its replay, and the row.
+      const founderLang: 'en' | 'ar' = /[\u0600-\u06FF]/.test(question) ? 'ar' : 'en';
 
       const work = (async () => {
         let reply = ''; let directive: any = null;
@@ -1142,11 +1150,9 @@ async function handleInbound(req: Request): Promise<Response> {
           if (rows.length) {
             const catalogue = rows.map((s: any) =>
               `${s.setting_key} (${s.kind}${s.min_val !== null && s.min_val !== undefined ? `, ${s.min_val}..${s.max_val}` : ''}) = ${s.current_value} — ${s.description}`).join('\n');
-            const sys = 'You decide whether the message is an INSTRUCTION TO CHANGE ONE OF THESE SETTINGS, or anything else.\n\n'
-              + catalogue
-              + '\n\nReturn STRICT JSON ONLY. If it is an instruction to change one of these settings: {"directive":true,"key":"<exact setting_key>","value":"<the new value as a bare string, numbers unquoted in words e.g. 15, switches as on or off>"}.'
-              + '\nOtherwise, including anything you are unsure about, anything about money, refunds, payments or going live, and every question or request for information: {"directive":false}.'
-              + '\nThe sender writes informally. "weekly cap for emails" means the supplier invitation cap; "stop the invites" means invite_enabled off. Never guess a key that is not in the list above.';
+            // The prompt and the read live in founder_directive.ts: a change outside the registry is still a directive, refused BY
+            // NAME and audited by fn_founder_apply_setting, never answered as a question (gap #10, 3 Nov 2026).
+            const sys = directiveSystemPrompt(catalogue);
             const gsecret = await sec('cred_fn_ai');
             const cr = await fetch(GATEWAY, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1163,7 +1169,7 @@ async function handleInbound(req: Request): Promise<Response> {
               body: JSON.stringify({ __secret: gsecret, fn: 'founder_directive', sys, input: question, temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),
               signal: AbortSignal.timeout(45000),
             });
-            const cj = await cr.json().catch(() => ({} as any));
+            const cj = readDirectiveReply(await cr.json().catch(() => ({} as any)));
             const m = String(cj?.content || '').match(/\{[\s\S]*\}/);
             const parsed = m ? JSON.parse(m[0]) : null;
             if (parsed?.directive === true && parsed?.key && !founderDirectiveAllowed({ audience, signatureVerified })) {
@@ -1176,7 +1182,11 @@ async function handleInbound(req: Request): Promise<Response> {
               });
               directive = applied || null;
               // The routine decided; the model says it (1195-1197). The routine's own sentence is a fact, not the reply.
-              if (applied) reply = (await sayFor('founder')('The settings routine ran on his instruction. Its result, to report accurately (applied or refused, old and new value, the reason):\n' + JSON.stringify(applied))) || ' ';
+              // What happened is stated to the model in plain words first, so a refusal is reported as NOT applied (gap #10).
+              const outcome = applied?.ok === true && !applied?.unchanged ? 'The setting WAS changed on his instruction.'
+                : applied?.ok === true ? 'Nothing was changed: the setting already had the value he asked for.'
+                : 'The setting was NOT changed: the routine refused it. Say plainly that it was not applied, and why.';
+              if (applied) reply = (await sayFor('founder')(outcome + ' The settings routine result, to report accurately (applied or refused, old and new value, the reason):\n' + JSON.stringify(applied), founderLang)) || ' ';
             }
           }
         } catch (e) {
@@ -1190,11 +1200,11 @@ async function handleInbound(req: Request): Promise<Response> {
           const enabledD = (await sec('wa_autoreply_enabled')) === 'true';
           let sentD = false; let sendErrD: string | undefined = reply ? undefined : 'no_model_reply';
           if (enabledD && reply) { const r = await sendWa(From, reply); sentD = r.ok; sendErrD = r.err; }
-          if (!reply) { const h = await heldTurn('founder', 'en', 'The settings routine result: ' + JSON.stringify(directive), 'founder_directive'); reply = h.notice; sentD = h.sent; sendErrD = h.err ?? undefined; }
+          if (!reply) { const h = await heldTurn('founder', founderLang, 'The settings routine result: ' + JSON.stringify(directive), 'founder_directive'); reply = h.notice; sentD = h.sent; sendErrD = h.err ?? undefined; }
           try {
             await waInsert(receivedAt, {
               wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
-              inbound: question, reply, lang: 'en', escalated: false, sent: sentD,
+              inbound: question, reply, lang: founderLang, escalated: false, sent: sentD,
               meta: { enabled: enabledD, audience: 'founder', route: 'founder_directive',
                       directive, send_error: sendErrD || null, provenance_verified: true,
                       message_sid: MessageSid || null },

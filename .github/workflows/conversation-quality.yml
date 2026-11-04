@@ -1,0 +1,154 @@
+name: Conversation quality (every chat surface, before and after, ZZ DEMO)
+
+# customer_support, 3 Nov 2026 (PR #1830). The founder's scenario: a customer explains an inquiry and the agent suddenly
+# hallucinates. scripts/eval/conversation_quality.mjs drives scripted multi-turn conversations with known facts on each
+# surface and grades every reply by code against the canon (figures, timelines, refund/commission/date claims, invented
+# addresses, supplier identity, language, restatement against the latest statement, unanswered turns).
+#
+# BEFORE and AFTER without a deploy: every job runs THIS checkout's functions (the portal, the widget and the supplier
+# quotation thread served locally by scripts/eval/serve_function_locally.ts; WhatsApp through wa_exchange_real's in-process
+# wa_inbound), against the real database and the deployed ai_gateway. A "before" job first checks out main's
+# supabase/functions, so the only difference between the two is the branch's code. The widget runs "after" only: a locally
+# served widget's calls share one rate bucket of 40 visitor messages a day, and its "before" was measured live on 3 Nov
+# (docs/reports/conversation-quality-2026-11-03).
+#
+# Identities are the repository's fixtures (ZZ DEMO, @example.invalid, fixture numbers; torn down by the run's tag). The
+# real model answers inside capped rehearsal windows: per job USD 3 (portal), 5 x 0.45 (each WhatsApp surface), 1.5
+# (thread), 1.5 (widget); USD 19.5 for the whole run at most. Since 3 Nov 2026 (run 41621633737 measured 449 untagged WhatsApp
+# calls, USD 6.1, past their 0.45 caps) a scripted WhatsApp turn carries the run's tag, so its window caps it too. Runs by hand only (workflow_dispatch): a push trigger would start
+# paid runs on every branch that merges main (review of #1830, 4 Nov 2026).
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Conversations per scenario per surface
+        required: false
+        default: '5'
+      sides:
+        description: "before,after (default: .github/conversation-quality-sides.txt, which a dispatch without the input reads)"
+        required: false
+        default: ''
+      surfaces:
+        description: "widget,portal,whatsapp_customer,whatsapp_supplier,supplier_thread (default: .github/conversation-quality-surfaces.txt)"
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: conversation-quality-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  surface:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        include:
+          - { surface: portal, side: before, scenario: villa_windows_sharjah, cap: '3' }
+          - { surface: portal, side: after, scenario: villa_windows_sharjah, cap: '3' }
+          - { surface: whatsapp_customer, side: before, scenario: villa_windows_sharjah, cap: '0.45' }
+          - { surface: whatsapp_customer, side: after, scenario: villa_windows_sharjah, cap: '0.45' }
+          - { surface: whatsapp_supplier, side: before, scenario: supplier_registration, cap: '0.45' }
+          - { surface: whatsapp_supplier, side: after, scenario: supplier_registration, cap: '0.45' }
+          - { surface: supplier_thread, side: before, scenario: supplier_quotation_thread, cap: '1.5' }
+          - { surface: supplier_thread, side: after, scenario: supplier_quotation_thread, cap: '1.5' }
+          - { surface: widget, side: after, scenario: villa_windows_sharjah, cap: '1.5' }
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QD_FIXTURES: '1'
+      QD_E2E_RUN_TAGS: e2e-run-tags.txt
+      QD_E2E_WINDOW_MIN: '120'
+      DENO_NO_PACKAGE_JSON: '1'
+    steps:
+      - if: matrix.side == 'before'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # main's supabase/functions come from this clone: the repository is private, a later fetch has no credential
+      - if: matrix.side != 'before'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # which sides this run measures: the dispatch input, else the committed file (so a dispatch can measure one side
+      # without spending on the other)
+      - id: gate
+        env:
+          SIDES: ${{ inputs.sides }}
+          SURFACES: ${{ inputs.surfaces }}
+        run: |
+          sides="${SIDES:-$(cat .github/conversation-quality-sides.txt 2>/dev/null || echo before,after)}"
+          case ",$sides," in *",${{ matrix.side }},"*) ;; *) echo "::notice::side ${{ matrix.side }} not in '$sides': skipped"; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0;; esac
+          surfaces="${SURFACES:-$(cat .github/conversation-quality-surfaces.txt 2>/dev/null || echo widget,portal,whatsapp_customer,whatsapp_supplier,supplier_thread)}"
+          case ",$surfaces," in *",${{ matrix.surface }},"*) ;; *) echo "::notice::surface ${{ matrix.surface }} not in '$surfaces': skipped"; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0;; esac
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::notice::SUPABASE_ACCESS_TOKEN is not set; the conversation-quality run needs it for the demo fixtures and is skipped"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.skip != '1'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - if: steps.gate.outputs.skip != '1'
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with: { deno-version: v2.x }
+      - if: steps.gate.outputs.skip != '1'
+        run: npm ci
+        timeout-minutes: 8
+      # the graders' own known-bad controls first: a grader that cannot fail would make every number below a pass
+      - if: steps.gate.outputs.skip != '1'
+        run: node scripts/eval/conversation_quality.mjs selftest && node --test scripts/checks/conversation_quality_graders_catch_their_bad_turns.test.mjs
+      - name: BEFORE - main's functions, this branch's harness and graders
+        if: steps.gate.outputs.skip != '1' && matrix.side == 'before'
+        run: |
+          git checkout origin/main -- supabase/functions
+          echo "functions from main $(git rev-parse origin/main)"
+      - if: steps.gate.outputs.skip != '1'
+        name: Drive ${{ matrix.surface }} (${{ matrix.side }})
+        env:
+          RUNS: ${{ inputs.runs || '5' }}
+        run: node scripts/eval/conversation_quality.mjs run --surface ${{ matrix.surface }} --code local --scenario ${{ matrix.scenario }} --runs "$RUNS" --cap-usd ${{ matrix.cap }} --out cq-out
+        timeout-minutes: 105
+      # the run's tags are closed even if the script was killed: their rows are torn down by the same tag
+      - if: always() && steps.gate.outputs.skip != '1'
+        run: node scripts/e2e/close_job_windows.mjs "$QD_E2E_RUN_TAGS"
+        timeout-minutes: 3
+      - if: always() && steps.gate.outputs.skip != '1'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: conversation-quality-${{ matrix.surface }}-${{ matrix.side }}
+          path: cq-out/conversation_quality_*.json
+          if-no-files-found: warn
+
+  table:
+    needs: surface
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: conversation-quality-*
+          path: cq-all
+      - name: The surface x measure table, before and after
+        run: |
+          for side in before after; do
+            files=$(ls cq-all/conversation-quality-*-$side/*.json 2>/dev/null | paste -sd, -)
+            echo "=== $side ==="; [ -n "$files" ] && node scripts/eval/conversation_quality.mjs grade --results "$files" | tee "table-$side.txt" || echo "no $side results"
+          done
+          node -e "for (const f of require('fs').readdirSync('cq-all',{recursive:true}).filter(f=>f.endsWith('.json'))) { const j=require('./cq-all/'+f); console.log(f, JSON.stringify(j.spend)); }"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: conversation-quality-table
+          path: table-*.txt
+          if-no-files-found: warn

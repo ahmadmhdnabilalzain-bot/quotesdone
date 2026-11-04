@@ -9,7 +9,7 @@ import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { notSureKeys, specHandoffArgs } from './spec_handoff.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { parseReviewPhotos } from './review_photos.ts';
-import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
+import { cadNote, fileHeldNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from './vision_count_wire.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
 import { repeatCheck, repeatPlan } from './repeat.ts';
@@ -125,34 +125,10 @@ function labelize(s: string): string { return String(s || '').replace(/[-_]/g, '
 // "villa fit-out for Ahmed Khan, call 050 123 4567" had that emailed verbatim to up to eight
 // suppliers before anyone paid a reveal fee, which is the entire business model inverted. Anything
 // leaving this function toward a supplier goes through scrubIdentity first.
-const CO_SUFFIX = '(?:l\\.?\\s?l\\.?\\s?c\\.?|fz-?llc|fzc|fze|trading|contracting|establishment|est\\.?|general|co\\.?|company|group)';
-const ID_PATTERNS: RegExp[] = [
-  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
-  /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
-  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info)(?:\.[A-Za-z]{2})?\b/gi,
-  /\+\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
-  /\b00\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
-  /\b0\d(?:[\s.-]?\d){7,8}\b/g,
-];
-const rxEsc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-function companyRe(name: unknown): RegExp | null {
-  const base = String(name || '').replace(new RegExp('\\b' + CO_SUFFIX, 'gi'), ' ').replace(/[^A-Za-z0-9؀-ۿ ]+/g, ' ').trim();
-  const words = base.split(/\s+/).filter((w) => w.length > 1).map(rxEsc);
-  if (!words.length || base.replace(/\s+/g, '').length < 3) return null;
-  try { return new RegExp('\\b' + words.join('[\\s.,_-]*') + '(?:[\\s.,_-]*' + CO_SUFFIX + ')*', 'gi'); } catch (_e) { return null; }
-}
-function scrubIdentity(text: string | null, ownName: unknown, hits: string[]): string | null {
-  if (text == null) return text;
-  let out = String(text);
-  const nameRe = companyRe(ownName);
-  // Contact patterns run BEFORE the company-name pattern on purpose: "www.alnoor.ae" must be
-  // taken out whole as a URL, otherwise the name pattern eats "alnoor" first and leaves a
-  // half-redacted "www.[removed].ae" that still points at the supplier.
-  for (const re of (nameRe ? [...ID_PATTERNS, nameRe] : ID_PATTERNS)) {
-    out = out.replace(re, (m: string) => { const t = String(m).trim(); if (t.length < 3) return m; if (!hits.includes(t)) hits.push(t); return '[removed]'; });
-  }
-  return out;
-}
+// 3 Nov 2026: the copy that lived here is gone. It had drifted from supplier_api's (no TRN, no licence) and both
+// missed the shapes the planted-identity test measured (scripts/e2e/identity_never_leaks_before_reveal.mjs), so there
+// is ONE scrubber now, imported: supplier_api/identity_scrub.ts scrubIdentity, built on _shared/identity_text.ts.
+import { scrubIdentity } from '../supplier_api/identity_scrub.ts';
 async function queueNotifications(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
 // AUDIT 1.5 (4 Aug 2026) -----------------------------------------------------------------------
 // Both supplier-facing emails in this file passed ownName = null to scrubIdentity. companyRe(null)
@@ -513,7 +489,7 @@ async function redactCad(o: { secret: string | undefined; b64: string; custId: s
   // verifier; a file that is not proved is simply not attached, and the preview decides the hold as before.
   if (meta.redaction_complete) {
     const f = await redactFile(o);
-    if (f) { redacted.push(f.path); meta.redaction_job_ids.push(f.job); }
+    if (f && 'path' in f) { redacted.push(f.path); meta.redaction_job_ids.push(f.job); }
   }
   return { meta, redacted, reason: ok ? null : String(rj?.held_reason || rj?.error || 'cad_redactor_unreachable') };
 }
@@ -522,13 +498,17 @@ async function redactCad(o: { secret: string | undefined; b64: string; custId: s
 // 'file' returns the customer's PDF / DWG / DXF anonymised as a PDF or DXF a supplier opens and measures, released
 // only when _shared/drawing_file_redact.ts's verifier proved geometry, counts and zero identifiers. null = not
 // attached (held, refused or unreachable); the reason is on the run row drawing_redact recorded.
-async function redactFile(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }): Promise<{ path: string; job: string } | null> {
+async function redactFile(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }): Promise<{ path: string; job: string } | { held: string } | null> {
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
       body: JSON.stringify({ __secret: o.secret, mode: 'file', original_b64: o.b64, seed_terms: o.seeds, prefix: 'redacted', owner_customer_id: o.custId, owner_email: o.email, source_path: o.path }),
       signal: AbortSignal.timeout(60_000) });
     const j = await r.json().catch(() => null);
-    return j?.ok && j?.recorded && j?.job_id && Array.isArray(j.paths) && j.paths.length === 1 ? { path: String(j.paths[0]), job: String(j.job_id) } : null;
+    if (j?.ok && j?.recorded && j?.job_id && Array.isArray(j.paths) && j.paths.length === 1) return { path: String(j.paths[0]), job: String(j.job_id) };
+    // A hold is said, not swallowed (review of #1838): drawing_redact recorded it on drawing_redaction_runs; the reason
+    // goes back to analyze_drawing, which tells the customer (drawing_hold.fileHeldNote).
+    if (j?.ok && j?.held_reason) { console.warn(`[drawing] the anonymised file of ${o.path} was held: ${j.held_reason}`); return { held: String(j.held_reason) }; }
+    return null;
   } catch (_e) { return null; }
 }
 // THE HOLD IS WRITTEN OR IT IS SAID (24 Sep 2026, audit finding 5). The insert answers { error } rather than
@@ -1217,9 +1197,11 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         // Anything short of every page verified hands back NO redacted paths and share_redacted:false,
         // and writes one 'held' row against the stored original so the unshared drawing is visible.
         // A fully redacted PDF also goes out as the anonymised VECTOR PDF (redactFile), beside its page previews.
+        let fileHeld: string | null = null;
         if (redMeta.redaction_complete && path && !isCad && body.original_b64 && /^JVBERi0/.test(String(body.original_b64).replace(/^data:[^;]+;base64,/, ''))) {
           const f = await redactFile({ secret, b64: String(body.original_b64), custId: cust.id, email, path, seeds: seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }) });
-          if (f) { redacted.push(f.path); redJobs.push(f.job); }
+          if (f && 'path' in f) { redacted.push(f.path); redJobs.push(f.job); }
+          else if (f && 'held' in f) fileHeld = f.held;
         }
         const hand = drawingHandoff(redMeta, path, redacted);
         if (hand.drawing_held && path) {
@@ -1296,7 +1278,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
             if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
           } catch (_e) { /* the coded result stands */ }
         }
-        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
+        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...fileHeldNote(fileHeld), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false }, 200); }
     }
 

@@ -1,0 +1,3130 @@
+{
+ "before_text_pixels_metadata": {
+  "measured_at": "2026-11-03T11:41:19.188Z",
+  "seed": 20261103,
+  "repeats": 3,
+  "trials": 480,
+  "leaked_trials": 336,
+  "table": [
+   {
+    "family": "drawing",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 49
+   },
+   {
+    "family": "quotation",
+    "trials": 300,
+    "shared": 300,
+    "held_entirely": 0,
+    "leaked": 287
+   },
+   {
+    "family": "comparison",
+    "trials": 60,
+    "shared": 60,
+    "held_entirely": 0,
+    "leaked": 59
+   },
+   {
+    "family": "qa",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 127
+   }
+  ],
+  "by_class": {
+   "drawing:phone_land": 33,
+   "drawing:image_logo": 19,
+   "drawing:image_signature": 7,
+   "drawing:licence": 4,
+   "quotation:company_en": 212,
+   "quotation:website": 14,
+   "quotation:person_ar": 164,
+   "quotation:phone_land": 48,
+   "quotation:person_en": 198,
+   "quotation:address": 276,
+   "quotation:licence": 99,
+   "quotation:company_translit": 255,
+   "quotation:iban": 273,
+   "quotation:po_box": 168,
+   "quotation:company_ar": 178,
+   "quotation:phone_mobile": 57,
+   "comparison:licence": 54,
+   "comparison:person_en": 129,
+   "comparison:company_en": 4,
+   "comparison:website": 4,
+   "comparison:po_box": 86,
+   "comparison:iban": 123,
+   "comparison:phone_mobile": 40,
+   "qa:person_en": 60,
+   "qa:company_ar": 60,
+   "qa:customer_phone": 7,
+   "qa:phone_mobile": 7
+  },
+  "by_surface": {
+   "drawing:file.pdf:pdf_strings": 10,
+   "drawing:file.pdf:pdftotext": 10,
+   "drawing:file.pdf:pixels": 26,
+   "drawing:file.dxf:text": 17,
+   "quotation:stored_quote.json:text": 741,
+   "quotation:quote_doc.json:text": 702,
+   "quotation:quotation.pdf:pdftotext": 499,
+   "comparison:compare_doc.json:text": 142,
+   "comparison:comparison.pdf:pdftotext": 133,
+   "comparison:comparison.csv:text": 165,
+   "qa:message.txt:text": 134
+  },
+  "held": {
+   "drawing:model_path": 36
+  },
+  "model_path_drawings": 36,
+  "ocr_control": "skipped",
+  "image_control": {
+   "planted": 340,
+   "seen_on_original": 340
+  },
+  "leaks": [
+   {
+    "id": "d0_01",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_01/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠١٤"
+     },
+     {
+      "surface": "out/d0_01/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠١٤"
+     }
+    ]
+   },
+   {
+    "id": "d0_06",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_06/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Dune LI5"
+     }
+    ]
+   },
+   {
+    "id": "d0_07",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_07/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Pearl TF3"
+     }
+    ]
+   },
+   {
+    "id": "d0_10",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_10/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٣٢"
+     },
+     {
+      "surface": "out/d0_10/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٣٢"
+     }
+    ]
+   },
+   {
+    "id": "d0_12",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_12/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Crescent JH9"
+     }
+    ]
+   },
+   {
+    "id": "d0_13",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_13/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Crescent XV5"
+     }
+    ]
+   },
+   {
+    "id": "d0_27",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_27/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Crescent NH7"
+     }
+    ]
+   },
+   {
+    "id": "d0_28",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_28/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٦٨"
+     },
+     {
+      "surface": "out/d0_28/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٦٨"
+     }
+    ]
+   },
+   {
+    "id": "d0_29",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_29/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Yousef Shamsi"
+     }
+    ]
+   },
+   {
+    "id": "d0_34",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_34/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٠"
+     },
+     {
+      "surface": "out/d0_34/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٠"
+     }
+    ]
+   },
+   {
+    "id": "d0_35",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_35/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٢"
+     },
+     {
+      "surface": "out/d0_35/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٢"
+     }
+    ]
+   },
+   {
+    "id": "d0_48",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_48/file.dxf",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 614867"
+     },
+     {
+      "surface": "out/d0_48/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0019"
+     }
+    ]
+   },
+   {
+    "id": "d0_49",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_49/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٢١"
+     }
+    ]
+   },
+   {
+    "id": "d0_50",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_50/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٢٣"
+     }
+    ]
+   },
+   {
+    "id": "d0_53",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_53/file.dxf",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 389145"
+     }
+    ]
+   },
+   {
+    "id": "d0_58",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_58/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٣٩"
+     }
+    ]
+   },
+   {
+    "id": "d0_59",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_59/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0041"
+     }
+    ]
+   },
+   {
+    "id": "d1_04",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_04/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠١٣"
+     },
+     {
+      "surface": "out/d1_04/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠١٣"
+     },
+     {
+      "surface": "out/d1_04/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm IX6"
+     }
+    ]
+   },
+   {
+    "id": "d1_07",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_07/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm CI2"
+     }
+    ]
+   },
+   {
+    "id": "d1_24",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_24/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Pearl ST9"
+     }
+    ]
+   },
+   {
+    "id": "d1_25",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_25/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm ND2"
+     }
+    ]
+   },
+   {
+    "id": "d1_26",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_26/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Tariq Qasimi"
+     }
+    ]
+   },
+   {
+    "id": "d1_30",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_30/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Saeed Shamsi"
+     }
+    ]
+   },
+   {
+    "id": "d1_33",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_33/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Omar Nuaimi"
+     }
+    ]
+   },
+   {
+    "id": "d1_35",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_35/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٧٥"
+     },
+     {
+      "surface": "out/d1_35/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٧٥"
+     }
+    ]
+   },
+   {
+    "id": "d1_49",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_49/file.dxf",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 983896"
+     },
+     {
+      "surface": "out/d1_49/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠١٤"
+     }
+    ]
+   },
+   {
+    "id": "d1_53",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_53/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0022"
+     }
+    ]
+   },
+   {
+    "id": "d1_54",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_54/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0024"
+     }
+    ]
+   },
+   {
+    "id": "d1_55",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_55/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0026"
+     }
+    ]
+   },
+   {
+    "id": "d1_56",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_56/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0028"
+     }
+    ]
+   },
+   {
+    "id": "d1_57",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_57/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٣٠"
+     }
+    ]
+   },
+   {
+    "id": "d1_59",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_59/file.dxf",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 681731"
+     }
+    ]
+   },
+   {
+    "id": "d2_00",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_00/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٧"
+     },
+     {
+      "surface": "out/d2_00/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٧"
+     }
+    ]
+   },
+   {
+    "id": "d2_01",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_01/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm PY4"
+     }
+    ]
+   },
+   {
+    "id": "d2_03",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_03/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Majid Ketbi"
+     }
+    ]
+   },
+   {
+    "id": "d2_05",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_05/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Oasis FE2"
+     }
+    ]
+   },
+   {
+    "id": "d2_08",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_08/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Horizon FW6"
+     }
+    ]
+   },
+   {
+    "id": "d2_09",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_09/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Horizon II5"
+     }
+    ]
+   },
+   {
+    "id": "d2_13",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_13/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Horizon GW5"
+     }
+    ]
+   },
+   {
+    "id": "d2_17",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_17/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Oasis UW6"
+     }
+    ]
+   },
+   {
+    "id": "d2_22",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_22/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Horizon YY5"
+     }
+    ]
+   },
+   {
+    "id": "d2_23",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_23/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٤٤"
+     },
+     {
+      "surface": "out/d2_23/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٤٤"
+     },
+     {
+      "surface": "out/d2_23/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Saeed Nuaimi"
+     }
+    ]
+   },
+   {
+    "id": "d2_24",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_24/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٤٦"
+     },
+     {
+      "surface": "out/d2_24/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٤٦"
+     }
+    ]
+   },
+   {
+    "id": "d2_25",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_25/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm NB2"
+     }
+    ]
+   },
+   {
+    "id": "d2_28",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_28/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Rashid Nuaimi"
+     }
+    ]
+   },
+   {
+    "id": "d2_29",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_29/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Marina TT8"
+     }
+    ]
+   },
+   {
+    "id": "d2_32",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_32/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm PU8"
+     }
+    ]
+   },
+   {
+    "id": "d2_48",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_48/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٩٤"
+     }
+    ]
+   },
+   {
+    "id": "d2_57",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_57/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٢٣"
+     }
+    ]
+   },
+   {
+    "id": "q0_00",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_00/stored_quote.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Crescent Green AM9 Engineering Consultants LLC"
+     },
+     {
+      "surface": "out/q0_00/stored_quote.json",
+      "source": "text",
+      "cls": "website",
+      "printed": "www.zzcrescentgreenam9.example.invalid"
+     },
+     {
+      "surface": "out/q0_00/stored_quote.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد عمر المزروعي"
+     },
+     {
+      "surface": "out/q0_00/quote_doc.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد عمر المزروعي"
+     }
+    ]
+   },
+   {
+    "id": "q0_01",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_01/stored_quote.json",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0044"
+     },
+     {
+      "surface": "out/q0_01/stored_quote.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Omar Qasimi"
+     },
+     {
+      "surface": "out/q0_01/stored_quote.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد عمر القاسمي"
+     },
+     {
+      "surface": "out/q0_01/quote_doc.json",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0044"
+     },
+     {
+      "surface": "out/q0_01/quote_doc.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Omar Qasimi"
+     },
+     {
+      "surface": "out/q0_01/quote_doc.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد عمر القاسمي"
+     },
+     {
+      "surface": "out/q0_01/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "(04) 000 0044"
+     },
+     {
+      "surface": "out/q0_01/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "person_en",
+      "printed": "ZZ Omar Qasimi"
+     }
+    ]
+   },
+   {
+    "id": "q0_02",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_02/stored_quote.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Palm Blue IU8 Contracting Est."
+     },
+     {
+      "surface": "out/q0_02/stored_quote.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 735, ZZ Palm IU8 Tower, Al Quoz Industrial Area 3, Dubai"
+     },
+     {
+      "surface": "out/q0_02/stored_quote.json",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 273158"
+     },
+     {
+      "surface": "out/q0_02/stored_quote.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Azraq Contracting"
+     },
+     {
+      "surface": "out/q0_02/quote_doc.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Palm Blue IU8 Contracting Est."
+     },
+     {
+      "surface": "out/q0_02/quote_doc.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 735, ZZ Palm IU8 Tower, Al Quoz Industrial Area 3, Dubai"
+     },
+     {
+      "surface": "out/q0_02/quote_doc.json",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 273158"
+     },
+     {
+      "surface": "out/q0_02/quote_doc.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Azraq Contracting"
+     },
+     {
+      "surface": "out/q0_02/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_en",
+      "printed": "ZZ Palm Blue IU8 Contracting Est."
+     },
+     {
+      "surface": "out/q0_02/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "address",
+      "printed": "Office 735, ZZ Palm IU8 Tower, Al Quoz Industrial Area 3, Dubai"
+     },
+     {
+      "surface": "out/q0_02/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "licence",
+      "printed": "TL 273158"
+     },
+     {
+      "surface": "out/q0_02/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Azraq Contracting"
+     }
+    ]
+   },
+   {
+    "id": "q0_03",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_03/stored_quote.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE09 0580 0009 6788 6290 627"
+     },
+     {
+      "surface": "out/q0_03/stored_quote.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد ماجد النعيمي"
+     },
+     {
+      "surface": "out/q0_03/quote_doc.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE09 0580 0009 6788 6290 627"
+     },
+     {
+      "surface": "out/q0_03/quote_doc.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد ماجد النعيمي"
+     },
+     {
+      "surface": "out/q0_03/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "iban",
+      "printed": "IBAN AE09 0580 0009 6788 6290 627"
+     }
+    ]
+   },
+   {
+    "id": "q0_04",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_04/stored_quote.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Majid Mazrouei"
+     },
+     {
+      "surface": "out/q0_04/stored_quote.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE87 0330 0067 5729 5307 391"
+     },
+     {
+      "surface": "out/q0_04/stored_quote.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Marsa Al Azraq Technical Services"
+     },
+     {
+      "surface": "out/q0_04/quote_doc.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Majid Mazrouei"
+     },
+     {
+      "surface": "out/q0_04/quote_doc.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE87 0330 0067 5729 5307 391"
+     },
+     {
+      "surface": "out/q0_04/quote_doc.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Marsa Al Azraq Technical Services"
+     },
+     {
+      "surface": "out/q0_04/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "person_en",
+      "printed": "ZZ Majid Mazrouei"
+     },
+     {
+      "surface": "out/q0_04/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "iban",
+      "printed": "IBAN AE87 0330 0067 5729 5307 391"
+     },
+     {
+      "surface": "out/q0_04/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_translit",
+      "printed": "Al Marsa Al Azraq Technical Services"
+     }
+    ]
+   },
+   {
+    "id": "q0_05",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_05/stored_quote.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 969, ZZ Oasis WY2 Tower, Al Quoz Industrial Area 1, Dubai"
+     },
+     {
+      "surface": "out/q0_05/quote_doc.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 969, ZZ Oasis WY2 Tower, Al Quoz Industrial Area 1, Dubai"
+     },
+     {
+      "surface": "out/q0_05/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "address",
+      "printed": "Office 969, ZZ Oasis WY2 Tower, Al Quoz Industrial Area 1, Dubai"
+     }
+    ]
+   },
+   {
+    "id": "q0_06",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_06/stored_quote.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN: AE280040006055553370809"
+     },
+     {
+      "surface": "out/q0_06/quote_doc.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN: AE280040006055553370809"
+     },
+     {
+      "surface": "out/q0_06/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "iban",
+      "printed": "IBAN: AE280040006055553370809"
+     }
+    ]
+   },
+   {
+    "id": "q0_07",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_07/stored_quote.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Katheeb Al Akhdar Trading"
+     },
+     {
+      "surface": "out/q0_07/stored_quote.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "P. O. Box 59508"
+     },
+     {
+      "surface": "out/q0_07/stored_quote.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE40 0350 0067 8119 3957 301"
+     },
+     {
+      "surface": "out/q0_07/quote_doc.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Katheeb Al Akhdar Trading"
+     },
+     {
+      "surface": "out/q0_07/quote_doc.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "P. O. Box 59508"
+     },
+     {
+      "surface": "out/q0_07/quote_doc.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE40 0350 0067 8119 3957 301"
+     },
+     {
+      "surface": "out/q0_07/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_translit",
+      "printed": "Al Katheeb Al Akhdar Trading"
+     },
+     {
+      "surface": "out/q0_07/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "po_box",
+      "printed": "P. O. Box 59508"
+     },
+     {
+      "surface": "out/q0_07/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "iban",
+      "printed": "IBAN AE40 0350 0067 8119 3957 301"
+     }
+    ]
+   },
+   {
+    "id": "q0_08",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_08/stored_quote.json",
+      "source": "text",
+      "cls": "company_ar",
+      "printed": "شركة النخلة الملكي للديكور ذ.م.م"
+     },
+     {
+      "surface": "out/q0_08/stored_quote.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "PO BOX: 14446"
+     },
+     {
+      "surface": "out/q0_08/stored_quote.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Malaki Interiors"
+     },
+     {
+      "surface": "out/q0_08/quote_doc.json",
+      "source": "text",
+      "cls": "company_ar",
+      "printed": "شركة النخلة الملكي للديكور ذ.م.م"
+     },
+     {
+      "surface": "out/q0_08/quote_doc.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "PO BOX: 14446"
+     },
+     {
+      "surface": "out/q0_08/quote_doc.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Malaki Interiors"
+     },
+     {
+      "surface": "out/q0_08/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "po_box",
+      "printed": "PO BOX: 14446"
+     },
+     {
+      "surface": "out/q0_08/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Malaki Interiors"
+     }
+    ]
+   },
+   {
+    "id": "q0_09",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_09/stored_quote.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Marina Blue ZP5 Trading LLC"
+     },
+     {
+      "surface": "out/q0_09/stored_quote.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 833, ZZ Marina ZP5 Tower, Al Quoz Industrial Area 2, Dubai"
+     },
+     {
+      "surface": "out/q0_09/stored_quote.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "ص.ب ٥٦١٤٣"
+     },
+     {
+      "surface": "out/q0_09/stored_quote.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد ماجد الشامسي"
+     },
+     {
+      "surface": "out/q0_09/quote_doc.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Marina Blue ZP5 Trading LLC"
+     },
+     {
+      "surface": "out/q0_09/quote_doc.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 833, ZZ Marina ZP5 Tower, Al Quoz Industrial Area 2, Dubai"
+     },
+     {
+      "surface": "out/q0_09/quote_doc.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "ص.ب ٥٦١٤٣"
+     },
+     {
+      "surface": "out/q0_09/quote_doc.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد ماجد الشامسي"
+     },
+     {
+      "surface": "out/q0_09/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_en",
+      "printed": "ZZ Marina Blue ZP5 Trading LLC"
+     },
+     {
+      "surface": "out/q0_09/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "address",
+      "printed": "Office 833, ZZ Marina ZP5 Tower, Al Quoz Industrial Area 2, Dubai"
+     }
+    ]
+   },
+   {
+    "id": "q0_10",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_10/stored_quote.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Pearl Golden SH7 Engineering Consultants Est."
+     },
+     {
+      "surface": "out/q0_10/stored_quote.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 394, ZZ Pearl SH7 Tower, Al Quoz Industrial Area 1, Dubai"
+     },
+     {
+      "surface": "out/q0_10/stored_quote.json",
+      "source": "text",
+      "cls": "website",
+      "printed": "www.zzpearlgoldensh7.example.invalid"
+     },
+     {
+      "surface": "out/q0_10/stored_quote.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Majid Nuaimi"
+     },
+     {
+      "surface": "out/q0_10/stored_quote.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE50 0000 0079 9599 0314 466"
+     },
+     {
+      "surface": "out/q0_10/quote_doc.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 394, ZZ Pearl SH7 Tower, Al Quoz Industrial Area 1, Dubai"
+     },
+     {
+      "surface": "out/q0_10/quote_doc.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Majid Nuaimi"
+     },
+     {
+      "surface": "out/q0_10/quote_doc.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE50 0000 0079 9599 0314 466"
+     },
+     {
+      "surface": "out/q0_10/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "address",
+      "printed": "Office 394, ZZ Pearl SH7 Tower, Al Quoz Industrial Area 1, Dubai"
+     },
+     {
+      "surface": "out/q0_10/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "person_en",
+      "printed": "ZZ Majid Nuaimi"
+     },
+     {
+      "surface": "out/q0_10/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "iban",
+      "printed": "IBAN AE50 0000 0079 9599 0314 466"
+     }
+    ]
+   }
+  ],
+  "label": "origin/main code, grader final (text, metadata, pixels)"
+ },
+ "before_with_ocr": {
+  "measured_at": "2026-11-03T11:17:57.378Z",
+  "seed": 20261103,
+  "repeats": 3,
+  "trials": 480,
+  "leaked_trials": 337,
+  "table": [
+   {
+    "family": "drawing",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 49
+   },
+   {
+    "family": "quotation",
+    "trials": 300,
+    "shared": 300,
+    "held_entirely": 0,
+    "leaked": 288
+   },
+   {
+    "family": "comparison",
+    "trials": 60,
+    "shared": 60,
+    "held_entirely": 0,
+    "leaked": 59
+   },
+   {
+    "family": "qa",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 127
+   }
+  ],
+  "by_class": {
+   "drawing:phone_land": 33,
+   "drawing:image_logo": 19,
+   "drawing:person_en": 7,
+   "drawing:image_signature": 7,
+   "drawing:licence": 4,
+   "quotation:company_en": 212,
+   "quotation:website": 14,
+   "quotation:person_ar": 164,
+   "quotation:phone_land": 48,
+   "quotation:person_en": 198,
+   "quotation:address": 276,
+   "quotation:licence": 100,
+   "quotation:company_translit": 255,
+   "quotation:iban": 273,
+   "quotation:po_box": 174,
+   "quotation:company_ar": 178,
+   "quotation:phone_mobile": 57,
+   "comparison:licence": 54,
+   "comparison:person_en": 129,
+   "comparison:company_en": 4,
+   "comparison:website": 4,
+   "comparison:po_box": 92,
+   "comparison:iban": 123,
+   "comparison:phone_mobile": 40,
+   "qa:person_en": 60,
+   "qa:company_ar": 60,
+   "qa:customer_phone": 7,
+   "qa:phone_mobile": 7
+  },
+  "by_surface": {
+   "drawing:file.pdf:pdf_strings": 10,
+   "drawing:file.pdf:pdftotext": 10,
+   "drawing:file.pdf:pixels": 26,
+   "drawing:file.pdf:ocr": 3,
+   "drawing:file.dxf:text": 17,
+   "drawing:file.pdf:ocr p0": 4,
+   "quotation:stored_quote.json:text": 741,
+   "quotation:quote_doc.json:text": 703,
+   "quotation:quotation.pdf:pdftotext": 499,
+   "quotation:quotation.pdf:pdf_strings": 6,
+   "comparison:compare_doc.json:text": 142,
+   "comparison:comparison.pdf:pdftotext": 133,
+   "comparison:comparison.csv:text": 165,
+   "comparison:comparison.pdf:pdf_strings": 6,
+   "qa:message.txt:text": 134
+  },
+  "held": {
+   "drawing:model_path": 36
+  },
+  "model_path_drawings": 36,
+  "ocr_control": {
+   "tokens": 1565,
+   "read": 1394,
+   "rate": 0.891
+  },
+  "image_control": {
+   "planted": 340,
+   "seen_on_original": 340
+  },
+  "leaks": [
+   {
+    "id": "d0_01",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_01/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠١٤"
+     },
+     {
+      "surface": "out/d0_01/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠١٤"
+     }
+    ]
+   },
+   {
+    "id": "d0_06",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_06/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Dune LI5"
+     }
+    ]
+   },
+   {
+    "id": "d0_07",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_07/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Pearl TF3"
+     }
+    ]
+   },
+   {
+    "id": "d0_10",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_10/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٣٢"
+     },
+     {
+      "surface": "out/d0_10/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٣٢"
+     }
+    ]
+   },
+   {
+    "id": "d0_12",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_12/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Crescent JH9"
+     }
+    ]
+   },
+   {
+    "id": "d0_13",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_13/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Crescent XV5"
+     }
+    ]
+   },
+   {
+    "id": "d0_27",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_27/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Crescent NH7"
+     }
+    ]
+   },
+   {
+    "id": "d0_28",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_28/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٦٨"
+     },
+     {
+      "surface": "out/d0_28/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٦٨"
+     }
+    ]
+   },
+   {
+    "id": "d0_29",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_29/file.pdf",
+      "source": "ocr",
+      "cls": "person_en",
+      "printed": "ZZ Yousef Shamsi"
+     },
+     {
+      "surface": "out/d0_29/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Yousef Shamsi"
+     }
+    ]
+   },
+   {
+    "id": "d0_34",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_34/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٠"
+     },
+     {
+      "surface": "out/d0_34/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٠"
+     }
+    ]
+   },
+   {
+    "id": "d0_35",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_35/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٢"
+     },
+     {
+      "surface": "out/d0_35/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٢"
+     }
+    ]
+   },
+   {
+    "id": "d0_48",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_48/file.dxf",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 614867"
+     },
+     {
+      "surface": "out/d0_48/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0019"
+     }
+    ]
+   },
+   {
+    "id": "d0_49",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_49/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٢١"
+     }
+    ]
+   },
+   {
+    "id": "d0_50",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_50/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٢٣"
+     }
+    ]
+   },
+   {
+    "id": "d0_53",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_53/file.dxf",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 389145"
+     }
+    ]
+   },
+   {
+    "id": "d0_58",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_58/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٣٩"
+     }
+    ]
+   },
+   {
+    "id": "d0_59",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d0_59/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0041"
+     }
+    ]
+   },
+   {
+    "id": "d1_04",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_04/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠١٣"
+     },
+     {
+      "surface": "out/d1_04/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠١٣"
+     },
+     {
+      "surface": "out/d1_04/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm IX6"
+     }
+    ]
+   },
+   {
+    "id": "d1_07",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_07/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm CI2"
+     }
+    ]
+   },
+   {
+    "id": "d1_24",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_24/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Pearl ST9"
+     }
+    ]
+   },
+   {
+    "id": "d1_25",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_25/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm ND2"
+     }
+    ]
+   },
+   {
+    "id": "d1_26",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_26/file.pdf",
+      "source": "ocr p0",
+      "cls": "person_en",
+      "printed": "ZZ Tariq Qasimi"
+     },
+     {
+      "surface": "out/d1_26/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Tariq Qasimi"
+     }
+    ]
+   },
+   {
+    "id": "d1_30",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_30/file.pdf",
+      "source": "ocr p0",
+      "cls": "person_en",
+      "printed": "ZZ Saeed Shamsi"
+     },
+     {
+      "surface": "out/d1_30/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Saeed Shamsi"
+     }
+    ]
+   },
+   {
+    "id": "d1_33",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_33/file.pdf",
+      "source": "ocr p0",
+      "cls": "person_en",
+      "printed": "ZZ Omar Nuaimi"
+     },
+     {
+      "surface": "out/d1_33/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Omar Nuaimi"
+     }
+    ]
+   },
+   {
+    "id": "d1_35",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_35/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٧٥"
+     },
+     {
+      "surface": "out/d1_35/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٧٥"
+     }
+    ]
+   },
+   {
+    "id": "d1_49",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_49/file.dxf",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 983896"
+     },
+     {
+      "surface": "out/d1_49/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠١٤"
+     }
+    ]
+   },
+   {
+    "id": "d1_53",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_53/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0022"
+     }
+    ]
+   },
+   {
+    "id": "d1_54",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_54/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0024"
+     }
+    ]
+   },
+   {
+    "id": "d1_55",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_55/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0026"
+     }
+    ]
+   },
+   {
+    "id": "d1_56",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_56/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0028"
+     }
+    ]
+   },
+   {
+    "id": "d1_57",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_57/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٣٠"
+     }
+    ]
+   },
+   {
+    "id": "d1_59",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d1_59/file.dxf",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 681731"
+     }
+    ]
+   },
+   {
+    "id": "d2_00",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_00/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٧"
+     },
+     {
+      "surface": "out/d2_00/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٨٧"
+     }
+    ]
+   },
+   {
+    "id": "d2_01",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_01/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm PY4"
+     }
+    ]
+   },
+   {
+    "id": "d2_03",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_03/file.pdf",
+      "source": "ocr p0",
+      "cls": "person_en",
+      "printed": "ZZ Majid Ketbi"
+     },
+     {
+      "surface": "out/d2_03/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Majid Ketbi"
+     }
+    ]
+   },
+   {
+    "id": "d2_05",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_05/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Oasis FE2"
+     }
+    ]
+   },
+   {
+    "id": "d2_08",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_08/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Horizon FW6"
+     }
+    ]
+   },
+   {
+    "id": "d2_09",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_09/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Horizon II5"
+     }
+    ]
+   },
+   {
+    "id": "d2_13",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_13/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Horizon GW5"
+     }
+    ]
+   },
+   {
+    "id": "d2_17",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_17/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Oasis UW6"
+     }
+    ]
+   },
+   {
+    "id": "d2_22",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_22/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Horizon YY5"
+     }
+    ]
+   },
+   {
+    "id": "d2_23",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_23/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٤٤"
+     },
+     {
+      "surface": "out/d2_23/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٤٤"
+     },
+     {
+      "surface": "out/d2_23/file.pdf",
+      "source": "ocr",
+      "cls": "person_en",
+      "printed": "ZZ Saeed Nuaimi"
+     },
+     {
+      "surface": "out/d2_23/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Saeed Nuaimi"
+     }
+    ]
+   },
+   {
+    "id": "d2_24",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_24/file.pdf",
+      "source": "pdf_strings",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٤٦"
+     },
+     {
+      "surface": "out/d2_24/file.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٤٦"
+     }
+    ]
+   },
+   {
+    "id": "d2_25",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_25/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm NB2"
+     }
+    ]
+   },
+   {
+    "id": "d2_28",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_28/file.pdf",
+      "source": "ocr",
+      "cls": "person_en",
+      "printed": "ZZ Rashid Nuaimi"
+     },
+     {
+      "surface": "out/d2_28/file.pdf",
+      "source": "pixels",
+      "cls": "image_signature",
+      "printed": "Rashid Nuaimi"
+     }
+    ]
+   },
+   {
+    "id": "d2_29",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_29/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Marina TT8"
+     }
+    ]
+   },
+   {
+    "id": "d2_32",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_32/file.pdf",
+      "source": "pixels",
+      "cls": "image_logo",
+      "printed": "ZZ Palm PU8"
+     }
+    ]
+   },
+   {
+    "id": "d2_48",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_48/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٩٤"
+     }
+    ]
+   },
+   {
+    "id": "d2_57",
+    "family": "drawing",
+    "hits": [
+     {
+      "surface": "out/d2_57/file.dxf",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "٠٤ ٠٠٠ ٠٠٢٣"
+     }
+    ]
+   },
+   {
+    "id": "q0_00",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_00/stored_quote.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Crescent Green AM9 Engineering Consultants LLC"
+     },
+     {
+      "surface": "out/q0_00/stored_quote.json",
+      "source": "text",
+      "cls": "website",
+      "printed": "www.zzcrescentgreenam9.example.invalid"
+     },
+     {
+      "surface": "out/q0_00/stored_quote.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد عمر المزروعي"
+     },
+     {
+      "surface": "out/q0_00/quote_doc.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد عمر المزروعي"
+     }
+    ]
+   },
+   {
+    "id": "q0_01",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_01/stored_quote.json",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0044"
+     },
+     {
+      "surface": "out/q0_01/stored_quote.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Omar Qasimi"
+     },
+     {
+      "surface": "out/q0_01/stored_quote.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد عمر القاسمي"
+     },
+     {
+      "surface": "out/q0_01/quote_doc.json",
+      "source": "text",
+      "cls": "phone_land",
+      "printed": "(04) 000 0044"
+     },
+     {
+      "surface": "out/q0_01/quote_doc.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Omar Qasimi"
+     },
+     {
+      "surface": "out/q0_01/quote_doc.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد عمر القاسمي"
+     },
+     {
+      "surface": "out/q0_01/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "phone_land",
+      "printed": "(04) 000 0044"
+     },
+     {
+      "surface": "out/q0_01/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "person_en",
+      "printed": "ZZ Omar Qasimi"
+     }
+    ]
+   },
+   {
+    "id": "q0_02",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_02/stored_quote.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Palm Blue IU8 Contracting Est."
+     },
+     {
+      "surface": "out/q0_02/stored_quote.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 735, ZZ Palm IU8 Tower, Al Quoz Industrial Area 3, Dubai"
+     },
+     {
+      "surface": "out/q0_02/stored_quote.json",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 273158"
+     },
+     {
+      "surface": "out/q0_02/stored_quote.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Azraq Contracting"
+     },
+     {
+      "surface": "out/q0_02/quote_doc.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Palm Blue IU8 Contracting Est."
+     },
+     {
+      "surface": "out/q0_02/quote_doc.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 735, ZZ Palm IU8 Tower, Al Quoz Industrial Area 3, Dubai"
+     },
+     {
+      "surface": "out/q0_02/quote_doc.json",
+      "source": "text",
+      "cls": "licence",
+      "printed": "TL 273158"
+     },
+     {
+      "surface": "out/q0_02/quote_doc.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Azraq Contracting"
+     },
+     {
+      "surface": "out/q0_02/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_en",
+      "printed": "ZZ Palm Blue IU8 Contracting Est."
+     },
+     {
+      "surface": "out/q0_02/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "address",
+      "printed": "Office 735, ZZ Palm IU8 Tower, Al Quoz Industrial Area 3, Dubai"
+     },
+     {
+      "surface": "out/q0_02/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "licence",
+      "printed": "TL 273158"
+     },
+     {
+      "surface": "out/q0_02/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Azraq Contracting"
+     }
+    ]
+   },
+   {
+    "id": "q0_03",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_03/stored_quote.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE09 0580 0009 6788 6290 627"
+     },
+     {
+      "surface": "out/q0_03/stored_quote.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد ماجد النعيمي"
+     },
+     {
+      "surface": "out/q0_03/quote_doc.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE09 0580 0009 6788 6290 627"
+     },
+     {
+      "surface": "out/q0_03/quote_doc.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد ماجد النعيمي"
+     },
+     {
+      "surface": "out/q0_03/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "iban",
+      "printed": "IBAN AE09 0580 0009 6788 6290 627"
+     }
+    ]
+   },
+   {
+    "id": "q0_04",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_04/stored_quote.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Majid Mazrouei"
+     },
+     {
+      "surface": "out/q0_04/stored_quote.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE87 0330 0067 5729 5307 391"
+     },
+     {
+      "surface": "out/q0_04/stored_quote.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Marsa Al Azraq Technical Services"
+     },
+     {
+      "surface": "out/q0_04/quote_doc.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Majid Mazrouei"
+     },
+     {
+      "surface": "out/q0_04/quote_doc.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE87 0330 0067 5729 5307 391"
+     },
+     {
+      "surface": "out/q0_04/quote_doc.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Marsa Al Azraq Technical Services"
+     },
+     {
+      "surface": "out/q0_04/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "person_en",
+      "printed": "ZZ Majid Mazrouei"
+     },
+     {
+      "surface": "out/q0_04/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "iban",
+      "printed": "IBAN AE87 0330 0067 5729 5307 391"
+     },
+     {
+      "surface": "out/q0_04/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_translit",
+      "printed": "Al Marsa Al Azraq Technical Services"
+     }
+    ]
+   },
+   {
+    "id": "q0_05",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_05/stored_quote.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 969, ZZ Oasis WY2 Tower, Al Quoz Industrial Area 1, Dubai"
+     },
+     {
+      "surface": "out/q0_05/quote_doc.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 969, ZZ Oasis WY2 Tower, Al Quoz Industrial Area 1, Dubai"
+     },
+     {
+      "surface": "out/q0_05/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "address",
+      "printed": "Office 969, ZZ Oasis WY2 Tower, Al Quoz Industrial Area 1, Dubai"
+     }
+    ]
+   },
+   {
+    "id": "q0_06",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_06/stored_quote.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN: AE280040006055553370809"
+     },
+     {
+      "surface": "out/q0_06/quote_doc.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN: AE280040006055553370809"
+     },
+     {
+      "surface": "out/q0_06/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "iban",
+      "printed": "IBAN: AE280040006055553370809"
+     }
+    ]
+   },
+   {
+    "id": "q0_07",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_07/stored_quote.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Katheeb Al Akhdar Trading"
+     },
+     {
+      "surface": "out/q0_07/stored_quote.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "P. O. Box 59508"
+     },
+     {
+      "surface": "out/q0_07/stored_quote.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE40 0350 0067 8119 3957 301"
+     },
+     {
+      "surface": "out/q0_07/quote_doc.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Katheeb Al Akhdar Trading"
+     },
+     {
+      "surface": "out/q0_07/quote_doc.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "P. O. Box 59508"
+     },
+     {
+      "surface": "out/q0_07/quote_doc.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE40 0350 0067 8119 3957 301"
+     },
+     {
+      "surface": "out/q0_07/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_translit",
+      "printed": "Al Katheeb Al Akhdar Trading"
+     },
+     {
+      "surface": "out/q0_07/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "po_box",
+      "printed": "P. O. Box 59508"
+     },
+     {
+      "surface": "out/q0_07/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "iban",
+      "printed": "IBAN AE40 0350 0067 8119 3957 301"
+     }
+    ]
+   },
+   {
+    "id": "q0_08",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_08/stored_quote.json",
+      "source": "text",
+      "cls": "company_ar",
+      "printed": "شركة النخلة الملكي للديكور ذ.م.م"
+     },
+     {
+      "surface": "out/q0_08/stored_quote.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "PO BOX: 14446"
+     },
+     {
+      "surface": "out/q0_08/stored_quote.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Malaki Interiors"
+     },
+     {
+      "surface": "out/q0_08/quote_doc.json",
+      "source": "text",
+      "cls": "company_ar",
+      "printed": "شركة النخلة الملكي للديكور ذ.م.م"
+     },
+     {
+      "surface": "out/q0_08/quote_doc.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "PO BOX: 14446"
+     },
+     {
+      "surface": "out/q0_08/quote_doc.json",
+      "source": "text",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Malaki Interiors"
+     },
+     {
+      "surface": "out/q0_08/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "po_box",
+      "printed": "PO BOX: 14446"
+     },
+     {
+      "surface": "out/q0_08/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_translit",
+      "printed": "Al Nakhla Al Malaki Interiors"
+     }
+    ]
+   },
+   {
+    "id": "q0_09",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_09/stored_quote.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Marina Blue ZP5 Trading LLC"
+     },
+     {
+      "surface": "out/q0_09/stored_quote.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 833, ZZ Marina ZP5 Tower, Al Quoz Industrial Area 2, Dubai"
+     },
+     {
+      "surface": "out/q0_09/stored_quote.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "ص.ب ٥٦١٤٣"
+     },
+     {
+      "surface": "out/q0_09/stored_quote.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد ماجد الشامسي"
+     },
+     {
+      "surface": "out/q0_09/quote_doc.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Marina Blue ZP5 Trading LLC"
+     },
+     {
+      "surface": "out/q0_09/quote_doc.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 833, ZZ Marina ZP5 Tower, Al Quoz Industrial Area 2, Dubai"
+     },
+     {
+      "surface": "out/q0_09/quote_doc.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "ص.ب ٥٦١٤٣"
+     },
+     {
+      "surface": "out/q0_09/quote_doc.json",
+      "source": "text",
+      "cls": "person_ar",
+      "printed": "زد زد ماجد الشامسي"
+     },
+     {
+      "surface": "out/q0_09/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "company_en",
+      "printed": "ZZ Marina Blue ZP5 Trading LLC"
+     },
+     {
+      "surface": "out/q0_09/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "address",
+      "printed": "Office 833, ZZ Marina ZP5 Tower, Al Quoz Industrial Area 2, Dubai"
+     }
+    ]
+   },
+   {
+    "id": "q0_10",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_10/stored_quote.json",
+      "source": "text",
+      "cls": "company_en",
+      "printed": "ZZ Pearl Golden SH7 Engineering Consultants Est."
+     },
+     {
+      "surface": "out/q0_10/stored_quote.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 394, ZZ Pearl SH7 Tower, Al Quoz Industrial Area 1, Dubai"
+     },
+     {
+      "surface": "out/q0_10/stored_quote.json",
+      "source": "text",
+      "cls": "website",
+      "printed": "www.zzpearlgoldensh7.example.invalid"
+     },
+     {
+      "surface": "out/q0_10/stored_quote.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Majid Nuaimi"
+     },
+     {
+      "surface": "out/q0_10/stored_quote.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE50 0000 0079 9599 0314 466"
+     },
+     {
+      "surface": "out/q0_10/quote_doc.json",
+      "source": "text",
+      "cls": "address",
+      "printed": "Office 394, ZZ Pearl SH7 Tower, Al Quoz Industrial Area 1, Dubai"
+     },
+     {
+      "surface": "out/q0_10/quote_doc.json",
+      "source": "text",
+      "cls": "person_en",
+      "printed": "ZZ Majid Nuaimi"
+     },
+     {
+      "surface": "out/q0_10/quote_doc.json",
+      "source": "text",
+      "cls": "iban",
+      "printed": "IBAN AE50 0000 0079 9599 0314 466"
+     },
+     {
+      "surface": "out/q0_10/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "address",
+      "printed": "Office 394, ZZ Pearl SH7 Tower, Al Quoz Industrial Area 1, Dubai"
+     },
+     {
+      "surface": "out/q0_10/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "person_en",
+      "printed": "ZZ Majid Nuaimi"
+     },
+     {
+      "surface": "out/q0_10/quotation.pdf",
+      "source": "pdftotext",
+      "cls": "iban",
+      "printed": "IBAN AE50 0000 0079 9599 0314 466"
+     }
+    ]
+   }
+  ],
+  "label": "origin/main code, with OCR (grader before the PDF-digit fixes: its quotation/comparison numbers carry false PDF-structure digit hits)"
+ },
+ "after_text_pixels_metadata": {
+  "measured_at": "2026-11-03T11:38:10.555Z",
+  "seed": 20261103,
+  "repeats": 3,
+  "trials": 480,
+  "leaked_trials": 0,
+  "table": [
+   {
+    "family": "drawing",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "quotation",
+    "trials": 300,
+    "shared": 300,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "comparison",
+    "trials": 60,
+    "shared": 60,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "qa",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   }
+  ],
+  "by_class": {},
+  "by_surface": {},
+  "held": {
+   "drawing:model_path": 36
+  },
+  "model_path_drawings": 36,
+  "ocr_control": "skipped",
+  "image_control": {
+   "planted": 340,
+   "seen_on_original": 340
+  },
+  "leaks": [],
+  "label": "this branch, grader final (text, metadata, pixels)"
+ },
+ "after_with_ocr": {
+  "measured_at": "2026-11-03T11:17:56.829Z",
+  "seed": 20261103,
+  "repeats": 3,
+  "trials": 480,
+  "leaked_trials": 8,
+  "table": [
+   {
+    "family": "drawing",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "quotation",
+    "trials": 300,
+    "shared": 300,
+    "held_entirely": 0,
+    "leaked": 8
+   },
+   {
+    "family": "comparison",
+    "trials": 60,
+    "shared": 60,
+    "held_entirely": 0,
+    "leaked": 9
+   },
+   {
+    "family": "qa",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   }
+  ],
+  "by_class": {
+   "quotation:po_box": 7,
+   "quotation:licence": 1,
+   "comparison:po_box": 9
+  },
+  "by_surface": {
+   "quotation:quotation.pdf:pdf_strings": 7,
+   "quotation:quote_doc.json:text": 1,
+   "comparison:comparison.pdf:pdf_strings": 9
+  },
+  "held": {
+   "drawing:model_path": 36
+  },
+  "model_path_drawings": 36,
+  "ocr_control": {
+   "tokens": 1565,
+   "read": 1394,
+   "rate": 0.891
+  },
+  "image_control": {
+   "planted": 340,
+   "seen_on_original": 340
+  },
+  "leaks": [
+   {
+    "id": "q0_69",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q0_69/quotation.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "ص.ب ٦٦٥٦٥"
+     }
+    ]
+   },
+   {
+    "id": "q1_14",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q1_14/quote_doc.json",
+      "source": "text",
+      "cls": "po_box",
+      "printed": "POB 90156"
+     }
+    ]
+   },
+   {
+    "id": "q1_36",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q1_36/quotation.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "POB 11465"
+     }
+    ]
+   },
+   {
+    "id": "q1_76",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q1_76/quotation.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "P.O. Box 30335, Dubai"
+     }
+    ]
+   },
+   {
+    "id": "q1_80",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q1_80/quotation.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "PO BOX: 86469"
+     }
+    ]
+   },
+   {
+    "id": "q1_98",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q1_98/quotation.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "P.O. Box 19149, Dubai"
+     }
+    ]
+   },
+   {
+    "id": "q2_12",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q2_12/quotation.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "POB 76740"
+     }
+    ]
+   },
+   {
+    "id": "q2_78",
+    "family": "quotation",
+    "hits": [
+     {
+      "surface": "out/q2_78/quotation.pdf",
+      "source": "pdf_strings",
+      "cls": "licence",
+      "printed": "CN-618119"
+     }
+    ]
+   },
+   {
+    "id": "request_4",
+    "family": "comparison",
+    "hits": [
+     {
+      "surface": "out/request_4/comparison.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "PO BOX: 86517"
+     }
+    ]
+   },
+   {
+    "id": "request_10",
+    "family": "comparison",
+    "hits": [
+     {
+      "surface": "out/request_10/comparison.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "P. O. Box 82612"
+     }
+    ]
+   },
+   {
+    "id": "request_14",
+    "family": "comparison",
+    "hits": [
+     {
+      "surface": "out/request_14/comparison.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "P. O. Box 93801"
+     }
+    ]
+   },
+   {
+    "id": "request_26",
+    "family": "comparison",
+    "hits": [
+     {
+      "surface": "out/request_26/comparison.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "POB 42408"
+     }
+    ]
+   },
+   {
+    "id": "request_27",
+    "family": "comparison",
+    "hits": [
+     {
+      "surface": "out/request_27/comparison.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "POB 11465"
+     }
+    ]
+   },
+   {
+    "id": "request_39",
+    "family": "comparison",
+    "hits": [
+     {
+      "surface": "out/request_39/comparison.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "P.O. Box 19149, Dubai"
+     }
+    ]
+   },
+   {
+    "id": "request_49",
+    "family": "comparison",
+    "hits": [
+     {
+      "surface": "out/request_49/comparison.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "ص.ب ٤٦٤٢٩"
+     }
+    ]
+   },
+   {
+    "id": "request_52",
+    "family": "comparison",
+    "hits": [
+     {
+      "surface": "out/request_52/comparison.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "ص.ب ٦٦٤١٧"
+     }
+    ]
+   },
+   {
+    "id": "request_54",
+    "family": "comparison",
+    "hits": [
+     {
+      "surface": "out/request_54/comparison.pdf",
+      "source": "pdf_strings",
+      "cls": "po_box",
+      "printed": "P.O. Box 42068, Dubai"
+     }
+    ]
+   }
+  ],
+  "label": "this branch, with OCR (same caveat; every drawing surface 0)"
+ },
+ "after_review_with_ocr": {
+  "measured_at": "2026-11-03T13:15:18.539Z",
+  "seed": 20261103,
+  "repeats": 3,
+  "trials": 480,
+  "leaked_trials": 0,
+  "table": [
+   {
+    "family": "drawing",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "quotation",
+    "trials": 300,
+    "shared": 300,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "comparison",
+    "trials": 60,
+    "shared": 60,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "qa",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   }
+  ],
+  "by_class": {},
+  "by_surface": {},
+  "held": {
+   "drawing:file": 1,
+   "drawing:model_path": 36
+  },
+  "model_path_drawings": 36,
+  "ocr_control": {
+   "tokens": 1577,
+   "read": 1414,
+   "rate": 0.897
+  },
+  "image_control": {
+   "planted": 348,
+   "seen_on_original": 348
+  },
+  "leaks": [],
+  "label": "this branch after the review of #1838 (must-keep fixes), with OCR; corpus licence formats as a letterhead prints them (CN- with 7 digits, T.L. No.)"
+ },
+ "must_keep_probes": {
+  "probe.ts shared list": "38/38 kept",
+  "probe.ts own trade-named firm scope": "9/10 kept; Emirates Glass LLC: \"Emirates glass ...\" is its own whole name and is removed on purpose",
+  "probe.ts Q&A (old call shape, project as a name)": "changed 3/3 — production now passes the project as a whole name (stripContact third argument); in that shape 3/3 kept",
+  "probe_main.ts": "39/39 lines x scrubbers kept; 3/3 trade-named firms kept",
+  "probe_reveal.ts": "4/4 party chips name the supplier",
+  "probe_cmp.ts": "3/3 kept"
+ },
+ "after_second_review_with_ocr": {
+  "measured_at": "2026-11-03T18:12:47.530Z",
+  "seed": 20261103,
+  "repeats": 3,
+  "out": "C:\\Users\\Opera\\AppData\\Local\\Temp\\claude\\C--Users-Opera-quotesdone\\cb0a3e96-2789-4224-a360-e068884b5c7b\\scratchpad\\leak_run4",
+  "trials": 480,
+  "leaked_trials": 0,
+  "table": [
+   {
+    "family": "drawing",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "quotation",
+    "trials": 300,
+    "shared": 300,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "comparison",
+    "trials": 60,
+    "shared": 60,
+    "held_entirely": 0,
+    "leaked": 0
+   },
+   {
+    "family": "qa",
+    "trials": 180,
+    "shared": 180,
+    "held_entirely": 0,
+    "leaked": 0
+   }
+  ],
+  "by_class": {},
+  "by_surface": {},
+  "held": {
+   "drawing:model_path": 36
+  },
+  "model_path_drawings": 36,
+  "ocr_control": {
+   "tokens": 1583,
+   "read": 1405,
+   "rate": 0.888
+  },
+  "image_control": {
+   "planted": 324,
+   "seen_on_original": 324
+  },
+  "leaks": [],
+  "note": "Second independent review of #1838 and its adversarial re-review fixed (head 093db57d). The corpus plants CN licences six- and seven-digit, dashed, spaced and joined again (60 / 51 / 47 / 51 distinct planted forms in this run). No model calls, USD 0."
+ }
+}

@@ -91,3 +91,20 @@ Deno.test('5. a pictured CAD original that is held says cad_read_not_pictured, o
   const finalAnswer = src.split('\n').find((l) => /return J\(\{ ok: true, boq: boqOut, drawing_file_path: path/.test(l)) || '';
   assert(/\.\.\.cadNote\(isCad/.test(finalAnswer), "analyze_drawing's pictured answer does not spread cadNote");
 });
+
+// Review of #1838 (3 Nov 2026): the anonymised FILE held for an image straddling the title block was silent.
+Deno.test('a held anonymised file is said to the customer, in English and Arabic, with what to do', async () => {
+  const { fileHeldNote } = await import('./drawing_hold.ts');
+  assertEquals(fileHeldNote(null), {});
+  const n = fileHeldNote('image_straddles_title_block') as { drawing_file_held: string; drawing_file_message: { en: string; ar: string } };
+  assertEquals(n.drawing_file_held, 'image_straddles_title_block');
+  assert(/title block/.test(n.drawing_file_message.en) && /upload the drawing again/.test(n.drawing_file_message.en));
+  assert(/إطار العنوان/.test(n.drawing_file_message.ar));
+  assert((fileHeldNote('title_block_not_confident') as { drawing_file_message: { en: string } }).drawing_file_message.en.includes('not shared'));
+  // Second review of #1838: the note was unit-tested and its CALL SITE was not, the same gap test 5 closed for cadNote.
+  // analyze_drawing's final answer spreads fileHeldNote(fileHeld), and fileHeld is set from the anonymiser's `held`.
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const finalAnswer = src.split('\n').find((l) => /return J\(\{ ok: true, boq: boqOut, drawing_file_path: path/.test(l)) || '';
+  assert(/\.\.\.fileHeldNote\(fileHeld\)/.test(finalAnswer), "analyze_drawing's final answer does not spread fileHeldNote(fileHeld)");
+  assert(/fileHeld = f\.held/.test(src), 'fileHeld is never set from the anonymised file result');
+});

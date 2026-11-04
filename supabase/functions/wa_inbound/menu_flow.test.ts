@@ -735,7 +735,11 @@ Deno.test('777: FIGURES from the founder is his internal reading; from anyone el
       assertMatch(body, /^Internal figures at 19:33 on Tue 22 Sep \(UAE time\), for internal use only:/);
       for (const n of ['Suppliers: 11 registered (12 in the last 7 days), 13 verified.', 'Customer requests: 21 today, 22', 'Quotes: 31 in total', 'Reveals this month: 41 paid, AED 4,200', 'Support: 51 open', 'IT: 61 open', 'Marketing (7 days): 71']) assert(body.includes(n), n);
     } else {
-      assertMatch(body, /^الأرقام الداخلية \(19:33 on Tue 22 Sep بتوقيت الإمارات\)، للاطلاع الداخلي فقط:/);
+      // 3 Nov 2026 (gap #10): this line used to expect "19:33 on Tue 22 Sep" inside the Arabic header, pinning SQL's English
+      // to_char words into an Arabic reply. With no read_at the Arabic header keeps the time alone; with read_at it is
+      // written in Arabic (founder_command_channel.test.ts). Either way the Arabic reading carries no English.
+      assertMatch(body, /^الأرقام الداخلية \(19:33 بتوقيت الإمارات\)، للاطلاع الداخلي فقط:/);
+      assert(!/[A-Za-z]/.test(body), 'the Arabic reading carries no English');
       assert(body.includes('الموردون: 11 مسجّل (12 خلال 7 أيام)، و13 موثّق.'));
     }
   }
