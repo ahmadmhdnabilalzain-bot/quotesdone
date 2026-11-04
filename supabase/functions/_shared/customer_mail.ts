@@ -14,7 +14,7 @@
 //   2. owner_role is set — fn_receipt_hand_to_bookkeeper stamps it on rows a seat owns (6 Sep 2026).
 //   3. its body carries the tag the accountant / receipt path writes: "[expense ...]",
 //      "[REFUSED — ...]", "[HELD — ...]", "[receipt received but NOT booked ...]".
-import { isUnsubscribeRequest } from './unsubscribe_mailbox.ts';
+import { INVITATION_MAILBOX, isUnsubscribeRequest } from './unsubscribe_mailbox.ts';
 export const EXPENSE_MAILBOX = 'expenses@mail.quotesdone.com';
 const INTERNAL_LOCALS = new Set(['expenses', 'docs', 'supplier', 'management']);
 const OUR_DOMAIN = /^(?:mail\.)?quotesdone\.com$/;
@@ -87,7 +87,8 @@ export function noAutoReply(m: MailFacts, founderAddrs: string[]): NoAutoReply |
 // tag, no other internal address), the sender is not on our domain, and the caller has proved the sender is a lead
 // (fn_mail_sender_known = 'supplier'). The founder's own warm-up replies and any stranger writing to supplier@ stay
 // unanswered, exactly as before.
-export const INVITATION_MAILBOX = 'supplier@quotesdone.com';
+// One definition, beside the stop rule that reads it (unsubscribe_mailbox.ts, 28 Oct 2026).
+export { INVITATION_MAILBOX } from './unsubscribe_mailbox.ts';
 // NEVER TO SOMEONE WHO SAID STOP, AND NEVER TO A MACHINE (review of #1699, 28 Oct 2026). A "stop" that resend_inbound
 // could not apply is stored for review with a body starting "[UNSUBSCRIBE REQUEST NOT APPLIED" (needs_review true), which
 // no back-office tag matched: without this, a lead who asked to be left alone would have been sent the registration
