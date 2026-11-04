@@ -5,13 +5,13 @@ import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import { finishCompareArabic, MAX_ATTEMPTS, type CompareFinishIO, type Rendered, type Waiter } from './compare_arabic.ts';
 
 const IID = 'zz-demo-inquiry';
-function rig(o: { render?: () => Rendered; email?: string | null; deliverFails?: boolean } = {}) {
+function rig(o: { render?: () => Rendered; email?: string | null; deliverFails?: boolean; inquiryGone?: boolean } = {}) {
   const waiters = new Map<string, Waiter>([[IID, { inquiry_id: IID, created_at: '2026-10-19T12:00:00Z', attempts: 0 }]]);
   const outbox = new Map<string, Record<string, unknown>>();
-  const renders: string[] = []; const told: unknown[] = [];
+  const renders: string[] = []; const told: unknown[] = []; const overdue: number[] = [];
   const io: CompareFinishIO = {
     waiter: (iid) => Promise.resolve(waiters.get(iid) ?? null),
-    inquiry: (iid) => Promise.resolve({ id: iid, rfq_no: 'RFQ-1', customer_id: 'zz-cust' }),
+    inquiry: (iid) => Promise.resolve(o.inquiryGone ? null : { id: iid, rfq_no: 'RFQ-1', customer_id: 'zz-cust' }),
     customer: () => Promise.resolve({ email: o.email === undefined ? 'zz.demo@example.invalid' : o.email }),
     render: (inq) => { renders.push(inq.id); return Promise.resolve(o.render ? o.render() : { url: 'https://example.invalid/compare.pdf', ref: 'QD-1-CMP' }); },
     deliver: (rows) => {
@@ -22,9 +22,25 @@ function rig(o: { render?: () => Rendered; email?: string | null; deliverFails?:
     done: (iid) => { waiters.delete(iid); return Promise.resolve(); },
     tried: (iid, attempts) => { const w = waiters.get(iid); if (w) waiters.set(iid, { ...w, attempts }); return Promise.resolve(); },
     tellSalesEngineer: (_iid, last) => { told.push(last); return Promise.resolve(); },
+    overdue: (_iid, hours) => { overdue.push(hours); return Promise.resolve(); },
   };
-  return { io, waiters, outbox, renders, told };
+  return { io, waiters, outbox, renders, told, overdue };
 }
+const AT = (h: number) => Date.parse('2026-10-19T12:00:00Z') + h * 36e5;
+
+Deno.test('THE CLOCK: a report still missing Arabic at 6 h goes to the sales engineer\'s queue; before 6 h it only waits', async () => {
+  const r = rig({ render: () => ({ held: true }) });
+  assertEquals(await finishCompareArabic(r.io, IID, AT(5.9)), { ok: false, code: 'still_pending' });
+  assertEquals(r.overdue, [], 'not yet overdue');
+  assertEquals(await finishCompareArabic(r.io, IID, AT(16)), { ok: false, code: 'still_pending' });
+  assertEquals([r.overdue, r.outbox.size, r.renders.length], [[16], 0, 2], 'owned and on the clock, never sent half-translated');
+});
+
+Deno.test('a waiter whose inquiry no longer exists (a removed demo request) is closed, not left open', async () => {
+  const r = rig({ inquiryGone: true });
+  assertEquals(await finishCompareArabic(r.io, IID, AT(16)), { ok: false, code: 'not_found' });
+  assertEquals([r.waiters.size, r.renders.length, r.outbox.size], [0, 0, 0]);
+});
 
 Deno.test('a held report whose lines now exist is rendered and sent to the customer in Arabic, once per channel', async () => {
   const r = rig();
@@ -55,7 +71,7 @@ Deno.test('exactly once: two runs racing on the same waiter queue one delivery p
 
 Deno.test('a line still missing: nothing is sent, nothing is counted against it, and the waiter stays for the next replay', async () => {
   const r = rig({ render: () => ({ held: true }) });
-  assertEquals(await finishCompareArabic(r.io, IID), { ok: false, code: 'still_pending' });
+  assertEquals(await finishCompareArabic(r.io, IID, AT(1)), { ok: false, code: 'still_pending' });
   assertEquals([r.outbox.size, r.waiters.get(IID)?.attempts], [0, 0]);
 });
 

@@ -69,7 +69,7 @@ export function ProductShowcase() {
               <span className="qd-scan border-b border-teal-light/60" aria-hidden />
             </div>
             <p className="mt-4 flex items-center gap-2 text-small text-muted">
-              <span className="redact redact-line !w-8" aria-hidden />
+              <span className="redact redact-line w-8!" aria-hidden />
               {t('sealedNote')}
             </p>
           </li>
@@ -93,7 +93,7 @@ export function ProductShowcase() {
                     <td className="py-2.5 ps-3">
                       <div className="flex items-center justify-end gap-2">
                         <span className="qd-meter block w-full max-w-[64px]">
-                          <span className={r.conf < 90 ? '!bg-gold' : undefined} style={{ width: `${r.conf}%` }} />
+                          <span className={r.conf < 90 ? 'bg-gold!' : undefined} style={{ width: `${r.conf}%` }} />
                         </span>
                         <span className="w-9 text-end font-mono text-label tabular text-muted" dir="ltr">{r.conf}%</span>
                       </div>
@@ -115,7 +115,7 @@ export function ProductShowcase() {
                   <li
                     key={q.id}
                     className={`rounded-[14px] px-4 py-3.5 ${
-                      chosen ? 'bg-gold/[0.05] shadow-[inset_0_0_0_1px_rgba(227,192,101,.45)]' : 'bg-navy-deep/50 shadow-[inset_0_0_0_1px_rgba(110,231,212,.1)]'
+                      chosen ? 'bg-gold/5 shadow-[inset_0_0_0_1px_rgba(227,192,101,.45)]' : 'bg-navy-deep/50 shadow-[inset_0_0_0_1px_rgba(110,231,212,.1)]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -126,7 +126,7 @@ export function ProductShowcase() {
                         {chosen ? (
                           <Seal loop className="qd-revealed text-[13.5px] font-semibold">{t('revealed')}</Seal>
                         ) : (
-                          <span className="redact redact-line !w-[150px] text-[18px]" aria-hidden />
+                          <span className="redact redact-line w-[150px]! text-[18px]" aria-hidden />
                         )}
                         <span className="mt-1 block font-mono text-[11.5px] text-faint" dir="ltr">{q.id} · {q.items} · {q.days}</span>
                       </div>
@@ -158,7 +158,7 @@ function StepLabel({ n, label }: { n: string; label: string }) {
     <div className="flex items-center gap-3">
       <span className="font-mono text-label tabular text-teal-light">{n}</span>
       <span className="text-[14px] font-semibold text-white">{label}</span>
-      <span className="h-px flex-1 bg-gradient-to-r from-teal/40 to-transparent rtl:bg-gradient-to-l" aria-hidden />
+      <span className="h-px flex-1 bg-linear-to-r from-teal/40 to-transparent rtl:bg-linear-to-l" aria-hidden />
     </div>
   );
 }

@@ -23,6 +23,7 @@
 //     the entire point; a function should not get to pick Opus for a classification task.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { errorText } from './error_text.ts';
+import { platformRefused } from './not_reached.ts';
 
 // The client is made on first use, not at import (29 Sep 2026). Made at import, it threw "supabaseUrl is
 // required" out of every module that merely IMPORTS this one wherever SUPABASE_URL is unset (the CI Deno
@@ -61,6 +62,10 @@ export interface LlmDefaults {
   // The caller parses one JSON object. ai_gateway turns this into response_format only where the
   // routed model supports it (_shared/request_shape.ts); the caller's own parser stays the fallback.
   json?: boolean;
+  // A seat's own scheduled duty (think.ts internalDuty): ai_gateway never re-asks the same model after a paid empty answer.
+  internalDuty?: boolean;
+  // Replay only a byte-identical prompt from the cache, never a semantically similar one (public_site's memo).
+  cacheExact?: boolean;
 }
 
 // V3 REMEDIATION (14 Aug 2026) — WHY THIS FILE GREW A SECOND ENTRY POINT.
@@ -119,6 +124,7 @@ export interface LlmCallOpts {
   // the conversation's earlier turns ride as a cached block (chat_history.ts; ai_gateway withHistoryBreakpoint)
   cacheHistory?: boolean;
   effort?: 'low' | 'medium' | 'high';   // the reasoning effort asked of the model (request_shape.ts); absent = its default
+  signal?: AbortSignal;   // the caller stops waiting (a speculative reply that was discarded): the request is aborted
 }
 const EMPTY = (e: string | null, status = 0, used = true): LlmResult =>
   ({ content: null, message: null, tool_calls: [], finish_reason: null, truncated: false, used_llm: used, http_status: status, error: e });
@@ -191,9 +197,12 @@ async function gatewayCredential(fnName: string): Promise<string> {
   return legacy;
 }
 
-/** A 503 the gateway did not write: no `ok` in a JSON body, so the platform answered before any gateway code ran. */
-export function noWorkerServed(status: number, body: unknown): boolean {
-  return status === 503 && !(body && typeof body === 'object' && 'ok' in (body as Record<string, unknown>));
+/** A 503 the gateway did not write (no `ok` in a JSON body), or a relay 5xx the edge runtime never served
+ *  (_shared/not_reached.ts, 2 Nov 2026: 127 Cloudflare 502s in a day with no worker behind them). */
+export function noWorkerServed(status: number, body: unknown, servedBy: string | null = null): boolean {
+  // The gateway's own envelope proves its code ran, whatever the status and headers say: never asked again.
+  if (body && typeof body === 'object' && 'ok' in (body as Record<string, unknown>)) return false;
+  return status === 503 || platformRefused(status, servedBy);
 }
 export const NO_WORKER_RETRY_MS = 750;
 
@@ -217,6 +226,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
   return async function llmRich(sys: string, input: string | Msg[], max: number = dMax, sysStable = '', opts: LlmCallOpts = {}): Promise<LlmResult> {
     const ac = new AbortController();
     const to = setTimeout(() => ac.abort(), dTo + 5000); // gateway has its own 25s per attempt
+    if (opts.signal) { if (opts.signal.aborted) ac.abort(); else opts.signal.addEventListener('abort', () => ac.abort(), { once: true }); }
     try {
       const secret = await gatewayCredential(fnName);
       if (!secret) {
@@ -287,6 +297,8 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
           // The caller's ladder is recorded for audit but does not override policy.
           caller_ladder: models,
           ...(def.json ? { response_format: { type: 'json_object' } } : {}),
+          ...(def.internalDuty ? { internal_duty: true } : {}),
+          ...(def.cacheExact ? { cache_exact: true } : {}),
           ...(opts.subject ? { subject: opts.subject } : {}),
           // TOOLS. The gateway has always accepted these three; nothing that reached it through
           // this module ever sent them. `tools` makes fn_ai_route require a tools-capable model
@@ -309,7 +321,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
       // carries its JSON envelope with `ok` (a hold, a fixture stub, an open circuit) and is never retried here; only
       // a 503 without that envelope is, once, after a short pause, inside the same abort timer.
       // prevented by: _shared/llm_client_errors.test.ts
-      if (noWorkerServed(r.status, j)) {
+      if (noWorkerServed(r.status, j, r.headers.get('x-served-by'))) {
         await new Promise((res) => setTimeout(res, NO_WORKER_RETRY_MS));
         r = await fetch(GATEWAY, { ...init, signal: ac.signal });
         j = await r.json().catch(() => null);

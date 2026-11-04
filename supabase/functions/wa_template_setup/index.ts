@@ -44,7 +44,10 @@ type Catalogue =
   | { category: 'AUTHENTICATION'; copy_code_en: string; copy_code_ar: string; expiry_minutes: number }
   // MARKETING (19 Oct 2026): written to suppliers, who are only ever written to in English, so it has no Arabic.
   // 27 Oct 2026: one variable (the trade) and no link (ruling 1301); quick-reply buttons instead of a URL.
-  | { category: 'MARKETING'; en: string; sample1_en: string; buttons: readonly { id: string; title: string }[] };
+  | { category: 'MARKETING'; en: string; sample1_en: string; buttons: readonly { id: string; title: string }[] }
+  // UTILITY, ENGLISH ONLY (2 Nov 2026): a notice written only to suppliers, who are only ever written to in English
+  // (founder, 28 Sep 2026), so there is no Arabic body to author and an Arabic create is refused.
+  | { category?: 'UTILITY'; english_only: true; en: string; sample1_en: string; url: string };
 const CATALOGUE: Record<string, Catalogue> = {
   // 18 SEP 2026 — THE SIGN-IN CODE. Founder authorised this submission. AUTHENTICATION category:
   // Meta refuses to carry a one-time code under UTILITY, and refuses an authentication body written
@@ -135,6 +138,41 @@ const CATALOGUE: Record<string, Catalogue> = {
     sample1_en: WA_INVITE_SAMPLE_TRADE,
     buttons: WA_INVITE_BUTTONS,
   },
+  // 2 NOV 2026 (it_engineer) — the registration reminder. fn_supplier_registration_reminders_due sends the email and
+  // fn_wa_fanout queues its WhatsApp twin to the confirmed number; until now send_whatsapp had no template for the type
+  // and skipped it (measured: the first reminder, 2 Nov 05:00Z, skipped with "no WhatsApp template mapping"). UTILITY:
+  // a notice about the recipient's own started registration. {{1}} is what the registration still needs (or that it
+  // has not started), {{2}} the portal - the plain portal link, never a claim link (ruling 1301, "safer to not send
+  // links", and the approved supplier_account_notice already carries this one). Both are bounded by literal text.
+  // The opt-out is named because the email offers one; wa_inbound honours STOP.
+  supplier_registration_reminder: {
+    english_only: true,
+    en: 'QuotesDone reminder: {{1}}. You can continue your supplier registration here: {{2}} If you would rather not receive these reminders, reply STOP. Thank you.',
+    sample1_en: 'your supplier registration still needs the trade licence, the company profile and the signed supplier terms',
+    url: 'https://quotesdone.com/portal',
+  },
+  // 3 NOV 2026 (customer_support) — the customer's account-active confirmation. Founder, 3 Nov 2026: after a customer
+  // registers "he gets a confirmation on email and whatsapp that his account is active". fn_customer_account_active_notice
+  // queues the email when the customer accepts the terms (the last step of sign-up) and fn_wa_fanout its twin to the
+  // confirmed number. UTILITY: a notice about the recipient's own account. {{1}} is the email's subject ("Your QuotesDone
+  // account is active", in the customer's language), {{2}} the account page. Both are bounded by literal text.
+  customer_account_active: {
+    en: 'QuotesDone: {{1}}. You can now post a request and compare quotes from verified suppliers here: {{2}} Thank you.',
+    ar: 'QuotesDone: {{1}}. يمكنكم الآن نشر طلبكم ومقارنة عروض الأسعار من موردين موثّقين عبر الرابط: {{2}} وشكرًا لكم.',
+    sample1_en: 'Your QuotesDone account is active', sample1_ar: 'أصبح حسابكم على QuotesDone مفعّلًا',
+    url: 'https://quotesdone.com/me',
+  },
+  // 3 NOV 2026 (customer_support) — the invoice for a paid reveal, on WhatsApp. Founder, 3 Nov 2026: "an invoice from our
+  // app is shared on email and whatsapp with the customer". The carrier is invoice_ready ("Your invoice is ready", the
+  // invoice.issued handoff): reveal_invoice (action 'attach') renders the QuotesDone invoice, attaches it to that email and
+  // puts the same PDF reference on its WhatsApp twin; send_whatsapp signs a 7-day link to it as it sends. {{1}} is the
+  // notice's subject, {{2}} the invoice link (the account page if no invoice was attached). Both are literal-bounded.
+  customer_reveal_invoice: {
+    en: 'QuotesDone: {{1}}. You can download the invoice for your payment here: {{2}} Thank you.',
+    ar: 'QuotesDone: {{1}}. يمكنكم تنزيل فاتورة دفعتكم عبر الرابط: {{2}} وشكرًا لكم.',
+    sample1_en: 'Your invoice is ready', sample1_ar: 'فاتورتكم جاهزة',
+    url: 'https://quotesdone.com/me',
+  },
   // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
   supplier_quote_accepted: {
     en: 'QuotesDone: a customer has paid to reveal your quote for {{1}}. Please respond within 5 working days. Open your portal here: {{2}} Thank you.',
@@ -196,8 +234,10 @@ Deno.serve(observe('wa_template_setup', async (req) => {
       // localises it, and substitutes the single code variable itself. Sending `variables` or a
       // twilio/text body with it is refused. Everything else is the two-variable UTILITY notice this
       // function was written for.
-      if (cat.category === 'MARKETING' && isAr) return J({ step: 'create', ok: false, error: 'english_only: suppliers are written to in English only' }, 400);
-      const payload = cat.category === 'AUTHENTICATION'
+      if ((cat.category === 'MARKETING' || 'english_only' in cat) && isAr) return J({ step: 'create', ok: false, error: 'english_only: suppliers are written to in English only' }, 400);
+      const payload = 'english_only' in cat
+        ? { variables: { '1': cat.sample1_en, '2': cat.url }, types: { 'twilio/text': { body: cat.en } } }
+        : cat.category === 'AUTHENTICATION'
         ? { types: { 'whatsapp/authentication': {
               add_security_recommendation: true,
               code_expiration_minutes: cat.expiry_minutes,

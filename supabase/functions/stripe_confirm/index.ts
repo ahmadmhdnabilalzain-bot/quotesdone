@@ -4,6 +4,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
 import { canReveal } from '../_shared/reveal_guard.ts';
+import { recordRevealSale } from '../_shared/reveal_sale.ts';
+import { checkoutSaleArgs } from '../_shared/reveal_args.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -72,18 +74,15 @@ Deno.serve(siteCors(observe('stripe_confirm', async (req) => {
     const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
     if (existing) { await logRun('ok', { quote_id: qid, already_revealed: true }, 'already recorded (likely by stripe_webhook)'); return J({ ok: true, already_revealed: true, ...(await disclose()) }); }
     if (s.payment_status !== 'paid') { await logRun('ok', { quote_id: qid, payment_status: String(s.payment_status || '') }, 'session not paid yet - returned pending'); return J({ ok: false, pending: true }); }
-    const { data: cfg } = await admin.from('pricing_config').select('refund_window_working_days').eq('id', 1).maybeSingle();
-    const { data: dl } = await admin.rpc('fn_add_working_days', { p_from: new Date().toISOString(), p_days: cfg?.refund_window_working_days ?? 3 });
-    const fee = Number(md.reveal_fee || (s.amount_total ? s.amount_total / 100 : 0));
-    const amount = Number(md.quote_amount || q.quote_amount);
-    const payRef = String(s.payment_intent || s.id);
-    await admin.from('quotes').update({ status: 'revealed' }).eq('id', qid);
-    await admin.from('inquiries').update({ status: 'revealed' }).eq('id', q.inquiry_id);
-    // total_charged is what a refund returns (founder, 14 Sep 2026): since 24 Sep 2026 the 3% alone.
-    const totalCharged = s.amount_total ? s.amount_total / 100 : Number(md.total_charged || fee);
-    const processing = md.processing_fee != null ? Number(md.processing_fee) : Math.round((totalCharged - fee) * 100) / 100;
-    const { error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: cust.id, quote_amount: amount, reveal_fee: fee, app_fee: fee, processing_fee: processing, total_charged: totalCharged, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl });
-    if (e2) { const { data: again } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle(); if (!again) { await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - insert failed and no row present: ' + e2.message + ' | payment_ref: ' + payRef); return J({ error: 'record_failed', detail: e2.message }, 500); } await logRun('ok', { quote_id: qid, raced: true }, 'insert conflicted but row exists - stripe_webhook won the race'); }
+    // THE ONE INSERT EVERY REVEAL PATH SHARES (_shared/reveal_sale.ts; review of #1835): the same arguments the
+    // webhook builds from this session, the customer this request proved, and a race reads the winner.
+    const args = { ...checkoutSaleArgs(s), customerId: String(cust.id) };
+    const fee = args.baseFee; const payRef = args.paymentRef; const amount = Number(md.quote_amount || q.quote_amount);
+    const sale = await recordRevealSale(admin, args);
+    if ('error' in sale) { await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - ' + sale.error + ' | payment_ref: ' + payRef); return J({ error: 'record_failed', detail: sale.error }, 500); }
+    const e2 = !sale.created;
+    if (sale.other_payment) await logRun('error', { quote_id: qid, second_payment: payRef }, 'SECOND PAYMENT FOR A REVEALED QUOTE - filed as reveal:second_payment:' + payRef + ' for a CEO-approved refund');
+    else if (e2) await logRun('ok', { quote_id: qid, raced: true }, 'already recorded by the time this ran - stripe_webhook won the race');
     // 14 Sep 2026: the supplier's "a customer revealed you" message is no longer queued here. The
     // insert above goes through z20_reveal_receipt, which hands the paid reveal from the accountant to
     // the sales engineer, whose words customer_support delivers -- the same door the webhook uses, so a

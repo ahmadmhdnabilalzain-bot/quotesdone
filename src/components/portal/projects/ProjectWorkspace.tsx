@@ -314,7 +314,7 @@ export function ProjectWorkspace({
         ) : (
           // Zero linked RFQs. Say that, and say that it is why the figures above are blank — this is
           // the exact place a portal is tempted to imply progress that never happened.
-          <div className="mt-2.5 rounded-lg border border-dashed border-border bg-white/[0.02] px-5 py-7 text-center">
+          <div className="mt-2.5 rounded-lg border border-dashed border-border bg-white/2 px-5 py-7 text-center">
             <h4 className="text-[14px] font-bold text-foreground">{tr(lang, 'no_rfqs_title')}</h4>
             <p className="mx-auto mt-2 max-w-[54ch] text-[13px] leading-relaxed text-muted-foreground">{tr(lang, 'no_rfqs_body')}</p>
           </div>
@@ -345,7 +345,7 @@ function LinkPicker({
   const selectId = React.useId();
   if (!show) return null;
   return (
-    <div className="rounded-lg border border-border bg-white/[0.03] p-4">
+    <div className="rounded-lg border border-border bg-white/3 p-4">
       <h3 className="text-[13px] font-bold text-foreground">{tr(lang, 'link_rfq')}</h3>
       {candidates.length === 0 ? (
         <p className="mt-1.5 text-[13px] text-muted-foreground">{tr(lang, 'no_linkable')}</p>
@@ -359,7 +359,7 @@ function LinkPicker({
               id={selectId}
               value={choice}
               onChange={(e) => setChoice(e.target.value)}
-              className="mt-1.5 h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="mt-1.5 h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
             >
               <option value="" className="bg-background text-foreground">
                 —

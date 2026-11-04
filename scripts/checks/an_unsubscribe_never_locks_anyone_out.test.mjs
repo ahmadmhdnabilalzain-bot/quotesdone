@@ -27,11 +27,31 @@ test('send_outbox applies a suppression through suppressionStops(reason, type)',
   assert.match(src, /suppressionStops\(supReason\.get\(foldEmail\(n\.to_email\)\), n\.type\)/);
 });
 
+// 28 Oct 2026 (sales_engineer, ledger 1401 audit): the three gates moved, unchanged and in the same order, into
+// suppression_policy.ts replyStopRefusal, so email_triage's opt_out backstop stands behind the same ones. This asserts the
+// gates in that one place, and that BOTH writers of a reply suppression ask it, and stop on its answer, before writing.
+const POLICY = read('supabase/functions/_shared/suppression_policy.ts');
+test('the three gates of a reply stop, in order: protected address, authenticated From domain, an address we invited', () => {
+  const fn = POLICY.slice(POLICY.indexOf('export async function replyStopRefusal'));
+  assert.ok(POLICY.includes('export async function replyStopRefusal'), 'replyStopRefusal is gone from suppression_policy.ts');
+  const g1 = fn.indexOf('neverSuppressible(from,'), g2 = fn.indexOf('await o.authenticated()'), g3 = fn.indexOf(".in('type', [...OPT_OUT_TYPES]).eq('status', 'sent')");
+  assert.ok(g1 > 0 && g2 > g1 && g3 > g2, 'protected-address, authentication and invited-address gates must all be in replyStopRefusal, in that order');
+});
+
 test('resend_inbound gates an unsubscribe email before writing a suppression', () => {
   const src = read('supabase/functions/resend_inbound/index.ts');
-  const gate = src.indexOf('neverSuppressible(from,');
-  const auth = src.indexOf('fromDomainAuthenticated(hdrs');
-  const sent = src.indexOf(".in('type', [...OPT_OUT_TYPES])");
+  const gate = src.indexOf('await replyStopRefusal(admin, { from, protectedList: [...adminList, ...fwdList, EXPENSE_MAILBOX]');
+  const auth = src.indexOf('senderAuthenticated(providerEmailId, hdrs');
+  const refused = src.indexOf('if (why) {', auth);
   const write = src.indexOf("source: 'reply'");
-  assert.ok(gate > 0 && auth > gate && sent > auth && write > sent, 'protected-address, authentication and invited-address gates must all precede the write');
+  assert.ok(gate > 0 && auth > gate && refused > auth && write > refused, 'protected-address, authentication and invited-address gates must all precede the write');
+});
+
+test("email_triage's opt_out backstop stands behind the same gates before it writes a suppression", () => {
+  const src = read('supabase/functions/email_triage/opt_out_backstop.ts');
+  const gate = src.indexOf('await replyStopRefusal(admin, {');
+  const refused = src.indexOf('if (!why)', gate);
+  const write = src.indexOf("source: 'reply'");
+  assert.ok(gate > 0 && refused > gate && write > refused, 'the backstop must ask replyStopRefusal, and write only when it answers nothing');
+  assert.match(src, /authenticated: \(\) => m\.raw\?\.sender_authenticated === true/, 'the backstop reads the lane-aware verdict resend_inbound stored, nothing weaker');
 });

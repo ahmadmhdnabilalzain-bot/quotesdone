@@ -167,7 +167,7 @@ function Field({ label, value, missing, source, fromWord, sourceWords }: {
   return (
     <div className="min-w-0">
       <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={cn('mt-0.5 text-[13px] font-semibold leading-snug break-words', has ? 'text-foreground' : 'text-muted-foreground font-normal italic')}>
+      <div className={cn('mt-0.5 text-[13px] font-semibold leading-snug wrap-break-word', has ? 'text-foreground' : 'text-muted-foreground font-normal italic')}>
         {has ? value : missing}
       </div>
       {has && source && sourceWords?.[source] ? <div className="text-[10.5px] text-muted-foreground">{fromWord} {sourceWords[source]}</div> : null}
@@ -362,7 +362,7 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={w.ask_ph}
-          className="min-w-0 flex-1 rounded-lg border border-border bg-secondary/40 px-3.5 py-2 text-[13.5px] text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-secondary/40 px-3.5 py-2 text-[13.5px] text-foreground outline-hidden placeholder:text-muted-foreground focus:border-primary/60"
         />
         <Button type="submit" disabled={busy || !q.trim()}>{busy ? w.asking : w.ask}</Button>
         {asked ? <Button type="button" variant="ghost" onClick={clear}>{w.clear}</Button> : null}

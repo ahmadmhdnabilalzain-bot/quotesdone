@@ -13,7 +13,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
+import ts from 'typescript-js-api'; // TypeScript 7 (the native compiler) ships no JS API; the checker stays on 5.x
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const UNDECLARED = new Set([2304, 2552]);

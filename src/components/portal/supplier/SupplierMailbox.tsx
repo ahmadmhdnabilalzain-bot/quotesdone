@@ -75,7 +75,7 @@ export default function SupplierMailbox({ token, lang, openInquiry = null, onOpe
             const late = !th.acknowledged_at && th.respond_by && new Date(th.respond_by).getTime() < Date.now();
             return (
               <li key={th.inquiry_id}>
-                <button type="button" onClick={() => setOpen(th)} className="qd-panel qd-panel-hover flex min-h-11 w-full items-start justify-between gap-3 p-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <button type="button" onClick={() => setOpen(th)} className="qd-panel qd-panel-hover flex min-h-11 w-full items-start justify-between gap-3 p-4 text-start focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
                   <span className="flex min-w-0 items-start gap-3">
                     <MessageSquare aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     <span className="min-w-0">
@@ -139,7 +139,7 @@ function ThreadView({ token, lang, th, onBack }: { token: string; lang: Lang; th
             <label className="min-w-0 flex-1">
               <span className="sr-only">{ws(lang, 'mb_type')}</span>
               <textarea dir="auto" rows={2} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder={ws(lang, 'mb_type')}
-                className="w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                className="w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" />
             </label>
             <Button type="submit" className="min-h-11 self-end" disabled={busy || !text.trim()}>{busy ? ws(lang, 'mb_sending') : ws(lang, 'mb_send')}</Button>
           </form>

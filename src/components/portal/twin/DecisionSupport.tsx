@@ -74,7 +74,7 @@ function Head({ id, onOpen, children }: { id: string; onOpen?: (id: string) => v
   if (!onOpen || !id) return <div className={S.head}>{children}</div>;
   return (
     <button type="button" onClick={() => onOpen(String(id))}
-      className={cn(S.head, 'text-start underline-offset-2 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
+      className={cn(S.head, 'text-start underline-offset-2 hover:text-primary hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring')}>
       {children}
     </button>
   );

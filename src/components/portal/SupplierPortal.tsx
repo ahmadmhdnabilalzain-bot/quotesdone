@@ -286,7 +286,7 @@ function PdfLink({ fetchPdf }) {
     setBusy(false); if (!ok) setMsg('The document could not be prepared. Please try again.');
   };
   return (<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-    <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={busy} onClick={open}>{busy ? 'Preparing…' : 'Download PDF'}</button>
+    <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" disabled={busy} onClick={open}>{busy ? 'Preparing…' : 'Download PDF'}</button>
     {msg ? <span role="alert" className="text-[12px] text-danger-fg">{msg}</span> : null}
   </span>);
 }
@@ -441,8 +441,8 @@ const S = {
   list: 'flex flex-col gap-3',
   section: 'qd-section',
   figure: 'qd-figure',
-  field: 'mt-3 flex min-h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-  area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y',
+  field: 'mt-3 flex min-h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring',
+  area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring resize-y',
   chip: 'rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground cursor-pointer',
   chipOn: 'bg-primary/15 border-primary/60 text-primary',
   fileInput: 'text-sm text-muted-foreground file:me-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
@@ -682,7 +682,7 @@ export function SupplierPortal() {
       <header className="qd-topbar sticky top-0 z-10 flex items-center justify-between gap-2 px-4 sm:px-5 py-3 bg-card/70 backdrop-blur-xl border-b border-border">
         {/* whitespace-nowrap + the sub-label hidden below sm: at 375px "QuotesDone / SUPPLIER / PORTAL"
             wrapped to three lines beside the buttons (audit mobile screenshot). */}
-        <a className="group flex min-w-0 items-center gap-2.5 whitespace-nowrap text-[15px] font-extrabold text-foreground no-underline font-[family-name:var(--font-head)]" href={rtl ? '/ar' : '/'}>
+        <a className="group flex min-w-0 items-center gap-2.5 whitespace-nowrap text-[15px] font-extrabold text-foreground no-underline font-head" href={rtl ? '/ar' : '/'}>
           <BrandMark className="h-7 w-7 shrink-0 transition-transform duration-500 group-hover:rotate-[8deg]" />
           <span>QuotesDone <span className="hidden sm:inline font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
         </a>
@@ -816,7 +816,7 @@ function Login({ onAuth, lang, startMode }) {
     <div className={S.center}><Card className="qd-login qd-panel w-full max-w-[410px] p-6 sm:p-7">
       <div className="mb-5 flex flex-col items-center text-center">
         <span className="qd-brandbadge mb-4 grid h-12 w-12 place-items-center rounded-2xl"><BrandMark className="h-6 w-6" /></span>
-        <h1 className={cn(S.h1, 'qd-grad-text font-[family-name:var(--font-head)]')}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</h1>
+        <h1 className={cn(S.h1, 'qd-grad-text font-head')}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</h1>
         {/* THE CODE STEP SAYS WHERE THE CODE WENT (28 Oct 2026, sales_engineer, production browser walk at 1366 and 390 px):
             after "Create my account" the subtitle still read "Enter your work email and we'll create your account", and
             nothing on the screen named the address, so a typo could only be found by waiting for a code that never came. */}
@@ -868,7 +868,7 @@ const TAB_ALIAS = { overview: 'services', scope: 'services', projects: 'messages
 // What each version changed, in the supplier's language. A supplier is shown every change after the version it
 // accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
 // supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
-export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14', 'v15'];
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16'];
 const AGREEMENT_CHANGES = {
   11: {
     en: [
@@ -951,6 +951,12 @@ const AGREEMENT_CHANGES = {
       'يكون القبول بوضع علامة في المربع أو النقر للقبول، وتُعدّ سجلاتنا دليلًا لا دليلًا قاطعًا (البند 30). ويذكر بند القانون الواجب التطبيق الآن قانون التجارة عبر وسائل التقنية الحديثة، المرسوم بقانون اتحادي رقم 14 لسنة 2023 (البند 34). لا تغيير في أي رسم.',
     ],
   },
+  // v17, 2 Nov 2026 (ceo; ledger 1482): the contact line only. Shown to a supplier asked to accept v17 who last accepted v15 or earlier;
+  // a v16 supplier is not asked (needsReaccept above).
+  17: {
+    en: ['The contact line (clause 35) now gives +971 56 791 8605 for calls and +1 218 316 6814 for WhatsApp. No clause, fee or charge changes.'],
+    ar: ['يذكر سطر التواصل (البند 35) الآن الرقم +971 56 791 8605 للاتصال والرقم +1 218 316 6814 لواتساب. لا تغيير في أي بند أو رسم أو مبلغ.'],
+  },
 };
 export function agreementChanges(accepted, current, ar) {
   const n = (v) => Number(String(v || '').replace(/\D/g, '')) || 0;
@@ -958,8 +964,13 @@ export function agreementChanges(accepted, current, ar) {
   return Object.keys(AGREEMENT_CHANGES).map(Number).sort((a, b) => a - b)
     .filter((v) => v > from && v <= to).flatMap((v) => AGREEMENT_CHANGES[v][ar ? 'ar' : 'en']);
 }
+// 2 Nov 2026 (ceo; ledger 1482): terms_stands is the server's answer to 'does this supplier's acceptance still stand?'. It is true
+// for the current version AND for a version the current one carries because it differs in the contact line only (v16 -> v17), so
+// a contact-only revision never sends a signed supplier back to this card. Absent (an older server) falls back to the plain compare.
 export function needsReaccept(me) {
-  return !!(me && me.accepted_terms_at && me.terms_current && me.accepted_terms_version !== me.terms_current);
+  if (!(me && me.accepted_terms_at && me.terms_current)) return false;
+  if (typeof me.terms_stands === 'boolean') return !me.terms_stands;
+  return me.accepted_terms_version !== me.terms_current;
 }
 function ReacceptTerms({ token, lang, me, onDone }) {
   const ar = lang === 'ar'; const pre = ar ? '/ar' : '';
@@ -1054,19 +1065,19 @@ function NotificationBell({ ov, lang, go }) {
   const when = (at) => { try { return new Date(at).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' }); } catch (_e) { return ''; } };
   return (
     <details ref={ref} className="relative" onToggle={(e) => { if (e.currentTarget.open) markSeen(); }}>
-      <summary aria-label={label} title={label} className="relative inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+      <summary aria-label={label} title={label} className="relative inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <Bell aria-hidden className="h-[18px] w-[18px]" />
-        {badge ? <span aria-hidden className="absolute -top-1 -end-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums">{badge}</span> : null}
+        {badge ? <span aria-hidden className="absolute -top-1 -inset-e-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums">{badge}</span> : null}
       </summary>
-      <div className="qd-panel absolute end-0 z-20 mt-2 w-[min(320px,calc(100vw-32px))] p-1.5">
+      <div className="qd-panel absolute inset-e-0 z-20 mt-2 w-[min(320px,calc(100vw-32px))] p-1.5">
         {items.length ? <ul>{items.map((it) => (
-          <li key={it.k}><button type="button" className="flex min-h-11 w-full items-center rounded-md px-3 py-2.5 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          <li key={it.k}><button type="button" className="flex min-h-11 w-full items-center rounded-md px-3 py-2.5 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
             onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(it.tab); }}>{it.text}</button></li>))}</ul>
           : (fresh ? null : <div className="px-3 py-2.5 text-[13px] text-muted-foreground">{ar ? 'لا شيء جديد.' : 'Nothing new.'}</div>)}
         {notices.length ? <div className="mt-1 border-t border-border pt-1">
           <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{ar ? 'آخر الإشعارات' : 'Recent notices'}</div>
           <ul>{notices.map((x) => (
-            <li key={'n' + x.id}><button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <li key={'n' + x.id}><button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
               onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(x.tab); }}>
               <span className={x.id > seen ? 'font-semibold' : ''}>{srvText(lang, 'notice_' + x.type, {}, srvText(lang, 'notice_quote', {}, ''))}</span>
               <span className="shrink-0 text-[11px] text-muted-foreground">{when(x.at)}</span></button></li>))}</ul>
@@ -1082,13 +1093,13 @@ function AccountMenu({ tab, labels, lang, go }) {
   const ref = useDismissablePopover();
   return (
     <details ref={ref} className="relative">
-      <summary className={cn('inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border px-3 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden', on ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
+      <summary className={cn('inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border px-3 text-[13px] font-semibold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden', on ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
         {ws(lang, 'account_menu')}{on ? <span className="font-normal"> · {labels[tab]}</span> : null}<span aria-hidden>▾</span>
       </summary>
-      <ul className="qd-panel absolute end-0 z-20 mt-2 w-48 p-1.5">
+      <ul className="qd-panel absolute inset-e-0 z-20 mt-2 w-48 p-1.5">
         {ACCOUNT_TABS.map((k) => (
           <li key={k}><button type="button" aria-current={tab === k ? 'page' : undefined}
-            className={cn('flex min-h-11 w-full items-center rounded-md px-3 text-start text-[13px] hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k ? 'font-semibold text-primary' : 'text-foreground')}
+            className={cn('flex min-h-11 w-full items-center rounded-md px-3 text-start text-[13px] hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring', tab === k ? 'font-semibold text-primary' : 'text-foreground')}
             onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(k); }}>{labels[k]}</button></li>
         ))}
       </ul>
@@ -1204,7 +1215,7 @@ function Dashboard({ token, lang, onExpired }) {
             It wraps now, and every control is at least 44px tall for a thumb. */}
         <nav aria-label={t(lang, 'main_nav')}>
           <div className={cn(S.tabsWrap, 'flex')}>
-            {MAIN_TABS.map((k) => <button key={k} type="button" data-nav-id={k} aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
+            {MAIN_TABS.map((k) => <button key={k} type="button" data-nav-id={k} aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
           </div>
         </nav>
       </div>
@@ -1340,7 +1351,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
       {vat === 'inclusive' ? <Lbl className="flex-1 min-w-[200px]" visible text={ar ? 'السعر غير شامل الضريبة (درهم)' : 'Price excluding VAT (AED)'}><Input className="tabular font-mono" inputMode="decimal" value={exVat} onChange={(e) => setExVat(e.target.value)} /></Lbl> : null}
     </div>
     <div className={S.sub}>{ar ? 'يقارن العميل ويدفع على السعر غير شامل الضريبة، ولا تُعرض عليه تفاصيل الضريبة ولا رقم تسجيلكم الضريبي.' : 'The customer compares and pays on the price excluding VAT; your VAT details and TRN are never shown to them.'}</div>
-    <div className="flex gap-2.5 flex-wrap">{[[validity, setValidity, lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'], [payment, setPayment, lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'], [warranty, setWarranty, lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)']].map(([v, sv, ph], k) => <Lbl key={k} className="flex-1 min-w-[160px]" text={ph}><Input placeholder={ph} value={v} onChange={(e) => sv(e.target.value)} /></Lbl>)}</div>
+    <div className="flex gap-2.5 flex-wrap">{[[validity, setValidity, lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'], [payment, setPayment, lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'], [warranty, setWarranty, lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)']].map(([v, sv, ph], k) => <Lbl key={k} className="flex-1 min-w-beat-l" text={ph}><Input placeholder={ph} value={v} onChange={(e) => sv(e.target.value)} /></Lbl>)}</div>
     <div className="border-t border-border pt-4">
       <div className={cn(grp, 'mb-1')}>{ar ? 'بنود العرض' : 'Line items'}</div>
       <div className={cn(S.sub, 'mb-2')}>{lang === 'ar' ? 'بنود العرض (الوصف والكمية والسعر)، وبها يصبح عرضكم جاهزًا للإرسال' : 'Quote items (description, qty, price) — makes your quote ready to send'}</div>
@@ -1811,7 +1822,7 @@ function Onboarding({ token, onDone, lang, onExpired = null }) {
   useEffect(() => { load(); }, []);
   if (me === undefined) return <div className={S.center}>{t(lang, 'loading')}</div>;
   return (<div className={S.wrap} style={{ maxWidth: 640 }}>
-    <h1 className={cn(S.h1, 'mb-1 font-[family-name:var(--font-head)]')}>{t(lang, 'setup_title')}</h1>
+    <h1 className={cn(S.h1, 'mb-1 font-head')}>{t(lang, 'setup_title')}</h1>
     <div className={cn(S.sub, 'mb-3.5')}>{me ? t(lang, 'setup_sub_profile') : t(lang, 'setup_sub_company')}</div>
     {!me ? <NewCompany token={token} onReady={load} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} />}
   </div>);
