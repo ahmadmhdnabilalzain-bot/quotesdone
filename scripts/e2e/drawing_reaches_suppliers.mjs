@@ -39,7 +39,8 @@
 // NOTHING HERE CAN REACH A REAL PERSON: identities are ZZ DEMO / @example.invalid / +9715000000xx, the
 // database's demo guards capture every notice, and a demo account is never matched to a real one.
 import { supabaseAccessToken } from '../lib/supabase_token.mjs';
-import http from 'node:http';
+import { rasterise } from './portal_raster.mjs';
+import { FALLBACK } from '../../supabase/functions/_shared/doc_template.ts';
 import zlib from 'node:zlib';
 import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, call, waitFor } from './fixtures.mjs';
 import { runIntake, keys, BASE } from '../lib/demo_factory.mjs';
@@ -127,37 +128,7 @@ export function stressSetPdf(pages = 8) {
   return Buffer.concat(parts);
 }
 
-// ── rasterise exactly as src/components/me/pdfRaster.ts does ──────────────────────────────────────────
-async function rasterise(pdf) {
-  const { chromium } = await import('playwright');
-  const PDFJS = new URL('../../node_modules/pdfjs-dist/build/', import.meta.url);
-  const srv = http.createServer(async (q, s) => {
-    if (q.url === '/doc.pdf') { s.setHeader('Content-Type', 'application/pdf'); return s.end(pdf); }
-    if (q.url === '/') { s.setHeader('Content-Type', 'text/html'); return s.end('<!doctype html><title>r</title>'); }
-    const f = new URL('.' + q.url.replace('/pdfjs/', '/'), PDFJS);
-    try { const { readFileSync } = await import('node:fs'); s.setHeader('Content-Type', 'text/javascript'); s.end(readFileSync(f)); } catch { s.statusCode = 404; s.end(); }
-  });
-  await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
-  const port = srv.address().port;
-  const b = await chromium.launch(); const pg = await b.newPage();
-  await pg.goto(`http://127.0.0.1:${port}/`);
-  const images = await pg.evaluate(async () => {
-    const pdfjs = await import('/pdfjs/pdf.min.mjs');
-    pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.mjs';
-    // pdfjs-dist 6 refuses a bare string ("getDocument - expected either data, range, or url"): 18 Oct, run 39079803518.
-    const pdf = await pdfjs.getDocument({ url: '/doc.pdf' }).promise; const out = [];
-    for (let p = 1; p <= Math.min(pdf.numPages, 20); p++) {
-      const page = await pdf.getPage(p); const v1 = page.getViewport({ scale: 1 });
-      const vp = page.getViewport({ scale: Math.min(1.8, 2600 / Math.max(v1.width, v1.height)) });
-      const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
-      await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
-      out.push({ mime: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.8).split(',')[1], w: c.width, h: c.height });
-    }
-    return out;
-  });
-  await b.close(); srv.close();
-  return images;
-}
+// The portal rasteriser lives in ./portal_raster.mjs (shared with every_drawing_format_is_read.mjs since 3 Nov 2026).
 
 async function edgeTimes(fn, sinceIso) {
   // function_edge_logs carry execution_time_ms per request (wall time; the runtime does not log CPU).
@@ -201,10 +172,15 @@ async function ocrPage(jpeg) {
 }
 const squash = (x) => String(x).toUpperCase().replace(/[^A-Z0-9@+]/g, '');
 /** The planted strings and every contact shape found in a text. OCR drops spaces and dots, so both sides are squashed. */
+// QuotesDone's OWN letterhead (_shared/doc_template.ts: every document we print carries our email and numbers) is not a
+// leak: the 3 Nov 2026 run (41598217377) failed both BOQ PDFs on exactly management@quotesdone.com and +971 56 791 8605,
+// the template's own footer. Only those exact values are let through; any other contact shape, and every planted
+// string, still fails.
+const OWN_CONTACT = new Set([FALLBACK.email, FALLBACK.phone, FALLBACK.callPhone].map(squash));
 function leaksIn(text) {
   const t = squash(text);
   const planted = IDENTITY.filter((x) => t.includes(squash(x).slice(0, 14)));
-  const shapes = CONTACT_RE.flatMap((re) => String(text).match(new RegExp(re.source, 'gi')) || []);
+  const shapes = CONTACT_RE.flatMap((re) => String(text).match(new RegExp(re.source, 'gi')) || []).filter((s) => !OWN_CONTACT.has(squash(s)));
   return [...new Set([...planted, ...shapes])];
 }
 async function download(bucket, path) {
