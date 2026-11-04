@@ -27,12 +27,12 @@ export function EngineStrip() {
       <div className="mt-14 grid gap-4 md:mt-16 md:grid-cols-6">
         {/* 1 identity stripped — wide */}
         <Cell n={1} className="md:col-span-4" title={c[0].title} body={c[0].body}>
-          <div className="rounded-[12px] bg-[#07121a] p-4 shadow-[inset_0_0_0_1px_rgba(110,231,212,.1)]">
+          <div className="rounded-panel bg-[#07121a] p-4 shadow-[inset_0_0_0_1px_rgba(110,231,212,.1)]">
             <div className="grid gap-2.5 text-[13px] sm:grid-cols-[auto_1fr] sm:gap-x-6">
               {(t.raw('brief') as string[][]).map(([k, v, sealed]) => (
                 <div key={k} className="contents">
                   <span className="font-mono text-[11.5px] uppercase tracking-[0.12em] text-faint rtl:font-sans rtl:tracking-normal">{k}</span>
-                  {sealed ? <span className={`redact redact-line !w-[min(180px,60%)] text-[18px]`} aria-hidden /> : <span className="text-paper">{v}</span>}
+                  {sealed ? <span className={`redact redact-line w-[min(180px,60%)]! text-[18px]`} aria-hidden /> : <span className="text-paper">{v}</span>}
                 </div>
               ))}
             </div>
@@ -59,7 +59,7 @@ export function EngineStrip() {
             ))}
             <span className="mx-1 h-full w-px bg-line2" />
             {Array.from({ length: 7 }).map((_, i) => (
-              <span key={i} className="w-2.5 rounded-t-[2px] bg-teal/[0.08] shadow-[inset_0_0_0_1px_rgba(110,231,212,.25)]" style={{ height: 22 + ((i * 7) % 18) }} />
+              <span key={i} className="w-2.5 rounded-t-[2px] bg-teal/8 shadow-[inset_0_0_0_1px_rgba(110,231,212,.25)]" style={{ height: 22 + ((i * 7) % 18) }} />
             ))}
           </div>
           <div className="mt-2.5 flex justify-between gap-3 font-mono text-[11.5px] rtl:font-sans">
@@ -74,7 +74,7 @@ export function EngineStrip() {
             {checks.map((k, i) => {
               const missing = i === checks.length - 1;
               return (
-                <li key={k} className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-1.5 last:border-0">
+                <li key={k} className="flex items-center justify-between gap-3 border-b border-(--line) pb-1.5 last:border-0">
                   <span className={missing ? 'text-gold' : 'text-paper'}>{k}</span>
                   {missing ? <span className="font-mono text-[11.5px] text-gold">{t('returned')}</span> : <Tick />}
                 </li>
@@ -96,9 +96,9 @@ export function EngineStrip() {
           <div className="w-full">
             <div className="flex items-center gap-1.5" aria-hidden>
               {[1, 2, 3, 4, 5].map((d) => (
-                <span key={d} className="h-9 flex-1 rounded-[6px] bg-navy-deep/60 shadow-[inset_0_0_0_1px_rgba(110,231,212,.14)]" />
+                <span key={d} className="h-9 flex-1 rounded-chip bg-navy-deep/60 shadow-[inset_0_0_0_1px_rgba(110,231,212,.14)]" />
               ))}
-              <span className="flex h-9 flex-[1.6] items-center justify-center rounded-[6px] bg-teal/15 font-mono text-[12px] text-teal-light shadow-[inset_0_0_0_1px_rgba(20,184,166,.5)] rtl:font-sans">
+              <span className="flex h-9 flex-[1.6] items-center justify-center rounded-chip bg-teal/15 font-mono text-[12px] text-teal-light shadow-[inset_0_0_0_1px_rgba(20,184,166,.5)] rtl:font-sans">
                 {t('refund')}
               </span>
             </div>

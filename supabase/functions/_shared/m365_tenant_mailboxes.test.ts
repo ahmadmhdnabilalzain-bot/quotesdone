@@ -169,7 +169,8 @@ Deno.test('an account with no mailbox is skipped; a refused mailbox does not sto
   const h = harness({ 'a@quotesdone.com': { status: 404 }, 'b@quotesdone.com': { status: 403 }, 'c@quotesdone.com': { inbox: [['C', STRANGER]] } },
     { users: ['a@quotesdone.com', 'b@quotesdone.com', 'c@quotesdone.com', 'nobody@zz-other.example.invalid'] });
   const r = await pollTenantMailboxes(h.deps);
-  assertEquals(r.no_mailbox, 1); assertEquals(r.refused, 1); assertEquals(r.mailboxes, 1); assertEquals(r.handed, 1);
+  // a@ plus the two named mailboxes (management@, info@), which are always asked for and have no box in this harness
+  assertEquals(r.no_mailbox, 3); assertEquals(r.refused, 1); assertEquals(r.mailboxes, 1); assertEquals(r.handed, 1);
   assertEquals(h.runs[0].status, 'ok');
 });
 
@@ -220,4 +221,16 @@ Deno.test('supplier@ Junk: reports and known senders handed and marked; random j
   assertEquals(ok.r.junk_not_handed, 1); assertEquals(ok.runs, ['ok']);
   const failed = await run(503);
   assertEquals(failed.runs, ['ok'], 'a Junk failure withdrew the proof'); assertEquals(failed.r.junk_failed, 1);
+});
+
+Deno.test('known-bad control: Graph lists only management@, yet info@ is still asked for; an alias answers 404 and the note names it', async () => {
+  const asked = harness({ 'management@quotesdone.com': { inbox: [['S1', SUPPLIER]] }, 'info@quotesdone.com': { inbox: [['S2', SUPPLIER]] } }, { users: ['management@quotesdone.com'] });
+  const r = await pollTenantMailboxes(asked.deps);
+  assertEquals(r.source, 'graph'); assertEquals(r.mailboxes, 2);
+  assertEquals(asked.hands().map((d) => d.to).sort(), ['info@quotesdone.com', 'management@quotesdone.com']);
+  const alias = harness({ 'management@quotesdone.com': { inbox: [['S1', SUPPLIER]] } }, { users: ['management@quotesdone.com'] });
+  const a = await pollTenantMailboxes(alias.deps);
+  assertEquals(a.no_mailbox, 1); assertEquals(a.handed, 1);
+  assert(alias.runs[0].note.includes('no mailbox: info@quotesdone.com'), alias.runs[0].note);
+  assertEquals(alias.writes(), []);
 });

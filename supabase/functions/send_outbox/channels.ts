@@ -26,6 +26,21 @@ export function dueFilter(now: Date): string {
   return `not_before.is.null,not_before.lte.${now.toISOString()}`;
 }
 
+// STALE FROM WHEN IT FELL DUE, NOT FROM WHEN IT WAS WRITTEN (2 Nov 2026, sales_engineer, ledger 1486). The stale guard
+// (email_stale_hours, 72) read created_at, so a row deliberately moved on by not_before (the bounce brake, a lane or cap hold)
+// aged out while it waited. 18 Google-hosted invitations queued 28 Oct and released for 2 Nov 11:07 Dubai were claimed at
+// 11:16 and held for good, with no last_error, so the founder's resume sent nothing. A row is stale only once it has been
+// DUE for longer than the bar; a row with no not_before is measured from created_at, exactly as before.
+// Review of #1787: only the invitation lane's types (whose holds move not_before on purpose) are measured from not_before,
+// and every row is stale STALE_CEILING_H after it was written, so a row re-held every 30 minutes cannot go out weeks late.
+export const STALE_CEILING_H = 14 * 24;
+export function isStale(createdAt: string, notBefore: string | null | undefined, laneType: boolean, staleH: number, now: Date): { stale: boolean; hours: number } {
+  const created = new Date(createdAt).getTime();
+  const due = laneType && notBefore ? Math.max(created, new Date(notBefore).getTime()) : created;
+  const hours = (now.getTime() - due) / 3.6e6;
+  return { stale: hours > staleH || (now.getTime() - created) / 3.6e6 > STALE_CEILING_H, hours };
+}
+
 export function selectQueue(admin: SupabaseClient, limit: number, now: Date = new Date()) {
   return admin.from('notifications').select('*')
     .or('status.eq.queued,status.eq.pending,status.is.null')

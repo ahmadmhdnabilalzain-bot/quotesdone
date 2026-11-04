@@ -42,8 +42,30 @@ export type CloseFinding = (issueKey: string, note: string) => Promise<unknown>;
 export type M365 = { active: boolean; refused: boolean; mailbox: string; token: string; why: string };
 export const M365_OFF: M365 = { active: false, refused: false, mailbox: '', token: '', why: 'invite_m365_enabled is not true' };
 
+// A SUPPLIER'S REPLY IS ANSWERED FROM THE MAILBOX IT WROTE TO (sales_engineer, 3 Nov 2026). MEASURED: invitation
+// 125102 to lead 19820 left this lane from supplier@ (in its Sent Items); the supplier answered supplier@
+// (inbound_messages 1829); email_triage's answer, notification 125121 (inbound_reply, to_role NULL), went through
+// Resend From info@quotesdone.com, so supplier@'s Outlook showed the supplier's reply and then nothing. All 3
+// inbound_reply rows to suppliers since the switch went on (117599, 121564, 125121) went that way. fn_inbox_send
+// (scripts/sql/a_supplier_reply_goes_back_from_its_own_mailbox.sql, its own PR, applied after this deploys) writes to_role
+// 'supplier' and the lead for a known supplier, and this kind when the message it answers came INTO the
+// lane's mailbox; only a row of this kind is carried here. A reply to a supplier who wrote to another mailbox keeps
+// the Resend route.
+export const M365_REPLY_KIND = 'supplier_mailbox_reply';
+/** A reply in a conversation that arrived in the lane's mailbox (fn_inbox_send writes the kind). */
+export function isMailboxReply(o: { type: unknown; kind: unknown }): boolean {
+  return o.type === 'inbound_reply' && o.kind === M365_REPLY_KIND;
+}
+/** The recipient side m365Carries reads. A known supplier's reply is to_role 'supplier'. A reply to an unknown sender
+ *  who wrote to the supplier mailbox stays to_role NULL (email_triage answers that sender as a customer, in their
+ *  language, so the supplier rules must not act on it) and is still that mailbox's conversation. Never another role. */
+export function laneSide(r: { to_role: unknown; type: unknown; kind: unknown }): boolean {
+  return r.to_role === 'supplier' || (r.to_role == null && isMailboxReply(r));
+}
+
 /** Whether this row is carried by the Microsoft 365 lane at all (before the lane's state is looked at). */
 export function m365Carries(o: { enabled: boolean; type: unknown; kind: unknown; supplierSide: boolean }): boolean {
+  if (o.supplierSide && isMailboxReply(o)) return o.enabled;
   if (!o.supplierSide || !isLaneType(o.type)) return false;
   if (o.type === 'supplier_invite_seed' && o.kind === M365_SEED_KIND) return true;
   return o.enabled;
@@ -110,6 +132,26 @@ export function holdForM365(o: { m365: M365; type: unknown; cappedSentToday: num
   if (o.m365SentToday >= M365_HARD_CEILING) return 'cap';
   if (LANE_CAPPED_TYPES.includes(o.type as string) && o.cappedSentToday >= Math.min(o.inviteCap, M365_HARD_CEILING)) return 'cap';
   return null;
+}
+
+/** What send_outbox does with a carried row. A mailbox reply is never held and never paced: invite_daily_cap is not
+ *  its number (a reply is not an invitation, and holdForM365 caps only LANE_CAPPED_TYPES); the mailbox's 150/day
+ *  ceiling is, and when the lane is refused, inactive or at that ceiling the reply goes through Resend exactly as it
+ *  did before this lane carried replies. An invitation is held or paced as before. */
+export type M365Step = 'send' | 'hold' | 'pace' | 'resend';
+export function m365Step(o: { reply: boolean; hold: 'unverified' | 'cap' | null; sentThisRun: number }): M365Step {
+  if (o.hold) return o.reply ? 'resend' : 'hold';
+  if (!o.reply && paceM365(o.sentThisRun)) return 'pace';
+  return 'send';
+}
+/** Graph refused a send: an invitation is held (never sent through Resend); a reply goes through Resend in the same run. */
+export function afterRefusal(reply: boolean): 'hold' | 'resend' { return reply ? 'resend' : 'hold'; }
+
+/** The reply as written (email_triage / the Inbox signs its own text), threaded on the supplier's Message-ID. */
+export function replyMail(row: { subject?: unknown; body?: unknown; in_reply_to?: unknown }): { subject: string; text: string; inReplyTo: string; bad: string[] } {
+  const text = String(row.body || '').trim();
+  return { subject: String(row.subject || '').trim() || 'Re: your message', text, inReplyTo: String(row.in_reply_to || '').trim(),
+    bad: text ? [] : ['the reply body is empty'] };
 }
 
 // ---------------------------------------------------------------- the plain-text invitation (marketing)
@@ -390,14 +432,29 @@ export function qpEncode(text: string): string {
   }).join('\r\n');
 }
 
-/** The whole message as MIME (base64, as sendMail's text/plain mode wants it). An empty reply writes no Reply-To. */
-export function m365Mime(o: { from: string; to: string; reply: string; subject: string; text: string; unsub: string; unsubMailto: string; messageId: string; now: Date }): string {
+/** The whole message as MIME (base64, as sendMail's text/plain mode wants it). An empty reply writes no Reply-To.
+ *  inReplyTo (a mailbox reply) writes In-Reply-To and References, so it threads under the supplier's message.
+ *  `html` (3 Nov 2026, open_tracking.ts): absent or '' = the plain-text message exactly as before; otherwise
+ *  multipart/alternative with the SAME text part first and the HTML twin second (RFC 2046 5.1.4: last part preferred).
+ *  A reply (inReplyTo set) is ALWAYS plain text: its html is ignored, so a threaded answer can never carry a pixel. */
+export function m365Mime(o: { from: string; to: string; reply: string; subject: string; text: string; unsub: string; unsubMailto: string; messageId: string; now: Date; inReplyTo?: string | null; html?: string }): string {
+  const irt = clean(String(o.inReplyTo ?? ''));
+  const thread = irt ? [`In-Reply-To: ${irt.startsWith('<') ? irt : '<' + irt + '>'}`] : [];
+  if (thread.length) thread.push('References: ' + thread[0].slice('In-Reply-To: '.length));
+  const html = irt ? '' : String(o.html || '');
   const lines = [
     `From: ${clean(o.from)}`, `To: ${clean(o.to)}`, ...(clean(o.reply) ? [`Reply-To: ${clean(o.reply)}`] : []), `Subject: ${hdr(clean(o.subject) || 'QuotesDone')}`,
-    `Date: ${o.now.toUTCString()}`, `Message-ID: ${o.messageId}`, 'MIME-Version: 1.0',
+    `Date: ${o.now.toUTCString()}`, `Message-ID: ${o.messageId}`, ...thread, 'MIME-Version: 1.0',
   ];
   if (o.unsub) lines.push(`List-Unsubscribe: <${clean(o.unsub)}>, <mailto:${o.unsubMailto}?subject=unsubscribe>`, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click');
-  lines.push('Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(o.text));
+  const textPart = ['Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(o.text)];
+  if (!html) {
+    lines.push(...textPart);
+  } else {
+    const b = 'qd-alt-' + o.messageId.replace(/[^A-Za-z0-9]/g, '').slice(0, 48);
+    lines.push(`Content-Type: multipart/alternative; boundary="${b}"`, '', `--${b}`, ...textPart, `--${b}`,
+      'Content-Type: text/html; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(html), `--${b}--`, '');
+  }
   return b64(lines.join('\r\n'));
 }
 

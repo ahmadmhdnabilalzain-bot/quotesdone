@@ -222,6 +222,26 @@ Deno.test('on a supplier document a meaning hit stands only when the line holds 
   assertEquals(proposeByMeaning([{ text: 'Management 1', vec: [0.95, 0, 0.3], space: 'gte' }], S, { tradeLabels: labels }).map((x) => x.trade), ['accounting_bookkeeping']);
 });
 
+// 2 Nov 2026, profile-read walk on the live site: the licence of a general trader ("Activities: General Trading, Import and Export")
+// was read as steel_stock, via the service "pipes & hollow sections" (snippet "General Trading"), because "trading" is a WHOLE part of the
+// name "Steel stock & trading". "Trading" says how a company sells, never what it sells.
+Deno.test('"General Trading" holds a whole part of "Steel stock & trading" and still names no trade; a steel line still does', () => {
+  const S: MeaningService[] = [
+    { trade_code: 'steel_stock', code: 'pipes', label_en: 'Pipes & hollow sections', label_ar: '', aliases: [], vec: [1, 0] },
+    { trade_code: 'plumbing', code: 'maintenance', label_en: 'Plumbing maintenance contracts', label_ar: '', aliases: [], vec: [0, 1] },
+  ];
+  const labels = { steel_stock: 'Steel stock & trading', plumbing: 'Plumbing & sanitary' };
+  const read = (text: string, vec: number[], tradeAliases?: Record<string, string[]>) => proposeByMeaning([{ text, vec, space: 'gte' }], S, { tradeLabels: labels, ...(tradeAliases ? { tradeAliases } : {}) }).map((x) => [x.trade, x.because]);
+  for (const a of [undefined, { steel_stock: ['steel stockist'] }]) {
+    assertEquals(read('General Trading', [0.95, 0.1], a), [], 'a trader is not a steel stockist');
+    assertEquals(read('Import and Export', [0.95, 0.1], a), []);
+  }
+  // known-good controls: the trade's other whole part, and a service line with its own head word, still stand
+  assertEquals(read('Steel stock', [0.95, 0.1]), [['steel_stock', 'trade_word']]);
+  assertEquals(read('Trading of pipes and hollow sections', [0.95, 0.1]), [['steel_stock', 'head_word']]);
+  assertEquals(read('Plumbing works', [0.05, 0.99]), [['plumbing', 'trade_word']]);
+});
+
 // ── ARABIC (review of #1404; measured on the BCG Arabic brochure, 69 pages) ─────────────────────────────────────────
 import { arabicLigatureFix } from './doc_read/pdf.ts';
 Deno.test('Arabic: the reversed lam-alef at a word start is repaired; an alef-lam inside a word is left alone', () => {

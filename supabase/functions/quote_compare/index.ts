@@ -29,9 +29,10 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 async function sha256hex(s: string){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
 // The technical comparison (docs/contracts/technical_comparison.md) and the option-aware labels.
 import { rendererView, technicalComparison, type TechnicalComparison } from '../_shared/line_specs/compare.ts';
-import { heldQuoteIds } from '../_shared/reveal_guard.ts';
+import { compareItem, heldQuoteIds } from '../_shared/reveal_guard.ts';
 import { requirementsOf } from '../_shared/line_specs/assess.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
+import { DATA_NOT_INSTRUCTIONS } from '../_shared/untrusted.ts';
 import { chunks, differingCells } from '../_shared/routine_judgements.ts';
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
 function parseJson(t: string){ let s=String(t||'').trim(); const f=s.match(/```(?:json)?\s*([\s\S]*?)```/i); if(f) s=f[1].trim(); try { return JSON.parse(s); } catch {} const m = s.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch {} } return null; }
@@ -129,7 +130,8 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
       for (const r of (rows || [])) {
         const k = String(r.quote_id); (itemsByQuote[k] ||= []);
         if (itemsByQuote[k].length >= MAX_ITEMS_PER_QUOTE) continue;
-        itemsByQuote[k].push({ line: r.line_no, description: r.description, brand: r.brand, model: r.model, specification: r.specification, qty: r.qty, unit: r.unit, unit_price: r.unit_price, labour: r.labour, install: r.install, commissioning: r.commissioning, amount: r.amount, country_of_origin: r.country_of_origin, notes: r.notes, spec: r.spec || null });
+        // with spec_source: the ranking's re-check must see what the gate's reading wrote (reveal_guard.ts compareItem)
+        itemsByQuote[k].push(compareItem(r));
         (specOf[k] ||= {})[r.line_no] = r.spec_source || null;
         itemsTotal++;
       }
@@ -323,7 +325,8 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     if (cref) payload.compliance_reference = cref;
     if (expertRef) payload.expert_reference = expertRef;
     if (mustSpecs.length) payload.must_state_specs = mustSpecs;
-    const sys = SYS + (lang === 'ar' ? AR : '');
+    // the job's own words and every quotation's text in the payload are data, never instructions (untrusted.ts, 3 Nov 2026)
+    const sys = SYS + '\n\n' + DATA_NOT_INSTRUCTIONS + (lang === 'ar' ? AR : '');
     const key = await sec('cred_fn_ai'); if (!key) { await logRun('error', { compared: 0, quotes_seen: qs.length, ai_key_present: 0 }, 'quote_compare aborted: the cred_fn_ai credential is missing, so ' + qs.length + ' real supplier quotes could not be compared. The customer is shown \'ai_unavailable\' at the exact moment they are trying to choose a supplier, and the RFQ stalls at the decision step.'); return J({ ok: false, error: 'ai_unavailable', code: 'ai_unavailable' }, 503); }
     let parsed: any = null; let lastDetail = '';
     let attempts = 0;

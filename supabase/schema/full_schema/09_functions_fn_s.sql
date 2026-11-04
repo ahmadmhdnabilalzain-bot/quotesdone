@@ -1026,6 +1026,46 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_chases_for_status(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; i public.inquiries; l record; v jsonb; v_fix boolean; v_due timestamptz;
+        n_matched int := 0; n_quoted int := 0; n_chased int := 0; n_recent int := 0; n_unreached int := 0; n_new int := 0;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff' and detail->>'type' = 'inquiry.status_chase';
+  if not found then raise exception 'fn_sales_engineer_chases_for_status: % is not a status-chase handoff', p_id; end if;
+  select * into i from public.inquiries where id = (a.detail->>'inquiry_id')::uuid;
+  if not found then return jsonb_build_object('ok', false, 'error', 'inquiry_not_found'); end if;
+  v_fix := public.fn_inquiry_is_demo(i.id);
+  v_due := coalesce((a.detail->>'next_update_by')::timestamptz, now() + interval '24 hours');
+  for l in select ld.*, m.sent_at as invited_at_, exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = ld.id) as has_quote
+             from public.inquiry_matches m join public.leads ld on ld.id = m.supplier_id
+            where m.inquiry_id = i.id and not coalesce(ld.banned, false) loop
+    n_matched := n_matched + 1;
+    if l.has_quote then n_quoted := n_quoted + 1; continue; end if;
+    -- the sweep's own guard (review of #1844): a supplier invited less than 2 hours ago (or not yet sent) is not reminded
+    if not coalesce(l.invited_at_ < now() - interval '2 hours', false) then n_new := n_new + 1; continue; end if;
+    -- NO SUPPLIER IS NUDGED TWICE IN 24 HOURS (ruling 1209): one already reminded is counted, not reminded again.
+    if exists (select 1 from public.notifications n where n.lead_id = l.id and n.type = 'rfq_quote_reminder'
+                 and n.created_at > now() - interval '24 hours' and coalesce(n.status, '') <> 'failed') then
+      n_recent := n_recent + 1; continue;
+    end if;
+    v := public.fn_seat_clock_deliver('sales_engineer', 'rfq_quote_reminder', 'supplier',
+           lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email))), v_fix, 'en', 'rfq_quote_reminder',
+           jsonb_build_object('name', l.company_name, 'category', i.category, 'emirate', i.emirate, 'deadline', v_due),
+           'rfq_status_chase:' || p_id || ':' || l.id, i.id, null, l.id);
+    if coalesce((v->>'ok')::boolean, false) then n_chased := n_chased + 1; else n_unreached := n_unreached + 1; end if;
+  end loop;
+  return jsonb_build_object('ok', true,
+    'waiting', 'customer_support closes this after telling the customer: a new quote arrived, or the dated update at ' || v_due,
+    'inquiry_id', i.id, 'suppliers_matched', n_matched, 'suppliers_quoted', n_quoted, 'chased', n_chased,
+    'already_reminded_today', n_recent, 'invited_under_2_hours_ago', n_new, 'not_reachable', n_unreached, 'next_update_by', v_due);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_closes_unreached_requests(p_at timestamp with time zone DEFAULT now())
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1347,14 +1387,15 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_email_check_batch(p_limit in
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select coalesce(jsonb_agg(jsonb_build_object('lead_id', x.id, 'email', x.email, 'email_verified', x.email_verified, 'mx_kind', x.kind)), '[]'::jsonb)
+  select coalesce(jsonb_agg(jsonb_build_object('lead_id', x.id, 'email', x.email, 'email_verified', x.email_verified, 'mx_kind', x.kind,
+                                               'mx_hosts', to_jsonb(x.hosts))), '[]'::jsonb)
     from (
-      select l.id, btrim(l.email) as email, l.email_verified, m.kind
+      select l.id, btrim(l.email) as email, l.email_verified, m.kind, m.hosts
         from public.leads l
         left join public.lead_email_check c on c.lead_id = l.id
         -- a cached answer younger than the recheck; a cached failure is asked again
         left join public.email_domain_mx m on m.domain = split_part(lower(btrim(l.email)), '@', 2)
-                                          and m.checked_at > now() - interval '30 days' and m.kind <> 'error'
+                                          and m.checked_at > now() - interval '7 days' and m.kind <> 'error'
        where coalesce(btrim(l.email), '') <> ''
          and coalesce(l.invite_status, 'queued') = 'queued'
          and coalesce(l.source, '') <> 'self_registered'
@@ -1362,7 +1403,7 @@ AS $function$
          and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
          and (c.lead_id is null
               or c.email_md5 <> md5(lower(btrim(l.email)))
-              or c.checked_at < now() - interval '30 days'
+              or c.checked_at < now() - interval '7 days'
               or (c.verdict = 'retry' and c.checked_at < now() - interval '1 hour'))
        -- an invitation already waiting in the outbox first, then never-checked, then the oldest verdict
        order by (l.invite_status = 'queued') desc nulls last, (c.lead_id is null) desc, c.checked_at nulls first, l.id
@@ -2020,6 +2061,59 @@ begin
      set detail = detail || jsonb_build_object('files', fout, 'refile_attempts', v_att, 'refiled_at', now(), 'sales_done_at', now())
    where id = p_id;
   return jsonb_build_object('waiting', 'it_engineer re-verification', 'refile_attempt', v_att, 'files', fout);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_releases_the_invitations_held_stale_on_2_nov()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_cfg jsonb := coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_warmup'), '{}'::jsonb);
+  v_sh int := coalesce((v_cfg->>'window_start_hour')::int, 9);
+  v_eh int := coalesce((v_cfg->>'window_end_hour')::int, 17);
+  v_day date := (now() at time zone 'Asia/Dubai')::date;
+  v_start timestamptz; v_end timestamptz; v_hs int; v_hb int; v_max numeric; v_n int;
+begin
+  if not (coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
+          and public.fn_supplier_outreach_golive()) then
+    return jsonb_build_object('released', 0, 'held', 'the campaign is not open (invite_enabled / supplier_outreach_golive)');
+  end if;
+  v_max := coalesce((select nullif(value, '')::numeric from public.app_secrets where key = 'invite_max_bounce_rate'), 0.08);
+  select h.sent, h.bounced into v_hs, v_hb from public.fn_invite_send_health(now() - interval '3 days') h;
+  if (v_hs >= 15 and round(v_hb::numeric / greatest(v_hs, 1), 3) > v_max) or v_hb >= greatest(5, ceil(v_hs * v_max)::int) then
+    return jsonb_build_object('released', 0, 'held', 'the 3-day bounce window reads ' || v_hb || ' bounced of ' || v_hs || ' sent, over the limit');
+  end if;
+  -- the current Dubai sending window, else the next weekday's that is not a public holiday
+  loop
+    v_start := greatest(now(), (v_day + make_interval(hours => v_sh)) at time zone 'Asia/Dubai');
+    v_end := (v_day + make_interval(hours => v_eh)) at time zone 'Asia/Dubai';
+    exit when extract(isodow from v_day) not in (6, 7) and v_end >= v_start + interval '30 minutes'
+          and not exists (select 1 from public.company_calendar c where c.kind = 'public_holiday'
+                           and v_day between c.starts_on and coalesce(c.ends_on, c.starts_on));
+    v_day := v_day + 1;
+  end loop;
+  with r as (
+    select n.id, row_number() over (order by n.id) as rn, count(*) over () as c
+      from public.notifications n
+      join public.leads l on l.id = n.lead_id
+      left join public.email_domain_mx m on m.domain = split_part(lower(btrim(n.to_email)), '@', 2)
+     where n.id between 116650 and 116668
+       and n.type = 'supplier_invite' and n.status = 'held' and n.last_error is null
+       and n.sent_at is null and n.provider_message_id is null
+       and public.fn_supplier_outreach_reachable(l, lower(btrim(n.to_email)))
+       and public.fn_mail_provider_class(m.domain, m.hosts) = any(public.fn_invite_placement_open_providers(v_day))
+  )
+  update public.notifications n
+     set status = 'queued', claimed_at = null,
+         not_before = v_start + (r.rn - 1) * ((v_end - v_start) / greatest(r.c, 1)),
+         last_error = 'released 2 Nov 2026: held by the created_at stale rule while not_before deferred it; send_outbox now ages a row from when it fell due'
+    from r
+   where n.id = r.id;
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('released', v_n, 'from', v_start, 'until', v_end);
 end $function$
 
 
@@ -2710,7 +2804,12 @@ declare
   v_due int := 0; v_sent int := 0; v_failed jsonb := '[]'::jsonb; v_clock jsonb; v_out jsonb; v_why text;
   v_cfg jsonb := coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_warmup'), '{}'::jsonb);
   v_gate text; v_daily_done boolean; v_batch_done boolean; v_batch_why text; v_batch_wait boolean := false;
+  v_resumed timestamptz; v_hs int; v_hb int; v_max numeric; v_released jsonb;
 begin
+  -- A RESUME REOPENS THE DAY'S BATCH (2 Nov 2026, ledger 1486). The latest brake resumed today (Dubai); a batch run before it
+  -- does not count as today's batch.
+  select max(b.resumed_at) into v_resumed from public.invite_brake b
+   where b.resumed_at > now() - interval '1 day' and (b.resumed_at at time zone 'Asia/Dubai')::date = v_now_dxb::date;
   select exists (select 1 from public.agent_runs a
                   where a.agent = 'sales_engineer' and a.counts->>'job' = 'supplier_outreach'
                     and a.started_at > now() - interval '1 day'
@@ -2720,7 +2819,8 @@ begin
                     and ((a.counts->>'job' = 'supplier_outreach' and coalesce(a.counts->>'batch_waiting', 'false') <> 'true')
                          or a.counts->>'job' = 'supplier_outreach_batch')
                     and a.started_at > now() - interval '1 day'
-                    and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date)
+                    and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date
+                    and (v_resumed is null or a.started_at > v_resumed))
     into v_daily_done, v_batch_done;
   if not p_force then
     if extract(hour from v_now_dxb) < 9 then return jsonb_build_object('due', false, 'reason', 'before 09:00 Dubai'); end if;
@@ -2750,10 +2850,21 @@ begin
       end if;
       v_gate := public.fn_invite_placement_class_verdicts(now()) ->> 'strict';
     end if;
+    -- A batch a resume reopened waits while enqueue_supplier_invites' own 3-day brake would fire on it (the same reading,
+    -- the same limit), so the resume is not undone by the bounces it was given on. The brake is not changed.
+    if v_batch_why is null and v_resumed is not null and v_daily_done then
+      v_max := coalesce((select nullif(value, '')::numeric from public.app_secrets where key = 'invite_max_bounce_rate'), 0.08);
+      select h.sent, h.bounced into v_hs, v_hb from public.fn_invite_send_health(now() - interval '3 days') h;
+      if (v_hs >= 15 and round(v_hb::numeric / greatest(v_hs, 1), 3) > v_max) or v_hb >= greatest(5, ceil(v_hs * v_max)::int) then
+        v_batch_wait := true;
+      end if;
+    end if;
     if not v_batch_wait then
       -- THE WARM-UP (22 Sep 2026). fn_invite_ramp sets today's invite_daily_cap from the last 48 h of bounces and
       -- complaints. Open days only: a held day sends nothing, so it must not move the cap.
       if v_batch_why is null then v_cap := public.fn_invite_ramp(); end if;
+      -- The 18 the old stale rule held go back only through this gate; the routine asks the go switch and the brake itself.
+      if v_batch_why is null then v_released := public.fn_sales_engineer_releases_the_invitations_held_stale_on_2_nov(); end if;
       -- enqueue_supplier_invites holds itself (gates, weekend, holiday, bounce brake, cap, placement).
       v_invited := public.enqueue_supplier_invites(null);
     end if;
@@ -2762,10 +2873,12 @@ begin
   -- A later beat of the same day: the daily work is done, only the batch was owed.
   if v_daily_done and not p_force then
     if v_batch_wait then
-      return jsonb_build_object('due', false, 'reason', 'the batch waits for the morning inbox placement check');
+      return jsonb_build_object('due', false, 'reason', 'a resume reopened today''s batch; it waits while the 3-day bounce window reads '
+                                || v_hb || ' bounced of ' || v_hs || ' sent, over the limit');
     end if;
     v_out := jsonb_build_object('job', 'supplier_outreach_batch', 'dubai_day', v_now_dxb::date, 'held', v_batch_why is not null,
-      'held_because', v_batch_why, 'placement_gate', v_gate, 'invites', jsonb_build_object('queued', v_invited, 'cap', v_cap));
+      'held_because', v_batch_why, 'placement_gate', v_gate, 'invites', jsonb_build_object('queued', v_invited, 'cap', v_cap),
+      'released_stale', v_released);
     insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
     values ('sales_engineer', 'ok', now(), now(), v_out,
             case when v_batch_why is not null
@@ -2796,7 +2909,7 @@ begin
 
   v_out := jsonb_build_object('job', 'supplier_outreach', 'dubai_day', v_now_dxb::date, 'held', v_why is not null, 'held_because', v_why,
     'placement_gate', v_gate, 'batch_waiting', v_batch_wait, 'batch_held_because', v_batch_why,
-    'invites', jsonb_build_object('queued', coalesce(v_invited, 0), 'cap', v_cap),
+    'invites', jsonb_build_object('queued', coalesce(v_invited, 0), 'cap', v_cap), 'released_stale', v_released,
     'reminders', jsonb_build_object('due', v_due, 'sent', v_sent, 'failed', v_failed),
     'submissions', v_clock);
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
@@ -2805,7 +2918,8 @@ begin
                then 'Supplier outreach HELD (' || v_why || '): ' || coalesce(v_invited, 0) || ' invitation(s) queued, ' || v_due
                     || ' reminder(s) due, ' || v_sent || ' written to suppliers who already started; ' || coalesce(v_clock->>'raised_to_ceo', '0') || ' undecided submission(s) raised to the CEO.'
                else 'Supplier outreach: '
-                    || case when v_batch_wait then 'the invitation batch waits for the morning inbox placement check'
+                    || case when v_batch_wait then 'the invitation batch a resume reopened waits while the 3-day bounce window reads '
+                                                   || v_hb || ' bounced of ' || v_hs || ' sent, over the limit'
                             when v_batch_why is not null then 'the invitation batch was HELD (' || v_batch_why || ')'
                             else coalesce(v_invited, 0) || ' invitation(s) queued at a cap of ' || coalesce(v_cap::text, '?') end
                     || ', ' || v_sent || ' of ' || v_due
@@ -3997,6 +4111,29 @@ AS $function$
        and t <> all (array['abd','abdul','abdel','bin','ibn','abu','bint','umm','von','van','der','del','della','les','das','dos'])
      order by t), '{}'::text[]);
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_scrub_customer_identity(p_text text, p_customer uuid)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v text; w text;
+begin
+  if p_text is null or btrim(p_text) = '' then return p_text; end if;
+  -- every pattern below is ASCII-digit: a number typed in Arabic-Indic or Persian digits is read as Western first
+  -- (re-review of #1844), or it would pass the scrub and reach suppliers through the English copy
+  v := public.mask_contacts(translate(p_text, '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789'));
+  v := regexp_replace(v, '\y[A-Za-z0-9-]{2,}\.(ae|com|net|org|co|io|me|biz|info)(\.[A-Za-z]{2})?\y', '[removed]', 'gi');
+  v := regexp_replace(v, '\y0[0-9]([ .-]?[0-9]){7,8}\y', '[removed]', 'g');
+  -- a token is letters and digits only (the split guarantees it), so it carries no regex metacharacter
+  for w in select distinct t from regexp_split_to_table(coalesce((select full_name from public.customers where id = p_customer), ''), '[^[:alnum:]]+') t
+            where length(t) >= 3 and lower(t) not in ('bin', 'bint', 'abu', 'umm', 'the', 'and', 'mrs') loop
+    v := regexp_replace(v, '\y' || w || '\y', '[removed]', 'gi');
+  end loop;
+  return v;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_seat_answers_ceo_root_cause(p_id bigint)
@@ -8216,7 +8353,7 @@ begin
   select value into v_body    from app_secrets where key = 'invite_body';
   -- 27 Oct 2026: the founder's invitation carries no link ("safer to not send links"); a supplier registers at
   -- quotesdone.com or replies. Only an EMPTY template is refused now. A template that still has {{link}} is filled.
-  if btrim(coalesce(v_body, '')) = '' then
+  if coalesce(v_body, '') ~ '^[[:space:]]*$' then
     raise exception 'app_secrets.invite_body is empty: no invitation is built from nothing';
   end if;
   v_target := coalesce((select nullif(value,'')::int from app_secrets where key='invite_target_per_category'),
@@ -8654,7 +8791,9 @@ begin
       v_lead := coalesce(v_lead, n.lead_id);
       v_acted := true; v_why := 'a permanent bounce: the address is suppressed and its lead marked bounced';
     end if;
-    update public.inbound_messages set owner_role = v_owner where id = m.id;
+    -- a delivery report has nothing to answer: customer_support owns it and the agent_actions row below is the verdict, so
+    -- it leaves the review queue (a needs_review row is what reaches the founder's Inbox)
+    update public.inbound_messages set owner_role = v_owner, needs_review = false where id = m.id;
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     values ('customer_support', 'mail_bounce', case when v_acted then 'auto_done' else 'skipped' end, 'low',
             left('Bounce in the supplier mailbox: ' || coalesce(v_to, 'unknown recipient') || ' (' || v_why || ')', 200),
@@ -10197,14 +10336,14 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_reply_answer(p_intent text, p_link
  IMMUTABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select case p_intent
+  select (case p_intent
     when 'subsidiary' then
-      E'Thank you for your message.\n\nA separately licensed company registers on its own, with its own trade licence and a different e-mail address: one e-mail address manages one company.\n\nTo register it, open ' || p_link || E' , choose "Create account" and use that company''s work e-mail. It needs its licensed name, a UAE mobile number verified with a code, the verified work e-mail, the trade licence, the company profile and acceptance of the supplier terms.\n\nAnything you have already started for your first company stays as it is. We will check in with you in a week.'
+      E'Thank you for your message.\n\nA separately licensed company registers on its own, with its own trade licence and a different e-mail address: one e-mail address manages one company.\n\nTo register it, open ' || p_link || E' , choose "Create account" and use that company''s work e-mail. It needs its licensed name, a UAE mobile number verified with a code, the verified work e-mail, the trade licence, the company profile and acceptance of the supplier terms. Then the company confirms the services it provides in the Services tab of its portal: it is held until it does, and verified as soon as it has.\n\nAnything you have already started for your first company stays as it is. We will check in with you in a week.'
     when 'later' then
       E'Thank you, and there is no rush. Registration stays free for our first 1,000 suppliers.\n\nWhen the time suits you, open ' || p_link || E' and choose "Create account". We will write once more in two weeks. If you would rather we did not, reply "stop".'
     else
-      E'Thank you for your reply.\n\nTo register, open ' || p_link || E' , choose "Create account" with your work e-mail and type the 6-digit code we send you. To be verified we need your licensed company name, a UAE mobile number verified with a code, the verified work e-mail, the trade licence, the company profile and your acceptance of the supplier terms. Only you can verify and accept these, so we cannot do it for you, but it takes a few minutes.\n\nIf you have a question, reply to this e-mail.'
-    end
+      E'Thank you for your reply.\n\nTo register, open ' || p_link || E' , choose "Create account" with your work e-mail and type the 6-digit code we send you. To be verified we need your licensed company name, a UAE mobile number verified with a code, the verified work e-mail, the trade licence, the company profile and your acceptance of the supplier terms. Then you confirm the services your company provides in the Services tab of your portal: you are held until you do, and verified as soon as you have. Only you can verify, accept and confirm these, so we cannot do it for you, but it takes a few minutes.\n\nIf you have a question, reply to this e-mail.'
+    end) || E'\n\nKind regards,\nThe QuotesDone Team'
 $function$
 
 
@@ -12152,11 +12291,11 @@ begin
     'ok', true, 'task_id', v_task, 'asks', v_asks, 'test_traffic', v_test,
     'reply_en', 'I do not have a sourced answer to that yet, and I will not guess at it. I have '
       || 'recorded your question exactly as you asked it so it gets answered properly. If you need '
-      || 'it now, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email '
+      || 'it now, call +971 56 791 8605 or WhatsApp +1 218 316 6814 (Mon-Fri, 9am-6pm GST) or email '
       || 'management@quotesdone.com.',
     'reply_ar', 'لا تتوفر لديّ إجابة موثّقة عن ذلك حتى الآن، ولا أودّ التخمين. سجّلتُ سؤالكم كما كتبتموه '
       || 'تمامًا ليُجاب عنه إجابة دقيقة. وإن احتجتم إلى الإجابة الآن، يمكنكم الاتصال أو المراسلة عبر '
-      || 'واتساب:' || E'\n' || '+971 50 931 9355' || E'\n' || 'أو البريد الإلكتروني:' || E'\n'
+      || 'واتساب:' || E'\n' || '+1 218 316 6814' || E'\n' || 'أو الاتصال الهاتفي على:' || E'\n' || '+971 56 791 8605' || E'\n' || 'أو البريد الإلكتروني:' || E'\n'
       || 'management@quotesdone.com');
 end
 $function$

@@ -309,7 +309,7 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
                   const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
                   setMenu((m) => (m?.id === id ? null : { id, x: r.left, y: r.bottom + 4 }));
                 }}
-                className="absolute end-1 top-1 grid min-h-11 min-w-11 place-items-center rounded-lg text-muted-foreground hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="absolute inset-e-1 top-1 grid min-h-11 min-w-11 place-items-center rounded-lg text-muted-foreground hover:bg-white/10 hover:text-white focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span aria-hidden className="text-[17px] leading-none">⋯</span>
               </button>
@@ -323,7 +323,7 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
       {/* CONTEXT MENU — floating, positioned at the pointer. */}
       {menu && (
         <div
-          className="fixed z-50 min-w-[10rem] rounded-lg border border-border bg-popover p-1 shadow-e3"
+          className="fixed z-50 min-w-40 rounded-lg border border-border bg-popover p-1 shadow-e3"
           style={{ left: menu.x, top: menu.y }}
           role="menu"
         >
@@ -341,7 +341,7 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
         {detail && (
           <motion.aside
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
-            className="fixed bottom-6 end-6 z-50 w-[min(22rem,90vw)] rounded-panel border border-border bg-popover p-4 shadow-e3"
+            className="fixed bottom-6 inset-e-6 z-50 w-[min(22rem,90vw)] rounded-panel border border-border bg-popover p-4 shadow-e3"
             role="dialog" aria-label={detail.title}
           >
             <h4 className="mb-1.5 text-[13.5px] font-semibold text-white">{detail.title}</h4>

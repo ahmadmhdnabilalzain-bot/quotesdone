@@ -11,6 +11,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A refused CDN is worked around in the check, not in production (27 Oct)](a-refused-cdn-is-worked-around-in-the-check-not-in-production.md) — cloud proxy refuses cdn.jsdelivr.net: ml_embed type-checked via @ts-types npm, dwg check grants only the npm registry
 - [The founder's user-global CLAUDE.md](user-global-CLAUDE.md) — copy of ~/.claude/CLAUDE.md: skills-and-plugins-first, every session
 - [Supplier campaign sends FROM supplier@quotesdone.com](supplier-campaign-sends-from-supplier-at-quotesdone-com.md) — repeated 19 Oct; never invite@hello
+- [An invitation open is measured on a tracked share (3 Nov)](an-invitation-open-is-measured-on-a-tracked-share.md) — invite_open_tracking (seeded 20%) adds an HTML twin + one first-party pixel; changes ruling 1301 for that share only; opens are a floor
 - [WhatsApp supplier invites need an opt-in](whatsapp-supplier-invites-need-an-opt-in.md) — 27 Oct: Meta policy; scraped mobiles are not opt-ins (0 of 2,863); both switches + HIGH sender + brake; #1511 WAS merged
 - [WhatsApp opt-in = the button or a yes to consent (27 Oct)](whatsapp-opt-in-is-the-button-or-a-yes-to-consent.md) — ledger 1341: "Set up my page" or a yes to fn_wa_consent_question; a message they send is never one; one rule, fn_wa_optin_rule
 - [EVERY founder message is an instruction](every-founder-message-is-an-instruction.md) — 22 Sep, instr 644: record each ask in founder_instruction at once; reconcile before any "nothing pending"
@@ -20,6 +21,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Work without check-ins](quotesdone-work-without-checkins.md) · [Decide, do not present options](decide-dont-present-options.md) · [No technical questions to him](dont-ask-him-technical-questions.md)
 - [Never state what you have not measured](never-state-what-you-have-not-measured.md) — founder's standing rule
 - [Ready means every gate measured](ready-means-every-gate-measured.md) — 6 Oct: founder relies fully; "ready" only with a same-day measured go/no-go checklist
+- [Release standard is Apple's day one (3 Nov)](release-standard-is-apples-day-one.md) — every scenario proven on demo data; "ready" only when docs/release/qualification_matrix.md §7 is measured green the same day, 0 P0/P1
 - [The agent delivers its own work](the-agent-delivers-its-own-work.md) — never hand-deliver a seat's output; the delivery IS the test
 - [A status column is not a delivery record](a-status-column-is-not-a-delivery-record.md) — verify sends through the outbox; 171 leads read "invited" with 0 emails ever sent
 - [MAX 5 agents at once; Sonnet for simple tasks (1 Nov)](max-five-agents.md) — ledger 1417; replaces the limit of 10 (ledger 1280)
@@ -50,7 +52,8 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [WhatsApp is the founder's command channel](whatsapp-founder-command-channel.md)
 - [Founder mail goes through founder_mail_policy](founder-mail-goes-through-founder-mail-policy.md) — fn_notify_founder needs p_kind
 - [The estate could not email a file](the-estate-could-not-email-a-file.md) — fixed 9 Sep: notifications.attachments + send_outbox v43
-- [Founder's landline and mobile](founder-landline-and-mobile.md)
+- [Founder's landline and mobile](founder-landline-and-mobile.md) — 2 Nov: no longer public (ledger 1482)
+- [A contact-only terms version asks nobody to sign again](a-contact-only-terms-version-asks-nobody-to-sign-again.md) — 2 Nov: Supplier Agreement v17 + app_secrets supplier_terms_carries_from; deploy functions BEFORE the apply
 - [No observe mode — plain login](no-observe-mode-plain-login.md) — mobile number + OTP
 - [Links he shares are standing, not per-task](links-he-shares-are-standing-not-per-task.md)
 - [Expenses email is the source of truth](expenses-email-source-of-truth.md) · [Resend inbound keeps ~1 month](resend-inbound-retention-is-about-a-month.md) · [Accountant only sees what was forwarded](the-accountant-only-sees-what-was-forwarded.md)
@@ -135,6 +138,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [WhatsApp reply model was never shown the conversation](whatsapp-reply-model-was-never-shown-the-conversation.md) — 2 Nov: stored is not shown; voice notes not heard; OTP-on-WhatsApp does not make a supplier known
 - [Lessons — measurement, guards, checks, audits, identity](lessons-measurement-guards-and-audits.md) — 75 pattern lessons, grouped
 - [Lessons — Postgres, kernel, deploy, phase machinery](lessons-postgres-kernel-and-deploy.md) — 60 pattern lessons, grouped
+- [A deferred row aged out by created_at (2 Nov)](a-deferred-row-aged-out-by-created-at.md) — a supplier_invite held with no last_error was send_outbox's 72 h stale guard; a same-day resume now reopens the batch
 - [A held row failed with no result means the runner died (27 Oct)](a-held-row-failed-with-no-result-means-the-runner-died.md) — 2 s edge CPU cap; gte-small in a batch goes to embed_ml
 - [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
 ## The lenses that keep paying
@@ -147,11 +151,13 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 ## State of the build
+- [CHECKPOINT 3 Nov — hand-over for the week of 4 Nov](checkpoint-3-nov-handover-week-of-4-nov.md) — READ FIRST: invitations exclude Yahoo/Microsoft (make it explicit), what went live 3 Nov, every open PR and its next step
 - [CHECKPOINT 2 Nov — founder's 10-hour push](checkpoint-2-nov-10-hour-push.md) — READ FIRST: rulings 1437-1458, what is live, the PR queue, Al Gouri, deadlines
 - [CHECKPOINT 27 Oct night — merge train and the held queue](checkpoint-27-oct-night-merge-train-and-the-held-queue.md) — READ FIRST: 25 PRs live, parity 78/0; resilience_ping chain CPU→fan-out→itlater→newest-first queue; #1693 code not yet deployed; November plan at risk; open list
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
 - [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support
 - [Registration walk reads the REAL code via a Resend sink; supplier@ replies were never answered (28 Oct)](the-registration-walk-reads-the-real-code-through-a-resend-sink.md) — `--real-otp`; #1699 fixed `noAutoReply`→internal for supplier@; 390 px harness traps
+- [Supplier document uploads measured (28 Oct)](supplier-document-uploads-measured-28-oct.md) — body vs direct path; 9.66 MB read, 14.5 MB hit the CPU cap (pdfText, #1721); 10 MB portal cap (#1720); pad PDFs with hex, never base64; never `timeout` a probe's teardown
 - [Invitations resume only at ≥80% Outlook inbox](invitations-resume-only-at-80-percent-outlook-inbox.md) — 27 Oct, instr 1312: GlockApps from supplier@; report inbox/spam/promotions per provider
 - [No test email to the founder's own inboxes (27 Oct)](no-test-email-to-the-founders-own-inboxes.md) — standing: no seed/test/placement/warm-up mail to his 6 mailboxes; morning seed retired; resuming invites must also replace the seed gate with the GlockApps verdict
 - [The invitation gate reads the GlockApps verdict, per provider (27 Oct)](the-invitation-gate-reads-the-glockapps-verdict.md) — record get_results with scripts/record_inbox_placement_verdict.mjs (no API key); bar in invite_placement_bar; a passing provider is invited, others skipped, `other` follows Microsoft; 7 days; applies after #1696

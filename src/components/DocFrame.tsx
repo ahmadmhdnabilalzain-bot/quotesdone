@@ -112,7 +112,7 @@ export function ContentsRail({ title, list, footer }: { title: string; list: Hea
     <ol className="flex flex-col gap-0.5">
       {list.map((h, i) => (
         <li key={h.id}>
-          <a href={`#${h.id}`} className="group flex gap-3 rounded-chip px-2 py-1.5 text-small leading-snug text-muted transition-colors duration-base hover:bg-teal-light/[0.05] hover:text-white">
+          <a href={`#${h.id}`} className="group flex gap-3 rounded-chip px-2 py-1.5 text-small leading-snug text-muted transition-colors duration-base hover:bg-teal-light/5 hover:text-white">
             <span className="tabular w-5 shrink-0 font-mono text-label text-faint group-hover:text-teal-light">{String(i + 1).padStart(2, '0')}</span>
             <span className="min-w-0">{h.text.replace(/^\d+(\.\d+)*[.)]?\s*/, '')}</span>
           </a>

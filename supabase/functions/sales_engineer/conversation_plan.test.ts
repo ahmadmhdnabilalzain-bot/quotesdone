@@ -1,7 +1,7 @@
 // The portal conversation's plan per trade (conversation_plan.ts). No network: the extraction call gets a fake fetch.
 // Run: deno test --no-lock supabase/functions/sales_engineer/conversation_plan.test.ts
 import { assert, assertEquals, assertThrows } from 'jsr:@std/assert';
-import { BRIEF_TEXT } from '../_shared/brief.generated.ts';
+import { KNOWLEDGE_TEXT } from '../_shared/company_brief.ts';   // every compiled block: the playbooks ride in the trade packs since 3 Nov 2026
 import { S } from '../../../scripts/e2e/adaptive_conversation_bank.mjs';
 import { extractSlots, fillsOf, jobStart, parseExtraction, PLANS, planState, plansFrom, stateBlock, stem, stems, SUMMARY_AFTER, targets,
   tradeOf, type Turn } from './conversation_plan.ts';
@@ -19,7 +19,7 @@ Deno.test('Arabic word forms share one stem: camera, room, apartment', () => {
 });
 
 Deno.test('every playbook section names its must-haves, location and timing among them', () => {
-  const cats = [...BRIEF_TEXT.matchAll(/\*\*Categories:\*\*\s*([^\n]+)/g)].flatMap((m) => m[1].split(',').map((c) => c.trim()));
+  const cats = [...KNOWLEDGE_TEXT.matchAll(/\*\*Categories:\*\*\s*([^\n]+)/g)].flatMap((m) => m[1].split(',').map((c) => c.trim()));
   assert(cats.length >= 50, String(cats.length));
   for (const c of cats) {
     const p = PLANS.get(c);

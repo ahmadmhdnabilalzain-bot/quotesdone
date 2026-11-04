@@ -12,10 +12,11 @@ import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
 import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
-import { claimQueue, ownsChannel } from './channels.ts';
+import { claimQueue, isStale, ownsChannel, STALE_CEILING_H } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, conversationReplyTo, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, paceM365, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
+import { OPEN_TOKEN_MS, invitationHtml, openShare, openTracks, pixelBase, pixelUrl } from './open_tracking.ts';
+import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, afterRefusal, campaignMail, conversationReplyTo, graphSend, holdForM365, isMailboxReply, laneSide, m365Carries, m365Step, replyMail, m365Mime, m365ReplyTo, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -34,7 +35,7 @@ export const OUTBOX_KEYS = ['unsubscribe_signing_key', 'email_enabled', 'supplie
   'resend_api_key', 'email_from_supplier', 'email_from_info', 'email_reply_supplier', 'email_reply_supplier_docs',
   'email_reply_info', 'email_logo_url', 'unsubscribe_public_base', 'email_asset_public_base', 'email_signature_name',
   'email_signature_name_ar', 'email_signature_title', 'invite_preheader', 'daily_send_cap', 'invite_lane_enabled',
-  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox'];
+  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox', 'invite_open_tracking'];
 let secCache: Map<string, string | undefined> | null = null;
 async function warmSecrets() {
   secCache = null;
@@ -202,7 +203,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     // On, it asks Resend whether the lane's subdomain is verified before a single invitation uses it.
     // THE MICROSOFT 365 LANE (5 Oct 2026, ledger 1115; m365_lane.ts). A row it carries never reaches the Resend lanes below.
     const m365Enabled = switchOn(await setting('invite_m365_enabled'));
-    const carries = (r: any) => m365Carries({ enabled: m365Enabled, type: r.type, kind: r.kind, supplierSide: r.to_role === 'supplier' });
+    const carries = (r: any) => m365Carries({ enabled: m365Enabled, type: r.type, kind: r.kind, supplierSide: laneSide(r) });
     const fileFinding = async (args: Record<string, unknown>) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; };
     let m365 = await resolveM365({ needed: rows.some(carries), mailbox: await setting('invite_m365_mailbox'), env: (k) => Deno.env.get(k),
       fetchFn: (u, i) => timedFetch(u, i || {}, 10_000), fileFinding });
@@ -253,6 +254,21 @@ Deno.serve(observe('send_outbox', async (req) => {
       // company and a fire-safety trainer were asked about their "civil works work". GlockApps tested the neutral wording.
       return campaignMail(n, { company: (lead as any)?.company_name ?? undefined });
     };
+    // THE INVITATION OPEN (3 Nov 2026, marketing; open_tracking.ts). Share 0 / 'off' or no first-party base: no call, and
+    // the email is exactly the untracked one. Otherwise the database picks the arm and the token; a failed call or no
+    // token sends the untracked email (an open is never worth a held invitation). The call is cut at OPEN_TOKEN_MS, so a
+    // hung database call cannot delay an invitation. Only the Microsoft 365 lane carries the twin: the Resend fallback stays
+    // text-only, so a provider's own open or click tracking can never be added to an invitation (review of #1831).
+    const openPct = openShare(await setting('invite_open_tracking'));
+    const openBase = pixelBase(unsubBase);
+    const openHtmlFor = async (n: { id: number; type?: unknown; kind?: unknown; to_role?: unknown; lang?: unknown }, text: string): Promise<string> => {
+      if (!openPct || !openBase || !openTracks(n)) return '';
+      try {
+        const { data, error } = await admin.rpc('fn_invite_open_token', { p_notification_id: n.id }).abortSignal(AbortSignal.timeout(OPEN_TOKEN_MS));
+        const pixel = error ? '' : pixelUrl(openBase, data);
+        return pixel ? invitationHtml(text, pixel) : '';
+      } catch { return ''; }
+    };
     for (const n of rows) {
       // WHATSAPP ROWS EATEN 27 Jul 2026 - the select above pulls every queued row of EVERY channel but
       // this line excluded only 'sms', and the next line marks any row with no to_email as 'skipped'.
@@ -272,12 +288,16 @@ Deno.serve(observe('send_outbox', async (req) => {
       // never emails a fixture address.
       if (RESERVED_TEST_DOMAIN.test(n.to_email)) { await admin.from('notifications').update({ status: 'skipped', last_error: 'reserved test domain (RFC 2606): never deliverable, refused before any provider call' }).eq('id', n.id); skipped++; continue; }
       if (supReason.has(foldEmail(n.to_email)) && suppressionStops(supReason.get(foldEmail(n.to_email)), n.type)) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
-      const ageH = (Date.now() - new Date(n.created_at).getTime()) / 3.6e6;
-      if (ageH > staleH) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
-      const supplierSide = n.to_role === 'supplier';
+      const age = isStale(n.created_at, n.not_before, isLaneType(n.type), staleH, new Date());
+      if (age.stale) { await admin.from('notifications').update({ status: 'held', last_error: 'held: stale, ' + Math.round(age.hours) + 'h past due (email_stale_hours ' + staleH + ', ceiling ' + STALE_CEILING_H + 'h from creation)' }).eq('id', n.id); held++; continue; }
+      // A REPLY IN A CONVERSATION KEEPS ITS RESEND HANDLING (sales_engineer, 3 Nov 2026). fn_inbox_send now writes
+      // to_role 'supplier' on a reply to a supplier (so the lead's history counts it); on the Resend route that row
+      // is sent exactly as before, when its to_role was NULL: From info@, inboundReplyTo's Reply-To, no supplier frame,
+      // gate or unsubscribe footer. Only the Microsoft 365 lane reads the role (carries, above).
+      const supplierSide = n.to_role === 'supplier' && n.type !== 'inbound_reply';
       const internal = n.to_role === 'admin' || n.to_role === 'founder';
       const docReq = supplierSide && isDocRequest(n.type);
-      if (supplierSide && !supEnabled && !docReq) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
+      if (supplierSide && !supEnabled && !docReq) { await admin.from('notifications').update({ status: 'held', last_error: 'held: supplier_emails_enabled is off' }).eq('id', n.id); held++; continue; }
       // A LANE INVITATION IS HELD, NEVER DIVERTED (review of #963; invite_lane.ts holdFor). Left 'queued' with
       // not_before moved on, so it does not come back into the next claim and crowd out other mail.
       const laneHold = holdFor({ lane, type: n.type, supplierSide: supplierSide && !carries(n), laneSentToday, laneCap });
@@ -301,48 +321,62 @@ Deno.serve(observe('send_outbox', async (req) => {
       // NEVER AN ARABIC INVITATION (24 Sep 2026, marketing, ledger 993): held with its reason, not sent.
       if (holdArabicInvitation(n.type, n.lang, supplierSide)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: supplier mail is English only (ledger 993; founder 28 Sep 2026); this row was queued in Arabic' }).eq('id', n.id); held++; continue; }
       if (carries(n)) {
-        // Held, never diverted to Resend: refused lane, shared invite cap or the mailbox's ceiling.
+        // An invitation is held, never diverted to Resend: refused lane, shared invite cap or the mailbox's ceiling.
+        // A mailbox reply (m365_lane.ts isMailboxReply) is never held or paced: when the lane cannot carry it, it
+        // falls through to the Resend route below, exactly as before this lane carried replies (m365Step).
+        const isReply = isMailboxReply(n);
         const mh = holdForM365({ m365, type: n.type, cappedSentToday, inviteCap: laneCap, m365SentToday });
-        if (mh) {
-          await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil(mh, new Date()).toISOString(),
+        const step = m365Step({ reply: isReply, hold: mh, sentThisRun: m365SentRun });
+        if (step === 'hold') {
+          await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil(mh!, new Date()).toISOString(),
             last_error: mh === 'cap' ? 'held: the Microsoft 365 lane reached invite_daily_cap or its ' + M365_HARD_CEILING + '/day ceiling'
                                      : 'held: the Microsoft 365 lane is on but ' + m365.why + '; never sent through Resend' }).eq('id', n.id);
           laneHeld++; continue;
         }
         // PACING (27 Oct 2026, m365_lane.ts paceM365): at most M365_PER_RUN lane sends a run; the rest go back to the queue.
-        if (paceM365(m365SentRun)) {
+        if (step === 'pace') {
           await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: new Date(Date.now() + M365_PACE_MS).toISOString(),
             last_error: 'paced: the Microsoft 365 lane sends at most ' + M365_PER_RUN + ' a run; queued for a later run' }).eq('id', n.id);
           laneHeld++; continue;
         }
-        // 27 Oct 2026: the invitation, its nudge and the seed send one approved email (campaignMail, shared with the
-        // Resend fallback below); only the seed keeps its (ref QD…) token.
-        const { subject: mSubject, text: mBody, bad } = await campaignFor(n);
-        if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 invitation copy rule failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
-        const now = new Date(); const mid = messageIdFor(n.id, now);
-        const mime = m365Mime({ from: M365_FROM_NAME + ' <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
-        try {
-          const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
-          if (r.ok) {
-            await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: r.providerId }).eq('id', n.id);
-            // this lane has no Resend webhook, so the lead moves here (1 Nov 2026: 52 sent invitations still read 'queued')
-            if (n.type === 'supplier_invite' && n.lead_id) await admin.from('leads').update({ invite_status: 'sent' }).eq('id', n.lead_id).eq('invite_status', 'queued');
-            sent++; m365SentToday++; m365SentRun++; if (LANE_CAPPED_TYPES.includes(n.type)) cappedSentToday++;
-          } else {
-            // Graph refused: this row and every later one in the run are held, one finding says why.
-            m365 = { ...m365, active: false, refused: true, why: 'refused: ' + r.status };
-            try { await fileFinding(refusalFinding(m365.mailbox, r.status, M365_SECRET_NAMES.filter((k) => !!Deno.env.get(k)))); } catch (_e) { /* the hold below still happens */ }
-            await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil('unverified', new Date()).toISOString(),
-              last_error: ('held: ' + r.status + '; never sent through Resend').slice(0, 500) }).eq('id', n.id);
-            laneHeld++;
+        let toResend = step === 'resend';
+        if (!toResend) {
+          // 27 Oct 2026: the invitation, its nudge and the seed send one approved email (campaignMail, shared with the
+          // Resend fallback below); only the seed keeps its (ref QD…) token. A reply sends its own text, threaded.
+          const rm = isReply ? replyMail(n) : null;
+          const { subject: mSubject, text: mBody, bad } = rm ? { subject: rm.subject, text: rm.text, bad: rm.bad.map((rule) => ({ rule, ok: false, detail: '' })) } : await campaignFor(n);
+          if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 ' + (isReply ? 'reply' : 'invitation copy rule') + ' failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
+          // The open-tracking twin is for a campaign row only (open_tracking.ts openTracks); a reply is never tracked.
+          const mHtml = rm ? '' : await openHtmlFor(n, mBody);
+          const now = new Date(); const mid = messageIdFor(n.id, now);
+          // A reply is one person answering another: no List-Unsubscribe, as on its Resend route.
+          const mime = m365Mime({ from: M365_FROM_NAME + ' <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub: isReply ? '' : unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now, inReplyTo: rm?.inReplyTo, html: mHtml });
+          try {
+            const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
+            if (r.ok) {
+              await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: r.providerId }).eq('id', n.id);
+              // this lane has no Resend webhook, so the lead moves here (1 Nov 2026: 52 sent invitations still read 'queued')
+              if (n.type === 'supplier_invite' && n.lead_id) await admin.from('leads').update({ invite_status: 'sent' }).eq('id', n.lead_id).eq('invite_status', 'queued');
+              sent++; m365SentToday++; m365SentRun++; if (LANE_CAPPED_TYPES.includes(n.type)) cappedSentToday++;
+            } else {
+              // Graph refused: every later lane row in the run is held (a reply: sent through Resend), one finding says why.
+              m365 = { ...m365, active: false, refused: true, why: 'refused: ' + r.status };
+              try { await fileFinding(refusalFinding(m365.mailbox, r.status, M365_SECRET_NAMES.filter((k) => !!Deno.env.get(k)))); } catch (_e) { /* the hold below still happens */ }
+              if (afterRefusal(isReply) === 'resend') toResend = true;
+              else {
+                await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil('unverified', new Date()).toISOString(),
+                  last_error: ('held: ' + r.status + '; never sent through Resend').slice(0, 500) }).eq('id', n.id);
+                laneHeld++;
+              }
+            }
+          } catch (e) {
+            // No answer: sent-unconfirmed, never sent again (the same rule as the Resend path below).
+            lastErr = String((e as Error)?.message || e).slice(0, 200); unconfirmed++;
+            await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: null,
+              last_error: ('the POST to Microsoft Graph did not return (' + lastErr + '); sent-unconfirmed, will NOT be sent again').slice(0, 500) }).eq('id', n.id);
           }
-        } catch (e) {
-          // No answer: sent-unconfirmed, never sent again (the same rule as the Resend path below).
-          lastErr = String((e as Error)?.message || e).slice(0, 200); unconfirmed++;
-          await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: null,
-            last_error: ('the POST to Microsoft Graph did not return (' + lastErr + '); sent-unconfirmed, will NOT be sent again').slice(0, 500) }).eq('id', n.id);
         }
-        continue;
+        if (!toResend) continue;
       }
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
