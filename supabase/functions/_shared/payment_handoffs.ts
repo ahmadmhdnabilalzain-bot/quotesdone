@@ -210,4 +210,8 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'review.requested', from: 'customer_support', to: 'customer_support' },
   { type: 'review.requested', from: 'customer_support', to: 'it_engineer' },
   { type: 'review.requested', from: 'customer_support', to: 'sales_engineer' },
+  // a customer asked on WhatsApp about a late request: the sales engineer chases the suppliers who have not quoted, and
+  // customer support closes it once the customer is told (scripts/sql/a_customer_asking_on_whatsapp_reads_their_own_requests_and_every_ask_closes_its_loop.sql,
+  // handler fn_sales_engineer_chases_for_status, closer fn_customer_support_closes_status_chases)
+  { type: 'inquiry.status_chase', from: 'customer_support', to: 'sales_engineer' },
 ] as const;

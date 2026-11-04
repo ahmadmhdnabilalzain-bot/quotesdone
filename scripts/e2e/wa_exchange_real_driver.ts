@@ -12,13 +12,18 @@ if (!handler) throw new Error('wa_inbound did not call Deno.serve');
 const SIGNED = cfg.url + '/functions/v1/wa_inbound';
 const REST = { apikey: cfg.service, Authorization: 'Bearer ' + cfg.service };
 let n = 0;
+// EVERY REQUEST NAMES ITS RUN AND PROVES IT (it_engineer, 3 Nov 2026). Measured: 48 exchange runs on 2-3 Nov posted Twilio-signed
+// turns with no tag, so observe() ran them untagged and the window's USD cap never applied. The run tag and the internal secret
+// ride on every request this driver makes: text turns, file turns and the forged control. No run tag, no run.
+if (!cfg.e2e?.tag || !cfg.e2e?.secret) throw new Error('REFUSED: no run tag and secret in the config; an untagged exchange would spend outside its cap');
+const TAG_HEADERS: Record<string, string> = { 'x-qd-e2e-run': cfg.e2e.tag, 'x-qd-e2e-secret': cfg.e2e.secret };
 async function sign(params: Record<string, string>) {
   const data = SIGNED + Object.keys(params).sort().map((k) => k + params[k]).join('');
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(cfg.authToken), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
   return btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data)))));
 }
 async function lastRow(from: string, sid: string) {
-  const r = await fetch(`${cfg.url}/rest/v1/wa_messages?wa_from=eq.${encodeURIComponent(from)}&meta->>message_sid=eq.${sid}&order=id.desc&select=inbound,reply,sent,escalated,meta`, { headers: REST });
+  const r = await fetch(`${cfg.url}/rest/v1/wa_messages?wa_from=eq.${encodeURIComponent(from)}&meta->>message_sid=eq.${sid}&order=id.desc&select=inbound,reply,lang,sent,escalated,meta`, { headers: REST });
   return (await r.json()) as { inbound: string; reply: string; sent: boolean; escalated: boolean; meta: Record<string, unknown> }[];
 }
 // A text turn: Twilio-signed form POST. Returns the captured reply row(s).
@@ -28,7 +33,7 @@ async function say(phone: string, body: string) {
   const pending: Promise<unknown>[] = [];
   (globalThis as unknown as { EdgeRuntime: unknown }).EdgeRuntime = { waitUntil: (p: Promise<unknown>) => { pending.push(p); } };
   const t0 = Date.now();
-  const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': await sign(params) }, body: new URLSearchParams(params).toString() }));
+  const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': await sign(params), ...TAG_HEADERS }, body: new URLSearchParams(params).toString() }));
   await Promise.all(pending);
   const rows = await lastRow(from, sid);
   return { status: res.status, ms: Date.now() - t0, rows, reply: rows.map((r) => r.reply).filter(Boolean).join(' | ') };
@@ -45,7 +50,7 @@ async function file(phone: string, mime: string, b64: string, caption: string) {
     const t0 = Date.now();
     const pending: Promise<unknown>[] = [];
     (globalThis as unknown as { EdgeRuntime: unknown }).EdgeRuntime = { waitUntil: (p: Promise<unknown>) => { pending.push(p); } };
-    const res = await handler!(new Request(cfg.url + '/functions/v1/wa_inbound', { method: 'POST', headers: { 'content-type': 'application/json' },
+    const res = await handler!(new Request(cfg.url + '/functions/v1/wa_inbound', { method: 'POST', headers: { 'content-type': 'application/json', ...TAG_HEADERS },
       body: JSON.stringify({ __secret: cfg.internals[c], From: from, Body: caption, MessageSid: sid, NumMedia: '1', MediaUrl0: `data:${mime};base64,${b64}`, MediaContentType0: mime }) }));
     await Promise.all(pending);
     const rows = await lastRow(from, sid);
@@ -67,11 +72,27 @@ async function mediaTurns() {
   out.voice = await file(S, 'audio/ogg', btoa('OggS-not-real-audio'), '');
   out.stranger_image = await file(X, 'image/png', cfg.pngB64, 'ZZ DEMO photo from a number with no account');
   }
+// cfg.script (scripts/eval/conversation_quality.mjs, 3 Nov 2026): scripted conversations, one per number, and nothing else.
+// Each turn is a text turn from that number; the transcript is what the person would have read.
+if (cfg.script) {
+  const conv: Record<string, { role: string; text: string; ms?: number }[]> = {};
+  for (const [who, turns] of Object.entries(cfg.script as Record<string, string[]>)) {
+    const phone = who === 'supplier' ? S : X; conv[who] = [];
+    for (const text of turns) {
+      const r = await say(phone, text);
+      // what the handler decided for the turn, so a wrong reply can be traced to its path (route, audience, language, attempts)
+      const m = (r.rows[0]?.meta ?? {}) as Record<string, unknown>;
+      const trace = { lang: (r.rows[0] as { lang?: string } | undefined)?.lang ?? null, ...Object.fromEntries(['route', 'audience', 'lang', 'route_intent', 'model', 'reply_attempts', 'outage'].filter((k) => k in m).map((k) => [k, JSON.stringify(m[k]).slice(0, 400)])) };
+      conv[who].push({ role: 'customer', text }, { role: 'agent', text: r.reply || `(NO ANSWER: ${r.status} ${JSON.stringify(r.rows[0]?.meta?.send_error ?? 'no row')})`, ms: r.ms, trace } as never);
+    }
+  }
+  console.log('RESULT=' + JSON.stringify({ script: conv })); Deno.exit(0);
+}
 // cfg.mediaOnly: the six file turns and nothing else (the coordinator's short live run, 2 Nov: one live test at a time, USD 1 cap).
 if (cfg.mediaOnly) { await mediaTurns(); console.log('RESULT=' + JSON.stringify(out)); Deno.exit(0); }
 out.forged = await (async () => { // known-bad control: wrong token, no row, no reply
   const params = { From: 'whatsapp:' + X, To: 'whatsapp:+14155550100', Body: 'ZZ DEMO forged', MessageSid: 'SM' + 'f'.repeat(32), NumMedia: '0' };
-  const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': 'AAAA' }, body: new URLSearchParams(params).toString() }));
+  const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': 'AAAA', ...TAG_HEADERS }, body: new URLSearchParams(params).toString() }));
   await new Promise((r) => setTimeout(r, 1500));
   return { status: res.status, rows: (await lastRow('whatsapp:' + X, 'S'.padEnd(34, 'f'))).length };
 })();

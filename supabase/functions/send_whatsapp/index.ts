@@ -51,6 +51,7 @@ import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { portfolioGate } from './portfolio_gate.ts';
 import { registrationNeeds } from './registration_reminder.ts';
+import { INVOICE_LINK_TTL, invoiceAttachment, isConfirmation } from './confirmations.ts';
 // v9 (24 Sep 2026, customer_support, founder ledger 994): nothing depends on WhatsApp alone. While the IT
 // engineer's watch holds the sender down, or when one send fails, the notice goes once by SMS
 // (_shared/whatsapp_failover.ts, public.fn_wa_sms_twin), and back to WhatsApp when the watch closes.
@@ -63,6 +64,8 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+/** Twilio codes that mean the recipient opted out of our messages (21610: replied STOP). Final, and never failed over. */
+const OPTED_OUT_CODES = new Set(['21610']);
 
 // Observability -------------------------------------------------------------
 const T0 = Date.now();
@@ -92,7 +95,8 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
 // then marks THIS row 'skipped' with the reason. It returns null for a row that is not the
 // founder's, so the caller falls through to the behaviour it always had.
 type WaRow = { id: number; type?: string|null; to_phone?: string|null; to_role?: string|null;
-               subject?: string|null; body?: string|null; created_at?: string|null; lang?: string|null; lead_id?: number|null };
+               subject?: string|null; body?: string|null; created_at?: string|null; lang?: string|null; lead_id?: number|null;
+               attachments?: unknown };
 // isFounderRow decides the CAP EXEMPTIONS only. Who the founder is for the fallback is decided in
 // one place — fn_wa_founder_alert_fallback, which uses a10's own test (to_role, or to_phone equal
 // to admin_mfa_phone) — so this function does not pre-filter and the two cannot disagree about a
@@ -152,6 +156,16 @@ function tmplKey(type:string):string|null{
   // 24 Sep 2026 (sales_engineer): the approval notice, twinned from its email to the confirmed number.
   // {{1}} is its subject ("You are verified on QuotesDone: please confirm your categories"), {{2}} the portal.
   if(t==='supplier_approved') return 'supplier_account_notice';
+  // 3 Nov 2026 (customer_support): supplier_api save_profile's first-save notice (what the registration still needs, or
+  // that it is under review). fn_wa_fanout already queued its twin to the confirmed number and this mapped nothing, so the
+  // twin would have been skipped "no WhatsApp template mapping". {{1}} is its subject, {{2}} the portal.
+  if(t==='registration_received') return 'supplier_account_notice';
+  // 3 Nov 2026 (customer_support): the customer's account-active confirmation (fn_customer_account_active_notice).
+  // Its own UTILITY template, English and Arabic; held queued until Meta approves it.
+  if(t==='customer_account_active') return 'customer_account_active';
+  // 3 Nov 2026 (customer_support): "Your invoice is ready" (the invoice.issued handoff), carrying the QuotesDone invoice
+  // reveal_invoice attached. Unmapped until now, so its twin was skipped. Its own UTILITY template, English and Arabic.
+  if(t==='invoice_ready') return 'customer_reveal_invoice';
   // 2 Nov 2026 (it_engineer): the registration reminder's WhatsApp twin. Unmapped, the first one (05:00Z) was skipped
   // "no WhatsApp template mapping". Its own UTILITY template, English only; held queued until Meta approves it.
   if(t==='supplier_registration_reminder') return 'supplier_registration_reminder';
@@ -175,7 +189,7 @@ function shortSummary(s:string){ let x=String(s||'').replace(/\s+/g,' ').trim();
 // A template variable may not carry a newline, a tab or a run of spaces (Meta refuses the send), so
 // every value is flattened and capped before it reaches Twilio.
 function waVar(s:string, max:number){ const x=String(s||'').replace(/\s+/g,' ').trim(); return x.length>max ? x.slice(0,max-1)+'…' : x; }
-function varsFor(key:string, n:{subject?:string|null; body?:string|null}): Record<string,string>{
+function varsFor(key:string, n:{subject?:string|null; body?:string|null; invoice_url?:string|null}): Record<string,string>{
   if (key==='founder_alert') {
     // fn_notify_founder writes 'QuotesDone [level]: event' on the first line and the detail after it.
     const lines = String(n.body||'').split('\n'); const head = lines.shift()||''; const rest = lines.join(' ').trim();
@@ -187,6 +201,8 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}): Recor
   if (key==='supplier_invite') return {'1': waVar(waInviteTrade(n.subject), 60)};
   if (key==='support_reply') return {'1': waVar(shortSummary(n.subject||''), 120), '2': waVar(String(n.body||''), 700)};
   if (key==='supplier_registration_reminder') return {'1': waVar(registrationNeeds(n.body), 160), '2': linkFor(key)};
+  // customer_reveal_invoice: {{1}} the notice's subject, {{2}} the invoice link the loop signed, else the account page.
+  if (key==='customer_reveal_invoice') return {'1': shortSummary(n.subject||''), '2': n.invoice_url || linkFor(key)};
   return {'1':shortSummary(n.subject||n.body||''),'2':linkFor(key)};
 }
 // The page a notice points to. The SMS twin carries the same link as the WhatsApp template.
@@ -412,7 +428,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     if (claimErr) { await logThrottled('claim_failed', 10, 'error', {}, 'could not claim the WhatsApp queue: ' + claimErr.message); return J({ ok:false, error: claimErr.message }); }
     for (const n of (rows || []) as WaRow[]) claimedIds.push(n.id);
     const staleH = Number(await sec('wa_stale_hours') || 24);
-    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0, fellBack=0, unconfirmed=0; let lastErr=''; const unmappedTypes = new Set<string>();
+    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0, fellBack=0, unconfirmed=0, retrying=0; let lastErr=''; const unmappedTypes = new Set<string>();
     const fallbackOutcomes = new Set<string>();
     let smsFailover = 0;
     // The notice goes by SMS instead. Founder rows keep their own email fallback (fn_wa_founder_alert_fallback).
@@ -497,7 +513,9 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // does not get three business-initiated messages in a day and report the sender; the founder
       // asked for this channel himself and will not report his own company. Applying it to him
       // meant only the FIRST alert of any 24 hours ever reached him, and the rest aged out.
-      if (!isFounderRow(n)) {
+      // 3 Nov 2026 (customer_support): nor for the three confirmations (confirmations.ts), each sent once to a number its
+      // owner confirmed with a code minutes earlier. The daily cap above still counts them.
+      if (!isFounderRow(n) && !isConfirmation(n.type)) {
         const { count: toThisNumber } = await admin.from('notifications').select('id', { count: 'exact', head: true })
           .eq('channel','whatsapp').eq('status','sent').eq('to_phone', n.to_phone).gte('sent_at', since24);
         if (Number(toThisNumber || 0) >= perRecip) { capped++; continue; }
@@ -534,7 +552,11 @@ Deno.serve(observe('send_whatsapp', async (req) => {
           // supplier / customer notice: held, never dropped — it goes the moment the template is approved
           skipped++; requeued++; lastErr = 'template ' + key + ' is ' + st.status + (st.reason ? ': ' + String(st.reason).slice(0, 120) : ''); continue;
         }
-        res = await waSendTemplate(acct, ks, kk, from, to, sid, varsFor(key!, n));
+        // THE INVOICE LINK IS SIGNED AS IT LEAVES (3 Nov 2026, customer_support; confirmations.ts says why). With no invoice
+        // reference on the row, or a signature Storage refuses, {{2}} is the account page, where the Invoice button is.
+        const inv = key === 'customer_reveal_invoice' ? invoiceAttachment(n.attachments) : null;
+        const invoiceUrl = inv ? (await admin.storage.from(inv.bucket).createSignedUrl(inv.path, INVOICE_LINK_TTL).catch(() => ({ data: null })))?.data?.signedUrl || null : null;
+        res = await waSendTemplate(acct, ks, kk, from, to, sid, varsFor(key!, { ...n, invoice_url: invoiceUrl }));
       } else if (!ready) {
         // NOTE: the row is deliberately left 'queued' so it can go out once templates are approved.
         // That means it will be rescanned every run - tracked as 'requeued' so the backlog is visible.
@@ -579,11 +601,16 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       const verdict = res.ok ? null : twilioVerdict(res.code);
       // an unknown rejection is retried a bounded number of times, then falls through to 'failed' below
       const tries = Number((n as { attempts?: number }).attempts || 0) + 1;
+      // NOT A TEMPLATE PROBLEM (3 Nov 2026, it_engineer, drill D5). This branch counted the row into `requeued`, which arms
+      // the templates_not_ready line, so a Twilio 503 with no error object was logged as "the matching template is missing or
+      // still awaiting Meta approval": the row said the truth, the run line customer_support reads blamed Meta. Measured in
+      // the drill: one 503 tick, one such line. It is counted in `retrying` and logged with its own reason below.
+      // prevented by: send_whatsapp/drill_twilio_faults.test.ts
       if (verdict === 'unknown' && tries < UNKNOWN_RETRY_CAP) {
         lastErr = 'rejected with no Twilio error code, retry ' + tries + '/' + UNKNOWN_RETRY_CAP + ': ' + String(res.error || '').slice(0, 160);
         await admin.from('notifications').update({ attempts: tries, last_error: lastErr.slice(0, 500) }).eq('id', n.id);
         if (await tryFallback(n, lastErr)) continue;
-        skipped++; requeued++; continue;
+        skipped++; retrying++; continue;
       }
       if (verdict === 'not_yet') {
         lastErr = 'template not usable yet (Twilio ' + res.code + '): ' + String(res.error || '').slice(0, 160);
@@ -602,8 +629,16 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         // class of lying counter this version exists to remove.
         if (await tryFallback(n, 'Twilio rejected the WhatsApp send: ' + lastErr)) continue;
       }
+      // THE PERSON SAID STOP (3 Nov 2026, it_engineer, drill D5). Twilio 21610 is "attempt to send to unsubscribed
+      // recipient": they replied STOP to us. The failover below then queued the same notice by SMS, so the one thing the
+      // person asked for was answered with a message on another channel (measured in the drill: one 21610, one SMS twin,
+      // and the failed-row scan would have twinned it again on any later tick had the first twin failed). A refusal of
+      // this kind is final: the row is failed with the reason, the code is stamped where that scan reads it, no twin.
+      // The founder's own rows are untouched (they go to email above). prevented by: send_whatsapp/drill_twilio_faults.test.ts
+      const optedOut = !res.ok && OPTED_OUT_CODES.has(String(res.code ?? ''));
+      if (optedOut) res.error = 'the recipient has opted out of our messages (Twilio ' + res.code + ', they replied STOP); not followed to SMS: ' + String(res.error || '');
       // One failed WhatsApp send: the row is recorded 'failed' below, then the same notice goes once by SMS.
-      const smsAfter = !res.ok && !isFounderRow(n);
+      const smsAfter = !res.ok && !isFounderRow(n) && !optedOut;
       // THE SID IS THE PROOF (21 Sep 2026). Measured: 24 of 24 WhatsApp rows marked 'sent' since 18 Sep
       // carried provider_message_id NULL, so every founder alert's WhatsApp twin came back to the
       // delivery watch as 'sent_unconfirmed', was escalated to the CEO as "did not arrive", and reached
@@ -612,7 +647,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // stored where the outbox stores Resend's id, so a WhatsApp send is confirmed or failed, never
       // unconfirmed.
       await admin.from('notifications').update({ status: res.ok?'sent':'failed', sent_at: res.ok?new Date().toISOString():null,
-        provider_message_id: res.ok ? (res.sid || null) : null,
+        provider_message_id: res.ok ? (res.sid || null) : null, ...(optedOut ? { provider_error_code: String(res.code) } : {}),
         last_error: res.ok?null:String(res.error||'').slice(0,500) }).eq('id', n.id);
       if (res.ok) { sent++; budget--; } else { failed++; lastErr = String(res.error || '').slice(0, 200); }
       if (smsAfter) await toSms(n, 'Twilio rejected the WhatsApp send: ' + String(res.error || '').slice(0, 200));
@@ -626,6 +661,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       .or('last_error.is.null,last_error.not.ilike.*' + FAILOVER_MARK.replace(/[^a-z ]/g, '') + '*').limit(25);
     for (const n of (lateFails || []) as (WaRow & { provider_error_code?: string | null })[]) {
       if (isFounderRow(n) || routeFor(health, normPhone(String(n.to_phone || ''))) === 'suppress') continue;
+      if (OPTED_OUT_CODES.has(String(n.provider_error_code ?? ''))) continue;   // they said STOP: see optedOut above
       await toSms(n, 'WhatsApp reported the message failed' + (n.provider_error_code ? ' (Twilio ' + n.provider_error_code + ')' : ''));
     }
     if (smsFailover) await logRun('ok', { signal: 'sms_failover', sms_failover: smsFailover, whatsapp_healthy: health.healthy },
@@ -649,6 +685,8 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     // Templates not approved yet + a growing queue is the quiet failure worth surfacing. `requeued`
     // now counts ONLY rows a template blocked: a row held by the daily or per-recipient cap is
     // counted in `capped` alone, so this signal can no longer accuse Meta of the cap's work.
+    if (retrying) await logThrottled('twilio_unknown_retry', 60, 'error', { retrying, cap: UNKNOWN_RETRY_CAP },
+      retrying + ' WhatsApp message(s) were refused by Twilio with no error code and stay queued for a bounded retry (at most ' + UNKNOWN_RETRY_CAP + ' tries, then failed and sent once by SMS). Last: ' + lastErr);
     if (requeued) await logThrottled('templates_not_ready', 60, 'error', { requeued, pending: (rows||[]).length },
       requeued + ' WhatsApp notification(s) cannot be sent yet because the matching template is missing or still awaiting Meta approval. They stay queued and are rescanned every run, so this backlog will keep growing until the template SIDs are live.');
     if (unmapped) await logThrottled('unmapped_type', 60, 'error', { unmapped, types: [...unmappedTypes] },
@@ -663,7 +701,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     else if (heldStale) await logRun('ok', { sent, failed, skipped, held_stale: heldStale, templates_ready: ready },
       heldStale + ' WhatsApp message(s) were held as stale: older than ' + staleH + 'h when the queue was drained. They are retained, not sent — an alert that old describes a situation that has probably changed.');
     else if (sent || (skipped && !requeued)) await logRun('ok', { sent, failed, skipped, templates_ready: ready }, '');
-    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, unconfirmed, fell_back: fellBack, sms_failover: smsFailover, whatsapp_healthy: health.healthy,
+    return J({ ok:true, sent, failed, skipped, requeued, retrying, unmapped, capped, unconfirmed, fell_back: fellBack, sms_failover: smsFailover, whatsapp_healthy: health.healthy,
                fallback_outcomes: [...fallbackOutcomes], held_founder: heldFounder, held_stale: heldStale,
                cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
   } catch (e) { const m = String((e as Error)?.message||e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }

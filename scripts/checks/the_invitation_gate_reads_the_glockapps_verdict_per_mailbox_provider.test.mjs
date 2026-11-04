@@ -33,6 +33,11 @@ const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const has = (p) => existsSync(join(ROOT, p));
 
 // The body production runs for a routine (optionally one signature): the LAST definition in apply order.
+// 28 Oct 2026 (it_engineer, ledger 1406): the tests assert what that body DOES, never which file holds it. They used to
+// pin the gate, the batch, the tick and the nudges to FILE as well, and the pin went red on main when
+// the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql (#1705) redefined the tick,
+// body token for token the same, so it could register the tick as a seat duty. A later file that changes what a body
+// does still fails the property assertions below; one that only moves it no longer turns the check red.
 function canonical(fn, argsStart = '') {
   const re = new RegExp(`create or replace function public\\.${fn}\\(${argsStart}`, 'i');
   const path = manifestWithPending().filter((p) => { try { return re.test(code(R(p))); } catch { return false; } }).pop();
@@ -47,11 +52,10 @@ function canonical(fn, argsStart = '') {
 test('the canonical gate reads the GlockApps verdict, per provider, and fails closed by name', () => {
   assert.ok(has(FILE), `${FILE} is missing: the gate still answers fail:seed_retired for ever`);
   const strict = canonical('fn_invite_placement_gate', 'p_day date');
-  assert.equal(strict.path, FILE, `${strict.path} is the canonical gate, not the verdict reader`);
-  assert.match(strict.body, /fn_invite_placement_judge\(p_day, p_now\) ->> 'strict'/, 'the no-argument form does not answer for the strictest provider');
+  assert.match(strict.body, /fn_invite_placement_judge\(p_day, p_now\) ->> 'strict'/,
+    `the no-argument form (canonical in ${strict.path}) is not the verdict reader: it does not answer for the strictest provider`);
   const per = canonical('fn_invite_placement_gate', 'p_provider text');
-  assert.equal(per.path, FILE);
-  assert.match(per.body, /fn_invite_placement_judge\(p_day, p_now\) ->> v_c/);
+  assert.match(per.body, /fn_invite_placement_judge\(p_day, p_now\) ->> v_c/, `the per-provider form (canonical in ${per.path}) does not read its class's verdict`);
   const v = canonical('fn_invite_placement_class_verdicts');
   assert.match(v.body, /from public\.deliverability_test d/);
   assert.match(v.body, /from public\.invite_placement_bar/);
@@ -90,10 +94,9 @@ test('the finding is one a day through the registered relay, on an open day only
 test('the batch, the tick and the nudges skip a failing provider instead of holding every one', () => {
   for (const fn of ['enqueue_supplier_invites', 'fn_sales_engineer_supplier_outreach_tick', 'fn_sales_engineer_nudges_invited_suppliers']) {
     const c = canonical(fn);
-    // 2 Nov 2026: no longer pinned to one file; later files redefine these routines and the body is what this asserts
-    assert.match(c.body, /fn_invite_placement_open_providers\(/, `${fn} does not ask which providers are open`);
-    assert.doesNotMatch(c.body, /fn_invite_placement_gate\(/, `${fn} still holds every provider on the strict answer`);
-    assert.match(c.body, /cardinality\(.*?\) = 0/s, `${fn} does not hold when NO provider is open`);
+    assert.match(c.body, /fn_invite_placement_open_providers\(/, `${fn} (canonical in ${c.path}) does not ask which providers are open`);
+    assert.doesNotMatch(c.body, /fn_invite_placement_gate\(/, `${fn} (canonical in ${c.path}) still holds every provider on the strict answer`);
+    assert.match(c.body, /cardinality\(.*?\) = 0/s, `${fn} (canonical in ${c.path}) does not hold when NO provider is open`);
   }
   assert.match(canonical('enqueue_supplier_invites').body, /fn_supplier_invite_candidates\(v_remaining, v_open\)/);
   const n = canonical('fn_sales_engineer_nudges_invited_suppliers').body;
@@ -160,8 +163,11 @@ test('production, aborted: the real 27 Oct result is judged per provider, and no
   let verdict, evidence;
   try { await replaySql(pendingText() + '\n;\n' + R(PROBE), { retry: false, label: NAME }); }
   catch (e) {
-    const m = String(e.message).match(/CHK<<(.*?)\|(.*?)>>/s);
-    assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));
+    // The verdict comes first. A failing run's evidence outruns the 2,000 characters db.mjs keeps in e.message (28 Oct
+    // 2026: "PROBE FAILED: a 7-day-old verdict is not stale" was reported as "failed before it could report"), so the
+    // whole answer is read from e.body, and the evidence runs to its end or to the cut.
+    const m = String(e.body ?? e.message).match(/CHK<<(.*?)\|(.*?)(?:>>|$)/s);
+    assert.ok(m, 'the probe failed before it could report: ' + String(e.body ?? e.message).slice(0, 800));
     [verdict, evidence] = [m[1], m[2]];
   }
   assert.ok(verdict, 'the probe committed instead of rolling back');
@@ -179,4 +185,16 @@ test('production, aborted: the recorder\'s own SQL stores the fixture', { skip: 
   assert.deepEqual([r.class_rates.microsoft.seeds, r.class_rates.microsoft.inbox], [18, 0]);
   assert.equal(r.against_the_bar.microsoft, 'fail:below_bar:microsoft');
   assert.equal(r.class_rates.overall.unclassified, 5);
+});
+
+// founder_instruction 1537 (3 Nov 2026): invitations never go to Yahoo/AOL or Microsoft mailboxes, whatever the verdict.
+// The LAST MANIFEST file that defines fn_invite_placement_open_providers is the live one; it must filter both classes.
+test('the open-provider list never holds microsoft or yahoo_aol (founder_instruction 1537)', () => {
+  const root = join(dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', '..');
+  const manifest = readFileSync(join(root, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+  const defs = manifest.filter((f) => existsSync(join(root, f)) && /create or replace function public\.fn_invite_placement_open_providers\(/i.test(readFileSync(join(root, f), 'utf8')));
+  assert.ok(defs.length > 0, 'no file defines fn_invite_placement_open_providers');
+  const last = readFileSync(join(root, defs[defs.length - 1]), 'utf8');
+  const body = last.slice(last.search(/create or replace function public\.fn_invite_placement_open_providers\(/i));
+  assert.match(body.slice(0, 900), /not in \('microsoft', 'yahoo_aol'\)/, defs[defs.length - 1] + ' lets Microsoft or Yahoo back into the open list');
 });

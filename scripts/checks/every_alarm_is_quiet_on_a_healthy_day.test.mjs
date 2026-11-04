@@ -292,6 +292,32 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_reputation()',
     asOf: { reviews: 'created_at' },
   },
+  // 19 Oct 2026 (marketing, ledger 1003 C11, #1551). social_inbox:overdue / :signature_rejected / :send_failed: owed
+  // social messages unanswered 2 working hours, signed webhooks rejected, failed replies. Messages and runs that existed
+  // at the instant; a healthy day has none.
+  fn_marketing_social_inbox: {
+    replay: 'pg_temp.qd_replay_fn_marketing_social_inbox()',
+    asOf: { social_message: 'created_at', agent_runs: 'started_at' },
+  },
+  // 19 Oct 2026 (marketing, ledger 1003 C12, #1551). trends:feed_silent when a trend feed is unread for 2 days. Trends
+  // seen by the instant; the 48h decisions it writes are rolled back. Feed read times are present state (header ceiling).
+  fn_marketing_trend_decision: {
+    replay: 'pg_temp.qd_replay_fn_marketing_trend_decision()',
+    asOf: { marketing_trend: 'seen_at' },
+  },
+  // 19 Oct 2026 (marketing, ledger 1003 C14, #1551). facts:surface_stale:<surface> when a fetched public page does not
+  // state a public fact. It checks only responses to its own earlier requests; inside the replay its requests are
+  // rolled back, so a healthy day raises nothing.
+  fn_marketing_fact_register: {
+    replay: 'pg_temp.qd_replay_fn_marketing_fact_register()',
+    asOf: { marketing_duty_record: 'written_at' },
+  },
+  // 19 Oct 2026 (marketing, ledger 1003 C15, #1551). paid:spend_without_budget / paid:spend_not_reported. Spend days
+  // pulled by the instant; a healthy day has no spend while paid is off and every spend day with the accountant.
+  fn_marketing_paid_spend_report: {
+    replay: 'pg_temp.qd_replay_fn_marketing_paid_spend_report()',
+    asOf: { marketing_ad_spend_day: 'pulled_at' },
+  },
   // 29 Sep 2026 (accountant, founder ledger 1018: fraud and risk screening). Raises money_hold_unreviewed:<id> when a
   // reveal or refund the accountant's money screen held has waited 48 hours for review. Holds that existed at the
   // instant; a healthy day has none waiting that long. The party flags it writes and the holds it re-screens are
@@ -338,6 +364,9 @@ export const REGISTER = {
   fn_wa_supplier_invite_brake: { relay: 'records the WhatsApp invitation brake that fn_wa_sender_quality_record (a Twilio quality reading below HIGH / ONLINE) or fn_wa_supplier_invite_gate (>= 2 STOPs and >= 5% of 7-day invitations) decided; a healthy day sends no invitation below HIGH and has no STOPs, so it raises nothing' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
+  // 3 Nov 2026 (customer_support, #1844 review). Both record what another routine already decided; a healthy day has neither.
+  fn_customer_support_closes_status_chases: { relay: 'records a status-chase follow-up that fn_customer_support_takes_delivery failed to deliver (or had no channel for) on three ticks; the failure is the delivery door\'s, and a healthy day delivers every follow-up' },
+  fn_wa_customer_request_answer: { relay: 'records a status chase whose handler fn_sales_engineer_chases_for_status failed (fn_seat_handoff marked it failed); the failure is the handler\'s, and a healthy day starts every chase' },
   fn_it_engineer_ingest_watch_findings: { relay: 'copies fn_it_detect\'s open it_watch_finding rows into the finding ledger' },
   fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_judge reached from the latest recorded GlockApps result (public.deliverability_test against public.invite_placement_bar, 28 Oct 2026; the morning seed is retired); it files only on an open sending day, so a held campaign files nothing, and a healthy open day has a passing verdict' },
   fn_wa_supplier_invite_brake: { relay: 'records the brake a caller pulled on the supplier WhatsApp invitations (the quality or opt-in gate, with its reason); it cancels the queued sends and files deliverability:supplier_invite_wa only when called, and a healthy day never calls it' },

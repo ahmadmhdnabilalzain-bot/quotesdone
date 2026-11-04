@@ -19,10 +19,14 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { privacyAt18 } from '../lib/privacy_1_9.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 const legal = JSON.parse(read('src/content/legal.json'));
+// 3 Nov 2026: Privacy 1.9 (one sentence on invitation opens, scripts/lib/privacy_1_9.mjs) replaced 1.8. The comparisons below
+// are about 1.8, so they read 1.8 rebuilt from the current text with exactly the 1.9 edits undone (it throws if any is missing).
+legal.privacy = { en: { ...legal.privacy.en, html: privacyAt18(legal.privacy.en.html, 'en') }, ar: { ...legal.privacy.ar, html: privacyAt18(legal.privacy.ar.html, 'ar') } };
 const facts = JSON.parse(read('src/content/company_facts.json'));
 const sha = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 const MOBILE = /50[ .-]?931[ .-]?9355|509319355/;
@@ -43,7 +47,8 @@ test('no current legal text prints the mobile in either language, and each conta
 });
 
 test('the new versions are labelled in both languages and the one source of company facts names them', () => {
-  assert.deepEqual([facts.documents.privacy.version, facts.documents['cookie-policy'].version, facts.documents['supplier-agreement'].version], ['1.8', '1.5', 'v17']);
+  // privacy 1.9 (3 Nov 2026) superseded 1.8; an_invitation_open_is_measured_on_a_tracked_share.test.mjs pins that step
+  assert.deepEqual([facts.documents.privacy.version, facts.documents['cookie-policy'].version, facts.documents['supplier-agreement'].version], ['1.9', '1.5', 'v17']);
   assert.deepEqual(facts.documents['supplier-agreement'].carries_acceptance_from, ['v16']);
   assert.ok(facts.surfaces.archived_documents.includes('supplier-agreement-v16'));
   for (const [k, en, ar] of [['privacy', 'Version 1.8 · Last updated 2 November 2026', 'الإصدار 1.8 · آخر تحديث 2 نوفمبر 2026'], ['cookie-policy', 'Version 1.5 · Last updated 2 November 2026', 'الإصدار 1.5 · آخر تحديث 2 نوفمبر 2026'], ['supplier-agreement', 'Version v17 · Last updated 2 November 2026', 'الإصدار v17 · آخر تحديث 2 نوفمبر 2026']]) {
