@@ -1,7 +1,0 @@
-Committed, not applied: apply at merge, never before (apply-at-merge-never-before). It adds
-seat_knowledge_eval_question.expected_any and changes ONE expression of fn_it_engineer_knowledge_recall_exam (diffed
-against live pg_get_functiondef, md5 b470cf9f5d9e47166d0585140196750d, 27 Oct 2026). Order at merge:
-  1. node scripts/apply_sql.mjs scripts/sql/an_any_mode_eval_question_is_answered_by_any_of_its_entries.sql --apply --ddl
-  2. delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt (Edit, never a redirect)
-  3. node scripts/kb/load_knowledge_eval_questions.mjs   (writes expected_any; it fails until step 1 has run)
-Proof, replayed with the file and rolled back: the _probe.sql beside it (PROBE OK any 1 / all 0.5; on the old routine REPRODUCED).
