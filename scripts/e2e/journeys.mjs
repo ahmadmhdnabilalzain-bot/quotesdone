@@ -723,6 +723,7 @@ async function refundEndToEnd(ctx, live, J) {
     return rep.step(J, 'refund end to end in Stripe TEST mode', 'FAIL', 'the paid reveal is not on a ZZ DEMO customer; a refund is never driven on a real row');
   }
   const want = Math.round(Number(tx.total_charged ?? tx.reveal_fee) * 100);
+  const DEMO_TX = `id = ${q(tx.id)} and customer_id in (select id from public.customers where is_demo and email like '%@example.invalid')`;
 
   // 0. THE KNOWN-BAD CONTROL, ROLLED BACK (2 Nov 2026). Demo work files no handoff (ruling 1199), and every rung
   // below is a handoff. refund_ladder_probe.mjs walks the ladder twice in one transaction that always rolls back:

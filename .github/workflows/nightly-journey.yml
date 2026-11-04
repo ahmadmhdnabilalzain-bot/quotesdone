@@ -141,14 +141,6 @@ jobs:
       # A WINDOW THIS JOB OPENED NEVER OUTLIVES IT (18 Oct 2026). 13-18 Oct a drawing journey killed at its ceiling left
       # its qd_run window open past expires_at every night, and every harness run (stage2 included) refused to start.
       # Runs even when a step failed or the job was cancelled; touches only the tags this job wrote to QD_E2E_RUN_TAGS.
-      # The report and screenshots are the evidence; the console line cuts each detail at 160 characters (2 Nov 2026).
-      - if: always() && steps.gate.outputs.skip != '1'
-        uses: actions/upload-artifact@v4
-        with:
-          name: journey-report
-          path: e2e-out
-          retention-days: 14
-          if-no-files-found: warn
       - if: always() && steps.gate.outputs.skip != '1'
         run: node scripts/e2e/close_job_windows.mjs "$QD_E2E_RUN_TAGS"
         timeout-minutes: 3
