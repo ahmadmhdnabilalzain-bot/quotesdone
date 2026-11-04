@@ -14,11 +14,19 @@
 // needs a known top-level domain, a North-American phone needs the 3-3-4 grouping with separators.
 
 /** (970) 460-7400, 970.673.8248, 970-460-7400, +1 970 460 7400 */
-export const PHONE_NANP = /(?:\+1[\s.-]?)?(?<![\d.\/])(?:\(\d{3}\)\s?|\b\d{3}[\s.-])\d{3}[\s.-]\d{4}\b(?![.\/]\d)/g;
+// 3 Nov 2026 (adversarial review of #1838): written with spaces only, 3-3-4 digits is a duct or a panel size as often as
+// a phone ("Duct 800 600 1200 mm" lost its sizes). Spaces only count with the +1 code; otherwise a bracket, dot or dash.
+export const PHONE_NANP = /\+1[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}\b(?![.\/]\d)|(?<![\d.\/])(?:\(\d{3}\)\s?\d{3}[\s.-]|\b\d{3}[.-]\d{3}[.-])\d{4}\b(?![.\/]\d)/g;
 /** G2CE.COM, markleydesigns.com, studio.example.ae — a host name with a known top-level domain, no scheme needed. */
 // Never the domain of an email address: taking "acme.ae" out of "info@acme.ae" left "info@" behind and the
 // email scrubber after it no longer matched (caught by supplier_api/quote_review.test.ts, 21 Sep 2026).
-export const WEB_HOST = /(?<![@\w.-])\b(?:[A-Za-z0-9-]{0,30}[A-Za-z][A-Za-z0-9-]{0,30}\.)+(?:com|net|org|ae|io|co|us|biz|info|gov|edu|uk|sa|qa|om|bh|kw|eg|in|de|fr)\b(?![.@\w-])/gi;
+// 3 Nov 2026 (adversarial review of #1838): each label was `[..]{0,30}[A-Za-z][..]{0,30}`, so a label had many ways to
+// split around its letter and a dotted BOQ line backtracked exponentially: "SUPPLY.AND.FIX.ALL.FLOOR.TILES.AS.PER.THE.
+// DRAWING.AND.SPEC.WITH.ALL.ITEMS.FOR 25 sqm" took 37.9 s through drawing_boq and residualScan. One quantifier per label now.
+// The ending in ONE case ("G2CE.COM", "markleydesigns.com"): a sentence with no space after its full stop is mixed
+// ("Price excludes VAT.Info on request").
+const TLD = 'com|net|org|ae|io|co|us|biz|info|gov|edu|uk|sa|qa|om|bh|kw|eg|in|de|fr';
+export const WEB_HOST = new RegExp(`(?<![@\\w.-])\\b(?:(?=[A-Za-z0-9-]{0,62}[A-Za-z])[A-Za-z0-9-]{1,63}\\.)+(?:${TLD}|${TLD.toUpperCase()})\\b(?![.@\\w-])`, 'g');
 /** 1039 MAIN STREET, 4209 COUNTY ROAD 24 1/2, 2329 115TH AVE, 12 Al Wasl Road */
 export const STREET_ADDRESS = /\b\d{1,6}\s+(?:[NSEW]\.?\s+)?(?:[A-Za-z0-9][A-Za-z0-9'.-]*\s+){1,4}(?:STREET|AVENUE|AVE\.?|ROAD|BOULEVARD|BLVD\.?|DRIVE|LANE|PARKWAY|PKWY|HIGHWAY|HWY|WAY|COURT)(?![A-Za-z])(?:\s+\d{1,5}(?:\s+\d\/\d)?)?/gi;
 /** WINDSOR, CO  80550 / LONGMONT, COLORADO 80504 — a place, a state, a ZIP. */

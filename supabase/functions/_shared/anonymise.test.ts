@@ -151,3 +151,18 @@ Deno.test('a file name made of drawing words blacks out nothing on the drawing',
   assert(seeds.includes('harbour'), 'a name in the file name is still a seed');
   assert(!redactText('Supply to ZZ Harbour Tower level 3', seeds).text.includes('Harbour'));
 });
+
+// Review of #1838 (3 Nov 2026): a logo laid ACROSS the title strip's edge (0.80..0.90 against a strip from 0.84) was
+// treated as covered by the strip because its centre is inside it, so its left edge stayed on the preview. It gets
+// its own box now. Reverting `covers` back to `centreIn` in titleBlockBoxes (d) fails this.
+Deno.test('a logo straddling the title strip edge is boxed whole on the preview', () => {
+  const run = (text: string, x: number, y: number) => ({ text, x, y, w: 0.1, h: 0.012 });
+  const page: PdfPage = { width: 1684, height: 1191, rotate: 0, lines: [],
+    runs: [run('DRAWN BY: ZZ', 0.86, 0.1), run('PROJECT NO: 77', 0.86, 0.2), run('CHECKED BY: ZZ', 0.86, 0.3), run('LIVING ROOM', 0.3, 0.4)],
+    images: [{ x: 0.80, y: 0.6, w: 0.10, h: 0.06, px: 250, py: 120 }] };
+  const tb = titleBlockBoxes([page], seedTerms({ name: 'ZZ DEMO Khalid Mansoori' }));
+  const strip = tb.strips[0]!;
+  assert(strip && strip.x > 0.80, `strip starts right of the logo: ${JSON.stringify(strip)}`);
+  const im = page.images![0];
+  assert(tb.boxes[0].some((b) => b.x <= im.x && b.y <= im.y && b.x + b.w >= im.x + im.w && b.y + b.h >= im.y + im.h), JSON.stringify(tb.boxes[0]));
+});
