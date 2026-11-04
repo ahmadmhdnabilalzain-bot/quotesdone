@@ -4,18 +4,28 @@ CREATE OR REPLACE FUNCTION public.fn_identify_contact(p_phone text)
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_d text; v_tail text; v_name text; v_sid bigint; v_cid text; v_claimed boolean; v_appr boolean; v_kind text; v_cuid uuid;
+declare v_d text; v_me text; v_name text; v_sid bigint; v_cid text; v_claimed boolean; v_appr boolean; v_kind text; v_cuid uuid;
 begin
   v_d := regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g');
   if length(v_d) < 7 then return json_build_object('audience','unknown'); end if;
-  v_tail := right(v_d, 9);   -- tolerate +9715..., 05..., 5... variants
 
   -- THE FOUNDER. Before suppliers and customers: he is neither, and a number that is both his and
-  -- a lead's must still be treated as his.
+  -- a lead's must still be treated as his. The WHOLE international number is compared (see the header):
+  -- 00 is the international prefix, and 05XXXXXXXX / 5XXXXXXXX are UAE local forms of +971 5XXXXXXXX.
+  v_me := case when v_d like '00%' then substr(v_d, 3) else v_d end;
+  v_me := case when length(v_me) = 10 and v_me like '05%' then '971' || substr(v_me, 2)
+               when length(v_me) = 9  and v_me like '5%'  then '971' || v_me
+               else v_me end;
   if exists (
-    select 1 from unnest(string_to_array(coalesce((select value from app_secrets where key='admin_mfa_phone'),''), ',')) p
-     where length(regexp_replace(p,'[^0-9]','','g')) >= 9
-       and right(regexp_replace(p,'[^0-9]','','g'), 9) = v_tail)
+    select 1
+      from unnest(string_to_array(coalesce((select value from app_secrets where key='admin_mfa_phone'),''), ',')) p,
+           lateral (select regexp_replace(p, '[^0-9]', '', 'g') as d) a,
+           lateral (select case when a.d like '00%' then substr(a.d, 3) else a.d end as d) b,
+           lateral (select case when length(b.d) = 10 and b.d like '05%' then '971' || substr(b.d, 2)
+                                when length(b.d) = 9  and b.d like '5%'  then '971' || b.d
+                                else b.d end as intl) c
+     where length(a.d) >= 9
+       and c.intl = v_me)
   then
     return json_build_object('audience','founder',
       'name', split_part(coalesce((select value from app_secrets where key='admin_emails'),''), ',', 1));

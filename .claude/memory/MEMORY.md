@@ -50,6 +50,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Phase freezes removed](phase-freezes-removed-totally.md) · [Never raise OpenRouter again](never-raise-openrouter-again.md) · [All limits lifted except OpenRouter](all-founder-system-limits-lifted-except-openrouter.md) — deterministic-first is the architecture
 - [Mirror gates are retired](mirror-gates-are-retired.md) — production proves properties; never --emit a CSV to green a check
 - [WhatsApp is the founder's command channel](whatsapp-founder-command-channel.md)
+- [The founder channel is proved end to end (3 Nov)](the-founder-command-channel-is-proved-end-to-end.md) — gap #10: signed-POST e2e + local-Postgres SQL proof; whole-number founder check applies at merge; ruling 777 over the matrix wording
 - [Founder mail goes through founder_mail_policy](founder-mail-goes-through-founder-mail-policy.md) — fn_notify_founder needs p_kind
 - [The estate could not email a file](the-estate-could-not-email-a-file.md) — fixed 9 Sep: notifications.attachments + send_outbox v43
 - [Founder's landline and mobile](founder-landline-and-mobile.md) — 2 Nov: no longer public (ledger 1482)
@@ -185,3 +186,4 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A later SQL file can silently delete a rule](a-later-sql-file-can-silently-delete-a-rule.md): diff every routine against live before merge
 - [A founder ruling is not a defect to fix](a-founder-ruling-is-not-a-defect-to-fix.md): read the ledger before changing a pinned check
 - [The automatic apply's language](an-automatic-apply-and-a-probe-must-speak-its-language.md): PROBE OK wording, seat, from=, mirror regen
+- [Conversation quality eval and its limits](conversation-quality-eval-and-its-limits.md): 3 Nov; widget 5 convs/IP/day; the canon is the product, not the brief
