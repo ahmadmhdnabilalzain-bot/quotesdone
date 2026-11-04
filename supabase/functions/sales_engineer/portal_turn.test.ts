@@ -65,8 +65,11 @@ Deno.test('plain language: a long sentence or an internal term is refused and re
 
 Deno.test('the portal turn applies the plain-language gate, records the score, and withholds internal or unverified records', async () => {
   const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
-  // the plain-language gate, then the reply-language check that follows it (3 Nov 2026)
-  assert(src.includes('...wrappedReply(t), ...plainLanguage(t, lang), ...replyLanguageProblems(t, lang)]'), 'the check no longer runs the plain-language gate');
+  // the plain-language gate holds every sentence; the reply-language rule holds the WHOLE reply (checkWhole), never one sentence:
+  // a contact line or an English spec is one sentence in the other script (review of #1830, 4 Nov 2026)
+  assert(src.includes('...wrappedReply(t), ...plainLanguage(t, lang)],'), 'the check no longer runs the plain-language gate');
+  assert(src.includes('checkWhole: (t: string) => replyLanguageProblems(t, lang),'), 'the reply-language rule no longer holds the whole reply');
+  assert(!/\.\.\.plainLanguage\(t, lang\), \.\.\.replyLanguageProblems/.test(src), 'the reply-language rule is back on every sentence');
   assert(src.includes("admin.rpc('fn_support_reply_readability_log'"), 'the reply score is no longer recorded');
   // the records reach the facts only through customerSafe (its behaviour is the cases below)
   const at = src.indexOf('const all = await customerSafe((r.records || [])');

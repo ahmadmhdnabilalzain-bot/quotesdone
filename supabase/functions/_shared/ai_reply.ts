@@ -224,7 +224,8 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     : replyLanguageProblems(t, replyLang);
   const check = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []), ...english(t),
     ...must.filter((m) => !t.includes(m)).map((m) => 'it leaves out "' + m + '", which must appear exactly as given')];
-  const sentenceCheck = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []), ...english(t)];
+  // per sentence only a supplier's Arabic is refused (ruling 1008); the conversation's language is a whole-reply rule (review of #1830)
+  const sentenceCheck = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []), ...(r.audience === 'supplier' ? english(t) : [])];
   // THE WHOLE CONVERSATION (chat_history.ts, 18 Oct 2026): it was cut to the last 8 turns here. Every turn now rides as a
   // real message before this one, cached by the gateway; the facts, which can change per turn, follow the history so the
   // cached prefix (brief, rules, earlier turns) stays byte-identical from one turn to the next.

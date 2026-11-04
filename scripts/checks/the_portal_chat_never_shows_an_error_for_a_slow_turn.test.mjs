@@ -104,8 +104,9 @@ test('the turn is one streamed call on the conversation route, inside its clock,
   // the streamed words are shown as written: the prompt must ask for plain text (27 Oct: replies read {"answer":"..."})
   assert.match(turn, /rules: portalRules\(\), plainText: true \}/, 'the portal prompt must ask for plain text, not aiReply\'s JSON');
   assert.match(turn, /\.\.\.wrappedReply\(t\)[,\]]/, 'a reply wrapped as JSON must be refused sentence by sentence');
-  // the reply-language check (3 Nov 2026) may follow it in the same list
-  assert.match(turn, /\.\.\.plainLanguage\(t, lang\)(, \.\.\.replyLanguageProblems\(t, lang\))?\]/, 'the plain-language gate (1013 item 7) must hold every sentence');
+  assert.match(turn, /\.\.\.plainLanguage\(t, lang\)\]/, 'the plain-language gate (1013 item 7) must hold every sentence');
+  // the reply-language rule (3 Nov 2026) holds the whole reply, never one sentence (review of #1830, 4 Nov 2026)
+  assert.match(turn, /checkWhole: \(t: string\) => replyLanguageProblems\(t, lang\),/, 'the reply-language rule must hold the whole reply');
   for (const gone of ['supportReply(', 'think(', 'quoteQuestion(']) assert.ok(!turn.includes(gone), 'a serial reasoning chain is back on the portal turn: ' + gone);
   assert.ok(!s.includes('quoteQuestion('), 'the own-quote decision chain is back');
   assert.match(s, /if \(b\.action !== 'assist'\) return plain\(inner\);/, 'only assist streams; every other action is answered as before');

@@ -44,8 +44,23 @@ Deno.test('the widget, the portal, aiReply (WhatsApp) and the WhatsApp language 
   const read = (p: string) => Deno.readTextFileSync(new URL(p, import.meta.url));
   // the widget's check is siteReplyCheck (site_assistant/reply_check.ts, from main), which carries the language check
   assert(/check: siteReplyCheck\(brief, sys, replyLang\)/.test(read('../site_assistant/index.ts')), 'site_assistant uses siteReplyCheck');
-  assert(/\.\.\.replyLanguageProblems\(s, lang\)/.test(read('../site_assistant/reply_check.ts')), 'siteReplyCheck checks the language');
-  assert(/\.\.\.replyLanguageProblems\(t, lang\)/.test(read('../sales_engineer/index.ts')), 'sales_engineer check');
-  assert(/replyLanguageProblems\(t, replyLang\)/.test(read('./ai_reply.ts')), 'aiReply check');
+  // the language is a WHOLE-reply rule (review of #1830): handed to answerFromBrief as checkWhole, never run per streamed sentence
+  assert(/replyLanguageProblems\(t, lang\)/.test(read('../site_assistant/reply_check.ts')), 'the widget\'s whole-reply language check');
+  assert(/checkWhole: siteReplyLanguage\(replyLang\)/.test(read('../site_assistant/index.ts')), 'site_assistant passes it as checkWhole');
+  assert(/checkWhole: \(t: string\) => replyLanguageProblems\(t, lang\)/.test(read('../sales_engineer/index.ts')), 'sales_engineer checkWhole');
+  assert(/replyLanguageProblems\(t, replyLang\)/.test(read('./ai_reply.ts')), 'aiReply whole-reply check');
+  assert(!/const sentenceCheck = [^\n]*replyLanguageProblems/.test(read('./ai_reply.ts')) && /const sentenceCheck = [^\n]*audience === 'supplier' \? english/.test(read('./ai_reply.ts')), 'aiReply\'s sentence check judges only a supplier\'s language');
   assert(/langGiven \?\? turnLang\(Body/.test(read('../wa_inbound/index.ts')), 'wa_inbound language');
+});
+
+// A MESSAGE WITH NO LETTERS KEEPS THE CONVERSATION'S LANGUAGE (review of #1830): "14", a phone number, "OK" say nothing about it.
+Deno.test('a number, a phone number or "OK" keeps the Arabic conversation Arabic; a full English sentence still switches', () => {
+  assertEquals(turnLang('14', 'en', arStart), 'ar');
+  assertEquals(turnLang('+971 50 123 4567', 'en', arStart), 'ar');
+  assertEquals(turnLang('OK', 'en', arStart), 'ar');
+  assertEquals(turnLang('ok', 'en', arStart), 'ar');
+  assertEquals(turnLang('14', 'en', enStart), 'en');
+  assertEquals(turnLang('نعم', 'en', enStart), 'en');
+  assertEquals(turnLang('Can you send me the quotation again please?', 'en', arStart), 'en', 'a full English sentence in an Arabic chat still switches');
+  assertEquals(langOf('14'), 'en', 'no conversation yet: as before');
 });

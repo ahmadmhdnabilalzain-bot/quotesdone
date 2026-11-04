@@ -28,11 +28,13 @@ export function scripts(s: string): { ar: number; la: number } {
 // inquiry's message "sorry, الزجاج 8 مم مو 6mm. And the villa is in Sharjah ..." was answered wholly in Arabic, because any
 // Arabic letter made the message Arabic. `established` is the language the conversation began in (turnLang): a message that
 // mixes both scripts keeps it; a message in one script, a first message, and the Arabic screen keep their old rules.
+// A message with no letters ("14", a phone number) or hardly any ("OK", "yes", "لا": under 4) says nothing about the language either, so it
+// keeps the conversation's too (review of #1830, 4 Nov 2026): measured before, "14" in an Arabic chat was answered in English.
 // prevented by: _shared/chat_lang_follows_the_conversation.test.ts
 export const langOf = (message: string, uiLang?: string, established?: Lang): Lang => {
   if (String(uiLang || '').toLowerCase().startsWith('ar')) return 'ar';
   const { ar, la } = scripts(message);
-  if (ar && la && established) return established;
+  if (established && (ar + la < 4 || (ar && la))) return established;
   return ar ? 'ar' : 'en';
 };
 /** The reply language of a chat turn: this message, read against the language of the conversation's first message. */
