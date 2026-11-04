@@ -22,7 +22,7 @@
 // v12: A VISITOR GETS GENERAL ANSWERS AND THE WAY TO SIGN UP (founder ruling 18 Oct 2026, visitor_scope.ts). No inquiry
 //     is collected on the homepage; a real need is sent to sign up; a server-side cap per conversation and IP.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { langOf, type FaqRow } from '../_shared/chat_answers.ts';
+import { langOf, turnLang, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { givenTradeKnowledge, givenBlock } from '../_shared/given_trade_knowledge.ts';
@@ -30,10 +30,10 @@ import { gteReads } from '../_shared/ml_embed_recipe.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
-import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { siteReplyCheck, siteReplyLanguage } from './reply_check.ts';
 import { checkReadability } from '../_shared/readability.ts';
 import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
-import { companyBrief } from '../_shared/company_brief.ts';
+import { companyBrief, conversationTrade } from '../_shared/company_brief.ts';
 import { recallCases } from '../_shared/case_recall.ts';
 import { answerFromBrief } from '../_shared/brief_answer.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
@@ -305,7 +305,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // bounded aiReply (capRules, the link a must-carry, a 20 s deadline) writes the sign-up direction, and capReply's code
     // text goes out only through modelOrOutage, i.e. only when no call reached a model (5xx, network, timeout, open
     // circuit; never a 4xx). Model up and nothing passed: no text, the sign-up button alone (the widget shows it).
-    const visitorLang = audience === 'supplier' ? 'en' : langOf(message, uiLang);
+    const visitorLang = audience === 'supplier' ? 'en' : turnLang(message, uiLang, clientHistory(b.history));
     const signup = who ? null : signupAction(audience, visitorLang);
     if (!who && signup && await pastVisitorCap(rl, { ip, conv: hasConv ? conv : '', cap: { conv: lim.site_assistant_visitor_conv_day, ip: lim.site_assistant_visitor_ip_day } })) {
       const capped = await capReplyByModel(defaultDeps(admin, 'site_assistant'), { audience, lang: visitorLang, message,
@@ -364,7 +364,8 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // MODEL), climbs the model ladder when a model fails, and applies the language rule. If no model answers, the caller
     // gets no text and an error status (the widget shows its own error line).
     // Customers and visitors are answered in their language; suppliers always in English (founder, 28 Sep 2026).
-    const lang = langOf(message, uiLang);
+    // a mixed message keeps the language the conversation began in (chat_answers.turnLang, 3 Nov 2026)
+    const lang = turnLang(message, uiLang, history);
     const replyLang: 'en' | 'ar' = audience === 'supplier' ? 'en' : lang;
     // NO PAST-CASE TEXT ON THIS SURFACE (18 Oct 2026, sandbox run d6cf4793 turn 16). A recalled case's situation is the
     // raw record it was opened from (a quote case: another customer's inquiry id, amount and scope), and every reader of
@@ -375,7 +376,11 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // The verified trade knowledge is GIVEN with the brief (given_trade_knowledge.ts, ruling 1195): fetched in parallel, '' on failure.
     const tradeDeps = defaultDeps(admin, 'site_assistant');
     const [brief, memory, given] = await Promise.all([
-      companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang),
+      // ONE TRADE PACK (company_brief.ts, 3 Nov 2026): the first trade the visitor named in its recent turns, else the message's
+      companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang, [], undefined, {
+        // deno-lint-ignore no-explicit-any
+        trade: conversationTrade(message, history.filter((h: any) => h?.role === 'user').map((h: any) => String(h.content ?? ''))),
+        supplier: audience === 'supplier' }),
       recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false }).catch(() => null),
       givenTradeKnowledge({ embed: (t, sp) => tradeDeps.embed(t, sp), rpc, gteReads, audience: audience === 'unknown' ? 'visitor' : audience }, message),
     ]);
@@ -395,7 +400,7 @@ RULES:
 - Never say you will check, confirm or get back to them, and never decline a question about any trade, category or specification (food and beverage excepted): give everything that can be said now.
 ${who ? '- Answer what they asked, directly and exactly; then, where it helps, ask the one or two follow-up questions that matter most (you may offer two concrete choices when they are unsure).' : visitorRules(audience, replyLang)}
 - Never a list of "top results", never a robotic yes/no. Plain text for a chat window: no markdown, no bullets, no headings. Under about ${live ? 120 : 90} words.
-- Reply in ${replyLang === 'ar' ? 'formal Gulf Arabic (Western digits; each phone number, email or link on its own line)' : 'UAE English'}${audience === 'supplier' ? ' — suppliers are always answered in English' : ', the language they wrote in'}.
+- Reply in ${replyLang === 'ar' ? 'formal Gulf Arabic (Western digits; each phone number, email or link on its own line)' : 'UAE English'}${audience === 'supplier' ? ' — suppliers are always answered in English' : ', the language this conversation is in, even when a message mixes in words of another language'}.
 - If they sent a photo or drawing, use what you see in it: name what is there, what it means for their job, and what you still need to know.
 - Before you write, read every question you asked in your earlier replies. Each one is either answered or, if they skipped it or were unsure, already recorded "to confirm at the supplier's site visit": never ask it again in any wording, and move on to what is still unknown (live conversation suite run a8ad5ed7: 9 of 11 conversations below target re-asked a question).
 - If they ask for a person, give the published contact: +1 218 316 6814 (WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, /contact/.
@@ -414,7 +419,8 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
       gateway: GATEWAY, secret: key, fn: 'site_assistant', agent: seatForSurface, taskClass: live ? 'customer_portal_assistant' : 'visitor_chat',
       brief, sys, input: [...past, { role: 'user', content: turnText }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,
       rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : (/^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined),   // our own test traffic is named so the gateway never bills or counts it
-      check: (s: string) => guardSupportReply(s, replyLang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
+      check: siteReplyCheck(brief, sys, replyLang),
+      checkWhole: siteReplyLanguage(replyLang),
     }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
     lap('reply');
     const reply = a.reply.trim();

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// px_to_scale — rewrite arbitrary Tailwind literals onto the named brand scale in tailwind.config.ts.
+// px_to_scale — rewrite arbitrary Tailwind literals onto the named brand scale (the @theme block in src/app/globals.css).
 //
 // Why: the website audit (14 Sep 2026) measured 749 [Npx] font sizes, 30 [var(--line)] brackets and
 // 9 unnamed corner radii across src/**/*.tsx. The tokens now exist; this moves call sites onto them.

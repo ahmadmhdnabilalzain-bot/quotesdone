@@ -6,7 +6,7 @@
 // that was never called.
 
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { sanitizeUpload, sniff, safeFilename, stripJpegMetadata, stripPngMetadata, zipExpansionWithinLimits, looksMacroEnabled, SAFE_IMAGE, SAFE_SHEET } from './attachment.ts';
+import { sanitizeUpload, sniff, safeFilename, stripJpegMetadata, stripPngMetadata, zipExpansionWithinLimits, looksMacroEnabled, looksPolyglot, SAFE_IMAGE, SAFE_SHEET } from './attachment.ts';
 
 const enc = (s: string) => new TextEncoder().encode(s);
 const cat = (...parts: Uint8Array[]) => {
@@ -97,6 +97,67 @@ Deno.test('a PDF carrying JavaScript, /Launch or an embedded file is refused', (
     assert(!r.ok, `accepted PDF containing ${payload}`);
     assertEquals(r.error, 'unsafe_file_content');
   }
+});
+
+// A JAVASCRIPT ACTION IS REFUSED IN EVERY SPELLING; THREE RANDOM BYTES ARE NOT ONE (28 Oct 2026, sales_engineer).
+// /JS was matched as the bytes "/JS" plus any non-word byte: 1.4% of random buffers after a PDF header and 0.7% of real
+// deflate streams were refused as "embedded JavaScript" (measured, 1,000 each). The key now needs its value after it.
+Deno.test('every legal spelling of a JavaScript action is still refused', () => {
+  for (const payload of [
+    '2 0 obj<</S/JavaScript/JS(app.alert(1))>>endobj',            // the usual action
+    '2 0 obj<</JS(app.alert(1))>>endobj',                         // a /JS entry alone, literal string
+    '2 0 obj<</JS <6170702e616c657274283129>>>endobj',            // hex string
+    '2 0 obj<</JS 7 0 R>>endobj',                                  // a reference to a stream
+    '2 0 obj<</JS %hidden\n(app.alert(1))>>endobj',               // a comment counts as whitespace
+    '2 0 obj<</S/Java#53cript/JS(x)>>endobj',                      // #xx escapes in names
+    '2 0 obj<</J#53 (app.alert(1))>>endobj',
+    '2 0 obj<</Names<</JavaScript 9 0 R>>>>endobj',               // the document-level name tree
+  ]) {
+    const r = sanitizeUpload({ input: minimalPdf(payload), declaredMime: 'application/pdf' });
+    assert(!r.ok, `accepted a PDF carrying ${payload}`);
+    assertEquals(r.error, 'unsafe_file_content');
+  }
+});
+
+Deno.test('the bytes "/JS" inside compressed data are not JavaScript', () => {
+  // the shape that was refused: image data that happens to hold "/JS" and a delimiter
+  for (const junk of ['/JS\x8f\x12', '/JS)', '/JS\n\x03\xff', '/JS ]']) {
+    const r = sanitizeUpload({ input: minimalPdf('2 0 obj<</Length 9/Filter/DCTDecode>>stream\n' + junk + 'zz\nendstream endobj'), declaredMime: 'application/pdf' });
+    assert(r.ok, `refused ordinary data ${JSON.stringify(junk)}: ${!r.ok && r.detail}`);
+  }
+  // and 500 deterministic high-entropy buffers after a PDF header, the measured case: none refused
+  let x = 2463534242; const next = () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x & 0xff; };
+  let refused = 0;
+  for (let i = 0; i < 500; i++) {
+    const body = new Uint8Array(262144); for (let k = 0; k < body.length; k++) body[k] = next();
+    const head = enc('%PDF-1.7\n%\xe2\xe3\xcf\xd3\n');
+    if (looksPolyglot(cat(head, body), 'application/pdf')) refused++;
+  }
+  assertEquals(refused, 0);
+});
+
+// THE JS KEY CANNOT BE USED TO HANG THE FUNCTION (2 Nov 2026, it_engineer; #1723 review). `/JS` + 40,000 digits took 2.7 s
+// with the first form of the key (quadratic backtracking), and the sniffer reads a 256 KB window. Each shape below is the
+// worst input found for the pattern; every one must finish well inside a second, with the ceiling set far above the
+// measured ~1-100 ms so a slow CI machine does not fail it.
+Deno.test('a hostile run after /JS is read in linear time, and the n g R form still needs its whitespace', () => {
+  const hostile = [
+    '/JS' + '1'.repeat(40000),
+    '/JS 1 ' + '1'.repeat(40000),
+    '/JS 1 '.repeat(20000),
+    '/JS 1 %'.repeat(35000),
+    '/JS %'.repeat(50000),
+  ];
+  for (const s of hostile) {
+    const input = cat(enc('%PDF-1.7\n'), enc(s.slice(0, 250000)));
+    const t = performance.now();
+    looksPolyglot(input, 'application/pdf');
+    const ms = performance.now() - t;
+    assert(ms < 1000, `${s.slice(0, 12)}... took ${ms.toFixed(0)} ms`);
+  }
+  // "70 0 R" with its whitespace is a reference, "700R" is not a /JS value
+  assert(looksPolyglot(enc('%PDF-1.7\n2 0 obj<</JS 7 0 R>>endobj'), 'application/pdf'));
+  assertEquals(looksPolyglot(enc('%PDF-1.7\n2 0 obj<</JS 70R>>endobj'), 'application/pdf'), null);
 });
 
 Deno.test('an ordinary PDF still passes', () => {

@@ -17,7 +17,7 @@ import * as QD from '../_shared/quote_documents.ts';
 import * as F from '../_shared/quote_documents.fixture.ts';
 import { aed, aedRange, figure } from '../_shared/money.ts';
 // @ts-ignore: a plain .mjs module shared with the nightly journey
-import { amountsInReadingOrder } from '../../../scripts/e2e/pdf_facts.mjs';
+import { amountsInReadingOrder, moneyVerdict, pdfFactsFromBytes } from '../../../scripts/e2e/pdf_facts.mjs';
 
 type Lang = 'en' | 'ar';
 const FONTS = new URL('./fixtures/brand/', import.meta.url);
@@ -32,12 +32,15 @@ const sum = 118520 + 1250.5;
 const TOTAL = 119750;
 const quote = { ...base, items, quote_amount: TOTAL, price_ex_vat: TOTAL };
 
-async function render(lang: Lang) {
+async function renderBytes(lang: Lang) {
   const doc = F.reasoned((arTexts) => QD.quoteDocument({ quote, inquiry: F.INQUIRY, items: quote.items, letter: QD.supplierLabel(0), lang, maskNames: F.identities(), arTexts,
     ...(lang === 'ar' ? { date_ar: '23 سبتمبر 2026' } : { date: '23 September 2026' }) }));
   const r = await renderPdf(doc.body, { fetchBytes });
   assert(r.ok, `refused: ${JSON.stringify((r as { body?: unknown }).body)}`);
-  const pages = await pdfPages((r as { bytes: Uint8Array }).bytes);
+  return (r as { bytes: Uint8Array }).bytes;
+}
+async function render(lang: Lang) {
+  const pages = await pdfPages(await renderBytes(lang));
   return pages.flatMap((p, i) => p.runs.filter((x) => !x.vertical).map((x) => ({ text: x.text, page: i + 1, x: x.x, y: x.y, w: x.w })));
 }
 
@@ -52,6 +55,21 @@ Deno.test('the Arabic quotation states the same money, in the same order, as the
   assertEquals(m.ar, m.en, 'the Arabic quotation states different money from the English one');
   // The Arabic page really is right to left: read left to right, its figures come out in another order.
   assertNotEquals(amountsInReadingOrder(ar, false, 0.003), m.en, 'the Arabic figures read the same both ways: this no longer measures reading direction');
+});
+
+// 3 Nov 2026. The test above reads draw operations; the nightly reads pdfjs text ITEMS, and pdfjs joins the Arabic
+// note into ONE item whose string is already in logical order (sum, then total) with x at the item's left edge.
+// amountsInReadingOrder placed the figures by character index and then read them right to left, so it reported
+// total-then-sum for a page whose sum sits to the right of its total (measured: the draw operations put the sum at
+// x=0.752 and the total at x=0.546). The nightly failed on exactly that from 20 Oct. This reads the two real renders
+// with the nightly's own extraction (pdfFactsFromBytes + moneyVerdict), so a reader that misorders them fails here.
+Deno.test('the nightlys own reader finds the same money on both quotations', async () => {
+  // The checks job runs Deno with DENO_NO_PACKAGE_JSON=1, so the bare 'pdfjs-dist' the nightly imports does not resolve
+  // here: the same package, pinned to package-lock.json's version, is handed in.
+  const pdfjs = await import('npm:pdfjs-dist@6.4.299/legacy/build/pdf.mjs');
+  const [en, ar] = [await pdfFactsFromBytes(await renderBytes('en'), pdfjs), await pdfFactsFromBytes(await renderBytes('ar'), pdfjs)];
+  const v = moneyVerdict(en, ar);
+  assertEquals(v.status, 'PASS', v.why);
 });
 
 Deno.test('one money formatter: the two languages differ only in the unit', () => {

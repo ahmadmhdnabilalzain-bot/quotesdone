@@ -1026,6 +1026,46 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_chases_for_status(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; i public.inquiries; l record; v jsonb; v_fix boolean; v_due timestamptz;
+        n_matched int := 0; n_quoted int := 0; n_chased int := 0; n_recent int := 0; n_unreached int := 0; n_new int := 0;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff' and detail->>'type' = 'inquiry.status_chase';
+  if not found then raise exception 'fn_sales_engineer_chases_for_status: % is not a status-chase handoff', p_id; end if;
+  select * into i from public.inquiries where id = (a.detail->>'inquiry_id')::uuid;
+  if not found then return jsonb_build_object('ok', false, 'error', 'inquiry_not_found'); end if;
+  v_fix := public.fn_inquiry_is_demo(i.id);
+  v_due := coalesce((a.detail->>'next_update_by')::timestamptz, now() + interval '24 hours');
+  for l in select ld.*, m.sent_at as invited_at_, exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = ld.id) as has_quote
+             from public.inquiry_matches m join public.leads ld on ld.id = m.supplier_id
+            where m.inquiry_id = i.id and not coalesce(ld.banned, false) loop
+    n_matched := n_matched + 1;
+    if l.has_quote then n_quoted := n_quoted + 1; continue; end if;
+    -- the sweep's own guard (review of #1844): a supplier invited less than 2 hours ago (or not yet sent) is not reminded
+    if not coalesce(l.invited_at_ < now() - interval '2 hours', false) then n_new := n_new + 1; continue; end if;
+    -- NO SUPPLIER IS NUDGED TWICE IN 24 HOURS (ruling 1209): one already reminded is counted, not reminded again.
+    if exists (select 1 from public.notifications n where n.lead_id = l.id and n.type = 'rfq_quote_reminder'
+                 and n.created_at > now() - interval '24 hours' and coalesce(n.status, '') <> 'failed') then
+      n_recent := n_recent + 1; continue;
+    end if;
+    v := public.fn_seat_clock_deliver('sales_engineer', 'rfq_quote_reminder', 'supplier',
+           lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email))), v_fix, 'en', 'rfq_quote_reminder',
+           jsonb_build_object('name', l.company_name, 'category', i.category, 'emirate', i.emirate, 'deadline', v_due),
+           'rfq_status_chase:' || p_id || ':' || l.id, i.id, null, l.id);
+    if coalesce((v->>'ok')::boolean, false) then n_chased := n_chased + 1; else n_unreached := n_unreached + 1; end if;
+  end loop;
+  return jsonb_build_object('ok', true,
+    'waiting', 'customer_support closes this after telling the customer: a new quote arrived, or the dated update at ' || v_due,
+    'inquiry_id', i.id, 'suppliers_matched', n_matched, 'suppliers_quoted', n_quoted, 'chased', n_chased,
+    'already_reminded_today', n_recent, 'invited_under_2_hours_ago', n_new, 'not_reachable', n_unreached, 'next_update_by', v_due);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_closes_unreached_requests(p_at timestamp with time zone DEFAULT now())
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -4073,6 +4113,29 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_scrub_customer_identity(p_text text, p_customer uuid)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v text; w text;
+begin
+  if p_text is null or btrim(p_text) = '' then return p_text; end if;
+  -- every pattern below is ASCII-digit: a number typed in Arabic-Indic or Persian digits is read as Western first
+  -- (re-review of #1844), or it would pass the scrub and reach suppliers through the English copy
+  v := public.mask_contacts(translate(p_text, '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789'));
+  v := regexp_replace(v, '\y[A-Za-z0-9-]{2,}\.(ae|com|net|org|co|io|me|biz|info)(\.[A-Za-z]{2})?\y', '[removed]', 'gi');
+  v := regexp_replace(v, '\y0[0-9]([ .-]?[0-9]){7,8}\y', '[removed]', 'g');
+  -- a token is letters and digits only (the split guarantees it), so it carries no regex metacharacter
+  for w in select distinct t from regexp_split_to_table(coalesce((select full_name from public.customers where id = p_customer), ''), '[^[:alnum:]]+') t
+            where length(t) >= 3 and lower(t) not in ('bin', 'bint', 'abu', 'umm', 'the', 'and', 'mrs') loop
+    v := regexp_replace(v, '\y' || w || '\y', '[removed]', 'gi');
+  end loop;
+  return v;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_seat_answers_ceo_root_cause(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -4957,7 +5020,9 @@ AS $function$
         when not public.fn_seat_duty_routine_exists(d.routine) then 'its routine public.' || d.routine || '() does not exist'
         when not exists (select 1 from public.org_role r where r.role_id = d.owner_seat and r.status = 'active')
           then 'its owner ' || d.owner_seat || ' is not an active seat'
-        when d.failures >= 3 then 'failed ' || d.failures || ' times running: ' || coalesce(left(d.last_error, 200), '?')
+        -- an hourly-or-slower duty is raised on its FIRST failure: its next try is a whole interval away (see the header)
+        when d.failures >= case when d.every >= interval '1 hour' then 1 else 3 end
+          then 'failed ' || d.failures || ' times running: ' || coalesce(left(d.last_error, 200), '?')
         -- overdue: no success within twice the interval plus one 15-minute tick (a new row gets the same grace)
         when coalesce(d.last_ok_at, d.created_at) < now() - (2 * d.every) - interval '15 minutes'
           then 'no successful run since ' || coalesce(to_char(d.last_ok_at, 'YYYY-MM-DD HH24:MI'), 'it was registered')
@@ -8290,7 +8355,7 @@ begin
   select value into v_body    from app_secrets where key = 'invite_body';
   -- 27 Oct 2026: the founder's invitation carries no link ("safer to not send links"); a supplier registers at
   -- quotesdone.com or replies. Only an EMPTY template is refused now. A template that still has {{link}} is filled.
-  if btrim(coalesce(v_body, '')) = '' then
+  if coalesce(v_body, '') ~ '^[[:space:]]*$' then
     raise exception 'app_secrets.invite_body is empty: no invitation is built from nothing';
   end if;
   v_target := coalesce((select nullif(value,'')::int from app_secrets where key='invite_target_per_category'),

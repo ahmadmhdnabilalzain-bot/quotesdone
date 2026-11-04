@@ -32,9 +32,9 @@ export function Categories() {
       {/* These eight are GUIDES for common jobs, never the scope (founder, 14 Sep 2026): the full list
           of trades lives on /services#all-trades and the heading above says every trade is covered. */}
       <p className="mt-12 font-mono text-label uppercase tracking-caps text-faint">{t('guides')}</p>
-      <ul className={`reveal mt-4 grid border-t border-[var(--line2)] md:grid-cols-2 md:gap-x-10`}>
+      <ul className={`reveal mt-4 grid border-t border-(--line2) md:grid-cols-2 md:gap-x-10`}>
         {items.map((it, i) => (
-          <li key={it.slug} className="group flex items-center gap-5 border-b border-[var(--line)] py-5">
+          <li key={it.slug} className="group flex items-center gap-5 border-b border-(--line) py-5">
             <span className="w-6 shrink-0 font-mono text-[12px] tabular text-faint transition-colors duration-300 group-hover:text-teal-light">
               {String(i + 1).padStart(2, '0')}
             </span>

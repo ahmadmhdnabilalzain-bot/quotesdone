@@ -19,10 +19,14 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { privacyAt18 } from '../lib/privacy_1_9.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 const legal = JSON.parse(read('src/content/legal.json'));
+// 3 Nov 2026: Privacy 1.9 (one sentence on invitation opens, scripts/lib/privacy_1_9.mjs) replaced 1.8. The comparisons below
+// are about 1.8, so they read 1.8 rebuilt from the current text with exactly the 1.9 edits undone (it throws if any is missing).
+legal.privacy = { en: { ...legal.privacy.en, html: privacyAt18(legal.privacy.en.html, 'en') }, ar: { ...legal.privacy.ar, html: privacyAt18(legal.privacy.ar.html, 'ar') } };
 const facts = JSON.parse(read('src/content/company_facts.json'));
 const sha = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 const MOBILE = /50[ .-]?931[ .-]?9355|509319355/;
@@ -43,7 +47,8 @@ test('no current legal text prints the mobile in either language, and each conta
 });
 
 test('the new versions are labelled in both languages and the one source of company facts names them', () => {
-  assert.deepEqual([facts.documents.privacy.version, facts.documents['cookie-policy'].version, facts.documents['supplier-agreement'].version], ['1.8', '1.5', 'v17']);
+  // privacy 1.9 (3 Nov 2026) superseded 1.8; an_invitation_open_is_measured_on_a_tracked_share.test.mjs pins that step
+  assert.deepEqual([facts.documents.privacy.version, facts.documents['cookie-policy'].version, facts.documents['supplier-agreement'].version], ['1.9', '1.5', 'v17']);
   assert.deepEqual(facts.documents['supplier-agreement'].carries_acceptance_from, ['v16']);
   assert.ok(facts.surfaces.archived_documents.includes('supplier-agreement-v16'));
   for (const [k, en, ar] of [['privacy', 'Version 1.8 · Last updated 2 November 2026', 'الإصدار 1.8 · آخر تحديث 2 نوفمبر 2026'], ['cookie-policy', 'Version 1.5 · Last updated 2 November 2026', 'الإصدار 1.5 · آخر تحديث 2 نوفمبر 2026'], ['supplier-agreement', 'Version v17 · Last updated 2 November 2026', 'الإصدار v17 · آخر تحديث 2 نوفمبر 2026']]) {
@@ -156,6 +161,20 @@ test('the five kb_chunks that carried the mobile are corrected by an md5-guarded
   for (const s of ['PROBE OK', 'PROBE FAILED', 'fn_kb_embed_dispatch', 'vector_dims(embedding_gte) = 384']) assert.ok(sql.includes(s), 'SQL lacks ' + s);
   const code = sql.split('\n').filter((l) => l.trim() && !l.startsWith('--'));
   assert.ok(/^update public\.kb_chunks/.test(code[0]), 'a comment line lost its leading dashes: ' + code[0]);
+  assert.ok(read('scripts/sql/MANIFEST.txt').includes(f));
+});
+
+// 3 Nov 2026 (customer_support): the three legacy public.pages rows (about and the two pre-design home backups) carried it too.
+// No reader serves them; they are corrected, not deleted, by an md5-guarded file whose probe counts 0 pages rows with the mobile.
+test('the legacy site pages are corrected by an md5-guarded, manifest-listed file whose probe counts no pages row with the mobile', () => {
+  const f = 'scripts/sql/the_legacy_site_pages_carry_the_public_numbers_and_never_the_founders_mobile.sql';
+  const sql = read(f), probe = read(f.replace(/\.sql$/, '_probe.sql'));
+  assert.doesNotMatch(sql + probe, /\+971 50 931 9355|\+971509319355|050 931 9355/, 'the SQL itself must not print the mobile');
+  for (const slug of ['about', 'home_backup_predesign', 'home-ar_backup_predesign']) assert.match(sql, new RegExp(`\\('${slug}', '[0-9a-f]{32}'\\)`), `${slug} is not md5-guarded`);
+  assert.doesNotMatch(sql.split('\n').filter((l) => !l.startsWith('--')).join('\n'), /delete\s+from/i, 'a legacy row is deleted');
+  for (const s of [CALL, WA, 'wa.me/12183166814', 'tel:+971567918605', 'PROBE OK', 'PROBE FAILED']) assert.ok(sql.includes(s), 'SQL lacks ' + s);
+  assert.match(probe, /n_mobile <> 0/);
+  assert.match(probe, /raise exception 'CHK<<%>>'/);
   assert.ok(read('scripts/sql/MANIFEST.txt').includes(f));
 });
 

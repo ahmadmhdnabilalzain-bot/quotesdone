@@ -23,6 +23,16 @@ export interface SayRequest {
   budgetMs?: number;            // the reply's wall-clock budget (default WA_REPLY_BUDGET_MS)
   must?: string[];              // text the reply must carry exactly (a job number, a case reference)
   signal?: AbortSignal;         // a speculative draft that was discarded: abort it
+  extraCheck?: (text: string) => string[];   // the turn's own rule: a draft it names a problem in is rewritten, never sent
+  situationAnswers?: boolean;   // the facts alone say what to tell them (a person is needed): the brief-less last chance may run
+}
+// A VOICE NOTE REPLY NEVER ASKS FOR A DOCUMENT (customer_support, 3 Nov 2026). Measured on the real exchange on main
+// (run 41528725657, after f6dcbe7d): the voice turn came after four licence/file turns in the same chat, the model saw them
+// (the whole conversation rides with every turn since #1758) and added "If it is your trade licence, you can also send it
+// as a PDF or a clear photo". The situation only told it what to say, not what not to; the reply is now refused and rewritten.
+export function voiceReplyProblems(text: string): string[] {
+  return /trade licen|\bpdf\b|photo of|upload/i.test(text)
+    ? ['it asks for or mentions a document (licence, PDF, photo, upload) in a reply to a voice note that nobody heard'] : [];
 }
 // A WhatsApp reply is written within this, or the person gets the held notice and the turn is queued (run 5: 73.7 s).
 // 2 Nov 2026: 90 s, was 45. The webhook is acknowledged at once (ackThenWork), so the wall is the edge worker's background
@@ -31,6 +41,8 @@ export interface SayRequest {
 export const WA_REPLY_BUDGET_MS = 90_000;
 /** Time kept back from the budget for the send itself and the row write after the model answers. */
 export const WA_SEND_MARGIN_MS = 3_000;
+/** The one extra, brief-less ask when nothing passed inside the budget (modelSays). 90 + 20 s stays inside the worker's 150 s. */
+export const LAST_CHANCE_MS = 20_000;
 /** THE CLOCK STARTS AT ARRIVAL, NOT AT THE MODEL CALL (QA channels run, 19 Oct 2026). Measured on production: two
  *  plain questions spent ~45 s in serial routing/intent calls before modelSays began, then answered at 54-55 s with no
  *  held notice, because the 45 s deadline was counted from t0 inside modelSays. The budget handed to modelSays is what is
@@ -47,15 +59,34 @@ export const WA_RULES = 'Plain text for WhatsApp (no markdown), under about 90 w
 export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
   const t0 = Date.now();
   try {
-    const out = await aiReply(deps, {
+    const ask = (deadline: number, o: { briefInPrompt?: boolean; priorProblems?: string[]; rateKey?: string } = {}) => aiReply(deps, {
       seat: 'customer_support', channel: 'whatsapp', audience: r.audience, lang: r.lang,
       message: r.message || '(no text — they pressed a menu option or sent a file)',
       conversation: r.conversation,
       facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation,
-      rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must, ...(r.signal ? { signal: r.signal } : {}),
-      deadline: t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS),
+      rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must, ...(r.signal ? { signal: r.signal } : {}), ...(r.extraCheck ? { extraCheck: r.extraCheck } : {}),
+      deadline, ...o,
     });
-    return { text: String(out.reply || '').trim(), model: out.model, attempts: out.attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true, problems: out.problems ?? [] };
+    let out = await ask(t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS));
+    let attempts = out.attempts;
+    // THE LAST CHANCE (customer_support, 3 Nov 2026; "every inbound message gets an answer"). Run 41530397323: the lean "scam"
+    // turn's model WAS up, its Sonnet draft could not be used, the other-family call ran into the budget, and the person got
+    // nothing for the turn (held for the re-ask). Now, when a model answered but nothing passed, or the budget ran out before
+    // one could, it is asked ONCE more, bounded by LAST_CHANCE_MS: the rules and this turn's facts without the ~140k-token
+    // brief (a few seconds), the refused drafts' problems named, every check unchanged. Still model-written (1195-1197, 1339).
+    // Not for a speculative draft (signal) and not in an outage (the held notice owns that). Prevented by: model_says.test.ts.
+    // ONLY WHEN THE FACTS ALONE ANSWER THE TURN (review of #1816): without the brief a company question ("how do you vet
+    // suppliers?") could only be answered from memory, so the caller opts in (situationAnswers) for a turn whose facts say what
+    // happens, a person being needed above all, and the brief-less prompt says nothing about the company beyond its facts.
+    // Never past a spent sender bucket (out.rateLimited): the turn ends as on main, held with no text (re-review of #1816).
+    if (r.situationAnswers === true && !String(out.reply || '').trim() && !out.outage && !out.rateLimited && !r.signal) {
+      // the same message's reply, so it does not count against the sender's rate bucket again (rateKey left out)
+      const last = await ask(Date.now() + LAST_CHANCE_MS, { briefInPrompt: false, priorProblems: out.problems, rateKey: undefined });
+      attempts = [...attempts, ...last.attempts.map((a) => 'last-chance ' + a)];
+      if (String(last.reply || '').trim()) out = last;
+      else out = { ...out, problems: last.problems?.length ? last.problems : out.problems };
+    }
+    return { text: String(out.reply || '').trim(), model: out.model, attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true, problems: out.problems ?? [] };
   } catch (e) {
     // aiReply never throws on a model failure; a throw here is our own fault, not a provider outage
     return { text: '', model: null, attempts: ['error: ' + String((e as Error)?.message || e).slice(0, 120)], ms: Date.now() - t0, escalate: false, outage: false };

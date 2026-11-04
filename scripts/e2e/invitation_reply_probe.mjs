@@ -36,6 +36,7 @@ if (!/^delivered\+qd-rp[a-z0-9]{1,8}-sup0@resend\.dev$/.test(addr) || !NAME.star
 const results = [];
 const step = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ' — ' + detail : ''}`); };
 let lead = null;
+let msgId = null;
 try {
   lead = (await write(`insert into public.leads (company_name, email, emirate, source, invite_status, invited_at, locale, tags)
     values (${q(NAME)}, ${q(addr)}, 'Dubai', 'directory', 'sent', now(), 'en', array['qd_demo','qd_run:${tag}'])
@@ -43,7 +44,7 @@ try {
   const sec = Object.fromEntries((await read(`select key, value from public.app_secrets
     where key in ('resend_inbound_token','resend_inbound_signing_secret','cred_fn_resend_inbound')`)).map((r) => [r.key, r.value]));
   const t0 = Date.now();
-  let msgId = null;
+  // msgId is declared above the try (review: a let here was out of scope in finally)
   const text = 'Yes please, we would like to receive requests. We supply aluminium windows and glass partitions.';
   if (LANE === 'm365') {
     const gid = 'AAMkQDPROBE' + tag;
@@ -93,6 +94,11 @@ try {
       delete from public.agent_actions where target_table = 'notifications' and target_id in
         (select 'delivery.request:notification:' || id from public.notifications where lower(to_email) = lower(${q(addr)}));
       delete from public.notifications where lower(to_email) = lower(${q(addr)});
+      -- email_triage files a seat_judgement per decision (needs_a_person, then reply), keyed on the message
+      -- id inside the subject jsonb and never on the address, so the e-mail-column scan cannot see them: the three 28 Oct
+      -- runs left 7322-7323, 7330-7331 and 7335-7336 behind (auditor C, 28 Oct). Before the messages they point at.
+      delete from public.seat_judgement where surface like 'email_triage.%' and subject->>'message_id' in
+        (select id::text from public.inbound_messages where lower(from_email) = lower(${q(addr)}));
       delete from public.inbound_messages where lower(from_email) = lower(${q(addr)});
       delete from public.leads where id = ${lead.id}`, 'probe clean-up');
     const cols = await read(`select c.table_name t, c.column_name c from information_schema.columns c join information_schema.tables x
@@ -101,10 +107,12 @@ try {
     const left = [];
     for (const { t, c } of cols) { const n = (await read(`select count(*)::int n from public."${t}" where lower("${c}") = lower(${q(addr)})`).catch(() => [{ n: 0 }]))[0].n; if (n) left.push(`${t}.${c}=${n}`); }
     const js = (await read(`select (select count(*) from public.agent_actions where lower(detail->>'to_email') = lower(${q(addr)}) or lower(detail->>'from_email') = lower(${q(addr)}))::int a,
-      (select count(*) from public.company_event where entity_type = 'agent_actions' and entity_id = any(array[${handoffs.map(q).join(',') || "''"}]::text[]))::int e`))[0];
+      (select count(*) from public.company_event where entity_type = 'agent_actions' and entity_id = any(array[${handoffs.map(q).join(',') || "''"}]::text[]))::int e,
+      (select count(*) from public.seat_judgement where surface like 'email_triage.%' and subject->>'message_id' = ${q(String(msgId ?? ''))})::int j`))[0];
     if (js.a) left.push(`agent_actions.detail=${js.a}`);
     if (js.e) left.push(`company_event(handoff)=${js.e}`);
-    step('nothing the probe made is left (every e-mail column, and the handoff rows that carry it in jsonb)', left.length === 0, left.join(' '));
+    if (js.j) left.push(`seat_judgement(email_triage)=${js.j}`);
+    step('nothing the probe made is left (every e-mail column, the handoff rows that carry it in jsonb, and the triage judgements)', left.length === 0, left.join(' '));
   }
 }
 process.exitCode = results.every((r) => r.ok) ? 0 : 1;

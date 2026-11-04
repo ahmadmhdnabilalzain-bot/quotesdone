@@ -55,7 +55,9 @@ const NAMES_SUBJECT = {
 test('every consumer the E2E harness drives names its subject to the gateway', () => {
   for (const [f, re] of Object.entries(NAMES_SUBJECT)) assert.match(read(f), re, `${f} no longer names its subject`);
   const api = read('supabase/functions/supplier_api/index.ts');
-  assert.equal((api.match(/subject: \{ supplier_id: \(?sup/g) || []).length, 4, 'supplier_api must name the supplier on all four reader calls (the fourth: extract_quote reading through read_every_attachment, ruling 1177)');
+  // Five reader calls: the licence, the profile, the scanned catalogue (sales_engineer, 3 Nov 2026: a scanned
+  // catalogue now reaches the model), quote_extract, and extract_quote reading through read_every_attachment (ruling 1177).
+  assert.equal((api.match(/subject: \{ supplier_id: \(?sup/g) || []).length, 5, 'supplier_api must name the supplier on all five reader calls (licence, profile, scanned catalogue, quote_extract, read_every_attachment)');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));

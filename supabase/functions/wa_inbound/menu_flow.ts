@@ -170,17 +170,26 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
         const s = await d.send('whatsapp:+' + r.phone.replace(/[^0-9]/g, ''), caseClosedNotice(r.lang || 'en', cmd.ref, r.reason || cmd.reason));
         notice = { sent: s.ok, err: s.err };
       }
-      const txt = !r.ok ? 'No open case ' + cmd.ref + ' was found; nothing was closed.'
-        : 'Case ' + cmd.ref + ' is closed. ' + (!r.phone ? 'The reporter had no WhatsApp number on the case.'
-          : notice?.sent ? 'The reporter was told on WhatsApp.' : 'The WhatsApp notice to the reporter failed (' + (notice?.err || 'unknown') + '); the email on their account, if any, carries it.');
-      await reply(d, inp, 'en', 'founder_close_case', txt, null, { case_ref: cmd.ref, closed: r.ok, reporter_notice: notice });
+      // HIS LANGUAGE (gap #10, 3 Nov 2026): «إغلاق» is accepted as the command word, so the confirmation is in Arabic too.
+      const cl = langOf(body);
+      const failed = notice?.err || (cl === 'ar' ? 'سبب غير معروف' : 'unknown');
+      const txt = cl === 'ar'
+        ? (!r.ok ? 'لم يُعثر على بلاغ مفتوح بالرقم ' + cmd.ref + '؛ لم يُغلق شيء.'
+          : 'أُغلق البلاغ ' + cmd.ref + '. ' + (!r.phone ? 'لا يوجد رقم واتساب لصاحب البلاغ.'
+            : notice?.sent ? 'أُبلغ صاحب البلاغ عبر واتساب.' : 'تعذّر إرسال إشعار واتساب لصاحب البلاغ (' + failed + ')؛ يصله الإشعار على البريد الإلكتروني المسجّل في حسابه إن وُجد.'))
+        : (!r.ok ? 'No open case ' + cmd.ref + ' was found; nothing was closed.'
+          : 'Case ' + cmd.ref + ' is closed. ' + (!r.phone ? 'The reporter had no WhatsApp number on the case.'
+            : notice?.sent ? 'The reporter was told on WhatsApp.' : 'The WhatsApp notice to the reporter failed (' + failed + '); the email on their account, if any, carries it.'));
+      await reply(d, inp, cl, 'founder_close_case', txt, null, { case_ref: cmd.ref, closed: r.ok, reporter_notice: notice });
       return { handled: true, route: 'founder_close_case' };
     }
     if (cmd?.kind === 'close_human') {
       const n = await d.closeHuman(cmd.phone);
-      await reply(d, inp, 'en', 'founder_close_human', n
-        ? 'Closed. Automatic replies to +' + cmd.phone + ' are back on.'
-        : 'No open request for a person from +' + cmd.phone + ' was found.', null, { phone: cmd.phone, closed: n });
+      const hl = langOf(body);
+      await reply(d, inp, hl, 'founder_close_human', hl === 'ar'
+        ? (n ? 'تم. عادت الردود التلقائية إلى الرقم +' + cmd.phone + '.' : 'لم يُعثر على طلب مفتوح للتحدث مع موظف من الرقم +' + cmd.phone + '.')
+        : (n ? 'Closed. Automatic replies to +' + cmd.phone + ' are back on.' : 'No open request for a person from +' + cmd.phone + ' was found.'),
+        null, { phone: cmd.phone, closed: n });
       return { handled: true, route: 'founder_close_human' };
     }
   }
