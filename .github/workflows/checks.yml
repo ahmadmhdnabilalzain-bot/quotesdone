@@ -56,6 +56,21 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      # 4 NOV 2026 (it_engineer; founder: "merging is extremely slow"). The two OCR steps below took 743 s + 29 s of
+      # this job's ~19 min on EVERY pull request (measured on #1861), including PRs that touch no drawing code. On a
+      # pull request they now run only when the change touches drawing, OCR, redaction or identity code, this
+      # workflow, or the dependencies. A push to main and a manual run always run them, so main keeps full coverage.
+      - name: Does this change touch drawing or OCR code?
+        id: ocr
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; echo "not a pull request: run"; exit 0; fi
+          git fetch --no-tags --depth=200 origin "$BASE" "$HEAD" >/dev/null 2>&1 || true
+          files=$(git diff --name-only "$BASE" "$HEAD" 2>/dev/null) || { echo "run=true" >> "$GITHUB_OUTPUT"; echo "diff unavailable: run"; exit 0; }
+          if echo "$files" | grep -qE '^(supabase/functions/(_shared/(scan_|ocr|anonymise|identity|drawing|redact|pdf_|doc_read/|cad)|drawing_|cad_)|scripts/cad|\.github/workflows/checks\.yml|package(-lock)?\.json|deno\.(json|lock))'; then echo "run=true" >> "$GITHUB_OUTPUT"; echo "drawing/OCR code changed: run"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no drawing/OCR change: the OCR steps are skipped on this PR"; fi
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -123,11 +138,13 @@ jobs:
       # 70% confidence is held, a sheet with no title block is held, and the CAD worker publishes a clean page as
       # one recorded run. The engine's worker thread needs --allow-env and imagescript's codec comes from deno.land.
       - name: A scanned drawing is redacted by OCR, or held
+        if: steps.ocr.outputs.run == 'true'
         run: >-
           deno test --no-lock --node-modules-dir=auto --allow-read=. --allow-env
           --allow-net=deno.land
           supabase/functions/_shared/scan_redact.check.ts
       - name: A scanned PDF set is counted by OCR to the hand count (scan_takeoff.check.ts)
+        if: steps.ocr.outputs.run == 'true'
         run: >-
           deno test --no-lock --node-modules-dir=auto --allow-read=. --allow-env
           --allow-net=deno.land,esm.sh
