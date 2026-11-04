@@ -129,17 +129,24 @@ Deno.test('the model read is bounded (image size, PDF pages), billed to the supp
   // a picture above the cap is not sent, and the document says why in words the supplier can use
   const big = { path: 'b', name: 'b.jpg', kind: 'profile' as const, mime: 'image/jpeg', bytes: new Uint8Array(PROFILE_IMAGE_MAX + 1), unread_reason: undefined as string | undefined };
   assertEquals([(await readProfileByModel(big, ask([answer]))).asked, calls.length, /larger than 10 MB/.test(big.unread_reason || '')], [false, 0, true]);
-  // a scanned PDF of 25 pages: only the first PROFILE_PDF_PAGES go (the file the model receives is a PDF of ten pages)
-  assertEquals(await pdfPageCount(await many(25)), 25);
-  const cut = await firstPdfPages(await many(25), PROFILE_PDF_PAGES);
+  // a scanned PDF of 45 pages: only the first PROFILE_PDF_PAGES (30) go, and the document records that it was cut (3 Nov 2026: was 10)
+  assertEquals(PROFILE_PDF_PAGES, 30);
+  assertEquals(await pdfPageCount(await many(45)), 45);
+  const cut = await firstPdfPages(await many(45), PROFILE_PDF_PAGES);
   assertEquals(cut ? await pdfPageCount(cut) : null, PROFILE_PDF_PAGES);
-  const scan = { path: 's', name: 's.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: await many(25), photo_text: undefined as string | undefined };
+  const scan = { path: 's', name: 's.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: await many(45), photo_text: undefined as string | undefined, pages_read: undefined as { read: number; of: number } | undefined };
   calls.length = 0;
   const r1 = await readProfileByModel(scan, ask([answer]), { subject: { supplier_id: 77, email: 'qd-x@example.invalid' } });
   assertEquals(r1.ok, true);
   assertEquals((calls[0].subject as { supplier_id: number }).supplier_id, 77);   // the spend is the supplier's
   const sent = Uint8Array.from(atob(String(calls[0].file_b64)), (c) => c.charCodeAt(0));
   assertEquals(await pdfPageCount(sent), PROFILE_PDF_PAGES);
+  assertEquals(scan.pages_read, { read: 30, of: 45 });   // the cut is on the record, never silent
+  // a 20-page scan whose services are on page 15 (the qualification's S02) goes whole: it was cut to pages 1-10
+  calls.length = 0;
+  const s20 = { path: 's20', name: 's20.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: await many(20), pages_read: undefined as { read: number; of: number } | undefined };
+  await readProfileByModel(s20, ask([answer]));
+  assertEquals([await pdfPageCount(Uint8Array.from(atob(String(calls[0].file_b64)), (c) => c.charCodeAt(0))), s20.pages_read], [20, undefined]);
   // a 4xx is not asked again; a 5xx and a thrown error are (twice in all)
   calls.length = 0;
   const png = () => ({ path: 'p', name: 'p.png', kind: 'profile' as const, mime: 'image/png', bytes: new Uint8Array([1, 2, 3]) });

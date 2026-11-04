@@ -155,6 +155,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 - [An eval's answer key is a claim too (28 Oct)](an-eval-answer-key-is-a-claim-too.md) — 13 of 34 'failing' market packs returned a right answer the key did not name; read what came back before tuning retrieval or content
 ## State of the build
+- [CHECKPOINT 4 Nov — weekly limit hit mid PR drain](checkpoint-4-nov-handover-pr-drain.md) — READ FIRST: 1392 proved with real AI and ready; older PRs mid-merge; 1720 DB check; Windows sign-in token fix not yet a PR; owed items
 - [CHECKPOINT 3 Nov — hand-over for the week of 4 Nov](checkpoint-3-nov-handover-week-of-4-nov.md) — READ FIRST: invitations exclude Yahoo/Microsoft (make it explicit), what went live 3 Nov, every open PR and its next step
 - [CHECKPOINT 2 Nov — founder's 10-hour push](checkpoint-2-nov-10-hour-push.md) — READ FIRST: rulings 1437-1458, what is live, the PR queue, Al Gouri, deadlines
 - [CHECKPOINT 27 Oct night — merge train and the held queue](checkpoint-27-oct-night-merge-train-and-the-held-queue.md) — READ FIRST: 25 PRs live, parity 78/0; resilience_ping chain CPU→fan-out→itlater→newest-first queue; #1693 code not yet deployed; November plan at risk; open list

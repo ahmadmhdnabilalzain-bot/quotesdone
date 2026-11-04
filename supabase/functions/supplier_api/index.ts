@@ -31,7 +31,7 @@ import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '.
 import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, stuckReads, type LaterDoc } from '../_shared/supplier_docs_later.ts';
-import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
+import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, checkVerdict, deskAssess, fillIn, finishArabic, formSchema, gate, gateInputKey, pdfDoc, readAndAssess, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -754,6 +754,8 @@ ${q}`,
       //     SILENT - the supplier saw success, license_doc_path was never set, and the document
       //     review queue simply never saw a licence.
       else if (lic.original_b64) {
+        // refused before it is decoded or parsed (document_expiry.ts READ_MAX_BYTES: 19.3 MB was HTTP 546 here on 1 Nov)
+        if (b64Size(lic.original_b64) > READ_MAX_BYTES) return J(tooLargeToRead(b64Size(lic.original_b64), 'trade licence'), 413);
         const sc = await sanitizeAndScan({ input: String(lic.original_b64), declaredMime: lic.mime, filename: lic.filename || 'license', allow: SAFE_UPLOAD,
                                            scan: { source: 'supplier_api.license', subject: String(sup.id), filename: lic.filename, bucket: 'supplier-docs' } });
         if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That licence file cannot be accepted. Please upload a PDF or a clear photo (JPEG or PNG) of your trade licence.' }, sc.status);
@@ -779,6 +781,8 @@ ${q}`,
                return { bytes: new Uint8Array(await dl.data.arrayBuffer()), mime: dl.data.type || 'application/pdf' } as { bytes: Uint8Array; mime: string };
              } catch (_e) { return null; }
            })() : null);
+      // the same ceiling for a licence that came by path: refused before any reader parses it
+      if (licBytes?.bytes && licBytes.bytes.length > READ_MAX_BYTES) return J(tooLargeToRead(licBytes.bytes.length, 'trade licence'), 413);
       // What CODE measured off the document. The model below may add what code cannot read
       // (licence number, authority, legal name) but must never overwrite this date.
       let codeExpiry: string | null = null;
@@ -926,6 +930,11 @@ ${q}`,
       // picture, or a profile PDF with no text layer (13 Oct 2026, it_engineer: Menasco, 87 pages, 0 characters), goes to
       // license_extract's profile mode (ruling 1177), up to PROFILE_PDF_MODEL_MAX; a PDF pdf.js could not parse is held
       // unreadable, never taken for a scan. Its findings are written to the row on their own update.
+      const askProfile = async (b: Record<string, unknown>) => {
+        const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'profile', ...b }), signal: AbortSignal.timeout(120_000) });
+        const j = await r.json().catch(() => null);
+        return { ...(j ?? {}), status: r.status };
+      };
       const runProfileModel = async (pq?: LaterDoc) => {
         // THE ONE PROFILE READ (review of #1796): the Documents tab and registration read a picture or a scan through readProfileByModel, with the
         // same size and page caps, the same two attempts, the same subject for the spend, and the same finding when both attempts fail.
@@ -933,11 +942,7 @@ ${q}`,
         const pqImage = !!(pq?.bytes && pq.mime && /^image\//i.test(pq.mime));
         const images = profImgs.length ? [...(pqImage ? [{ b64: toB64(pq!.bytes!), mime: pq!.mime }] : []), ...profImgs] : undefined;
         const holder: LaterDoc = pq ?? { path: '', name: 'profile', kind: 'profile' };
-        const res = await readProfileByModel(holder, async (b) => {
-          const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'profile', ...b }), signal: AbortSignal.timeout(120_000) });
-          const j = await r.json().catch(() => null);
-          return { ...(j ?? {}), status: r.status };
-        }, { subject: { supplier_id: sup.id, email }, admin, ...(images ? { images } : {}) });
+        const res = await readProfileByModel(holder, askProfile, { subject: { supplier_id: sup.id, email }, admin, ...(images ? { images } : {}) });
         if (!res.asked) return;
         const mUpd: Record<string, unknown> = {};
         if (!(res.ok && res.profile)) return;   // readProfileByModel has logged it and filed the finding
@@ -991,7 +996,9 @@ ${q}`,
         out.documents_reading = readQueue.map((d) => d.path);
         let modelRan = false;
         const job = (async () => {
-          await readStoredDocsLater(admin, Number(sup.id), readQueue, { profile: async (d) => { modelRan = true; await runProfileModel(d); } });
+          // a scanned catalogue is read by the same model; its lines are its own photo_text and it writes no profile field
+          await readStoredDocsLater(admin, Number(sup.id), readQueue, { profile: async (d) => { modelRan = true; await runProfileModel(d); },
+            catalogue: async (d) => { await readProfileByModel(d, askProfile, { subject: { supplier_id: sup.id, email }, admin }); } });
           if (!modelRan && profImgs.length) await runProfileModel();
         })();
         const w = afterResponse(job, 'supplier_api.process_docs.later'); if (w) await w;
