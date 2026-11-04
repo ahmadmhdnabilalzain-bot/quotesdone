@@ -28,7 +28,7 @@ import { LIMITS } from './doc_read/types.ts';
 import { liveTradeDeps } from './trade_resolve.ts';
 import { modelReadText, proposeTradesFromDocs, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { readDocument } from './doc_read/index.ts';
-import { pdfjsText } from './doc_read/pdf.ts';
+import { pagesLeft, pdfjsText } from './doc_read/pdf.ts';
 import { toB64 } from './document_expiry.ts';
 import { timedFetch } from './timed_fetch.ts';
 
@@ -56,7 +56,14 @@ export type LaterDoc = DocIn & { gate?: boolean };
 // ponytail: a big image is skipped, not downscaled (decoding 10 MB of JPEG is more CPU than an edge function has); upgrade: downscale to 2600 px.
 export const PROFILE_PDF_MODEL_MAX = 12 * 1024 * 1024;
 export const PROFILE_IMAGE_MAX = 10 * 1024 * 1024;
-export const PROFILE_PDF_PAGES = 10;
+// 30 PAGES, NOT 10 (3 Nov 2026, sales_engineer; scripts/e2e/document_reading_qualification.ts). "A profile says what the company does
+// early" is what the founder's 300-page scenario disproves: a 20-page scanned profile whose services are on page 15 was cut to pages
+// 1-10 and its trades never reached the model (0 of 10 gold lines over 5 runs). One cut, one call, as before; the pages billed rise
+// from 10 to at most 30 (license_extract: AED 0.0027-0.0048 a call, 30 days to 3 Nov). A longer scan is still cut, and the document
+// now SAYS it was cut (DocIn.pages_read -> DocEvidence.pages).
+// ponytail: one 30-page window per upload; upgrade: a window per sweep run (one cut + base64 of a 12 MB scan measured ~0.7 s CPU
+// locally, so several windows in one edge run would pass the ~2 s CPU cap).
+export const PROFILE_PDF_PAGES = 30;
 export type ProfileAsk = (body: Record<string, unknown>) => Promise<{ ok?: boolean; status?: number; error?: string; profile?: { lines?: unknown; [k: string]: unknown } } | null>;
 export type ProfileModelRead = { asked: boolean; ok: boolean; profile?: { lines?: unknown; [k: string]: unknown }; why?: string };
 
@@ -103,6 +110,7 @@ export async function readProfileByModel(d: LaterDoc, ask: ProfileAsk,
         const cut = await firstPdfPages(d.bytes, PROFILE_PDF_PAGES);
         if (!cut) { d.unread_reason = `The scanned PDF has more than ${PROFILE_PDF_PAGES} pages and could not be cut. Upload the first pages as a smaller PDF.`; return { asked: false, ok: false, why: 'pdf_not_cut' }; }
         send = cut;
+        if (pages !== null) d.pages_read = { read: PROFILE_PDF_PAGES, of: pages };
       }
       body = { file_b64: toB64(send), mime, filename: d.name };
     } else return { asked: false, ok: false };
@@ -208,6 +216,9 @@ export async function gateStored(admin: Admin, supplierId: number, d: LaterDoc, 
 export type LaterHooks = {
   /** Runs on a gated profile before its trades are read (the vision model for a picture or a scan). */
   profile?: (d: LaterDoc) => Promise<void>;
+  /** Runs on a gated catalogue: a scanned or photographed catalogue goes to the same model (readProfileByModel), never left needs_ocr
+   *  for good (3 Nov 2026: a 90-page scanned building-materials catalogue proposed nothing on 5 of 5 runs of the qualification). */
+  catalogue?: (d: LaterDoc) => Promise<void>;
   retry?: boolean;
   deps?: TradeResolveDeps; gateDeps?: GateDeps;
 };
@@ -219,8 +230,9 @@ export async function readStoredDocsLater(admin: Admin, supplierId: number, docs
   const deps = hooks.deps ?? await liveTradeDeps(admin);   // read once: the vectors and meaning's budget are shared
   for (const d0 of docs) {
     const d = await gateStored(admin, supplierId, d0, hooks.gateDeps);
-    if (!d.refused && d.kind === 'profile' && hooks.profile) {
-      try { await hooks.profile(d); } catch (e) { errors.push(`profile: ${String((e as Error)?.message || e).slice(0, 160)}`); }
+    const hook = d.kind === 'profile' ? hooks.profile : d.kind === 'catalogue' ? hooks.catalogue : undefined;
+    if (!d.refused && hook && !d.from_page) {   // a continuation reads text pages on, never the model
+      try { await hook(d); } catch (e) { errors.push(`${d.kind}: ${String((e as Error)?.message || e).slice(0, 160)}`); }
     }
     const r = await proposeTradesFromDocs(admin, supplierId, [d], deps, hooks.retry);
     if (r.ok) { out.push(...r.docs); proposed = r.proposed_trades; } else errors.push(r.error);
@@ -236,19 +248,29 @@ export async function readStoredDocsLater(admin: Admin, supplierId: number, docs
 }
 
 /** Documents 'reading' for REREAD_AFTER_MIN minutes or more that have not been re-read yet, grouped by supplier. */
+// CHUNKED READING ACROSS RUNS (3 Nov 2026, sales_engineer; scripts/e2e/document_reading_qualification.ts). A long text PDF stops at the
+// reader's CPU budget or text cap (doc_read/pdf.ts): measured locally on a 300-page profile, 156 to 300 pages in one run depending on the
+// machine's load. Such a document is recorded read up to pages.read, marked `resume`, and the next sweep run reads it on from
+// pages.read + 1, adding what those pages state to what the earlier pages proposed, until the last page is read. The gate already ran on
+// the stored bytes, so a continuation is not gated again.
 export function stuckOf(rows: { supplier_id: number; source_docs: unknown }[], now = Date.now()): { supplier_id: number; docs: LaterDoc[] }[] {
   const out: { supplier_id: number; docs: LaterDoc[] }[] = [];
   for (const r of rows) {
-    const docs = ((r.source_docs as { docs?: DocEvidence[] })?.docs || [])
+    const all = (r.source_docs as { docs?: DocEvidence[] })?.docs || [];
+    const docs: LaterDoc[] = [...all
       .filter((d) => d.status === 'reading' && !d.retry && now - Date.parse(d.read_at) >= REREAD_AFTER_MIN * 60_000)
-      .map((d) => ({ path: d.path, name: d.name, kind: d.kind, gate: d.kind !== 'licence' }));
+      .map((d) => ({ path: d.path, name: d.name, kind: d.kind, gate: d.kind !== 'licence' })),
+      ...all.filter((d) => d.status === 'read' && d.resume && d.pages && pagesLeft(d.pages))
+      .map((d) => ({ path: d.path, name: d.name, kind: d.kind, gate: false, from_page: d.pages!.read + 1, prev: d }))];
     if (docs.length) out.push({ supplier_id: Number(r.supplier_id), docs });
   }
   return out;
 }
 
 export async function stuckReads(admin: Admin, limit = 2): Promise<{ supplier_id: number; docs: LaterDoc[] }[]> {
-  const { data } = await admin.from('supplier_capabilities').select('supplier_id,source_docs')
-    .contains('source_docs', { docs: [{ status: 'reading' }] }).limit(50);
-  return stuckOf(data || []).slice(0, limit);
+  const [a, b] = await Promise.all(['reading', 'resume'].map((k) => admin.from('supplier_capabilities').select('supplier_id,source_docs')
+    .contains('source_docs', { docs: [k === 'reading' ? { status: 'reading' } : { resume: true }] }).limit(50)));
+  const seen = new Set<number>();
+  const rows = [...(a.data || []), ...(b.data || [])].filter((r: { supplier_id: number }) => !seen.has(r.supplier_id) && seen.add(r.supplier_id));
+  return stuckOf(rows).slice(0, limit);
 }

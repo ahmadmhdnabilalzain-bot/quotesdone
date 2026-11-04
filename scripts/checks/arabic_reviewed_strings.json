@@ -6200,7 +6200,11 @@
   "d12716951e5d",
   "d2aea88b9886",
   "d8133c3eef27",
-  "fbe144d11ac6"
+  "fbe144d11ac6",
+  "0999a1627bb3",
+  "70b81e28291e",
+  "be6e5ac71c01",
+  "d62e4efd9014"
  ],
  "supabase/functions/_shared/drawing_format.ts": [
   "939055a3b61f"
@@ -7439,6 +7443,9 @@
  ],
  "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
   "ac6c63ab5f9f"
+ ],
+ "supabase/functions/_shared/supplier_trade_choice.ts": [
+  "728be8b0e357"
  ],
  "scripts/sql/a_supplier_reply_goes_back_from_its_own_mailbox.sql": [
   "2e6cf0d056d2",

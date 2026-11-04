@@ -1,0 +1,73 @@
+name: Supplier document-reading qualification (model stage)
+
+# Seat: sales_engineer. 3 Nov 2026 (PR #1833). The founder's scenario: "a supplier attaches a company profile of 300 pages and the
+# sales agent must go through it properly, not summarise wrong information, and set the right keywords for cross-matching."
+# Runs scripts/e2e/document_reading_qualification.mjs where the secrets live, on two corpora, each in its OWN tagged rehearsal
+# window with a database-enforced cap (fn_kernel_paid_provider_gate); scripts/e2e/document_reading_qualification.ci.json says what
+# each runs and keeps the two caps at or under USD 15 together.
+#   real       the 56 real UAE company profiles and catalogues of scripts/e2e/document_reading_qualification_real.json, fetched
+#              from the private evidence bucket and refused unless their sha256 matches (never committed, never contacted)
+#   synthetic  the invented ZZ DEMO gold corpus, kept for what no company publishes (corrupt, password-protected, 30 MB)
+# The one committed row per run is a ZZ DEMO subject supplier at @example.invalid; teardown removes the run by its tag, and the
+# always() step closes any window this job opened.
+# DISPATCH ONLY (3 Nov 2026, coordinator): the two push-triggered runs on the branch spent AED 48.22 (about USD 13.1) in four windows.
+# A further model-stage run is ONE dispatch, the real corpus only, at most 3 repeats, a cap of at most USD 5, 1 document at a time.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  qualify:
+    strategy:
+      fail-fast: false
+      matrix:
+        corpus: [real, synthetic]
+    runs-on: ubuntu-latest
+    timeout-minutes: 140
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QD_FIXTURES: '1'
+      QD_E2E_RUN_TAGS: e2e-run-tags.txt
+      DENO_NO_PACKAGE_JSON: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - name: What this corpus runs
+        id: cfg
+        run: |
+          node -e "const c=require('./scripts/e2e/document_reading_qualification.ci.json')['${{ matrix.corpus }}'];
+            const o=(k,v)=>require('fs').appendFileSync(process.env.GITHUB_OUTPUT, k+'='+v+'\n');
+            o('run', c.run ? 'true' : 'false'); o('repeats', c.repeats); o('parallel', c.parallel); o('cap', c.cap_usd);
+            o('flag', '${{ matrix.corpus }}' === 'real' ? '--real' : ''); o('only', c.only ? '--only ' + c.only : '');"
+      - uses: actions/setup-node@v7
+        if: steps.cfg.outputs.run == 'true'
+        with:
+          node-version: '24'
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        if: steps.cfg.outputs.run == 'true'
+        with:
+          deno-version: v2.x
+      - name: Install the locked dependencies
+        if: steps.cfg.outputs.run == 'true'
+        run: npm ci
+        timeout-minutes: 8
+      - name: Code stage (no model spend)
+        if: steps.cfg.outputs.run == 'true'
+        run: node scripts/e2e/document_reading_qualification.mjs ${{ steps.cfg.outputs.flag }} --repeats 3 --parallel 4 ${{ steps.cfg.outputs.only }} --out qualification
+        timeout-minutes: 25
+      - name: Model stage (tagged window, cap USD ${{ steps.cfg.outputs.cap }})
+        if: steps.cfg.outputs.run == 'true'
+        run: node scripts/e2e/document_reading_qualification.mjs ${{ steps.cfg.outputs.flag }} --model --repeats ${{ steps.cfg.outputs.repeats }} --parallel ${{ steps.cfg.outputs.parallel }} --cap-usd ${{ steps.cfg.outputs.cap }} ${{ steps.cfg.outputs.only }} --out qualification
+        timeout-minutes: 118
+      # Runs even when the stage failed or was cancelled; touches only the tags this job wrote.
+      - name: Close this job's rehearsal windows
+        if: always() && steps.cfg.outputs.run == 'true'
+        run: node scripts/e2e/close_job_windows.mjs "$QD_E2E_RUN_TAGS"
+      - name: Keep the measured tables
+        if: always() && steps.cfg.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: document-reading-qualification-${{ matrix.corpus }}
+          path: |
+            qualification/result_*.md
+            qualification/result_*.json
+            qualification/spend_*.json
+          if-no-files-found: warn

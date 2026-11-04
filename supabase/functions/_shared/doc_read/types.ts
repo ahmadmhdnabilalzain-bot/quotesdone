@@ -46,6 +46,8 @@ export type Extracted = {
    * $PROJECTNAME, xref paths, party attributes) reaches a BOQ line. Never serialised to a client.
    */
   dxf_text?: string;
+  /** A words-only PDF read (doc_read/pdf.ts): the pages read and the pages the file has. read < of is a PARTIAL read. */
+  pages?: { read: number; of: number };
 };
 
 export type Refusal = { ok: false; error: string; detail: string };
@@ -62,6 +64,8 @@ export type ReadContext = {
   textOnly?: boolean;
   /** The byte ceiling for this read: LIMITS.maxBytes unless the caller passed LIMITS.maxPaperBytes. */
   maxBytes?: number;
+  /** A words-only PDF read that RESUMES a partial one: the first page to read (1-based). */
+  fromPage?: number;
 };
 
 export const empty = (kind: string, notes: string[] = [], needs: Extracted['needs'] = null): Extracted =>
