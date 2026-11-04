@@ -5020,7 +5020,9 @@ AS $function$
         when not public.fn_seat_duty_routine_exists(d.routine) then 'its routine public.' || d.routine || '() does not exist'
         when not exists (select 1 from public.org_role r where r.role_id = d.owner_seat and r.status = 'active')
           then 'its owner ' || d.owner_seat || ' is not an active seat'
-        when d.failures >= 3 then 'failed ' || d.failures || ' times running: ' || coalesce(left(d.last_error, 200), '?')
+        -- an hourly-or-slower duty is raised on its FIRST failure: its next try is a whole interval away (see the header)
+        when d.failures >= case when d.every >= interval '1 hour' then 1 else 3 end
+          then 'failed ' || d.failures || ' times running: ' || coalesce(left(d.last_error, 200), '?')
         -- overdue: no success within twice the interval plus one 15-minute tick (a new row gets the same grace)
         when coalesce(d.last_ok_at, d.created_at) < now() - (2 * d.every) - interval '15 minutes'
           then 'no successful run since ' || coalesce(to_char(d.last_ok_at, 'YYYY-MM-DD HH24:MI'), 'it was registered')
