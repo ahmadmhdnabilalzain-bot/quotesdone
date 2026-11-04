@@ -13,6 +13,9 @@ import { homedir } from 'node:os';
 const NOTE = '# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then';
 const FILE = 'scripts/sql/the_github_schedules_that_can_move_run_on_pg_cron_while_actions_are_off.sql';
 const JOBS = ['dropbox_backup_second_scheduler', 'kb_embed_daily'];
+// 3 Nov 2026: kb_embed_daily was replaced in production by 'kb_embed' every 10 minutes (pg_net keeps answers 6 hours, so a
+// daily harvest found none): scripts/sql/a_knowledge_chunk_is_never_left_without_its_vector.sql, guarded by its own check.
+const LIVE_JOBS = ['dropbox_backup_second_scheduler', 'kb_embed'];
 const WF = '.github/workflows';
 
 // The `on:` block of a workflow: the lines after `on:` up to the next top-level key.
@@ -50,6 +53,6 @@ const applied = readFileSync('scripts/sql/MANIFEST.txt', 'utf8').split(/\r?\n/).
 
 test('production: both moved jobs are scheduled and active', { skip: !hasToken ? 'no Supabase management token' : !applied ? 'file still pending' : false }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const rows = await sql(`select jobname from cron.job where active and jobname in (${JOBS.map((j) => `'${j}'`).join(',')})`);
-  assert.deepEqual(rows.map((r) => r.jobname).sort(), [...JOBS].sort());
+  const rows = await sql(`select jobname from cron.job where active and jobname in (${LIVE_JOBS.map((j) => `'${j}'`).join(',')})`);
+  assert.deepEqual(rows.map((r) => r.jobname).sort(), [...LIVE_JOBS].sort());
 });

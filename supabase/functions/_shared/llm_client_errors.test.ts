@@ -48,10 +48,27 @@ Deno.test('a 503 the gateway wrote itself (a hold, an open circuit) is never ret
   assertEquals(out.content, null);
 });
 
-Deno.test('only a 503 without the gateway envelope counts as no worker', () => {
+Deno.test('only a 503 without the gateway envelope, or a relay 5xx no runtime served, counts as no worker', () => {
   assert(noWorkerServed(503, null));
   assert(noWorkerServed(503, { code: 'WORKER_LIMIT' }));
   assert(!noWorkerServed(503, { ok: false, outcome: 'fixture_no_spend' }));
-  assert(!noWorkerServed(502, null));
+  // 2 Nov 2026: Cloudflare's own 502 page carries no x-served-by; the gateway's own 502 does.
+  assert(noWorkerServed(502, null, null));
+  assert(!noWorkerServed(502, { ok: false, error: 'provider' }, 'supabase-edge-runtime'));
+  assert(!noWorkerServed(546, null, 'supabase-edge-runtime'));
   assert(!noWorkerServed(200, null));
+});
+
+Deno.test('a Cloudflare 502 with no worker behind it is asked once more (2 Nov 2026: 18 such 502s on ai_gateway)', async () => {
+  let n = 0;
+  const { out, gatewayCalls } = await withFetch(() => (++n === 1
+    ? new Response('<html>502 Bad Gateway</html>', { status: 502, headers: { 'Content-Type': 'text/html', server: 'cloudflare' } })
+    : new Response(JSON.stringify({ ok: true, content: 'ZZ DEMO answer', model: 'm' }), { status: 200, headers: { 'Content-Type': 'application/json' } })), call);
+  assertEquals(gatewayCalls, 2);
+  assertEquals(out.content, 'ZZ DEMO answer');
+});
+
+Deno.test('a 502 the gateway itself wrote is never retried', async () => {
+  const { gatewayCalls } = await withFetch(() => new Response(JSON.stringify({ ok: false, error: 'provider failed' }), { status: 502, headers: { 'Content-Type': 'application/json', 'x-served-by': 'supabase-edge-runtime' } }), call);
+  assertEquals(gatewayCalls, 1);
 });

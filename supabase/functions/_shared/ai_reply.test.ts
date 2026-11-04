@@ -1,6 +1,6 @@
 // aiReply() with a stubbed model. No network, no paid call.
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { aiReply } from './ai_reply.ts';
+import { aiReply, aiSystem, proseOf } from './ai_reply.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
 
 const COMPANY = 'REVEAL FEE: the customer pays 3.00% of the selected quotation value. No card fee is added.';
@@ -89,11 +89,34 @@ Deno.test('escalate and the rate bucket ride on the same call', async () => {
 Deno.test('the knowledge block never licenses a fee figure', async () => {
   const { BRIEF_TEXT } = await import('./brief.generated.ts');
   assert(BRIEF_TEXT.includes('5%'), 'precondition: the knowledge block states a 5% figure');
+  // since 3 Nov 2026 a reply carries the ONE playbook of the trade it is about (company_brief.ts): a kitchen question here
   const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
-  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
+  assertEquals((await aiReply(s.deps, { ...req, message: 'What is the reveal fee on my kitchen job?' })).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
   const stable = String(s.calls[0].o.sysShared ?? '') + String(s.calls[0].o.sysStable ?? '');
-  assert(stable.includes('# Conversation playbook:') && stable.includes('How you hold a conversation'), 'the playbooks ride in the cached blocks (sys_shared)');
+  assert(stable.includes('# Conversation playbook:') && stable.includes('## Kitchens (kitchens)') && stable.includes('How you hold a conversation'), 'the playbook rides in the cached blocks');
+  assert(!stable.includes('## HVAC (hvac)'), 'and only that trade\'s');
   assert(!s.calls[0].system.includes('# Conversation playbook:'), 'and not again in the varying sys');
+});
+
+// prevented by: this test (it_engineer, 3 Nov 2026; sticky since the independent review). The pack is the first trade the
+// other party named in its recent turns, an explicit trade wins, null sends none, and a supplier reader alone gets the
+// supplier how-to.
+Deno.test('the one trade pack: the first named trade, the caller\'s own, none, and the supplier part', async () => {
+  const sent = async (r: Partial<typeof req> & Record<string, unknown>) => {
+    const s = stub([A('The reveal fee is 3%, with no card fee and no VAT.')]);
+    await aiReply(s.deps, { ...req, ...r } as typeof req);
+    return String(s.calls[0].o.sysStable ?? '');
+  };
+  const conv = [{ role: 'customer' as const, text: 'I need my AC serviced.' }, { role: 'seat' as const, text: 'Sure, and your kitchen?' }, { role: 'customer' as const, text: 'Also the kitchen cabinets.' }];
+  // two trades named equally recently: the newer one (company_brief.ts conversationTrade weighs each turn)
+  const newer = await sent({ message: 'How long does it take?', conversation: conv });
+  assert(newer.includes('## Kitchens (kitchens)') && !newer.includes('## HVAC (hvac)'), 'the trade the customer is talking about now');
+  assert((await sent({ message: 'How long does it take?', conversation: conv, trade: 'hvac' })).includes('## HVAC (hvac)'), "the caller's own trade wins");
+  assert((await sent({ audience: 'supplier' as never, message: 'Can I add a tiling option?', facts: 'The inquiry: kitchen cabinets, L-shaped, 4 m.' })).includes('## Kitchens (kitchens)'),
+    "a supplier's inquiry trade (the facts) comes before its passing words");
+  assert(!(await sent({ message: 'kitchen?', trade: null })).includes('# Conversation playbook:'), 'null: no pack');
+  assert(!(await sent({})).includes('Supplier how-to'), 'a customer gets no supplier how-to');
+  assert((await sent({ audience: 'supplier' as never })).includes('Supplier how-to'), 'a supplier does');
 });
 
 // prevented by: these tests (review of #1382). The style is sent once (inside BRIEF_TEXT), and nothing written only in
@@ -170,4 +193,116 @@ Deno.test('1339: must-carry text (a case reference) is rewritten in when the dra
   const r = await aiReply(s.deps, { ...req, must: ['QD-C-0042'] });
   assertEquals(r.reply, 'Thank you, your problem is logged under reference QD-C-0042; our team will look at it.');
   assert(s.calls[1].input.includes('QD-C-0042'));
+});
+
+// customer_support, 2 Nov 2026: a speculative WhatsApp draft that was discarded is aborted: the signal reaches the model call, and once
+// aborted no call starts (no rewrite, no counterpart rung), so a discarded draft costs nothing more.
+Deno.test('a signal reaches the model call; an aborted request starts no call', async () => {
+  const ac = new AbortController();
+  const s = stub([A('The reveal fee is 3% of the quote you choose; no card fee is added and no VAT is charged on it.')]);
+  await aiReply(s.deps, { ...req, signal: ac.signal });
+  assertEquals(s.calls[0].o.signal, ac.signal);
+  ac.abort();
+  const t = stub([A('x')]);
+  const r = await aiReply(t.deps, { ...req, signal: ac.signal });
+  assertEquals(t.calls.length, 0); assertEquals(r.reply, '');
+});
+
+// Run 41540859092: Sonnet answered "Sorry to hear that. AC repair is covered, ..." as plain text, no JSON; the parser read ''
+// and the turn paid a 278k-token other-family call. Plain prose is the answer now; an object cut off mid-answer still is not.
+Deno.test('a reply written as plain prose is the reply; a cut-off object is still refused', async () => {
+  const mk = (answers: string[]) => {
+    const calls: string[] = [];
+    const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
+      llm: () => { const a = answers.shift() ?? null; calls.push(String(a)); return Promise.resolve({ content: a, model: 'stub' } as LlmReply); } } as unknown as ThinkDeps;
+    return { deps, calls };
+  };
+  const prose = mk(['Sorry to hear that. AC repair is a trade our suppliers cover; describe the job and the unit and we will send it to them.']);
+  const r = await aiReply(prose.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO my AC is broken' });
+  assert(r.reply.startsWith('Sorry to hear that.'), 'prose read as the reply: ' + r.attempts.join(' | '));
+  assertEquals(prose.calls.length, 1, 'no second rung');
+  const cut = mk(['{"answer":"Sorry to hear that. AC repair is', '{"answer":"Sorry to hear that. AC repair is', '{"answer":"Sorry', '{"answer":"Sorry']);
+  const r2 = await aiReply(cut.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO my AC is broken' });
+  assertEquals(r2.reply, '', 'control: a cut-off object is never sent');
+});
+
+// Review of #1816. Prose carries no action and no escalate flag, so it is the reply only when neither is asked for; otherwise
+// the same rung is asked again for the object. Each assertion fails on 3e756c6c (prose taken as the reply in every case).
+const mkRec = (answers: string[]) => {
+  const systems: string[] = []; const opts: Record<string, unknown>[] = [];
+  const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
+    llm: (_p: string, sys: string, _i: string, o: Record<string, unknown>) => { systems.push(sys); opts.push(o); return Promise.resolve({ content: answers.shift() ?? null, model: 'stub' } as LlmReply); } } as unknown as ThinkDeps;
+  return { deps, systems, opts };
+};
+Deno.test('the supplier quotation chat (actions): a prose "Done, submitted" is not the reply; the object is asked for on the same rung', async () => {
+  const s = mkRec(['Done, your quotation has been submitted to the customer.',
+    JSON.stringify({ answer: 'Your quotation is complete. Shall I submit it to the customer now?', action: 'none' })]);
+  const r = await aiReply(s.deps, { seat: 'sales_engineer', channel: 'portal', audience: 'supplier', lang: 'en', message: 'ZZ DEMO submit it',
+    actions: [{ id: 'submit', meaning: 'submit the quotation' }, { id: 'none', meaning: 'nothing to do yet' }] });
+  assert(!r.reply.startsWith('Done'), 'the prose was not taken: ' + r.attempts.join(' | '));
+  assertEquals(r.action, 'none');
+  assertEquals(s.opts.length, 2);
+  assertEquals(s.opts[1].counterpartModel, undefined, 'asked again on the same rung, not the other family');
+});
+Deno.test('WhatsApp (askEscalate): a prose answer is not the reply; the rewrite brings the escalate flag', async () => {
+  const s = mkRec(['I am sorry this happened. Please reach our team on +1 218 316 6814 and we will look into it.',
+    JSON.stringify({ answer: 'I am sorry this happened. Please reach our team on +1 218 316 6814 and we will look into it.', escalate: true })]);
+  const r = await aiReply(s.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money', askEscalate: true });
+  assert(r.reply.includes('+1 218 316 6814'), r.attempts.join(' | '));
+  assertEquals(r.escalate, true, 'the model flag survives (it is OR-ed with the router)');
+  assert(r.attempts[0].startsWith('route:prose'), r.attempts.join(' | '));
+});
+Deno.test('prose that is a preamble, meta-text, a trailing key or cut off is never a reply; a finished one is', () => {
+  assertEquals(proseOf("Here's my reply: Thank you for your message."), '');
+  assertEquals(proseOf('Answer: Thank you for your message.'), '');
+  assertEquals(proseOf('The user is asking about fees, so I should explain them.'), '');
+  assertEquals(proseOf('The customer is asking about a refund.'), '');
+  assertEquals(proseOf('Thank you for your message. escalate: true'), '');
+  assertEquals(proseOf('Thank you for your message. Our suppliers cover AC repair and you can'), '', 'cut at the token cap');
+  assertEquals(proseOf('Thank you. Reach a person on:'), '');
+  assertEquals(proseOf('Thank you for your message. Reach our team any time.'), 'Thank you for your message. Reach our team any time.');
+  assert(proseOf('Our team will help you.\nmanagement@quotesdone.com') !== '', 'a reply ending on its own contact line is finished');
+});
+Deno.test('the brief-less ask is told to state no company fact beyond its facts, and is not pushed to answer everything', () => {
+  const r = { seat: 'customer_support' as const, channel: 'whatsapp', audience: 'customer' as const, lang: 'en' as const, message: 'x' };
+  const lean = aiSystem({ ...r, briefInPrompt: false }, 'en'); const full = aiSystem(r, 'en');
+  assert(lean.includes('You do NOT have the company brief'), lean);
+  assert(!lean.includes('never say you do not know'), 'no pressure to answer what the facts do not cover');
+  assert(full.includes('never say you do not know') && full.includes('COMPANY BRIEF'), 'control: the full prompt is unchanged');
+});
+
+// Run 41551955675: the gateway counts every call that carries rate_key (20 an hour per sender), so rewrites used up the
+// supplier's bucket and its last two turns got no reply. One reply is one message: only its first call carries the key.
+// Fails on 84cc89fc (every call carried it).
+Deno.test("a reply's rewrites do not count against the sender's rate bucket: only the first call carries rateKey", async () => {
+  const s = mkRec(['Here is my reply: thanks', JSON.stringify({ answer: 'Thank you, your request is noted and suppliers will be matched.', escalate: false })]);
+  const r = await aiReply(s.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO hi', askEscalate: true, rateKey: 'wa:whatsapp:+971500000031' });
+  assert(r.reply.startsWith('Thank you'), r.attempts.join(' | '));
+  assert(s.opts.length >= 2, 'a second call was made');
+  assertEquals(s.opts[0].rateKey, 'wa:whatsapp:+971500000031');
+  assert(s.opts.slice(1).every((o) => o.rateKey === undefined), 'no later call of the same reply counts again');
+});
+
+// Run 41554788700: a supplier's Arabic question was answered in Arabic by the other-family rung, and sent. Fails on 52d5d156.
+Deno.test('a supplier reply written in Arabic is rewritten in English, never sent', async () => {
+  const ar = String.fromCharCode(0x0647, 0x0644) + ' ' + String.fromCharCode(0x062A, 0x0642, 0x0635, 0x062F) + '؟';
+  const s = mkRec([JSON.stringify({ answer: ar, escalate: false }), JSON.stringify({ answer: 'Do you mean the supplier subscription, or the fee a customer pays to reveal a supplier?', escalate: false })]);
+  const r = await aiReply(s.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'supplier', lang: 'ar', message: 'ZZ DEMO ' + ar, askEscalate: true });
+  assert(r.reply.startsWith('Do you mean'), r.attempts.join(' | '));
+  assert(r.attempts.some((a) => a.includes('not in English')), r.attempts.join(' | '));
+});
+
+// Re-review of #1816: only the first call carries rateKey, so a refused first call must stop the reply; otherwise a sender over
+// the cap still bought the other-family call and its rewrites, unchecked. As on main: one call, no text, not an outage.
+// Fails on 247386a2 (2 calls and a reply).
+Deno.test('a spent sender bucket stops the reply: exactly one model call, no text, rateLimited, not an outage', async () => {
+  const opts: Record<string, unknown>[] = [];
+  const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
+    llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => { opts.push(o);
+      return Promise.resolve((o.rateKey ? { content: null, error: 'rate_limited' } : { content: JSON.stringify({ answer: 'Thank you, your message is with our team.', escalate: false }), model: 'stub' }) as LlmReply); } } as unknown as ThinkDeps;
+  const r = await aiReply(deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO hi', askEscalate: true, rateKey: 'wa:whatsapp:+971500000031' });
+  assertEquals(opts.length, 1, 'no call after the refusal: ' + r.attempts.join(' | '));
+  assertEquals(r.reply, '');
+  assertEquals(r.rateLimited, true);
+  assertEquals(r.outage, false, 'a spent bucket is not an outage: no code-written notice (1339)');
 });

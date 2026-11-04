@@ -61,6 +61,10 @@ Deno.test('only customer_support delivers, and every seat that asks hears back',
     // — and an eighth (#1549 CS-C11): a verified PDPL correction request goes to it_engineer as data.correction; it asks
     // for the record to be corrected by the due date and delivers nothing.
     if (h.type === 'data.correction' && h.to === 'it_engineer') continue;
+    // — and a ninth (3 Nov 2026): a customer asked on WhatsApp about a late request, so support asks the sales engineer to
+    // chase the suppliers who have not quoted as inquiry.status_chase (handler fn_sales_engineer_chases_for_status);
+    // support itself closes it once the customer is told, and the request delivers nothing to the sales engineer.
+    if (h.type === 'inquiry.status_chase' && h.to === 'sales_engineer') continue;
     assertEquals(h.type, 'delivery.result');
   }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {

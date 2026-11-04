@@ -2,7 +2,7 @@
 // Regression fixtures from the 29 real UAE profiles measured on 13 Oct 2026 (ACCURACY_real_profiles.md), names
 // replaced by ZZ DEMO. deno test --no-lock --node-modules-dir=none supabase/functions/_shared/supplier_trade_choice.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { checkChoice, majority, needsThird, checkVerify, choiceRequest, choiceSystem, isHeading, mergeChoices, quoteContext, quoteKey, textChunks, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
+import { checkChoice, majority, needsThird, settleReadings, checkVerify, choiceRequest, choiceSystem, isHeading, mergeChoices, quoteContext, quoteKey, textChunks, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
 import { readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 
 /** A model-labelled quote: what the line is in the document. */
@@ -68,8 +68,8 @@ Deno.test('a profile whose trades could not be chosen proposes NOTHING and says 
   assert(/breaker open/.test(ev.reason || ''), ev.reason);
   const ok = await readDocForTrades({ path: 'p', name: 'p.txt', kind: 'profile', photo_text: 'We install sprinkler systems' },
     { ...deps, chooseTrades: async (t) => checkChoice(JSON.stringify({ trades: [{ code: 'fire_fighting', quotes: [F('install sprinkler systems')], reason: 'r' }] }), t, DEFS) });
-  // text read off a picture: chosen and quoted, but held for the sales engineer, never proposed (review of #1412)
-  assertEquals([ok.trades.length, ok.vision_held?.map((t) => [t.code, t.via])], [0, [['fire_fighting', 'model_choice']]]);
+  // text read off a picture: chosen and quoted, and PROPOSED for the supplier to confirm (ledger 1442; held for the sales engineer before)
+  assertEquals([ok.trades.map((t) => [t.code, t.via]), ok.vision_held], [[['fire_fighting', 'model_choice']], undefined]);
 });
 
 Deno.test('the second look sees the quote with the lines around it (Al Nas Elevators, run 7: a quote cut short)', () => {
@@ -93,7 +93,7 @@ Deno.test('an answer in a code fence or after a sentence is still read; a failur
 // cleaning"), so every quote matched text the model itself had written and six trades it does not sell got through.
 // The picture's trades are now chosen only from the lines it PRINTS (license_extract profile.lines, verbatim); a quote
 // from a summary is not in those lines and is refused. Lines below are ZZ DEMO paraphrases of the file's kind.
-Deno.test('an image-only profile proposes NOTHING: what its printed lines quote is held for the sales engineer; a summary phrase is refused (H01)', async () => {
+Deno.test('an image-only profile proposes what its PRINTED lines quote, for the supplier to confirm; a summary phrase is refused (H01, ledger 1442)', async () => {
   const { modelReadText } = await import('./supplier_doc_trades.ts');
   const lines = ['ZZ DEMO Aluminium works, Glass works, UPVC windows & doors', 'Glass Partitions', 'Doors & windows'];
   const deps: TradeResolveDeps = { normTrades: async () => ({}), services: [], embed: async () => null, budget: { left: 0 },
@@ -102,8 +102,7 @@ Deno.test('an image-only profile proposes NOTHING: what its printed lines quote 
       { code: 'fire_fighting', quotes: [F('Plumbing and sanitary installation')], reason: 'from the summary' },   // not a printed line
     ] }), t, DEFS) };
   const ev = await readDocForTrades({ path: 'p', name: 'p.pdf', kind: 'profile', photo_text: modelReadText('profile', lines) }, deps);
-  assertEquals([ev.trades.length, ev.vision_held?.map((t) => t.code)], [0, ['doors']]);
-  assert(/held for the sales engineer/.test(ev.reason || ''), ev.reason);
+  assertEquals([ev.trades.map((t) => t.code), ev.vision_held], [['doors'], undefined]);   // the summary phrase's trade (fire_fighting) is refused
 });
 
 Deno.test('the profile reading asks for printed lines verbatim, never from a certificate or letter', async () => {
@@ -165,6 +164,24 @@ Deno.test('majority of readings: a third reading settles a code one of two misse
   // no code with two votes -> held, never ok and empty
   assertEquals(majority([r(['doors']), r(['joinery']), r(['fire_fighting'])]), null);
   assertEquals(majority([r([]), r([]), r([])]), null);
+});
+Deno.test('a clean first reading is the only reading; an empty or refused one gets the 19 Oct majority rules unchanged', async () => {
+  type R = Awaited<ReturnType<Parameters<typeof settleReadings>[0]>>;
+  const r = (codes: string[], rejected: { code: string; why: string }[] = []): R => ({ ok: true, trades: codes.map((c) => ({ code: c, quote: c + ' line', reason: 'r' })), rejected });
+  const script = (...rs: R[]) => { let n = 0; const f = async () => rs[n++] ?? { ok: false as const, error: 'no more readings scripted' }; return { f, calls: () => n }; };
+  // clean: one reading, its codes as they came (the second look still judges them)
+  { const s = script(r(['doors', 'joinery'])); assertEquals((await settleReadings(s.f) as { trades: { code: string }[] }).trades.map((t) => t.code), ['doors', 'joinery']); assertEquals(s.calls(), 1); }
+  // empty first reading: a second, then a third on disagreement, then majority (M12: empty readings never pass a code)
+  { const s = script(r([]), r(['joinery']), r(['joinery'])); assertEquals((await settleReadings(s.f) as { trades: { code: string }[] }).trades.map((t) => t.code), ['joinery']); assertEquals(s.calls(), 3); }
+  // code refused a quote in the first: a second reading; two agreeing readings pass without a third
+  { const s = script(r(['joinery'], [{ code: 'doors', why: 'the quote is not in the document: "x"' }]), r(['joinery', 'doors']), r(['joinery']));
+    const out = await settleReadings(s.f); assert(out.ok); assertEquals(s.calls(), 2); assertEquals(out.ok && out.trades.map((t) => t.code), ['doors', 'joinery']); }
+  // an unknown code is a refusal too: never accepted on one reading
+  { const s = script(r(['joinery'], [{ code: 'roofing_x', why: 'not an active trade code' }]), r(['joinery'])); assertEquals((await settleReadings(s.f)).ok, true); assertEquals(s.calls(), 2); }
+  // no agreement: held, exactly as before
+  { const s = script(r([]), r(['doors']), r(['joinery'])); const out = await settleReadings(s.f); assertEquals(out.ok, false); }
+  // a failed first reading is retried by a second; two failures return the first failure
+  { const s = script({ ok: false, error: 'model unavailable (502)' }, { ok: false, error: 'again' }); const out = await settleReadings(s.f); assertEquals(out.ok ? null : out.error, 'model unavailable (502)'); assertEquals(s.calls(), 2); }
 });
 Deno.test('two readings name the same code but code refused both quotes: held (null), never ok and empty', () => {
   const r = (code: string) => ({ ok: true as const, trades: [{ code, quote: code + ' line', reason: 'r' }], rejected: [{ code: 'doors', why: 'the quote is not in the document: "x"' }] });

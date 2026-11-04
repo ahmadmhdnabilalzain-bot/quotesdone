@@ -48,6 +48,9 @@ const SHOW = new Set(['Tj', 'TJ', "'", '"']);
 const PATH = new Set(['m', 'l', 'c', 'v', 'y', 're', 'h', 'S', 's', 'f', 'F', 'f*', 'B', 'B*', 'b', 'b*', 'n', 'W', 'W*', 'cm', 'q', 'Q', 'w']);
 const EPS = 1e-6;
 const inside = (b: Box, r: { x: number; y: number; w: number; h: number }) => r.x >= b.x - EPS && r.y >= b.y - EPS && r.x + r.w <= b.x + b.w + EPS && r.y + r.h <= b.y + b.h + EPS;
+const touches = (b: Box, r: { x: number; y: number; w: number; h: number }) => r.x < b.x + b.w - EPS && r.x + r.w > b.x + EPS && r.y < b.y + b.h - EPS && r.y + r.h > b.y + EPS;
+/** Logo-sized, as anonymise.titleBlockBoxes (d) sizes it: anything larger is drawing content, never cut. */
+const LOGO_AREA = 0.03;
 
 export type PdfRedactResult =
   | { ok: true; bytes: Uint8Array; removed_runs: number; removed_images: number; removed_paths: number; kept_runs: number; terms: string[] }
@@ -179,8 +182,13 @@ export function cutPlan(vpages: { num: number; page: PdfPage }[], boxes: Box[][]
       for (const op of p.ops) mark(k.key, op);
       removedPaths++;
     }
+    // An image TOUCHING the title area is cut too, not only one wholly inside it (3 Nov 2026,
+    // identity_never_leaks_before_reveal.mjs: 6 of 60 anonymised PDFs still showed a logo or a signature laid across
+    // the strip's edge — 0.80..0.90 against a strip from 0.816). A logo-sized one is cut; a larger one straddling the
+    // title block cannot be judged here and HOLDS the file.
     for (const im of vp.page.images ?? []) {
-      if (!areas[i].some((b) => inside(b, im))) continue;
+      if (!areas[i].some((b) => touches(b, im))) continue;
+      if (!areas[i].some((b) => inside(b, im)) && im.w * im.h > LOGO_AREA) return { ok: false, held: 'image_straddles_title_block', detail: `page ${i + 1}` };
       if (!im.at || !im.name) return { ok: false, held: 'title_image_not_located', detail: `page ${i + 1}` };
       const k = keyOf(im.at); mark(k.key, k.op); removedImages++;
       (dropImg.get(k.key) ?? dropImg.set(k.key, new Set()).get(k.key)!).add(im.name);

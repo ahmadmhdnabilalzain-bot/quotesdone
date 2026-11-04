@@ -101,7 +101,7 @@ export function ServiceDoc({ slug, locale, children }: { slug: string; locale: s
           }
         />
         {/* styles: globals.css §9 (.mk). The article column is held to a reading measure. */}
-        <div className="mk pb-8 [&_.wrap]:max-w-[900px]" dangerouslySetInnerHTML={{ __html: hero.rest }} />
+        <div className="mk pb-8 [&_.wrap]:max-w-[900px]!" dangerouslySetInnerHTML={{ __html: hero.rest }} />
         {children}
         {/* Legal review 19 Oct, finding 13: service pages name authorities (DEWA, SIRA, Civil Defence). */}
         <p className="container-x pb-8 text-sm text-muted-foreground">{t.independent}</p>

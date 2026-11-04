@@ -90,7 +90,7 @@ export default function SupplierInventory({ token, lang = 'en', goTo }:
 
   return (
     <div className="space-y-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline mb-3">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'title')}</h3>
           {/* SP-I-02: this counter read "N products" on /ar as well. */}
@@ -118,9 +118,9 @@ export default function SupplierInventory({ token, lang = 'en', goTo }:
         )}
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <input
-          className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm outline-none focus:border-white/25 mb-3"
+          className="w-full rounded-lg border border-white/10 bg-white/4 px-3 py-2 text-sm outline-hidden focus:border-white/25 mb-3"
           placeholder={t(lang, 'search')}
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -132,11 +132,11 @@ export default function SupplierInventory({ token, lang = 'en', goTo }:
             const wk = attr(p, 'restock_weeks');
             const label = av === 'in_stock' ? t(lang, 'inStock')
               : av === 'made_to_order' ? t(lang, 'madeToOrder') : t(lang, 'notStated');
-            const tone = av === 'in_stock' ? 'text-ok-fg border-ok/25 bg-ok/[0.06]'
-              : av === 'made_to_order' ? 'text-info-fg border-info/25 bg-info/[0.06]'
-              : 'text-white/45 border-white/10 bg-white/[0.02]';
+            const tone = av === 'in_stock' ? 'text-ok-fg border-ok/25 bg-ok/6'
+              : av === 'made_to_order' ? 'text-info-fg border-info/25 bg-info/6'
+              : 'text-white/45 border-white/10 bg-white/2';
             return (
-              <div key={p.id || p.external_key} className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
+              <div key={p.id || p.external_key} className="rounded-lg border border-white/10 bg-white/2 px-3 py-2">
                 <div className="flex justify-between items-start gap-3">
                   <div className="min-w-0">
                     <div className="text-[13px] truncate">{p.name}</div>

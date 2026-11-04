@@ -1,6 +1,6 @@
 {
   "_about": "THE ONE SOURCE OF TRUTH for every company figure a customer, supplier or seat can read: fees, penalties, rates. Founder rule (C), 23 Sep 2026: a change to company knowledge reaches every place at once. Change a value HERE, then run `node scripts/legal/sync_company_facts.mjs --write-repo` (rewrites the website texts) and `--emit-sql <file>` (the production knowledge, the signed registry and the seats' policy keys, one transaction). `scripts/checks/company_facts_agree_everywhere.test.mjs` fails CI if any repository surface states a different figure; `sync_company_facts.mjs --probe` does the same against production. Each fact's `basis` is the INTERNAL legal annex: the article relied on and why the figure is the safe maximum. It is never rendered on a public page.",
-  "version": "2026-10-19.1",
+  "version": "2026-11-02.1",
   "documents": {
     "terms": {
       "version": "v11",
@@ -20,8 +20,11 @@
       }
     },
     "supplier-agreement": {
-      "version": "v16",
-      "date": "2026-10-19",
+      "version": "v17",
+      "date": "2026-11-02",
+      "carries_acceptance_from": [
+        "v16"
+      ],
       "registry_slug": "supplier-agreement",
       "page_slug": "legal_supplier_body",
       "secrets": {
@@ -39,16 +42,16 @@
       }
     },
     "privacy": {
-      "version": "1.7",
-      "date": "2026-10-19"
+      "version": "1.9",
+      "date": "2026-11-03"
     },
     "refund-policy": {
       "version": "1.9",
       "date": "2026-10-19"
     },
     "cookie-policy": {
-      "version": "1.4",
-      "date": "2026-09-23"
+      "version": "1.5",
+      "date": "2026-11-02"
     },
     "acceptable-use": {
       "version": "1.4",
@@ -349,6 +352,7 @@
       "terms-v9",
       "supplier-agreement-v15",
       "terms-v10",
+      "supplier-agreement-v16",
       "privacy-v1.6",
       "refund-policy-v1.8",
       "disclaimer-v1.3"

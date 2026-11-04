@@ -26,11 +26,11 @@ export function FaqInner({ locale }: { locale: string }) {
     <main id="main" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <PageHero center kicker={t.kicker} title={<span dangerouslySetInnerHTML={{ __html: hero.title ?? d.title }} />}
         lead={hero.lead ? <span dangerouslySetInnerHTML={{ __html: hero.lead }} /> : undefined}>
-        {hero.extra ? <div className="mk mk-faq [&_.search]:!mb-0 [&_.search]:!mt-10" dangerouslySetInnerHTML={{ __html: hero.extra }} /> : null}
+        {hero.extra ? <div className="mk mk-faq [&_.search]:mb-0! [&_.search]:mt-10!" dangerouslySetInnerHTML={{ __html: hero.extra }} /> : null}
       </PageHero>
       <div className="container-x grid gap-10 pb-beat-s pt-10 lg:grid-cols-[230px_minmax(0,1fr)] lg:gap-16">
         <aside className="min-w-0"><ContentsRail title={t.rail} list={list} /></aside>
-        <div className="mk mk-faq min-w-0 [&_.content]:!pt-0 [&_.fwrap]:!max-w-[860px] [&_.fwrap]:!px-0 [&_.sec:first-child]:!mt-0 [&_.sec_h2]:scroll-mt-28" dangerouslySetInnerHTML={{ __html: rest }} />
+        <div className="mk mk-faq min-w-0 [&_.content]:pt-0! [&_.fwrap]:max-w-[860px]! [&_.fwrap]:px-0! [&_.sec:first-child]:mt-0! [&_.sec_h2]:scroll-mt-28" dangerouslySetInnerHTML={{ __html: rest }} />
       </div>
       {/* Legal review 19 Oct, finding 13: the answers name DEWA, SIRA, Civil Defence, Dubai Municipality. */}
       <p className="container-x pb-beat-s text-sm text-muted-foreground">{t.independent}</p>

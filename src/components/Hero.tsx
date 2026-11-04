@@ -44,7 +44,7 @@ export function Hero() {
             {t('title')}
           </h1>
           <p className="mt-5 flex items-center gap-3 text-[clamp(16px,1.6vw,20px)] font-medium leading-snug text-gold">
-            <span className="redact redact-line !w-9 shrink-0" aria-hidden />
+            <span className="redact redact-line w-9! shrink-0" aria-hidden />
             {t('sealed')}
           </p>
         </div>
@@ -86,7 +86,7 @@ export function Hero() {
       <div className="relative border-t border-line bg-navy-deep/60">
         <ol aria-label={t('stepsLabel')} className="container-x grid gap-px md:grid-cols-3">
           {steps.map((st, i) => (
-            <li key={st.t} className="flex gap-4 py-6 md:py-7 md:pe-8 md:[&:not(:first-child)]:border-s md:[&:not(:first-child)]:border-line md:[&:not(:first-child)]:ps-8">
+            <li key={st.t} className="flex gap-4 py-6 md:py-7 md:pe-8 md:not-first:border-s md:not-first:border-line md:not-first:ps-8">
               <span className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full font-mono text-label ${i === 2 ? 'bg-gold/15 text-gold shadow-[inset_0_0_0_1px_rgba(227,192,101,.5)]' : 'text-teal-light shadow-[inset_0_0_0_1px_rgba(110,231,212,.35)]'}`}>
                 {i + 1}
               </span>

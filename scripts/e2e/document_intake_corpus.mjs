@@ -293,7 +293,7 @@ function zip(entries) {
   return Buffer.concat([...parts, cd, end]);
 }
 const X = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-function docx(paras) {
+export function docx(paras) {
   const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
   return zip([['[Content_Types].xml', `${X}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`],
     ['word/document.xml', `${X}<w:document ${W}><w:body>${paras.map((p) => `<w:p><w:r><w:t xml:space="preserve">${xml(p)}</w:t></w:r></w:p>`).join('')}</w:body></w:document>`]]);

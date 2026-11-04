@@ -59,7 +59,7 @@ export function RevealGuarantee({ lang, fee, terms, facts = null, compact = fals
             <span className="text-small text-muted-foreground">{phaseText}</span>
           </div>
           <div className="qd-meter mt-2" role="progressbar" aria-valuemin={0} aria-valuemax={clock.of} aria-valuenow={clock.day} aria-label={t(lang, 'g_title')}>
-            <M.span className={cn(clock.phase === 'final_call' || clock.phase === 'refund' ? '!bg-none !bg-warn' : '')}
+            <M.span className={cn(clock.phase === 'final_call' || clock.phase === 'refund' ? 'bg-none! bg-warn!' : '')}
               initial={reduce ? false : { width: 0 }} animate={{ width: Math.max(pct, 4) + '%' }} transition={{ duration: reduce ? 0 : 0.9, ease: [0.2, 0.8, 0.2, 1] }} />
           </div>
         </div>

@@ -24,7 +24,7 @@ export function Stat({
 }) {
   const isEmpty = value === undefined || value === null || value === '';
   return (
-    <div className={cn('rounded-lg border border-border bg-white/[0.03] px-3.5 py-3', className)}>
+    <div className={cn('rounded-lg border border-border bg-white/3 px-3.5 py-3', className)}>
       <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className={cn('mt-1 text-[19px] font-bold leading-tight', isEmpty ? 'text-muted-foreground' : 'text-foreground')}>
         {isEmpty ? '—' : value}

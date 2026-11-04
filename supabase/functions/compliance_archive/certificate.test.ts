@@ -18,6 +18,11 @@ Deno.test('a demo fixture without an acceptance is skipped; a real party without
   assertEquals(noAcceptanceRunStatus('buyer@realco.ae'), 'error');
   assertEquals(noAcceptanceRunStatus('someone@example.invalid.ae'), 'error');
   assertEquals(noAcceptanceRunStatus(null), 'error');
+  // 3 Nov 2026: the registration walks' Resend sink is a fixture; nothing else at resend.dev is.
+  assertEquals(noAcceptanceRunStatus('delivered+qd-0a717394-sup0@resend.dev'), 'skipped');
+  assertEquals(noAcceptanceRunStatus('delivered@resend.dev'), 'error');
+  assertEquals(noAcceptanceRunStatus('delivered+qd-x@resend.dev.ae'), 'error');
+  assertEquals(noAcceptanceRunStatus('sales@realco.ae'), 'error');
 });
 
 // 24 Sep 2026: lead 126512 stored accepted_terms_sha256 0d99185f... while the certificate printed the
