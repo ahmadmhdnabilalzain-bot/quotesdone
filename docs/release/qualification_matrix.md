@@ -209,11 +209,11 @@ Each U instantiation is its own line (`F01.U1` and so on), and the same pass rul
 #### F07 WhatsApp, founder command channel (ceo) (U: 5, 11, 12)
 | ID | scenario | expected | method | asset |
 |---|---|---|---|---|
-| F07.01 | "How many requests today?" and every figure in the registry | equals the SQL truth exactly, no model | code | GAP: e2e against a fixture founder number (only `menu_flow.test.ts` mock) |
-| F07.02 | The same message from any other number | figures refused; treated as a normal contact | code | GAP |
-| F07.03 | Change a setting by text (bounded registry) | applied, audited in `founder_directive`, read back to him | code | GAP |
-| F07.04 | A go-live switch, Stripe/refund setting or `auto_action_max_aed` by text | refused | code | GAP |
-| F07.05 | Spoofed sender id / injection in the text | refused | code | GAP |
+| F07.01 | FIGURES / «أرقام» (the command word; ruling 777) and every figure `fn_founder_whatsapp_figures` returns. A natural question ("How many requests today?") gets the capability statement, no figure | equals the SQL truth exactly, no model; a null reading is said "not measured", never 0; answered in the language he wrote in | code | `wa_inbound/founder_command_channel.test.ts` (every figure key parsed from the canonical SQL; EN and AR); production SQL: `the_founder_asks_the_numbers_on_whatsapp_and_gets_them_probe.sql` |
+| F07.02 | The same message from any other number, including his name as the profile, and the same nine digits under another country code | figures refused; treated as a normal contact | code | `wa_inbound/founder_command_channel.test.ts` (other fixture number); `scripts/e2e/founder_command_channel_sql.mjs` (+966 with the same nine digits: refused by the fixed `fn_identify_contact`, pending apply) |
+| F07.03 | Change a setting by text (bounded registry), in English or Arabic | applied, audited in `founder_directive`, read back to him in his language | code | `wa_inbound/founder_command_channel.test.ts`; `scripts/e2e/founder_command_channel_sql.mjs` (the real `fn_founder_apply_setting`) |
+| F07.04 | A go-live switch, Stripe/refund setting or `auto_action_max_aed` by text | refused by name, audited, and he is told "not applied" | code | `wa_inbound/founder_command_channel.test.ts`; `scripts/e2e/founder_command_channel_sql.mjs` |
+| F07.05 | Spoofed sender id / injection in the text | refused | code | `wa_inbound/founder_command_channel.test.ts` (unsigned, forged, tampered signature; another number; injection); the internal JSON replay path: #1836 `directive_gate.test.ts` |
 
 #### F08 Email inbound (customer_support) (U: 1, 2, 4, 5, 10, 11, 12, 13)
 | ID | scenario | expected | method | asset |
@@ -390,18 +390,18 @@ invitation recipients, it is not run that way.
 
 | D | inject | how (demo-scoped) | expected | detect within | asset |
 |---|---|---|---|---|---|
-| D1 | OpenRouter down | `llm_route_health.open_until` for the run tag only | outage reply (ruling 1339), re-ask delivers the real answer, no code-written reply when up | 5 min (IT finding) | GAP |
-| D2 | Model slow (60 s) / edge CPU kill (546) | gateway delay flag for the tag; a pathological file | the turn clock holds; the document is left `reading` → held, never missing | 15 min | partial (memory: CPU cap lessons) |
-| D3 | Resend 5xx / timeout | sink endpoint returns 500 for demo rows | 3 attempts, then failed; exactly once after recovery | 15 min | GAP |
-| D4 | Stripe webhook duplicate / out of order / late | replay the signed test event 2× and reversed | one reveal, one invoice | n/a | GAP |
-| D5 | Twilio WhatsApp down | `send_whatsapp` hold for fixture numbers | SMS twin; founder alert falls back to email | 15 min | checks only |
-| D6 | Dropbox / M365 down | token invalid for the sandbox path | archive retried; nothing lost; reconcile closes it | 1 h | `dropbox_backup reconcile` (partial) |
-| D7 | VirusTotal / CloudConvert down | provider stubbed off for the tag | fail closed (held), never stored unscanned as readable | 15 min | GAP |
-| D8 | Tick stops (Vercel cron, pg_cron job disabled) | disable one isolated demo duty job | detected and re-enabled or a finding opened | 30 min | GAP (`zz_demo_paused` fixture exists) |
-| D9 | A duty throws | the `zz_demo_control` duty forced to raise | isolated; others run; a finding opens | 15 min | partial |
-| D10 | Postgres restart / connection exhaustion | not injected on production. Measured from the last real event (memory: a big batch delete restarted production) plus a read-only connection-headroom probe | clients retry; no lost writes | 5 min | GAP |
-| D11 | Bad deploy | deploy a known-bad edge build on a branch function slug, then roll back | rollback ≤ 10 min, measured | n/a | GAP (section 5.4) |
-| D12 | Secret rotation mid-traffic | rotate a `cred_fn_*` credential during a demo run | no failed call beyond one retry | n/a | `credentials-rotate-themselves` (cron 334), not drilled |
+| D1 | OpenRouter down | `llm_route_health.open_until` for the run tag only | outage reply (ruling 1339), re-ask delivers the real answer, no code-written reply when up | 5 min (IT finding) | PASS, 2 defects fixed (3 Nov): `supabase/functions/ai_gateway/drill_provider_faults.test.ts`, `supabase/functions/_shared/drill_model_faults.test.ts`, `supabase/functions/wa_inbound/drill_inbound_faults.test.ts`, `supabase/functions/email_triage/drill_triage_faults.test.ts` |
+| D2 | Model slow (60 s) / edge CPU kill (546) | gateway delay flag for the tag; a pathological file | the turn clock holds; the document is left `reading` → held, never missing | 15 min | PASS, 2 defects fixed (3 Nov): `supabase/functions/ai_gateway/drill_provider_faults.test.ts`, `supabase/functions/_shared/drill_model_faults.test.ts`, `supabase/functions/wa_inbound/drill_inbound_faults.test.ts`, `supabase/functions/email_triage/drill_triage_faults.test.ts`; the 546 CPU kill itself is NOT DRILLABLE OFFLINE |
+| D3 | Resend 5xx / timeout | sink endpoint returns 500 for demo rows | 3 attempts, then failed; exactly once after recovery | 15 min | PASS, 3 defects fixed (3 Nov): `supabase/functions/send_outbox/drill_send_faults.test.ts` |
+| D4 | Stripe webhook duplicate / out of order / late | replay the signed test event 2× and reversed | one reveal, one invoice | n/a | PASS, 1 defect found, fixed on main by #1835 (3 Nov): `supabase/functions/stripe_webhook/drill_webhook_replay.test.ts` |
+| D5 | Twilio WhatsApp down | `send_whatsapp` hold for fixture numbers | SMS twin; founder alert falls back to email | 15 min | PASS, 2 defects fixed (3 Nov): `supabase/functions/send_whatsapp/drill_twilio_faults.test.ts` |
+| D6 | Dropbox / M365 down | token invalid for the sandbox path | archive retried; nothing lost; reconcile closes it | 1 h | PASS, 1 defect fixed (3 Nov): `supabase/functions/dropbox_backup/drill_dropbox_down.test.ts`, `supabase/functions/send_outbox/drill_send_faults.test.ts` (M365 lane) |
+| D7 | VirusTotal / CloudConvert down | provider stubbed off for the tag | fail closed (held), never stored unscanned as readable | 15 min | **OPEN** (3 Nov): never stored as clean, PASS; "held" FAILS by design (`_shared/malware.ts` option (c)): `supabase/functions/_shared/drill_virustotal_down.test.ts`, `supabase/functions/cad_convert/drill_cloudconvert_down.test.ts` |
+| D8 | Tick stops (Vercel cron, pg_cron job disabled) | disable one isolated demo duty job | detected and re-enabled or a finding opened | 30 min | PASS for a duty whose own job stopped (3 Nov, throwaway Postgres): `supabase/functions/resilience_ping/drill_seat_duty_throws.test.ts`; the whole tick stopping is NOT DRILLABLE OFFLINE |
+| D9 | A duty throws | the `zz_demo_control` duty forced to raise | isolated; others run; a finding opens | 15 min | PASS, 1 defect fixed in SQL, applies at merge (3 Nov, throwaway Postgres): `supabase/functions/resilience_ping/drill_seat_duty_throws.test.ts` |
+| D10 | Postgres restart / connection exhaustion | not injected on production. Measured from the last real event (memory: a big batch delete restarted production) plus a read-only connection-headroom probe | clients retry; no lost writes | 5 min | PASS on the client side, 4 defects fixed (3 Nov): `supabase/functions/inquiry_intake/drill_database_unavailable.test.ts`, `supabase/functions/wa_inbound/drill_inbound_faults.test.ts`, `supabase/functions/send_outbox/drill_send_faults.test.ts`, `supabase/functions/email_triage/drill_triage_faults.test.ts`; a real restart is NOT DRILLABLE OFFLINE |
+| D11 | Bad deploy | deploy a known-bad edge build on a branch function slug, then roll back | rollback ≤ 10 min, measured | n/a | NOT DRILLABLE OFFLINE (needs a deploy; section 5.4 R2) |
+| D12 | Secret rotation mid-traffic | rotate a `cred_fn_*` credential during a demo run | no failed call beyond one retry | n/a | PASS, 1 defect fixed (3 Nov): `supabase/functions/_shared/drill_model_faults.test.ts`, `supabase/functions/ai_gateway/drill_provider_faults.test.ts` |
 
 ### 5.2 Load and soak (L)
 
@@ -474,7 +474,7 @@ pass (section 1.2).
 | Intake latency | `intake_turn_latency.mjs` | 27 Oct: p95 17.7–32.0 s per slice after the fix; before it, p95 98.5 s | NOT MEASURED today; no coded gate |
 | Security launch checklist | `QuotesDone Sandbox Test 2026-10/LAUNCH_CHECKLIST.md` | 19 Oct: RLS, grants, definer, IDOR fix #1481 | NOT MEASURED today |
 | Load / soak | `scripts/load/launch_load_test.mjs` | never run (refuses production) | **GAP** |
-| Failure drills | none | — | **GAP** |
+| Failure drills | the drill tests named in §5.1 (offline, stubbed dependencies; D8/D9 on a throwaway Postgres) | 3 Nov: D1–D6, D8–D10, D12 PASS after 17 defects fixed (one in SQL, applies at merge); D7 OPEN; D11 and parts of D2/D8/D10 not drillable offline (`docs/reports/failure_drills_2026-11-03/README.md`) | **OPEN** (D7; D11 not run); offline only, not on the deployed commit |
 
 Measured fact about scheduling: every `schedule:` block in `.github/workflows` is commented out (ledger 1279). Only
 push, PR, workflow_run and dispatch fire. The nightly journey, mystery shopper and exam therefore run only when
@@ -491,11 +491,11 @@ Risk = severity of the worst credible outcome × the chance it is present now ×
 | 3 | Redaction and anonymisation not proven statistically (drawings, quotes, profiles): a leak is P0 | P0 | E05, E07, F04.04 | sales_engineer: planted-identity corpus of 60 drawings + 100 quotes; OCR every supplier-facing output for the planted strings; 0 in 480 trials |
 | 4 | Document reading defects open on production: 24 MB → 546, insurance start date offered as expiry, `license_extract` 38/38 failures in a window | P1 | F10.03, F10.04, E01, E02 | sales_engineer: fail-before-parse at the size ceiling with a bilingual message, start/expiry disambiguation rule + E02 corpus, re-run E01 (324 + 40) on the deployed commit |
 | 5 | No load, soak or surge run has ever executed | P1 | L1–L4 | it_engineer: let `launch_load_test.mjs` run on production for run-tagged demo identities in a capped window; 30 min at 10×, then 72 h at 1×; wire it into a dispatch workflow |
-| 6 | No failure-injection drills (model, Resend, Stripe, Twilio, VirusTotal, tick) | P1 | D1–D9 | it_engineer: add a demo-tag-scoped fault flag to `ai_gateway`, the sink and `send_whatsapp`; one script per drill asserting the degraded path and the detection time |
+| 6 | Failure drills built offline on 3 Nov (D1–D12, `docs/reports/failure_drills_2026-11-03/README.md`); still open: D7 stores an unscanned file as readable when VirusTotal is down, D11 needs a deploy rehearsal, and no drill has run against the deployed commit | P1 | D7, D11 | it_engineer + sales_engineer: decide D7 (hold vs `_shared/malware.ts` option (c)) and re-scan `unavailable` files when VirusTotal returns; rehearse D11 with R2; apply the D9 SQL at merge |
 | 7 | Stripe idempotency and concurrency unproven (duplicate or late webhook, double reveal in two tabs) | P0 | F15.03, F15.04, D4 | accountant: replay signed test events 2× and out of order; two parallel reveals of one quote; assert one charge, one reveal, one invoice |
 | 8 | Real test-mode refund never executed end to end | P0 | F16.02, F16.04 | accountant: journey e runs after journey d's paid reveal, executes the Stripe test refund, records `charge.refunded`, and asserts amount ≤ paid, plus partial/duplicate cases |
 | 9 | Main-branch production parity red (4 runs) and the full nightly journey red | P1 | section 6 rows | it_engineer: read the one countable finding in `project-parity` and fix it at the source; land the 3 Nov nightly run green, then dispatch it daily |
-| 10 | Founder WhatsApp command channel has no e2e (figures, settings, refusals, spoofing) | P0 | F07.01–.05 | ceo + customer_support: a fixture "founder" number registered only for the run tag; Twilio-signed POSTs; every figure compared with SQL; forbidden settings refused |
+| 10 | Founder WhatsApp command channel e2e: BUILT 3 Nov 2026 (`wa_inbound/founder_command_channel.test.ts`, 22 tests, in `npm test`; `scripts/e2e/founder_command_channel_sql.mjs`, 39 checks on a throwaway Postgres). Open until `the_founder_is_recognised_by_his_whole_number_not_its_last_nine_digits.sql` is applied (its MANIFEST line applies at merge) | P0 | F07.01–.05 | ceo + customer_support: confirm the merge applied it (definition read back) and re-run the SQL proof; then this row closes |
 | 11 | Prompt-injection corpus missing on document, quote, email and WhatsApp-media paths | P0 | U11, F03.10, F11.05, F13.04 | it_engineer: 60 injection payloads × 6 entry paths through the live handlers; assert no state change and no data out |
 | 12 | Supplier-English and inbound classification not measured at N | P1 | E10, E11 | customer_support: 100 supplier conversations (40% Arabic) → 0 non-English in 300; 300 labelled inbound messages → ≥ 98% and 0 refund/legal misroutes |
 | 13 | Seat exams cover 18 of 633 items, and the exam workflow cannot run (no OAuth token) | P1 | E14 | it_engineer: one full sweep on the subscription (scheduled Claude session), code-graded first; ≥ 98% per seat, 100% on money/terms |

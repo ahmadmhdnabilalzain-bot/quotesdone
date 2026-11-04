@@ -309,12 +309,24 @@ async function openJob(page, inquiryId) {
   await detail.waitFor({ timeout: 30000 });
   return detail;
 }
+// The engineer's bubbles are the MODEL's words (rulings 1195-1197, #1335 on 13 Oct 2026), so these waits read what code
+// puts on screen — the state badge (quoteReviewApi.ts REVIEW_STATE) and the engineer's bubbles counted by their label —
+// never a sentence of the engineer's. The greeting wait on a fixed phrase timed out on every run from 14 Oct to 3 Nov.
+// prevented by: scripts/checks/the_quote_review_journeys_wait_only_for_what_code_puts_on_screen.test.mjs
+const reviewBadge = (chat, s) => chat.locator('header').getByText(s, { exact: true });
+const engineerSaid = (chat) => chat.locator('ul[role="log"] > li').filter({ hasText: /^Sales engineer · / });
 async function openReview(page, inquiryId) {
   const detail = await openJob(page, inquiryId);
   await detail.getByRole('button', { name: 'Send your quotation to the sales engineer' }).click({ timeout: 15000 });
   const chat = page.locator(`#qd-qt-c-${inquiryId}`);
-  await chat.getByText('I am the QuotesDone sales engineer').waitFor({ timeout: 30000 });
+  await reviewBadge(chat, 'Waiting for your file').waitFor({ timeout: 30000 });
+  await engineerSaid(chat).first().waitFor({ timeout: 90000 });
   return chat;
+}
+/** The review of an uploaded file is in: the badge says changes are requested and the engineer has answered it. */
+async function reviewed(chat, before) {
+  await reviewBadge(chat, 'Changes requested').waitFor({ timeout: 90000 });
+  await engineerSaid(chat).nth(before).waitFor({ timeout: 90000 });
 }
 
 async function supplierAudit(ctx) {
@@ -356,8 +368,9 @@ async function supplierAudit(ctx) {
     // 1. THE AUDITOR'S TEXT PDF (item 1: "9 things needed"). Only what it genuinely does not say is asked.
     try {
       const chat = await openReview(s.page, job1);
+      const n1 = await engineerSaid(chat).count();
       await s.page.setInputFiles(`#qd-rv-file-${job1}`, FIXTURE_PDF);
-      await chat.getByText('Before it can be submitted').first().waitFor({ timeout: 90000 });
+      await reviewed(chat, n1);
       const th = await call('supplier_api', sup.jwt, { action: 'review_thread', inquiry_id: job1 });
       const open = (th.json?.open_requests || []).map((x) => x.key).sort();
       const extra = open.filter((k) => !GENUINELY_MISSING.includes(k));
@@ -372,20 +385,23 @@ async function supplierAudit(ctx) {
       const chat = await openReview(s.page, job2);
       const f = join(ctx.dir, `h_unpriced_${ctx.run.tag}.csv`);
       writeFileSync(f, UNPRICED_CSV);
+      const n2 = await engineerSaid(chat).count();
       await s.page.setInputFiles(`#qd-rv-file-${job2}`, f);
-      await chat.getByText('Before it can be submitted').first().waitFor({ timeout: 90000 });
+      await reviewed(chat, n2);
       const priceKeys = (j) => (j.json?.open_requests || []).filter((x) => /boq_line_not_priced|line_unpriced|total/.test(String(x.code))).map((x) => x.key);
       const before = priceKeys(await call('supplier_api', sup.jwt, { action: 'review_thread', inquiry_id: job2 }));
       // The auditor's own grammar (quote_review.test.ts "finding 2").
+      const n3 = await engineerSaid(chat).count();
       await s.page.fill(`#qd-rv-${job2}`, 'BOQ line 2 AED 27,880; BOQ line 3 AED 7,680');
       await chat.getByRole('button', { name: 'Send', exact: true }).click();
-      await chat.getByText(/BOQ line 2 priced|could not match/).first().waitFor({ timeout: 60000 }).catch(() => {});
+      // The send answers in one request (the prices are parsed by code, then reviewed): its answer is the next bubble.
+      const answered = await engineerSaid(chat).nth(n3).waitFor({ timeout: 90000 }).then(() => true, () => false);
       const after = await call('supplier_api', sup.jwt, { action: 'review_thread', inquiry_id: job2 });
       const still = priceKeys(after);
       const total = Number(after.json?.total_ex_vat);
       const said = await chat.innerText().catch(() => '');
-      rep.step(B, 'prices typed in the chat are matched to the BOQ lines', before.length > 0 && !still.length && total === 65960 && !/could not match/i.test(said) ? 'PASS' : 'FAIL',
-        `price points before=${before.length} after=${still.length} (${still.join(', ') || '-'}), total_ex_vat=${after.json?.total_ex_vat ?? '?'} (want 65960)${/could not match/i.test(said) ? ', the engineer said it could not match' : ''}`, { shot: await shot(s.page, dir, 'h_review_prices', { fullPage: true }) });
+      rep.step(B, 'prices typed in the chat are matched to the BOQ lines', answered && before.length > 0 && !still.length && total === 65960 && !/could not match/i.test(said) ? 'PASS' : 'FAIL',
+        `${answered ? '' : 'the engineer never answered the typed prices; '}price points before=${before.length} after=${still.length} (${still.join(', ') || '-'}), total_ex_vat=${after.json?.total_ex_vat ?? '?'} (want 65960)${/could not match/i.test(said) ? ', the engineer said it could not match' : ''}`, { shot: await shot(s.page, dir, 'h_review_prices', { fullPage: true }) });
     } catch (e) { rep.step(B, 'prices typed in the chat are matched to the BOQ lines', 'FAIL', String(e.message).split('\n')[0].slice(0, 200), { shot: await shot(s.page, dir, 'h_review_prices_fail', { fullPage: true }) }); }
 
     // 3. THE BELL (item 5: "1 new RFQ" deep-linked to /me). Every item keeps the supplier in /portal.

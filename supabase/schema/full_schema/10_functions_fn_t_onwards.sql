@@ -2164,12 +2164,14 @@ declare
   v_reply    text;
   v_lead     record;
   v_lead_id  bigint;
+  v_cust     uuid;
   v_ident_k  text := 'unknown';
   v_ident_id text := null;
   v_id       bigint;
   v_missing  text;
   v_cfg      record;
   v_log      bigint;
+  v_ans      jsonb;
 begin
   if v_body = '' then
     return jsonb_build_object('ok', false, 'reason', 'Empty message.');
@@ -2184,6 +2186,19 @@ begin
   if v_lead_id is not null then
     select * into v_lead from public.leads where id = v_lead_id;
     v_ident_k := 'lead'; v_ident_id := v_lead_id::text;
+  else
+    -- 3 Nov 2026: a CONFIRMED customer is known too (fn_whatsapp_owner: one party or nobody).
+    select o.customer_id into v_cust from public.fn_whatsapp_owner(p_from) o where o.party_kind = 'customer';
+    if v_cust is not null then v_ident_k := 'customer'; v_ident_id := v_cust::text; end if;
+  end if;
+
+  -- A CONFIRMATION OF A PENDING CANCEL is the cancel conversation, whatever the classifier made of "yes 1043" (8a):
+  -- the request is still named and checked against the pending one inside fn_wa_customer_request_answer.
+  -- Whatever the classifier made of a bare "yes 1043" (a status or by-id reading is plausible), except a message it read
+  -- as a change (re-review of #1844); fn_wa_is_cancel_confirmation admits nothing but a bare confirmation.
+  if v_cust is not null and p_intent is distinct from 'change_request'
+     and public.fn_wa_is_cancel_confirmation(v_body) and public.fn_wa_pending_cancel(v_cust) is not null then
+    p_intent := 'cancel_request';
   end if;
 
   -- THE INTENT, AS REASONED. Read by key from the active rows; the body is not read for meaning.
@@ -2204,7 +2219,7 @@ begin
   end if;
 
   -- IDENTITY REQUIRED BUT UNKNOWN.
-  if v_intent.requires_identity and v_lead_id is null then
+  if v_intent.requires_identity and v_lead_id is null and v_cust is null then
     v_reply := 'I do not recognise this number yet, so I cannot look up your records. Reply with the '
             || 'email address you registered with, or REGISTER to start a new registration.';
     insert into public.wa_answer_log (from_phone, body, identity_kind, identity_id, intent_key, matched, reply, refusal_reason)
@@ -2212,6 +2227,23 @@ begin
             'Intent reasoned but the sender is not a known party.')
     returning id into v_log;
     return jsonb_build_object('ok', true, 'matched', true, 'intent', v_intent.intent_key, 'reply', v_reply, 'log_id', v_log);
+  end if;
+
+  -- A CONFIRMED CUSTOMER'S OWN REQUESTS (3 Nov 2026): answered from their rows, and the ask is acted on
+  -- (a late request is chased, a change reaches the suppliers, a cancel is asked and then carried out). Review of
+  -- #1844: EVERY own-record intent a buyer asks is answered here, so a buyer never falls through to a supplier template
+  -- (my_documents gave its {{company_name}} / {{missing_list}} text as a fact).
+  if v_cust is not null and (v_intent.requires_identity or v_intent.scope in ('own_records', 'by_id')
+                             or v_intent.intent_key in ('my_requests', 'my_status', 'my_quotes', 'my_jobs', 'my_documents', 'by_id', 'change_request', 'cancel_request')) then
+    v_ans := public.fn_wa_customer_request_answer(v_cust, p_from, v_intent.intent_key, p_body);
+    v_reply := v_ans->>'reply';
+    insert into public.wa_answer_log (from_phone, body, identity_kind, identity_id, intent_key, matched, reply, refusal_reason)
+    values (p_from, p_body, v_ident_k, v_ident_id, v_intent.intent_key, true, v_reply,
+            case when v_ans ? 'pending_cancel' then 'awaiting cancel confirmation:' || (v_ans->>'pending_cancel') end)
+    returning id into v_log;
+    return jsonb_build_object('ok', true, 'matched', true, 'intent', v_intent.intent_key,
+      'identity_kind', v_ident_k, 'identity_id', v_ident_id, 'reply', v_reply, 'actions', v_ans->'actions',
+      'log_id', v_log, 'answered_by', 'deterministic', 'intent_decided_by', 'reasoning');
   end if;
 
   v_reply := v_intent.answer_template;
@@ -2258,9 +2290,10 @@ begin
   end if;
 
   -- BY-ID LOOKUP. A number in the body is resolved against the real records, and returned ONLY to a
-  -- party who appears on that record. The digits are FORMAT: the first run of two or more.
+  -- party who appears on that record. The digits are FORMAT: the first standalone run of 2 to 9, Arabic-Indic and Persian
+  -- digits read as Western (review of #1844: an unbounded run overflowed bigint on an IBAN and lost the answer).
   if v_intent.scope = 'by_id' then
-    v_id := nullif((regexp_match(v_body, '([0-9]{2,})'))[1], '')::bigint;
+    v_id := (regexp_match(translate(v_body, '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789'), '(?<![0-9])([0-9]{2,9})(?![0-9])'))[1]::bigint;
     if v_id is null then
       v_reply := 'Send me the number and I will look it up. For example: quote 1234, or job 5678.';
     else
@@ -2603,28 +2636,220 @@ begin
         -- a request" with the truth rather than an encouragement.
         'can_post_request', (coalesce(v_cust.phone_verified,false) and coalesce(v_cust.email_verified,false)
                              and v_cust.signed_terms_url is not null)),
-      'inquiries', coalesce((
-        select jsonb_agg(x order by x->>'created_at' desc) from (
-          select jsonb_build_object(
-            'id', i.id, 'category', i.category, 'emirate', i.emirate, 'status', i.status,
-            'created_at', i.created_at,
-            'suppliers_received', (select count(*) from inquiry_matches m where m.inquiry_id = i.id),
-            'quotes_received',    (select count(*) from quotes q where q.inquiry_id = i.id and q.status='submitted'),
-            -- PRE-REVEAL: a band and a count, never the individual quotes and never a supplier name.
-            'revealed', exists (select 1 from transactions t where t.inquiry_id = i.id and t.revealed_at is not null),
-            'price_band', case
-              when exists (select 1 from transactions t where t.inquiry_id = i.id and t.revealed_at is not null)
-                then (select jsonb_build_object('low', min(q.quote_amount), 'high', max(q.quote_amount), 'average', round(avg(q.quote_amount)::numeric,0))
-                        from quotes q where q.inquiry_id = i.id and q.status='submitted')
-              else (select case when count(*) = 0 then null
-                                else jsonb_build_object('average_rounded_to_nearest_1000',
-                                        round(avg(q.quote_amount)::numeric / 1000) * 1000, 'note',
-                                        'rounded band only - the exact quotes and the supplier names unlock when you reveal')
-                           end from quotes q where q.inquiry_id = i.id and q.status='submitted') end) as x
-          from inquiries i where i.customer_id = v_cust.id order by i.created_at desc limit 10) z), '[]'::jsonb));
+      -- 3 Nov 2026: the ONE reading (fn_customer_inquiry_facts): the request number, live quotes, a reveal unlocking
+      -- that quote's supplier only, and the open chase.
+      'inquiries', public.fn_customer_inquiry_facts(v_cust.id, 10));
   end if;
 
   return jsonb_build_object('scope','unknown');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_customer_request_answer(p_customer uuid, p_phone text, p_intent text, p_body text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare c public.customers; v_facts jsonb; v_open jsonb; v_pick jsonb; v_set jsonb; e jsonb; v_first bigint; v_refs text; v_body text;
+        v_lines text := ''; v_line text; v_h bigint; a public.agent_actions; v_res jsonb; v_reply text; v_ref text;
+        v_when text; v_actions jsonb := '[]'::jsonb; v_mand jsonb; v_n int; v_payload jsonb;
+begin
+  select * into c from public.customers where id = p_customer;
+  v_facts := public.fn_customer_inquiry_facts(p_customer, 10);
+  -- FORMAT, not meaning. Arabic-Indic and Persian digits read as Western first (as fn_inquiry_add_missing_specs reads
+  -- them), then EVERY standalone run of 2 to 9 digits is tested against the customer's own request numbers. A longer run
+  -- (an IBAN, a phone number) is no request number: the old first-run ::bigint overflowed on 19 digits and lost the answer.
+  v_body := translate(coalesce(p_body, ''), '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789');
+  select x into v_pick
+    from regexp_matches(v_body, '(?<![0-9])([0-9]{2,9})(?![0-9])', 'g') with ordinality r(m, ord)
+    join jsonb_array_elements(v_facts) x on (x->>'ref')::bigint = r.m[1]::bigint
+   order by r.ord limit 1;
+  select r.m[1]::bigint into v_first from regexp_matches(v_body, '(?<![0-9])([0-9]{2,9})(?![0-9])', 'g') with ordinality r(m, ord)
+   order by r.ord limit 1;
+  select coalesce(jsonb_agg(x), '[]'::jsonb), string_agg(x->>'ref', ', ') into v_open, v_refs
+    from jsonb_array_elements(v_facts) x where (x->>'open')::boolean;
+
+  if p_intent = 'my_status' then
+    v_reply := 'Your buyer account: email ' || case when coalesce(c.email_verified, false) then 'verified' else 'not verified yet' end
+      || ', mobile ' || case when coalesce(c.phone_verified, false) then 'verified' else 'not verified yet' end
+      || ', terms ' || case when c.signed_terms_url is not null then 'signed' else 'not signed yet' end
+      || case when coalesce(c.email_verified, false) and coalesce(c.phone_verified, false) and c.signed_terms_url is not null
+              then ', so you can post requests.' else ', so you cannot post a request until that is complete.' end
+      || ' You have ' || jsonb_array_length(v_facts) || ' request(s) with us, ' || jsonb_array_length(v_open) || ' open.';
+    return jsonb_build_object('reply', v_reply, 'actions', v_actions);
+  end if;
+
+  -- A BUYER'S OWN FILE (review of #1844: my_documents gave a buyer the supplier template with its {{company_name}} and
+  -- {{missing_list}} slots unfilled). The buyer's mandatory four are read from fn_customer_mandatory_check.
+  if p_intent = 'my_documents' then
+    v_mand := public.fn_customer_mandatory_check(p_customer);
+    v_reply := 'Your buyer account file'
+      || case when coalesce((v_mand->>'complete')::boolean, false)
+              then ' is complete: ' || (select string_agg(x, ', ') from jsonb_array_elements_text(v_mand->'have') x) || '.'
+              else ' still needs: ' || (select string_agg(x, ', ') from jsonb_array_elements_text(v_mand->'missing') x) || '.'
+                   || coalesce(' On file: ' || (select string_agg(x, ', ') from jsonb_array_elements_text(v_mand->'have') x) || '.', '') end
+      || ' You can complete it in your account at https://quotesdone.com';
+    return jsonb_build_object('reply', v_reply, 'actions', v_actions);
+  end if;
+
+  if jsonb_array_length(v_facts) = 0 then
+    return jsonb_build_object('reply', 'You have no requests with us yet. You can post one at https://quotesdone.com', 'actions', v_actions);
+  end if;
+
+  -- ------------------------------------------------------------------ L4: CANCEL, ASKED THEN CONFIRMED (8a)
+  if p_intent = 'cancel_request' then
+    if v_pick is null then
+      -- a bare "yes" while a cancel waits: name the request it would cancel, rather than restart the loop
+      v_ref := (select x->>'ref' from jsonb_array_elements(v_facts) x where (x->>'id')::uuid = public.fn_wa_pending_cancel(p_customer));
+      if v_ref is not null then
+        return jsonb_build_object('reply', 'To cancel request ' || v_ref || ', reply yes ' || v_ref || '. Nothing is cancelled until you do.', 'actions', v_actions);
+      end if;
+      v_reply := case when jsonb_array_length(v_open) = 0 then 'You have no open request to cancel.'
+        else 'To cancel, reply with the word cancel and the request number, for example: cancel ' || (v_open->0->>'ref')
+             || '. Your open requests: ' || v_refs || '.' end;
+      return jsonb_build_object('reply', v_reply, 'actions', v_actions);
+    end if;
+    v_ref := v_pick->>'ref';
+    if v_pick->>'status' = 'cancelled' then
+      return jsonb_build_object('reply', 'Request ' || v_ref || ' was already cancelled.', 'actions', v_actions);
+    end if;
+    if not (v_pick->>'open')::boolean then
+      return jsonb_build_object('reply', 'Request ' || v_ref || ' cannot be cancelled now: ' || (v_pick->>'status_meaning') || '.', 'actions', v_actions);
+    end if;
+    if not (public.fn_wa_is_cancel_confirmation(v_body) and public.fn_wa_pending_cancel(p_customer) = (v_pick->>'id')::uuid) then
+      return jsonb_build_object('reply', 'Please confirm: to cancel request ' || v_ref || ' (' || coalesce(v_pick->>'category', 'request')
+          || coalesce(', ' || (v_pick->>'emirate'), '') || '), reply yes ' || v_ref || ' within 30 minutes. Nothing is cancelled until you confirm, '
+          || 'and a cancelled request cannot be reopened.',
+        'actions', v_actions, 'pending_cancel', v_pick->>'id');
+    end if;
+    v_res := public.fn_cancel_inquiry((v_pick->>'id')::uuid, p_customer, 'the customer asked on WhatsApp and confirmed');
+    v_actions := v_actions || jsonb_build_array(jsonb_build_object('cancel', v_res, 'ref', v_pick->'ref'));
+    v_reply := case
+      when v_res->>'already_cancelled' = 'true' then 'Request ' || v_ref || ' was already cancelled.'
+      when v_res ? 'error' then coalesce(v_res->>'message', 'Request ' || v_ref || ' could not be cancelled (' || (v_res->>'error') || ').')
+      else 'Request ' || v_ref || ' is cancelled. The ' || coalesce(v_res->>'suppliers_told', '0')
+           || ' supplier(s) invited to quote were told'
+           || case when coalesce((v_res->>'suppliers_not_reached')::int, 0) > 0 then ' (' || (v_res->>'suppliers_not_reached') || ' more could not be reached by email)' else '' end
+           || case when v_res->>'customer_told' = 'true' then ', and a confirmation is on its way to your email' else '' end || '.' end;
+    return jsonb_build_object('reply', v_reply, 'actions', v_actions);
+  end if;
+
+  -- ------------------------------------------------------------------ L2: A CHANGE OR AN ADDED DETAIL
+  if p_intent = 'change_request' then
+    v_pick := coalesce(v_pick, case when jsonb_array_length(v_open) = 1 then v_open->0 end);
+    if v_pick is null then
+      v_reply := case when jsonb_array_length(v_open) = 0 then 'You have no open request to change. You can post a new one at https://quotesdone.com'
+        else 'Which request is this for? Your open requests: ' || v_refs || '. Reply with the request number and the change, for example: request '
+             || (v_open->0->>'ref') || ': the quantity is now 40.' end;
+      return jsonb_build_object('reply', v_reply, 'actions', v_actions);
+    end if;
+    v_res := public.fn_inquiry_change_from_customer((v_pick->>'id')::uuid, p_customer, p_body, 'whatsapp');
+    v_actions := v_actions || jsonb_build_array(jsonb_build_object('change', v_res, 'ref', v_pick->'ref'));
+    v_ref := v_pick->>'ref';
+    -- the reply claims only what was done: a held Arabic change has been sent to nobody yet, and with no supplier
+    -- matched it waits for the match (review of #1844)
+    v_reply := case
+      when v_res->>'error' = 'inquiry_closed' then 'Request ' || v_ref || ' is ' || coalesce(v_res->>'status', 'closed') || ', so it can no longer be changed. You can post a new request at https://quotesdone.com'
+      when v_res->>'error' = 'already_revealed' then 'Request ' || v_ref || ' already has a revealed supplier, so please agree the change with them directly.'
+      when v_res->>'error' = 'too_many_notes' then 'Request ' || v_ref || ' has had many changes in the last hour. Please send the rest in an hour, or add it on the request in your account.'
+      when v_res ? 'error' then 'The change could not be added to request ' || v_ref || ' (' || (v_res->>'error') || '). Please add it on the request in your account.'
+      when v_res->>'duplicate' = 'true' then 'I already added this change to request ' || v_ref || ' a little earlier, so it was not sent again.'
+      when coalesce((v_res->>'suppliers_matched')::int, 0) = 0 then 'I have added your change to request ' || v_ref
+           || '. The request is not with any supplier yet, so the change goes to suppliers with the request once they are matched.'
+      when v_res->>'held_for_english' = 'true' then 'I have added your change to request ' || v_ref
+           || '. It goes to the suppliers invited to quote as soon as its English copy is ready'
+           || case when coalesce((v_res->>'quoted_told')::int, 0) > 0
+                   then '; the ' || (v_res->>'quoted_told') || ' who already quoted were told a change is on its way and asked to confirm or revise their price' else '' end || '.'
+      when coalesce((v_res->>'suppliers_told')::int, 0) = 0 then 'I have added your change to request ' || v_ref
+           || '. The invited suppliers see it on the request when they open it.'
+      else 'I have added your change to request ' || v_ref || ' and sent it to the ' || (v_res->>'suppliers_told')
+           || ' supplier(s) invited to quote' || case when coalesce((v_res->>'quoted_told')::int, 0) > 0
+             then '; the ' || (v_res->>'quoted_told') || ' who already quoted were asked to confirm or revise their price' else '' end
+           || '. You can see it on the request in your account.' end
+      -- whichever branch answered, a supplier the delivery could not reach is said, never counted as told
+      || case when coalesce((v_res->>'delivery_failed')::int, 0) > 0
+              then ' ' || (v_res->>'delivery_failed') || ' invited supplier(s) could not be reached by email; sending the same change again retries them.' else '' end;
+    return jsonb_build_object('reply', v_reply, 'actions', v_actions);
+  end if;
+
+  -- ------------------------------------------------------------------ L1: STATUS (my_requests, my_quotes, my_jobs, by_id, and any
+  -- other own-record intent a buyer asks: a buyer is never handed a supplier template)
+  if p_intent = 'by_id' and v_first is not null and v_pick is null then
+    return jsonb_build_object('reply', 'I could not find request ' || v_first || ' on your account. Your requests: '
+      || (select string_agg(x->>'ref', ', ') from jsonb_array_elements(v_facts) x) || '.', 'actions', v_actions);
+  end if;
+  select coalesce(jsonb_agg(x), '[]'::jsonb) into v_set from (
+    select x from jsonb_array_elements(case when v_pick is not null then jsonb_build_array(v_pick) else v_facts end) x limit 5) z;
+  for e in select x from jsonb_array_elements(v_set) x loop
+    v_line := 'Request ' || coalesce(e->>'ref', '?') || ' (' || coalesce(e->>'category', 'request') || coalesce(', ' || (e->>'emirate'), '') || '): '
+      || (e->>'status_meaning') || '. Sent to ' || (e->>'suppliers_received') || ' supplier(s); ' || (e->>'quotes_received') || ' quote(s) so far'
+      || case when e->>'revealed' = 'true' then coalesce('; you revealed ' || (select string_agg(coalesce(r->>'supplier', 'the supplier')
+                                                                          || coalesce(' (AED ' || (r->>'amount_aed') || ')', ''), ', ')
+                                                                          from jsonb_array_elements(e->'revealed_quotes') r), '') else '' end
+      || case when e->'price_band' is not null and e->'price_band' <> 'null'::jsonb
+              then '; the ' || (e->>'sealed_quotes') || ' not yet revealed average ' || (e->'price_band'->>'average_label') || ' (rounded)' else '' end
+      || case when (e->>'open')::boolean and not (e->>'late')::boolean and (e->>'quotes_received')::int < 3 and e->>'quotes_due_by' is not null
+              then '; quotes are due by ' || to_char((e->>'quotes_due_by')::timestamptz at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (UAE time)' else '' end
+      || '.';
+    if (e->>'late')::boolean then
+      -- ONE OPEN CHASE PER REQUEST (review of #1844: the key held the Dubai date, so a second ask after midnight opened a
+      -- second chase and the closer told the customer twice). A pending chase is reused; a new one is round n+1 of that
+      -- request; and a concurrent first ask that loses the race on agent_actions_dedupe reads the winner's row.
+      v_h := null;
+      select x.id into v_h from public.agent_actions x
+       where x.kind = 'handoff' and x.detail->>'type' = 'inquiry.status_chase' and x.detail->>'from' = 'customer_support'
+         and x.detail->>'inquiry_id' = e->>'id' and x.status = 'pending'
+       order by x.id desc limit 1;
+      if v_h is null then
+        select count(*) into v_n from public.agent_actions x
+         where x.kind = 'handoff' and x.detail->>'type' = 'inquiry.status_chase' and x.detail->>'from' = 'customer_support'
+           and x.detail->>'inquiry_id' = e->>'id';
+        v_payload := jsonb_build_object('inquiry_id', e->>'id', 'rfq_no', e->'ref', 'customer_id', p_customer,
+                 'phone_digits', regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g'), 'asked', left(coalesce(p_body, ''), 300),
+                 'next_update_by', now() + interval '24 hours', 'channel', 'whatsapp');
+        begin
+          v_h := public.fn_seat_handoff('customer_support', 'sales_engineer', 'inquiry.status_chase', 'inquiries',
+                   (e->>'id') || ':' || (v_n + 1), v_payload);
+        exception when unique_violation then
+          select x.id into v_h from public.agent_actions x
+           where x.kind = 'handoff' and x.detail->>'type' = 'inquiry.status_chase' and x.detail->>'from' = 'customer_support'
+             and x.detail->>'inquiry_id' = e->>'id' and x.status = 'pending'
+           order by x.id desc limit 1;
+        end;
+      end if;
+      if v_h is not null then
+        select * into a from public.agent_actions where id = v_h;
+        -- a chase whose handler failed is reported, so the reply's "it has been reported" is true (re-review of #1844)
+        if a.status = 'failed' then
+          perform public.fn_it_engineer_finding_upsert('customer_support:status_chase_failed:' || v_h,
+            'A status chase could not start (handoff ' || v_h || ')', 'public.fn_sales_engineer_chases_for_status', 'customer_facing', 1,
+            jsonb_build_object('handoff_id', v_h, 'inquiry_id', e->>'id', 'error', a.detail->>'error', 'owner_seat', 'sales_engineer'),
+            '{}'::text[], array['why fn_sales_engineer_chases_for_status failed for this request'], 'customer_support');
+        end if;
+        v_when := to_char(coalesce((a.evidence->>'next_update_by')::timestamptz, (a.detail->>'next_update_by')::timestamptz) at time zone 'Asia/Dubai', 'DD Mon HH24:MI');
+        v_line := v_line || case
+          when a.status = 'failed' then ' It is past the time quotes were due, but the chase could not be started automatically; it has been reported so it is started by hand.'
+          -- a chase whose follow-up failed three times promises nothing it cannot send (re-review of #1844)
+          when coalesce((a.detail->>'followup_attempts')::int, 0) >= 3 then ' Our sales engineer has been chasing it since '
+               || to_char(a.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (UAE time), but our updates to you about it could not be delivered; '
+               || 'this has been reported, and you can ask me here for the latest at any time.'
+          when a.created_at = now() then ' It is past the time quotes were due (' || to_char((e->>'quotes_due_by')::timestamptz at time zone 'Asia/Dubai', 'DD Mon HH24:MI')
+               || ' UAE time) with ' || (e->>'quotes_received') || ' of the 3 quotes we aim for, so I have asked our sales engineer to chase it: '
+               || 'the ' || (coalesce((a.evidence->>'chased')::int, 0) + coalesce((a.evidence->>'already_reminded_today')::int, 0))
+               || ' invited supplier(s) who have not quoted were reminded today'
+               || '. You will get a message here as soon as a new quote arrives, and an update by ' || v_when || ' (UAE time) either way.'
+          else ' Our sales engineer has been chasing it since ' || to_char(a.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI')
+               || ' (UAE time); you will get a message as soon as a new quote arrives, and an update by ' || v_when || ' (UAE time) either way.' end;
+        v_actions := v_actions || jsonb_build_array(jsonb_build_object('status_chase_handoff', v_h, 'ref', e->'ref'));
+      end if;
+    end if;
+    v_lines := v_lines || case when v_lines = '' then '' else chr(10) end || v_line;
+  end loop;
+  if v_pick is null and jsonb_array_length(v_facts) > 5 then
+    v_lines := v_lines || chr(10) || 'Your other requests are in your account at https://quotesdone.com';
+  end if;
+  return jsonb_build_object('reply', v_lines, 'actions', v_actions);
 end $function$
 
 
@@ -2632,7 +2857,7 @@ CREATE OR REPLACE FUNCTION public.fn_wa_fact_pack(p_phone text)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
   v_lead_id bigint;
@@ -2665,18 +2890,21 @@ begin
       'registration_status', coalesce(l.registration_status,'not started'),
       'mandatory', v_mand);
   else
+    -- 3 Nov 2026: the customer the CONFIRMED WhatsApp number names (fn_whatsapp_owner), as fn_identify_contact and
+    -- fn_wa_context read it. customers.phone alone named an unconfirmed number and missed a confirmed other one.
     select * into c from public.customers
-      where regexp_replace(coalesce(phone,''), '[^0-9]', '', 'g') = v_digits limit 1;
+      where id = (select o.customer_id from public.fn_whatsapp_owner(p_phone) o where o.party_kind = 'customer');
     v_found_c := found;
     if v_found_c then
       v_mand  := public.fn_customer_mandatory_check(c.id);
       v_ident := jsonb_build_object(
         'kind','customer','id',c.id::text,'name',c.full_name,
         'email_verified', c.email_verified, 'phone_verified', c.phone_verified,
-        'mandatory', v_mand);
+        'mandatory', v_mand,
+        'requests', public.fn_customer_inquiry_facts(c.id, 10));
     else
       v_ident := jsonb_build_object('kind','unknown',
-        'note','This number matches no lead and no customer. Do not discuss anyone''s records.');
+        'note','This number matches no confirmed lead and no confirmed customer. Do not discuss anyone''s records.');
     end if;
   end if;
 
@@ -2715,17 +2943,18 @@ begin
     'history', v_hist,
 
     -- WHAT IS NOT KNOWN. Stating this is what stops a model filling the gap with something plausible.
+    -- 3 Nov 2026: "there are no live requests ... no job status can be given for any id" and "no category is open yet"
+    -- were removed: both were false, and the first forbade the answer a customer's own requests (above) carry.
     'unknown', jsonb_build_array(
-      'There are no live requests, quotes or comparison reports in the system yet, so no job status can be given for any id.',
-      'No category is open yet, so no supplier can currently be matched to a buyer request.',
+      'Anything about another customer, another supplier or another supplier''s quote is not in this pack and is never given.',
       'Pricing beyond the reveal rate and registration fee is not set and must not be invented.'),
 
     -- WHAT MAY NOT BE SAID OR DONE. A boundary, not a suggestion.
     'must_not', jsonb_build_array(
-      'Never state a fact that is not in this pack. If it is not here, say you will check and pass it to the team.',
+      'Never state a fact that is not in this pack. If it is not here, say plainly that you do not have it.',
       'Never quote a price, discount, delivery date or timescale that is not in this pack.',
       'Never reveal any other party''s identity, contact details or quote. Anonymity is the product.',
-      'Never promise approval, a job, or a refund. Refunds are the founder''s decision alone.',
+      'Never promise approval, a job, or a refund. Refunds are decided by the CEO under the refund policy.',
       'Never ask for a password, a card number or an OTP code.'),
 
     'generated_at', now()
@@ -2744,6 +2973,9 @@ declare v_dest text; v_opt text;
 begin
   -- only fan out plain email rows; never recurse on whatsapp rows
   if coalesce(new.channel, 'email') <> 'email' or new.to_email is null or coalesce(new.to_role, '') not in ('customer', 'supplier') then return new; end if;
+  -- a reply answers on the channel the message came in on (3 Nov 2026, sales_engineer): never twinned
+  -- (kept from a_supplier_reply_goes_back_from_its_own_mailbox.sql, which this file follows in MANIFEST)
+  if new.type = 'inbound_reply' then return new; end if;
   v_dest := public.fn_whatsapp_destination(new.to_role, null, new.lead_id, new.to_email);
   if v_dest is null then
     if new.to_role = 'customer' then
@@ -2752,7 +2984,10 @@ begin
       select l.whatsapp_opt into v_opt from public.leads l where l.id = new.lead_id or (new.lead_id is null and lower(l.claimed_by) = lower(new.to_email)) order by l.id limit 1;
     end if;
     -- 'none' is recorded (a03 marks the twin skipped with the reason); unanswered makes no twin.
-    if v_opt is distinct from 'none' then return new; end if;
+    -- 3 Nov 2026 (customer_support): the confirmations the founder asked for on both channels always get their twin,
+    -- so a missing confirmed number is recorded by a03 with its reason instead of leaving no trace.
+    if v_opt is distinct from 'none'
+       and new.type not in ('customer_account_active', 'supplier_approved', 'reveal_receipt', 'invoice_ready') then return new; end if;
   end if;
   insert into public.notifications (type, to_email, to_role, to_phone, lead_id, inquiry_id, quote_id, subject, body, channel, status)
   values (new.type, new.to_email, new.to_role, v_dest, new.lead_id, new.inquiry_id, new.quote_id, new.subject, new.body, 'whatsapp', 'queued');
@@ -2938,6 +3173,47 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_wa_human_request_email_followup()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.agent_actions; o record; v_email text; v_ar boolean; v_res jsonb; n_sent int := 0; n_none int := 0;
+begin
+  for r in select a.* from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'support.human_requested'
+              and a.detail->>'followup_skipped' = 'the 24-hour WhatsApp window had closed' and not (a.detail ? 'email_followup_at')
+            order by a.id limit 50 loop
+    v_email := null;
+    select * into o from public.fn_whatsapp_owner('+' || (r.detail->>'phone_digits')) limit 1;
+    if o.party_kind = 'customer' then select email into v_email from public.customers where id = o.customer_id;
+    elsif o.party_kind = 'supplier' then select coalesce(nullif(btrim(claimed_by), ''), email) into v_email from public.leads where id = o.lead_id;
+    end if;
+    -- suppliers are written in English (founder, 28 Sep 2026); a customer in the conversation's language
+    v_ar := o.party_kind = 'customer' and exists (select 1 from public.wa_conversation w where w.phone_e164 = r.detail->>'phone_digits' and w.language = 'ar');
+    if coalesce(v_email, '') like '%@%' then
+      v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+        'type', 'support_person_followup', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', v_email,
+        'to_role', o.party_kind, 'lead_id', o.lead_id, 'lang', case when v_ar then 'ar' else 'en' end,
+        'subject', case when v_ar then 'بخصوص طلبكم التحدث إلى أحد أعضاء الفريق' else 'About your request to speak to a person' end,
+        'body', case when v_ar
+          then 'نعتذر عن تأخر ردنا عليكم بعد طلبكم على واتساب التحدث إلى أحد أعضاء الفريق، وقد ذكّرنا الفريق بطلبكم مجددًا. '
+               || 'ويمكنكم الرد على هذه الرسالة أو مراسلتنا على واتساب في أي وقت، وستصلكم الإجابات الفورية مباشرة.' || E'\n\nفريق خدمة العملاء في QuotesDone'
+          else 'We are sorry you have not heard from us since you asked on WhatsApp to speak to a person. We have reminded the team of your request. '
+               || 'You can reply to this email, or message us on WhatsApp at any time and instant answers are back on there.' || E'\n\nQuotesDone Customer Support' end,
+        'dedupe_key', 'wa_human_email_followup:' || r.id)));
+      update public.agent_actions set detail = detail || jsonb_build_object('email_followup_at', now(), 'email_followup', v_res->0) where id = r.id;
+      n_sent := n_sent + 1;
+    else
+      update public.agent_actions set detail = detail || jsonb_build_object('email_followup_at', now(), 'email_followup', 'no email on file for this number') where id = r.id;
+      n_none := n_none + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'emailed', n_sent, 'no_email', n_none);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_human_request_tick()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2975,7 +3251,8 @@ begin
       perform public.fn_notify_founder(p_event => 'WhatsApp: +' || (r.detail ->> 'phone_digits') || ' has waited 23 hours for a person',
         p_detail => 'Nobody closed the request from +' || (r.detail ->> 'phone_digits') || ' (' || coalesce(r.detail ->> 'event', 'Talk to a person') || ').'
         || case when v_req is not null then ' They were sent a polite follow-up and automatic replies are back on.'
-                else ' Their WhatsApp window has closed, so no follow-up could be sent; call them or email them.' end
+                when v_held then ' Their WhatsApp window has closed, so customer_support emails them the follow-up instead (within 30 minutes, when an email is on file).'
+                else ' Automatic replies were never paused for this contact, so no follow-up was sent; customer_support reports it to the CEO at 24 hours to decide who answers them.' end
         || E'\nReply now: https://wa.me/' || (r.detail ->> 'phone_digits')
         || E'\nWhen handled, send DONE +' || (r.detail ->> 'phone_digits') || ' to the QuotesDone WhatsApp number.',
         p_level => 'high', p_kind => 'whatsapp_human_request', p_dedupe_key => 'wa_human_followup:' || r.id,
@@ -3075,6 +3352,25 @@ begin
   end loop;
   return v_yes > 0 and v_n <= 8;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_is_cancel_confirmation(p_body text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- A confirm word, English or Arabic, AND nothing else: every WORD of the message (digits and punctuation are not
+  -- words) is a confirm word or one of the few that go with one. Re-review of #1844: "yes, change the quantity on 1043
+  -- to 40", "yes, edit 1043" and "yes add 1043" each said yes and named the request, and none is a cancel.
+  select coalesce(p_body, '') ~* ('(^|[^[:alpha:]])(' || x.w || ')([^[:alpha:]]|$)')
+     and not exists (select 1 from regexp_split_to_table(lower(coalesce(p_body, '')), '[^[:alpha:]]+') t
+                      where t <> '' and t !~ ('^(' || x.w || '|' || x.c || ')$'))
+    from (select 'yes|yep|confirm|confirmed|'
+                 || 'نعم|أؤكد|اؤكد|تأكيد|أكد|موافق' as w,
+                 'cancel|please|pls|request|the|it|ok|okay|sure|thanks|thank|you|'
+                 || 'إلغاء|الغاء|ألغوا|الغوا|الطلب|طلب|رقم|من|فضلكم|لو|سمحتم|شكرا' as c) x
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_wa_lead_id(p_phone text)
@@ -3206,6 +3502,20 @@ begin
   end if;
   return jsonb_build_object('counts', false, 'why', 'not a consent source: only the button or a yes to the consent question counts (ledger 1341)');
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_pending_cancel(p_customer uuid)
+ RETURNS uuid
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select nullif(split_part(l.refusal_reason, ':', 2), '')::uuid
+    from public.wa_answer_log l
+   where l.identity_kind = 'customer' and l.identity_id = p_customer::text and l.intent_key = 'cancel_request'
+     and l.refusal_reason like 'awaiting cancel confirmation:%' and l.received_at > now() - interval '30 minutes'
+   order by l.id desc limit 1
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_wa_problem_report(p_phone text, p_text text, p_lang text DEFAULT 'en'::text)

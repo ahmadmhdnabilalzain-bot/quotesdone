@@ -36,7 +36,9 @@ Deno.test('1. DXF (regression): through the gate every quantity survives and no 
 });
 
 Deno.test('2. the re-read catches what redaction missed: a term glued inside a word withholds the take-off', () => {
-  const boq = { summary: 'Sheet set issued by ZZORBITENG', boq: [{ section: 'A', description: 'Wall', qty: 3, unit: 'm', basis: 'x' }], missing_info: [] };
+  // 3 Nov 2026: 'Sheet set issued by ZZORBITENG' is now REDACTED (identity_text PERSON_LABELLED takes the name after
+  // 'issued by'), so it no longer reaches the re-read; the glued term below has no label and still does.
+  const boq = { summary: 'Sheet set ZZORBITENG rev 3', boq: [{ section: 'A', description: 'Wall', qty: 3, unit: 'm', basis: 'x' }], missing_info: [] };
   const g = gateDrawingBoq(boq, ['ZZ ORBIT']);
   assertEquals(g.boq, null, 'identity left outside the lines must withhold the whole take-off');
   assert(!g.clean && g.found.some((f) => /ORBIT/i.test(f)), JSON.stringify(g.found));

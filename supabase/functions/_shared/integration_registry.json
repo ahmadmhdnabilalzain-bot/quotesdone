@@ -122,7 +122,7 @@
       "owner_seat": "it_engineer", "blast": "internal",
       "probe": { "kind": "http", "method": "GET", "url": "https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone", "auth": "bearer:github_token", "ok": [200], "every_minutes": 60 },
       "self_fix": "retried once after 3 s",
-      "action": "Issue a new GitHub token with repo read scope and store it as app_secrets.github_token", "link": "https://github.com/settings/tokens"
+      "action": "Issue a GitHub token for this repository only that keeps the read access the IT readings use AND has Actions: Read and write (customer_api dispatches cad-read-worker.yml; repo read alone answers that dispatch 403), and store it as app_secrets.github_token", "link": "https://github.com/settings/personal-access-tokens"
     },
     "github_actions": {
       "what": "CI on main", "hosts": [], "secrets": [],
