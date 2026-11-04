@@ -61,6 +61,8 @@ export type MeaningProposal = {
 
 // Calibrated 21 Sep 2026 on gte-small (numbers above and in service_meaning.test.ts).
 export const MEANING_FLOOR = 0.82;
+/** Words that say HOW a company sells, never what: a part of a trade's name made only of these confirms no trade (see `parts`). */
+const GENERIC_NAME_WORDS = new Set(['trading', 'trade']);
 // The multilingual e5 floor, calibrated 29 Sep 2026 on the live service vectors (query/query cosine; see
 // scripts/checks/services_are_named_by_exact_name_or_meaning_never_by_alias_words.test.mjs for the numbers).
 export const ML_FLOOR = 0.83;
@@ -228,7 +230,11 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
     // company). And the other way: when the corroborating word is the whole name of ANOTHER trade, the line is
     // ambiguous for this service and it is passed over - "Aluminium works" lands nearest an aluminium SHEET service of
     // non_ferrous_metals, but "aluminium" is the aluminium trade's own name. Exact trade or none.
-    const parts = (code: string) => String(opts.tradeLabels?.[code] ?? '').toLowerCase().split(/[&,()/]| and /).map((x) => contentWords(x)).filter((x) => x.length);
+    // A PART OF A TRADE'S NAME THAT IS ONLY "TRADING" NAMES NO TRADE (2 Nov 2026, profile-read walk on the live site): "Steel stock &
+    // trading" has the whole part "trading", so a licence whose activities read "General Trading, Import and Export" held a whole part of
+    // that name and was proposed steel_stock (via the service "pipes & hollow sections", snippet "General Trading") - and the Services tab
+    // offered "Steel stock & trading" to every general trader. The word describes how a company sells, not what; it never confirms a trade.
+    const parts = (code: string) => String(opts.tradeLabels?.[code] ?? '').toLowerCase().split(/[&,()/]| and /).map((x) => contentWords(x)).filter((x) => x.length && !x.every((w) => GENERIC_NAME_WORDS.has(w)));
     const judgeOf = (s: MeaningService): { because: Cand['because']; word: string | null } => {
       let { because, word }: { because: Cand['because']; word: string | null } = corroborate(s, words, norm, ml);
       if (!opts.tradeLabels) return { because, word };

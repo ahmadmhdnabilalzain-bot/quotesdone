@@ -98,7 +98,7 @@ function Fact({ k, children, tone }: { k: string; children: React.ReactNode; ton
   return (
     <div className="flex justify-between gap-3 py-1.5 border-b border-border last:border-0">
       <span className="text-[12px] text-muted-foreground shrink-0">{k}</span>
-      <span className={'text-[12px] text-end break-words text-foreground ' + (tone || '')}>{children}</span>
+      <span className={'text-[12px] text-end wrap-break-word text-foreground ' + (tone || '')}>{children}</span>
     </div>
   );
 }
@@ -162,7 +162,7 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
     <div className="qd-panel p-5 text-[13px] text-muted-foreground" role="alert">
       {err}
       <button type="button" onClick={load}
-        className="ms-2 inline-flex min-h-11 min-w-11 items-center underline rounded outline-none focus-visible:ring-1 focus-visible:ring-ring">{t(lang, 'retry')}</button>
+        className="ms-2 inline-flex min-h-11 min-w-11 items-center underline rounded outline-hidden focus-visible:ring-1 focus-visible:ring-ring">{t(lang, 'retry')}</button>
     </div>
   );
   if (!s) return <div className="qd-panel p-5 text-[13px] text-muted-foreground" aria-busy="true">{t(lang, 'loading')}</div>;

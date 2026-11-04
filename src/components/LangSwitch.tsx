@@ -24,7 +24,7 @@ export function LangSwitch() {
       disabled={pending}
       aria-busy={shown || undefined}
       onClick={() => { startRouteProgress(); start(() => router.replace(pathname, { locale: other })); }}
-      className="qd-hoverlit inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-pill border border-line2 bg-teal-light/[0.03] px-3 text-small font-medium text-paper transition-colors duration-base hover:border-line3 hover:bg-teal-light/[0.06] disabled:cursor-progress sm:px-3.5"
+      className="qd-hoverlit inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-pill border border-line2 bg-teal-light/3 px-3 text-small font-medium text-paper transition-colors duration-base hover:border-line3 hover:bg-teal-light/6 disabled:cursor-progress sm:px-3.5"
       aria-label={t('langSwitchLabel')}
     >
       {shown ? <Spinner className="text-teal-light" /> : (

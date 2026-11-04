@@ -3690,15 +3690,22 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_notice_due(p_limit integer DEFA
 AS $function$
 declare v jsonb; v_dead int;
 begin
-  select coalesce(jsonb_agg(jsonb_build_object('id', h.id, 'seat', h.seat, 'surface', h.surface, 'question', left(h.question, 500),
-                                               'subject', h.subject, 'attempts', h.notice_attempts) order by h.escalated_at), '[]'::jsonb)
-    into v
-    from (select * from public.reasoning_held_question
-           where escalated_at is not null and notice_delivered_at is null
-             and coalesce(subject->>'phone', '') <> '' and notice_attempts < 8
-             and (notice_last_at is null or notice_last_at < now() - interval '30 minutes')
-           order by escalated_at
-           limit greatest(1, least(coalesce(p_limit, 20), 100))) h;
+  with due as (
+    select h.id from public.reasoning_held_question h
+     where h.escalated_at is not null and h.notice_delivered_at is null
+       and coalesce(h.subject->>'phone', '') <> '' and h.notice_attempts < 8
+       and (h.notice_last_at is null or h.notice_last_at < now() - interval '30 minutes')
+     order by h.escalated_at
+     limit greatest(1, least(coalesce(p_limit, 20), 100))
+     for update skip locked
+  ), claimed as (
+    update public.reasoning_held_question h set notice_last_at = now()
+      from due where h.id = due.id
+    returning h.id, h.seat, h.surface, h.question, h.subject, h.notice_attempts, h.escalated_at
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'seat', c.seat, 'surface', c.surface, 'question', left(c.question, 500),
+                                               'subject', c.subject, 'attempts', c.notice_attempts) order by c.escalated_at), '[]'::jsonb)
+    into v from claimed c;
 
   select count(*) into v_dead from public.reasoning_held_question
    where escalated_at is not null and notice_delivered_at is null and coalesce(subject->>'phone', '') <> '' and notice_attempts >= 8;
@@ -5954,7 +5961,7 @@ CREATE OR REPLACE FUNCTION public.fn_refund_open_from_customer(p_transaction_id 
 AS $function$
 declare
   t public.transactions; c record; v_id bigint; v_open bigint; v_locale text; v_code text; v_en text; v_ar text;
-  v_later boolean := false; v_paid text; v_decide text; v_req bigint; v_amt numeric;
+  v_later boolean := false; v_paid text; v_decide text; v_req bigint; v_amt numeric; v_out bigint;
 begin
   select * into t from public.transactions where id = p_transaction_id;
   if not found then
@@ -5991,6 +5998,21 @@ begin
     v_code := 'already_refunded';
     v_en := 'This reveal has already been refunded (AED ' || coalesce(t.refund_amount_aed, v_amt) || '). Banks take 7 to 14 working days to show it.';
     v_ar := 'سبق أن استُردّت رسوم عملية الكشف هذه (' || coalesce(t.refund_amount_aed, v_amt) || ' درهم)، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهار المبلغ.';
+  -- MONEY ALREADY RETURNED ON THIS PAYMENT (3 Nov 2026, accountant, gap #8 R4). A refund issued in the Stripe dashboard
+  -- is recorded by fn_refund_settle (requested_by stripe_webhook) and leaves the sale's refund_status empty, so this
+  -- fell through to the insert below, which must equal everything paid; a01 then refused it as more than the payment
+  -- still holds, and customer_api answered the customer HTTP 500. Measured on ZZ DEMO run acpay01: AED 10 of 30 refunded
+  -- outside the platform, request -> 23514 refund_exceeds_what_was_paid. The answer is now a refusal in words; the rest
+  -- of the payment is the CEO's refund_incident (under_refund -> refund_difference), opened when the refund settled.
+  elsif (select coalesce(sum(r.amount_fils), 0) from public.refunds r
+          where (r.transaction_id = t.id or r.stripe_payment_intent = t.payment_ref)
+            and r.status not in ('rejected', 'failed', 'cancelled')) > 0 then
+    v_out := (select coalesce(sum(r.amount_fils), 0) from public.refunds r
+               where (r.transaction_id = t.id or r.stripe_payment_intent = t.payment_ref)
+                 and r.status not in ('rejected', 'failed', 'cancelled'));
+    v_code := 'already_refunded';
+    v_en := 'AED ' || round(v_out / 100.0, 2) || ' of this payment has already been refunded to your original payment method, so a new refund case cannot be opened for it. Banks take 7 to 14 working days to show it. If you think more is owed, write to us from your portal and we will check the record.';
+    v_ar := 'سبق أن استُردّ ' || round(v_out / 100.0, 2) || ' درهم من هذه الدفعة إلى وسيلة الدفع الأصلية، لذا لا يمكن فتح حالة استرداد جديدة لها. وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهار المبلغ. وإن رأيتم أن هناك مبلغًا آخر مستحقًا، فيُرجى مراسلتنا من بوابتكم لنراجع السجل.';
   elsif exists (select 1 from public.refunds r where r.transaction_id = t.id and r.status = 'rejected'
                   and lower(coalesce(r.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')) then
     v_code := 'already_declined';

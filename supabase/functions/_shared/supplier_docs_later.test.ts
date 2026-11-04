@@ -81,3 +81,92 @@ Deno.test('the 25 MB read limit holds unless the caller asks for the 100 MB supp
   const paper = await pdfjsText(big, undefined, undefined, undefined, LIMITS.maxPaperBytes);
   assert(paper.status === 'failed' && !/read limit/.test(paper.detail || ''), 'read past the 25 MB cap (and failed only as not-a-PDF)');
 });
+
+// 2 Nov 2026, ledger 1442 (profile-read walk on the live site): a scanned PDF stayed needs_ocr because only pictures went to the model.
+Deno.test('a picture and a PDF with no text layer go to the model with two attempts; a text PDF and a failed answer leave the document as it was', async () => {
+  const { readProfileByModel } = await import('./supplier_docs_later.ts');
+  const pdf = (content: string) => {
+    const o = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>', '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+      `<< /Length ${content.length} >>\nstream\n${content}\nendstream`, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+    let s = '%PDF-1.4\n'; const off: number[] = []; o.forEach((b, i) => { off.push(s.length); s += `${i + 1} 0 obj\n${b}\nendobj\n`; });
+    const x = s.length; s += `xref\n0 ${o.length + 1}\n0000000000 65535 f \n` + off.map((n) => String(n).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<< /Size ${o.length + 1} /Root 1 0 R >>\nstartxref\n${x}\n%%EOF\n`;
+    return new TextEncoder().encode(s);
+  };
+  const answer = { ok: true, profile: { lines: ['Our services', '- Elevator installation'] } };
+  const calls: Record<string, unknown>[] = [];
+  const ask = (replies: unknown[]) => async (b: Record<string, unknown>) => { calls.push(b); return (replies.shift() ?? null) as never; };
+  // a picture: the page goes as an image; the first attempt fails, the second answers
+  const png = { path: 'p', name: 'p.png', kind: 'profile' as const, mime: 'image/png', bytes: new Uint8Array([1, 2, 3]), photo_text: undefined as string | undefined };
+  assertEquals((await readProfileByModel(png, ask([null, answer]))).ok, true);
+  assertEquals([calls.length, Object.keys(calls[0])], [2, ['images']]);
+  assertEquals(png.photo_text?.includes('Elevator installation'), true);
+  // a scanned PDF (no text layer): the file itself goes
+  calls.length = 0;
+  const scan = { path: 's', name: 's.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: pdf(''), photo_text: undefined as string | undefined };
+  assertEquals((await readProfileByModel(scan, ask([answer]))).ok, true);
+  assertEquals(Object.keys(calls[0]).sort(), ['file_b64', 'filename', 'mime']);
+  assert(!!scan.photo_text);
+  // known-bad controls: a PDF that HAS a text layer is not sent (code reads its text); both attempts failing leaves it as it was
+  calls.length = 0;
+  const text = { path: 't', name: 't.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: pdf('BT /F1 12 Tf 20 100 Td (Our services - Elevator installation - Flooring works - HVAC works) Tj ET'), photo_text: undefined as string | undefined };
+  assertEquals((await readProfileByModel(text, ask([answer]))).asked, false);
+  assertEquals([calls.length, text.photo_text], [0, undefined]);
+  const failing = { path: 'f', name: 'f.png', kind: 'profile' as const, mime: 'image/png', bytes: new Uint8Array([1]), photo_text: undefined as string | undefined };
+  const lost = await readProfileByModel(failing, ask([null, { ok: false }]));
+  assertEquals([lost.asked, lost.ok], [true, false]);
+  assertEquals(failing.photo_text, undefined);
+  assertEquals((await readProfileByModel({ path: 'x', name: 'x.docx', kind: 'profile' as const, mime: 'application/msword', bytes: new Uint8Array([1]) }, ask([answer]))).asked, false);
+});
+
+// Review of #1796: what the model may cost, who pays, when it is not asked twice, and that a failure is never silent.
+Deno.test('the model read is bounded (image size, PDF pages), billed to the supplier, not repeated on a plain 4xx, and a failure is logged and filed', async () => {
+  const { readProfileByModel, pdfPageCount, firstPdfPages, PROFILE_IMAGE_MAX, PROFILE_PDF_PAGES } = await import('./supplier_docs_later.ts');
+  const { PDFDocument } = await import('https://esm.sh/pdf-lib@1.17.1');
+  const many = async (n: number) => { const d = await PDFDocument.create(); for (let i = 0; i < n; i++) d.addPage([200, 200]); return new Uint8Array(await d.save()); };
+  const answer = { ok: true, profile: { lines: ['Our services', '- Elevator installation'] } };
+  const calls: Record<string, unknown>[] = [];
+  const ask = (replies: unknown[]) => async (b: Record<string, unknown>) => { calls.push(b); const r = replies.shift(); if (r instanceof Error) throw r; return (r ?? null) as never; };
+  // a picture above the cap is not sent, and the document says why in words the supplier can use
+  const big = { path: 'b', name: 'b.jpg', kind: 'profile' as const, mime: 'image/jpeg', bytes: new Uint8Array(PROFILE_IMAGE_MAX + 1), unread_reason: undefined as string | undefined };
+  assertEquals([(await readProfileByModel(big, ask([answer]))).asked, calls.length, /larger than 10 MB/.test(big.unread_reason || '')], [false, 0, true]);
+  // a scanned PDF of 45 pages: only the first PROFILE_PDF_PAGES (30) go, and the document records that it was cut (3 Nov 2026: was 10)
+  assertEquals(PROFILE_PDF_PAGES, 30);
+  assertEquals(await pdfPageCount(await many(45)), 45);
+  const cut = await firstPdfPages(await many(45), PROFILE_PDF_PAGES);
+  assertEquals(cut ? await pdfPageCount(cut) : null, PROFILE_PDF_PAGES);
+  const scan = { path: 's', name: 's.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: await many(45), photo_text: undefined as string | undefined, pages_read: undefined as { read: number; of: number } | undefined };
+  calls.length = 0;
+  const r1 = await readProfileByModel(scan, ask([answer]), { subject: { supplier_id: 77, email: 'qd-x@example.invalid' } });
+  assertEquals(r1.ok, true);
+  assertEquals((calls[0].subject as { supplier_id: number }).supplier_id, 77);   // the spend is the supplier's
+  const sent = Uint8Array.from(atob(String(calls[0].file_b64)), (c) => c.charCodeAt(0));
+  assertEquals(await pdfPageCount(sent), PROFILE_PDF_PAGES);
+  assertEquals(scan.pages_read, { read: 30, of: 45 });   // the cut is on the record, never silent
+  // a 20-page scan whose services are on page 15 (the qualification's S02) goes whole: it was cut to pages 1-10
+  calls.length = 0;
+  const s20 = { path: 's20', name: 's20.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: await many(20), pages_read: undefined as { read: number; of: number } | undefined };
+  await readProfileByModel(s20, ask([answer]));
+  assertEquals([await pdfPageCount(Uint8Array.from(atob(String(calls[0].file_b64)), (c) => c.charCodeAt(0))), s20.pages_read], [20, undefined]);
+  // a 4xx is not asked again; a 5xx and a thrown error are (twice in all)
+  calls.length = 0;
+  const png = () => ({ path: 'p', name: 'p.png', kind: 'profile' as const, mime: 'image/png', bytes: new Uint8Array([1, 2, 3]) });
+  assertEquals([(await readProfileByModel(png(), ask([{ ok: false, status: 400, error: 'no_readable_page' }, answer]))).ok, calls.length], [false, 1]);
+  calls.length = 0;
+  assertEquals([(await readProfileByModel(png(), ask([{ ok: false, status: 502 }, answer]))).ok, calls.length], [true, 2]);
+  calls.length = 0;
+  assertEquals([(await readProfileByModel(png(), ask([new Error('timeout'), answer]))).ok, calls.length], [true, 2]);
+  // both attempts failing is logged and filed as an IT finding naming the supplier; a success files nothing
+  const filed: { fn: string; args: Record<string, unknown> }[] = [];
+  const admin = { rpc: async (fn: string, args: Record<string, unknown>) => { filed.push({ fn, args }); return {}; } };
+  const errors: string[] = []; const was = console.error; console.error = (...a: unknown[]) => { errors.push(a.join(' ')); };
+  try {
+    calls.length = 0;
+    const lost = await readProfileByModel(png(), ask([{ ok: false, status: 502, error: 'upstream' }, { ok: false, status: 502, error: 'upstream' }]), { subject: { supplier_id: 77 }, admin });
+    assertEquals([lost.asked, lost.ok, calls.length], [true, false, 2]);
+    assertEquals(filed.map((f) => [f.fn, f.args.p_issue_key]), [['fn_it_engineer_finding_upsert', 'profile_model_read_failed:77']]);
+    assert(errors.some((e) => e.includes('supplier_docs_later.profile_model') && e.includes('upstream')), errors.join('|'));
+    filed.length = 0;
+    await readProfileByModel(png(), ask([answer]), { subject: { supplier_id: 77 }, admin });
+    assertEquals(filed.length, 0);
+  } finally { console.error = was; }
+});

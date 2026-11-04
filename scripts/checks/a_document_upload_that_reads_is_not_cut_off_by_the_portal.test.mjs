@@ -34,7 +34,7 @@ test('the Documents tab save, the registration licence upload and the quotation 
     const c = callOf(action);
     assert.match(c, /token, \{ timeoutMs: REASONING_TIMEOUT_MS \}\);$/, `${action} must pass { timeoutMs: REASONING_TIMEOUT_MS }: ${c.slice(0, 120)}`);
   }
-  assert.match(PORTAL, /import \{ call, REASONING_TIMEOUT_MS \} from '\.\/supplier\/api';/);
+  assert.match(PORTAL, /import \{ call, REASONING_TIMEOUT_MS[^}]*\} from '\.\/supplier\/api';/);
 });
 
 test('the reasoning timeout stays well over the measured read, and the default stays 20 s', () => {

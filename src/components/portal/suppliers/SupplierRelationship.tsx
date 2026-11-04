@@ -135,7 +135,7 @@ async function call(path: string, body: unknown, token: string): Promise<History
 /** A stat with no measured value must read as unmeasured, never as zero. */
 function Stat({ label, value, hint }: { label: string; value: string | null; hint?: string }) {
   return (
-    <div className="rounded-lg border border-border bg-white/[0.02] px-3 py-2.5">
+    <div className="rounded-lg border border-border bg-white/2 px-3 py-2.5">
       <div className={cn('text-[17px] font-extrabold', value == null ? 'text-muted-foreground/50' : 'text-foreground')}>
         {value ?? '—'}
       </div>
@@ -149,7 +149,7 @@ function Stat({ label, value, hint }: { label: string; value: string | null; hin
 function Meter({ label, pct, hint }: { label: string; pct: number; hint?: string }) {
   const w = Math.max(0, Math.min(100, Math.round(pct)));
   return (
-    <div className="rounded-lg border border-border bg-white/[0.02] px-3 py-2.5">
+    <div className="rounded-lg border border-border bg-white/2 px-3 py-2.5">
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-[11.5px] text-muted-foreground">{label}</span>
         <span className="text-[15px] font-extrabold text-foreground">{w}%</span>
@@ -299,7 +299,7 @@ export function SupplierRelationshipCard({
             aria-expanded={open}
             aria-controls={panelId}
             onClick={() => setOpen((v) => !v)}
-            className="rounded-md border border-border bg-transparent px-2.5 py-1.5 text-[12.5px] font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="rounded-md border border-border bg-transparent px-2.5 py-1.5 text-[12.5px] font-semibold text-primary hover:bg-primary/10 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
           >
             {open ? ar(lang, 'إخفاء السجل الكامل', 'Hide full history') : ar(lang, 'عرض السجل الكامل', 'View full history')}
           </button>

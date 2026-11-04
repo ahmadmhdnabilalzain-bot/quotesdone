@@ -99,7 +99,7 @@ export function MapPoster({ locale }: { locale: Locale }) {
           </g>
         ))}
       </svg>
-      <span className="absolute bottom-3 start-4 font-mono text-label uppercase tracking-caps text-faint">
+      <span className="absolute bottom-3 inset-s-4 font-mono text-label uppercase tracking-caps text-faint">
         {ar ? 'الإمارات السبع' : 'Seven emirates'}
       </span>
     </div>
@@ -113,7 +113,7 @@ export function SheetPoster() {
       <div className="absolute inset-x-[8%] top-[14%] flex flex-col gap-3">
         <span className="redact redact-bar" />
         {[92, 70, 84, 60].map((w) => (
-          <span key={w} className="block h-[3px] rounded-full bg-[var(--line2)]" style={{ width: `${w}%` }} />
+          <span key={w} className="block h-[3px] rounded-full bg-(--line2)" style={{ width: `${w}%` }} />
         ))}
       </div>
     </div>

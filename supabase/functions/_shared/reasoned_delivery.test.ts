@@ -302,6 +302,33 @@ Deno.test('a holding notice that failed is recorded as failed and sent again; a 
   assertEquals(t.map((r) => [r.id, r.delivered]), [[7, false], [8, false]]);
 });
 
+Deno.test('a record that returns a bare thenable (an admin.rpc builder: then, no catch) is run and recorded, never a TypeError', async () => {
+  const { x } = io(true);
+  const rec: number[] = [];
+  // the shape reask.ts passes: `(id, d) => admin.rpc(...)`; the RPC runs only when awaited
+  // A PromiseLike with `then` and no `catch`, typed as one: the call runs only when awaited.
+  const thenable = (run: () => Promise<unknown>): PromiseLike<unknown> => ({
+    then: <A = unknown, B = never>(ok?: ((v: unknown) => A | PromiseLike<A>) | null, bad?: ((e: unknown) => B | PromiseLike<B>) | null) => run().then(ok, bad),
+  });
+  const builder = (id: number) => thenable(() => { rec.push(id); return Promise.resolve({ data: null }); });
+  const rows = [7, 8].map((id) => ({ id, surface: 'wa_inbound.needs_a_person', question: 'where is my quote?', subject: { phone: '+971500000001' } }));
+  const out = await sendHeldNotices(rows, x, (id) => builder(id));
+  assertEquals(out.map((r) => r.id), [7, 8]);
+  assertEquals(rec, [7, 8]);
+  assertEquals(out.map((r) => r.record_error), [undefined, undefined]);
+  const rejecting = await sendHeldNotices(rows, x, () => thenable(() => Promise.reject(new Error('db down'))));
+  assertEquals(rejecting.map((r) => r.record_error), ['db down', 'db down']);
+});
+
+Deno.test('an rpc that RESOLVES { error } (a supabase-js builder never throws) is reported as record_error, not swallowed', async () => {
+  const { x } = io(true);
+  const rows = [{ id: 9, surface: 'wa_inbound.needs_a_person', question: 'where is my quote?', subject: { phone: '+971500000001' } }];
+  const out = await sendHeldNotices(rows, x, () => Promise.resolve({ data: null, error: { message: 'permission denied for function fn_reason_held_notice_record' } }));
+  assertEquals(out.map((r) => [r.id, r.record_error]), [[9, 'permission denied for function fn_reason_held_notice_record']]);
+  const ok = await sendHeldNotices(rows, x, () => Promise.resolve({ data: { recorded: true }, error: null }));
+  assertEquals(ok[0].record_error, undefined);
+});
+
 // ── A HELD COMMENT IS REPLAYED WITH ITS OWN PLATFORM'S TOKEN (24 Sep 2026; found in the review of PR #898) ─────────
 // Until this change the replay gave LinkedIn the Meta page token and YouTube none, so neither could post. Here the
 // real policy (processComment) runs over an in-memory store whose reply posts exactly as the live store does

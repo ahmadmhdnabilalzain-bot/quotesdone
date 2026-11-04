@@ -30,7 +30,22 @@ export type ChoiceResult =
 export type TradeChooser = (text: string, kind: 'profile' | 'catalogue', company?: string | null) => Promise<ChoiceResult>;
 const companyLine = (company?: string | null) => company ? `The company registered as: ${String(company).slice(0, 160)}\n\n` : '';
 
-export const CHOICE_TEXT_MAX = 40_000;
+// THE MODEL READS EVERYTHING CODE READ (3 Nov 2026, sales_engineer; founder: "a supplier attaches a company profile of 300 pages
+// and the sales agent must go through it properly"). This was 40,000 characters: measured by scripts/e2e/document_reading_qualification.ts,
+// a 300-page text profile (270,000 characters) whose services are stated on page 160 as division pages, with no offer heading or
+// offer sentence for offerText to bring forward, was cut at about page 45 and its three trades never reached the model. The cap is
+// now the reader's own text cap, so nothing code read is withheld; a document is cut into CHUNK_CHARS requests, CHOICE_CONCURRENCY
+// at a time. What it costs (ai_cost_log, 30 days to 3 Nov 2026: 1,254 supplier_trade_choice calls, AED 0.0027 each on average):
+// a 270,000-character profile is 20 chunks x 2-3 readings + one check, about AED 0.15, once per supplier.
+export const CHOICE_TEXT_MAX = 400_000;   // = doc_read/types.ts LIMITS.maxTextChars (asserted in long_document_reading.test.ts)
+export const CHOICE_CONCURRENCY = 5;
+/** fn over items, at most n at a time, results in order. */
+export async function inPool<T, R>(items: T[], n: number, fn: (x: T, i: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (next < items.length) { const i = next++; out[i] = await fn(items[i], i); } }));
+  return out;
+}
 // The route (model_policy). QD_CHOICE_TASK_CLASS lets the accuracy harness measure on another class's model before the
 // new row is applied at merge; production never sets it.
 export function choiceTaskClass(): string {
@@ -86,6 +101,10 @@ export function textChunks(text: string, max = CHUNK_CHARS): string[] {
   if (cur.trim() || !out.length) out.push(cur);
   return out;
 }
+/** The parts of a document's text the chooser hands the model, one per request. One definition, read by liveTradeChooser and by
+ *  scripts/e2e/document_reading_qualification.ts, so what the qualification says reached the model is what reaches it. */
+export const modelParts = (text: string): string[] => textChunks(String(text ?? '').slice(0, CHOICE_TEXT_MAX));
+export const modelText = (text: string): string => modelParts(text).join('\n');
 /** Codes a reading NAMED: proposed, or proposed with a quote code could not find. */
 const namedBy = (r: Extract<ChoiceResult, { ok: true }>) => new Set([...r.trades.map((t) => t.code), ...r.rejected.filter((x) => x.why.startsWith('the quote is not in the document')).map((x) => x.code)]);
 /** A third reading is needed when one of two readings is empty or they named different codes. */
@@ -108,6 +127,35 @@ export function majority(rs: Extract<ChoiceResult, { ok: true }>[]): Extract<Cho
   const once = [...new Set(full.flatMap((r) => r.trades.map((t) => t.code)))].filter((c) => !keep.has(c));
   return { ok: true, trades: merged.trades, rejected: [...full.flatMap((r) => r.rejected), ...once.map((c) => ({ code: c, why: 'named by one reading only' }))] };
 }
+/** A reading that stands alone: it named at least one trade and code refused nothing it said (no quote missing from the
+ *  document, no quote of the wrong form, no unknown code). Only such a reading skips the second one. */
+export function cleanReading(r: ChoiceResult): r is Extract<ChoiceResult, { ok: true }> {
+  return r.ok && r.trades.length > 0 && r.rejected.length === 0;
+}
+/**
+ * HOW MANY READINGS A DOCUMENT GETS (it_engineer, 3 Nov 2026). Every document was read twice in parallel, a third time on
+ * any disagreement, then put to the second look: measured 13,762 supplier_trade_choice calls in 7 days (USD 13.59,
+ * 13,296 of them our own tagged test runs). Now the second reading is taken only when the first comes back EMPTY or code
+ * REFUSED something in it (cleanReading); then the rules are exactly the majority rules of 19 Oct (a third reading on
+ * disagreement, a code passes on two votes, no agreement holds the document). A clean first reading goes straight to the
+ * second look, which still judges every code against the whole text. prevented by: supplier_trade_choice.test.ts
+ * "a clean first reading is the only reading".
+ */
+export async function settleReadings(readOnce: () => Promise<ChoiceResult>): Promise<ChoiceResult> {
+  const ra = await readOnce();
+  if (cleanReading(ra)) return ra;
+  const rb = await readOnce();
+  let readings = [ra, rb].filter((x) => x.ok) as Extract<ChoiceResult, { ok: true }>[];
+  if (!readings.length) return ra;
+  if (readings.length < 2 || needsThird(readings[0], readings[1])) {
+    const rc = await readOnce();
+    if (rc.ok) readings = [...readings, rc];
+  }
+  const chosen = majority(readings);
+  if (!chosen) return { ok: false, error: 'the readings did not agree on any trade: held for the sales engineer',
+    held: { readings: readings.map((r) => r.trades.map((t) => ({ code: t.code, quote: t.quote }))) } };
+  return chosen;
+}
 /** Proven choices of several chunks as one: a code once, its quotes (up to 3) gathered; refusals kept. */
 export function mergeChoices(rs: { trades: TradeChoice[]; rejected: { code: string; why: string }[] }[]): Extract<ChoiceResult, { ok: true }> {
   const by = new Map<string, TradeChoice>();
@@ -120,8 +168,11 @@ export function mergeChoices(rs: { trades: TradeChoice[]; rejected: { code: stri
   return { ok: true, trades, rejected: rs.flatMap((r) => r.rejected).filter((x) => !by.has(x.code)) };
 }
 
-/** Letters and digits only, lower case, one space: how a quote is found in the text it came from. */
-export const quoteKey = (s: string) => String(s ?? '').toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+/** Letters and digits only, lower case, one space: how a quote is found in the text it came from.
+ *  THE LAM-ALEF ORDER IS NOT EVIDENCE (3 Nov 2026, sales_engineer; document_reading_qualification, real profile C05): pdf.js gives the
+ *  ligature back swapped inside a word ("مقاوال" for "مقاولا"), the model quotes the word as written, and the quote was refused as
+ *  "not in the document" on 3 of 3 runs. The key reads both orders as one, on both sides; the stored quote is unchanged. */
+export const quoteKey = (s: string) => String(s ?? '').toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/لا/g, 'ال').trim();
 
 /** The JSON object of a model answer that holds `key`: code fences stripped, every {...} candidate tried from the last. */
 export function answerJson(content: string, key: string): Record<string, unknown> | null {
@@ -211,13 +262,22 @@ export function liveTradeChooser(admin: any, opts: { subject?: unknown; headers?
       // CHUNKED (19 Oct 2026): one request over a long document hit the gateway's CPU cap (N05, HTTP 546) and its 55 s
       // wall deadline (H02, gateway_deadline). Each chunk is chosen on its own, in parallel, and the proven choices merged;
       // one second look then judges the merged list against the whole text.
-      const parts = textChunks(text.slice(0, CHOICE_TEXT_MAX));
+      const parts = modelParts(text);
       // A later chunk is read with the document's opening (title, about, services) as context, so a list item is judged
       // as part of the company it belongs to; only the chunk itself may be quoted.
       const head = parts.length > 1 ? parts[0].slice(0, 2500) : '';
       // one reading of the whole document: every chunk read once, merged; an error only when a chunk could not be read twice
       const readOnce = async (): Promise<ChoiceResult> => {
-        const each = await Promise.all(parts.map((p, i) => twice(async () => { const g = await gateway(choiceRequest(i && head ? `[The document opens with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n${p}` : p, kind, d, opts.subject, company)); if (g.ok && (globalThis as any).Deno?.env?.get('QD_CHOICE_DEBUG')) console.error('CHOICE_RAW', i, String(g.content).slice(0, 1500)); return g.ok ? checkChoice(g.content, p, d) : g; })));
+        // A CHUNK THE GATEWAY COULD NOT ANSWER IN TIME IS READ IN HALVES (3 Nov 2026, sales_engineer; document_reading_qualification on
+        // the real set: an 85 MB group brochure's 14,000-character chunks hit the gateway's deadline, HTTP 502 gateway_deadline, on 3 of 5
+        // runs, and the whole document proposed nothing). Twice at most, so a chunk is never cut below a quarter.
+        const readPart = async (p: string, i: number, depth = 0): Promise<ChoiceResult> => {
+          const r = await twice(async () => { const g = await gateway(choiceRequest(i && head ? `[The document opens with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n${p}` : p, kind, d, opts.subject, company)); return g.ok ? checkChoice(g.content, p, d) : g; });
+          if (r.ok || depth >= 2 || p.length < 4000 || !/gateway_deadline|546|cut off|timed? ?out/i.test(r.error)) return r;
+          const halves = await Promise.all(textChunks(p, Math.ceil(p.length / 2) + 200).map((h) => readPart(h, i || 1, depth + 1)));
+          return halves.find((x) => !x.ok) ?? mergeChoices(halves as Extract<ChoiceResult, { ok: true }>[]);
+        };
+        const each = await inPool(parts, CHOICE_CONCURRENCY, (p, i) => readPart(p, i));
         const bad = each.find((x) => !x.ok);
         return bad ?? mergeChoices(each as Extract<ChoiceResult, { ok: true }>[]);
       };
@@ -225,16 +285,7 @@ export function liveTradeChooser(admin: any, opts: { subject?: unknown; headers?
       // one reading missed was dropped (M08 prefab_buildings, M09 electrical_wholesale), and a scan both readings answered
       // with nothing lost every trade (M12). Now a third reading is taken whenever the two disagree or one came back empty,
       // and a code goes forward when at least two of the readings named it; three empty readings hold the document.
-      const [ra, rb] = await Promise.all([readOnce(), readOnce()]);
-      let readings = [ra, rb].filter((x) => x.ok) as Extract<ChoiceResult, { ok: true }>[];
-      if (!readings.length) return ra;
-      if (readings.length < 2 || needsThird(readings[0], readings[1])) {
-        const rc = await readOnce();
-        if (rc.ok) readings = [...readings, rc];
-      }
-      const chosen = majority(readings);
-      if (!chosen) return { ok: false, error: 'the readings did not agree on any trade: held for the sales engineer',
-        held: { readings: readings.map((r) => r.trades.map((t) => ({ code: t.code, quote: t.quote }))) } };
+      const chosen = await settleReadings(readOnce);
       if (!chosen.ok || !chosen.trades.length) return chosen;
       const kept = await twice(async () => { const g = await gateway(verifyRequest(chosen.trades, d, opts.subject, text, company)); return g.ok ? checkVerify(g.content, chosen) : g; });
       return kept;

@@ -31,6 +31,24 @@ Deno.test('only a measured MX verifies; a failed lookup decides nothing', () => 
   assertEquals(judgeDns('sales@acme.ae', 'error').verdict, 'retry');
 });
 
+// 2 Nov 2026: contactus@unibetonrm.com bounced 5.4.316 (connection refused); its only MX is ghs.google.com, a web host.
+Deno.test('an MX that names only a host that takes no mail is no MX, fresh or from the cache', async () => {
+  for (const h of [['ghs.google.com'], ['localhost'], ['127.0.0.1']]) assertEquals(judgeDns('contactus@unibetonrm.com', 'mx', h).verdict, 'rejected', h[0]);
+  assertEquals(judgeDns('sales@acme.ae', 'mx', ['ghs.google.com', 'aspmx.l.google.com']).verdict, 'verified', 'one real mail host is enough');
+  let stored: { p_checks: Array<{ lead_id: number; verdict: string }> } | null = null;
+  const rpc = async (fn: string, args: Record<string, unknown>) => {
+    if (fn === 'fn_sales_engineer_email_check_batch') {
+      return { data: [{ lead_id: 1, email: 'contactus@unibetonrm.com', email_verified: null, mx_kind: 'mx', mx_hosts: ['ghs.google.com'] },
+                      { lead_id: 2, email: 'info@x.ae', email_verified: null, mx_kind: null }], error: null };
+    }
+    stored = args as never;
+    return { data: {}, error: null };
+  };
+  await leadEmailCheckBatch(rpc, async () => ({ kind: 'mx', hosts: ['ghs.google.com'] }));
+  const s = stored as unknown as { p_checks: Array<{ lead_id: number; verdict: string }> };
+  assertEquals(s.p_checks.map((c) => [c.lead_id, c.verdict]), [[1, 'rejected'], [2, 'rejected']]);
+});
+
 Deno.test('mailbox class: free mail, role, named', () => {
   assertEquals(mailboxOf('sales@gmail.com'), 'free');
   assertEquals(mailboxOf('Sales@acme.ae'), 'role');

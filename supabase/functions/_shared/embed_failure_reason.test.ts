@@ -3,6 +3,8 @@
 // 'embedding_unavailable' and nobody could tell a timeout from a refusal. The fetch is replaced here; no network.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert';
 const J = (x: unknown) => JSON.stringify(x);
+// embed_ml's own answers come from a worker, so they carry the runtime's header (_shared/not_reached.ts).
+const RAN = { 'x-served-by': 'supabase-edge-runtime' };
 
 Deno.env.set('SUPABASE_URL', 'https://zz-demo.example.invalid');
 const { embedGteRemote, _resetEmbedClientForTest, EMBED_COOL_MS } = await import('./ml_embed_client.ts');
@@ -17,7 +19,7 @@ async function withFetch<T>(f: () => Response | Promise<Response>, run: () => Pr
 }
 
 for (const [name, answer, expect] of [
-  ['a 503 from embed_ml', () => new Response(JSON.stringify({ ok: false, error: 'embed_failed' }), { status: 503 }), 'embed_ml_http_503:embed_failed'],
+  ['a 503 from embed_ml', () => new Response(JSON.stringify({ ok: false, error: 'embed_failed' }), { status: 503, headers: RAN }), 'embed_ml_http_503:embed_failed'],
   ['a 503 no worker served', () => new Response('upstream unavailable', { status: 503 }), 'embed_ml_http_503:no_json_body'],
   ['a fetch that throws', () => { throw new TypeError('error sending request: connection reset'); }, 'embed_ml_error: TypeError: error sending request: connection reset'],
   ['a timeout', () => { throw new DOMException('Signal timed out.', 'TimeoutError'); }, 'embed_ml_timeout_8000ms'],
@@ -58,6 +60,20 @@ Deno.test('the heartbeat\'s deps carry the reason from embedGteRemote to embedFa
   assertEquals(d.embedFailure?.('ZZ DEMO q', 'gte'), null);
 });
 
+Deno.test('a visitor\'s deps (embedTimeoutMs 3000) wait 3 s on embed_ml, not 8, and a timeout is the null path', async () => {
+  const { defaultDeps } = await import('./think.ts');
+  _resetEmbedClientForTest();
+  const d = defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 });
+  const v = await withFetch(() => { throw new DOMException('Signal timed out.', 'TimeoutError'); }, () => d.embed('ZZ DEMO price?', 'gte'));
+  assertEquals(v, null);
+  assertEquals(d.embedFailure?.('ZZ DEMO price?', 'gte'), 'embed_ml_timeout_3000ms');
+  _resetEmbedClientForTest();
+  const other = defaultDeps(admin, 'resilience_ping', { gte: 'remote' });
+  await withFetch(() => { throw new DOMException('Signal timed out.', 'TimeoutError'); }, () => other.embed('ZZ DEMO q', 'gte'));
+  assertEquals(other.embedFailure?.('ZZ DEMO q', 'gte'), 'embed_ml_timeout_8000ms', 'every other caller keeps 8 s');
+  _resetEmbedClientForTest();
+});
+
 Deno.test('embed_ml down costs one timeout per worker, not one per text: the next calls return at once', async () => {
   _resetEmbedClientForTest();
   let hops = 0; const whys: string[] = [];
@@ -73,12 +89,36 @@ Deno.test('embed_ml down costs one timeout per worker, not one per text: the nex
   assert(EMBED_COOL_MS <= 60_000, 'a cool-off shorter than a tick, so the next tick asks again');
 });
 
+Deno.test('a timeout the CALLER shortened opens no cool-off: the next caller is still asked (review of #1797)', async () => {
+  _resetEmbedClientForTest();
+  let hops = 0;
+  const vec = '[' + Array(384).fill(0.01).join(',') + ']';
+  await withFetch(() => { hops++; throw new DOMException('Signal timed out.', 'TimeoutError'); },
+    () => embedGteRemote(admin, 'ZZ DEMO cache key', 'ai_gateway', 3000));
+  const v = await withFetch(() => { hops++; return new Response(JSON.stringify({ ok: true, space: 'gte', embedding: vec }), { status: 200, headers: RAN }); },
+    () => embedGteRemote(admin, 'ZZ DEMO faq', 'ai_gateway', 8000));
+  assertEquals(hops, 2, 'the 8 s caller reached embed_ml');
+  assertEquals(v?.length, 384);
+});
+
 Deno.test('a per-text refusal from embed_ml opens nothing: the next text is still asked', async () => {
   _resetEmbedClientForTest();
   let hops = 0;
-  await withFetch(() => { hops++; return new Response(JSON.stringify({ ok: false, error: 'embed_failed' }), { status: 503 }); }, async () => {
+  await withFetch(() => { hops++; return new Response(JSON.stringify({ ok: false, error: 'embed_failed' }), { status: 503, headers: RAN }); }, async () => {
     await embedGteRemote(admin, 'ZZ DEMO a', 'resilience_ping', 8000);
     await embedGteRemote(admin, 'ZZ DEMO b', 'resilience_ping', 8000);
   });
   assertEquals(hops, 2);
+});
+
+Deno.test('a relay 502 no worker served is asked once more and opens no cool-off (2 Nov 2026)', async () => {
+  _resetEmbedClientForTest();
+  let hops = 0;
+  const vec = '[' + Array(384).fill(0.01).join(',') + ']';
+  const v = await withFetch(() => (++hops === 1
+    ? new Response('<html>502 Bad Gateway</html>', { status: 502, headers: { server: 'cloudflare' } })
+    : new Response(JSON.stringify({ ok: true, space: 'gte', embedding: vec }), { status: 200, headers: RAN })),
+    () => embedGteRemote(admin, 'ZZ DEMO text', 'resilience_ping', 8000));
+  assertEquals(hops, 2);
+  assertEquals(v?.length, 384);
 });

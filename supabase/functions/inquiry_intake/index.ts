@@ -519,7 +519,16 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
         // a refused turn is filed for the re-ask (fileReask above): no empty message, no code text
         const reaskTid = hv.by === 'none' ? await fileReask(heldDraft + '\nAsk no question unless the message above asks one.', hv.problems) : null;
         if (heldMsg) turns.push({ role: 'assistant', text: heldMsg, agent: ACTOR });
-        await admin.from('inquiry_intake').update({ status: 'held', raw_input: allText.slice(0, 4000), turns, updated_at: new Date().toISOString() }).eq('id', draft.id);
+        // A TURN THAT WAS NOT SAVED IS NOT ANSWERED AS IF IT WERE (3 Nov 2026, it_engineer, drill D10). This write's
+        // result was never read: with PostgREST answering 503 PGRST000 / 504 PGRST003 (database restarting, pool
+        // exhausted) the customer got ok:true and a reply while their message was on no row. supabase-js never retries a
+        // PATCH, so the caller is told, as the draft insert above already does; the portal's resend carries the same
+        // turn_id and placeUserTurn records it once. prevented by: supabase/functions/inquiry_intake/drill_database_unavailable.test.ts
+        const { error: heldSaveErr } = await admin.from('inquiry_intake').update({ status: 'held', raw_input: allText.slice(0, 4000), turns, updated_at: new Date().toISOString() }).eq('id', draft.id);
+        if (heldSaveErr) {
+          await logRun('error', { intake_saved: 0, intake_held: 1 }, 'Held intake turn could not be saved to inquiry_intake (' + String(heldSaveErr.message) + ') - the customer was told to send it again; nothing of this turn is on the row.');
+          return J({ error: 'intake_unavailable', message: 'Your request could not be saved. Nothing has been submitted - please try again.' }, 503);
+        }
         await logRun('ok', { model_held: 1, intake_held: 1, llm_http: llmFail.v?.http ?? null, llm_error: llmFail.v?.error ?? null }, 'the trade could not be reasoned (' + (t.result.reason ?? 'held') + '), so the intake is held for review rather than guessed from keywords' + (llmFail.v ? '; gateway HTTP ' + llmFail.v.http + ' ' + llmFail.v.error + ' ' + llmFail.v.detail : ''));
         return J({ ok: true, intake_id: draft.id, status: 'held', category: null, trades: [], assistant_message: heldMsg, questions: [], next_question: null,
                    readiness: { filled: 0, required: 0, score: 0 }, readiness_score: 0, missing: [], brief: null, held_id: t.result.held_id ?? null, // The gateway's reason goes back only to our own harness subject; a customer never sees upstream detail.
@@ -989,7 +998,11 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     clock.lap('saved');
     // Where this turn's time went, on the run log (turn_clock.ts): read, prompt, model, exact_spec / held_reply, saved.
     const timing = { turn_ms: clock.lap('done'), laps: clock.laps, guard: guarded.violations, placed, reply_by: replyBy };
-    if (saveErr) { await logRun('error', { intake_saved: 0, status_computed: status, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, ...timing }, 'Intake result could not be saved back to inquiry_intake (' + String(saveErr.message) + ') — the customer was told their request was accepted but the brief was never persisted, so the RFQ cannot be dispatched and this looks like the customer simply never finished intake.'); }
+    if (saveErr) { await logRun('error', { intake_saved: 0, status_computed: status, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, ...timing }, 'Intake result could not be saved back to inquiry_intake (' + String(saveErr.message) + ') — the brief of this turn was never persisted, so until the customer resends it the RFQ cannot be dispatched; they were answered 503 intake_unavailable.');
+      // ...and the customer is now TOLD (3 Nov 2026, it_engineer, drill D10): this logged the loss and still answered
+      // ok:true with a reply, so the portal showed a turn the database never held. Same answer as the draft insert's.
+      // prevented by: supabase/functions/inquiry_intake/drill_database_unavailable.test.ts
+      return J({ error: 'intake_unavailable', message: 'Your request could not be saved. Nothing has been submitted - please try again.' }, 503); }
 
     // The QA line and the run log are two independent writes: together, not one after the other.
     await Promise.all([

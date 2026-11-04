@@ -55,12 +55,18 @@ test('a clean reply passes unchanged', () => {
 
 
 test('both support channels call the guard, and neither prompt carries the number', () => {
-  for (const f of ['supabase/functions/site_assistant/index.ts', 'supabase/functions/wa_inbound/index.ts']) {
+  // site_assistant's guard runs inside siteReplyCheck since 3 Nov 2026 (it_engineer, #1836: the same check now also runs
+  // replyProblems), so the widget is asserted through that module: it calls the guard, and the widget hands it to answerFromBrief.
+  const guarded = { 'supabase/functions/wa_inbound/index.ts': '../_shared/support_reply_guard.ts', 'supabase/functions/site_assistant/reply_check.ts': '../_shared/support_reply_guard.ts' };
+  for (const [f, from] of Object.entries(guarded)) {
     const s = src(f);
-    assert.match(s, /import \{[^}]*guardSupportReply[^}]*\} from '\.\.\/_shared\/support_reply_guard\.ts'/, f);
+    assert.match(s, new RegExp(`import \\{[^}]*guardSupportReply[^}]*\\} from '${from.replace(/[.]/g, '\\.')}'`), f);
     assert.match(s, /guardSupportReply\(/, f);
-    assert.ok(!s.includes(LIC), f + ' still carries the licence number');
   }
+  const site = src('supabase/functions/site_assistant/index.ts');
+  assert.match(site, /import \{ siteReplyCheck(, siteReplyLanguage)? \} from '\.\/reply_check\.ts'/);
+  assert.match(site, /check: siteReplyCheck\(brief, sys, replyLang\),/);
+  for (const f of ['supabase/functions/site_assistant/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.ok(!src(f).includes(LIC), f + ' still carries the licence number');
 });
 
 test('every WhatsApp send to a customer or supplier is guarded; only the founder reply is bidiSafe alone', () => {

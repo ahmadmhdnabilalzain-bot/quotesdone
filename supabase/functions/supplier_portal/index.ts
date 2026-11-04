@@ -15,16 +15,15 @@ import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { REQUIRED_DOC_KEYS } from '../_shared/supplier_registration.ts';
 import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supplierCard, type Supplier } from './overview.ts';
 import { markReading, modelReadText } from '../_shared/supplier_doc_trades.ts';
-import { afterResponse, ownPath, readStoredDocsLater, type LaterDoc } from '../_shared/supplier_docs_later.ts';
+import { afterResponse, ownPath, readProfileByModel, readStoredDocsLater, type LaterDoc } from '../_shared/supplier_docs_later.ts';
 import { storedAt } from '../_shared/stored_at.ts';
-import { toB64 } from '../_shared/document_expiry.ts';
 import { buildInsightsSummary } from './insights_summary.ts';
 import { deleteSupporting, listSupporting, saveSupporting, urlSupporting } from './supporting_documents.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/sanctioned.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
 // instruction 524, 21 Sep 2026). _shared/document_expiry.ts reads the expiry off the bytes by code
 // before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
-import { licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type ExpiryRead, type LicenceFields } from '../_shared/document_expiry.ts';
+import { licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, b64Size, READ_MAX_BYTES, tooLargeToRead, type ExpiryRead, type LicenceFields } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { productsAsked } from '../_shared/reasoned_matching.ts';
@@ -515,6 +514,9 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           if (kind.nameCol) upd[kind.nameCol] = safeFilename(it.filename || 'profile', String(it.mime || 'application/pdf')).slice(0, 200);
           readQueue.push({ path: String(it.path), name: String(it.filename || 'profile'), kind: 'profile', mime: it.mime ? String(it.mime) : undefined, gate: true });
         } else if (it.original_b64) {
+          // A licence or certificate is read in this request (name, fields, expiry): above READ_MAX_BYTES it is refused before
+          // it is decoded or parsed (a 24 MB licence was HTTP 546 here, 28 Oct; document_expiry.ts READ_MAX_BYTES).
+          if (b64Size(it.original_b64) > READ_MAX_BYTES) { failedUploads.push({ kind: kindStr, reason: tooLargeToRead(b64Size(it.original_b64), kindStr === 'license' ? 'trade licence' : 'document').message }); continue; }
           // Previously any upload failure was swallowed and the kind was still reported as
           // saved, so a supplier could be told their trade licence was on file when the
           // storage write had failed. Failures are now returned to the caller.
@@ -678,13 +680,18 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
       if (later.length) {
         const markErr = await markReading(admin, Number(sup.id), later);
         if (markErr) console.error(JSON.stringify({ at: 'supplier_portal.save_documents.markReading', supplier: sup.id, error: markErr }));
+        // A PICTURE OR A SCANNED PDF is read by the same model the licence uses, with the licence's two attempts (2 Nov 2026, ledger 1442:
+        // "is our agent actually reading the company profile"). Before, only a picture was sent and a scanned PDF stayed needs_ocr.
+        // When the model cannot read it the document stays needs_ocr: never a false "no trades".
         const profile = async (d: LaterDoc) => {
-          if (!(d.bytes && /^image\//i.test(d.mime || '') && aiOn && INBOUND_SECRET)) return;
-          const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', images: [{ b64: toB64(d.bytes), mime: d.mime }] }) });
-          const jd = await r.json().catch(() => null);
-          if (jd?.ok) d.photo_text = modelReadText('profile', jd.profile?.lines);   // else the document stays needs_ocr: never a false "no trades"
+          if (!(aiOn && INBOUND_SECRET)) return;
+          await readProfileByModel(d, async (b) => {
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', ...b }), signal: AbortSignal.timeout(120_000) });
+            const jd = await r.json().catch(() => null);
+            return { ...(jd ?? {}), status: r.status };
+          }, { subject: { supplier_id: Number(sup.id), email }, admin });
         };
-        const w = afterResponse(readStoredDocsLater(admin, Number(sup.id), later, { profile }), 'supplier_portal.save_documents.later'); if (w) await w;
+        const w = afterResponse(readStoredDocsLater(admin, Number(sup.id), later, { profile, catalogue: profile }), 'supplier_portal.save_documents.later'); if (w) await w;
       }
       // The fresh list rides on the answer (finding 16): what the row holds NOW, not what the tab guessed.
       const fresh = await listDocuments(Number(sup.id));

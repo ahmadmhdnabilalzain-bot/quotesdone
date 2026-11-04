@@ -14,6 +14,7 @@ import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
+import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { storedAt } from '../_shared/stored_at.ts';
@@ -27,20 +28,18 @@ import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { createCompany, sessionOpenedByCode } from './create_company.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../_shared/services_hold_copy.ts';
-import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { readDocument } from '../_shared/doc_read/index.ts';
-import { LIMITS } from '../_shared/doc_read/types.ts';
-import { afterResponse, readStoredDocsLater, signedUpload, stuckReads, type LaterDoc } from '../_shared/supplier_docs_later.ts';
-import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
+import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, stuckReads, type LaterDoc } from '../_shared/supplier_docs_later.ts';
+import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
-import { approve, deskAssess, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { approve, checkVerdict, deskAssess, fillIn, finishArabic, formSchema, gate, gateInputKey, pdfDoc, readAndAssess, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import { applyReading, readQuote } from '../_shared/reasoned_matching.ts';
-import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
+import { readQuote } from '../_shared/reasoned_matching.ts';
+import { requirementsOf, type Assessment } from '../_shared/line_specs/assess.ts';
 import type { Attr } from '../_shared/line_specs/model.ts';
-import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, unionOf, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
+import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
 import type { Line, MissingItem } from '../_shared/line_specs/assess.ts';
 import type { Ctx } from '../_shared/line_specs/workflow.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
@@ -82,8 +81,6 @@ const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 // bank_name, bank_account_name, bank_iban and iban_doc_path left this list on 21 Sep 2026: the columns are
 // being dropped/purged (scripts/sql/the_founder_removed_bank_details_from_the_estate.sql). Money moves both
 // directions through Stripe, so the estate never holds a supplier's bank details — founder instruction 527.
-// The largest profile PDF with no text layer sent to the vision model as a file (an 8.4 MB, 87-page scan was measured).
-const PROFILE_PDF_MODEL_MAX = 12 * 1024 * 1024;
 // A file over the 25 MB ceiling (the supplier-docs bucket's file_size_limit) was told its FORMAT was wrong. 3 of 29 real UAE
 // profiles measured on 13 Oct 2026 are larger (30, 38 and 85 MB): the supplier is now told the size, and how to fix it.
 const TOO_LARGE = (what: string) => `That ${what} is larger than 25 MB. Please upload a smaller copy - most PDF tools can export a compressed or "smallest file size" version.`;
@@ -115,9 +112,9 @@ const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n
 // (_shared/line_specs/reasoned_specs.ts). Under the model hold nothing is judged and every required spec
 // is asked, so the quote is held until it is stated. A trade with a reader, or no checklist, is unchanged.
 // mode 'gate': choose the checklist (reasoned) and judge the lines — once per submission. 'stored': the
-// live hold's own checklist, read back for fill-in and approval, no reasoning. 'preflight': no reasoning,
-// a prediction only (one checklist, or every checklist together).
-async function specChecklist(category: string | null, quoteId: string, mode: 'gate' | 'stored' | 'preflight' = 'gate'): Promise<{ checklist?: Attr[]; reason?: Ctx['reason'] }> {
+// live hold's own checklist, read back for fill-in and approval, no reasoning. The preflight asks 'gate' too (2 Nov 2026):
+// its own "one checklist or every checklist together" prediction disagreed with the submission it predicted.
+async function specChecklist(category: string | null, quoteId: string, mode: 'gate' | 'stored' = 'gate'): Promise<{ checklist?: Attr[]; reason?: Ctx['reason'] }> {
   if (!category || !needsChecklist(category)) return {};
   if (mode === 'stored') {
     const { data: h } = await admin.from('quote_spec_hold').select('original_snapshot').eq('quote_id', quoteId)
@@ -133,13 +130,25 @@ async function specChecklist(category: string | null, quoteId: string, mode: 'ga
       p_where: 'edge function supplier_api', p_blast: 'customer_facing', p_affected: 1, p_evidence: { category, quote_id: quoteId, error: error?.message ?? null }, p_ruled_out: [], p_undetermined: [], p_raised_by: 'sales_engineer' }); } catch (_e) { /* the gate goes on */ }
     return {};
   }
-  if (mode === 'preflight') return { checklist: checklistAttrs(lists.length === 1 ? lists[0].specs : unionOf(lists)) };
   const deps = defaultDeps(admin, 'supplier_api');
   const { data: lineRows } = await admin.from('quote_items').select('*').eq('quote_id', quoteId).order('line_no', { ascending: true }).limit(60);
   const picked = await chooseChecklist(deps, { checklists: lists, lines: (lineRows ?? []) as Line[], trade: category, quoteId });
   const checklist = checklistAttrs(picked.rows);
   if (!checklist.length) return {};
   return { checklist, reason: (lines, cl) => reasonLineSpecs(deps, { lines, checklist: cl, trade: category, quoteId }) };
+}
+// ONE QUOTATION, ONE VERDICT (sales_engineer, 2 Nov 2026): workflow.ts checkVerdict stores the first SETTLED verdict on
+// a set of gate inputs (gateInputKey) and compares later ones; a disagreement is an IT finding with both verdicts.
+async function sameVerdict(key: string, a: Assessment, settled: boolean, quoteId: string, phase: 'preflight' | 'submission') {
+  try {
+    const v = await checkVerdict(async (fn, args) => { const r = await admin.rpc(fn, args); return { data: r.data, error: r.error }; }, key, a, settled);
+    if (v.outcome === 'unreadable') console.error('quote gate verdict could not be stored or read back for quote', quoteId);
+    if (v.outcome !== 'disagree') return;
+    const { first, now } = v;
+    await admin.rpc('fn_it_engineer_finding_upsert', { p_issue_key: 'quote_gate_disagreement:' + key.slice(0, 16), p_title: 'The quote hold gate gave one quotation two different verdicts',
+      p_where: 'edge function supplier_api submit_quote (' + phase + ')', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { quote_id: quoteId, gate_input_key: key, first, now }, p_ruled_out: [], p_undetermined: ['which reading was not settled'], p_raised_by: 'sales_engineer' });
+  } catch (_e) { /* the record never blocks the gate */ }
 }
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
 // A SUPPLIER ACTS ONLY ON A JOB IT WAS MATCHED TO (audit 22 Sep 2026, finding SP-N-03).
@@ -530,6 +539,8 @@ const handle = async (req: Request): Promise<Response> => {
             // a photo the supplier attached (already read, ruling 1177); acceptImages is the same gate the customer chat uses
             images: acceptImages(v.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
             facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id), ...(v.conversation?.length ? { conversation: v.conversation } : {}),
+            // the customers on their jobs not yet revealed to them: a reply naming one is refused (pre_reveal_identities.ts)
+            forbidden: await preRevealIdentities(admin, { leadId: Number(sup.id) }),
             rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
             subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
           });
@@ -564,7 +575,7 @@ ${q}`,
     // claimed_by is the account e-mail. Registration SHOWS it with its verification state rather
     // than asking for it — the supplier signed in with it, so a field here could only ever be
     // answered with the value we already hold.
-    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version') } : null }); }
+    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version'), terms_stands: await supplierAcceptanceStands(secretVal, data.accepted_terms_version) } : null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select(SEARCH_COLUMNS).ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); const rows = (data || []) as LeadHit[]; /* a sanctioned party is never shown to anybody — founder instruction 516, 18 Sep 2026 */ const barred = await sanctionedLeads(admin, rows.map((r) => r.id)); return J({ results: rows.filter((r) => !barred.has(String(r.id))).map((r) => searchResult(r, email)) }); } // search_result.ts: claimed_by is read, never returned
     // THE INVITED COMPANY IS CLAIMED, NEVER REGISTERED A SECOND TIME (28 Oct 2026, ledger 1401 audit S7): ./create_company.ts.
     if (action === 'create_company') { const r = await createCompany(admin, email, body, { emailProven, sessionByCode: sessionOpenedByCode(jwt), sanctionedLead: (id: number) => sanctionedLead(admin, id), setRegistration: (id: number) => setRegistration(id), recordFirstTouch, locale: SUPPLIER_LOCALE }); return J(r.body, r.status); }
@@ -743,6 +754,8 @@ ${q}`,
       //     SILENT - the supplier saw success, license_doc_path was never set, and the document
       //     review queue simply never saw a licence.
       else if (lic.original_b64) {
+        // refused before it is decoded or parsed (document_expiry.ts READ_MAX_BYTES: 19.3 MB was HTTP 546 here on 1 Nov)
+        if (b64Size(lic.original_b64) > READ_MAX_BYTES) return J(tooLargeToRead(b64Size(lic.original_b64), 'trade licence'), 413);
         const sc = await sanitizeAndScan({ input: String(lic.original_b64), declaredMime: lic.mime, filename: lic.filename || 'license', allow: SAFE_UPLOAD,
                                            scan: { source: 'supplier_api.license', subject: String(sup.id), filename: lic.filename, bucket: 'supplier-docs' } });
         if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That licence file cannot be accepted. Please upload a PDF or a clear photo (JPEG or PNG) of your trade licence.' }, sc.status);
@@ -768,6 +781,8 @@ ${q}`,
                return { bytes: new Uint8Array(await dl.data.arrayBuffer()), mime: dl.data.type || 'application/pdf' } as { bytes: Uint8Array; mime: string };
              } catch (_e) { return null; }
            })() : null);
+      // the same ceiling for a licence that came by path: refused before any reader parses it
+      if (licBytes?.bytes && licBytes.bytes.length > READ_MAX_BYTES) return J(tooLargeToRead(licBytes.bytes.length, 'trade licence'), 413);
       // What CODE measured off the document. The model below may add what code cannot read
       // (licence number, authority, legal name) but must never overwrite this date.
       let codeExpiry: string | null = null;
@@ -915,28 +930,30 @@ ${q}`,
       // picture, or a profile PDF with no text layer (13 Oct 2026, it_engineer: Menasco, 87 pages, 0 characters), goes to
       // license_extract's profile mode (ruling 1177), up to PROFILE_PDF_MODEL_MAX; a PDF pdf.js could not parse is held
       // unreadable, never taken for a scan. Its findings are written to the row on their own update.
+      const askProfile = async (b: Record<string, unknown>) => {
+        const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'profile', ...b }), signal: AbortSignal.timeout(120_000) });
+        const j = await r.json().catch(() => null);
+        return { ...(j ?? {}), status: r.status };
+      };
       const runProfileModel = async (pq?: LaterDoc) => {
-        let profPdf: { file_b64: string; mime: string; filename: string } | null = null;
-        const imgs = [...profImgs];
-        if (pq?.bytes && pq.mime && /^image\//i.test(pq.mime)) imgs.unshift({ b64: toB64(pq.bytes), mime: pq.mime });
-        else if (pq?.bytes && pq.mime && /pdf/i.test(pq.mime)) {
-          const small = pq.bytes.length <= PROFILE_PDF_MODEL_MAX;
-          const b64 = small ? toB64(pq.bytes) : '';   // before the read: above 25 MB the read hands pdf.js the buffer itself
-          // ONE read of the profile (review of #1404): kept on the item, so the trade read does not parse it again.
-          pq.read = await readDocument(pq.bytes, pq.name, pq.mime, 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes });
-          if (pq.read.ok && pq.read.needs === 'ocr' && small) profPdf = { file_b64: b64, mime: pq.mime, filename: pq.name };
-        }
-        if (!imgs.length && !profPdf) return;
+        // THE ONE PROFILE READ (review of #1796): the Documents tab and registration read a picture or a scan through readProfileByModel, with the
+        // same size and page caps, the same two attempts, the same subject for the spend, and the same finding when both attempts fail.
+        // Here the browser's own page images (profImgs) are sent when it rendered any, ahead of which goes a picture profile's own bytes.
+        const pqImage = !!(pq?.bytes && pq.mime && /^image\//i.test(pq.mime));
+        const images = profImgs.length ? [...(pqImage ? [{ b64: toB64(pq!.bytes!), mime: pq!.mime }] : []), ...profImgs] : undefined;
+        const holder: LaterDoc = pq ?? { path: '', name: 'profile', kind: 'profile' };
+        const res = await readProfileByModel(holder, askProfile, { subject: { supplier_id: sup.id, email }, admin, ...(images ? { images } : {}) });
+        if (!res.asked) return;
         const mUpd: Record<string, unknown> = {};
-        const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', ...(imgs.length ? { images: imgs.slice(0, 10) } : profPdf) });
-        if (!(jd?.ok && jd.profile)) { console.error(JSON.stringify({ at: 'supplier_api.process_docs.profile', supplier: sup.id, error: jd?.error || 'extract_failed' })); return; }
-        const pf = jd.profile;
+        if (!(res.ok && res.profile)) return;   // readProfileByModel has logged it and filed the finding
+        const pf = res.profile as Record<string, any>;
         if (pf.summary) mUpd.capability_summary = pf.summary;
         // DOCUMENTS LEAD (spec, 29 Jul 2026): what the documents say ALWAYS becomes leads.services; the supplier's own
         // words are kept as the declared value and cross-checked below.
         if (Array.isArray(pf.services) && pf.services.length) { xServices = pf.services.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 40); mUpd.services = xServices.join(', '); }
         // The services the model read off a picture are read for trades exactly as a text profile's lines are.
-        if (pq && (imgs.length ? /^image\//i.test(pq.mime || '') : !!profPdf)) pq.photo_text = modelReadText('profile', pf.lines);
+        // (readProfileByModel sets photo_text itself when it read the document's own bytes; with the browser's pages it is set here for a picture)
+        if (pq && images && pqImage) pq.photo_text = modelReadText('profile', pf.lines);
         if (Array.isArray(pf.products) && pf.products.length && !sup.products) mUpd.products = pf.products.join(', ');
         if (Array.isArray(pf.emirates) && pf.emirates.length && !(Array.isArray(sup.service_emirates) && sup.service_emirates.length)) mUpd.service_emirates = pf.emirates;
         if (Object.keys(mUpd).length) { const { error } = await admin.from('leads').update(mUpd).eq('id', sup.id); if (error) console.error('process_docs: profile fields not saved —', error.message); }
@@ -979,7 +996,9 @@ ${q}`,
         out.documents_reading = readQueue.map((d) => d.path);
         let modelRan = false;
         const job = (async () => {
-          await readStoredDocsLater(admin, Number(sup.id), readQueue, { profile: async (d) => { modelRan = true; await runProfileModel(d); } });
+          // a scanned catalogue is read by the same model; its lines are its own photo_text and it writes no profile field
+          await readStoredDocsLater(admin, Number(sup.id), readQueue, { profile: async (d) => { modelRan = true; await runProfileModel(d); },
+            catalogue: async (d) => { await readProfileByModel(d, askProfile, { subject: { supplier_id: sup.id, email }, admin }); } });
           if (!modelRan && profImgs.length) await runProfileModel();
         })();
         const w = afterResponse(job, 'supplier_api.process_docs.later'); if (w) await w;
@@ -1086,7 +1105,7 @@ ${q}`,
       // A save repeating an acceptance already on file for the current version records nothing new: a second
       // record would move the acceptance time and ask for a second certificate (kyc's rule too).
       const accepting = body.accept_terms === true
-        && !(sup.accepted_terms_at && sup.accepted_terms_version === await currentSupplierTermsVersion(secretVal));
+        && !(sup.accepted_terms_at && await supplierAcceptanceStands(secretVal, sup.accepted_terms_version));
       if (accepting) {
         const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
         if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
@@ -1161,11 +1180,9 @@ ${q}`,
         // Arabic-only and a blank licence. They are told what could not be read and asked for a clearer copy instead.
         const licUnread = [!full?.licence_legal_name && 'the company name', !full?.trade_license_no && 'the licence number', !full?.license_expiry && 'the expiry date', !full?.license_authority && 'the issuing authority'].filter(Boolean) as string[];
         const licUnreadEn = licUnread.length ? `Thank you for registering ${name}. We could not read ${licUnread.join(', ').replace(/, ([^,]*)$/, ' and $1')} on the trade licence you uploaded, so your registration is on hold. ${clearerCopyAsk('supplier', 'en', 'your trade licence')} Upload it in the Documents tab of your supplier portal: https://quotesdone.com/portal` : '';
-        const supplierMail = decision === 'approved'
-          ? (ar ? { subject: 'أصبح حسابكم على QuotesDone مفعّلًا', body: `فُعِّل حساب ${name} لدى QuotesDone، وبإمكانكم الآن استلام الطلبات وتقديم عروض الأسعار.` }
-                : { subject: 'Your QuotesDone supplier account is active', body: `Your account for ${name} is active — you can now receive inquiries and submit quotes.` })
-          // Any decision short of approved: the unread licence is said first, with whatever else is still missing.
-          : full?.licence_gate_reason === 'licence_authority_not_uae'
+        // Sent only for a decision short of approved (an approval is confirmed by supplier_approved, below): the unread
+        // licence is said first, with whatever else is still missing.
+        const supplierMail = full?.licence_gate_reason === 'licence_authority_not_uae'
           ? { subject: 'Your QuotesDone registration: please send your UAE trade licence', body: `Thank you for registering ${name}. The trade licence you uploaded was not issued by a UAE authority, and QuotesDone registers companies licensed in the UAE, so your registration is on hold. Please upload your current UAE trade licence in the Documents tab of your supplier portal: https://quotesdone.com/portal` }
           : licUnreadEn
           ? { subject: 'Your QuotesDone registration: please send a clearer trade licence', body: licUnreadEn + (stillNeeded.length ? ` We also still need: ${needEn}.` : '') }
@@ -1188,7 +1205,13 @@ ${q}`,
           ...(fixture ? [] : [{ type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
             subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? pendingFounderSubject(v.reason) : 'Supplier registration incomplete',
             body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
-          { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail },
+          // ONE CONFIRMATION, NOT TWO (3 Nov 2026, customer_support). An approved first save used to send this "Your QuotesDone
+          // supplier account is active" notice AND, from the same approval, trg_sales_engineer_tells_the_supplier_he_is_approved's
+          // supplier_approved notice ("You are verified on QuotesDone"), each with its WhatsApp twin: two emails and two
+          // WhatsApp messages for one event. The approval trigger fires on every path that approves a supplier (this save, the
+          // certificate landing, the sales engineer), so it is the one confirmation; this notice goes only while the
+          // registration is not yet active. prevented by: supplier_api/one_confirmation_per_activation.test.ts
+          ...(decision === 'approved' ? [] : [{ type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail }]),
         ]);
       }
       if (!wasApproved && decision !== 'approved' && stillNeeded.length) {
@@ -2003,12 +2026,16 @@ ${q}`,
         } catch (_e) { /* */ }
         // Preflight (dry_run). Runs the real scorer, the real accept rule and the real hold gate's
         // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
+        // The gate's own context: the same checklist, the same settled readings, the same assessment (workflow.ts
+        // readAndAssess), so "check before sending" and the submission give one verdict for one quotation.
+        const gctx: Ctx = { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)),
+          // His quotation is READ by reasoning before the check (decision points 29-30); held: nothing is read and he is asked.
+          read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: ls, terms: qr, requirements }) };
+        const gkey = await gateInputKey((await repo.quote(qid))!, await repo.lines(qid), gctx);
         if (dryRun) {
           const acc = await acceptRule(qid);
-          // The same reading the real submission's gate does (reasoned_matching.ts), so the preflight and the gate agree.
-          const dq = (await repo.quote(qid))!; const dl = await repo.lines(qid);
-          const rd = applyReading(dl, dq.terms_spec, await readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: dl, terms: dq, requirements }));
-          const a = assessQuote({ category, lines: rd.lines, terms: { ...dq, terms_spec: rd.terms_spec }, requirements, checklist: (await specChecklist(category, qid, 'preflight')).checklist });
+          const { a, settled } = await readAndAssess(repo, qid, gctx);
+          await sameVerdict(gkey, a, settled, qid, 'preflight');
           // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
           // own ids, so anything that references a line still does). A row this check CREATED is removed.
           let restored = true;
@@ -2048,9 +2075,8 @@ ${q}`,
         }
         // THE HOLD GATE (founder, 14 Sep 2026). The sales engineer holds a quote that does not state
         // every required detail exactly, records which line and which detail, and tells the supplier.
-        const g = await gate(repo, qid, supplier, { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)),
-          // His quotation is READ by reasoning before the check (decision points 29-30); held: nothing is read and he is asked.
-          read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: ls, terms: qr, requirements }) });
+        const g = await gate(repo, qid, supplier, gctx);
+        await sameVerdict(gkey, g.assessment, g.settled, qid, 'submission');
         // a submission the door did not accept never inherits the wait of an earlier accepted one (review of #1108)
         if (g.held) { await supersedeQualityHold(qid); results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
         // THE REVIEW'S OWN RULES, held the same way (finding SP-F-02). The gate above is the exact-specs

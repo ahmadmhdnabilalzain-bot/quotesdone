@@ -31,6 +31,7 @@
 // budget_spent), so an empty proposal is never mistaken for a document that names nothing.
 import { readDocument, type DocumentRead } from './doc_read/index.ts';
 import { type Extracted, LIMITS } from './doc_read/types.ts';
+import { pagesLeft } from './doc_read/pdf.ts';
 import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
 import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, tradesOfText, type ExactState, type MeaningState, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
@@ -54,7 +55,13 @@ export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Ar
   /** names the company is known by (registered, licence legal name read by code or model): never read as a trade */
   names?: (string | null)[];
   /** set by supplier_docs_later.gateStored when the stored bytes failed the type / malware gate: recorded, never read */
-  refused?: string };
+  refused?: string;
+  /** set by supplier_docs_later.readProfileByModel when it did not send the file to the model (too big, too many pages): the reason, worded for the supplier */
+  unread_reason?: string;
+  /** set by supplier_docs_later.readProfileByModel when it sent the model only the first pages of a scan */
+  pages_read?: { read: number; of: number };
+  /** A CONTINUATION (supplier_docs_later.stuckOf): read from this page on, and add to `prev`, the evidence of the pages read before */
+  from_page?: number; prev?: DocEvidence };
 export type DocEvidence = {
   path: string; name: string; kind: DocKind;
   /** 'reading': marked BEFORE the parse (markReading); if the worker is killed mid-parse it stays, and it proposes nothing.
@@ -71,9 +78,14 @@ export type DocEvidence = {
   choice?: 'on' | 'unavailable' | 'held'; rejected?: { code: string; why: string }[];
   /** choice 'held': the readings, which did not agree on any trade; the sales engineer decides (agent_actions doc_trades_held) */
   held_readings?: { code: string; quote: string }[][];
-  /** trades read off a PICTURE (image, or a PDF with no text layer): their quotes are lines the vision model transcribed,
-   *  which code cannot check against the file, so they are never proposed - held here for the sales engineer to confirm */
+  /** LEGACY (records written before 2 Nov 2026): trades read off a PICTURE were held here for the sales engineer. Since ledger 1442 they are
+   *  proposed in `trades` like any other and the supplier confirms them on the Services tab; nothing writes this field any more. */
   vision_held?: TradeHit[];
+  /** A PARTIAL read (3 Nov 2026): only `read` of the file's `of` pages were read (the text read's budget, or a scan cut for the model).
+   *  The proposal stands for the supplier to confirm, and this says it came from part of the document only. */
+  pages?: { read: number; of: number };
+  /** the read stopped at its budget or text cap and the rest is read by the next sweep run, from pages.read + 1 (stuckOf) */
+  resume?: boolean;
 };
 export const PHOTO_TEXT_MAX = 60_000;
 
@@ -155,7 +167,19 @@ export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Prom
   const base = { path: doc.path, name: doc.name, kind: doc.kind, read_at: new Date().toISOString() };
   const photo = String(doc.photo_text ?? '').slice(0, PHOTO_TEXT_MAX);
   const ocr = String(doc.ocr_text ?? '').slice(0, PHOTO_TEXT_MAX);
+  // A PARTIAL READ SAYS SO (3 Nov 2026, scripts/e2e/document_reading_qualification.ts). A 300-page profile read to page 250 was
+  // recorded 'read' with nothing to show that 50 pages were never read: the note pdf.js wrote was dropped here.
+  // ponytail: the unread pages are recorded, not read later; upgrade: the re-read sweep resumes from pages.read + 1.
+  let partial: { read: number; of: number } | undefined, resumable = false;
   const found = async (text: string, source: 'document_text' | 'photo_text' | 'ocr_text', format?: string): Promise<DocEvidence> => {
+    let e = await foundIn(text, source, format);
+    // a continuation ADDS to what the earlier pages proposed: one code once, the earlier evidence kept
+    if (doc.prev) e = { ...e, trades: [...(doc.prev.trades || []), ...e.trades.filter((t) => !(doc.prev!.trades || []).some((p) => p.code === t.code))].sort((a, b) => a.code.localeCompare(b.code)) };
+    if (!partial) return e;
+    const said = `read ${partial.read} of ${partial.of} pages; ${resumable ? 'the rest is being read' : 'the rest of the document was not read'}`;
+    return { ...e, pages: partial, reason: e.reason ? `${e.reason} (${said})` : said, ...(resumable ? { resume: true } : {}) };
+  };
+  const foundIn = async (text: string, source: 'document_text' | 'photo_text' | 'ocr_text', format?: string): Promise<DocEvidence> => {
     // A LICENCE NAMES ITS TRADES IN ITS ACTIVITIES, NOWHERE ELSE (7 Oct 2026, accuracy suite ledger 1162). The whole
     // licence was read, so the company's NAME line proposed trades: "Company Name: ZZ DEMO Horizon Floor LLC" ->
     // floor cleaners and mezzanine floors, on 4 of 22 text licences of scripts/e2e/document_intake_corpus.mjs. Only
@@ -189,18 +213,28 @@ ${whole}`;
         return { ...base, status: 'read', format, source, reason: `the trades could not be chosen: ${ch.error}`, trades: [], choice: 'unavailable', ...(c ? { supply_only: c.supply_only } : {}) };
       }
       const hits = ch.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.reason], snippet: t.quote }));
-      // HELD, NOT PROPOSED (review of #1412, 18 Oct 2026): a picture's quote is checked only against the vision model's own
-      // transcription, so a line it invented would pass. Those trades wait for the sales engineer (vision_trades_confirm).
-      if (source === 'photo_text') return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}),
-        reason: 'read off a picture by the vision model; held for the sales engineer to confirm against the file', trades: [], vision_held: hits };
+      // A PICTURE'S TRADES ARE PROPOSED (2 Nov 2026, ledger 1442; they were HELD for the sales engineer after the review of #1412). A quote
+      // here is checked only against the vision model's own transcription, which is why the model is given only the lines the page PRINTS
+      // (license_extract profile.lines, verbatim: H01 proved a summary phrase is refused). The proposal is the supplier's to confirm on the
+      // Services tab, with the printed line beside it, so a line the model invented is struck out by the one person who has the file.
       return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}), trades: hits };
     }
     const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
     return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, ...(c ? { supply_only: c.supply_only } : {}) };
   };
   if (doc.refused) return { ...base, status: 'refused', reason: doc.refused.slice(0, 200), trades: [] };
-  const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes }) : null);
+  const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes, fromPage: doc.from_page }) : null);
   const text = r && r.ok ? allText(r) : '';
+  const p = (r && r.ok && r.pages && r.pages.read < r.pages.of) ? r.pages : doc.pages_read;
+  // resumable only while pages remain under the reader's page cap; past it the unread pages are filed (docPartiallyRead), not re-read
+  if (p && p.read < p.of) { partial = p; resumable = p === (r && r.ok ? r.pages : undefined) && pagesLeft(p); }
+  // A CONTINUATION THAT READ NOTHING NEW keeps the evidence it had and never asks the model about an empty text (review of #1833)
+  if (doc.prev && r && r.ok && !r.needs && !text.trim()) {
+    const { resume: _resume, pages: _pages, ...kept } = doc.prev;
+    const said = partial ? `read ${partial.read} of ${partial.of} pages; the rest of the document was not read` : '';
+    const was = (doc.prev.reason ?? '').replace(/ ?\(read \d+ of \d+ pages;[^)]*\)$/, '');
+    return { ...kept, read_at: base.read_at, trades: doc.prev.trades || [], ...(partial ? { pages: partial, reason: was ? `${was} (${said})` : said } : {}) };
+  }
   // The file's own text layer wins; then code's OCR of the scan; the vision model's transcription only when neither exists.
   // A SCAN WITH A STRAY TEXT LAYER (M12, 19 Oct 2026): the group profile is an image-only scan whose PDF still carries a stray text
   // layer: the reader reads 71 characters, 13 of them letters or digits ("58", "GLOBAL REACH"; measured 19 Oct 2026). That non-empty layer won over code's 15,179-character OCR, so the model was given
@@ -211,7 +245,7 @@ ${whole}`;
   if (!text.trim() && photo.trim()) return await found(photo, 'photo_text', r && r.ok ? r.kind : undefined);
   if (!r) return { ...base, status: 'unreadable', reason: 'the file could not be fetched from storage', trades: [] };
   if (!r.ok) return { ...base, status: 'unreadable', reason: `${r.error}: ${r.detail}`.slice(0, 200), trades: [] };
-  if (!text.trim() && r.needs === 'ocr') return { ...base, status: 'needs_ocr', format: r.kind, reason: r.notes.join(' ').slice(0, 200), trades: [] };
+  if (!text.trim() && r.needs === 'ocr') return { ...base, status: 'needs_ocr', format: r.kind, reason: (doc.unread_reason || r.notes.join(' ')).slice(0, 200), trades: [] };
   if (!text.trim() && r.needs) return { ...base, status: 'needs_cad_conversion', format: r.kind, reason: r.notes.join(' ').slice(0, 200), trades: [] };
   return await found(text, 'document_text', r.kind);
 }
@@ -246,19 +280,20 @@ export async function docTradesHeld(admin: Admin, supplierId: number, d: DocEvid
   } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
 }
 
-async function visionHeld(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
+/** A document read only in part (DocEvidence.pages): one pending agent_actions item (kind doc_partially_read) per supplier and document,
+ *  for the sales engineer, naming the pages that were NOT read, so they are read by a person rather than silently dropped. */
+export async function docPartiallyRead(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
   const target = `${supplierId}:${d.path}`;
   try {
-    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'vision_trades_confirm').eq('status', 'pending').eq('target_id', target).limit(1);
+    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'doc_partially_read').eq('status', 'pending').eq('target_id', target).limit(1);
     if (open?.length) return;
-    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'vision_trades_confirm', status: 'pending', risk: 'low',
-      title: ('Confirm trades read off a picture: ' + d.name).slice(0, 200),
-      detail: { supplier_id: supplierId, path: d.path, kind: d.kind, held: d.vision_held!.map((t) => ({ code: t.code, quote: t.snippet })),
-                waiting_for: 'sales_engineer to check each quote against the file and confirm or drop the trade' },
+    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'doc_partially_read', status: 'pending', risk: 'low',
+      title: (`Read pages ${d.pages!.read + 1}-${d.pages!.of} of a supplier document the reader stopped short of: ` + d.name).slice(0, 200),
+      detail: { supplier_id: supplierId, path: d.path, kind: d.kind, pages_read: d.pages!.read, pages_total: d.pages!.of, proposed: (d.trades || []).map((t) => t.code),
+                waiting_for: 'sales_engineer to read the unread pages and add any trade they state to the proposal the supplier confirms' },
       target_table: 'supplier_capabilities', target_id: target });
-    // 23505: the table's one-pending-per-document index refused a second item filed at the same moment - already filed
-    if (error && error.code !== '23505') console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: error.message }));
-  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
+    if (error) console.error(JSON.stringify({ at: 'supplier_doc_trades.docPartiallyRead', supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.docPartiallyRead', supplier: supplierId, error: String((e as Error)?.message || e) })); }
 }
 
 export const proposedFrom = (docs: DocEvidence[]): string[] =>
@@ -281,7 +316,8 @@ export async function markReading(admin: Admin, supplierId: number, docs: { path
     const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
     const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
     const at = new Date().toISOString();
-    const marks: DocEvidence[] = docs.map((d) => ({ path: d.path, name: d.name, kind: d.kind, status: 'reading', reason: 'being read; if this stays, the read did not finish', trades: [], read_at: at, ...(retry ? { retry } : {}) }));
+    // a continuation keeps the trades its earlier pages proposed while the rest is read
+    const marks: DocEvidence[] = docs.map((d) => ({ path: d.path, name: d.name, kind: d.kind, status: 'reading', reason: 'being read; if this stays, the read did not finish', trades: (d as DocIn).prev?.trades ?? [], read_at: at, ...(retry ? { retry } : {}) }));
     const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], marks);
     const { error } = await admin.from('supplier_capabilities').upsert({ supplier_id: supplierId, source_docs: { ...prevSrc, reader: READER, docs: merged } }, { onConflict: 'supplier_id' });
     return error ? `mark: ${error.message}` : null;
@@ -313,8 +349,9 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
     const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], fresh);
     const proposed = proposedFrom(merged);
-    for (const d of fresh) if (d.vision_held?.length) await visionHeld(admin, supplierId, d);
     for (const d of fresh) if (d.choice === 'held') await docTradesHeld(admin, supplierId, d);
+    // a read the next sweep run continues (resume) is not filed; a scan cut for the model is, since nothing will read the rest
+    for (const d of fresh) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
     const { error } = await admin.from('supplier_capabilities').upsert({
       supplier_id: supplierId, proposed_trades: proposed,
       source_docs: { ...prevSrc, reader: READER, docs: merged }, extracted_at: new Date().toISOString(),

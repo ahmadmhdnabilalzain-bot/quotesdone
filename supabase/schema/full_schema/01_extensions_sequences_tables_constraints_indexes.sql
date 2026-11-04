@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-02T05:35:27.847Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-04T08:26:04.534Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -93,6 +93,7 @@ CREATE SEQUENCE IF NOT EXISTS public.doc_backups_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.doc_versions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.documents_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.email_block_pattern_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.email_open_event_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.employee_kpi_history_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.employee_kpi_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.entity_comments_id_seq;
@@ -223,7 +224,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (775) =====
+-- ===== TABLES (784) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -348,6 +349,40 @@ CREATE TABLE IF NOT EXISTS public.accountant_renewal_budget (
   last_expense_id bigint,
   handoff_id bigint,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_reveal_reconcile_item (
+  key text NOT NULL,
+  livemode boolean NOT NULL,
+  source text NOT NULL,
+  quote_id text NOT NULL,
+  invoice_id text,
+  payment_intent text,
+  customer_id text,
+  customer_email text,
+  amount_fils bigint,
+  currency text,
+  paid_at timestamp with time zone,
+  demo boolean DEFAULT false NOT NULL,
+  outcome text NOT NULL,
+  transaction_id uuid,
+  error text,
+  attempts integer DEFAULT 1 NOT NULL,
+  first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_run_id bigint,
+  resolved_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_reveal_reconcile_run (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  requested_at timestamp with time zone DEFAULT now() NOT NULL,
+  window_days integer NOT NULL,
+  request_id bigint,
+  http_status integer,
+  http_error text,
+  reported_at timestamp with time zone,
+  result jsonb
 );
 
 CREATE TABLE IF NOT EXISTS public.accountant_spend_report (
@@ -1286,7 +1321,8 @@ CREATE TABLE IF NOT EXISTS public.cad_read_jobs (
   claimed_at timestamp with time zone,
   finished_at timestamp with time zone,
   result jsonb,
-  error text
+  error text,
+  last_dispatch_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.canon_eval_questions (
@@ -2213,6 +2249,13 @@ CREATE TABLE IF NOT EXISTS public.company_faq (
   language text DEFAULT 'en'::text NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.company_faq_embed_inflight (
+  request_id bigint NOT NULL,
+  faq_id bigint NOT NULL,
+  text_md5 text NOT NULL,
+  queued_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.company_financial_stance (
   id integer DEFAULT 1 NOT NULL,
   is_profitable boolean DEFAULT false NOT NULL,
@@ -2582,6 +2625,14 @@ CREATE TABLE IF NOT EXISTS public.conversation_archive (
   pdf_path text NOT NULL,
   bytes bigint,
   archived_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.conversation_archive_attempt (
+  source_table text NOT NULL,
+  source_id text NOT NULL,
+  attempts integer DEFAULT 0 NOT NULL,
+  first_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.conversation_retention_log (
@@ -3404,6 +3455,27 @@ CREATE TABLE IF NOT EXISTS public.email_domain_mx (
   kind text DEFAULT 'unknown'::text NOT NULL,
   hosts text[],
   checked_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.email_open_event (
+  id bigint DEFAULT nextval('email_open_event_id_seq'::regclass) NOT NULL,
+  token text NOT NULL,
+  notification_id bigint NOT NULL,
+  opened_at timestamp with time zone DEFAULT now() NOT NULL,
+  seconds_after_send numeric,
+  user_agent text,
+  ip_hash text,
+  ip_class text,
+  classification text NOT NULL,
+  rule text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.email_open_token (
+  token text NOT NULL,
+  notification_id bigint NOT NULL,
+  lead_id bigint,
+  share_pct integer NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.email_platform_domain (
@@ -5047,7 +5119,10 @@ CREATE TABLE IF NOT EXISTS public.kb_citation_jurisdiction (
 CREATE TABLE IF NOT EXISTS public.kb_embed_inflight (
   request_id bigint NOT NULL,
   chunk_id bigint NOT NULL,
-  queued_at timestamp with time zone DEFAULT now() NOT NULL
+  queued_at timestamp with time zone DEFAULT now() NOT NULL,
+  text_md5 text,
+  failed_at timestamp with time zone,
+  status_code integer
 );
 
 CREATE TABLE IF NOT EXISTS public.kb_embed_priority (
@@ -5924,11 +5999,31 @@ CREATE TABLE IF NOT EXISTS public.marketing_connection_check (
   measured_at timestamp with time zone NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_duty_record (
+  duty text NOT NULL,
+  period date NOT NULL,
+  body jsonb NOT NULL,
+  written_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_duty_run (
   duty text NOT NULL,
   last_started_at timestamp with time zone,
   last_ok_at timestamp with time zone,
   last_result jsonb
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_fact_watch (
+  surface text NOT NULL,
+  url text NOT NULL,
+  expects text[] DEFAULT '{}'::text[] NOT NULL,
+  fact_hash text,
+  request_id bigint,
+  requested_at timestamp with time zone,
+  checked_at timestamp with time zone,
+  carries boolean,
+  missing text[] DEFAULT '{}'::text[] NOT NULL,
+  http_status integer
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_first_touch (
@@ -5985,6 +6080,21 @@ CREATE TABLE IF NOT EXISTS public.marketing_geo_check (
   model text,
   checked_at timestamp with time zone DEFAULT now() NOT NULL,
   competitors_cited text[] DEFAULT '{}'::text[] NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_geo_fix (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  month date NOT NULL,
+  question_id bigint NOT NULL,
+  checks integer NOT NULL,
+  engines text[] NOT NULL,
+  competitors_cited text[] DEFAULT '{}'::text[] NOT NULL,
+  action text NOT NULL,
+  brief text NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  opened_at timestamp with time zone DEFAULT now() NOT NULL,
+  closed_at timestamp with time zone,
+  close_note text
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_geo_question (
@@ -10705,6 +10815,8 @@ ALTER TABLE public.accountant_mailbox_check ADD CONSTRAINT accountant_mailbox_ch
 ALTER TABLE public.accountant_month_close ADD CONSTRAINT accountant_month_close_pkey PRIMARY KEY (month);
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_pkey PRIMARY KEY (vendor);
 ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_pkey PRIMARY KEY (item);
+ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_pkey PRIMARY KEY (key);
+ALTER TABLE public.accountant_reveal_reconcile_run ADD CONSTRAINT accountant_reveal_reconcile_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.accountant_spend_report ADD CONSTRAINT accountant_spend_report_pkey PRIMARY KEY (id);
 ALTER TABLE public.accountant_subscription_paid_from_change ADD CONSTRAINT accountant_subscription_paid_from_change_pkey PRIMARY KEY (vendor, effective_from);
 ALTER TABLE public.accountant_ubo_seen ADD CONSTRAINT accountant_ubo_seen_pkey PRIMARY KEY (lead_id);
@@ -10850,6 +10962,7 @@ ALTER TABLE public.company_charter ADD CONSTRAINT company_charter_pkey PRIMARY K
 ALTER TABLE public.company_constitution ADD CONSTRAINT company_constitution_pkey PRIMARY KEY (article_no);
 ALTER TABLE public.company_event ADD CONSTRAINT company_event_pkey PRIMARY KEY (id);
 ALTER TABLE public.company_faq ADD CONSTRAINT company_faq_pkey PRIMARY KEY (id);
+ALTER TABLE public.company_faq_embed_inflight ADD CONSTRAINT company_faq_embed_inflight_pkey PRIMARY KEY (request_id);
 ALTER TABLE public.company_financial_stance ADD CONSTRAINT company_financial_stance_pkey PRIMARY KEY (id);
 ALTER TABLE public.company_goals ADD CONSTRAINT company_goals_pkey PRIMARY KEY (key);
 ALTER TABLE public.company_index ADD CONSTRAINT company_index_pkey PRIMARY KEY (id);
@@ -10878,6 +10991,7 @@ ALTER TABLE public.control_mode_challenge ADD CONSTRAINT control_mode_challenge_
 ALTER TABLE public.control_mode_identity ADD CONSTRAINT control_mode_identity_pkey PRIMARY KEY (admin_email);
 ALTER TABLE public.control_mode_session ADD CONSTRAINT control_mode_session_pkey PRIMARY KEY (id);
 ALTER TABLE public.conversation_archive ADD CONSTRAINT conversation_archive_pkey PRIMARY KEY (source_table, source_id);
+ALTER TABLE public.conversation_archive_attempt ADD CONSTRAINT conversation_archive_attempt_pkey PRIMARY KEY (source_table, source_id);
 ALTER TABLE public.conversation_retention_log ADD CONSTRAINT conversation_retention_log_pkey PRIMARY KEY (source_table, source_id);
 ALTER TABLE public.conversation_retention_pdf ADD CONSTRAINT conversation_retention_pdf_pkey PRIMARY KEY (source_table, source_id);
 ALTER TABLE public.conversation_retention_plan_log ADD CONSTRAINT conversation_retention_plan_log_pkey PRIMARY KEY (decided_for, source_table, source_id);
@@ -10936,6 +11050,8 @@ ALTER TABLE public.edge_expectation ADD CONSTRAINT edge_expectation_pkey PRIMARY
 ALTER TABLE public.edge_health_probe ADD CONSTRAINT edge_health_probe_pkey PRIMARY KEY (id);
 ALTER TABLE public.email_block_pattern ADD CONSTRAINT email_block_pattern_pkey PRIMARY KEY (id);
 ALTER TABLE public.email_domain_mx ADD CONSTRAINT email_domain_mx_pkey PRIMARY KEY (domain);
+ALTER TABLE public.email_open_event ADD CONSTRAINT email_open_event_pkey PRIMARY KEY (id);
+ALTER TABLE public.email_open_token ADD CONSTRAINT email_open_token_pkey PRIMARY KEY (token);
 ALTER TABLE public.email_platform_domain ADD CONSTRAINT email_platform_domain_pkey PRIMARY KEY (domain);
 ALTER TABLE public.email_suppressions ADD CONSTRAINT email_suppressions_pkey PRIMARY KEY (email);
 ALTER TABLE public.email_verifications ADD CONSTRAINT email_verifications_pkey PRIMARY KEY (id);
@@ -11128,11 +11244,14 @@ ALTER TABLE public.marketing_blog_topic ADD CONSTRAINT marketing_blog_topic_pkey
 ALTER TABLE public.marketing_calendar_resend_decision ADD CONSTRAINT marketing_calendar_resend_decision_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_pkey PRIMARY KEY (check_key);
+ALTER TABLE public.marketing_duty_record ADD CONSTRAINT marketing_duty_record_pkey PRIMARY KEY (duty, period);
 ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_pkey PRIMARY KEY (duty);
+ALTER TABLE public.marketing_fact_watch ADD CONSTRAINT marketing_fact_watch_pkey PRIMARY KEY (surface);
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_gap_recruitment_plan ADD CONSTRAINT marketing_gap_recruitment_plan_pkey PRIMARY KEY (trade, emirate);
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_geo_fix ADD CONSTRAINT marketing_geo_fix_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_pkey PRIMARY KEY (month, platform, metric);
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_pkey PRIMARY KEY (platform, object_id, metric, day);
@@ -11511,6 +11630,7 @@ ALTER TABLE public.doc_versions ADD CONSTRAINT doc_versions_entity_type_entity_i
 ALTER TABLE public.documents ADD CONSTRAINT documents_bucket_path_key UNIQUE (bucket, path);
 ALTER TABLE public.dropbox_files ADD CONSTRAINT dropbox_files_dropbox_id_key UNIQUE (dropbox_id);
 ALTER TABLE public.email_block_pattern ADD CONSTRAINT email_block_pattern_pattern_key UNIQUE (pattern);
+ALTER TABLE public.email_open_token ADD CONSTRAINT email_open_token_notification_id_key UNIQUE (notification_id);
 ALTER TABLE public.email_verifications ADD CONSTRAINT email_verifications_token_key UNIQUE (token);
 ALTER TABLE public.employee_knowledge_standard ADD CONSTRAINT employee_knowledge_standard_layer_key UNIQUE (layer);
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_agent_key_kpi_key UNIQUE (agent_key, kpi);
@@ -11548,6 +11668,7 @@ ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_calendar
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_campaign_key_key UNIQUE (campaign_key);
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_lead_id_key UNIQUE (lead_id);
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_month_question_id_engine_key UNIQUE (month, question_id, engine);
+ALTER TABLE public.marketing_geo_fix ADD CONSTRAINT marketing_geo_fix_month_question_id_key UNIQUE (month, question_id);
 ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_question_key UNIQUE (question);
 ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_ig_id_key UNIQUE (ig_id);
 ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_plan_token_key UNIQUE (plan_token);
@@ -11638,6 +11759,11 @@ ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_usual_day_check CHECK (((usual_day >= 1) AND (usual_day <= 31)));
 ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_basis_check CHECK ((btrim(basis) <> ''::text));
 ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_budget_aed_check CHECK (((budget_aed IS NULL) OR (budget_aed > (0)::numeric)));
+ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_key_check CHECK ((key ~ '^(in|pi)_[A-Za-z0-9_]+$'::text));
+ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_outcome_check CHECK ((outcome = ANY (ARRAY['recovered'::text, 'second_payment'::text, 'refunded'::text, 'refunded_unrecorded'::text, 'failed'::text, 'deferred'::text, 'recorded_elsewhere'::text, 'test_mode_not_demo'::text])));
+ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_quote_id_check CHECK ((btrim(quote_id) <> ''::text));
+ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_source_check CHECK ((source = ANY (ARRAY['invoice'::text, 'payment_intent'::text])));
+ALTER TABLE public.accountant_reveal_reconcile_run ADD CONSTRAINT accountant_reveal_reconcile_run_window_days_check CHECK (((window_days >= 1) AND (window_days <= 90)));
 ALTER TABLE public.accountant_subscription_paid_from_change ADD CONSTRAINT accountant_subscription_paid_from_change_paid_from_check CHECK ((paid_from = ANY (ARRAY['owner_card'::text, 'company_card'::text])));
 ALTER TABLE public.accountant_vat_threshold_check ADD CONSTRAINT accountant_vat_threshold_check_status_check CHECK ((status = ANY (ARRAY['below'::text, 'approaching'::text, 'voluntary_eligible'::text, 'mandatory'::text])));
 ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_status_ck CHECK ((status = ANY (ARRAY['generated'::text, 'pdf_failed'::text, 'partial'::text, 'delivered'::text, 'delivery_failed'::text])));
@@ -11812,7 +11938,7 @@ ALTER TABLE public.company_review_ask ADD CONSTRAINT company_review_ask_status_c
 ALTER TABLE public.company_vision ADD CONSTRAINT company_vision_singleton CHECK ((id = 1));
 ALTER TABLE public.competitor ADD CONSTRAINT competitor_kind_check CHECK ((kind = ANY (ARRAY['marketplace'::text, 'directory'::text, 'tender_portal'::text, 'global_platform'::text, 'incumbent_behaviour'::text, 'adjacent'::text])));
 ALTER TABLE public.competitor ADD CONSTRAINT competitor_threat_level_check CHECK ((threat_level = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
-ALTER TABLE public.competitor_scan ADD CONSTRAINT competitor_scan_page_kind_check CHECK ((page_kind = ANY (ARRAY['home'::text, 'pricing'::text])));
+ALTER TABLE public.competitor_scan ADD CONSTRAINT competitor_scan_page_kind_check CHECK ((page_kind = ANY (ARRAY['home'::text, 'pricing'::text, 'feed'::text])));
 ALTER TABLE public.competitor_scan ADD CONSTRAINT competitor_scan_status_check CHECK ((status = ANY (ARRAY['fetching'::text, 'failed'::text, 'unchanged'::text, 'fetched'::text, 'reasoned'::text])));
 ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_check CHECK (((status <> 'final_response'::text) OR ((final_response_at IS NOT NULL) AND (COALESCE(btrim(final_response), ''::text) <> ''::text))));
 ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_email_check CHECK (((email = lower(email)) AND (email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'::text)));
@@ -11885,6 +12011,10 @@ ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_stat
 ALTER TABLE public.dept_knowledge_alias ADD CONSTRAINT dept_knowledge_alias_alias_kind_check CHECK ((alias_kind = ANY (ARRAY['dept'::text, 'module'::text])));
 ALTER TABLE public.duty_pause ADD CONSTRAINT duty_pause_paused_by_check CHECK ((length(btrim(paused_by)) > 0));
 ALTER TABLE public.duty_pause ADD CONSTRAINT duty_pause_reason_check CHECK ((length(btrim(reason)) > 0));
+ALTER TABLE public.email_open_event ADD CONSTRAINT email_open_event_classification_check CHECK ((classification = ANY (ARRAY['machine_prefetch'::text, 'likely_human'::text, 'unknown'::text])));
+ALTER TABLE public.email_open_event ADD CONSTRAINT email_open_event_ip_class_check CHECK ((ip_class = ANY (ARRAY['apple'::text, 'microsoft_eop'::text])));
+ALTER TABLE public.email_open_token ADD CONSTRAINT email_open_token_share_pct_check CHECK (((share_pct >= 1) AND (share_pct <= 100)));
+ALTER TABLE public.email_open_token ADD CONSTRAINT email_open_token_token_check CHECK ((token ~ '^[0-9a-f]{32}$'::text));
 ALTER TABLE public.email_platform_domain ADD CONSTRAINT email_platform_domain_domain_check CHECK (((domain = lower(btrim(domain))) AND (domain ~~ '%.%'::text)));
 ALTER TABLE public.email_platform_domain ADD CONSTRAINT email_platform_domain_kind_check CHECK ((kind = ANY (ARRAY['directory'::text, 'marketplace'::text, 'job_board'::text, 'publisher'::text, 'hosting'::text, 'site_builder'::text, 'template_vendor'::text, 'web_agency'::text, 'placeholder'::text, 'disposable'::text, 'typo'::text])));
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_class_check CHECK (((kpi_class IS NULL) OR (kpi_class = ANY (ARRAY['activity'::text, 'leading_indicator'::text, 'quality_metric'::text, 'conversion'::text, 'revenue'::text, 'cost'::text, 'risk'::text]))));
@@ -12129,6 +12259,7 @@ ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connectio
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_failure_names_the_need CHECK ((ok OR (btrim(COALESCE(needs, ''::text)) <> ''::text)));
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_platform_check CHECK ((platform = ANY (ARRAY['postiz'::text, 'meta'::text, 'linkedin'::text])));
 ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_duty_check CHECK ((duty = ANY (ARRAY['access'::text, 'insights'::text, 'ad_spend'::text])));
+ALTER TABLE public.marketing_fact_watch ADD CONSTRAINT marketing_fact_watch_url_check CHECK ((url ~ '^https://'::text));
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_landing_path_check CHECK ((landing_path ~ '^/\S{0,200}$'::text));
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_utm_campaign_check CHECK ((utm_campaign ~ '^[A-Za-z0-9._-]{1,100}$'::text));
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_utm_content_check CHECK ((utm_content ~ '^[A-Za-z0-9._-]{1,100}$'::text));
@@ -12142,6 +12273,8 @@ ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_re
 ALTER TABLE public.marketing_gap_recruitment_plan ADD CONSTRAINT marketing_gap_recruitment_plan_check CHECK (((invite_body !~* '(https?://|www\.|\{\{link\}\})'::text) AND (invite_body !~ '[؀-ۿ]'::text) AND (invite_subject !~ '[؀-ۿ]'::text)));
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_engine_check CHECK ((engine = ANY (ARRAY['web'::text, 'model'::text, 'answer_search'::text, 'answer_online'::text])));
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
+ALTER TABLE public.marketing_geo_fix ADD CONSTRAINT marketing_geo_fix_action_check CHECK ((action = ANY (ARRAY['comparison_passage'::text, 'answer_first_service_passage'::text, 'entity_fix'::text])));
+ALTER TABLE public.marketing_geo_fix ADD CONSTRAINT marketing_geo_fix_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text])));
 ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_audience_check CHECK ((audience = ANY (ARRAY['customer'::text, 'supplier'::text])));
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_benchmark_source_check CHECK ((length(btrim(benchmark_source)) >= 20));
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_metric_check CHECK ((metric ~ '^[a-z0-9_]+$'::text));
@@ -12782,6 +12915,8 @@ ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_goal
 ALTER TABLE public.dept_knowledge_alias ADD CONSTRAINT dept_knowledge_alias_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key);
 ALTER TABLE public.doc_reviews ADD CONSTRAINT doc_reviews_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.drawing_redaction_runs ADD CONSTRAINT drawing_redaction_runs_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+ALTER TABLE public.email_open_event ADD CONSTRAINT email_open_event_token_fkey FOREIGN KEY (token) REFERENCES email_open_token(token) ON DELETE CASCADE;
+ALTER TABLE public.email_open_token ADD CONSTRAINT email_open_token_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE;
 ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_domain_key_fkey FOREIGN KEY (domain_key) REFERENCES knowledge_domain(domain_key) ON DELETE CASCADE;
 ALTER TABLE public.employee_knowledge ADD CONSTRAINT employee_knowledge_layer_no_fkey FOREIGN KEY (layer_no) REFERENCES employee_knowledge_standard(layer_no);
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
@@ -13090,6 +13225,8 @@ CREATE INDEX accountant_knowledge_emb_hnsw ON public.accountant_knowledge USING 
 CREATE INDEX accountant_knowledge_epi_idx ON public.accountant_knowledge USING btree (epistemic_status);
 CREATE INDEX accountant_knowledge_search_idx ON public.accountant_knowledge USING gin (search);
 CREATE INDEX accountant_knowledge_type_idx ON public.accountant_knowledge USING btree (record_type);
+CREATE INDEX accountant_reveal_reconcile_item_open_idx ON public.accountant_reveal_reconcile_item USING btree (outcome) WHERE (resolved_at IS NULL);
+CREATE INDEX accountant_reveal_reconcile_run_reported_idx ON public.accountant_reveal_reconcile_run USING btree (reported_at DESC);
 CREATE INDEX accountant_weekly_report_undelivered_idx ON public.accountant_weekly_report USING btree (week_start DESC) WHERE (delivered_at IS NULL);
 CREATE INDEX accountant_weekly_report_week_idx ON public.accountant_weekly_report USING btree (week_start DESC);
 CREATE INDEX acl_cheaper_idx ON public.ai_cost_log USING btree (could_be_cheaper) WHERE could_be_cheaper;
@@ -13159,6 +13296,7 @@ CREATE INDEX ceo_knowledge_search_idx ON public.ceo_knowledge USING gin (search)
 CREATE INDEX ceo_task_open_idx ON public.ceo_task USING btree (state, created_at) WHERE (state = ANY (ARRAY['open'::text, 'working'::text, 'blocked'::text]));
 CREATE INDEX channel_directive_actor_idx ON public.channel_directive USING btree (actor_type, actor_id, created_at DESC);
 CREATE UNIQUE INDEX company_charter_one_active ON public.company_charter USING btree (active) WHERE active;
+CREATE INDEX company_faq_embed_inflight_faq_idx ON public.company_faq_embed_inflight USING btree (faq_id);
 CREATE INDEX company_review_ask_by_customer ON public.company_review_ask USING btree (customer_id);
 CREATE UNIQUE INDEX company_review_ask_one_per_job ON public.company_review_ask USING btree (transaction_id);
 CREATE INDEX competitor_scan_latest ON public.competitor_scan USING btree (competitor_id, page_kind, requested_at DESC);
@@ -13194,6 +13332,9 @@ CREATE INDEX ea_reminders_at ON public.ea_reminders USING btree (remind_at) WHER
 CREATE INDEX edge_health_probe_checked_at_idx ON public.edge_health_probe USING btree (checked_at);
 CREATE INDEX edge_health_probe_fn_idx ON public.edge_health_probe USING btree (fn_key, checked_at DESC);
 CREATE INDEX email_domain_mx_undeliverable_idx ON public.email_domain_mx USING btree (domain) WHERE (has_mx = false);
+CREATE INDEX email_open_event_notification_idx ON public.email_open_event USING btree (notification_id);
+CREATE INDEX email_open_event_token_idx ON public.email_open_event USING btree (token);
+CREATE INDEX email_open_token_lead_idx ON public.email_open_token USING btree (lead_id);
 CREATE INDEX email_verifications_lookup_idx ON public.email_verifications USING btree (email, purpose, used_at, created_at DESC);
 CREATE INDEX employee_kpi_history_agent_idx ON public.employee_kpi_history USING btree (agent_key, measured_on DESC);
 CREATE UNIQUE INDEX employee_kpi_history_one_per_day ON public.employee_kpi_history USING btree (kpi_id, measured_on);
@@ -13656,6 +13797,7 @@ CREATE UNIQUE INDEX uq_doc_backups_dedupe ON public.doc_backups USING btree (ded
 CREATE UNIQUE INDEX uq_expense_entries_source_msg ON public.expense_entries USING btree (source_msg_id);
 CREATE UNIQUE INDEX uq_leads_email_lower ON public.leads USING btree (lower(email)) WHERE ((email IS NOT NULL) AND (email <> ''::text));
 CREATE UNIQUE INDEX ux_company_event_dedupe ON public.company_event USING btree (dedupe_key) WHERE (dedupe_key IS NOT NULL);
+CREATE INDEX wa_answer_log_pending_cancel ON public.wa_answer_log USING btree (identity_id, id DESC) WHERE (intent_key = 'cancel_request'::text);
 CREATE INDEX wa_answer_log_unmatched ON public.wa_answer_log USING btree (received_at DESC) WHERE (NOT matched);
 CREATE INDEX wa_conversation_open ON public.wa_conversation USING btree (last_seen_at DESC) WHERE (thread_state <> 'resolved'::text);
 CREATE INDEX wa_document_intake_lead ON public.wa_document_intake USING btree (lead_id, received_at DESC);

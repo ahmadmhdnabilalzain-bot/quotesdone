@@ -25,7 +25,7 @@ function Ring({ done, total, lang }: { done: number; total: number; lang: Lang }
   const R = 44, C = 2 * Math.PI * R;
   const frac = total ? done / total : 0;
   return (
-    <div className="relative h-[112px] w-[112px] shrink-0" role="img"
+    <div className="relative h-beat w-beat shrink-0" role="img"
       aria-label={lang === 'ar' ? `اكتملت ${done} من ${total} خطوات` : `${done} of ${total} steps complete`}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
         <defs>
@@ -43,8 +43,8 @@ function Ring({ done, total, lang }: { done: number; total: number; lang: Lang }
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">
         <div>
-          <div className="font-[family-name:var(--font-head)] text-[26px] font-extrabold leading-none text-foreground tabular-nums">{done}<span className="text-[15px] text-muted-foreground">/{total}</span></div>
-          <div className="mt-1 text-[10.5px] font-semibold uppercase tracking-[.1em] text-muted-foreground">{lang === 'ar' ? 'خطوات' : 'steps'}</div>
+          <div className="font-head text-[26px] font-extrabold leading-none text-foreground tabular-nums">{done}<span className="text-[15px] text-muted-foreground">/{total}</span></div>
+          <div className="mt-1 text-[10.5px] font-semibold uppercase tracking-widest text-muted-foreground">{lang === 'ar' ? 'خطوات' : 'steps'}</div>
         </div>
       </div>
     </div>
@@ -119,7 +119,7 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
           state: s.done ? 'done' : s === next ? 'current' : 'next',
           title: (
             <button type="button" disabled={s.done} onClick={() => go(s.fix)}
-              className={cn('inline-flex min-h-11 items-center rounded-sm text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              className={cn('inline-flex min-h-11 items-center rounded-sm text-start transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                 s.done ? 'cursor-default text-muted-foreground line-through decoration-white/20' : 'hover:text-primary')}>
               {s.label}
               <span className="sr-only">{s.done ? (ar ? ' — مكتمل' : ' — done') : (ar ? ' — مطلوب' : ' — to do')}</span>

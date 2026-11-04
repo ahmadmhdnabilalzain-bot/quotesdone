@@ -104,7 +104,7 @@ function Bars({ rows, lang }: { rows: { name: string; count: number }[]; lang: L
           </div>
           <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-400 to-sky-400 transition-all duration-700"
+              className="h-full rounded-full bg-linear-to-r from-indigo-400 to-sky-400 transition-all duration-700"
               style={{ width: Math.max(2, (r.count / max) * 100) + '%' }}
             />
           </div>
@@ -118,7 +118,7 @@ function Bars({ rows, lang }: { rows: { name: string; count: number }[]; lang: L
 // decided in exactly one place on the surface, the same way the routine decides it in one place.
 function Figure({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+    <div className="rounded-xl border border-white/10 bg-white/2 px-3 py-2.5">
       <div className="text-[11px] opacity-60 mb-1">{label}</div>
       {children}
     </div>
@@ -128,7 +128,7 @@ function Figure({ label, children }: { label: string; children: React.ReactNode 
 // A figure the platform cannot compute yet. Shown, not hidden — and never filled in.
 function Unavailable({ label, b, lang }: { label: string; b?: Blocked; lang: Lang }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+    <div className="rounded-xl border border-white/10 bg-white/2 px-3 py-2.5">
       <div className="flex justify-between items-baseline gap-2">
         <span className="text-[11px] opacity-60">{label}</span>
         <span className="text-[11px] opacity-40">{t(lang, 'notAvailable')}</span>
@@ -170,11 +170,11 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
       {/* A demo fixture must never be able to read its own figures as live trading. The routine
           says which population it computed over; the surface says so out loud. */}
       {m.population === 'demo' && (
-        <p className="rounded-xl border border-warn/25 bg-warn/[0.06] px-3 py-2 text-[11px] leading-snug text-warn-fg/80">
+        <p className="rounded-xl border border-warn/25 bg-warn/6 px-3 py-2 text-[11px] leading-snug text-warn-fg/80">
           {t(lang, 'demoBanner')}
         </p>
       )}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline mb-3">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'title')}</h3>
           {(m.trades || []).length > 0
@@ -202,7 +202,7 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
         )}
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <h3 className="text-xs uppercase tracking-wide opacity-60 mb-3">{t(lang, 'composition')}</h3>
         <Bars rows={byEm} lang={lang} />
         {segs.length > 0 && (
@@ -216,7 +216,7 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
           Each figure renders its real value when the routine computed one, and its reason when the
           routine refused. The decision is the routine's `available` flag in every case: the surface
           never decides for itself that a number is good enough to show. */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 space-y-2">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4 space-y-2">
         {trend?.available ? (
           <Figure label={t(lang, 'demandTrend') + (trend.category ? ' · ' + trend.category : '')}>
             <div className="flex items-baseline gap-2">

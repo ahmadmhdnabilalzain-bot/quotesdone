@@ -37,7 +37,7 @@ function ConfirmDialog({ lang, req, onClose }) {
   return (
     <AnimatePresence>
       {req && (
-        <M.div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-background/80 p-4"
+        <M.div className="fixed inset-0 z-70 grid place-items-center overflow-y-auto bg-background/80 p-4"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.16 }}
           onClick={() => onClose(false)} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
           <M.div role="alertdialog" aria-modal="true" aria-labelledby="qd-confirm-title" aria-describedby="qd-confirm-body"
@@ -45,7 +45,7 @@ function ConfirmDialog({ lang, req, onClose }) {
             initial={reduce ? false : { opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduce ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: reduce ? 0 : 0.2, ease: [0.2, 0.8, 0.2, 1] }}
             onClick={(e) => e.stopPropagation()}>
-            <div className={cn('h-px w-full', req.reveal ? 'bg-gradient-to-r from-transparent via-accent/70 to-transparent' : req.danger ? 'bg-gradient-to-r from-transparent via-danger/70 to-transparent' : 'bg-gradient-to-r from-transparent via-primary/70 to-transparent')} aria-hidden />
+            <div className={cn('h-px w-full', req.reveal ? 'bg-linear-to-r from-transparent via-accent/70 to-transparent' : req.danger ? 'bg-linear-to-r from-transparent via-danger/70 to-transparent' : 'bg-linear-to-r from-transparent via-primary/70 to-transparent')} aria-hidden />
             <div className="p-5 sm:p-6">
               <h2 id="qd-confirm-title" className="font-head text-[18px] font-semibold tracking-snug">{req.title || t(lang, 'dlg_confirm')}</h2>
               <p id="qd-confirm-body" className="mt-2 text-copy leading-relaxed text-muted-foreground">{req.body}</p>

@@ -93,3 +93,20 @@ Deno.test('cutOperators removes an operator with its operands and keeps the line
   assert(!out.src.includes('ZZ DEMO') && !out.src.includes('gone') && !out.src.includes('Im1'), out.src);
   assert(out.src.includes('(keep) Tj') && out.src.includes('T*') && out.src.includes('0 0 m 5 5 l S'), out.src);
 });
+
+// 3 Nov 2026 (scripts/e2e/identity_never_leaks_before_reveal.mjs): a logo or a signature laid ACROSS the title
+// strip's edge was kept, because only an image wholly inside the strip was cut. 6 of 60 anonymised PDFs showed one.
+Deno.test('an image touching the title strip is cut; a drawing-sized one straddling it holds the file', () => {
+  const strip = { x: 0.816, y: 0, w: 0.184, h: 1 };
+  // deno-lint-ignore no-explicit-any
+  const page = (im: any) => ({ width: 1684, height: 1191, rotate: 0, runs: [], images: [im] }) as never;
+  const logo = { x: 0.80, y: 0.03, w: 0.10, h: 0.06, px: 250, py: 100, at: 'p:7', name: 'Im1' };
+  const cut = cutPlan([{ num: 9, page: page(logo) }], [[]], [[strip]], [page(logo)], []);
+  assert(cut.ok && cut.counts.removedImages === 1 && cut.dropImg.get('p9')?.has('Im1'), JSON.stringify(cut));
+  const plan = { ...logo, x: 0.40, w: 0.50, h: 0.80, px: 2000, py: 2000 };
+  const held = cutPlan([{ num: 9, page: page(plan) }], [[]], [[strip]], [page(plan)], []);
+  assertEquals(held.ok ? 'cut' : held.held, 'image_straddles_title_block');
+  const away = { ...logo, x: 0.30 };
+  const kept = cutPlan([{ num: 9, page: page(away) }], [[]], [[strip]], [page(away)], []);
+  assert(kept.ok && kept.counts.removedImages === 0);
+});

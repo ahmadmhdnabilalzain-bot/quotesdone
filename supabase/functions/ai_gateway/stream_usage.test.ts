@@ -1,7 +1,25 @@
 // The streamed call's usage is read from OpenRouter's final SSE chunk, bytes pass through unchanged, and an
 // abandoned stream cancels upstream. No network.
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { cacheTokens, tapUsage, type StreamSeen } from './stream_usage.ts';
+import { cacheTokens, generationUsage, tapUsage, type StreamSeen } from './stream_usage.ts';
+
+Deno.test("a stream with no usage chunk is priced from OpenRouter's generation record; one that never answers stays unknown", async () => {
+  let calls = 0;
+  const f = (async (url: string) => {
+    calls++;
+    assert(String(url).includes('generation?id=gen-9'));
+    if (calls === 1) return new Response('{}', { status: 404 });      // not written yet: asked again
+    return new Response(JSON.stringify({ data: { native_tokens_prompt: 21000, native_tokens_completion: 180, native_tokens_cached: 20000, total_cost: 0.0042 } }));
+  }) as unknown as typeof fetch;
+  const u = await generationUsage('gen-9', 'k', f, 3, 0);
+  assertEquals(calls, 2);
+  assertEquals(u?.prompt_tokens, 21000);
+  assertEquals(u?.completion_tokens, 180);
+  assertEquals(u?.cost, 0.0042);
+  assertEquals(cacheTokens(u).cachedIn, 20000);
+  const never = (async () => new Response('{}', { status: 404 })) as unknown as typeof fetch;
+  assertEquals(await generationUsage('gen-9', 'k', never, 2, 0), null);
+});
 
 const enc = new TextEncoder();
 const CHUNKS = [

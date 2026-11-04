@@ -159,7 +159,7 @@
   "category": "supplier-journey",
   "question": "What does a supplier need to do to join QuotesDone?",
   "agent_key": null,
-  "reference": "Submit a trade licence (the only required document, OCR-verified), verify their mobile via SMS, complete a company profile, and accept the terms; approval follows within 3 working days."
+  "reference": "Complete the mandatory six: the licensed company name, a UAE mobile verified with a code, a verified work email, the trade licence (uploaded), the company profile (uploaded) and acceptance of the Supplier Agreement; approval follows within 3 working days of complete documents, automatically once the licence is read and in date and the supplier has confirmed the services it provides; until it confirms them it is held, and a licence from a foreign or unconfirmed issuing authority is held too."
  },
  {
   "id": 19,
@@ -339,7 +339,7 @@
   "category": "verification",
   "question": "What document must a supplier provide to be verified?",
   "agent_key": null,
-  "reference": "A trade licence; it is the only required document and is OCR-verified."
+  "reference": "Two documents are required: the trade licence and the company profile, both uploaded. The licence number, issuing authority and expiry date are read from the licence and checked."
  },
  {
   "id": 39,

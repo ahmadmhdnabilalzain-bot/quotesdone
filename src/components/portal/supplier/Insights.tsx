@@ -105,7 +105,7 @@ export default function Insights({ token, lang, goTo, initial }: { token: string
         {st.avail.map((k) => (
           <button key={k} type="button" aria-current={sel === k ? 'page' : undefined} onClick={() => setSel(k)}
             className={cn('inline-flex min-h-11 min-w-11 items-center justify-center rounded-chip border px-3 py-1.5 text-[12.5px] font-medium transition-colors',
-              sel === k ? 'border-primary/60 bg-primary/15 text-primary' : 'border-[var(--line)] text-muted-foreground hover:border-primary/40')}>
+              sel === k ? 'border-primary/60 bg-primary/15 text-primary' : 'border-(--line) text-muted-foreground hover:border-primary/40')}>
             {ar ? PANELS[k].ar : PANELS[k].en}
           </button>
         ))}
