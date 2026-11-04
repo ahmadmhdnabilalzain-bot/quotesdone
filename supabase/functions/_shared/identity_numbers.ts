@@ -17,7 +17,12 @@
 const D = '[\\d٠-٩]';
 export const TRN_LABELLED = new RegExp(`(?:\\bTRN\\b|\\bT\\.R\\.N\\.?|Tax\\s*Registration\\s*(?:No\\.?|Number|#)?|VAT\\s*(?:Reg(?:istration)?\\.?\\s*)?(?:No\\.?|Number|#|ID)|VAT\\s*Reg(?:istration)?\\.?|رقم\\s*التسجيل\\s*الضريبي|الرقم\\s*الضريبي|رقم\\s*ضريبي|الرقم\\s*الضريبى)\\s*[:：#.\\-]?\\s*${D}(?:[\\s\\-]?${D}){11,16}`, 'gi');
 export const TRN_BARE = new RegExp(`(?<![\\d٠-٩])[1١][\\s\\-]?[0٠][\\s\\-]?[0٠](?:[\\s\\-]?${D}){12}(?![\\d٠-٩])`, 'g');
-export const LICENCE_NO = /(?:(?:trade|commercial|business|industrial)\s*licen[cs]e|\blicen[cs]e|\bCR\b|commercial\s*reg(?:istration|\.)?|company\s*reg(?:istration|\.)?|\bregistration)(?:\s*(?:no\.?|number|#)\s*[:：#.\-]?|\s*[:：#\-])\s*[A-Z0-9][A-Z0-9\-\/]{3,}|(?:رقم\s*(?:الرخصة\s*التجارية|الرخصه\s*التجاريه|الرخصة|الرخصه|الترخيص|السجل\s*التجاري))\s*[:：]?\s*[A-Z0-9٠-٩][\w\-\/٠-٩]{2,}/gi;
+// 3 Nov 2026 (second review of #1838): "رخصة تجارية رقم ١٢٣٤٥٦" and "السجل التجاري 765432" — the number AFTER the
+// licence or register, with or without رقم — passed every scrubber; only "رقم الرخصة …" (the number word first) was read;
+// and "رخصة رقم 123456" / "ترخيص رقم 123456". The adversarial re-review: the English value took any 4 letters ("License:
+// Included", "Software License: Perpetual", "Vehicle registration: required") — a number carries at least four digits
+// now — and the Arabic one read a year ("تجديد الرخصة التجارية 2026"): it needs five.
+export const LICENCE_NO = /(?:(?:trade|commercial|business|industrial)\s*licen[cs]e|\blicen[cs]e|\bCR\b|commercial\s*reg(?:istration|\.)?|company\s*reg(?:istration|\.)?|\bregistration)(?:\s*(?:no\.?|number|#)\s*[:：#.\-]?|\s*[:：#\-])\s*(?=(?:[A-Z\-\/]*\d){4})[A-Z0-9][A-Z0-9\-\/]{3,}|(?:رقم\s*(?:الرخصة\s*التجارية|الرخصه\s*التجاريه|الرخصة|الرخصه|الترخيص|السجل\s*التجاري))\s*[:：]?\s*[A-Z0-9٠-٩][\w\-\/٠-٩]{2,}|(?:(?:ال)?رخص[ةه]\s*(?:ال)?تجاري[ةه]|(?:ال)?سجل\s*(?:ال)?تجاري)(?:\s*رقم)?\s*[:：#]?\s*[0-9٠-٩][0-9٠-٩\-\/]{4,}|(?:(?:ال)?رخص[ةه]|(?:ال)?ترخيص)\s*رقم\s*[:：#]?\s*[0-9٠-٩][0-9٠-٩\-\/]{3,}/gi;
 
 const digits = (s: string) => s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/\D/g, '');
 

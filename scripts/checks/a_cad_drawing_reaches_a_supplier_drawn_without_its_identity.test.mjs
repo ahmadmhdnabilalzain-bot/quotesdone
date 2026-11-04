@@ -90,8 +90,9 @@ test('a drawing journey\'s lines become report steps the sales engineer owns; a 
 
 test('the CAD journeys expect the preview page AND the anonymised file #1056 records beside it', async () => {
   // Nightly 18 Oct 2026: both CAD journeys failed "one recorded page" on a correct run (redaction_complete true,
-  // 2 paths: <prefix>_p0.jpg + <prefix>_drawing.dxf). redactCad pushes the file path after the preview.
-  assert.match(between(api, 'async function redactCad(', 'async function redactFile('), /if \(f\) \{ redacted\.push\(f\.path\)/, 'the anonymised file no longer rides beside the preview; revisit cad_redacted_paths.mjs');
+  // 2 paths: <prefix>_p0.jpg + <prefix>_drawing.dxf). redactCad pushes the file path after the preview. Since 3 Nov 2026
+  // redactFile can also answer a HOLD ({ held }), so the push is guarded by 'path' in f: the same file, the same push.
+  assert.match(between(api, 'async function redactCad(', 'async function redactFile('), /if \(f(?: && 'path' in f)?\) \{ redacted\.push\(f\.path\)/, 'the anonymised file no longer rides beside the preview; revisit cad_redacted_paths.mjs');
   const { cadRedactionShape } = await import('../e2e/cad_redacted_paths.mjs');
   assert.ok(cadRedactionShape(['redacted/a_p0.jpg', 'redacted/a_drawing.dxf']).ok, 'preview + anonymised file is the correct shape');
   assert.ok(cadRedactionShape(['redacted/a_p0.jpg']).ok, 'a preview whose file was held is still correct');

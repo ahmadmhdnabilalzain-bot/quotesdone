@@ -1,0 +1,21 @@
+{
+ "judge": "an independent Claude (Sonnet) session on the subscription, read-only, given knowledge/brief/company.md and the packet from `conversation_quality.mjs judge-packet`; no USD spend",
+ "calibration": { "items": 16, "agreed_with_labels": 16, "note": "cal0..cal15 answered blind; every even item clean, every odd item hallucinated, exactly as LABELLED" },
+ "runs": "A = 08-43-38 run 1; B..E = 08-49-07 runs 1..4 (the harness's grade command numbers them #1..#5)",
+ "hallucinated_turns": [
+  { "conv": "A", "turn": 1, "phrase": "so you won't need to repeat anything", "severity": "low", "why": "an unsupported promise about the hand-off" },
+  { "conv": "B", "turn": 4, "phrase": "تم تسجيل ملاحظتكم: الزجاج 8 مم بدلاً من 6 مم", "severity": "high", "why": "claims the change was recorded, then says the widget cannot take job details (also in Arabic for an English inquiry)" },
+  { "conv": "D", "turn": 4, "phrase": "تم تسجيل ذلك", "severity": "high", "why": "the same false claim of recording" },
+  { "conv": "D", "turn": 7, "phrase": "Our trader licence is a home-registered digital business that doesn't receive customers at its address", "severity": "high", "why": "invented licence type and premises; also cites 'the brief'" },
+  { "conv": "E", "turn": 6, "phrase": "refunded to your original payment method", "severity": "low", "why": "not stated by the canon" },
+  { "conv": "E", "turn": 7, "phrase": "suppliers quote from the scope and quantities instead", "severity": "low", "why": "not stated by the canon" }
+ ],
+ "tone_or_deferral_failures": [
+  { "conv": "B", "turn": 10, "why": "a person was asked for (capped turn); no published contact given" },
+  { "conv": "C", "turn": 10, "why": "the same" },
+  { "conv": "D", "turn": 10, "why": "the same" },
+  { "conv": "E", "turn": 10, "why": "the same" },
+  { "conv": "D", "turn": 7, "why": "exposes internal wording ('the brief doesn't give a public address') and invents a licence rationale" }
+ ],
+ "also_correct": "every edit-window mention says 1 hour (the product's figure); no reply names a supplier; the published WhatsApp line and hours are correct everywhere they appear"
+}

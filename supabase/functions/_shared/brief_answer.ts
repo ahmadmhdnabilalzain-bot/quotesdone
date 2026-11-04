@@ -33,6 +33,7 @@ export interface BriefCall {
   brief: string; sys: string; input: Msg[]; max: number;
   rateKey?: string; rateLimit?: number; subject?: Record<string, unknown>;
   check?: (text: string) => string[];   // more rules around the words (the reply guard); each problem is named to the model
+  checkWhole?: (text: string) => string[];   // rules for the finished answer only, never one streamed sentence (the reply's language: a published contact line or an English spec inside an Arabic reply is one sentence in the other script)
   images?: string[];   // photos or drawings with the latest message (chat_images.acceptImages); the gateway routes to a vision model (ruling 1200)
   deadline?: number;   // epoch ms by which the answer must be settled; no call starts after it (3. above)
   // 5. DROPS WHAT NOBODY ASKED FOR (customer_support, 27 Oct 2026; sales_engineer/portal_conversation.ts). A fresh filter per
@@ -170,7 +171,7 @@ async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: st
   if (finish === 'length') return { text: (shown + pending).trim(), model, bad: ['it was cut off by the length limit; write the whole answer again, complete and shorter'], answered: true };
   if (pending.trim()) { const bad = check(pending); if (bad.length) return { text: shown + pending, model, bad }; }
   // the whole reply: a stated reveal fee must also say no card fee and no VAT (checked once the reply is complete)
-  const whole = revealFeeIncomplete(shown);
+  const whole = [...revealFeeIncomplete(shown), ...(c.checkWhole?.(shown.trim()) ?? [])];
   if (shown.trim() && whole.length) return { text: shown.trim(), model, bad: whole };
   if (!shown.trim() && raw.trim()) return { text: raw.trim(), model, bad: [NOTHING_LEFT] };
   const end = dropOf?.end?.();
@@ -196,7 +197,7 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
     if (r.text) { answered = true; lastDraft = r.text; lastBad = bad; lastModel = r.model; return; }
     failures.push(r);
   };
-  const whole = (t: string) => [...problems(c, t, known), ...revealFeeIncomplete(t)];
+  const whole = (t: string) => [...problems(c, t, known), ...revealFeeIncomplete(t), ...(c.checkWhole?.(t) ?? [])];
   const dropped: string[] = [];
   const s = await streamed(f, c, known, emit, dropped);
   seen(s, s.bad);

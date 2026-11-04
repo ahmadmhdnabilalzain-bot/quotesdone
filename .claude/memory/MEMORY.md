@@ -87,6 +87,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 - [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
 ## Working the estate
+- [Identity shapes live in one list (3 Nov)](identity-shapes-live-in-one-list.md) — every scrubber runs _shared/identity_text.ts; measure with identity_never_leaks_before_reveal.mjs (480 trials)
 - [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
 - [The otp-race step runs on a throwaway Postgres in the cloud container (28 Oct)](the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container.md) — no Docker daemon, but Postgres 16 is installed; run it as the postgres user and set QD_OTP_RACE_PG
 - [npm ci in a worktree empties the shared node_modules (27 Oct)](npm-ci-in-a-worktree-empties-the-shared-node-modules.md) — install only in the main checkout
@@ -183,3 +184,4 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A later SQL file can silently delete a rule](a-later-sql-file-can-silently-delete-a-rule.md): diff every routine against live before merge
 - [A founder ruling is not a defect to fix](a-founder-ruling-is-not-a-defect-to-fix.md): read the ledger before changing a pinned check
 - [The automatic apply's language](an-automatic-apply-and-a-probe-must-speak-its-language.md): PROBE OK wording, seat, from=, mirror regen
+- [Conversation quality eval and its limits](conversation-quality-eval-and-its-limits.md): 3 Nov; widget 5 convs/IP/day; the canon is the product, not the brief
