@@ -16,9 +16,10 @@
 //     (openrouter_down.ts) — the only case a caller may send a code-written fallback (founder_instruction 1339).
 // Suppliers are always answered in English; everyone else in their language.
 // prevented by: _shared/ai_reply.test.ts
-import { briefNumbers, companyBrief, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
+import { briefNumbers, companyBrief, conversationTrade, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
 import { fitHistory } from './chat_history.ts';
+import { replyLanguageProblems } from './chat_answers.ts';
 import { isOpenRouterDown } from './openrouter_down.ts';
 import { EVASION, substanceWords, type LlmReply, type Seat, type ThinkDeps, type Turn } from './think.ts';
 
@@ -60,9 +61,20 @@ export interface AiReplyRequest {
   effort?: 'low' | 'medium' | 'high'; // reasoning effort asked of the model
   signal?: AbortSignal;     // the caller no longer wants the answer (a discarded speculative draft): the call in flight is aborted and none starts
   extraCheck?: (text: string) => string[]; // the caller's own rules (the portal's plain-language gate, English for suppliers)
-  // false: the company brief (~140k tokens) is NOT sent, only the rules and the caller's facts; every draft is still checked
+  // false: the company brief (21-40k tokens since 3 Nov 2026; ~140k before) is NOT sent, only the rules and the caller's facts; every draft is still checked
   // against the brief. WhatsApp's last chance (model_says.ts) uses it: a short prompt answers in seconds, not 10-15 s.
   briefInPrompt?: boolean;
+  // THE ONE TRADE PACK (company_brief.ts, 3 Nov 2026): the category code the caller resolved for this conversation. Absent:
+  // read by code from the other party's own words (company_brief.ts conversationTrade: sticky). null: none.
+  trade?: string | null;
+}
+/** The trade pack a reply carries: the caller's own, else the first trade the other party named in its recent turns,
+ *  then the message, then the facts (company_brief.ts conversationTrade). */
+export function replyTrade(r: Pick<AiReplyRequest, 'trade' | 'message' | 'conversation' | 'facts' | 'audience'>): string | null {
+  if (r.trade !== undefined) return r.trade;
+  // a supplier speaks about the inquiry the facts describe (supplier_api's quotation chat): its trade comes first (review)
+  if (r.audience === 'supplier') { const f = conversationTrade('', [], r.facts); if (f) return f; }
+  return conversationTrade(r.message, (r.conversation ?? []).filter((t) => t.role !== 'seat').map((t) => t.text), r.facts);
 }
 /** outage: no call reached a model — every one failed with a network error, 5xx, timeout/deadline or an open circuit
  *  (openrouter_down.ts). Only then may a caller send its code-written fallback (founder_instruction 1339). */
@@ -201,16 +213,19 @@ const actionOf = (r: AiReplyRequest, content: string | null | undefined): string
 
 export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiReply> {
   const replyLang: 'en' | 'ar' = r.audience === 'supplier' ? 'en' : r.lang;
-  const brief = await companyBrief(deps.rpc, [], '', replyLang, r.blocks ?? []);
+  const brief = await companyBrief(deps.rpc, [], '', replyLang, r.blocks ?? [], undefined, { trade: replyTrade(r), supplier: r.audience === 'supplier' });
   const allowed = figureSource(brief) + '\n' + (r.facts ?? '') + '\n' + aiSystem(r, replyLang);   // the published contact is in the rules
   const known = briefNumbers(allowed);
   const must = (r.must ?? []).map((m) => String(m || '').trim()).filter(Boolean);
   // A SUPPLIER IS ANSWERED IN ENGLISH, CHECKED, NOT ONLY ASKED (ruling 1008). Run 41554788700: a supplier's Arabic question got
   // two Sonnet drafts and then an other-family reply written in Arabic, and it was sent (47.8 s). Prevented by: ai_reply.test.ts.
-  const english = (t: string) => r.audience === 'supplier' && /[؀-ۿ]/.test(t) ? ['it is not in English (a supplier is always answered in English)'] : [];
+  // and everyone else in the language of the conversation, checked too (3 Nov 2026, chat_answers.replyLanguageProblems)
+  const english = (t: string) => r.audience === 'supplier' ? (/[\u0600-\u06FF]/.test(t) ? ['it is not in English (a supplier is always answered in English)'] : [])
+    : replyLanguageProblems(t, replyLang);
   const check = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []), ...english(t),
     ...must.filter((m) => !t.includes(m)).map((m) => 'it leaves out "' + m + '", which must appear exactly as given')];
-  const sentenceCheck = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []), ...english(t)];
+  // per sentence only a supplier's Arabic is refused (ruling 1008); the conversation's language is a whole-reply rule (review of #1830)
+  const sentenceCheck = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []), ...(r.audience === 'supplier' ? english(t) : [])];
   // THE WHOLE CONVERSATION (chat_history.ts, 18 Oct 2026): it was cut to the last 8 turns here. Every turn now rides as a
   // real message before this one, cached by the gateway; the facts, which can change per turn, follow the history so the
   // cached prefix (brief, rules, earlier turns) stays byte-identical from one turn to the next.

@@ -51,7 +51,10 @@ jobs:
     # journey + 3 teardown + 2) + drawings 38 (3 x 12 + 2 for closing a killed child) + report 3 + quote review 10
     # (measured 6.3 min on 18 Oct) = 126, + checkout/setup ~1 = 127; window close 3 + verdict ~0 = 130; wall 133.
     # A step that hits its ceiling is cancelled, its outcome is 'failure', and the verdict below reports it red.
-    timeout-minutes: 133
+    # 3 Nov 2026 (sales_engineer): quote review 10 -> 16 and the wall 133 -> 139. Branch run 41623020490 hit the 10-minute
+    # ceiling: two devices, each waiting on model-written engineer turns (up to 90 s each, re-asked when unanswered), and
+    # the journey now also presses Submit after Generate.
+    timeout-minutes: 139
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_E2E_REPORTS: e2e-out
@@ -112,9 +115,21 @@ jobs:
         if: steps.gate.outputs.skip != '1'
         run: node scripts/e2e/supplier_quote_review.mjs
         continue-on-error: true
-        timeout-minutes: 10
+        timeout-minutes: 16
         env:
           QD_SHOTS: e2e-out/quote-review
+      # THE SCREENSHOTS LEAVE THE RUNNER (3 Nov 2026, sales_engineer). Runs 41598217377 and 41623020490 failed in the
+      # quotation review with no artifact at all, so nobody could see what the screen showed. ZZ DEMO screens only; kept 7 days.
+      - if: always() && steps.gate.outputs.skip != '1'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nightly-journey-screens
+          # screenshots only: the reports carry signed storage links, which stay on the runner
+          path: |
+            e2e-out/**/*.png
+            e2e-out/**/*.jpg
+          retention-days: 7
+          if-no-files-found: ignore
       # A WINDOW THIS JOB OPENED NEVER OUTLIVES IT (18 Oct 2026). 13-18 Oct a drawing journey killed at its ceiling left
       # its qd_run window open past expires_at every night, and every harness run (stage2 included) refused to start.
       # Runs even when a step failed or the job was cancelled; touches only the tags this job wrote to QD_E2E_RUN_TAGS.

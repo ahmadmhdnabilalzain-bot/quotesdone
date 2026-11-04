@@ -50,6 +50,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Phase freezes removed](phase-freezes-removed-totally.md) · [Never raise OpenRouter again](never-raise-openrouter-again.md) · [All limits lifted except OpenRouter](all-founder-system-limits-lifted-except-openrouter.md) — deterministic-first is the architecture
 - [Mirror gates are retired](mirror-gates-are-retired.md) — production proves properties; never --emit a CSV to green a check
 - [WhatsApp is the founder's command channel](whatsapp-founder-command-channel.md)
+- [The founder channel is proved end to end (3 Nov)](the-founder-command-channel-is-proved-end-to-end.md) — gap #10: signed-POST e2e + local-Postgres SQL proof; whole-number founder check applies at merge; ruling 777 over the matrix wording
 - [Founder mail goes through founder_mail_policy](founder-mail-goes-through-founder-mail-policy.md) — fn_notify_founder needs p_kind
 - [The estate could not email a file](the-estate-could-not-email-a-file.md) — fixed 9 Sep: notifications.attachments + send_outbox v43
 - [Founder's landline and mobile](founder-landline-and-mobile.md) — 2 Nov: no longer public (ledger 1482)
@@ -87,8 +88,10 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 - [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
 ## Working the estate
+- [Identity shapes live in one list (3 Nov)](identity-shapes-live-in-one-list.md) — every scrubber runs _shared/identity_text.ts; measure with identity_never_leaks_before_reveal.mjs (480 trials)
 - [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
 - [The otp-race step runs on a throwaway Postgres in the cloud container (28 Oct)](the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container.md) — no Docker daemon, but Postgres 16 is installed; run it as the postgres user and set QD_OTP_RACE_PG
+- [A probe can run locally on a stub built from the mirror (3 Nov)](a-probe-can-run-locally-on-a-stub-built-from-the-mirror.md) — no token: copy the real routine bodies out of full_schema, stub net/roles, run `begin; file; probe; rollback;`; caught a now()-tie defect before the push
 - [npm ci in a worktree empties the shared node_modules (27 Oct)](npm-ci-in-a-worktree-empties-the-shared-node-modules.md) — install only in the main checkout
 - [A branch can silently revert main (27 Oct)](a-branch-can-silently-revert-main.md) — #1672; review the whole diff against main
 - [Diff SQL against live production, not the mirror (27 Oct)](diff-sql-against-live-production-not-the-mirror.md) — #1660 nearly reverted #1644's live code
@@ -151,6 +154,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 ## State of the build
+- [CHECKPOINT 3 Nov — hand-over for the week of 4 Nov](checkpoint-3-nov-handover-week-of-4-nov.md) — READ FIRST: invitations exclude Yahoo/Microsoft (make it explicit), what went live 3 Nov, every open PR and its next step
 - [CHECKPOINT 2 Nov — founder's 10-hour push](checkpoint-2-nov-10-hour-push.md) — READ FIRST: rulings 1437-1458, what is live, the PR queue, Al Gouri, deadlines
 - [CHECKPOINT 27 Oct night — merge train and the held queue](checkpoint-27-oct-night-merge-train-and-the-held-queue.md) — READ FIRST: 25 PRs live, parity 78/0; resilience_ping chain CPU→fan-out→itlater→newest-first queue; #1693 code not yet deployed; November plan at risk; open list
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
@@ -182,3 +186,4 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A later SQL file can silently delete a rule](a-later-sql-file-can-silently-delete-a-rule.md): diff every routine against live before merge
 - [A founder ruling is not a defect to fix](a-founder-ruling-is-not-a-defect-to-fix.md): read the ledger before changing a pinned check
 - [The automatic apply's language](an-automatic-apply-and-a-probe-must-speak-its-language.md): PROBE OK wording, seat, from=, mirror regen
+- [Conversation quality eval and its limits](conversation-quality-eval-and-its-limits.md): 3 Nov; widget 5 convs/IP/day; the canon is the product, not the brief

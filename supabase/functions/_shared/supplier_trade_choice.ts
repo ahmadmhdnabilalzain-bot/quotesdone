@@ -127,6 +127,35 @@ export function majority(rs: Extract<ChoiceResult, { ok: true }>[]): Extract<Cho
   const once = [...new Set(full.flatMap((r) => r.trades.map((t) => t.code)))].filter((c) => !keep.has(c));
   return { ok: true, trades: merged.trades, rejected: [...full.flatMap((r) => r.rejected), ...once.map((c) => ({ code: c, why: 'named by one reading only' }))] };
 }
+/** A reading that stands alone: it named at least one trade and code refused nothing it said (no quote missing from the
+ *  document, no quote of the wrong form, no unknown code). Only such a reading skips the second one. */
+export function cleanReading(r: ChoiceResult): r is Extract<ChoiceResult, { ok: true }> {
+  return r.ok && r.trades.length > 0 && r.rejected.length === 0;
+}
+/**
+ * HOW MANY READINGS A DOCUMENT GETS (it_engineer, 3 Nov 2026). Every document was read twice in parallel, a third time on
+ * any disagreement, then put to the second look: measured 13,762 supplier_trade_choice calls in 7 days (USD 13.59,
+ * 13,296 of them our own tagged test runs). Now the second reading is taken only when the first comes back EMPTY or code
+ * REFUSED something in it (cleanReading); then the rules are exactly the majority rules of 19 Oct (a third reading on
+ * disagreement, a code passes on two votes, no agreement holds the document). A clean first reading goes straight to the
+ * second look, which still judges every code against the whole text. prevented by: supplier_trade_choice.test.ts
+ * "a clean first reading is the only reading".
+ */
+export async function settleReadings(readOnce: () => Promise<ChoiceResult>): Promise<ChoiceResult> {
+  const ra = await readOnce();
+  if (cleanReading(ra)) return ra;
+  const rb = await readOnce();
+  let readings = [ra, rb].filter((x) => x.ok) as Extract<ChoiceResult, { ok: true }>[];
+  if (!readings.length) return ra;
+  if (readings.length < 2 || needsThird(readings[0], readings[1])) {
+    const rc = await readOnce();
+    if (rc.ok) readings = [...readings, rc];
+  }
+  const chosen = majority(readings);
+  if (!chosen) return { ok: false, error: 'the readings did not agree on any trade: held for the sales engineer',
+    held: { readings: readings.map((r) => r.trades.map((t) => ({ code: t.code, quote: t.quote }))) } };
+  return chosen;
+}
 /** Proven choices of several chunks as one: a code once, its quotes (up to 3) gathered; refusals kept. */
 export function mergeChoices(rs: { trades: TradeChoice[]; rejected: { code: string; why: string }[] }[]): Extract<ChoiceResult, { ok: true }> {
   const by = new Map<string, TradeChoice>();
@@ -256,16 +285,7 @@ export function liveTradeChooser(admin: any, opts: { subject?: unknown; headers?
       // one reading missed was dropped (M08 prefab_buildings, M09 electrical_wholesale), and a scan both readings answered
       // with nothing lost every trade (M12). Now a third reading is taken whenever the two disagree or one came back empty,
       // and a code goes forward when at least two of the readings named it; three empty readings hold the document.
-      const [ra, rb] = await Promise.all([readOnce(), readOnce()]);
-      let readings = [ra, rb].filter((x) => x.ok) as Extract<ChoiceResult, { ok: true }>[];
-      if (!readings.length) return ra;
-      if (readings.length < 2 || needsThird(readings[0], readings[1])) {
-        const rc = await readOnce();
-        if (rc.ok) readings = [...readings, rc];
-      }
-      const chosen = majority(readings);
-      if (!chosen) return { ok: false, error: 'the readings did not agree on any trade: held for the sales engineer',
-        held: { readings: readings.map((r) => r.trades.map((t) => ({ code: t.code, quote: t.quote }))) } };
+      const chosen = await settleReadings(readOnce);
       if (!chosen.ok || !chosen.trades.length) return chosen;
       const kept = await twice(async () => { const g = await gateway(verifyRequest(chosen.trades, d, opts.subject, text, company)); return g.ok ? checkVerify(g.content, chosen) : g; });
       return kept;

@@ -222,3 +222,22 @@ Deno.test('1339: nothing passes even once more -> no text and not an outage (the
   const a = await answerFromBrief(C, () => {}, g.f);
   assertEquals([a.reply, a.outage, g.bodies.length], ['', false, 6]);
 });
+
+// A rule for the WHOLE answer (checkWhole) never judges one streamed sentence (review of #1830): the widget's reply language.
+Deno.test('checkWhole runs on the finished answer, not on each streamed sentence', async () => {
+  const seen: string[] = [];
+  const g = gateway([sse(['The reveal fee is 3% of the quote. ', 'No card fee is added, and no VAT.'])]);
+  const c: BriefCall = { ...C, checkWhole: (t) => { seen.push(t); return []; } };
+  const a = await answerFromBrief(c, () => {}, g.f);
+  assertEquals(a.reply, 'The reveal fee is 3% of the quote. No card fee is added, and no VAT.');
+  assertEquals(seen, ['The reveal fee is 3% of the quote. No card fee is added, and no VAT.']);
+});
+
+Deno.test('a whole answer checkWhole refuses is rewritten by the model, with the problem named', async () => {
+  const g = gateway([sse(['The reveal fee is 3% of the quote. ', 'No card fee is added, and no VAT.']), json({ content: 'The reveal fee is 3% of the quote you choose, with no card fee and no VAT. Done.', model: 'm' })]);
+  const c: BriefCall = { ...C, checkWhole: (t) => /Done/.test(t) ? [] : ['it is not in Arabic, the language of this conversation'] };
+  const a = await answerFromBrief(c, () => {}, g.f);
+  assertEquals(a.rewrites, 1);
+  assert(a.reply.includes('Done.'));
+  assert((g.bodies[1].input as { content: string }[]).at(-1)!.content.includes('not in Arabic'));
+});

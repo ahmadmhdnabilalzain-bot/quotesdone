@@ -33,6 +33,12 @@ export const M365_REFUSED_ISSUE = 'invite_m365_lane_refused';
 export const M365_SEED_KIND = 'invite_m365_seed';
 export const M365_HARD_CEILING = 150;
 export const M365_ID_PREFIX = 'm365:';
+// Written onto notifications.provider_message_id (with the Message-ID) BEFORE the sendMail POST and replaced by the
+// M365_ID_PREFIX id once it is recorded sent (send_outbox/index.ts, 3 Nov 2026). Graph has no idempotency key, so a row that
+// comes back carrying this was handed to Graph by a run that could not record the outcome, and is never posted again.
+// It does not begin with M365_ID_PREFIX, so the lane's daily ceiling (like 'm365:%') never counts it.
+// prevented by: supabase/functions/send_outbox/drill_send_faults.test.ts
+export const M365_PENDING_PREFIX = 'm365-pending:';
 export const HOLD_M365_MS = 30 * 60_000;
 
 export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
