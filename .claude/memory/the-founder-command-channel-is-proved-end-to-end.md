@@ -21,7 +21,7 @@ Release qualification gap #10 (docs/release/qualification_matrix.md F07.01-F07.0
 - **Defects fixed:** forbidden settings never reached the refusal (the classifier was told to return
   `directive:false` for money and go-live), Arabic close commands answered in English, Arabic directives recorded and
   replayed in English, a null figure said as 0, SQL's English time words in the Arabic reading.
-- **Pending (scripts/sql/pending/):** `the_founder_is_recognised_by_his_whole_number_not_its_last_nine_digits.sql`.
-  The old founder check matched the last nine digits, so +966 plus his nine digits was "the founder". Apply at merge.
+- **Applies at merge (its MANIFEST line, 4 Nov):** `the_founder_is_recognised_by_his_whole_number_not_its_last_nine_digits.sql`.
+  The old founder check matched the last nine digits, so +966 plus his nine digits was "the founder".
 - **Still open, not done here:** `fn_whatsapp_owner` (suppliers, customers) has the same nine-digit match;
   the internal-JSON replay path may change a setting on main until #1836 lands.
