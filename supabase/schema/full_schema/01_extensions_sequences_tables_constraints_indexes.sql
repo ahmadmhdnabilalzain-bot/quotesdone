@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-04T05:06:55.835Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-04T08:26:04.534Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -224,7 +224,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (782) =====
+-- ===== TABLES (784) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -349,6 +349,40 @@ CREATE TABLE IF NOT EXISTS public.accountant_renewal_budget (
   last_expense_id bigint,
   handoff_id bigint,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_reveal_reconcile_item (
+  key text NOT NULL,
+  livemode boolean NOT NULL,
+  source text NOT NULL,
+  quote_id text NOT NULL,
+  invoice_id text,
+  payment_intent text,
+  customer_id text,
+  customer_email text,
+  amount_fils bigint,
+  currency text,
+  paid_at timestamp with time zone,
+  demo boolean DEFAULT false NOT NULL,
+  outcome text NOT NULL,
+  transaction_id uuid,
+  error text,
+  attempts integer DEFAULT 1 NOT NULL,
+  first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_run_id bigint,
+  resolved_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_reveal_reconcile_run (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  requested_at timestamp with time zone DEFAULT now() NOT NULL,
+  window_days integer NOT NULL,
+  request_id bigint,
+  http_status integer,
+  http_error text,
+  reported_at timestamp with time zone,
+  result jsonb
 );
 
 CREATE TABLE IF NOT EXISTS public.accountant_spend_report (
@@ -10781,6 +10815,8 @@ ALTER TABLE public.accountant_mailbox_check ADD CONSTRAINT accountant_mailbox_ch
 ALTER TABLE public.accountant_month_close ADD CONSTRAINT accountant_month_close_pkey PRIMARY KEY (month);
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_pkey PRIMARY KEY (vendor);
 ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_pkey PRIMARY KEY (item);
+ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_pkey PRIMARY KEY (key);
+ALTER TABLE public.accountant_reveal_reconcile_run ADD CONSTRAINT accountant_reveal_reconcile_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.accountant_spend_report ADD CONSTRAINT accountant_spend_report_pkey PRIMARY KEY (id);
 ALTER TABLE public.accountant_subscription_paid_from_change ADD CONSTRAINT accountant_subscription_paid_from_change_pkey PRIMARY KEY (vendor, effective_from);
 ALTER TABLE public.accountant_ubo_seen ADD CONSTRAINT accountant_ubo_seen_pkey PRIMARY KEY (lead_id);
@@ -11723,6 +11759,11 @@ ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_usual_day_check CHECK (((usual_day >= 1) AND (usual_day <= 31)));
 ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_basis_check CHECK ((btrim(basis) <> ''::text));
 ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_budget_aed_check CHECK (((budget_aed IS NULL) OR (budget_aed > (0)::numeric)));
+ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_key_check CHECK ((key ~ '^(in|pi)_[A-Za-z0-9_]+$'::text));
+ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_outcome_check CHECK ((outcome = ANY (ARRAY['recovered'::text, 'second_payment'::text, 'refunded'::text, 'refunded_unrecorded'::text, 'failed'::text, 'deferred'::text, 'recorded_elsewhere'::text, 'test_mode_not_demo'::text])));
+ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_quote_id_check CHECK ((btrim(quote_id) <> ''::text));
+ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_source_check CHECK ((source = ANY (ARRAY['invoice'::text, 'payment_intent'::text])));
+ALTER TABLE public.accountant_reveal_reconcile_run ADD CONSTRAINT accountant_reveal_reconcile_run_window_days_check CHECK (((window_days >= 1) AND (window_days <= 90)));
 ALTER TABLE public.accountant_subscription_paid_from_change ADD CONSTRAINT accountant_subscription_paid_from_change_paid_from_check CHECK ((paid_from = ANY (ARRAY['owner_card'::text, 'company_card'::text])));
 ALTER TABLE public.accountant_vat_threshold_check ADD CONSTRAINT accountant_vat_threshold_check_status_check CHECK ((status = ANY (ARRAY['below'::text, 'approaching'::text, 'voluntary_eligible'::text, 'mandatory'::text])));
 ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_status_ck CHECK ((status = ANY (ARRAY['generated'::text, 'pdf_failed'::text, 'partial'::text, 'delivered'::text, 'delivery_failed'::text])));
@@ -13184,6 +13225,8 @@ CREATE INDEX accountant_knowledge_emb_hnsw ON public.accountant_knowledge USING 
 CREATE INDEX accountant_knowledge_epi_idx ON public.accountant_knowledge USING btree (epistemic_status);
 CREATE INDEX accountant_knowledge_search_idx ON public.accountant_knowledge USING gin (search);
 CREATE INDEX accountant_knowledge_type_idx ON public.accountant_knowledge USING btree (record_type);
+CREATE INDEX accountant_reveal_reconcile_item_open_idx ON public.accountant_reveal_reconcile_item USING btree (outcome) WHERE (resolved_at IS NULL);
+CREATE INDEX accountant_reveal_reconcile_run_reported_idx ON public.accountant_reveal_reconcile_run USING btree (reported_at DESC);
 CREATE INDEX accountant_weekly_report_undelivered_idx ON public.accountant_weekly_report USING btree (week_start DESC) WHERE (delivered_at IS NULL);
 CREATE INDEX accountant_weekly_report_week_idx ON public.accountant_weekly_report USING btree (week_start DESC);
 CREATE INDEX acl_cheaper_idx ON public.ai_cost_log USING btree (could_be_cheaper) WHERE could_be_cheaper;

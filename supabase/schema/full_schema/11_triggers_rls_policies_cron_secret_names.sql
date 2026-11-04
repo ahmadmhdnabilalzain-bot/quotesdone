@@ -409,6 +409,8 @@ ALTER TABLE public.accountant_mailbox_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_month_close ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_owner_ruled_subscription ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_renewal_budget ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_reveal_reconcile_item ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_reveal_reconcile_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_spend_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_subscription_paid_from_change ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_ubo_seen ENABLE ROW LEVEL SECURITY;
@@ -1192,6 +1194,8 @@ CREATE POLICY accountant_mailbox_check_service_role_only ON public.accountant_ma
 CREATE POLICY accountant_month_close_service_role_only ON public.accountant_month_close AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_owner_ruled_subscription_service_role_only ON public.accountant_owner_ruled_subscription AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_renewal_budget_service_role_only ON public.accountant_renewal_budget AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY accountant_reveal_reconcile_item_service_role_only ON public.accountant_reveal_reconcile_item AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY accountant_reveal_reconcile_run_service_role_only ON public.accountant_reveal_reconcile_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_subscription_paid_from_change_service_role_only ON public.accountant_subscription_paid_from_change AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_ubo_seen_service_role_only ON public.accountant_ubo_seen AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_vat_threshold_check_service_role_only ON public.accountant_vat_threshold_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1630,6 +1634,7 @@ select cron.schedule('seat_duty:it_engineer.openrouter_unattributed','*/5 * * * 
 select cron.schedule('seat_duty:it_engineer.postmortem','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.postmortem');$CRON$);
 select cron.schedule('seat_duty:customer_support.status_chase_close','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.status_chase_close');$CRON$);
 select cron.schedule('seat_duty:customer_support.person_followup_email','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.person_followup_email');$CRON$);
+select cron.schedule('seat_duty:accountant.reveal_reconcile','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.reveal_reconcile');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
