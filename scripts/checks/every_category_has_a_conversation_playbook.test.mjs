@@ -31,9 +31,10 @@ test('no playbook states a money figure (suppliers price the work)', () => {
   for (const f of files) assert.doesNotMatch(read(dir + f), /\b(AED|USD|dirhams?)\b|\d\s?%/i, f);
 });
 
-test('the compiled brief includes the style and every playbook, under 100k tokens', () => {
+// 3 Nov 2026: the style rides in the core every reply carries; each playbook in the packs of its own categories.
+test('the compiled brief includes the style in its core and every playbook in a pack, the core under 100k tokens', () => {
   const b = compileBrief();
-  assert.ok(b.files.includes('conversation_style.md'));
-  for (const f of files) assert.ok(b.files.includes('conversation/' + f), f);
+  assert.ok(b.files.includes('conversation_style.md') && b.core.includes('<<<FILE knowledge/brief/conversation_style.md>>>'));
+  for (const f of files) assert.ok(b.files.includes('conversation/' + f) && b.packs.some(([, , ...ids]) => ids.includes('conversation/' + f)), f);
   assert.ok(b.approxTokens < 100_000, `~${b.approxTokens} tokens`);
 });

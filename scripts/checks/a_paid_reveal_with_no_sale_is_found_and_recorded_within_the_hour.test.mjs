@@ -77,10 +77,12 @@ test('the sweep never records an invoice id as the payment reference, and lists 
 
 test('demo payments file no finding: test mode, fn_is_demo_email, or an is_demo customer', () => {
   const r = body('fn_accountant_reveal_reconcile_record');
-  assert.match(r, /v_demo := not coalesce\(\(x->>'livemode'\)::boolean, false\)\s+or public\.fn_is_demo_email\(x->>'customer_email'\)/);
+  assert.match(r, /v_demo := x->>'outcome' is distinct from 'test_mode_not_demo' and \(not coalesce\(\(x->>'livemode'\)::boolean, false\)\s+or public\.fn_is_demo_email\(x->>'customer_email'\)/,
+    'a test-mode payment that is NOT a demo account\'s is never marked demo: it must reach the findings');
   assert.match(r, /c\.is_demo/);
   const f = body('fn_accountant_reveal_reconcile_findings');
   assert.match(f, /where i\.resolved_at is null and not i\.demo/);
+  assert.match(f, /i\.outcome in \('failed', 'refunded_unrecorded', 'second_payment', 'test_mode_not_demo'\)/);
   assert.match(f, /fn_accountant_duty_settle\('reveal_reconcile', v_items\)/);
   assert.match(f, /'reveal:second_payment:' \|\| i\.payment_intent/, 'a second payment recordRevealSale raised (#1835) would be filed twice');
 });

@@ -19,7 +19,7 @@ const pint = (id: string, quote: string | null, o: Record<string, unknown> = {})
 });
 
 type World = { invoices: any[]; intents: any[]; book: Tx[]; refunded?: Record<string, number>; unreadable?: Set<string>; failRecord?: Set<string>; listDown?: boolean;
-  modes?: ('live' | 'test')[]; fees?: Record<string, number> };
+  modes?: ('live' | 'test')[]; fees?: Record<string, number>; notDemo?: Set<string> };
 
 function deps(w: World, calls: { record: SaleArgs[]; lists: string[] } = { record: [], lists: [] }): SweepDeps {
   return {
@@ -37,6 +37,7 @@ function deps(w: World, calls: { record: SaleArgs[]; lists: string[] } = { recor
     readPayment: async (_m, pi) => (w.unreadable?.has(pi) ? null
       : { status: 'succeeded', amount_received: 30000, amount_refunded: w.refunded?.[pi] ?? 0, fee_fils: 1234, fee_details: [{ type: 'stripe_fee' }] }),
     recordFee: async (tx, fee) => { (w.fees ??= {})[tx] = fee; },
+    isDemoQuote: async (q) => !w.notDemo?.has(q),
     findTransactions: async (q) => w.book.filter((t) => q.invoices.includes(t.stripe_invoice_id!) || q.refs.includes(t.payment_ref!) || q.quotes.includes(t.quote_id!)),
     record: async (a) => {
       calls.record.push(a);
@@ -151,6 +152,27 @@ Deno.test('live is read first with its own budget: test-mode payments that can n
   const r = await sweepReveals(deps(w), { days: 30, nowSec: NOW, maxAttempts: 2 });
   assertEquals(r.outcomes.find((x) => x.key === 'in_live')?.outcome, 'recovered');
   assertEquals(r.outcomes.filter((x) => x.mode === 'test').map((x) => x.outcome).sort(), ['deferred', 'deferred', 'failed', 'failed']);
+});
+
+Deno.test('a TEST-mode payment whose quote is not a demo account writes no sale; a demo one is recorded; live never asks', async () => {
+  const t = (id: string, q: string, pi: string) => ({ ...inv(id, q, pi), livemode: false });
+  const w: World = { modes: ['test', 'live'], invoices: [t('in_tr', 'qreal', 'pi_tr'), t('in_td', 'qdemo', 'pi_td'), inv('in_lv', 'qlive', 'pi_lv')],
+    intents: [], book: [], notDemo: new Set(['qreal', 'qlive']) };
+  const calls = { record: [] as SaleArgs[], lists: [] as string[] };
+  const r = await sweepReveals(deps(w, calls), { days: 30, nowSec: NOW });
+  assertEquals(Object.fromEntries(r.outcomes.map((x) => [x.key, x.outcome])), { in_tr: 'test_mode_not_demo', in_td: 'recovered', in_lv: 'recovered' });
+  assertEquals(calls.record.map((a) => a.quoteId).sort(), ['qdemo', 'qlive']);
+  assertEquals(w.book.some((x) => x.quote_id === 'qreal'), false);
+  assertEquals(reportable(r.outcomes).filter((x) => x.outcome === 'test_mode_not_demo').length, 1);
+});
+
+Deno.test('a TEST-mode demo check that cannot be answered fails closed: no sale', async () => {
+  const w: World = { modes: ['test'], invoices: [{ ...inv('in_tx', 'qx', 'pi_tx'), livemode: false }], intents: [], book: [] };
+  const calls = { record: [] as SaleArgs[], lists: [] as string[] };
+  const d = deps(w, calls); d.isDemoQuote = async () => { throw new Error('rpc down'); };
+  const r = await sweepReveals(d, { days: 30, nowSec: NOW });
+  assertEquals(r.outcomes.map((x) => x.outcome), ['test_mode_not_demo']);
+  assertEquals(calls.record.length, 0);
 });
 
 Deno.test('a recorder that refuses (quote gone) is failed with its reason', async () => {

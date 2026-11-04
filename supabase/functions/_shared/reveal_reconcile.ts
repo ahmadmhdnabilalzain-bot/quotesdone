@@ -58,6 +58,7 @@ export type OutcomeKind =
   | 'second_payment'         // the quote is sold under a different PaymentIntent: this one is for a CEO refund
   | 'refunded'               // never recorded and refunded in full: nothing to record
   | 'refunded_unrecorded'    // never recorded and partly refunded: the accountant decides
+  | 'test_mode_not_demo'     // a TEST-mode payment whose quote is not a demo account's: never written (stripe_webhook's rule); a finding
   | 'failed'                 // could not be recorded; tried again next run
   | 'deferred';              // over this run's bound; next run
 
@@ -77,6 +78,8 @@ export type SweepDeps = {
   readPayment: (mode: Mode, pi: string) => Promise<{ status: string; amount_received: number; amount_refunded: number; fee_fils?: number | null; fee_details?: unknown } | null>;
   /** Sales whose stripe_invoice_id, payment_ref or quote_id is one of these. */
   findTransactions: (q: { invoices: string[]; refs: string[]; quotes: string[] }) => Promise<Tx[]>;
+  /** Whether the quote's inquiry belongs to a demo account (fn_inquiry_is_demo). Asked only for TEST-mode payments; false when it cannot be told. */
+  isDemoQuote: (quoteId: string) => Promise<boolean>;
   /** recordRevealSale. */
   record: (a: SaleArgs) => Promise<{ id: string; created: boolean; other_payment?: string } | { error: string }>;
   /** What Stripe kept on a sale this sweep wrote (stripe_webhook's recordStripeFee does the same); best-effort. */
@@ -211,6 +214,13 @@ export async function sweepReveals(deps: SweepDeps, o: SweepOptions): Promise<{ 
   for (const c of [...ready].sort((a, b) => order(a) - order(b) || (b.paidAt ?? 0) - (a.paidAt ?? 0))) {
     const held = matchSale(c, txs);
     if (held) { done(c, 'recorded', held.id); continue; }
+    // A TEST-MODE PAYMENT MAY ONLY EVER TOUCH DEMO DATA (stripe_webhook's testEventIsDemo; review of #1841): one whose
+    // quote is not provably a demo account's is never recorded and spends none of the budget. An unanswerable check is "no".
+    if (c.mode === 'test') {
+      let demo = false;
+      try { demo = (await deps.isDemoQuote(c.quoteId)) === true; } catch (_e) { demo = false; }
+      if (!demo) { done(c, 'test_mode_not_demo'); continue; }
+    }
     const b = (budget[c.mode] ??= { attempts: 0, records: 0 });
     if (b.attempts >= maxAttempts) { done(c, 'deferred'); continue; }
     b.attempts++;

@@ -4,15 +4,17 @@ name: CAD read worker
 # reader code (scripts/cad_read_worker.ts, 22 Sep 2026, founder: "customer will share cad files or pdf
 # mainly"). THE QUEUE TRIGGERS IT: customer_api dispatches this workflow the moment it queues a job in
 # public.cad_read_jobs, and again while the customer's screen polls a job that has not started (a lost
-# dispatch) or whose runner went silent (fn_cad_read_claim takes such a job back after 30 minutes).
-# The schedule stays ONLY for what nothing else can see: a lost dispatch or a dead runner after the
-# customer closed the page - without it that drawing would never be read. 4 runs a day, ~120 Actions-
-# minutes a month, plus ~1 minute per queued drawing. Owner: sales_engineer.
-# 27 Oct 2026 (it_engineer): GitHub Actions is OFF, so nothing triggers this file. customer_api no longer dispatches it;
-# a queued job raises a sales_engineer finding instead (customer_api cadReadHeld), and the sales_engineer runs the same
-# command as the step below by hand. The Claude cloud routine "CAD read worker" (every 2 h at :15, runbook
-# docs/runbooks/release-without-ci.md section 3) runs the same command but is PAUSED: founder, no customer drawings
-# until customers are invited. This file stays as the record of how the worker runs when Actions returns.
+# dispatch) or whose runner went silent (fn_cad_read_claim takes such a job back after 30 minutes): at most
+# once a minute per job, for its first hour (customer_api cad_dispatch.ts). Owner: sales_engineer.
+# 27 Oct 2026 (it_engineer, #1605): Actions was OFF, the dispatch was removed and a queued job raised a
+# sales_engineer finding instead. 3 Nov 2026 (sales_engineer, #1837): Actions is on again (ledger 1410), so
+# customer_api dispatches this workflow again (startCadWorker). A dispatch that does not answer 204, or a job not
+# started within an hour, still raises that finding (customer_api cadReadHeld), and the sales_engineer can run the
+# same command as the step below by hand. The dispatch needs app_secrets.github_token to carry Actions: write
+# (it_engineer finding it_engineer:github_token_actions_write_unconfirmed).
+# The 6-hourly schedule (below, commented out) was the last resort for a lost dispatch after the customer closed the
+# page. With it off (schedules live on pg_cron since 26 Oct) that case is NOT seen: a dispatch answered 204 whose run
+# never starts, with no page polling, raises nothing until someone reads cad_read_jobs.
 
 # founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
 # on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).

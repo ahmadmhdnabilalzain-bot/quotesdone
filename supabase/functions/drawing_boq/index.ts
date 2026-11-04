@@ -17,6 +17,7 @@ import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { readEveryAttachment, gatewayVision, b64Bytes } from '../_shared/read_every_attachment.ts';
 import { DATA_NOT_INSTRUCTIONS, untrustedBlock } from '../_shared/untrusted.ts';
+import { mergeReading, setIdentityTerms } from './cross_check.ts';
 import { DRAWING_KINDS, drawingIdentityTerms, gateDrawingBoq } from '../_shared/drawing_identity_gate.ts';
 import { empty } from '../_shared/doc_read/types.ts';
 import { drawingInput } from './drawing_input.ts';
@@ -74,7 +75,7 @@ function scrub(s: unknown){ let t = String(s == null ? '' : s); t = t.replace(/[
 
 const CATS = 'civil_construction, fit_out_interior, mep_electrical, mep_plumbing, mep_hvac, joinery_carpentry, flooring_tiling, painting_finishes, aluminium_glass, false_ceiling_partitions, steel_fabrication, waterproofing, landscaping, signage, cleaning_facilities, swimming_pools';
 
-const SYS = `You are a UAE quantity surveyor. You read CONSTRUCTION / FIT-OUT / MEP / architectural drawings (floor plans, elevations, sections, layouts, schedules, single-line diagrams) and produce a DRAFT Bill of Quantities (BOQ) that a contractor could price.\n\nPRIVACY (CRITICAL): your output is shown to competing suppliers who must NOT be able to identify the client or project. NEVER read out, copy or include ANY identifying information from the drawing. Specifically ignore and never repeat: the title block's company / consultant / architect / contractor names, client or owner names, any person names, phone numbers, emails, websites, the project name or title, drawing or project numbers, plot / parcel / makani numbers, and the site or project address. You MAY use the title block ONLY for scale, drawing type and dimensions. Output ONLY generic technical scope. If any text field (summary, descriptions, basis, keywords, assumptions, missing_info) would contain a name, company, phone, email or address, leave it out or generalise it (e.g. say 'a villa', not the address; 'ground floor', not the project name).\n\nRead EVERY drawing page. Use the title block, scale bar, stated dimensions, room/area labels, schedules (door/window/finish/fixture schedules), legends and symbol counts. Where a scale or explicit dimensions are given, compute areas (sqm), lengths (m) and counts (nos). Where you must assume, say so and lower the confidence.\n\nProduce measurable BOQ line items grouped into sections (e.g. Demolition, Blockwork, Flooring, Painting, Doors, Electrical points, Plumbing fixtures, HVAC, Ceiling). For each item give: a clear generic description, quantity, unit (sqm / m / nos / lot), the dimensions or basis used, and a per-item confidence. Keep to the most relevant items (aim for under 40). Be concise in every text field.\n\nIMPORTANT: this is an AI ESTIMATE for guidance and supplier matching, NOT a certified take-off. Be honest. Never invent quantities you cannot see. Flag everything you assumed and everything you could not determine.\n\nOutput ONLY the JSON object, no markdown, no prose before or after:\n{\"drawing_type\":string,\"category\":one of [${CATS}] or \"\",\"summary\":string,\"scale_detected\":string,\"total_area_sqm\":number|null,\"boq\":[{\"section\":string,\"description\":string,\"qty\":number|null,\"unit\":string,\"basis\":string,\"confidence\":\"low\"|\"medium\"|\"high\"}],\"keywords\":[string],\"assumptions\":[string],\"missing_info\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\ncategory = best single match from the list for supplier matching. keywords = 4-10 short terms describing the trades/materials shown (for matching). If you cannot read the drawing at all, return confidence \"low\", empty boq, and explain in missing_info.`;
+const SYS = `You are a UAE quantity surveyor. You read CONSTRUCTION / FIT-OUT / MEP / architectural drawings (floor plans, elevations, sections, layouts, schedules, single-line diagrams) and produce a DRAFT Bill of Quantities (BOQ) that a contractor could price.\n\nPRIVACY (CRITICAL): your output is shown to competing suppliers who must NOT be able to identify the client or project. NEVER read out, copy or include ANY identifying information from the drawing. Specifically ignore and never repeat: the title block's company / consultant / architect / contractor names, client or owner names, any person names, phone numbers, emails, websites, the project name or title, drawing or project numbers, plot / parcel / makani numbers, and the site or project address. You MAY use the title block ONLY for scale, drawing type and dimensions. Output ONLY generic technical scope. If any text field (summary, descriptions, basis, keywords, assumptions, missing_info) would contain a name, company, phone, email or address, leave it out or generalise it (e.g. say 'a villa', not the address; 'ground floor', not the project name).\n\nRead EVERY drawing page. Use the title block, scale bar, stated dimensions, room/area labels, schedules (door/window/finish/fixture schedules), legends and symbol counts. Where a scale or explicit dimensions are given, compute areas (sqm), lengths (m) and counts (nos). Where you must assume, say so and lower the confidence.\n\nMETHOD (measure as a quantity surveyor, NRM2 / POMI conventions): count every TAGGED item (e.g. FD-1, WC-1, FCU-1, SD) once for each time it is drawn on a PLAN view - never in a legend, schedule, key, note or title block; give each tag its own line whose description starts with the tag exactly as printed (\"FD-1 - floor drain\"); counts in nos, lengths in m along centre-lines at the printed scale, areas in sqm net as drawn. If a text layer is supplied, use it to read tags exactly and still count only what sits on the plan.\n\nProduce measurable BOQ line items grouped into sections (e.g. Demolition, Blockwork, Flooring, Painting, Doors, Electrical points, Plumbing fixtures, HVAC, Ceiling). For each item give: a clear generic description, quantity, unit (sqm / m / nos / lot), the dimensions or basis used, and a per-item confidence. Keep to the most relevant items (aim for under 40). Be concise in every text field.\n\nIMPORTANT: this is an AI ESTIMATE for guidance and supplier matching, NOT a certified take-off. Be honest. Never invent quantities you cannot see. Flag everything you assumed and everything you could not determine.\n\nOutput ONLY the JSON object, no markdown, no prose before or after:\n{\"drawing_type\":string,\"category\":one of [${CATS}] or \"\",\"summary\":string,\"scale_detected\":string,\"total_area_sqm\":number|null,\"boq\":[{\"section\":string,\"description\":string,\"qty\":number|null,\"unit\":string,\"basis\":string,\"confidence\":\"low\"|\"medium\"|\"high\"}],\"keywords\":[string],\"assumptions\":[string],\"missing_info\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\ncategory = best single match from the list for supplier matching. keywords = 4-10 short terms describing the trades/materials shown (for matching). If you cannot read the drawing at all, return confidence \"low\", empty boq, and explain in missing_info.`;
 
 Deno.serve(observe('drawing_boq', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -230,15 +231,29 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // COVERAGE FLOOR (27 Oct 2026, independent review): only a set code read COMPLETELY answers here - every tag-shaped
     // run on its plans read, at least one tag. A set where code reads a few tags and misses most goes to the model as
     // before. The measurement behind the floor is in drawing_set.ts (countedCompletely).
+    // 3 NOV 2026 — THE MODEL READS THE DRAWING FIRST, CODE CROSS-CHECKS IT (cross_check.ts; founder via the coordinator:
+    // "it should feel as if I'm attaching a drawing to you - you understand it"). The set code counts completely is no
+    // longer the whole answer: it is read here, and MERGED into the model's reading below (agreements confirmed,
+    // disagreements flagged to_confirm, code's printed-tag count kept as the quantity). The text layer goes to the model
+    // with the pages. With no model input, no key, a refusal or an error, the coded set answers alone, as before.
+    // pdfText is the model's copy only (12k characters); the gate reads every page (setIdentityTerms, cross_check.ts).
+    let codeSet: any = null, pdfText = '', idTerms: string[] = [];
     if (pdfB64 && body.deterministic !== true) {
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
         const sched = Array.isArray(body.schedule_tables) ? (body.schedule_tables as ScheduleTable[]).slice(0, 40).filter((t) => t && Array.isArray(t.rows)) : [];
-        const set = setBeforeModel(await pdfPages(bytes, undefined, { layers: false }), hint, sched);
-        if (set) return J({ ok: true, boq: { ...set, fallback_reason: 'code_counted_the_set', author_model: 'deterministic' } });
-      } catch (_e) { /* not a readable PDF text layer: the model drafts, as before */ }
+        const pages = await pdfPages(bytes, undefined, { layers: false });
+        pdfText = pages.map((p) => p.runs.map((r) => r.text).join(' ')).join('\n').slice(0, 12_000);
+        const set = setBeforeModel(pages, hint, sched);
+        // The terms first: a set is never merged without them (a throw here leaves the model drafting alone).
+        if (set) { idTerms = setIdentityTerms(pages); codeSet = set; }
+      } catch (_e) { /* not a readable PDF text layer: the model drafts alone, as before */ }
     }
+    const codeAnswer = () => J({ ok: true, boq: { ...codeSet, fallback_reason: 'code_counted_the_set', author_model: 'deterministic' } });
+    const modelHasInput = (Array.isArray(body.images) && body.images.length > 0) || !!body.file_b64;
+    if (codeSet && !modelHasInput) return codeAnswer();
     const key = await sec('cred_fn_ai');
+    if (codeSet && !key) return codeAnswer();
     if (!key || body.deterministic === true) {
       const d = await deterministic(key ? 'requested' : 'no_ai_key');
       if (d) return d;
@@ -246,7 +261,9 @@ Deno.serve(observe('drawing_boq', async (req) => {
     }
 
     // the drawing's printed text and the customer's note are data, never instructions (untrusted.ts, 3 Nov 2026)
-    const content: any[] = [{ type: 'text', text: `Read the attached drawing pages and return the DRAFT BOQ JSON. Remember: never include any names, company, contact or address from the drawing. ${DATA_NOT_INSTRUCTIONS}\nThe customer's note (context only):` + untrustedBlock(hint || '(none)', 'NOTE') }];
+    const content: any[] = [{ type: 'text', text: `Read the attached drawing pages and return the DRAFT BOQ JSON. Remember: never include any names, company, contact or address from the drawing. ${DATA_NOT_INSTRUCTIONS}\nThe customer's note (context only):` + untrustedBlock(hint || '(none)', 'NOTE')
+      // 3 Nov 2026 (cross_check.ts): the PDF's own text layer, for reading tags, schedules and dimensions exactly - fenced as data
+      + (pdfText.trim() ? "\nThe PDF's own text layer (read tags, schedules and dimensions from it exactly):" + untrustedBlock(pdfText, 'ATTACHMENT') : '') }];
     const imgs: any[] = Array.isArray(body.images) ? body.images : [];
     if (imgs.length) {
       for (const im of imgs.slice(0, 10)) { const b = (im && (im.b64 || im.data)) || im; const m = (im && im.mime) || 'image/jpeg'; if (b && typeof b === 'string') content.push({ type: 'image_url', image_url: { url: dataUrl(b, String(m)) } }); }
@@ -264,13 +281,13 @@ Deno.serve(observe('drawing_boq', async (req) => {
       const payload = { __secret: key, fn: 'drawing_boq', max: 8000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] };
       const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const jd = await r.json();
-      if (!r.ok || jd?.ok === false) { const d = await deterministic('ai_gateway_refused'); if (d) return d; return J({ error: 'ai_error', detail: jd?.detail || jd?.error || '', deterministic: pdfB64 ? 'pdf_unreadable' : 'no_pdf_supplied', meta: JSON.stringify(jd).slice(0,600) }, 502); }
+      if (!r.ok || jd?.ok === false) { if (codeSet) return codeAnswer(); const d = await deterministic('ai_gateway_refused'); if (d) return d; return J({ error: 'ai_error', detail: jd?.detail || jd?.error || '', deterministic: pdfB64 ? 'pdf_unreadable' : 'no_pdf_supplied', meta: JSON.stringify(jd).slice(0,600) }, 502); }
       rawContent = jd?.content || '';
       // The draft's author, carried back by customer_api into mode 'confirm' so the confirm is routed to another family.
       authorModel = typeof jd?.model === 'string' && jd.model ? jd.model : 'unknown';
       if (body.__debug) return J({ ok: true, _len: String(rawContent).length, finish: jd?.finish_reason });
       ai = parseJson(rawContent || '{}');
-    } catch (e) { const d = await deterministic('ai_exception'); if (d) return d; return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
+    } catch (e) { if (codeSet) return codeAnswer(); const d = await deterministic('ai_exception'); if (d) return d; return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
 
     if (!Array.isArray(ai.boq)) ai.boq = [];
     ai.boq = ai.boq.slice(0, 120).map((li: any) => ({ section: scrub(li?.section||'General'), description: scrub(li?.description||''), qty: (li?.qty===null||li?.qty==='')?null:(Number(li?.qty)||null), unit: scrub(li?.unit||''), basis: scrub(li?.basis||''), confidence: ['low','medium','high'].includes(li?.confidence)?li.confidence:'low' }));
@@ -284,6 +301,16 @@ Deno.serve(observe('drawing_boq', async (req) => {
     ai.scale_detected = scrub(ai.scale_detected||'');
     if (!['low','medium','high'].includes(ai.confidence)) ai.confidence = 'low';
     ai.author_model = authorModel;
+    if (codeSet) {
+      // The model read it; code's complete count of the same text layer cross-checks it (cross_check.ts mergeReading). A
+      // reply with no line (prose, truncated, empty) leaves the coded set answering unchanged; the merged take-off passes
+      // the drawing identity gate on every page's text and the title strip's names, so a model line naming a party is dropped.
+      const g = mergeReading(ai, codeSet, idTerms);
+      if (g.boq) return J({ ok: true, boq: g.boq, identity_dropped_lines: g.dropped_lines });
+      // What the gate found: a 'seed:' entry carries the party's own name, so it is logged as 'seed' and never by value.
+      console.warn(`[drawing_boq] the model's reading was not merged; the coded set answers alone (${[...new Set(g.found.map((f) => (f.startsWith('seed:') ? 'seed' : f)))].join(', ')})`);
+      return codeAnswer();
+    }
     return J({ ok: true, boq: ai });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }));

@@ -47,7 +47,9 @@ test('the it_engineer card carries the cap the after-exam said was "not establis
 test('the external brief carries no card; only SEAT_CARDS does', () => {
   const mod = renderModule(compileBrief());
   const ext = JSON.parse(mod.match(/export const SEAT_FACTS_EXTERNAL: string = (".*");\n/)[1]);
-  const brief = JSON.parse(mod.match(/export const BRIEF_TEXT: string = (".*");\n/)[1]);
+  // since 3 Nov 2026 the public brief is the core (BRIEF_TEXT), the supplier part and the trade-pack parts: all three are checked
+  const brief = [JSON.parse(mod.match(/export const BRIEF_TEXT: string = (".*");\n/)[1]), JSON.parse(mod.match(/export const BRIEF_SUPPLIER: string = (".*");\n/)[1]),
+    ...JSON.parse(mod.match(/export const BRIEF_PART_TEXT: string\[\] = (.*);\n/)[1])].join('\n');
   for (const s of SEATS) {
     const first = seatCard(s).text.split('\n')[1];
     if (!first) continue;

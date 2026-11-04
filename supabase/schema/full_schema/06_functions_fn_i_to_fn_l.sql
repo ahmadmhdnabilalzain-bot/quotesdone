@@ -310,6 +310,97 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_inquiry_change_from_customer(p_inquiry uuid, p_customer uuid, p_text text, p_source text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.inquiries; v_text text; v_full text; v_note bigint; v_q text; l record; v_prev public.rfq_clarification;
+        v_told int := 0; v_quoted int := 0; v_failed int := 0; v_matched int; v_head text; v_body text; v_ar boolean; v_d jsonb; v_dup boolean;
+begin
+  if p_source not in ('whatsapp') then raise exception 'a customer change comes from whatsapp here, not %', p_source; end if;
+  select * into i from public.inquiries where id = p_inquiry for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'inquiry_not_found'); end if;
+  if i.customer_id is distinct from p_customer then return jsonb_build_object('ok', false, 'error', 'not_your_inquiry'); end if;
+  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed', 'expired', 'lost') then
+    return jsonb_build_object('ok', false, 'error', 'inquiry_closed', 'status', i.status); end if;
+  if coalesce(i.status, '') = 'revealed' or exists (select 1 from public.transactions t where t.inquiry_id = i.id and t.revealed_at is not null) then
+    return jsonb_build_object('ok', false, 'error', 'already_revealed'); end if;
+  -- Every matched supplier reads this: the customer's contact details and name are removed first (5a).
+  v_text := public.fn_scrub_customer_identity(left(btrim(coalesce(p_text, '')), 1500), p_customer);
+  if length(btrim(regexp_replace(coalesce(v_text, ''), '\[(removed|hidden)\]', '', 'g'))) < 2 then
+    return jsonb_build_object('ok', false, 'error', 'text_required'); end if;
+  v_head := 'The customer sent this change to the request on WhatsApp:';
+  v_full := v_head || chr(10) || v_text;
+  v_ar := v_text ~ '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]';
+  select count(*) into v_matched from public.inquiry_matches x where x.inquiry_id = i.id;
+
+  -- THE SAME CHANGE TWICE IS ONE CHANGE: the earlier note is reused and no second note is filed. Its deliveries are
+  -- asked for again under the SAME keys, so a supplier already told is not mailed twice (the delivery door dedupes a
+  -- delivered key) and one whose first delivery failed is retried (a failed key is not deduped).
+  select * into v_prev from public.rfq_clarification r
+   where r.inquiry_id = i.id and r.kind = 'note' and r.source = 'rfq_note'
+     and coalesce(r.answered_at, r.asked_at) > now() - interval '6 hours'
+     and md5(coalesce(r.answer_as_written, r.answer, '')) = md5(v_full)
+   order by r.id desc limit 1;
+  v_dup := v_prev.id is not null;
+  if v_dup then v_note := v_prev.id; end if;
+  -- the portal's own limit on notes (customer_api rfq_note)
+  if not v_dup and (select count(*) from public.rfq_clarification r where r.inquiry_id = i.id and r.kind = 'note' and r.asked_at > now() - interval '1 hour') >= 10 then
+    return jsonb_build_object('ok', false, 'error', 'too_many_notes'); end if;
+
+  if v_dup then
+    null;
+  elsif v_ar then
+    -- Suppliers read English only: the Arabic is kept as written and its supplier copy waits for its English, exactly as
+    -- fn_inquiry_add_missing_specs files it (the supplier_english replay mails every matched supplier when it lands).
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answer_as_written, english_held_at, answered_at, source)
+    values (i.id, null, 'note', null, v_full, now(), now(), 'rfq_note') returning id into v_note;
+    v_q := 'Translate this message from a customer into clear, professional English for the suppliers quoting the job, '
+        || 'as a UAE sales engineer would write it. Keep every measurement, quantity, brand, model and grade code exactly as written. '
+        || 'Add nothing and leave nothing out. Put ONLY the English text in "answer".' || chr(10) || chr(10) || v_full;
+    perform public.fn_reason_hold('sales_engineer', 'sales_engineer.supplier_english', left(v_q, 8000),
+      jsonb_build_object('seat', 'sales_engineer', 'surface', 'sales_engineer.supplier_english', 'question', v_q,
+        'context', jsonb_build_object('audience', 'internal', 'language', 'en'), 'research', false,
+        'subject', jsonb_build_object('clarification_id', v_note), 'dedupeKey', 'supplier_english:' || v_note),
+      '{}'::jsonb, jsonb_build_object('clarification_id', v_note), 'filed_from_a_request_path', 'supplier_english:' || v_note);
+  else
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source)
+    values (i.id, null, 'note', v_full, now(), 'rfq_note') returning id into v_note;
+  end if;
+
+  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email,
+                  exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = le.id
+                           and coalesce(q.status, '') not in ('draft', 'withdrawn', 'rejected', 'expired', 'cancelled')) as quoted
+             from public.inquiry_matches x join public.leads le on le.id = x.supplier_id
+            where x.inquiry_id = i.id and not coalesce(le.banned, false)
+              and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
+    -- held Arabic: only the suppliers who already quoted are written to now; everyone gets the English copy from the replay
+    continue when v_ar and not l.quoted;
+    v_body := case when v_ar
+      then 'The customer changed the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
+           || ' (request ' || coalesce(i.rfq_no::text, '') || ') you already quoted. The change was written in Arabic, and its English copy '
+           || 'reaches you by email shortly. Once you have read it, please confirm your quote still stands, or revise it, in your QuotesDone supplier portal.'
+      else 'The customer changed the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
+           || ' (request ' || coalesce(i.rfq_no::text, '') || ') you were invited to quote:' || chr(10) || chr(10) || v_text || chr(10) || chr(10)
+           || case when l.quoted then 'You have already quoted on this request: please confirm your quote still stands, or revise it, in your QuotesDone supplier portal.'
+                   else 'It is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.' end end;
+    v_d := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', 'rfq_addendum', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
+      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', i.id, 'lang', 'en',
+      'subject', 'The customer changed a request you were invited to quote', 'body', v_body,
+      'dedupe_key', 'customer_change:' || v_note || ':' || l.id)));
+    -- a supplier is counted as told only when the delivery took it (re-review of #1844: the reply claimed every send)
+    if coalesce(v_d->0->>'status', '') not in ('done', 'demo_captured') then v_failed := v_failed + 1; continue; end if;
+    if not v_ar then v_told := v_told + 1; end if;
+    if l.quoted then v_quoted := v_quoted + 1; end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'duplicate', v_dup, 'note_id', v_note, 'held_for_english', v_ar, 'suppliers_told', v_told, 'quoted_told', v_quoted,
+    'delivery_failed', v_failed, 'suppliers_matched', v_matched);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_build(p_inquiry uuid)
  RETURNS jsonb
  LANGUAGE sql
@@ -1002,7 +1093,9 @@ CREATE OR REPLACE FUNCTION public.fn_invite_placement_open_providers(p_day date 
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
-  return array(select jsonb_array_elements_text(public.fn_invite_placement_judge(p_day, p_now) -> 'open_providers'));
+  -- founder_instruction 1537 (3 Nov 2026): never Yahoo/AOL or Microsoft, whatever the GlockApps verdict says
+  return array(select p from jsonb_array_elements_text(public.fn_invite_placement_judge(p_day, p_now) -> 'open_providers') p
+               where p not in ('microsoft', 'yahoo_aol'));
 end $function$
 
 
@@ -1413,6 +1506,56 @@ begin
   end if;
   return NEW;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invoice_ready_asks_for_its_invoice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_secret text; v_ref text;
+begin
+  select value into v_secret from public.app_secrets where key = 'cred_db_internal';
+  if nullif(btrim(coalesce(v_secret, '')), '') is null then raise exception 'app_secrets.cred_db_internal is missing'; end if;
+  v_ref := public.qd_project_ref();
+  -- pg_net sends only once this transaction commits, so reveal_invoice reads the notice and its twin as written.
+  perform net.http_post(
+    'https://' || v_ref || '.supabase.co/functions/v1/reveal_invoice',
+    jsonb_build_object('__secret', v_secret, 'action', 'attach', 'quote_id', new.quote_id),
+    '{}'::jsonb, '{"Content-Type":"application/json"}'::jsonb, 60000);
+  return null;
+exception when others then
+  -- The notice is never refused for this: it goes at the end of its hold without the invoice, and the failure is filed
+  -- where customer_support reads its work. That record is guarded too, so this trigger can never fail the insert.
+  begin
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+    values ('customer_support', 'invoice_ready_attachment', 'failed', 'medium',
+            left('The invoice could not be requested for notification ' || new.id, 200),
+            jsonb_build_object('notification_id', new.id, 'quote_id', new.quote_id, 'error', left(sqlerrm, 500)),
+            'notifications', new.id::text);
+  exception when others then
+    raise warning 'fn_invoice_ready_asks_for_its_invoice: notification % not requested and not recorded: %', new.id, sqlerrm;
+  end;
+  return null;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invoice_ready_waits_for_its_invoice()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- Ten minutes is the ceiling, not the wait: reveal_invoice releases both rows the moment the invoice is attached.
+  if coalesce(new.status, 'pending') in ('queued', 'pending') then
+    new.not_before := greatest(coalesce(new.not_before, now()), now() + interval '10 minutes');
+  end if;
+  return new;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_is_demo_email(p_email text)
@@ -6667,6 +6810,34 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_openrouter_unattributed()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_max numeric := coalesce(public.fn_it_threshold('openrouter_unattributed_share_max'), 0.05);
+        v_days jsonb; v_n int; v_items jsonb := '[]'::jsonb;
+begin
+  select count(*), coalesce(jsonb_agg(jsonb_build_object('day', d.day, 'meter_usd', round(d.authoritative_usd, 2),
+                                    'unattributed_usd', round(d.unattributed_usd, 2),
+                                    'share', round(d.unattributed_usd / d.authoritative_usd, 3)) order by d.day desc), '[]')
+    into v_n, v_days
+    from public.openrouter_day d
+   where d.day >= (now() at time zone 'Asia/Dubai')::date - 7
+     and d.reconciled_at is not null and d.authoritative_usd >= 1
+     and d.unattributed_usd > v_max * d.authoritative_usd;
+  if v_n > 0 then
+    v_items := jsonb_build_array(jsonb_build_object('item', 'over_share', 'owner_seat', 'it_engineer', 'blast', 'internal', 'affected', v_n,
+      'title', v_n || ' day(s) of the last 7 had more than ' || round(v_max * 100) || '% of OpenRouter''s meter with no ai_cost_log row (latest '
+               || (v_days -> 0 ->> 'day') || ': USD ' || (v_days -> 0 ->> 'unattributed_usd') || ' of ' || (v_days -> 0 ->> 'meter_usd') || ')',
+      'evidence', jsonb_build_object('days', v_days, 'threshold', v_max,
+        'where_to_look', 'openrouter_day.breakdown: unpriced calls, unattributed_functions; a caller outside ai_gateway; a stream or attempt with no usage')));
+  end if;
+  return jsonb_build_object('days_over', v_n, 'settled', public.fn_it_duty_settle('openrouter_unattributed', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_perimeter_freshness()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -6695,17 +6866,25 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_postmortem()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare h record; v_inc bigint; p public.it_playbook; v_since timestamptz; n_open int := 0; n_play int := 0; n_asked int := 0;
-        n_known int := 0; n_waiting int := 0; v_cause text; v_hid bigint;
+        n_known int := 0; n_waiting int := 0; v_cause text; v_prev bigint; v_check text; v_hid bigint; n_fixture int := 0;
         v_hist int; v_late int; v_ids jsonb; v_items jsonb := '[]'::jsonb; f public.it_engineer_finding;
 begin
   select created_at into v_since from public.seat_duty where duty = 'it_engineer.postmortem';
   v_since := coalesce(v_since, now());
+
+  -- 1. a test fixture's finding opens no incident (counted, never opened)
+  select count(*) into n_fixture from public.agent_actions a
+   where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done'
+     and a.detail->>'severity' in ('critical', 'high') and coalesce(a.decided_at, a.created_at) >= v_since
+     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+     and public.fn_it_finding_is_fixture(a.detail, a.evidence);
 
   for h in
     select a.* from public.agent_actions a
      where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done'
        and a.detail->>'severity' in ('critical', 'high') and coalesce(a.decided_at, a.created_at) >= v_since
        and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+       and not public.fn_it_finding_is_fixture(a.detail, a.evidence)
      order by a.id limit 50
   loop
     v_inc := public.fn_it_incident_open(h.id);
@@ -6725,27 +6904,35 @@ begin
     end if;
   end loop;
 
-  -- A class the playbook has never seen: its root cause is asked ONCE PER FAULT (the finding key, digits stripped),
-  -- three faults a run, oldest first. An incident of a fault whose cause is already known takes that cause with no
-  -- model; one whose fault already has a question in the last 7 days waits for that answer (the apply fills it).
+  -- 2. no playbook: the CLASS's recorded cause by template; 3. a novel class: asked once per class.
   for h in
-    select i.id inc_id, a.detail, a.evidence, public.fn_it_postmortem_fault_key(a.detail) fk
+    select i.id inc_id, a.detail, a.evidence, public.fn_it_postmortem_fault_key(a.detail) fk, public.fn_it_postmortem_class_key(a.detail) ck
       from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
      where i.created_at >= v_since and i.playbook_class is null and coalesce(btrim(i.cause), '') = ''
        and not exists (select 1 from public.reasoning_held_question q where q.dedupe_key = 'postmortem:' || i.id)
+       and not public.fn_it_finding_is_fixture(a.detail, a.evidence)
      order by i.id
   loop
-    select i2.cause into v_cause from public.it_incident i2 join public.agent_actions a2 on a2.id = i2.handoff_id
-     where i2.id <> h.inc_id and coalesce(btrim(i2.cause), '') <> '' and public.fn_it_postmortem_fault_key(a2.detail) = h.fk
+    v_cause := null; v_prev := null; v_check := null;
+    select i2.id, i2.cause, i2.regression_check into v_prev, v_cause, v_check from public.it_incident i2 join public.agent_actions a2 on a2.id = i2.handoff_id
+     where i2.id <> h.inc_id and coalesce(btrim(i2.cause), '') <> '' and public.fn_it_postmortem_class_key(a2.detail) = h.ck
      order by i2.id desc limit 1;
     if v_cause is not null then
-      update public.it_incident set cause = v_cause, recorded_by = 'it_engineer.postmortem (same fault as an earlier incident)',
-             updated_at = now() where id = h.inc_id;
+      -- the earlier cause without the template's own wrapping, so a template never wraps a template
+      -- (.+? and not [^ ]+: a class key may hold a space, e.g. an advisor routine's 'p_request uuid')
+      v_cause := regexp_replace(split_part(v_cause, ' | This occurrence: ', 1), '^Known class .+? \(incident [0-9]+\): ', '');
+      update public.it_incident
+         set cause = left('Known class ' || h.ck || ' (incident ' || v_prev || '): ' || v_cause
+                          || ' | This occurrence: ' || coalesce(h.detail->>'title', h.detail->>'issue_key', 'untitled'), 2000),
+             regression_check = coalesce(nullif(btrim(regression_check), ''), v_check),
+             recorded_by = 'it_engineer.postmortem (template: known class ' || h.ck || ')', updated_at = now()
+       where id = h.inc_id;
       n_known := n_known + 1;
       continue;
     end if;
     if exists (select 1 from public.reasoning_held_question q
-                where q.surface = 'it_engineer.postmortem' and q.subject->>'fault_key' = h.fk
+                where q.surface = 'it_engineer.postmortem'
+                  and coalesce(q.subject->>'class_key', public.fn_it_postmortem_class_key(jsonb_build_object('issue_key', q.subject->>'fault_key'))) = h.ck
                   and q.status in ('held', 'reasoned', 'applied') and q.created_at > now() - interval '7 days') then
       n_waiting := n_waiting + 1;
       continue;
@@ -6758,10 +6945,9 @@ begin
         'question', 'Root cause of: ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
         'context', jsonb_build_object('audience', 'internal', 'case', jsonb_build_object('handoff', h.detail, 'answer', h.evidence,
           'finding', to_jsonb(f) - 'evidence')),
-        'subject', jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk), 'dedupeKey', 'postmortem:' || h.inc_id),
-      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk),
+        'subject', jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk, 'class_key', h.ck), 'dedupeKey', 'postmortem:' || h.inc_id),
+      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id, 'fault_key', h.fk, 'class_key', h.ck),
       'seat_duty', 'postmortem:' || h.inc_id);
-    -- only a question actually filed spends the run's budget (a refused or recently failed one files nothing)
     if exists (select 1 from public.reasoning_held_question q where q.id = v_hid and q.dedupe_key = 'postmortem:' || h.inc_id) then
       n_asked := n_asked + 1;
     end if;
@@ -6769,20 +6955,23 @@ begin
 
   select count(*) into v_hist from public.agent_actions a
    where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done' and a.detail->>'severity' in ('critical', 'high')
-     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id);
+     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+     and not public.fn_it_finding_is_fixture(a.detail, a.evidence);
 
   select count(*), coalesce(jsonb_agg(id order by id) filter (where rn <= 20), '[]') into v_late, v_ids
     from (select i.id, row_number() over (order by i.id) rn from public.it_incident i
+            join public.agent_actions a on a.id = i.handoff_id
            where i.ended_at < now() - interval '72 hours' and i.created_at >= v_since
-             and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = '')) z;
+             and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = '')
+             and not public.fn_it_finding_is_fixture(a.detail, a.evidence)) z;
   if v_late > 0 then
     v_items := jsonb_build_array(jsonb_build_object('item', 'incomplete', 'owner_seat', 'it_engineer', 'blast', 'internal', 'affected', v_late,
       'title', v_late || ' closed incident(s) have no root cause or no regression check 72 hours after they closed',
       'evidence', jsonb_build_object('incident_ids', v_ids)));
   end if;
 
-  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked, 'cause_already_known', n_known,
-                            'waiting_on_its_fault', n_waiting,
+  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked, 'cause_from_its_class', n_known,
+                            'waiting_on_its_class', n_waiting, 'fixture_findings_not_opened', n_fixture,
                             'historical_without_postmortem', v_hist, 'settled', public.fn_it_duty_settle('postmortem', v_items));
 end $function$
 
@@ -7061,6 +7250,19 @@ CREATE OR REPLACE FUNCTION public.fn_it_external_reply_needs_founder(p_text text
 AS $function$
   select coalesce(p_text, '') ~* '(please|kindly|could you|can you|we need you to|you will need to|you need to)[^.?!]{0,80}\m(provide|share|send|confirm|verify|complete|reply|respond|approve|upload|screenshot|log ?in|sign ?in|re-?register|delete|update|resubmit)'
       or coalesce(p_text, '') ~* '(action required|awaiting your (reply|response|update|confirmation)|pending your (reply|response|update))'
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_finding_is_fixture(p_detail jsonb, p_evidence jsonb)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_detail ->> 'issue_key', '') like 'duty:journey:%'
+      or (coalesce(p_detail::text, '') || ' ' || coalesce(p_evidence::text, '')) ~* '(@example\.invalid|qd_run:)';
+  -- NOT the "ZZ DEMO" name alone: a probe of this very duty names its own findings that way and must still open
+  -- incidents (scripts/checks/it_engineer_gap_duties_act.test.mjs); a harness run's fixtures carry its qd-<tag> address.
 $function$
 
 
@@ -8310,6 +8512,17 @@ begin
   perform public.fn_it_duty_ran('postmaster', v_res);
   return v_res;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_postmortem_class_key(p_detail jsonb)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- the first two ':' parts of the fault key; null, never '', when the finding names nothing
+  select nullif(array_to_string((string_to_array(public.fn_it_postmortem_fault_key(p_detail), ':'))[1:2], ':'), '');
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_postmortem_fault_key(p_detail jsonb)

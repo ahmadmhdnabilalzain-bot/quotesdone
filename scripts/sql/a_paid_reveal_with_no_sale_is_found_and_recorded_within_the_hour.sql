@@ -81,7 +81,7 @@ create table if not exists public.accountant_reveal_reconcile_item (
   paid_at         timestamptz,
   demo            boolean not null default false,
   outcome         text not null check (outcome in ('recovered', 'second_payment', 'refunded', 'refunded_unrecorded',
-                                                   'failed', 'deferred', 'recorded_elsewhere')),
+                                                   'failed', 'deferred', 'recorded_elsewhere', 'test_mode_not_demo')),
   transaction_id  uuid,
   error           text,
   attempts        integer not null default 1,
@@ -92,6 +92,10 @@ create table if not exists public.accountant_reveal_reconcile_item (
 );
 comment on table public.accountant_reveal_reconcile_item is
   'Every Stripe-paid reveal the accountant''s hourly sweep found with no sale in the books: recovered through recordRevealSale, a second payment, refunded, or not recordable (a finding until resolved).';
+-- A table made before 'test_mode_not_demo' existed keeps its old check; the same name is re-made with the full list.
+alter table public.accountant_reveal_reconcile_item drop constraint if exists accountant_reveal_reconcile_item_outcome_check;
+alter table public.accountant_reveal_reconcile_item add constraint accountant_reveal_reconcile_item_outcome_check
+  check (outcome in ('recovered', 'second_payment', 'refunded', 'refunded_unrecorded', 'failed', 'deferred', 'recorded_elsewhere', 'test_mode_not_demo'));
 create index if not exists accountant_reveal_reconcile_item_open_idx on public.accountant_reveal_reconcile_item (outcome) where resolved_at is null;
 
 alter table public.accountant_reveal_reconcile_run enable row level security;
@@ -128,6 +132,8 @@ begin
                            || ', quote ' || i.quote_id || ') could not be recorded: ' || coalesce(left(i.error, 160), 'no reason given')
         when 'refunded_unrecorded' then 'A paid reveal with no sale was partly refunded: Stripe ' || i.key || ' (quote ' || i.quote_id
                            || '); decide whether the sale is recorded or the rest refunded'
+        when 'test_mode_not_demo' then 'A TEST-mode Stripe payment names a quote that is not a demo account''s, so it was not recorded: ' || i.key
+                           || ' (AED ' || round(coalesce(i.amount_fils, 0) / 100.0, 2) || ', quote ' || i.quote_id || ')'
         when 'second_payment' then 'A revealed quote was paid a second time: ' || coalesce(i.payment_intent, i.key)
                            || ' (AED ' || round(coalesce(i.amount_fils, 0) / 100.0, 2) || ', quote ' || i.quote_id || ') must be refunded'
         else 'A paid reveal has waited over 3 hours to be recorded: Stripe ' || i.key || ' is past the sweep''s per-run bound' end,
@@ -138,6 +144,7 @@ begin
         'transaction_id', i.transaction_id,
         'remedy', case i.outcome
           when 'failed' then 'the hourly sweep retries it; read the error (a quote that no longer exists, or a PaymentIntent Stripe would not return)'
+          when 'test_mode_not_demo' then 'a test-mode payment may only touch demo data (stripe_webhook rule): find who paid the real quote through the test key; nothing was written'
           when 'second_payment' then 'a CEO-approved refund of the second payment; the first payment is the sale'
           when 'refunded_unrecorded' then 'the accountant decides: record the sale, or refund the remainder through the CEO'
           else 'more than 50 unmatched live payments an hour (the sweep''s per-run bound): read the failed and second-payment items first' end))
@@ -145,7 +152,7 @@ begin
     into v_items
     from public.accountant_reveal_reconcile_item i
    where i.resolved_at is null and not i.demo
-     and (i.outcome in ('failed', 'refunded_unrecorded', 'second_payment')
+     and (i.outcome in ('failed', 'refunded_unrecorded', 'second_payment', 'test_mode_not_demo')
           or (i.outcome = 'deferred' and i.first_seen_at < now() - interval '3 hours'))
      -- #1835: recordRevealSale raises reveal:second_payment:<pi> itself; the same payment is not filed twice.
      and not (i.outcome = 'second_payment' and exists (select 1 from public.it_engineer_finding f
@@ -210,18 +217,19 @@ begin
 
   for x in select e from jsonb_array_elements(coalesce(p_r->'outcomes', '[]'::jsonb)) e loop
     if coalesce(x->>'key', '') !~ '^(in|pi)_[A-Za-z0-9_]+$' or coalesce(btrim(x->>'quote_id'), '') = ''
-       or coalesce(x->>'outcome', '') not in ('recovered', 'second_payment', 'refunded', 'refunded_unrecorded', 'failed', 'deferred')
+       or coalesce(x->>'outcome', '') not in ('recovered', 'second_payment', 'refunded', 'refunded_unrecorded', 'failed', 'deferred', 'test_mode_not_demo')
        or coalesce(x->>'source', '') not in ('invoice', 'payment_intent') then
       n_refused := n_refused + 1;   -- 'recorded' (a plain match) never needs a row; anything malformed is refused, not guessed
       continue;
     end if;
     v_qid := case when x->>'quote_id' ~ c_uuid then (x->>'quote_id')::uuid end;
     -- DEMO: a test-mode payment, an email the one demo rule names, or a customer the database marks is_demo.
-    v_demo := not coalesce((x->>'livemode')::boolean, false)
+    -- 'test_mode_not_demo' is by definition a test payment that is NOT demo: it must reach the findings.
+    v_demo := x->>'outcome' is distinct from 'test_mode_not_demo' and (not coalesce((x->>'livemode')::boolean, false)
            or public.fn_is_demo_email(x->>'customer_email')
            or exists (select 1 from public.customers c where c.is_demo and c.id::text = x->>'customer_id')
            or exists (select 1 from public.quotes q join public.inquiries iq on iq.id = q.inquiry_id
-                        join public.customers c on c.id = iq.customer_id where q.id = v_qid and c.is_demo);
+                        join public.customers c on c.id = iq.customer_id where q.id = v_qid and c.is_demo));
     insert into public.accountant_reveal_reconcile_item as it (key, livemode, source, quote_id, invoice_id, payment_intent,
         customer_id, customer_email, amount_fils, currency, paid_at, demo, outcome, transaction_id, error, last_run_id, resolved_at)
     values (x->>'key', coalesce((x->>'livemode')::boolean, false), x->>'source', x->>'quote_id', nullif(x->>'invoice_id', ''),

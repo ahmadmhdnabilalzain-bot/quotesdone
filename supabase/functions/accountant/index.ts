@@ -1572,8 +1572,8 @@ Deno.serve(observe('accountant', async (req) => {
     // The seat duty accountant.reveal_reconcile (scripts/sql/a_paid_reveal_with_no_sale_is_found_and_recorded_within_the_hour.sql)
     // calls this every hour with its run id. The sweep is _shared/reveal_reconcile.ts: Stripe's paid reveal invoices
     // and PaymentIntents of the last N days against transactions, each one missing recorded through recordRevealSale.
-    // Both keys are swept: a test-mode payment is a demo account's (stripe_checkout serves demo accounts the test pair
-    // only), so it is recorded like any other and the SQL keeps it out of the findings.
+    // Both keys are swept. A test-mode payment is recorded only when its quote belongs to a demo account (the rule
+    // stripe_webhook's testEventIsDemo applies); any other is outcome 'test_mode_not_demo', a finding, never a ledger row.
     if (action === 'reveal_reconcile') {
       const runId = Number.isSafeInteger(Number(body.run_id)) && Number(body.run_id) > 0 ? Number(body.run_id) : null;
       const days = clampDays(body.days ?? 30);
@@ -1618,6 +1618,12 @@ Deno.serve(observe('accountant', async (req) => {
             const seen = new Map<string, { id: string; quote_id: string | null; payment_ref: string | null; stripe_invoice_id: string | null }>();
             for (const p of parts) for (const t of (p.data || []) as { id: string; quote_id: string | null; payment_ref: string | null; stripe_invoice_id: string | null }[]) seen.set(String(t.id), { ...t, id: String(t.id) });
             return [...seen.values()];
+          },
+          isDemoQuote: async (quoteId) => {
+            const { data: q } = await admin.from('quotes').select('inquiry_id').eq('id', quoteId).maybeSingle();
+            if (!q?.inquiry_id) return false;
+            const { data } = await admin.rpc('fn_inquiry_is_demo', { p_inquiry: q.inquiry_id });
+            return data === true;
           },
           record: (a) => recordRevealSale(admin, a),
           // What Stripe kept, write-once, exactly as stripe_webhook's recordStripeFee: fn_gl_sync_business books it to 6100.

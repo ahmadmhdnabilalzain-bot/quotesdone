@@ -2,7 +2,7 @@
 // Regression fixtures from the 29 real UAE profiles measured on 13 Oct 2026 (ACCURACY_real_profiles.md), names
 // replaced by ZZ DEMO. deno test --no-lock --node-modules-dir=none supabase/functions/_shared/supplier_trade_choice.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { checkChoice, majority, needsThird, checkVerify, choiceRequest, choiceSystem, isHeading, mergeChoices, quoteContext, quoteKey, textChunks, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
+import { checkChoice, majority, needsThird, settleReadings, checkVerify, choiceRequest, choiceSystem, isHeading, mergeChoices, quoteContext, quoteKey, textChunks, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
 import { readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 
 /** A model-labelled quote: what the line is in the document. */
@@ -164,6 +164,24 @@ Deno.test('majority of readings: a third reading settles a code one of two misse
   // no code with two votes -> held, never ok and empty
   assertEquals(majority([r(['doors']), r(['joinery']), r(['fire_fighting'])]), null);
   assertEquals(majority([r([]), r([]), r([])]), null);
+});
+Deno.test('a clean first reading is the only reading; an empty or refused one gets the 19 Oct majority rules unchanged', async () => {
+  type R = Awaited<ReturnType<Parameters<typeof settleReadings>[0]>>;
+  const r = (codes: string[], rejected: { code: string; why: string }[] = []): R => ({ ok: true, trades: codes.map((c) => ({ code: c, quote: c + ' line', reason: 'r' })), rejected });
+  const script = (...rs: R[]) => { let n = 0; const f = async () => rs[n++] ?? { ok: false as const, error: 'no more readings scripted' }; return { f, calls: () => n }; };
+  // clean: one reading, its codes as they came (the second look still judges them)
+  { const s = script(r(['doors', 'joinery'])); assertEquals((await settleReadings(s.f) as { trades: { code: string }[] }).trades.map((t) => t.code), ['doors', 'joinery']); assertEquals(s.calls(), 1); }
+  // empty first reading: a second, then a third on disagreement, then majority (M12: empty readings never pass a code)
+  { const s = script(r([]), r(['joinery']), r(['joinery'])); assertEquals((await settleReadings(s.f) as { trades: { code: string }[] }).trades.map((t) => t.code), ['joinery']); assertEquals(s.calls(), 3); }
+  // code refused a quote in the first: a second reading; two agreeing readings pass without a third
+  { const s = script(r(['joinery'], [{ code: 'doors', why: 'the quote is not in the document: "x"' }]), r(['joinery', 'doors']), r(['joinery']));
+    const out = await settleReadings(s.f); assert(out.ok); assertEquals(s.calls(), 2); assertEquals(out.ok && out.trades.map((t) => t.code), ['doors', 'joinery']); }
+  // an unknown code is a refusal too: never accepted on one reading
+  { const s = script(r(['joinery'], [{ code: 'roofing_x', why: 'not an active trade code' }]), r(['joinery'])); assertEquals((await settleReadings(s.f)).ok, true); assertEquals(s.calls(), 2); }
+  // no agreement: held, exactly as before
+  { const s = script(r([]), r(['doors']), r(['joinery'])); const out = await settleReadings(s.f); assertEquals(out.ok, false); }
+  // a failed first reading is retried by a second; two failures return the first failure
+  { const s = script({ ok: false, error: 'model unavailable (502)' }, { ok: false, error: 'again' }); const out = await settleReadings(s.f); assertEquals(out.ok ? null : out.error, 'model unavailable (502)'); assertEquals(s.calls(), 2); }
 });
 Deno.test('two readings name the same code but code refused both quotes: held (null), never ok and empty', () => {
   const r = (code: string) => ({ ok: true as const, trades: [{ code, quote: code + ' line', reason: 'r' }], rejected: [{ code: 'doors', why: 'the quote is not in the document: "x"' }] });
