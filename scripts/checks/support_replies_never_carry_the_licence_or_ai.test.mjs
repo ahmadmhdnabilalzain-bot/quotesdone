@@ -64,7 +64,7 @@ test('both support channels call the guard, and neither prompt carries the numbe
     assert.match(s, /guardSupportReply\(/, f);
   }
   const site = src('supabase/functions/site_assistant/index.ts');
-  assert.match(site, /import \{ siteReplyCheck \} from '\.\/reply_check\.ts'/);
+  assert.match(site, /import \{ siteReplyCheck(, siteReplyLanguage)? \} from '\.\/reply_check\.ts'/);
   assert.match(site, /check: siteReplyCheck\(brief, sys, replyLang\),/);
   for (const f of ['supabase/functions/site_assistant/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.ok(!src(f).includes(LIC), f + ' still carries the licence number');
 });

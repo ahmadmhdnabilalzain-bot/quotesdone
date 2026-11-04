@@ -51,6 +51,7 @@ import { type Audience, humanAlert, type Lang, MENU_IDS, menuItems } from './men
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { turnLang } from '../_shared/chat_answers.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 import { waRow } from './wa_row.ts';
 import { waConversation } from '../_shared/wa_history.ts';
@@ -591,7 +592,7 @@ async function handleInbound(req: Request): Promise<Response> {
     let forbidden: Promise<string[]> | null = null;
     // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
     // They are apart so a reply started speculatively (below) that is then discarded can never escalate or flag the turn.
-    const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => {
+    const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, langGiven?: 'en' | 'ar', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => {
       history ??= waConversation(admin, From, receivedAt, isDemoPhone(From));
       forbidden ??= (async () => {
         const { data } = await admin.rpc('fn_whatsapp_owner', { p_phone: From });
@@ -599,7 +600,11 @@ async function handleInbound(req: Request): Promise<Response> {
         return o?.party_kind === 'supplier' && o.lead_id ? preRevealIdentities(admin, { leadId: Number(o.lead_id) })
           : o?.party_kind === 'customer' && o.customer_id ? preRevealIdentities(admin, { customerId: String(o.customer_id) }) : [];
       })().catch(() => []);
-      return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: await history, forbidden: await forbidden,
+      // A MIXED MESSAGE KEEPS THE CONVERSATION'S LANGUAGE (chat_answers.turnLang, 3 Nov 2026): this was "any Arabic letter
+      // in the message = Arabic", the rule the widget's live run measured flipping an English conversation into Arabic.
+      const conv = await history;
+      const lang = langGiven ?? turnLang(Body, '', conv.filter((t) => t.role !== 'seat').map((t) => ({ role: 'user', content: t.text })));
+      return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: conv, forbidden: await forbidden,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
         // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
         // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
@@ -616,7 +621,7 @@ async function handleInbound(req: Request): Promise<Response> {
       sayAttempts = att.length > 8 ? [...att.slice(0, 4), ...att.slice(-4)] : att;   // the head and the tail (the last chance is at the end)
       return r.text;
     };
-    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], extraCheck?: (t: string) => string[]) =>
+    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang?: 'en' | 'ar', must?: string[], extraCheck?: (t: string) => string[]) =>
       adopt(await askModel(aud, situation, lang, must, undefined, extraCheck));
     // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
     const say = (situation: string, lang?: 'en' | 'ar') => sayFor(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : audience === 'founder' ? 'founder' : 'visitor')(situation, lang);
