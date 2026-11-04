@@ -36,6 +36,7 @@ if (!/^delivered\+qd-rp[a-z0-9]{1,8}-sup0@resend\.dev$/.test(addr) || !NAME.star
 const results = [];
 const step = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ' — ' + detail : ''}`); };
 let lead = null;
+let msgId = null;
 try {
   lead = (await write(`insert into public.leads (company_name, email, emirate, source, invite_status, invited_at, locale, tags)
     values (${q(NAME)}, ${q(addr)}, 'Dubai', 'directory', 'sent', now(), 'en', array['qd_demo','qd_run:${tag}'])
@@ -43,7 +44,7 @@ try {
   const sec = Object.fromEntries((await read(`select key, value from public.app_secrets
     where key in ('resend_inbound_token','resend_inbound_signing_secret','cred_fn_resend_inbound')`)).map((r) => [r.key, r.value]));
   const t0 = Date.now();
-  let msgId = null;
+  // msgId is declared above the try (review: a let here was out of scope in finally)
   const text = 'Yes please, we would like to receive requests. We supply aluminium windows and glass partitions.';
   if (LANE === 'm365') {
     const gid = 'AAMkQDPROBE' + tag;
