@@ -18,6 +18,7 @@ import { requestDelivery } from '../_shared/deliver.ts';
 import { jobAlias } from '../_shared/quote_labels.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
+import { stripContact } from './strip_contact.ts';
 import { sanctionedLead } from '../_shared/sanctioned.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -116,32 +117,7 @@ async function otherChannels(cust: { id: string; phone?: string | null; phone_ve
 // Identities are masked both ways: suppliers appear to the customer as "Supplier A/B..." in the
 // order they were matched, the customer never appears at all, and contact details are stripped from
 // both texts here, server-side, before anything is stored or emailed.
-const STRIP: RegExp[] = [
-  /[A-Za-z0-9._%+-]+\s*(?:@|\(at\)|\[at\])\s*[A-Za-z0-9.-]+\s*(?:\.|\(dot\)|\[dot\])\s*[A-Za-z]{2,}/gi,
-  /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
-  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info|app|link)(?:\.[A-Za-z]{2})?\b/gi,
-  /(?:\+|00)\s?971[\s.\-]?\d(?:[\s.\-]?\d){6,10}/g,
-  /\b0\d(?:[\s.\-]?\d){7,8}\b/g,
-  /\b5\d(?:[\s.\-]?\d){7}\b/g,
-  /\b(?:whats\s*app|wa\.me|telegram|t\.me|viber|botim|snapchat|skype|instagram)\b\S*/gi,
-  /(^|\s)@[A-Za-z0-9_.]{3,}/g,
-];
-const NAME_STOP = new Set(['llc', 'l.l.c', 'trading', 'contracting', 'general', 'company', 'group', 'est', 'establishment', 'services', 'technical', 'the', 'and']);
-// ponytail: a name is removed as whole words of 4+ letters; a nickname or misspelling survives.
-// Upgrade path is customer_api's companyRe if a leak is ever measured.
-function scrubName(text: string, name: unknown): string {
-  const words = String(name || '').split(/[^A-Za-z؀-ۿ]+/).filter((w) => w.length >= 4 && !NAME_STOP.has(w.toLowerCase()));
-  let out = text;
-  for (const w of words) out = out.replace(new RegExp('(^|[^A-Za-z؀-ۿ])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=$|[^A-Za-z؀-ۿ])', 'gi'), '$1[removed]');
-  return out;
-}
-function stripContact(raw: unknown, names: unknown[] = []): string {
-  // Arabic-Indic digits first, so ٠٥٠١٢٣٤٥٦٧ is caught by the same number patterns.
-  let s = clip(raw, 1500).replace(/[٠-٩]/g, (c) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g, (c) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c)));
-  for (const re of STRIP) s = s.replace(re, (m: string, lead?: string) => (typeof lead === 'string' && /^\s?$/.test(lead) && m.startsWith(lead) ? lead : '') + '[removed]');
-  for (const n of names) s = scrubName(s, n);
-  return s.trim();
-}
+// The scrubber itself (STRIP, scrubName, stripContact) lives in ./strip_contact.ts since 3 Nov 2026.
 type Res = { status: number; body: Record<string, unknown> };
 const R = (status: number, body: Record<string, unknown>): Res => ({ status, body });
 
@@ -152,12 +128,15 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     if (!id) return R(400, { error: 'id_required' });
     const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,kind,question,answered_at').eq('id', id).maybeSingle();
     if (!row) return R(404, { error: 'not_found' });
-    const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status').eq('id', row.inquiry_id).maybeSingle();
+    const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status,project_id').eq('id', row.inquiry_id).maybeSingle();
     if (!inq || inq.customer_id !== cust.id) return R(403, { error: 'not_your_inquiry' });
     if (row.kind !== 'question') return R(400, { error: 'not_a_question' });
     if (row.answered_at) return R(409, { error: 'already_answered' });
     const { data: me } = await admin.from('customers').select('full_name').eq('id', cust.id).maybeSingle();
-    const text = stripContact(b.text, [me?.full_name]);
+    // The PROJECT name too (3 Nov 2026, identity_never_leaks_before_reveal.mjs: "Site is ZZ Dune Heights Villa 2" reached
+    // every matched supplier in 20 of 20 answers). No pattern recognises a project name; only knowing it removes it.
+    const { data: proj } = inq.project_id ? await admin.from('projects').select('name').eq('id', inq.project_id).maybeSingle() : { data: null };
+    const text = stripContact(b.text, [me?.full_name], [proj?.name]);
     if (text.replace(/\[removed\]/g, '').trim().length < 1) return R(400, { error: 'text_required' });
     // Every matched supplier reads this answer, and suppliers read English only (_shared/supplier_english.ts):
     // Arabic is kept as written and the supplier copy is held until the model route writes its English.

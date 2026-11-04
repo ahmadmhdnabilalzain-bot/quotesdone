@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-03T22:53:42.693Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-03T23:47:57.288Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -1287,7 +1287,8 @@ CREATE TABLE IF NOT EXISTS public.cad_read_jobs (
   claimed_at timestamp with time zone,
   finished_at timestamp with time zone,
   result jsonb,
-  error text
+  error text,
+  last_dispatch_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.canon_eval_questions (
