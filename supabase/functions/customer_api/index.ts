@@ -9,7 +9,7 @@ import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { notSureKeys, specHandoffArgs } from './spec_handoff.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { parseReviewPhotos } from './review_photos.ts';
-import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
+import { cadNote, fileHeldNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from './vision_count_wire.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
 import { repeatCheck, repeatPlan } from './repeat.ts';
@@ -48,6 +48,7 @@ import { canReveal, heldQuoteIds, itemsByQuote } from '../_shared/reveal_guard.t
 import { verifiedBadges } from '../_shared/verified_badges.ts';
 import { readRevealRate, recordRateUnreadable } from '../_shared/reveal_rate.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../_shared/drawing_format.ts';
+import { cadJobNeedsRedispatch, claimCadDispatch } from './cad_dispatch.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -124,34 +125,10 @@ function labelize(s: string): string { return String(s || '').replace(/[-_]/g, '
 // "villa fit-out for Ahmed Khan, call 050 123 4567" had that emailed verbatim to up to eight
 // suppliers before anyone paid a reveal fee, which is the entire business model inverted. Anything
 // leaving this function toward a supplier goes through scrubIdentity first.
-const CO_SUFFIX = '(?:l\\.?\\s?l\\.?\\s?c\\.?|fz-?llc|fzc|fze|trading|contracting|establishment|est\\.?|general|co\\.?|company|group)';
-const ID_PATTERNS: RegExp[] = [
-  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
-  /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
-  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info)(?:\.[A-Za-z]{2})?\b/gi,
-  /\+\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
-  /\b00\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
-  /\b0\d(?:[\s.-]?\d){7,8}\b/g,
-];
-const rxEsc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-function companyRe(name: unknown): RegExp | null {
-  const base = String(name || '').replace(new RegExp('\\b' + CO_SUFFIX, 'gi'), ' ').replace(/[^A-Za-z0-9؀-ۿ ]+/g, ' ').trim();
-  const words = base.split(/\s+/).filter((w) => w.length > 1).map(rxEsc);
-  if (!words.length || base.replace(/\s+/g, '').length < 3) return null;
-  try { return new RegExp('\\b' + words.join('[\\s.,_-]*') + '(?:[\\s.,_-]*' + CO_SUFFIX + ')*', 'gi'); } catch (_e) { return null; }
-}
-function scrubIdentity(text: string | null, ownName: unknown, hits: string[]): string | null {
-  if (text == null) return text;
-  let out = String(text);
-  const nameRe = companyRe(ownName);
-  // Contact patterns run BEFORE the company-name pattern on purpose: "www.alnoor.ae" must be
-  // taken out whole as a URL, otherwise the name pattern eats "alnoor" first and leaves a
-  // half-redacted "www.[removed].ae" that still points at the supplier.
-  for (const re of (nameRe ? [...ID_PATTERNS, nameRe] : ID_PATTERNS)) {
-    out = out.replace(re, (m: string) => { const t = String(m).trim(); if (t.length < 3) return m; if (!hits.includes(t)) hits.push(t); return '[removed]'; });
-  }
-  return out;
-}
+// 3 Nov 2026: the copy that lived here is gone. It had drifted from supplier_api's (no TRN, no licence) and both
+// missed the shapes the planted-identity test measured (scripts/e2e/identity_never_leaks_before_reveal.mjs), so there
+// is ONE scrubber now, imported: supplier_api/identity_scrub.ts scrubIdentity, built on _shared/identity_text.ts.
+import { scrubIdentity } from '../supplier_api/identity_scrub.ts';
 async function queueNotifications(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
 // AUDIT 1.5 (4 Aug 2026) -----------------------------------------------------------------------
 // Both supplier-facing emails in this file passed ownName = null to scrubIdentity. companyRe(null)
@@ -394,7 +371,7 @@ async function getCfg(): Promise<Cfg | null> { const r = await readRevealRate(ad
 // 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
 // and NO cap. This copy computes the standard rate and nothing else, the same as public.reveal_fee();
 // pricing_config forbids a promo or a cap by constraint (pricing_config_no_discount_no_cap_ck).
-function revealFee(amount: number, cfg: Cfg | null): number | null { if (!cfg) return null; if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
+function revealFee(amount: number, cfg: Cfg | null): number | null { if (!cfg) return null; if (!amount || amount <= 0) return 0; return revealCharge(amount, Number(cfg.standard_reveal_rate)).base_fee; }
 // A RATING IS EARNED HERE OR IT DOES NOT EXIST (founder, 9 Sep 2026): "supplier rating should be
 // from customers after they tried them", "google review shouldnt be counted". This used to fall
 // back to leads.rating ?? leads.rating_maps — the Google Maps star of a business QuotesDone has
@@ -426,7 +403,7 @@ function yearsBand(v: unknown): string | null { if (v == null) return null; cons
 // not its size (a 562 KB drawing took 1.9 s of CPU against the 2 s cap). drawing_boq is a SEPARATE worker,
 // so its death reaches this function as a 546 answer, not a silent kill. On that answer, or when dwg.ts
 // says the drawing is past its edge ceiling, the stored original is queued in public.cad_read_jobs and the
-// CAD worker (scripts/cad_read_worker.ts, the same reader code, no CPU cap; run by the sales_engineer, see cadReadHeld) reads it;
+// CAD worker (scripts/cad_read_worker.ts on a GitHub runner, dispatched by startCadWorker; no CPU cap) reads it;
 // 'cad_read_status' hands the take-off to the customer's screen. Prevented from regressing by
 // scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
 function cadQueueReason(status: number, jd: any): 'over_edge_ceiling' | 'edge_worker_died' | 'edge_reader_failed' | null {
@@ -440,10 +417,36 @@ async function queueCadRead(o: { customerId: string; email: string; path: string
   const { data, error } = await admin.from('cad_read_jobs').insert({ customer_id: o.customerId, owner_email: o.email, source_path: o.path,
     file_name: o.name, mime: o.mime, bytes: Math.floor(o.b64Len * 3 / 4), why: o.why, boq_in: o.boqIn ?? null }).select('id').maybeSingle();
   if (error || !data?.id) { console.warn(`[cad] could not queue ${o.path}: ${error?.message || 'no id'}`); return null; }
-  await cadReadHeld(String(data.id), o.why);
+  await startCadWorker(String(data.id), o.why);
   return String(data.id);
 }
-// NO RUNNER STARTS ON ITS OWN (27 Oct 2026, it_engineer). This used to dispatch .github/workflows/cad-read-worker.yml
+// THE QUEUE STARTS ITS OWN WORKER AGAIN (3 Nov 2026, sales_engineer). 27 Oct (#1605) this dispatch was removed because
+// GitHub Actions was off; 28 Oct the founder switched Actions back on (ledger 1410) and nothing restored it, so every
+// queued drawing waited for a hand run: the nightly journey's 2.1 MB DWG sat 'queued' for 248 s on 2 Nov and 253 s on
+// 3 Nov (runs 41410340385, 41598217377), where the same job was read in 66-67 s on 20-21 Oct while this dispatch lived
+// (runs 39349907536, 39520102356). A job is dispatched the moment it is queued, and while the customer's screen polls
+// one that has not started it is dispatched again AT MOST ONCE A MINUTE, for its first hour (cad_dispatch.ts: the poll
+// claims cad_read_jobs.last_dispatch_at in one UPDATE); past the hour the poll raises the held finding instead. A
+// refused or failed dispatch raises the hour's sales_engineer finding (cadReadHeld). NOT SEEN: a dispatch answered 204
+// whose run never starts after the customer closed the page - no poll comes, and nothing sweeps cad_read_jobs (the
+// worker's 6-hourly schedule is off). Prevented by cad_dispatch.test.ts and scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
+async function startCadWorker(jobId: string, why: string): Promise<void> {
+  let answer = 'no_github_token';
+  try {
+    const gh = await getSecret('github_token');
+    if (gh) {
+      const r = await fetch('https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone/actions/workflows/cad-read-worker.yml/dispatches', {
+        method: 'POST', headers: { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'User-Agent': 'quotesdone-customer-api' },
+        body: JSON.stringify({ ref: 'main' }), signal: AbortSignal.timeout(5000) });
+      if (r.status === 204) return;
+      answer = `HTTP ${r.status}`;
+    }
+  } catch (_e) { answer = 'network'; }
+  console.error(`[cad] the CAD worker was not dispatched for job ${jobId} (${answer}); held for the sales_engineer`);
+  await cadReadHeld(jobId, `${why}; dispatch ${answer}`);
+}
+// THE FALLBACK WHEN THE DISPATCH IS REFUSED (27 Oct 2026, it_engineer; since 3 Nov it runs when startCadWorker's
+// dispatch answers anything but 204, and when a polled job has not started within its first hour). Written when this used to dispatch .github/workflows/cad-read-worker.yml
 // and re-dispatch it while the customer's screen polled. GitHub Actions is off, so every dispatch reached nothing and a
 // queued drawing waited for a runner that never came while the customer was told "a few minutes". The reader cannot run
 // on the edge (2 s CPU cap; a scanned drawing is OCR'd for up to 30 minutes) nor in pg_cron (no Deno, no LibreDWG), so a
@@ -455,7 +458,7 @@ async function cadReadHeld(jobId: string, why: string): Promise<void> {
   try {
     const { error } = await admin.rpc('fn_it_engineer_finding_upsert', {
       p_issue_key: 'sales_engineer:cad_read_held:' + new Date().toISOString().slice(0, 13),
-      p_title: 'A customer CAD drawing is queued for the CAD reader and no runner starts on its own: read it with scripts/cad_read_worker.ts',
+      p_title: 'A customer CAD drawing is queued and the CAD worker could not be dispatched: read it with scripts/cad_read_worker.ts',
       p_where: 'customer_api queueCadRead -> public.cad_read_jobs', p_blast: 'customer_facing', p_affected: 1,
       p_evidence: { job_id: jobId, why, run: 'SUPABASE_ACCESS_TOKEN=... deno run --no-lock --node-modules-dir=auto --allow-net --allow-env --allow-read scripts/cad_read_worker.ts', at: new Date().toISOString() },
       p_raised_by: 'sales_engineer',
@@ -486,7 +489,7 @@ async function redactCad(o: { secret: string | undefined; b64: string; custId: s
   // verifier; a file that is not proved is simply not attached, and the preview decides the hold as before.
   if (meta.redaction_complete) {
     const f = await redactFile(o);
-    if (f) { redacted.push(f.path); meta.redaction_job_ids.push(f.job); }
+    if (f && 'path' in f) { redacted.push(f.path); meta.redaction_job_ids.push(f.job); }
   }
   return { meta, redacted, reason: ok ? null : String(rj?.held_reason || rj?.error || 'cad_redactor_unreachable') };
 }
@@ -495,13 +498,17 @@ async function redactCad(o: { secret: string | undefined; b64: string; custId: s
 // 'file' returns the customer's PDF / DWG / DXF anonymised as a PDF or DXF a supplier opens and measures, released
 // only when _shared/drawing_file_redact.ts's verifier proved geometry, counts and zero identifiers. null = not
 // attached (held, refused or unreachable); the reason is on the run row drawing_redact recorded.
-async function redactFile(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }): Promise<{ path: string; job: string } | null> {
+async function redactFile(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }): Promise<{ path: string; job: string } | { held: string } | null> {
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
       body: JSON.stringify({ __secret: o.secret, mode: 'file', original_b64: o.b64, seed_terms: o.seeds, prefix: 'redacted', owner_customer_id: o.custId, owner_email: o.email, source_path: o.path }),
       signal: AbortSignal.timeout(60_000) });
     const j = await r.json().catch(() => null);
-    return j?.ok && j?.recorded && j?.job_id && Array.isArray(j.paths) && j.paths.length === 1 ? { path: String(j.paths[0]), job: String(j.job_id) } : null;
+    if (j?.ok && j?.recorded && j?.job_id && Array.isArray(j.paths) && j.paths.length === 1) return { path: String(j.paths[0]), job: String(j.job_id) };
+    // A hold is said, not swallowed (review of #1838): drawing_redact recorded it on drawing_redaction_runs; the reason
+    // goes back to analyze_drawing, which tells the customer (drawing_hold.fileHeldNote).
+    if (j?.ok && j?.held_reason) { console.warn(`[drawing] the anonymised file of ${o.path} was held: ${j.held_reason}`); return { held: String(j.held_reason) }; }
+    return null;
   } catch (_e) { return null; }
 }
 // THE HOLD IS WRITTEN OR IT IS SAID (24 Sep 2026, audit finding 5). The insert answers { error } rather than
@@ -768,6 +775,12 @@ function compareFinishIO(): CompareFinishIO {
       await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'arabic_comparison_render_failed', status: 'pending', risk: 'medium',
         title: `The Arabic comparison report could not be sent after ${MAX_COMPARE_ATTEMPTS} tries`, detail: { inquiry_id: iid, last }, target_table: 'inquiries', target_id: iid });
     },
+    overdue: async (iid, hours) => {
+      const { data: open } = await admin.from('agent_actions').select('id').eq('agent', 'sales_engineer').eq('kind', 'arabic_comparison_overdue').eq('target_id', iid).eq('status', 'pending').limit(1);
+      if (open?.length) return;
+      await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'arabic_comparison_overdue', status: 'pending', risk: 'medium',
+        title: `A customer's Arabic comparison report has waited ${hours} h for its Arabic lines`, detail: { inquiry_id: iid, hours }, target_table: 'inquiries', target_id: iid });
+    },
   };
 }
 
@@ -939,6 +952,11 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       if (!/^[0-9a-f-]{36}$/i.test(id)) return J({ ok: false, error: 'not_found' }, 404);
       const { data: job } = await admin.from('cad_read_jobs').select('status, result, boq_in, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!job) return J({ ok: false, error: 'not_found' }, 404);
+      const redo = cadJobNeedsRedispatch(job as any);
+      if (redo && await claimCadDispatch(admin, id)) {
+        if (redo === 'dispatch') await startCadWorker(id, 'still_queued_when_polled');
+        else await cadReadHeld(id, 'not_started_within_an_hour_of_dispatches');
+      }
       // 24 Sep 2026: the worker also DRAWS a CAD file the edge could not, for suppliers (cad_read_worker.ts
       // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
       const res = job.status === 'done' ? (job.result as any) : null;
@@ -1179,9 +1197,11 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         // Anything short of every page verified hands back NO redacted paths and share_redacted:false,
         // and writes one 'held' row against the stored original so the unshared drawing is visible.
         // A fully redacted PDF also goes out as the anonymised VECTOR PDF (redactFile), beside its page previews.
+        let fileHeld: string | null = null;
         if (redMeta.redaction_complete && path && !isCad && body.original_b64 && /^JVBERi0/.test(String(body.original_b64).replace(/^data:[^;]+;base64,/, ''))) {
           const f = await redactFile({ secret, b64: String(body.original_b64), custId: cust.id, email, path, seeds: seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }) });
-          if (f) { redacted.push(f.path); redJobs.push(f.job); }
+          if (f && 'path' in f) { redacted.push(f.path); redJobs.push(f.job); }
+          else if (f && 'held' in f) fileHeld = f.held;
         }
         const hand = drawingHandoff(redMeta, path, redacted);
         if (hand.drawing_held && path) {
@@ -1258,7 +1278,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
             if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
           } catch (_e) { /* the coded result stands */ }
         }
-        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
+        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...fileHeldNote(fileHeld), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false }, 200); }
     }
 

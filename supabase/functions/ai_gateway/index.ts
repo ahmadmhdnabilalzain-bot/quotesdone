@@ -32,7 +32,7 @@
 //
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
-import { cacheTokens, tapUsage } from './stream_usage.ts';
+import { cacheTokens, generationUsage, tapUsage } from './stream_usage.ts';
 import { sendWithTtlFallback, systemMessage, withHistoryBreakpoint } from './system_message.ts';
 import { withDataDeny } from './provider_privacy.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -42,6 +42,7 @@ import { annotate, observe } from '../_shared/observe.ts';
 import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, rehearsalLetsFixtureThrough, reservationVerdict, subjectOf, unprovenRunTag } from '../_shared/spend_guards.ts';
 import { e2eRunTag } from '../_shared/e2e_run.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
+import { embedGteRemote } from '../_shared/ml_embed_client.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
 import { cacheHitServesRoute } from './cache_hit.ts';
 
@@ -55,27 +56,17 @@ async function sec(k: string) {
 }
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
-// Free, in-region. Module scope on purpose: building the session per request is exactly what killed
-// kb_embed with WORKER_RESOURCE_LIMIT on 28 Jul.
-// deno-lint-ignore no-explicit-any
-let _emb: any = null;
-// deno-lint-ignore no-explicit-any
-function embedder(): any {
-  // deno-lint-ignore no-explicit-any
-  if (_emb === null) _emb = new (globalThis as any).Supabase.ai.Session('gte-small');
-  return _emb;
-}
-async function embed(text: string): Promise<string | null> {
-  try {
-    const v = await embedder().run(String(text).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
-    return '[' + v.join(',') + ']';
-  } catch (e) {
-    // Still null, so the semantic cache never fails the call for it -- but no longer silent (22 Sep
-    // 2026, instruction 645): the gte-small error reaches the edge log, and the embed action below
-    // answers 503 embed_failed instead of ok:true over a missing vector.
-    console.error('ai_gateway embed: gte-small failed:', String((e as Error)?.message || e).slice(0, 300));
-    return null;
-  }
+// Free, in-region gte-small - RUN IN embed_ml, NOT IN THIS WORKER (it_engineer, 2 Nov 2026). Measured on production
+// (function_edge_logs + function_logs, 1-2 Nov): 6 ai_gateway requests died "CPU Time exceeded" (HTTP 546). Four were
+// {action:'embed'} calls of ~200 bytes from a Node client that died 400-450 ms after boot, two per worker: the model's
+// inference threads spend the 2 s CPU allowance in a fraction of that wall time, and every request sharing the worker
+// dies with it. The other two were chat calls whose semantic-cache embed ran in the same worker as the model call.
+// embed_ml is the one place a model runs (the same gte-small, action 'gte', so the vector space never mixes); a call
+// it cannot answer is a null here, exactly as a failed in-process run was. prevented by: ai_gateway/embed_is_remote.test.ts
+async function embed(text: string, timeoutMs = 8000): Promise<string | null> {
+  const v = await embedGteRemote(admin, String(text).slice(0, 1200), 'ai_gateway', timeoutMs,
+    (why) => console.error('ai_gateway embed: embed_ml gave no vector:', why.slice(0, 300)));
+  return v ? '[' + v.join(',') + ']' : null;
 }
 
 async function sha256(s: string): Promise<string> {
@@ -184,6 +175,8 @@ interface Body {
   effort?: string;                        // Claude reasoning effort; request_shape.ts defaults it to medium
   require_caps?: string[];                // override; normally inferred from the payload
   want_message?: boolean;                 // return the whole assistant message (tool_calls included)
+  internal_duty?: boolean;                // a seat's own scheduled duty (think.ts internalDuty): a paid empty answer is not re-asked
+  cache_exact?: boolean;                  // replay only a byte-identical prompt (no semantic match): the public site's memo
 }
 
 // What the payload actually needs, read off the payload itself. A caller that has to declare
@@ -261,7 +254,13 @@ async function handle(req: Request): Promise<Response> {
     // shared secret records who claimed to make it. It is read again at fnName below for routing;
     // the audit could not see it, which is why five legacy uses have no attributable caller.
     const __auth = await requireInternal(admin, body?.__secret, 'ai_gateway', body?.fn);
-    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
+    // THE VERIFIER'S OWN STATUS, NOT A FLAT 403 (it_engineer, 3 Nov 2026, drill D12). requireInternal answers 503
+    // credential_check_unavailable when fn_internal_auth cannot be reached, and this line turned it into 403 forbidden:
+    // _shared/llm.ts's verifier_unavailable branch never fired, and a database blip was logged as "ai_gateway REFUSED
+    // the credential ... Check internal_credential_audit", which sends the it_engineer looking for a rotation fault
+    // that is not there. The envelope carries `ok`, so llm.ts reads it as the gateway's answer and never re-asks.
+    // prevented by: ai_gateway/drill_provider_faults.test.ts
+    if (!__auth.ok) return J({ ok: false, error: __auth.error }, __auth.status);
 
     // Utility path: embed text for callers that need a vector (FAQ backfill, semantic search).
     // Free, so it never touches routing or budget. A missing vector is 503 embed_failed, never
@@ -298,6 +297,8 @@ async function handle(req: Request): Promise<Response> {
       const q = String(body.faq_text ?? (typeof body.input === 'string' ? body.input : '') ?? '');
       promptHash = await sha256('faq ' + fnName + ' ' + q);
       const qEmb = q.length > 2 ? await embed(q) : null;
+      // Said, not silent (review of #1797): without a vector fn_faq_answer matches on keywords alone.
+      if (q.length > 2 && !qEmb) console.warn('ai_gateway faq: no vector from embed_ml for ' + fnName + '; the FAQ match falls back to keywords');
       const { data: faq } = await admin.rpc('fn_faq_answer', {
         p_text: q, p_min_rank: 0.15, p_embedding: qEmb, p_min_similarity: 0.86,
       });
@@ -469,7 +470,9 @@ async function handle(req: Request): Promise<Response> {
         model, String(maxTok), sysStable, sys, JSON.stringify(convo),
         JSON.stringify(body.plugins ?? null), JSON.stringify(body.response_format ?? null),
       ].join(' '));
-      promptEmb = await embed((sysStable + sys).slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800));
+      // cache_exact (public_site, 3 Nov 2026): a visitor's price question must never be answered with the reply to a
+      // SIMILAR question, so only the exact prompt hash may replay; no vector, so fn_llm_cache_lookup matches the key only.
+      promptEmb = body.cache_exact === true ? null : await embed((sysStable + sys).slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800), 3000);
       const { data: hit } = await admin.rpc('fn_llm_cache_lookup', {
         p_key: cacheKey, p_embedding: promptEmb,
         p_task_class: route.task_class ?? null, p_min_similarity: 0.95,
@@ -570,6 +573,12 @@ async function handle(req: Request): Promise<Response> {
       if (inWindow) route.why = route.why + ' | TEST RUN (ruling 1260): run tag ' + runTag + (ownWork ? ' | ' + ownWork : '');
     }
 
+    // OUR OWN WORK (it_engineer, 3 Nov 2026): a run-tagged call (e2e_run.ts honours a tag only with its proof), or a seat's own scheduled duty its internal caller
+    // declared (think.ts internalDuty -> llm.ts internal_duty). Used for one thing only: a paid empty completion of our own
+    // work is never asked again of the same model (the attempt loop below). Nothing is refused or capped on it (founder,
+    // 24 Sep 2026: "I don't want caps"). A customer's, supplier's or visitor's request is never own work.
+    const ownWorkCall = !!e2eRunTag() || body.internal_duty === true;
+
     // ---- 7. THE CALL --------------------------------------------------------------------
     const key = await sec('openrouter_api_key');
     if (!key) return J({ ok: false, error: 'openrouter_api_key missing' }, 500);
@@ -602,8 +611,10 @@ async function handle(req: Request): Promise<Response> {
     // the transcribe path there is no system prompt at all. Only prepend one when it says something,
     // and never when the caller already supplied its own system turn inside `messages`.
     const hasOwnSystem = convo.some((m) => m?.role === 'system');
-    // cache_history (chat_history.ts): the earlier turns of a long conversation are the third cached block.
-    const convoOut: Msg[] = (useCache && body.cache_history === true) ? withHistoryBreakpoint(convo, cacheTtl) as Msg[] : convo;
+    // cache_history (chat_history.ts): the earlier turns of a long conversation are the third cached block, on the
+    // DEFAULT 5-minute tier (3 Nov 2026): a conversation's history is read back within minutes or never, and the 1-hour
+    // tier writes at 2x against 1.25x. The brief blocks before it keep the 1-hour tier (system_message.ts).
+    const convoOut: Msg[] = (useCache && body.cache_history === true) ? withHistoryBreakpoint(convo, null) as Msg[] : convo;
     const outbound: Msg[] = (sysMsg && !hasOwnSystem) ? [sysMsg as Msg, ...convoOut] : convoOut;
 
     // 29 Jul 2026 - WALL DEADLINE. The ladder could run two models x two attempts x 25s, up to
@@ -767,6 +778,30 @@ async function handle(req: Request): Promise<Response> {
         }});
       } catch (_e) { /* the ledger must not take down the call; its absence shows in the report */ }
     };
+    // A FAILED ATTEMPT THE PROVIDER STILL BILLED GETS ITS OWN LEDGER ROW (it_engineer, 3 Nov 2026). Measured: USD 11.79
+    // billed in 7 days that ai_cost_log never saw. An empty completion carries a usage block (the CEO's Opus replays on
+    // 3 Nov: "empty completion finish_reason=none" at 35-38 s, every second attempt, paid and thrown away); an attempt we
+    // aborted after the provider had been working on it carries none. The first is logged with what the provider
+    // reported; the second with an ESTIMATE (prompt tokens = request characters / 4, no output), flagged as such. The
+    // request's own row below still carries only the attempt that answered, so nothing is counted twice.
+    // deno-lint-ignore no-explicit-any
+    const logFailedAttempt = async (m: string, u: any, gen: unknown, errText: string, ms: number) => {
+      const est = Math.ceil(JSON.stringify(outbound).length / 4);
+      const { cachedIn: fIn, cacheWrite: fWr } = cacheTokens(u ?? null);
+      await llmLog({
+        p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+        p_task_class: route.task_class ?? null, p_model: m,
+        p_because: route.why + ' | FAILED ATTEMPT after ' + ms + ' ms, billed by the provider: ' + String(errText).slice(0, 160)
+                   + (u ? '' : ' | ESTIMATED: no usage came back; prompt tokens estimated from the request size (characters/4), output 0'),
+        p_tier: route.tier ?? null, p_prompt_tokens: u ? (u.prompt_tokens ?? null) : est, p_output_tokens: u ? (u.completion_tokens ?? null) : 0,
+        p_cached: false, p_cached_in: fIn ?? 0, p_cache_write: fWr ?? 0,
+        p_cache_key: null, p_latency_ms: ms, p_ok: false,
+        p_generation_id: typeof gen === 'string' && gen ? gen : null,
+        p_cost_usd_reported: Number.isFinite(Number(u?.cost)) ? Number(u.cost) : null,
+      });
+    };
+    // An aborted attempt is billed only if the provider had started on it: under this it is a refused or dropped request.
+    const ABORT_BILLED_AFTER_MS = 10_000;
     const wantStream = body.stream === true && route.stream === true;
 
     let out: string | null = null;
@@ -801,6 +836,7 @@ async function handle(req: Request): Promise<Response> {
     if (body.response_format != null) loadSupportedParams();
     let sentMaxTok = maxTok;   // what the provider was actually given (Claude adds thinking headroom)
     let pi = 0;
+    let emptyPaid = false, anyEmptyPaid = false;
     attempts: while (pi >= 0 && pi < plan.length) {
       const m = plan[pi];
       let failStatus: number | null = null;
@@ -883,7 +919,8 @@ async function handle(req: Request): Promise<Response> {
               // when the stream ends or is abandoned, with the tokens, cache reads/writes and OpenRouter's charge.
               const startedAt = attemptStartedAt;
               const tapped = tapUsage(r.body, async (s) => {
-                const u = s.usage;
+                // no usage chunk (abandoned or cut short): OpenRouter's own record of the generation prices it
+                const u = s.usage ?? (s.id ? await generationUsage(s.id, key) : null);
                 const { cachedIn: sIn, cacheWrite: sWr } = cacheTokens(u);
                 // Only a real stream error is a failure (it may trip the breaker). A stream that ended or was
                 // abandoned without its usage chunk delivered its words: ok, with the tokens unknown (null).
@@ -895,7 +932,7 @@ async function handle(req: Request): Promise<Response> {
                   p_because: route.why + ' | streamed'
                              + (useCache ? ' | prompt cache on (' + cacheBlock.length + ' stable chars): ' + sIn + ' tokens read from cache, ' + sWr + ' written' : '')
                              + (s.cancelled ? ' | abandoned by the caller' : '')
-                             + (u ? '' : ' | NO USAGE CHUNK: tokens and cost unknown, not zero')
+                             + (u ? (s.usage ? '' : ' | NO USAGE CHUNK: priced from OpenRouter generation ' + s.id) : ' | NO USAGE CHUNK: tokens and cost unknown, not zero')
                              + (s.finish === 'length' ? ' | TRUNCATED at the ' + sentMaxTok + '-token ceiling' : ''),
                   p_tier: route.tier ?? null, p_prompt_tokens: u?.prompt_tokens ?? null, p_output_tokens: u?.completion_tokens ?? null,
                   p_cached: false, p_cached_in: sIn ?? 0, p_cache_write: sWr ?? 0,
@@ -942,13 +979,23 @@ async function handle(req: Request): Promise<Response> {
           // An empty completion IS a failure even though the HTTP call succeeded. This is exactly
           // the 220-of-228 case: a valid chat.completion body carrying no content, which every
           // monitor read as a healthy response.
-          await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr);
+          await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr, String(j?.choices?.[0]?.finish_reason ?? '') || undefined, j?.usage);
+          // A 200 with no content was paid for. For OUR OWN work (a test run or an internal duty) the SAME model is not
+          // asked again (that was the second payment on 3 Nov); the next model on the ladder may be. A customer's,
+          // supplier's or visitor's request keeps its retry: an empty reply is sometimes a blip, and their answer matters more.
+          if (r.ok && !j?.error) {
+            emptyPaid = ownWorkCall; anyEmptyPaid = true;
+            await logFailedAttempt(m, j?.usage ?? null, j?.id, lastErr, Date.now() - attemptStartedAt);
+          }
         } catch (e) {
           lastErr = String((e as Error)?.message || e).slice(0, 200);
-          await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr);
+          const ms = Date.now() - attemptStartedAt;
+          await recordAttempt(m, false, ms, lastErr);
+          if (ms >= ABORT_BILLED_AFTER_MS) await logFailedAttempt(m, null, null, lastErr, ms);
         } finally { clearTimeout(to); }
       }
-      pi = nextAttempt(plan, pi, failureKind(failStatus));
+      pi = nextAttempt(plan, pi, emptyPaid ? 'next' : failureKind(failStatus));
+      emptyPaid = false;
     }
 
     // ---- 8. LOG with real money ---------------------------------------------------------
@@ -1026,11 +1073,18 @@ async function handle(req: Request): Promise<Response> {
       await rpcSafe('fn_review_hold_record', { p_task_class: route.task_class ?? null, p_fn: fnName, p_agent_key: body.agent ?? null,
         p_counterpart_model: counterpart, p_why: 'reviewer call failed: ' + String(lastErr ?? (deadlineHit ? 'deadline' : 'unknown')).slice(0, 500) });
     }
+    // outcome 'empty_completion': a model was PAID and answered nothing, so the caller must not ask again (think.ts).
     if (!outMsg) return J({ ok: false, error: deadlineHit ? 'gateway_deadline' : 'all_models_failed',
+                            ...(anyEmptyPaid && !deadlineHit ? { outcome: 'empty_completion' } : {}),
                             detail: deadlineHit ? ('no model answered within the ' + wallBudgetMs + 'ms budget the caller waits for; last error: ' + lastErr) : lastErr,
                             ladder, caps }, 502);
 
-    if (cacheable && cacheKey && out) {
+    // A FRAGMENT IS NEVER STORED FOR REPLAY (it_engineer, 3 Nov 2026, drill "format"). A reply cut at the token ceiling
+    // (finish_reason 'length') was stored here like any answer, and a cache hit returns content with no finish_reason
+    // and no truncated flag, so the next identical request got the fragment as a complete answer and llm.ts's one
+    // controlled repair never ran. Measured in the drill: a truncated call plus its repair wrote 2 llm_cache rows.
+    // prevented by: ai_gateway/drill_provider_faults.test.ts
+    if (cacheable && cacheKey && out && finishReason !== 'length') {
       await rpcSafe('fn_llm_cache_store', {
         p_key: cacheKey, p_fn: fnName, p_task_class: route.task_class ?? null, p_model: used,
         // ttlMin, not body.cache_ttl_min: with the route now supplying the default, reading the

@@ -10,6 +10,7 @@ import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE, assertHarn
 import { makeInquiry } from '../lib/demo_factory.mjs';
 import { journeyAuditButtons } from './journey_audit_buttons.mjs';
 import { payHostedTestCheckout, checkoutBlockers } from './stripe_test_checkout.mjs';
+import { handoffProbeSql, ladderSql, parseChk } from './demo_refund_ladder.mjs';
 
 const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
 export const MATRIX = [
@@ -512,13 +513,17 @@ export async function journeyComparison(ctx) {
     // from it offline (demo data only; the run directory is scratch, never committed).
     if (a) writeFileSync(`${dir}/c_quote_compare_analysis.json`, JSON.stringify(a, null, 2));
     const held = new Set((a?.all_quotes || []).filter((x) => x?.status === 'held').map((x) => String(x.label)));
-    const want = (a?.quotes || []).filter((x) => !held.has(String(x.label)));
+    // EVERY LIVE QUOTE IS A CSV COLUMN, CHEAPEST FIRST (quote_documents.ts comparedQuotes, 19 Oct 2026): quote_compare's
+    // `quotes` is the model's detail, capped at three, so it is not the CSV's column list; its ROSTER (all_quotes) is.
+    // 2 Nov 2026, run 41459344864: comparing with the capped list called the CSV wrong for carrying the fourth live quote.
+    const want = (a?.all_quotes || []).filter((x) => x?.label && !held.has(String(x.label)) && Number(x.price) > 0).sort((x, y) => Number(x.price) - Number(y.price));
     const parseRow = (line) => { const out = []; let cur = '', qd = false; for (let i = 0; i < line.length; i++) { const c = line[i]; if (qd) { if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') qd = false; else cur += c; } else if (c === '"') qd = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; } out.push(cur); return out; };
     const lines = String(csvR.json?.csv || '').replace(/^﻿/, '').split(/\r\n/).filter(Boolean);
     const head = lines[0] ? parseRow(lines[0]).slice(1) : [];
-    const priceRow = lines.map(parseRow).find((r) => r[0] === 'Price')?.slice(1) || [];
+    // Ruling 1207 renamed the row "Price (excluding VAT)"; an exact 'Price' match found no row and read the prices as [].
+    const priceRow = lines.map(parseRow).find((r) => /^Price\b/.test(r[0] || ''))?.slice(1) || [];
     const digits = (s) => Number(String(s).replace(/[^\d.]/g, '')) || 0;
-    const wantPrice = want.map((x) => Math.round(Number(x.price_ex_vat) > 0 ? Number(x.price_ex_vat) : Number(x.price)));
+    const wantPrice = want.map((x) => Math.round(Number(x.price)));
     const sameCols = want.length >= 2 && head.length === want.length && want.every((x, i) => head[i].includes(String(x.label)));
     const samePrice = priceRow.length === want.length && priceRow.every((p, i) => Math.round(digits(p)) === wantPrice[i]);
     rep.step(J, 'compare_pdf/compare_csv see the same analysis as quote_compare with the customer JWT', direct.json?.ok && sameCols && samePrice ? 'PASS' : 'FAIL',
@@ -670,6 +675,12 @@ async function refundEndToEnd(ctx, live, J) {
   const want = Math.round(Number(tx.total_charged ?? tx.reveal_fee) * 100);
   const DEMO_TX = `id = ${q(tx.id)} and customer_id in (select id from public.customers where is_demo and email like '%@example.invalid')`;
 
+  // 0. The handoffs the request files, proved in a ROLLED-BACK probe BEFORE the real request: a demo row files no
+  //    handoff (founder instruction 1199), so reading them after customer_api could only ever find nothing
+  //    (nightly 41598217377: both steps FAILED with {}). See scripts/e2e/demo_refund_ladder.mjs.
+  let hp = null;
+  try { await write(handoffProbeSql(tx.id), 'e2e rolled-back probe: the refund request files its two handoffs'); } catch (e) { hp = parseChk(e); }
+
   // 1. The request opens the case, and only then does the sale read 'requested'.
   const req = await call('customer_api', fx.customer.jwt, { action: 'request_refund', quote_id: live.id });
   const rf = await read(`select id, status, amount_fils from public.refunds where transaction_id = ${q(tx.id)} order by id`);
@@ -679,12 +690,8 @@ async function refundEndToEnd(ctx, live, J) {
     `HTTP ${req.status} ${JSON.stringify(req.json)} refunds=${JSON.stringify(rf)} sale=${sale?.refund_status}`);
   if (!opened) return;
   const rid = Number(rf[0].id);
-  const conf = (await read(`select detail->>'locale' as locale from public.agent_actions where kind = 'handoff' and agent = 'customer_support'
-      and detail->>'msg_type' = 'refund_request_received' and detail->>'transaction_id' = ${q(tx.id)}`))[0];
-  rep.step(J, 'the confirmation goes to support in the registered language', conf?.locale === (fx.customer.locale || 'en') ? 'PASS' : 'FAIL', JSON.stringify(conf || {}));
-  const rh = (await read(`select agent from public.agent_actions where kind = 'handoff' and detail->>'type' = 'refund.requested'
-      and detail->>'subject_id' = ${q(String(rid))} order by id desc limit 1`))[0];
-  rep.step(J, 'the case is handed to the accountant', rh?.agent === 'accountant' ? 'PASS' : 'FAIL', JSON.stringify(rh || {}));
+  rep.step(J, 'the confirmation goes to support in the registered language', hp?.confirm_locale === (fx.customer.locale || 'en') ? 'PASS' : 'FAIL', JSON.stringify(hp || {}));
+  rep.step(J, 'the case is handed to the accountant', hp?.to_accountant === 'accountant' ? 'PASS' : 'FAIL', JSON.stringify(hp || {}));
   // Day 0: the customer may ask, but the CEO may not decide before the day-3 chase and the day-5 final call.
   const ck = (await read(`select public.fn_ceo_refund_checklist(${q(tx.id)}::uuid, 'approve', false) as c`))[0]?.c;
   const failedItems = (ck?.failed || []).map((x) => x.item);
@@ -700,20 +707,15 @@ async function refundEndToEnd(ctx, live, J) {
       refund_deadline = public.fn_add_working_days(now() - interval '10 days', 5) where ${DEMO_TX} returning id`, 'e2e refund time travel (demo only)');
   if (!Array.isArray(moved) || moved.length !== 1) return rep.step(J, 'demo time travel', 'FAIL', JSON.stringify(moved));
 
-  // 3. Day 3 chase and day 5 final call, each delivered and watched to a no-response confirmation.
+  // 3. Day 3 chase and day 5 final call, each delivered and watched to a no-response confirmation, in ONE
+  //    transaction that files the demo handoffs (scripts/e2e/demo_refund_ladder.mjs). sent_at ONLY: the status
+  //    stays as the capture left it (suppressed), so the safety step's count of dispatched rows stays honest.
+  let ladderErr = null;
+  try { await write(ladderSql(tx.id, rid), 'e2e demo refund ladder (demo only, one transaction)'); } catch (e) { ladderErr = String(e.message).slice(0, 300); }
   for (const [day, step] of [[3, 'chase'], [5, 'final_call']]) {
-    const reqId = Number((await write(`select public.fn_sales_engineer_ladder_step(${q(tx.id)}, '${step}', ${step === 'final_call' ? rid : 'null'}, null) as id`, 'e2e ladder step'))[0]?.id);
-    const n = (await read(`select (evidence->>'notification_id')::bigint as nid, detail->>'to_email' as to_email from public.agent_actions where id = ${reqId}`))[0];
-    // sent_at ONLY: the status stays as the capture left it (suppressed), so the safety step's count of
-    // dispatched rows stays honest. The first run of this journey wrote status='sent' here and the
-    // safety step counted those two captured demo rows as sent (14 Sep 2026, 16:19 run).
-    await write(`update public.notifications set sent_at = now() where id = ${Number(n?.nid) || 0} and to_email like '%@example.invalid'`, 'e2e demo delivery');
-    await write(`update public.agent_actions set detail = detail || jsonb_build_object('watch_until', now() - interval '1 minute')
-                 where id = ${reqId} and detail->>'to_email' like '%@example.invalid'`, 'e2e watch window');
-    const w = (await write(`select public.fn_customer_support_delivery_watch(${reqId}) as r`, 'e2e watch'))[0]?.r;
     const ev = (await read(`select result, delivered from public.refund_ladder_evidence where transaction_id = ${q(tx.id)} and step = '${step}' order by id desc limit 1`))[0];
     rep.step(J, `day ${day} ${step.replace('_', ' ')} delivered, no response confirmed`,
-      ev?.result === 'no_response_confirmation' && ev?.delivered === true ? 'PASS' : 'FAIL', JSON.stringify({ reqId, n, w, ev }));
+      ev?.result === 'no_response_confirmation' && ev?.delivered === true ? 'PASS' : 'FAIL', JSON.stringify({ ev, ladderErr }));
   }
 
   // 4. The CEO decides on the checklist (fn_ceo_refund_review ran when the final call's result landed).

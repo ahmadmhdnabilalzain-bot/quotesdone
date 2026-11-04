@@ -19,8 +19,42 @@ export type Lang = 'en' | 'ar';
 export type QuestionType = 'count' | 'cost' | 'timeline' | null;
 
 export const isArabic = (s: string): boolean => /[؀-ۿ]/.test(String(s || ''));
-export const langOf = (message: string, uiLang?: string): Lang =>
-  isArabic(message) || String(uiLang || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
+/** Arabic and Latin letters in a message; links, emails, the brand and the ZZ DEMO fixture tag are not counted. */
+export function scripts(s: string): { ar: number; la: number } {
+  const t = String(s || '').replace(/https?:\/\/\S+|\S+@\S+|\bQuotesDone\b|\bZZ ?DEMO\b/gi, '');
+  return { ar: (t.match(/[\u0600-\u06FF]/g) || []).length, la: (t.match(/[A-Za-z]/g) || []).length };
+}
+// A MIXED MESSAGE KEEPS THE CONVERSATION'S LANGUAGE (customer_support, 3 Nov 2026). Measured on the live widget: an English
+// inquiry's message "sorry, الزجاج 8 مم مو 6mm. And the villa is in Sharjah ..." was answered wholly in Arabic, because any
+// Arabic letter made the message Arabic. `established` is the language the conversation began in (turnLang): a message that
+// mixes both scripts keeps it; a message in one script, a first message, and the Arabic screen keep their old rules.
+// A message with no letters ("14", a phone number) or hardly any ("OK", "yes", "لا": under 4) says nothing about the language either, so it
+// keeps the conversation's too (review of #1830, 4 Nov 2026): measured before, "14" in an Arabic chat was answered in English.
+// prevented by: _shared/chat_lang_follows_the_conversation.test.ts
+export const langOf = (message: string, uiLang?: string, established?: Lang): Lang => {
+  if (String(uiLang || '').toLowerCase().startsWith('ar')) return 'ar';
+  const { ar, la } = scripts(message);
+  if (established && (ar + la < 4 || (ar && la))) return established;
+  return ar ? 'ar' : 'en';
+};
+/** The reply language of a chat turn: this message, read against the language of the conversation's first message. */
+export function turnLang(message: string, uiLang: string | undefined, history: { role: string; content: string }[]): Lang {
+  const first = history.find((h) => h.role === 'user' && (scripts(h.content).ar + scripts(h.content).la) > 0);
+  return langOf(message, uiLang, first ? langOf(first.content) : undefined);
+}
+// THE REPLY IS CHECKED IN THE CONVERSATION'S LANGUAGE, NOT ONLY ASKED FOR (customer_support, 3 Nov 2026). CI run
+// 41621633737 (conversation-quality, this branch's widget): with turnLang choosing English for the mixed message
+// "sorry, الزجاج 8 مم مو 6mm…", 1 of 5 replies was still written wholly in Arabic, because the rule was only an
+// instruction. A draft (or a streamed sentence) mostly in the other script goes back to the model, as a supplier's
+// English already does (ai_reply.ts). An English reply may quote a few Arabic words; a short Arabic line (a link) passes.
+// prevented by: _shared/chat_lang_follows_the_conversation.test.ts
+export function replyLanguageProblems(text: string, lang: Lang): string[] {
+  const { ar, la } = scripts(text);
+  const share = ar + la ? ar / (ar + la) : 0;
+  if (lang === 'en' && ar >= 8 && share > 0.3) return ['it is not in English, the language of this conversation'];
+  if (lang === 'ar' && ar + la >= 20 && share < 0.4) return ['it is not in Arabic, the language of this conversation'];
+  return [];
+}
 
 // ── 1. QUESTION TYPE ─────────────────────────────────────────────────────────────────────────
 // REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903). COUNT_RE / COST_RE / TIMELINE_RE /

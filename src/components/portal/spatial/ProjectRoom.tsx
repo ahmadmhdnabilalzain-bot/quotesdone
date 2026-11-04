@@ -266,7 +266,7 @@ export function ProjectRoom({ project, rfqs, orders, documents, inquiries = NO_I
   const nLevels = model.levels.length;
 
   return (
-    <Card className="p-4 md:p-5 bg-card/70 backdrop-blur border-border">
+    <Card className="p-4 md:p-5 bg-card/70 backdrop-blur-sm border-border">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="text-[15px] font-bold text-foreground">{tx(lang, 'model_title')}</div>
@@ -299,7 +299,7 @@ export function ProjectRoom({ project, rfqs, orders, documents, inquiries = NO_I
                 <div className="relative" aria-busy={drawing || undefined} aria-label={drawing ? tx(lang, 'loading_model') : undefined}>
                   <div
                     ref={host}
-                    className="h-[320px] md:h-[400px] w-full rounded-lg border border-border bg-gradient-to-b from-secondary/40 to-background overflow-hidden transition-colors"
+                    className="h-[320px] md:h-[400px] w-full rounded-lg border border-border bg-linear-to-b from-secondary/40 to-background overflow-hidden transition-colors"
                   />
                   {drawing ? <Skeleton className="absolute inset-0 h-full w-full rounded-lg" /> : null}
                 </div>

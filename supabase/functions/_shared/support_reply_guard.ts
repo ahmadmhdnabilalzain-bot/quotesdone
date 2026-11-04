@@ -33,7 +33,12 @@ const AI_AR = /(?:ال)?ذكاء\s+(?:ال)?اصطناعي/g;
 // alone appear in honest customer answers ("an error on your invoice").
 const INTERNAL = /circuit_open|openrouter|supabase|service_role|app_secrets|\bfn_[a-z0-9_]{3,}\b|\bai_gateway\b|\bedge function\b|\bSQLSTATE\b|\b(?:Type|Reference|Syntax)Error\b|\bat [\w$.]+ \([^)]*:\d+:\d+\)|\bHTTP [45]\d\d\b|\bjwt\b|\bnull pointer\b|\bundefined is not\b|\bstack trace\b/i;
 // Headings and phrases that exist only inside our system prompts.
-const PROMPT = /SHARED FACTS|CUSTOMER-SIDE FACTS|SUPPLIER-SIDE FACTS|AUDIENCE RULES|FORMAT RULES|GENERAL RULES|COMPANY BLOCK|FAQ CONTEXT|PRICE GUIDANCE:|system prompt|my instructions (?:are|say)|I (?:was|am) instructed to/i;
+// A reply that cites the knowledge it was given ("the brief doesn't give a public address", conversation-quality run of
+// 3 Nov 2026) is prompt wording too; the customer's own job brief ("a priceable brief", "the same brief") is not.
+// The job's brief stays allowed in the portal ("the brief does not mention the frame colour yet"): only the company brief,
+// "my brief", our sources, or the brief withholding a company fact (a public address, an office) is caught.
+const CITES_BRIEF = /\bthe company brief\b|\bthe brief (?:does(?:n'?t| not) (?:give|state|list|mention|say|include)|gives no|has no) (?:a |an |any )?(?:public|street|office|company|physical)|\b(?:according to|per) (?:my|our) brief\b|\bmy brief\b|\b(?:my|our) sources (?:do(?:n'?t| not)|say|state)|\bthe sources (?:do(?:n'?t| not)) state/i;
+const PROMPT = new RegExp(/SHARED FACTS|CUSTOMER-SIDE FACTS|SUPPLIER-SIDE FACTS|AUDIENCE RULES|FORMAT RULES|GENERAL RULES|COMPANY BLOCK|FAQ CONTEXT|PRICE GUIDANCE:|system prompt|my instructions (?:are|say)|I (?:was|am) instructed to/.source + '|' + CITES_BRIEF.source, 'i');
 // THE MODEL'S OWN REASONING IS NEVER A REPLY (live conversation suite run a8ad5ed7, 19 Oct 2026: 2 of 30 Arabic
 // conversations showed the customer a "<reasoning>...</reasoning>" block in English). Caught in the first sentence it
 // opens, before anything is shown, so the attempt is written again.

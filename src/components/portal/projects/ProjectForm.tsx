@@ -111,7 +111,7 @@ export function ProjectForm({ token, lang = 'en', project = null, onSaved, onCan
     <form
       onSubmit={submit}
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      className={cn('flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-sm', className)}
+      className={cn('flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-xs', className)}
     >
       <h2 className="text-[17px] font-extrabold text-foreground">{tr(lang, editing ? 'edit_project' : 'create_project')}</h2>
 
@@ -142,7 +142,7 @@ export function ProjectForm({ token, lang = 'en', project = null, onSaved, onCan
           value={description}
           placeholder={tr(lang, 'f_description_ph')}
           onChange={(e) => setDescription(e.target.value)}
-          className="mt-1.5 w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="mt-1.5 w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
         />
       </div>
 
@@ -180,7 +180,7 @@ export function ProjectForm({ token, lang = 'en', project = null, onSaved, onCan
             id={statusId}
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="mt-1.5 h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="mt-1.5 h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
           >
             {PROJECT_STATUSES.map((s) => (
               <option key={s} value={s} className="bg-background text-foreground">

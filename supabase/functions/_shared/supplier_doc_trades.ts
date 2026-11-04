@@ -54,7 +54,9 @@ export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Ar
   /** names the company is known by (registered, licence legal name read by code or model): never read as a trade */
   names?: (string | null)[];
   /** set by supplier_docs_later.gateStored when the stored bytes failed the type / malware gate: recorded, never read */
-  refused?: string };
+  refused?: string;
+  /** set by supplier_docs_later.readProfileByModel when it did not send the file to the model (too big, too many pages): the reason, worded for the supplier */
+  unread_reason?: string };
 export type DocEvidence = {
   path: string; name: string; kind: DocKind;
   /** 'reading': marked BEFORE the parse (markReading); if the worker is killed mid-parse it stays, and it proposes nothing.
@@ -71,8 +73,8 @@ export type DocEvidence = {
   choice?: 'on' | 'unavailable' | 'held'; rejected?: { code: string; why: string }[];
   /** choice 'held': the readings, which did not agree on any trade; the sales engineer decides (agent_actions doc_trades_held) */
   held_readings?: { code: string; quote: string }[][];
-  /** trades read off a PICTURE (image, or a PDF with no text layer): their quotes are lines the vision model transcribed,
-   *  which code cannot check against the file, so they are never proposed - held here for the sales engineer to confirm */
+  /** LEGACY (records written before 2 Nov 2026): trades read off a PICTURE were held here for the sales engineer. Since ledger 1442 they are
+   *  proposed in `trades` like any other and the supplier confirms them on the Services tab; nothing writes this field any more. */
   vision_held?: TradeHit[];
 };
 export const PHOTO_TEXT_MAX = 60_000;
@@ -189,10 +191,10 @@ ${whole}`;
         return { ...base, status: 'read', format, source, reason: `the trades could not be chosen: ${ch.error}`, trades: [], choice: 'unavailable', ...(c ? { supply_only: c.supply_only } : {}) };
       }
       const hits = ch.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.reason], snippet: t.quote }));
-      // HELD, NOT PROPOSED (review of #1412, 18 Oct 2026): a picture's quote is checked only against the vision model's own
-      // transcription, so a line it invented would pass. Those trades wait for the sales engineer (vision_trades_confirm).
-      if (source === 'photo_text') return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}),
-        reason: 'read off a picture by the vision model; held for the sales engineer to confirm against the file', trades: [], vision_held: hits };
+      // A PICTURE'S TRADES ARE PROPOSED (2 Nov 2026, ledger 1442; they were HELD for the sales engineer after the review of #1412). A quote
+      // here is checked only against the vision model's own transcription, which is why the model is given only the lines the page PRINTS
+      // (license_extract profile.lines, verbatim: H01 proved a summary phrase is refused). The proposal is the supplier's to confirm on the
+      // Services tab, with the printed line beside it, so a line the model invented is struck out by the one person who has the file.
       return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}), trades: hits };
     }
     const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
@@ -211,7 +213,7 @@ ${whole}`;
   if (!text.trim() && photo.trim()) return await found(photo, 'photo_text', r && r.ok ? r.kind : undefined);
   if (!r) return { ...base, status: 'unreadable', reason: 'the file could not be fetched from storage', trades: [] };
   if (!r.ok) return { ...base, status: 'unreadable', reason: `${r.error}: ${r.detail}`.slice(0, 200), trades: [] };
-  if (!text.trim() && r.needs === 'ocr') return { ...base, status: 'needs_ocr', format: r.kind, reason: r.notes.join(' ').slice(0, 200), trades: [] };
+  if (!text.trim() && r.needs === 'ocr') return { ...base, status: 'needs_ocr', format: r.kind, reason: (doc.unread_reason || r.notes.join(' ')).slice(0, 200), trades: [] };
   if (!text.trim() && r.needs) return { ...base, status: 'needs_cad_conversion', format: r.kind, reason: r.notes.join(' ').slice(0, 200), trades: [] };
   return await found(text, 'document_text', r.kind);
 }
@@ -244,21 +246,6 @@ export async function docTradesHeld(admin: Admin, supplierId: number, d: DocEvid
       target_table: 'supplier_capabilities', target_id: target });
     if (error) console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: error.message }));
   } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
-}
-
-async function visionHeld(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
-  const target = `${supplierId}:${d.path}`;
-  try {
-    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'vision_trades_confirm').eq('status', 'pending').eq('target_id', target).limit(1);
-    if (open?.length) return;
-    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'vision_trades_confirm', status: 'pending', risk: 'low',
-      title: ('Confirm trades read off a picture: ' + d.name).slice(0, 200),
-      detail: { supplier_id: supplierId, path: d.path, kind: d.kind, held: d.vision_held!.map((t) => ({ code: t.code, quote: t.snippet })),
-                waiting_for: 'sales_engineer to check each quote against the file and confirm or drop the trade' },
-      target_table: 'supplier_capabilities', target_id: target });
-    // 23505: the table's one-pending-per-document index refused a second item filed at the same moment - already filed
-    if (error && error.code !== '23505') console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: error.message }));
-  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
 }
 
 export const proposedFrom = (docs: DocEvidence[]): string[] =>
@@ -313,7 +300,6 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
     const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], fresh);
     const proposed = proposedFrom(merged);
-    for (const d of fresh) if (d.vision_held?.length) await visionHeld(admin, supplierId, d);
     for (const d of fresh) if (d.choice === 'held') await docTradesHeld(admin, supplierId, d);
     const { error } = await admin.from('supplier_capabilities').upsert({
       supplier_id: supplierId, proposed_trades: proposed,

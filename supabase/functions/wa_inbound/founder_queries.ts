@@ -18,7 +18,7 @@ import { type Lang, MENU_HINT, norm } from './menu.ts';
 import { capabilityStatement } from '../_shared/size_question.ts';
 
 export type Figures = {
-  ok: boolean; read_at_local?: string;
+  ok: boolean; read_at?: string; read_at_local?: string;
   suppliers?: { registered: number; registered_7d: number; verified: number };
   requests?: { today: number; last_7d: number };
   quotes?: { total: number; last_7d: number };
@@ -41,9 +41,17 @@ export function isFiguresCommand(text: string): boolean { return FIGURES_WORDS.i
 export function capabilityAnswer(lang: Lang): string { return capabilityStatement(lang) + MENU_HINT[lang]; }
 
 // ---- The founder's reading (rule 2 only) ----------------------------------------------------------
-const fmt = (n: number | undefined) => new Intl.NumberFormat('en-US').format(Number(n || 0));
+// A READING THAT IS NOT THERE IS SAID SO, NEVER "0" (gap #10, 3 Nov 2026). This read Number(n || 0), so a figure the
+// routine returned as null (a sub-read that failed or was never measured) was told to him as zero: a number nobody
+// measured, stated as fact. The founder's standing rule is never to state what has not been measured.
+const UNMEASURED: Record<Lang, string> = { en: 'not measured', ar: 'غير مقيس' };
+const fmtIn = (lang: Lang) => (n: number | string | null | undefined): string => {
+  const v = n === null || n === undefined || n === '' ? NaN : Number(n);
+  return Number.isFinite(v) ? new Intl.NumberFormat('en-US').format(v) : UNMEASURED[lang];
+};
 
 function lines(f: Figures, lang: Lang): string[] {
+  const fmt = fmtIn(lang);
   return lang === 'ar' ? [
     '• الموردون: ' + fmt(f.suppliers?.registered) + ' مسجّل (' + fmt(f.suppliers?.registered_7d) + ' خلال 7 أيام)، و' + fmt(f.suppliers?.verified) + ' موثّق.',
     '• طلبات العملاء: ' + fmt(f.requests?.today) + ' اليوم، و' + fmt(f.requests?.last_7d) + ' خلال 7 أيام.',
@@ -63,13 +71,25 @@ function lines(f: Figures, lang: Lang): string[] {
   ];
 }
 
+// THE ARABIC READING IS ARABIC TO THE LAST WORD (gap #10, 3 Nov 2026). read_at_local is SQL's to_char(..., 'HH24:MI "on" Dy
+// DD Mon'), English by construction, and was pasted into the Arabic header ("14:05 on Tue 03 Nov"). The Arabic header is
+// written from read_at (the same instant) in Asia/Dubai, Western digits as every other figure here; with no read_at, the
+// time alone (HH:MI) is kept and the English words are not.
+function arabicReadAt(f: Figures): string {
+  const t = f.read_at ? new Date(f.read_at) : null;
+  if (t && Number.isFinite(t.getTime())) {
+    return new Intl.DateTimeFormat('ar-AE-u-nu-latn', { timeZone: 'Asia/Dubai', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t);
+  }
+  return String(f.read_at_local || '').match(/\d{1,2}:\d{2}/)?.[0] ?? '';
+}
+
 /** The internal reading, sent only on the FIGURES command from his number. */
 export function figuresText(f: Figures, lang: Lang): string {
   if (!f?.ok) {
     return lang === 'ar' ? 'تعذّرت قراءة الأرقام الداخلية الآن، يُرجى المحاولة بعد قليل.' : 'The internal figures could not be read just now; please try again shortly.';
   }
   const head = lang === 'ar'
-    ? 'الأرقام الداخلية (' + (f.read_at_local || '') + ' بتوقيت الإمارات)، للاطلاع الداخلي فقط:'
+    ? 'الأرقام الداخلية (' + arabicReadAt(f) + ' بتوقيت الإمارات)، للاطلاع الداخلي فقط:'
     : 'Internal figures at ' + (f.read_at_local || '') + ' (UAE time), for internal use only:';
   return head + '\n' + lines(f, lang).join('\n');
 }
