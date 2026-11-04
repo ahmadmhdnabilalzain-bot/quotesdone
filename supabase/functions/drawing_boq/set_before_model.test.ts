@@ -14,10 +14,13 @@ import { sheetPdf } from './drawing_set.fixtures.ts';
 import { benchPdf, pdfFrom } from './bench.fixtures.ts';
 import { zzPdfSet } from '../_shared/doc_read/zz_demo_drawings.fixtures.ts';
 
+// 3 Nov 2026: the coded set is still counted BEFORE the key is read, but where the model can read the drawing it no
+// longer answers alone: it cross-checks the model's reading (cross_check.ts, cross_check.test.ts). It answers alone
+// only with no model input, no key, or a model that is refused or errs.
 Deno.test('drawing_boq counts a PDF set by code before it reads the AI key or calls the model', () => {
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   const early = src.indexOf("fallback_reason: 'code_counted_the_set'");
-  const key = src.indexOf("const key = await sec('cred_fn_ai');\n    if (!key || body.deterministic");
+  const key = src.indexOf("const key = await sec('cred_fn_ai');\n    if (codeSet && !key) return codeAnswer();");
   assert(early > 0, 'the early drawing-set path is gone');
   assert(key > 0, 'the model path moved: re-anchor this test on it');
   assert(early < key, 'the drawing set must be tried before the model path');
@@ -74,7 +77,7 @@ Deno.test('index.ts gates the early return on the coverage floor, not on any non
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   const at = src.indexOf("fallback_reason: 'code_counted_the_set'");
   const block = src.slice(src.lastIndexOf('if (pdfB64 && body.deterministic !== true)', at), at);
-  assert(/const set = setBeforeModel\(/.test(block), 'the early path must call setBeforeModel (boqFromDrawingSet alone has no floor)');
+  assert(/const set = setBeforeModel\(/.test(block) && /codeSet = set;/.test(block), 'the early path must call setBeforeModel (boqFromDrawingSet alone has no floor)');
 });
 
 // ── independent review of 29dda0b5a (27 Oct 2026): the floor knew only one spelling of a tag ──────────────────────────

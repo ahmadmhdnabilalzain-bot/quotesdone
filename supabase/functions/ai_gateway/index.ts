@@ -254,7 +254,13 @@ async function handle(req: Request): Promise<Response> {
     // shared secret records who claimed to make it. It is read again at fnName below for routing;
     // the audit could not see it, which is why five legacy uses have no attributable caller.
     const __auth = await requireInternal(admin, body?.__secret, 'ai_gateway', body?.fn);
-    if (!__auth.ok) return J({ error: 'forbidden' }, 403);
+    // THE VERIFIER'S OWN STATUS, NOT A FLAT 403 (it_engineer, 3 Nov 2026, drill D12). requireInternal answers 503
+    // credential_check_unavailable when fn_internal_auth cannot be reached, and this line turned it into 403 forbidden:
+    // _shared/llm.ts's verifier_unavailable branch never fired, and a database blip was logged as "ai_gateway REFUSED
+    // the credential ... Check internal_credential_audit", which sends the it_engineer looking for a rotation fault
+    // that is not there. The envelope carries `ok`, so llm.ts reads it as the gateway's answer and never re-asks.
+    // prevented by: ai_gateway/drill_provider_faults.test.ts
+    if (!__auth.ok) return J({ ok: false, error: __auth.error }, __auth.status);
 
     // Utility path: embed text for callers that need a vector (FAQ backfill, semantic search).
     // Free, so it never touches routing or budget. A missing vector is 503 embed_failed, never
@@ -1073,7 +1079,12 @@ async function handle(req: Request): Promise<Response> {
                             detail: deadlineHit ? ('no model answered within the ' + wallBudgetMs + 'ms budget the caller waits for; last error: ' + lastErr) : lastErr,
                             ladder, caps }, 502);
 
-    if (cacheable && cacheKey && out) {
+    // A FRAGMENT IS NEVER STORED FOR REPLAY (it_engineer, 3 Nov 2026, drill "format"). A reply cut at the token ceiling
+    // (finish_reason 'length') was stored here like any answer, and a cache hit returns content with no finish_reason
+    // and no truncated flag, so the next identical request got the fragment as a complete answer and llm.ts's one
+    // controlled repair never ran. Measured in the drill: a truncated call plus its repair wrote 2 llm_cache rows.
+    // prevented by: ai_gateway/drill_provider_faults.test.ts
+    if (cacheable && cacheKey && out && finishReason !== 'length') {
       await rpcSafe('fn_llm_cache_store', {
         p_key: cacheKey, p_fn: fnName, p_task_class: route.task_class ?? null, p_model: used,
         // ttlMin, not body.cache_ttl_min: with the route now supplying the default, reading the

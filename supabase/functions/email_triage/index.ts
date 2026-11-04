@@ -75,29 +75,47 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   // person-handoff sentence and the "we received it" receipt are gone. No model at all: nothing is sent (it throws, and
   // the message stays unanswered for the next run).
   let text: string, how: string;
-  const direct = async (note: string) => (await aiReply(deps, { seat: 'customer_support', channel: 'e-mail', audience, lang, message: q,
-    subject, forbidden, ...(facts ? { facts } : {}), rules:'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
-  if (person.value === true) {
-    const body = await direct(' They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread, and answer whatever else they asked.');
-    if (!body) throw new Error('no model answered the e-mail');
-    text = composeMailReply({ lang, answer: withClaimLink(body, facts) }); how = 'person';
-    // a person asked to review an automated decision (ledger 1152): filed with the seat that owns it (review_route)
-    await fileReviewRequest(admin, deps, { channel: 'email', requester: String(m.from_email || 'unknown sender'), message: q,
-      surface: 'email_triage.review_of_decision', dedupeKey: String(m.id), subjectTable: 'inbound_messages', subjectId: String(m.id) });
-  } else {
-    const r = await think(deps, { seat: 'customer_support', surface: 'email_triage.reply', stakes: 'high', dedupeKey: 'email_reply:' + m.id, subject,
-      question: `Answer this e-mail to QuotesDone as its customer support, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}, plain text, `
-        + 'without a greeting or a sign-off (they are added). Never name another customer or supplier, never quote an unpublished price, never promise a date.\n\n' + q,
-      context: { audience, language: lang, ...(facts ? { profile: { own_account: facts } } : {}) } });
-    // a reasoned answer naming a counterpart is not sent: the direct reply below is held to the same list by aiReply
-    const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() && !namesForbidden(r.answer, forbidden) ? r.answer.trim() : null;
-    const body = verified ?? await direct('');
-    if (!body) throw new Error('no model answered the e-mail');
-    text = composeMailReply({ lang, answer: withClaimLink(body, facts) });   // every path carries the invited supplier's link
-    how = verified ? 'reasoned' : 'direct';
+  // THE HELD REPLY IS FILED ONLY IF NO REPLY WENT (3 Nov 2026, it_engineer, drill D2). think() files the reply question
+  // in the held queue whenever it cannot finish (email_triage.reply, dedupe email_reply:<id>), and the direct model reply
+  // below then answers the mail at once. resilience_ping's replay answered the same question again later and
+  // reasoned_delivery sent it through fn_inbox_send, which does not look at replied_at: measured in the drill, a model
+  // that answered but whose reasoning was refused produced TWO replies in the thread, one now and one on the next replay.
+  // The hold is kept back and filed only when this answer throws (nothing was sent), which is the case the replay exists
+  // for: the model down now, the answer delivered when it is back. needs_a_person's hold is untouched (its replay sends
+  // only when a person was asked for). prevented by: email_triage/drill_triage_faults.test.ts
+  const keptBack: Record<string, unknown>[] = [];
+  const replyDeps: ThinkDeps = { ...deps, rpc: async (f, args) => {
+    if (f === 'fn_reason_hold' && args?.p_surface === 'email_triage.reply') { keptBack.push(args); return { data: null, error: null }; }
+    return await deps.rpc(f, args);
+  } };
+  try {
+    const direct = async (note: string) => (await aiReply(deps, { seat: 'customer_support', channel: 'e-mail', audience, lang, message: q,
+      subject, forbidden, ...(facts ? { facts } : {}), rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
+    if (person.value === true) {
+      const body = await direct(' They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread, and answer whatever else they asked.');
+      if (!body) throw new Error('no model answered the e-mail');
+      text = composeMailReply({ lang, answer: withClaimLink(body, facts) }); how = 'person';
+      // a person asked to review an automated decision (ledger 1152): filed with the seat that owns it (review_route)
+      await fileReviewRequest(admin, deps, { channel: 'email', requester: String(m.from_email || 'unknown sender'), message: q,
+        surface: 'email_triage.review_of_decision', dedupeKey: String(m.id), subjectTable: 'inbound_messages', subjectId: String(m.id) });
+    } else {
+      const r = await think(replyDeps, { seat: 'customer_support', surface: 'email_triage.reply', stakes: 'high', dedupeKey: 'email_reply:' + m.id, subject,
+        question: `Answer this e-mail to QuotesDone as its customer support, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}, plain text, `
+          + 'without a greeting or a sign-off (they are added). Never name another customer or supplier, never quote an unpublished price, never promise a date.\n\n' + q,
+        context: { audience, language: lang, ...(facts ? { profile: { own_account: facts } } : {}) } });
+      // a reasoned answer naming a counterpart is not sent: the direct reply below is held to the same list by aiReply
+      const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() && !namesForbidden(r.answer, forbidden) ? r.answer.trim() : null;
+      const body = verified ?? await direct('');
+      if (!body) throw new Error('no model answered the e-mail');
+      text = composeMailReply({ lang, answer: withClaimLink(body, facts) });   // every path carries the invited supplier's link
+      how = verified ? 'reasoned' : 'direct';
+    }
+    const { data: sent, error } = await admin.rpc('fn_inbox_send', { p_id: m.id, p_body: text, p_by: 'customer_support' });
+    if (error || (sent as { error?: string } | null)?.error) throw new Error('fn_inbox_send: ' + (error?.message ?? (sent as { error?: string }).error));
+  } catch (e) {
+    for (const args of keptBack) await deps.rpc('fn_reason_hold', args).catch(() => null);   // nothing went: the replay answers it
+    throw e;
   }
-  const { data: sent, error } = await admin.rpc('fn_inbox_send', { p_id: m.id, p_body: text, p_by: 'customer_support' });
-  if (error || (sent as { error?: string } | null)?.error) throw new Error('fn_inbox_send: ' + (error?.message ?? (sent as { error?: string }).error));
   // Filed AFTER the send: fn_inbox_send closes the message's open review items, and this one must stay open.
   if (how === 'person') await admin.from('agent_actions').insert({ agent: 'email', kind: 'inbound_review', status: 'pending', risk: 'low',
     title: 'Inbox: a customer asked for a person — ' + String(m.subject || '(no subject)').slice(0, 60),
@@ -125,7 +143,16 @@ Deno.serve(observe('email_triage', async (req) => {
     let sel = admin.from('inbound_messages').select('id,from_email,to_email,subject,body,owner_role,raw,lead_id,provider_email_id')
       .eq('needs_review', true).is('triaged_at', null).is('replied_at', null).is('owner_role', null).or('ai_category.is.null,ai_category.neq.routine_queued');
     if (Number(body?.message_id) > 0) sel = sel.eq('id', Number(body.message_id));
-    const { data: msgs } = await sel.order('created_at', { ascending: true }).limit(20);
+    // A FAILED READ IS NOT AN EMPTY INBOX (3 Nov 2026, it_engineer, drill D10). The error was dropped, so a statement
+    // timeout here closed the run 'ok' with every count 0: the same row as a quiet inbox, while mail waited. The mail is
+    // safe (nothing was taken, the next tick reads it again); the run now says the read failed, at error, so the watch
+    // that reads agent_runs sees it. prevented by: email_triage/drill_triage_faults.test.ts
+    const { data: msgs, error: readErr } = await sel.order('created_at', { ascending: true }).limit(20);
+    if (readErr) {
+      if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts: { ...counts, closed_stale_runs: closedStale },
+        note: ('email_triage could not read the inbox (inbound_messages: ' + String(readErr.message) + '); no mail was taken, the next tick reads it again.').slice(0, 500) }).eq('id', run.id);
+      return J({ ok: false, error: 'inbox_read_failed', counts }, 500);
+    }
     const reply1 = async (m: Mail, audience: 'customer' | 'supplier' = 'customer', facts = '') => {
       try { const how = await answer(m, deps, audience, facts); counts.answered++; counts['answered_' + how] = (counts['answered_' + how] || 0) + 1; }
       catch (e) {
@@ -176,7 +203,13 @@ Deno.serve(observe('email_triage', async (req) => {
         const { data: gid } = await admin.rpc('fn_routine_judgement_enqueue', { p_kind: 'unknown_sender_mail', p_subject_key: String(m.id),
           p_input: { message_id: m.id, from: m.from_email, subject: m.subject, body: String(m.body || '').slice(0, 4000) } });
         // Marked, so a held backlog never crowds known senders out of this run's 20; the judgement overwrites it.
-        if (gid) { judgementIds.push(Number(gid)); counts.unknown_sender_to_judgement++; await admin.from('inbound_messages').update({ ai_category: 'routine_queued' }).eq('id', m.id).is('triaged_at', null); }
+        // ...and the mark is this run's claim (see TAKEN BY ANOTHER RUN below): no row back, another run is answering it.
+        if (gid) {
+          const { data: queuedHere } = await admin.from('inbound_messages').update({ ai_category: 'routine_queued' }).eq('id', m.id).is('triaged_at', null)
+            .or('ai_category.is.null,ai_category.neq.routine_queued').select('id');
+          if (!queuedHere?.length) { counts.taken_by_another_run = (counts.taken_by_another_run || 0) + 1; continue; }
+          judgementIds.push(Number(gid)); counts.unknown_sender_to_judgement++;
+        }
         // An unknown sender is usually a new customer: answered now, whatever the judgement later files as its category.
         // resend_inbound linked a lead by sender (leads.email or claimed_by): a supplier, answered as one, in English.
         await (m.lead_id ? reply1(m, 'supplier', SEPARATE_COMPANY_FACT) : reply1(m));
@@ -202,10 +235,19 @@ Deno.serve(observe('email_triage', async (req) => {
       // makeLlm returns null on a failure or timeout; on the backstop's scope an unread classification is held, never answered (opt_out_backstop.ts).
       const held = holdsUnread(invitationReply, parsed);
       if (held) { category = UNREAD_CATEGORY; summary = UNREAD_SUMMARY; reply = ''; }
-      const { error: markErr } = await admin.from('inbound_messages').update({ ai_category: category, ai_summary: summary, ai_draft_reply: reply || null, triaged_at: new Date().toISOString(), ...(held ? { needs_review: true } : {}) }).eq('id', m.id);
+      // TAKEN BY ANOTHER RUN (3 Nov 2026, it_engineer, drill D2). resend_inbound wakes this function for the mail it just
+      // stored while the 15-minute tick may be running, and both SELECTed the same untriaged row: the selection is not a
+      // claim. Both marked it and both answered, so the customer got two replies (measured in the drill: two overlapping
+      // runs, two fn_inbox_send). The mark is now the claim: it only lands on a row still untriaged, and a run whose mark
+      // lands on nothing leaves the mail to the run that took it. prevented by: email_triage/drill_triage_faults.test.ts
+      // (the statement keeps its `const { error: markErr }` shape: scripts/checks/no_paid_call_repeats_itself.test.mjs reads it)
+      const took = { rows: 0 };
+      const { error: markErr } = await admin.from('inbound_messages').update({ ai_category: category, ai_summary: summary, ai_draft_reply: reply || null, triaged_at: new Date().toISOString(), ...(held ? { needs_review: true } : {}) })
+        .eq('id', m.id).is('triaged_at', null).select('id').then((r) => { took.rows = r.data?.length ?? 0; return r; });
       // An answer that cannot be recorded is paid for again on the next run (22 Sep 2026, instruction
       // 705): stop the batch rather than read the rest of the inbox into the same failing write.
       if (markErr) { if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts, note: 'email_triage stopped: could not record the triage of inbound message ' + m.id + ' (' + String(markErr.message).slice(0, 160) + '); continuing would re-read and re-pay for it on every run.' }).eq('id', run.id); return J({ ok: false, error: 'mark_failed', counts }, 500); }
+      if (!took.rows) { counts.taken_by_another_run = (counts.taken_by_another_run || 0) + 1; continue; }
       counts.triaged++;
       if (held) { counts.held_unread = (counts.held_unread || 0) + 1; continue; }
       // An explicit request that a person review an automated decision (ruling 1264) goes through #1519's one door,

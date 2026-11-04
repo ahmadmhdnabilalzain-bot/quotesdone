@@ -42,3 +42,23 @@ export function heldRun(o: { customerId: string; email: string; sourcePath: stri
 export function cadNote(isCad: boolean, hand: { drawing_held: boolean }) {
   return isCad && hand.drawing_held ? { note: 'cad_read_not_pictured' as const } : {};
 }
+
+/**
+ * THE ANONYMISED FILE WAS HELD, AND THE CUSTOMER IS TOLD (review of #1838, 3 Nov 2026). drawing_redact mode 'file'
+ * holds the vector PDF when an image the size of a drawing lies across the title block (image_straddles_title_block)
+ * and records the hold on drawing_redaction_runs — but analyze_drawing said nothing, so nobody knew the suppliers
+ * would get the page pictures and not the file they measure from. The customer is the one person who can fix the
+ * sheet, so the answer says why and what to do; the previews still go if they were verified.
+ */
+export function fileHeldNote(reason: string | null) {
+  if (!reason) return {};
+  const straddles = reason === 'image_straddles_title_block';
+  return {
+    drawing_file_held: reason,
+    drawing_file_message: straddles
+      ? { en: 'Suppliers will see your drawing as pictures, but the drawing file itself was not shared: an image lies across the title block, so we could not remove your details from the file with certainty. Move the image clear of the title block, or delete it, and upload the drawing again.',
+          ar: 'سيطّلع المورّدون على مخطّطك كصور، أمّا ملف المخطّط نفسه فلم يُشارَك: توجد صورة ممتدّة على إطار العنوان، فتعذّر علينا التأكّد من حذف بياناتك من الملف. أبعِد الصورة عن إطار العنوان أو احذفها، ثم ارفع المخطّط من جديد.' }
+      : { en: 'Suppliers will see your drawing as pictures, but the drawing file itself was not shared: we could not remove your details from the file with certainty. You can upload a clearer copy of the drawing.',
+          ar: 'سيطّلع المورّدون على مخطّطك كصور، أمّا ملف المخطّط نفسه فلم يُشارَك: تعذّر علينا التأكّد من حذف بياناتك من الملف. يمكنك رفع نسخة أوضح من المخطّط.' },
+  };
+}

@@ -4,18 +4,28 @@ CREATE OR REPLACE FUNCTION public.fn_identify_contact(p_phone text)
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_d text; v_tail text; v_name text; v_sid bigint; v_cid text; v_claimed boolean; v_appr boolean; v_kind text; v_cuid uuid;
+declare v_d text; v_me text; v_name text; v_sid bigint; v_cid text; v_claimed boolean; v_appr boolean; v_kind text; v_cuid uuid;
 begin
   v_d := regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g');
   if length(v_d) < 7 then return json_build_object('audience','unknown'); end if;
-  v_tail := right(v_d, 9);   -- tolerate +9715..., 05..., 5... variants
 
   -- THE FOUNDER. Before suppliers and customers: he is neither, and a number that is both his and
-  -- a lead's must still be treated as his.
+  -- a lead's must still be treated as his. The WHOLE international number is compared (see the header):
+  -- 00 is the international prefix, and 05XXXXXXXX / 5XXXXXXXX are UAE local forms of +971 5XXXXXXXX.
+  v_me := case when v_d like '00%' then substr(v_d, 3) else v_d end;
+  v_me := case when length(v_me) = 10 and v_me like '05%' then '971' || substr(v_me, 2)
+               when length(v_me) = 9  and v_me like '5%'  then '971' || v_me
+               else v_me end;
   if exists (
-    select 1 from unnest(string_to_array(coalesce((select value from app_secrets where key='admin_mfa_phone'),''), ',')) p
-     where length(regexp_replace(p,'[^0-9]','','g')) >= 9
-       and right(regexp_replace(p,'[^0-9]','','g'), 9) = v_tail)
+    select 1
+      from unnest(string_to_array(coalesce((select value from app_secrets where key='admin_mfa_phone'),''), ',')) p,
+           lateral (select regexp_replace(p, '[^0-9]', '', 'g') as d) a,
+           lateral (select case when a.d like '00%' then substr(a.d, 3) else a.d end as d) b,
+           lateral (select case when length(b.d) = 10 and b.d like '05%' then '971' || substr(b.d, 2)
+                                when length(b.d) = 9  and b.d like '5%'  then '971' || b.d
+                                else b.d end as intl) c
+     where length(a.d) >= 9
+       and c.intl = v_me)
   then
     return json_build_object('audience','founder',
       'name', split_part(coalesce((select value from app_secrets where key='admin_emails'),''), ',', 1));
@@ -308,6 +318,97 @@ AS $function$
                     and (x.parent_inquiry_id = p_inquiry
                          or (x.id = p_inquiry and not exists (select 1 from public.inquiries c where c.parent_inquiry_id = p_inquiry))))
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_inquiry_change_from_customer(p_inquiry uuid, p_customer uuid, p_text text, p_source text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.inquiries; v_text text; v_full text; v_note bigint; v_q text; l record; v_prev public.rfq_clarification;
+        v_told int := 0; v_quoted int := 0; v_failed int := 0; v_matched int; v_head text; v_body text; v_ar boolean; v_d jsonb; v_dup boolean;
+begin
+  if p_source not in ('whatsapp') then raise exception 'a customer change comes from whatsapp here, not %', p_source; end if;
+  select * into i from public.inquiries where id = p_inquiry for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'inquiry_not_found'); end if;
+  if i.customer_id is distinct from p_customer then return jsonb_build_object('ok', false, 'error', 'not_your_inquiry'); end if;
+  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed', 'expired', 'lost') then
+    return jsonb_build_object('ok', false, 'error', 'inquiry_closed', 'status', i.status); end if;
+  if coalesce(i.status, '') = 'revealed' or exists (select 1 from public.transactions t where t.inquiry_id = i.id and t.revealed_at is not null) then
+    return jsonb_build_object('ok', false, 'error', 'already_revealed'); end if;
+  -- Every matched supplier reads this: the customer's contact details and name are removed first (5a).
+  v_text := public.fn_scrub_customer_identity(left(btrim(coalesce(p_text, '')), 1500), p_customer);
+  if length(btrim(regexp_replace(coalesce(v_text, ''), '\[(removed|hidden)\]', '', 'g'))) < 2 then
+    return jsonb_build_object('ok', false, 'error', 'text_required'); end if;
+  v_head := 'The customer sent this change to the request on WhatsApp:';
+  v_full := v_head || chr(10) || v_text;
+  v_ar := v_text ~ '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]';
+  select count(*) into v_matched from public.inquiry_matches x where x.inquiry_id = i.id;
+
+  -- THE SAME CHANGE TWICE IS ONE CHANGE: the earlier note is reused and no second note is filed. Its deliveries are
+  -- asked for again under the SAME keys, so a supplier already told is not mailed twice (the delivery door dedupes a
+  -- delivered key) and one whose first delivery failed is retried (a failed key is not deduped).
+  select * into v_prev from public.rfq_clarification r
+   where r.inquiry_id = i.id and r.kind = 'note' and r.source = 'rfq_note'
+     and coalesce(r.answered_at, r.asked_at) > now() - interval '6 hours'
+     and md5(coalesce(r.answer_as_written, r.answer, '')) = md5(v_full)
+   order by r.id desc limit 1;
+  v_dup := v_prev.id is not null;
+  if v_dup then v_note := v_prev.id; end if;
+  -- the portal's own limit on notes (customer_api rfq_note)
+  if not v_dup and (select count(*) from public.rfq_clarification r where r.inquiry_id = i.id and r.kind = 'note' and r.asked_at > now() - interval '1 hour') >= 10 then
+    return jsonb_build_object('ok', false, 'error', 'too_many_notes'); end if;
+
+  if v_dup then
+    null;
+  elsif v_ar then
+    -- Suppliers read English only: the Arabic is kept as written and its supplier copy waits for its English, exactly as
+    -- fn_inquiry_add_missing_specs files it (the supplier_english replay mails every matched supplier when it lands).
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answer_as_written, english_held_at, answered_at, source)
+    values (i.id, null, 'note', null, v_full, now(), now(), 'rfq_note') returning id into v_note;
+    v_q := 'Translate this message from a customer into clear, professional English for the suppliers quoting the job, '
+        || 'as a UAE sales engineer would write it. Keep every measurement, quantity, brand, model and grade code exactly as written. '
+        || 'Add nothing and leave nothing out. Put ONLY the English text in "answer".' || chr(10) || chr(10) || v_full;
+    perform public.fn_reason_hold('sales_engineer', 'sales_engineer.supplier_english', left(v_q, 8000),
+      jsonb_build_object('seat', 'sales_engineer', 'surface', 'sales_engineer.supplier_english', 'question', v_q,
+        'context', jsonb_build_object('audience', 'internal', 'language', 'en'), 'research', false,
+        'subject', jsonb_build_object('clarification_id', v_note), 'dedupeKey', 'supplier_english:' || v_note),
+      '{}'::jsonb, jsonb_build_object('clarification_id', v_note), 'filed_from_a_request_path', 'supplier_english:' || v_note);
+  else
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source)
+    values (i.id, null, 'note', v_full, now(), 'rfq_note') returning id into v_note;
+  end if;
+
+  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email,
+                  exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = le.id
+                           and coalesce(q.status, '') not in ('draft', 'withdrawn', 'rejected', 'expired', 'cancelled')) as quoted
+             from public.inquiry_matches x join public.leads le on le.id = x.supplier_id
+            where x.inquiry_id = i.id and not coalesce(le.banned, false)
+              and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
+    -- held Arabic: only the suppliers who already quoted are written to now; everyone gets the English copy from the replay
+    continue when v_ar and not l.quoted;
+    v_body := case when v_ar
+      then 'The customer changed the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
+           || ' (request ' || coalesce(i.rfq_no::text, '') || ') you already quoted. The change was written in Arabic, and its English copy '
+           || 'reaches you by email shortly. Once you have read it, please confirm your quote still stands, or revise it, in your QuotesDone supplier portal.'
+      else 'The customer changed the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
+           || ' (request ' || coalesce(i.rfq_no::text, '') || ') you were invited to quote:' || chr(10) || chr(10) || v_text || chr(10) || chr(10)
+           || case when l.quoted then 'You have already quoted on this request: please confirm your quote still stands, or revise it, in your QuotesDone supplier portal.'
+                   else 'It is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.' end end;
+    v_d := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', 'rfq_addendum', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
+      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', i.id, 'lang', 'en',
+      'subject', 'The customer changed a request you were invited to quote', 'body', v_body,
+      'dedupe_key', 'customer_change:' || v_note || ':' || l.id)));
+    -- a supplier is counted as told only when the delivery took it (re-review of #1844: the reply claimed every send)
+    if coalesce(v_d->0->>'status', '') not in ('done', 'demo_captured') then v_failed := v_failed + 1; continue; end if;
+    if not v_ar then v_told := v_told + 1; end if;
+    if l.quoted then v_quoted := v_quoted + 1; end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'duplicate', v_dup, 'note_id', v_note, 'held_for_english', v_ar, 'suppliers_told', v_told, 'quoted_told', v_quoted,
+    'delivery_failed', v_failed, 'suppliers_matched', v_matched);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_build(p_inquiry uuid)
@@ -1002,7 +1103,9 @@ CREATE OR REPLACE FUNCTION public.fn_invite_placement_open_providers(p_day date 
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
-  return array(select jsonb_array_elements_text(public.fn_invite_placement_judge(p_day, p_now) -> 'open_providers'));
+  -- founder_instruction 1537 (3 Nov 2026): never Yahoo/AOL or Microsoft, whatever the GlockApps verdict says
+  return array(select p from jsonb_array_elements_text(public.fn_invite_placement_judge(p_day, p_now) -> 'open_providers') p
+               where p not in ('microsoft', 'yahoo_aol'));
 end $function$
 
 
