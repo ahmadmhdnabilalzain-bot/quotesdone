@@ -4,8 +4,11 @@
 // aiReply applies, against the brief and this turn's prompt (the published contact and the person's own live data are there).
 // answerFromBrief runs this check per streamed SENTENCE, so the deferral rule, a whole-answer judgement (fewer than 25
 // substance words), is left out, as sales_engineer's portal does: "A member of the team will contact you shortly." is
-// one ordinary sentence of a full answer (review of #1836).
+// one ordinary sentence of a full answer (review of #1836). A sentence in the wrong language for the conversation is
+// refused too, but as a WHOLE reply (siteReplyLanguage below, handed to answerFromBrief as checkWhole): per sentence it refused the
+// published contact line (+1 218 316 6814 (WhatsApp, Mon-Fri 9am-6pm GST)) and English specs inside an Arabic reply (review of #1830).
 import { replyProblems } from '../_shared/ai_reply.ts';
+import { replyLanguageProblems } from '../_shared/chat_answers.ts';
 import { briefNumbers, figureSource } from '../_shared/company_brief.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 
@@ -15,3 +18,6 @@ export function siteReplyCheck(brief: string, sys: string, lang: 'en' | 'ar'): (
   return (s) => [...guardSupportReply(s, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
     ...replyProblems(s, known, { allowed }).filter((p) => !/defers/.test(p))];
 }
+
+/** The whole-reply language check (3 Nov 2026: the widget's live run flipped an English conversation into Arabic). */
+export const siteReplyLanguage = (lang: 'en' | 'ar'): ((text: string) => string[]) => (t) => replyLanguageProblems(t, lang);
