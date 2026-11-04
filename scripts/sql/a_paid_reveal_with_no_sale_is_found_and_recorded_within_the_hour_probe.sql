@@ -65,6 +65,19 @@ begin
         'customer_email', 'zz-demo-buyer@example.invalid', 'amount_fils', 30000, 'outcome', 'failed', 'error', 'probe'),
       jsonb_build_object('key', 'not a stripe id', 'source', 'invoice', 'quote_id', q1, 'outcome', 'failed'),
       jsonb_build_object('key', 'in_zzprobematch', 'source', 'invoice', 'quote_id', q1, 'outcome', 'recorded'))));
+  -- 3a. A test-mode payment on a quote that is not a demo account's: a finding, unless Stripe's e-mail is a demo address
+  --     (a torn-down demo quote), which files nothing.
+  perform public.fn_accountant_reveal_reconcile_record(null, jsonb_build_object('days', 30, 'modes', v_live, 'outcomes', jsonb_build_array(
+      jsonb_build_object('key', 'in_zzprobetestreal', 'livemode', false, 'source', 'invoice', 'quote_id', q1, 'invoice_id', 'in_zzprobetestreal',
+        'customer_email', 'zz.reconcile.probe@quotesdone.com', 'amount_fils', 30000, 'outcome', 'test_mode_not_demo'),
+      jsonb_build_object('key', 'in_zzprobetestgone', 'livemode', false, 'source', 'invoice', 'quote_id', q2, 'invoice_id', 'in_zzprobetestgone',
+        'customer_email', 'zz-demo-buyer@example.invalid', 'amount_fils', 30000, 'outcome', 'test_mode_not_demo'))));
+  if not exists (select 1 from public.it_engineer_finding where issue_key = k || 'test_mode_not_demo:in_zzprobetestreal' and closed_at is null) then
+    v_fail := v_fail || '3:test_mode_not_demo_not_filed; ';
+  end if;
+  if exists (select 1 from public.it_engineer_finding where issue_key = k || 'test_mode_not_demo:in_zzprobetestgone' and closed_at is null) then
+    v_fail := v_fail || '3:torn_down_demo_filed; ';
+  end if;
   -- 3b. A later run that did not get to the failed payment ('deferred') keeps what the earlier run found.
   perform public.fn_accountant_reveal_reconcile_record(null, jsonb_build_object('days', 30, 'modes', v_live, 'outcomes', jsonb_build_array(
       jsonb_build_object('key', 'in_zzprobefail1', 'livemode', true, 'source', 'invoice', 'quote_id', q1, 'outcome', 'deferred'))));
@@ -92,7 +105,7 @@ begin
   v_out := public.fn_accountant_reveal_reconcile_record(null, jsonb_build_object('days', 30, 'modes', v_live, 'outcomes', jsonb_build_array(
       jsonb_build_object('key', 'in_zzprobefail1', 'livemode', true, 'source', 'invoice', 'quote_id', q1, 'invoice_id', 'in_zzprobefail1',
         'payment_intent', 'pi_zzprobefail1', 'customer_email', 'zz.reconcile.probe@quotesdone.com', 'amount_fils', 30000, 'outcome', 'failed', 'error', 'quote not found: probe'))));
-  if (select count(*) from public.accountant_reveal_reconcile_item) <> items0 + 5 then v_fail := v_fail || '4:item_count; '; end if;
+  if (select count(*) from public.accountant_reveal_reconcile_item) <> items0 + 7 then v_fail := v_fail || '4:item_count; '; end if;
   if (select attempts from public.accountant_reveal_reconcile_item where key = 'in_zzprobefail1') <> 3 then v_fail := v_fail || '4:attempts; '; end if;
   if (select count(*) from public.it_engineer_finding where issue_key like k || '%' and closed_at is null) <> open_f then v_fail := v_fail || '4:findings_changed; '; end if;
 

@@ -1154,7 +1154,7 @@ const scopeSql = (s) => ({
   LEAD_T: `(select id::text from public.leads where ${s.lead})`,
 });
 
-const BUCKET_SOURCES = (s) => [
+export const BUCKET_SOURCES = (s) => [
   {
     bucket: 'drawing-files', sql:
       `select drawing_file_path p from public.inquiries where ${s.inq} and drawing_file_path is not null
@@ -1213,7 +1213,15 @@ const BUCKET_SOURCES = (s) => [
         where o.bucket_id = 'agent-docs'
           and exists (select 1 from public.inquiries i
                        where ${s.inq}
-                         and o.name like '%QD-' || upper(left(i.id::text, 8)) || '-CMP%')`,
+                         and o.name like '%QD-' || upper(left(i.id::text, 8)) || '-CMP%')
+       -- Every document a run's SUPPLIER downloaded (supplier_api inquiry_pdf / quote documents): pdf_native stores it at
+       -- agent-docs/supplier/<lead id>/<ts>_<name>.pdf and only supplier_document_cache names it (3 Nov 2026, nightly run
+       -- 41598217377: "1 of 11 named objects remain" = supplier/154196/..._QD-163059-RFQ-v2.3-inquiry-en.pdf).
+       union select o.name from storage.objects o
+        where o.bucket_id = 'agent-docs'
+          and exists (select 1 from public.leads l where ${s.lead} and o.name like 'supplier/' || l.id::text || '/%')
+       union select c.path from public.supplier_document_cache c
+        where c.bucket = 'agent-docs' and c.path is not null and c.supplier_id in (select id from public.leads where ${s.lead})`,
   },
 ];
 

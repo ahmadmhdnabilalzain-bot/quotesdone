@@ -87,6 +87,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 - [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
 ## Working the estate
+- [Identity shapes live in one list (3 Nov)](identity-shapes-live-in-one-list.md) — every scrubber runs _shared/identity_text.ts; measure with identity_never_leaks_before_reveal.mjs (480 trials)
 - [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
 - [The otp-race step runs on a throwaway Postgres in the cloud container (28 Oct)](the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container.md) — no Docker daemon, but Postgres 16 is installed; run it as the postgres user and set QD_OTP_RACE_PG
 - [A probe can run locally on a stub built from the mirror (3 Nov)](a-probe-can-run-locally-on-a-stub-built-from-the-mirror.md) — no token: copy the real routine bodies out of full_schema, stub net/roles, run `begin; file; probe; rollback;`; caught a now()-tie defect before the push

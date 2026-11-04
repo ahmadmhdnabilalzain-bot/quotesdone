@@ -224,12 +224,16 @@ begin
     end if;
     v_qid := case when x->>'quote_id' ~ c_uuid then (x->>'quote_id')::uuid end;
     -- DEMO: a test-mode payment, an email the one demo rule names, or a customer the database marks is_demo.
-    -- 'test_mode_not_demo' is by definition a test payment that is NOT demo: it must reach the findings.
-    v_demo := x->>'outcome' is distinct from 'test_mode_not_demo' and (not coalesce((x->>'livemode')::boolean, false)
+    -- 'test_mode_not_demo': a test payment whose quote is not provably a demo account's. It reaches the findings,
+    -- unless Stripe's own customer e-mail is a demo address (fn_is_demo_email, the identity that picks the Stripe test
+    -- key, #1835): the e2e teardown deletes a demo quote while its paid test invoice stays in the window, and that is
+    -- demo, not a finding.
+    v_demo := case when x->>'outcome' = 'test_mode_not_demo' then public.fn_is_demo_email(x->>'customer_email')
+      else (not coalesce((x->>'livemode')::boolean, false)
            or public.fn_is_demo_email(x->>'customer_email')
            or exists (select 1 from public.customers c where c.is_demo and c.id::text = x->>'customer_id')
            or exists (select 1 from public.quotes q join public.inquiries iq on iq.id = q.inquiry_id
-                        join public.customers c on c.id = iq.customer_id where q.id = v_qid and c.is_demo));
+                        join public.customers c on c.id = iq.customer_id where q.id = v_qid and c.is_demo)) end;
     insert into public.accountant_reveal_reconcile_item as it (key, livemode, source, quote_id, invoice_id, payment_intent,
         customer_id, customer_email, amount_fils, currency, paid_at, demo, outcome, transaction_id, error, last_run_id, resolved_at)
     values (x->>'key', coalesce((x->>'livemode')::boolean, false), x->>'source', x->>'quote_id', nullif(x->>'invoice_id', ''),

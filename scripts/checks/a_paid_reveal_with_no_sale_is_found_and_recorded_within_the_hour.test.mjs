@@ -77,8 +77,8 @@ test('the sweep never records an invoice id as the payment reference, and lists 
 
 test('demo payments file no finding: test mode, fn_is_demo_email, or an is_demo customer', () => {
   const r = body('fn_accountant_reveal_reconcile_record');
-  assert.match(r, /v_demo := x->>'outcome' is distinct from 'test_mode_not_demo' and \(not coalesce\(\(x->>'livemode'\)::boolean, false\)\s+or public\.fn_is_demo_email\(x->>'customer_email'\)/,
-    'a test-mode payment that is NOT a demo account\'s is never marked demo: it must reach the findings');
+  assert.match(r, /v_demo := case when x->>'outcome' = 'test_mode_not_demo' then public\.fn_is_demo_email\(x->>'customer_email'\)\s+else \(not coalesce\(\(x->>'livemode'\)::boolean, false\)\s+or public\.fn_is_demo_email\(x->>'customer_email'\)/,
+    'a test-mode payment on a quote that is not a demo account\'s must reach the findings unless its own Stripe e-mail is a demo address');
   assert.match(r, /c\.is_demo/);
   const f = body('fn_accountant_reveal_reconcile_findings');
   assert.match(f, /where i\.resolved_at is null and not i\.demo/);
@@ -105,7 +105,7 @@ test('the probe drives the real runner and proves each rule, rolled back', () =>
   const p = read(PROBE);
   for (const s of ["fn_seat_duty_run('accountant.reveal_reconcile')", "'1:second_dispatch_in_flight; '", "'2:silent_not_filed; '",
     "'3:failed_not_filed; '", "'3:second_payment_not_filed_for_ceo; '", "'3:demo_or_recovered_filed; '", "'4:findings_changed; '",
-    "'3:deferred_overwrote_failed; '", "set last_started_at = null where duty = 'accountant.reveal_reconcile'", "'5:refund_finding_open; '", "'5:second_payment_filed_twice; '", "'5:live_unread_not_filed; '", "'6:reached_the_founder; '",
+    "'3:deferred_overwrote_failed; '", "'3:test_mode_not_demo_not_filed; '", "'3:torn_down_demo_filed; '", "set last_started_at = null where duty = 'accountant.reveal_reconcile'", "'5:refund_finding_open; '", "'5:second_payment_filed_twice; '", "'5:live_unread_not_filed; '", "'6:reached_the_founder; '",
     "raise exception 'CHK<<%>>'"]) {
     assert.ok(p.includes(s), 'probe lacks ' + s);
   }
