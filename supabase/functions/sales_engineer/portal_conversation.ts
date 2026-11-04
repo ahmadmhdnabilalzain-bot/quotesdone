@@ -42,6 +42,7 @@ export const PORTAL_INTAKE = 'WHEN THEY DESCRIBE A JOB THEY WANT PRICED, take th
 export const REPLY_SHAPE = 'SHAPE OF EVERY REPLY: (a) at most one or two short sentences that answer their message or correct a wrong specification; when they only gave details, a few words of acknowledgement at most, never a read-back of everything they said (the read-back is for the final summary only); '
   + '(b) then at most two questions, the missing specifications that most change the price; (c) nothing else. No greeting after the first reply. '
   + 'Every reply ends with a question for them: the next missing specification or, once the essentials are known, the summary and "Is this correct?". '
+  + 'When their message is a question about QuotesDone itself (who a supplier is, the fee, a refund, how a reveal works) and not a job detail, answer it plainly and completely first, in up to four short sentences, before any question. Who is behind a quote is never told before a reveal: say plainly that supplier identities stay sealed until they pay the 3% reveal fee on the quote they choose, then the name and contact details unlock; never answer it with an offer to explain. If a revealed supplier never responds, everything they paid is refunded. '
   + 'Do not add the fee, "posting is free", how long quotes or the work take, what suppliers will do or how the request is sent unless their message asks about it. Never mention passing anything to a team.';
 
 import { CATALOGUE, CONFIRMED, CONFIRM_ASK as PLAN_CONFIRM_ASK, labelOf, planState, sentencesOf as planSentences, stateBlock, stems, targets,
@@ -208,10 +209,12 @@ function reaskOne(q: string, h: Held): string | null {
 // Lines on a topic the customer's message did not ask about. [topic, the sentence pattern, what in their message licenses it]
 const UNASKED: [string, RegExp, RegExp | null][] = [
   ['the fee', /\b(fees?|free of charge|is free|for free|no charge|commission|reveal)\b|\bAED\b|\bdirhams?\b|رسوم|مجاني|مجانا|مجاناً|درهم|عمولة/i,
-    /\b(fee|fees|cost|costs|charge|pay|paid|price|pricing|how much|free|commission|budget|aed|reveal)\b|رسوم|تكلفة|تكلفه|سعر|بكم|كم (يكلف|سعر|التكلفة)|ادفع|أدفع|مجان/i],
+    // a question about WHO a supplier is licenses the line that explains it is revealed on payment (browser proof, 2 Nov 2026: that
+    // sentence was dropped and the reply began "Until then you compare them as Supplier A...")
+    /\b(fee|fees|cost|costs|charge|pay|paid|price|pricing|how much|free|commission|budget|aed|reveal|who|identity|contact|phone|email|name)\b|رسوم|تكلفة|تكلفه|سعر|بكم|كم (يكلف|سعر|التكلفة)|ادفع|أدفع|مجان/i],
   ['how long it takes', /\b(working|business) days\b|\bwithin \d+\s*(hours?|days?)\b|\b\d+\s*[–-]\s*\d+\s*(working |business )?(days|weeks|hours)\b|\bquotes? (usually |typically |normally |will )?(take|arrive|come)\b|أيام عمل|خلال \d+ (ساعة|أيام|يوم)|يستغرق|تستغرق/i,
     // a question about time, not a timeline they state ("within 2 weeks" licensed the 3-5 day line until this was narrowed)
-    /\bhow long\b|\bwhen (will|would|can|do|could)\b|\bhow soon\b|\bhow quickly\b|\bhow many (days|weeks)\b|\b(is|would) (that|it|this) (possible|realistic|enough)\b|\bin time\b|متى|كم يوم|كم المدة|كم تستغرق|هل يمكن|هل ممكن/i],
+    /\bhow long\b|\bwhen (will|would|can|do|could)\b|\bhow soon\b|\bhow quickly\b|\bhow many (days|weeks)\b|\b(is|would) (that|it|this) (possible|realistic|enough)\b|\bin time\b|\b(refund|refunded|never (answers?|responds?|replies)|no (answer|response|reply))\b|متى|كم يوم|كم المدة|كم تستغرق|هل يمكن|هل ممكن|استرداد|استرجاع/i],
   ['what suppliers will do', /\bmatched suppliers?\b|\bverified suppliers?\b|\banonymi[sz]ed quotes?\b|\b(suppliers?|installers?|contractors?) (will|can|then|would) (then )?(propose|suggest|measure|price|quote|send)\b|\b(propose|suggest|measure) and price\b|\b(send|route|share|submit) (it|this|your request|the request|your brief) to\b|new request|طلب جديد|الموردين المعتمدين|الموردين الموثقين|سيقوم المورد|عروض الأسعار من/i,
     /\bhow (does|do|will|can) (it|this|that|quotes?|you|i)\b|\bnext\b|\bsend\b|\bsubmit\b|\bsuppliers?\b|\bquotes?\b|\bconfirm|\bcorrect\b|^\s*(yes|yeah|yep|ok|okay)\b|كيف|الخطوة|ارسال|إرسال|أرسل|ارسل|مورد|عرض|نعم|صحيح|تمام|أكد/i],
   ['an internal hand-off', /\b(passed|forwarded|handed|escalated|routed|referred) (it |this |that |your [a-z -]+ )?(on |over )?to (the|our) [a-z -]*team\b|(أحلت|حولت|أحلنا|حولنا)[^.؟]*فريق/i, null],
@@ -273,8 +276,12 @@ export function unaskedOf(s: string, h: Held, inSummary = false): string | null 
     if (re.test(s) && !(licence && licence.test(h.message))) return `a line on ${topic} they did not ask about`;
   }
   // the final read-back restates on purpose (PORTAL_INTAKE step 4): it is never dropped as a repeat
+  // A sentence on a topic the customer's message asks about (or asks to hear "again") is the answer, not a repeat (browser proof,
+  // 2 Nov 2026, portal turn 14: "In one line, what is the fee again?" lost its 3% line as a repeat of turn 3).
+  const asked = /\b(again|remind|repeat|recap)\b|ذكرني|كرر|مرة أخرى/i.test(h.message)
+    || UNASKED.some(([, re, licence]) => licence && re.test(s) && licence.test(h.message));
   const W = contentWords(s);
-  if (W.size >= 5 && !inSummary && !SUMMARY.test(s)) for (const p of h.said) { const P = contentWords(p); if (overlap(W, P) / W.size >= 0.7) return 'restates a sentence already said'; }
+  if (W.size >= 5 && !inSummary && !asked && !SUMMARY.test(s)) for (const p of h.said) { const P = contentWords(p); if (overlap(W, P) / W.size >= 0.7) return 'restates a sentence already said'; }
   return null;
 }
 

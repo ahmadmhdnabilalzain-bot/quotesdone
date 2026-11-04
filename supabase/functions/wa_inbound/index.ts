@@ -1,6 +1,6 @@
 // wa_inbound v10 - smart WhatsApp responder on the API number (+1 218 316 6814).
 // v5-v9: see history below. v10 adds WEBHOOK AUTHENTICITY (see PROVENANCE block).
-// v5: may share the published direct line (+971 50 931 9355) when someone asks for a human.
+// v5: may share the published WhatsApp contact (+1 218 316 6814) when someone asks for a human.
 // v6: BIDI-SAFE Arabic (LTR runs wrapped in U+2066/U+2069 isolates).
 // v7: AUDIENCE AWARENESS via fn_identify_contact() phone lookup + wording inference.
 // v8: SEND FAILURES ARE NO LONGER SILENT.
@@ -46,14 +46,19 @@ import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
+import { directiveSystemPrompt, readDirectiveReply } from './founder_directive.ts';
 import { isStop } from '../_shared/marketing_send_gate.ts';
 import { type Audience, humanAlert, type Lang, MENU_IDS, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { turnLang } from '../_shared/chat_answers.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 import { waRow } from './wa_row.ts';
-import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
+import { waConversation } from '../_shared/wa_history.ts';
+import { budgetLeft, holdUnwritten, modelSays, voiceReplyProblems } from './model_says.ts';
+import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
+import { amountInOwnWords, founderDirectiveAllowed, supplierDirectiveAllowed } from './directive_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 // THE QUESTION IS UNDERSTOOD, NOT ONLY MATCHED (instruction 763). Measured 22 Sep 2026: wa_inbound
@@ -331,6 +336,8 @@ async function handleSupplierDoc(leadId: number, url: string, declaredMime: stri
   // licence on file, and license_doc_path is what unblocks the approval gate.
   const upd: Record<string, unknown> = {
     license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
+    // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442).
+    trade_license_no: null, license_authority: null, license_expiry: null,
     // The name printed on this licence, read by the vision model off the photo or scan; null = not read,
     // and the review then holds the registration for a human (licence_name_unread).
     licence_legal_name: licenceNameFromModel(doc),
@@ -399,6 +406,8 @@ async function handleInbound(req: Request): Promise<Response> {
   // Prevented by: arrival_is_stored_first.test.ts.
   let arrivalId: number | null = null;
   let crashed = false, MessageSidSeen = '';
+  // The review of a decision, started beside the reply (below) and awaited in the finally; it never throws (review_request.ts).
+  let reviewP: Promise<unknown> = Promise.resolve(null);
   // RACE WITH THE SWEEP (review of #1457): the arrival row is completed only while it is still 'received'. If
   // fn_wa_arrival_sweep took it first (a turn past 5 minutes), the row stays 'escalated', this turn's record goes on a row
   // of its own, and fn_wa_arrival_turn_finished closes the action and suppresses a holding notice not yet sent.
@@ -420,6 +429,8 @@ async function handleInbound(req: Request): Promise<Response> {
     // NOT the same as `trusted`: a valid Twilio signature also sets trusted. This is true only for
     // an authenticated internal JSON caller, and it is the sole thing that permits inline media.
     let internalCaller = false;
+    // True only when X-Twilio-Signature verified: the one proof a founder setting change accepts (directive_gate.ts).
+    let signatureVerified = false;
     const formParams: Record<string, string> = {}; // every POST param, needed for signature validation
     const ct = req.headers.get('content-type') || '';
 
@@ -472,9 +483,23 @@ async function handleInbound(req: Request): Promise<Response> {
     // a second wa_messages row. The primary key on wa_inbound_seen IS the guard - the second
     // delivery loses the insert and we return 200 having done nothing. This must stay ABOVE the
     // founder branch below, which deliberately answers after the 15-second wall.
+    // ONLY A UNIQUE VIOLATION IS A REDELIVERY (it_engineer, 3 Nov 2026, failure drill D10). Every error on this insert was
+    // read as "already accepted": a 500, a statement timeout or a connection reset on wa_inbound_seen returned 200 here,
+    // before the arrival row is written, so the message was stored nowhere, answered never, and agent_runs said 'ok'
+    // duplicate. Measured by the drill: 3 of 3 such faults ended with no reply, no row and no finding. Now any other error
+    // falls back to the arrival rows (meta.message_sid, written below for every authenticated message): a row there is a
+    // redelivery; none (or that read failing too) and the turn goes on, answered once, and it_engineer gets a finding.
+    // prevented by: wa_inbound/drill_inbound_faults.test.ts
     if (MessageSid) {
-      const { error: dupErr } = await admin.from('wa_inbound_seen')
+      const { error: seenErr, status: seenStatus } = await admin.from('wa_inbound_seen')
         .insert({ message_sid: MessageSid, wa_from: From });
+      let dupErr = seenErr && (seenStatus === 409 || seenErr.code === '23505') ? seenErr : null;
+      if (seenErr && !dupErr) {
+        const prior = await admin.from('wa_messages').select('id').eq('meta->>message_sid', MessageSid).limit(1);
+        if (!prior.error && (prior.data?.length ?? 0) > 0) dupErr = seenErr;
+        else await itFinding('wa_inbound:seen_insert_failed', 'wa_inbound_seen refused a WhatsApp MessageSid for a reason that is not a duplicate; the message was answered without the redelivery guard',
+          { message_sid: MessageSid, error: seenErr.message, code: seenErr.code ?? null, status: seenStatus ?? null, fallback_read_error: prior.error?.message ?? null });
+      }
       if (dupErr) {
         await logRun('ok', { duplicate: 1, message_sid: MessageSid },
           'Twilio redelivered ' + MessageSid + ' which was already accepted; no second reply was sent.');
@@ -495,7 +520,7 @@ async function handleInbound(req: Request): Promise<Response> {
         return TW(403);
       }
       if (sig.checked && sig.valid) {
-        trusted = true; // cryptographic proof - stronger than the provenance lookup, skip it
+        trusted = true; signatureVerified = true; // cryptographic proof - stronger than the provenance lookup, skip it
         await logRun('ok', { authorised: 1, path: 'form', signature_checked: 1, signature_valid: 1 }, 'wa_inbound accepted a webhook on verified X-Twilio-Signature. The provenance lookup was skipped because the signature is cryptographic proof of origin and does not need a confirming REST call.');
       }
     }
@@ -569,16 +594,54 @@ async function handleInbound(req: Request): Promise<Response> {
     let sayOutage = false;
     // WHY THE LAST SAY'S DRAFTS WERE REFUSED (aiReply.problems): filed with the turn so the re-ask names them (_shared/reask.ts).
     let sayProblems: string[] = [];
-    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) => {
-      const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
+    // WHAT THE LAST SAY TRIED (aiReply.attempts: each call, each rewrite and the problems that refused it), kept on the turn's
+    // row so a refused or rewritten reply names its reason (customer_support, 3 Nov 2026: 7 Luna rewrites in a run, no record why).
+    let sayAttempts: string[] = [];
+    // THE TURN'S FACTS ALONE SAY WHAT TO TELL THEM (a person is needed): only then may modelSays's brief-less last chance run
+    // (review of #1816). Set just before the main reply is asked; every earlier say runs without it.
+    let factsAnswer = false;
+    // THE WHOLE CONVERSATION, EVERY TURN (2 Nov 2026): this number's earlier turns, read once per turn (_shared/wa_history.ts).
+    let history: ReturnType<typeof waConversation> | null = null;
+    // THE OTHER PARTY BEFORE A REVEAL (3 Nov 2026, pre_reveal_identities.ts): read once per turn from the number's confirmed
+    // owner (fn_whatsapp_owner); a reply naming a counterpart not yet revealed to them is refused. No owner: [].
+    let forbidden: Promise<string[]> | null = null;
+    // A failed history read is the it_engineer's finding (_shared/wa_history.ts, failure drill D10): the reply still goes, thinner.
+    const historyUnavailable = (error: string) => itFinding('wa_inbound:history_unavailable',
+      'the WhatsApp conversation history could not be read, so the model answered this turn without it',
+      { message_sid: MessageSid || null, error });
+    // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
+    // They are apart so a reply started speculatively (below) that is then discarded can never escalate or flag the turn.
+    const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, langGiven?: 'en' | 'ar', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => {
+      history ??= waConversation(admin, From, receivedAt, isDemoPhone(From), historyUnavailable);
+      forbidden ??= (async () => {
+        const { data } = await admin.rpc('fn_whatsapp_owner', { p_phone: From });
+        const o = (Array.isArray(data) ? data[0] : data) as { party_kind?: string; lead_id?: number | null; customer_id?: string | null } | null;
+        return o?.party_kind === 'supplier' && o.lead_id ? preRevealIdentities(admin, { leadId: Number(o.lead_id) })
+          : o?.party_kind === 'customer' && o.customer_id ? preRevealIdentities(admin, { customerId: String(o.customer_id) }) : [];
+      })().catch(() => []);
+      // A MIXED MESSAGE KEEPS THE CONVERSATION'S LANGUAGE (chat_answers.turnLang, 3 Nov 2026): this was "any Arabic letter
+      // in the message = Arabic", the rule the widget's live run measured flipping an English conversation into Arabic.
+      const conv = await history;
+      const lang = langGiven ?? turnLang(Body, '', conv.filter((t) => t.role !== 'seat').map((t) => ({ role: 'user', content: t.text })));
+      return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: conv, forbidden: await forbidden,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
-        rateKey: 'wa:' + From,   // the per-number ceiling (20/hour) the old prompt path had
-        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
+        // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
+        // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
+        rateKey: signal ? 'wa-spec:' + From : 'wa:' + From,
+        ...(signal ? { signal } : {}), ...(extraCheck ? { extraCheck } : {}),
+        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}),
+        ...(factsAnswer && !signal ? { situationAnswers: true } : {}) });
+    };
+    const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
       modelEscalate = modelEscalate || r.escalate;
       sayOutage = !r.text && r.outage;
       sayProblems = r.text ? [] : (r.problems ?? []);
+      const att = (r.attempts ?? []).map((x) => String(x).slice(0, 400));
+      sayAttempts = att.length > 8 ? [...att.slice(0, 4), ...att.slice(-4)] : att;   // the head and the tail (the last chance is at the end)
       return r.text;
     };
+    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang?: 'en' | 'ar', must?: string[], extraCheck?: (t: string) => string[]) =>
+      adopt(await askModel(aud, situation, lang, must, undefined, extraCheck));
     // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
     const say = (situation: string, lang?: 'en' | 'ar') => sayFor(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : audience === 'founder' ? 'founder' : 'visitor')(situation, lang);
     // NOBODY IS LEFT SILENT (review of #1335). When no model wrote the reply, or the guard refused what it wrote, the
@@ -680,6 +743,22 @@ async function handleInbound(req: Request): Promise<Response> {
       if (idres && idres.audience) { audience = String(idres.audience); known = idres; }
     } catch (_e) { /* fall back to inference */ }
 
+    // WHERE THE SECONDS GO (2 Nov 2026, measured on the real exchange: 26-47 s a supplier turn against a 45 s reply budget,
+    // two turns in twelve unanswered). The reads below were awaited ONE AFTER ANOTHER after the classification call; none
+    // depends on it, so they start now and run beside it. `timings` (ms since arrival) rides on the turn's row so the next
+    // measurement names the stage. Prevented by: the_whole_exchange.test.ts (the reads start before the reply is asked for).
+    const timings: Record<string, number> = {};
+    const mark = (k: string) => { timings[k] = Date.now() - Date.parse(receivedAt); };
+    const soft = <T>(p: PromiseLike<T>, empty: T): Promise<T> => Promise.resolve(p).then((v) => v, () => empty);
+    const prefetch = {
+      timeline: soft(admin.rpc('fn_contact_timeline', { p_contact: From, p_limit: 40 }), { data: null } as never),
+      mine: soft(admin.rpc('fn_wa_context', { p_audience: audience, p_phone: From }), { data: null } as never),
+      company: soft(admin.rpc('fn_company_context', { p_max_chars: 6000, p_audience: 'public' }), { data: null } as never),
+      faq: soft(retrieveFaq(Body), { ctx: '', ids: [] as number[] }),
+    };
+    history ??= waConversation(admin, From, receivedAt, isDemoPhone(From), historyUnavailable);
+    mark('identified');
+
     // ---- THE WELCOME AND THE MENU (22 Sep 2026, founder_instruction 759) ---------------------------
     // "said hi, got no response. Even without the LLM there should be automatic replies: a professional
     // welcome message and options." menu_flow.ts decides; this block only wires it to the database and
@@ -702,7 +781,8 @@ async function handleInbound(req: Request): Promise<Response> {
     const meaningIn = async (): Promise<WaMeaningInput> => {
       const { data: rows } = await admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key');
       return { message: Body, intents: (rows || []) as WaMeaningInput['intents'], trades: await menuDeps.trades(), phone: From,
-               messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'] };
+               messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'],
+               conversation: history ? await history : [] };
     };
     // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
     // Paired by option id, never by position, so the two languages cannot drift onto each other's option.
@@ -875,8 +955,138 @@ async function handleInbound(req: Request): Promise<Response> {
     }).then((x) => x.value, () => null /* unreasoned is not "no": the route records it as held */)));
     // Held or failed, the person check falls back to its own think(): under the hold that files it for replay (no model).
     if (typedQuestion) readings();
+    // THE REPLY'S FACTS, composed from a route (customer_support, 2 Nov 2026). A function so the reply can be started BEFORE the
+    // classification returns, on the route the commonest class gives (see `speculative` below), and again on the real route when the
+    // class turned out otherwise. Reads only the prefetched facts and the route it is given; it writes nothing.
+    const composeSituation = async (rt: Record<string, unknown> | null): Promise<{ situation: string; ids: number[] }> => {
+    let timeline: any = null;
+    try { const { data: tl } = await prefetch.timeline; timeline = tl || null; } catch (_e) { timeline = null; }
+    const timelineEvents = Number(timeline?.event_count ?? 0);
+    const detReply = String(rt?.deterministic_reply || '');
+    let audienceBlock: string;
+    if (audience === 'supplier') {
+      audienceBlock = `AUDIENCE: this number belongs to a REGISTERED SUPPLIER${known?.name ? ' (' + known.name + ')' : ''}${known?.approved ? ', already verified' : ', registration not yet verified'}. Treat them as a supplier. You may naturally acknowledge that they are registered with us, but never recite ANOTHER person's private details. Their OWN record is supplied below and you may state it back to them plainly - that is the point of this channel.`;
+    } else if (audience === 'customer') {
+      audienceBlock = `AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer. Do NOT bring up supplier subscriptions, founding-supplier exemptions, supplier fines or supplier recruitment.`;
+    } else {
+      audienceBlock = `AUDIENCE: UNKNOWN - this number is not in our records. Most people messaging this number are UAE SUPPLIERS who received our invitation, but customers write too. Work out which they are from their wording (a supplier talks about registering, their trade licence, receiving jobs, their company; a customer talks about needing a price, getting quotes, a job they want done). If it is genuinely unclear and the answer would differ, ask ONE short friendly question to find out before giving fee details.`;
+    }
+
+    // THEIR OWN RECORD, SCOPED IN SQL (v15, 13 Aug 2026). "Is my profile approved", "how many
+    // inquiries did I miss", "what was my last quotation", "how many suppliers received my
+    // inquiry", "what were I quoted on average" are all data questions about the SENDER. The
+    // scoping is done by fn_wa_context in SQL off their phone number, so this prompt can never be
+    // talked into another person's rows — the model is handed facts, it does not request them.
+    // Pre-reveal a customer gets a rounded band and a count, never the individual quotes and never
+    // a supplier name, which is the same rule the portal enforces.
+    let ownRecord = '';
+    try {
+      const { data: mine } = await prefetch.mine;
+      if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n' + JSON.stringify(mine) + '\n';
+      else if (mine && (mine as any).known === false) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD: no account matches this number, so answer generally and invite them to register or sign in rather than guessing at their status.\n';
+    } catch (_e) { /* fall through with no record rather than dropping the message */ }
+    if (timeline && timelineEvents > 0) ownRecord += '\n\nTHIS SENDER\'S CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never repeat something it shows was already sent unless they ask:\n' + JSON.stringify((timeline as any).events) + '\n';
+
+    // THE MODEL GETS THE SAME PACK THE DATABASE ANSWERED FROM. fn_wa_route was reached above and
+    // said a model is needed; its fact_pack and model_brief carry the sender's own rows, the
+    // company register, the list of things that are genuinely unknown, and the rules the model may
+    // not break. Appending them here is what stops the model filling a gap from memory.
+    let brainPack = '';
+    if (rt?.fact_pack) {
+      // fn_wa_model_brief (rt.model_brief, the old STANDING BRIEF) is NOT sent any more (customer_support, 19 Oct 2026).
+      // It predates the reply rules in _shared/ai_reply.ts and contradicts them: its "ABSOLUTE RULE ON SUBJECT" made the
+      // model answer "how long does installation usually take?" with fn_wa_off_topic_reply's "QuotesDone inquiries only"
+      // sentence (runs 0f48ea10 and c95eb7da, EN and AR), and it said "say you will check", which the answer standard forbids.
+      brainPack = '\n\nFACT PACK (the ONLY source for any fact about this person, their own jobs and quotes, and any '
+        + 'QuotesDone fee; a trade, material, timing or specification question is answered from your own expertise):\n'
+        + JSON.stringify(rt.fact_pack) + '\n';
+    }
+
+    // THE COMPANY BLOCK — customer_support's half of the founder's 9 Sep 2026 ruling: "the company
+    // knowledge is literally connected to every seat automatically. Any seat that we made, the
+    // company knowledge should be there."
+    //
+    // p_audience => 'public' is deliberate and is the reason the parameter exists. This channel
+    // answers strangers and suppliers; the INTERNAL block carries the seat list, the founder's
+    // standing decisions and the revenue targets, and none of that belongs in a WhatsApp reply. The
+    // public half is identity, what we sell, the published hard rules and the licence/VAT position,
+    // every figure read from company_registration and pricing_config on this message.
+    //
+    // IT REPLACES A DEADLINE THAT NO LONGER EXISTS. This prompt told suppliers "free until 31 July
+    // 2027; AED 1,000/year from 1 August 2027". The founder ruled on 6 September that there is no
+    // calendar date at all — charging begins with registration number 1,001, whenever that happens —
+    // and pricing_config.supplier_charging_starts has been NULL since. A price typed into a prompt
+    // cannot be corrected by correcting the company.
+    let companyBlock = '';
+    try {
+      const { data: cc } = await prefetch.company;
+      companyBlock = String((cc as Record<string, unknown> | null)?.block || '');
+    } catch (_e) { companyBlock = ''; } // a thinner grounding beats a dropped WhatsApp message
+
+    const { ctx, ids } = await prefetch.faq;
+    // THE REPLY IS THE MODEL'S (1195-1197, _shared/ai_reply.ts via model_says.ts): the company brief, the model chain
+    // (conversation_reply: claude-sonnet-5.5 -> gemini -> another family; ruling 1219), the figure and reply guard with a model rewrite, suppliers in English.
+    // Everything code knows about this message goes in as facts: who they are, their own record, the database's own
+    // answer for the intent it recognised, the approved FAQ for it, the live company block.
+    const situation = [audienceBlock,
+      ownRecord.trim(), brainPack.trim(),
+      detReply ? 'OUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\n' + detReply : '',
+      ctx ? 'APPROVED FAQ FOR THIS MESSAGE (may be for the other audience; apply the audience rules):\n' + ctx : '',
+      rt?.needs_a_person === true ? 'They need a person: give the direct contact (+1 218 316 6814, call or WhatsApp, Mon-Fri 9am-6pm GST; management@quotesdone.com) and say the team has their message.' : '',
+      'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.',
+      companyBlock ? 'COMPANY BLOCK (live):\n' + companyBlock : ''].filter(Boolean).join('\n\n');
+    return { situation, ids };
+    };
+
+    // THE REPLY STARTS BESIDE THE CLASSIFICATION (customer_support, 2 Nov 2026). Measured: the classification is 11-14 s of a 23-41 s
+    // turn and the reply waited for it. The commonest class is "needs no person, no intent row fits" (p_needs_person false,
+    // p_intent 'none'): the reply is composed on THAT route (fn_wa_route_dry: the same answer, no wa_answer_log row) and asked now.
+    // When the classification says exactly that, this draft IS the reply; any other class (an intent, a person, a complaint, held)
+    // discards it and the reply is asked on the real route as before. A discarded draft is never adopted, so it cannot escalate,
+    // flag or be sent; the only send is the one at the end of the turn. Null (autoreply off, the dry route not applied) = no speculation.
+    // A discarded draft is ABORTED (specAbort), so it stops costing; it also runs in its own rate bucket (askModel). A draft that
+    // cannot start is never silent: the dry route missing or failing files an IT finding, and the turn takes the normal path.
+    const specAbort = new AbortController();
+    const speculative: Promise<Awaited<ReturnType<typeof askModel>> | null> | null = typedQuestion && audience !== 'founder'
+      ? (async () => {
+          if ((await sec('wa_autoreply_enabled')) !== 'true') return null;
+          const { data, error } = await admin.rpc('fn_wa_route_dry', { p_phone: From, p_body: Body.slice(0, 4000), p_needs_person: false, p_intent: 'none' });
+          if (error || !data) {
+            await itFinding('wa_inbound:route_dry_unavailable', 'The WhatsApp reply cannot start beside the classification: fn_wa_route_dry failed or is not applied', { error: error?.message ?? 'returned nothing' });
+            return null;
+          }
+          const { situation: s0 } = await composeSituation(data as Record<string, unknown>);
+          return await askModel(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', s0, undefined, undefined, specAbort.signal);
+        })().catch(async (e) => {
+          await itFinding('wa_inbound:speculative_reply_threw', 'The speculative WhatsApp reply threw; the turn took the normal path', { error: String((e as Error)?.message || e).slice(0, 300) });
+          return null;
+        })
+      : null;
+    // THE PRICE-CHANGE READING STARTS BESIDE THE CLASSIFICATION TOO (customer_support, 3 Nov 2026). It reads only the body,
+    // yet it was asked after menuTurn had waited for the readings. Measured on the real exchange on main (run 41530397323,
+    // ai_cost_log): on 14 of 14 supplier text turns the supplier_directive call started 0.75-0.95 s after the classification
+    // ended and took 5.1-6.8 s, in series, so supplier turns were classified at 16.6-23.6 s against 11.6-12.7 s for a
+    // number with no account. A turn the menu answers aborts it (specAbort), like the speculative draft.
+    let directiveP: Promise<{ change?: boolean; amount?: unknown } | null> | null = null;
+    const directiveRead = () => (directiveP ??= (async () => {
+      const gsecret = await sec('cred_fn_ai');
+      const csys = 'Decide whether this message from a supplier is an INSTRUCTION TO CHANGE THEIR QUOTATION PRICE, and if so to what amount in AED.\n'
+        + 'Return STRICT JSON ONLY. If it is: {"change":true,"amount":"<the new total price as a bare number, no currency, no commas>"}.\n'
+        + 'Otherwise, including every question, every request for information, anything about their licence or profile, anything asking to CREATE a new quotation, and anything you are unsure about: {"change":false}.\n'
+        + 'A relative instruction with no stated total ("drop it a bit", "make it cheaper") is NOT a change — return false, because I cannot act on an amount you had to invent.';
+      const cr = await fetch(GATEWAY, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: gsecret, fn: 'supplier_directive', sys: csys, input: Body.slice(0, 600), temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),
+        signal: AbortSignal.any([AbortSignal.timeout(40000), specAbort.signal]),
+      });
+      const cj = await cr.json().catch(() => ({} as Record<string, unknown>));
+      const cm = String((cj as { content?: string })?.content || '').match(/\{[\s\S]*\}/);
+      return cm ? JSON.parse(cm[0]) : null;
+    })().catch(() => null));   // a classifier failure must never swallow their message: it reads as "not a change"
+    if (supplierDirectiveAllowed({ audience, internalCaller }) && typedQuestion) directiveRead();   // never read for a turn it cannot apply
     const m = await menuTurn(menuDeps, menuIn);
     if (m.handled) {
+      specAbort.abort();
       await logRun('ok', { audience, route: m.route, cost_aed: 0 }, 'answered from the WhatsApp menu: ' + m.route);
       return TW(200);
     }
@@ -889,7 +1099,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // them, and every message sent or received. Scoped to the sender's own number.
     let timeline: Record<string, unknown> | null = null;
     try {
-      const { data: tl } = await admin.rpc('fn_contact_timeline', { p_contact: From, p_limit: 40 });
+      const { data: tl } = await prefetch.timeline;
       timeline = (tl || null) as Record<string, unknown> | null;
     } catch (_e) { timeline = null; /* a missing timeline must never lose their message */ }
     const timelineEvents = Number((timeline as any)?.event_count ?? 0);
@@ -914,6 +1124,8 @@ async function handleInbound(req: Request): Promise<Response> {
     // Twilio's webhook wall is 15, so the webhook is acknowledged first and the answer sent when ready.
     if (audience === 'founder') {
       const question = Body.slice(0, 1500);
+      // HIS LANGUAGE IS THE LANGUAGE HE WROTE IN (gap #10): the model's reply, the held notice and its replay, and the row.
+      const founderLang: 'en' | 'ar' = /[\u0600-\u06FF]/.test(question) ? 'ar' : 'en';
 
       const work = (async () => {
         let reply = ''; let directive: any = null;
@@ -930,17 +1142,17 @@ async function handleInbound(req: Request): Promise<Response> {
         // through to the deterministic answer below rather than being guessed at. Money, refunds and the
         // three go-live switches are not in the registry and are refused BY NAME, with the list of
         // what can be changed, so a refusal teaches instead of stonewalling.
+        // Only a signature-verified webhook from his number may CHANGE a setting (directive_gate.ts, 3 Nov 2026). Any
+        // other turn is still read, so an instruction that is not applied is told so, never answered as a question.
         try {
           const { data: settings } = await admin.rpc('fn_founder_settings');
           const rows: any[] = Array.isArray(settings) ? settings : [];
           if (rows.length) {
             const catalogue = rows.map((s: any) =>
               `${s.setting_key} (${s.kind}${s.min_val !== null && s.min_val !== undefined ? `, ${s.min_val}..${s.max_val}` : ''}) = ${s.current_value} — ${s.description}`).join('\n');
-            const sys = 'You decide whether the message is an INSTRUCTION TO CHANGE ONE OF THESE SETTINGS, or anything else.\n\n'
-              + catalogue
-              + '\n\nReturn STRICT JSON ONLY. If it is an instruction to change one of these settings: {"directive":true,"key":"<exact setting_key>","value":"<the new value as a bare string, numbers unquoted in words e.g. 15, switches as on or off>"}.'
-              + '\nOtherwise, including anything you are unsure about, anything about money, refunds, payments or going live, and every question or request for information: {"directive":false}.'
-              + '\nThe sender writes informally. "weekly cap for emails" means the supplier invitation cap; "stop the invites" means invite_enabled off. Never guess a key that is not in the list above.';
+            // The prompt and the read live in founder_directive.ts: a change outside the registry is still a directive, refused BY
+            // NAME and audited by fn_founder_apply_setting, never answered as a question (gap #10, 3 Nov 2026).
+            const sys = directiveSystemPrompt(catalogue);
             const gsecret = await sec('cred_fn_ai');
             const cr = await fetch(GATEWAY, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -957,17 +1169,24 @@ async function handleInbound(req: Request): Promise<Response> {
               body: JSON.stringify({ __secret: gsecret, fn: 'founder_directive', sys, input: question, temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),
               signal: AbortSignal.timeout(45000),
             });
-            const cj = await cr.json().catch(() => ({} as any));
+            const cj = readDirectiveReply(await cr.json().catch(() => ({} as any)));
             const m = String(cj?.content || '').match(/\{[\s\S]*\}/);
             const parsed = m ? JSON.parse(m[0]) : null;
-            if (parsed?.directive === true && parsed?.key) {
+            if (parsed?.directive === true && parsed?.key && !founderDirectiveAllowed({ audience, signatureVerified })) {
+              directive = { ok: false, key: String(parsed.key), refusal: 'not applied: this message did not arrive with a verified Twilio signature, so it cannot change a setting' };
+              reply = (await sayFor('founder')('He asked to change the setting ' + String(parsed.key) + ' to ' + String(parsed.value ?? '') + '. It was NOT changed: this message did not arrive with a verified Twilio signature, and only a verified message from his number may change a setting. Nothing else was done; he can send it again.')) || ' ';
+            } else if (parsed?.directive === true && parsed?.key) {
               const { data: applied } = await admin.rpc('fn_founder_apply_setting', {
                 p_key: String(parsed.key), p_value: String(parsed.value ?? ''),
                 p_inbound: question, p_actor: String(known?.name || 'founder'), p_channel: 'whatsapp',
               });
               directive = applied || null;
               // The routine decided; the model says it (1195-1197). The routine's own sentence is a fact, not the reply.
-              if (applied) reply = (await sayFor('founder')('The settings routine ran on his instruction. Its result, to report accurately (applied or refused, old and new value, the reason):\n' + JSON.stringify(applied))) || ' ';
+              // What happened is stated to the model in plain words first, so a refusal is reported as NOT applied (gap #10).
+              const outcome = applied?.ok === true && !applied?.unchanged ? 'The setting WAS changed on his instruction.'
+                : applied?.ok === true ? 'Nothing was changed: the setting already had the value he asked for.'
+                : 'The setting was NOT changed: the routine refused it. Say plainly that it was not applied, and why.';
+              if (applied) reply = (await sayFor('founder')(outcome + ' The settings routine result, to report accurately (applied or refused, old and new value, the reason):\n' + JSON.stringify(applied), founderLang)) || ' ';
             }
           }
         } catch (e) {
@@ -981,11 +1200,11 @@ async function handleInbound(req: Request): Promise<Response> {
           const enabledD = (await sec('wa_autoreply_enabled')) === 'true';
           let sentD = false; let sendErrD: string | undefined = reply ? undefined : 'no_model_reply';
           if (enabledD && reply) { const r = await sendWa(From, reply); sentD = r.ok; sendErrD = r.err; }
-          if (!reply) { const h = await heldTurn('founder', 'en', 'The settings routine result: ' + JSON.stringify(directive), 'founder_directive'); reply = h.notice; sentD = h.sent; sendErrD = h.err ?? undefined; }
+          if (!reply) { const h = await heldTurn('founder', founderLang, 'The settings routine result: ' + JSON.stringify(directive), 'founder_directive'); reply = h.notice; sentD = h.sent; sendErrD = h.err ?? undefined; }
           try {
             await waInsert(receivedAt, {
               wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
-              inbound: question, reply, lang: 'en', escalated: false, sent: sentD,
+              inbound: question, reply, lang: founderLang, escalated: false, sent: sentD,
               meta: { enabled: enabledD, audience: 'founder', route: 'founder_directive',
                       directive, send_error: sendErrD || null, provenance_verified: true,
                       message_sid: MessageSid || null },
@@ -1040,7 +1259,16 @@ async function handleInbound(req: Request): Promise<Response> {
         const enabled = (await sec('wa_autoreply_enabled')) === 'true';
         let reply = ''; const results: string[] = []; let readText = '';
 
-        if (!leadId) {
+        // A VOICE NOTE IS NOT A DOCUMENT (2 Nov 2026). It reached the document intake, which accepts only a PDF or an
+        // image, so a supplier who spoke a question was told to "send the trade licence as a PDF or a clear photo".
+        // Nothing here transcribes WhatsApp audio (the format Gemini takes from a Twilio ogg is not established, see
+        // fn_wa_route.transcription_gap), so the honest answer is that it was not heard and a typed message will be.
+        // Prevented by: the_whole_exchange.test.ts.
+        const audioOnly = media.every((m) => /^audio\//i.test(m.mime));
+        if (audioOnly) {
+          results.push('voice note: not heard, no transcription on WhatsApp yet');
+          reply = await sayFor(leadId ? 'supplier' : 'visitor')('They sent a voice note. Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed. Tell them so plainly, apologise briefly, and ask them to type the message here; a typed message is answered at once. Whatever was said earlier in this chat, this reply is about the voice note only: do not ask for, offer or mention any document, licence, PDF, photo or upload.', 'en', undefined, voiceReplyProblems);
+        } else if (!leadId) {
           // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
           // model, one more asking). It is never filed against a company — there is none — but its words are kept on this
           // conversation turn, so the next message on this chat is answered knowing what was sent. The reply says it was
@@ -1139,29 +1367,19 @@ async function handleInbound(req: Request): Promise<Response> {
     // a SEMANTIC lookup at 0.95 over (sys_stable + sys).slice(0,400) + convo.slice(0,800), and a
     // classifier whose system prompt dwarfs its one-line input gets the PREVIOUS caller's answer.
     // Three different founder messages were all classified as the first one's directive that way.
-    if (audience === 'supplier') {
+    // Twilio-vouched only, never the internal JSON path, and only an amount they wrote (directive_gate.ts, 3 Nov 2026).
+    if (supplierDirectiveAllowed({ audience, internalCaller })) {
       try {
-        const gsecret = await sec('cred_fn_ai');
-        const csys = 'Decide whether this message from a supplier is an INSTRUCTION TO CHANGE THEIR QUOTATION PRICE, and if so to what amount in AED.\n'
-          + 'Return STRICT JSON ONLY. If it is: {"change":true,"amount":"<the new total price as a bare number, no currency, no commas>"}.\n'
-          + 'Otherwise, including every question, every request for information, anything about their licence or profile, anything asking to CREATE a new quotation, and anything you are unsure about: {"change":false}.\n'
-          + 'A relative instruction with no stated total ("drop it a bit", "make it cheaper") is NOT a change — return false, because I cannot act on an amount you had to invent.';
-        const cr = await fetch(GATEWAY, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ __secret: gsecret, fn: 'supplier_directive', sys: csys, input: Body.slice(0, 600), temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),
-          signal: AbortSignal.timeout(40000),
-        });
-        const cj = await cr.json().catch(() => ({} as Record<string, unknown>));
-        const cm = String((cj as { content?: string })?.content || '').match(/\{[\s\S]*\}/);
-        const parsed = cm ? JSON.parse(cm[0]) : null;
-        if (parsed?.change === true && parsed?.amount) {
+        const parsed = await directiveRead();   // started beside the classification (above); asked here when it was not
+        const ownAmount = parsed?.change === true ? amountInOwnWords(parsed?.amount, Body) : null;
+        if (ownAmount) {
           const { data: applied } = await admin.rpc('fn_supplier_apply_change', {
-            p_phone: From, p_field: 'quote_price', p_value: String(parsed.amount),
+            p_phone: From, p_field: 'quote_price', p_value: ownAmount,
             p_inbound: Body.slice(0, 1500), p_channel: 'whatsapp',
           });
           if (applied) {
             // The routine decided (re-priced or refused); the model says it to the supplier, in English (1195-1197).
-            const out = await sayFor('supplier')('They asked to change their quotation price to AED ' + String(parsed.amount) + '. The pricing routine result, to report accurately (applied or refused, old and new total, the reason):\n' + JSON.stringify(applied), 'en');
+            const out = await sayFor('supplier')('They asked to change their quotation price to AED ' + ownAmount + '. The pricing routine result, to report accurately (applied or refused, old and new total, the reason):\n' + JSON.stringify(applied), 'en');
             let replyD = out ? toContact(out.slice(0, 1200)) : '';
             const enabledD = (await sec('wa_autoreply_enabled')) === 'true';
             let sentD = false; let sendErrD: string | undefined = replyD ? undefined : 'no_model_reply';
@@ -1217,13 +1435,18 @@ async function handleInbound(req: Request): Promise<Response> {
     // on a guess (_shared/reasoned_decisions.ts).
     let needsPerson: boolean | null = null;
     if (Body.trim()) needsPerson = await needsPersonP();
+    mark('classified');
     // A person asked to review an automated decision (ledger 1152): it is filed with the seat that owns that decision
     // (review_route), decided by another model family. Only asked when the reasoning above already said a person.
-    if (needsPerson === true) {
-      await fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp', requester: From, message: Body,
-        surface: 'wa_inbound.review_of_decision', dedupeKey: MessageSid || From + ':' + Body.slice(0, 40),
-        audience: audience === 'supplier' ? 'supplier' : 'customer', subjectTable: 'wa_conversation', subjectId: From });
-    }
+    // IT RUNS BESIDE THE REPLY, NOT BEFORE IT (customer_support, 3 Nov 2026). Measured on the real exchange on main (run
+    // 41530397323, ai_cost_log 66624 and 66653): its think() took 19 s and 25 s in series ahead of the reply on the lean "scam"
+    // turn, so the reply started ~65 s after arrival, ran out of its 90 s budget and the person got nothing. The reply reads
+    // nothing it writes; it is awaited in the turn's finally, so a throw after this line still files it. Prevented by: the_whole_exchange.test.ts.
+    reviewP = needsPerson === true
+      ? fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp', requester: From, message: Body,
+          surface: 'wa_inbound.review_of_decision', dedupeKey: MessageSid || From + ':' + Body.slice(0, 40),
+          audience: audience === 'supplier' ? 'supplier' : 'customer', subjectTable: 'wa_conversation', subjectId: From })
+      : Promise.resolve(null);
     // Held is not "no". Until the reasoning runs, the CEO seat SEES the message (visibility, no page), so a
     // complaint is never silently parked; the replay then gives the contact on WhatsApp if a person is needed.
     if (needsPerson === null && Body.trim()) {
@@ -1237,10 +1460,17 @@ async function handleInbound(req: Request): Promise<Response> {
         });
       } catch (_e) { /* visibility must not block the reply */ }
     }
+    let routedIntent: string | null | undefined;
     try {
       // The intent is the REASONED meaning (above), never the body's words: null = held, 'none' = no row fits.
       const meaning = await menuDeps.intent(Body);
-      const intent = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
+      const read = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
+      // A PERSON IS NEEDED AND NO INTENT ROW WAS READ: the row for a person (customer_support, 3 Nov 2026). Run 41544169700: the lean
+      // reading of "I want to speak to a person please" did not settle (intent null, 26 s), its fallback person check said yes, and
+      // the route got no intent where the full shape gave contact_human. Same rule as whatsappReadings, for the case the reading
+      // itself returned nothing. Prevented by: the_whole_exchange.test.ts.
+      const intent = (read === null || read === 'none') && needsPerson === true ? 'contact_human' : read;
+      routedIntent = intent;
       const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson, p_intent: intent });
       route = (data || null) as Record<string, unknown> | null;
     } catch (_e) { /* the brain being unreachable must never lose their message */ }
@@ -1254,84 +1484,23 @@ async function handleInbound(req: Request): Promise<Response> {
     } catch (_e) { /* memory is worth less than the reply */ }
 
     const routeAction = String(route?.action || '');
-    const detReply = String(route?.deterministic_reply || '');
     // 1195-1197 (12 Oct 2026): no stored sentence is ever the reply — not fn_wa_route's deterministic answer, not the
     // welcome, not an FAQ row, not even under the hold. They are FACTS the model answers from (below). With no model
     // (the hold, every model in the chain failing) nothing conversational is sent; the meaning waits in the queue.
 
-    let audienceBlock: string;
-    if (audience === 'supplier') {
-      audienceBlock = `AUDIENCE: this number belongs to a REGISTERED SUPPLIER${known?.name ? ' (' + known.name + ')' : ''}${known?.approved ? ', already verified' : ', registration not yet verified'}. Treat them as a supplier. You may naturally acknowledge that they are registered with us, but never recite ANOTHER person's private details. Their OWN record is supplied below and you may state it back to them plainly - that is the point of this channel.`;
-    } else if (audience === 'customer') {
-      audienceBlock = `AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer. Do NOT bring up supplier subscriptions, founding-supplier exemptions, supplier fines or supplier recruitment.`;
-    } else {
-      audienceBlock = `AUDIENCE: UNKNOWN - this number is not in our records. Most people messaging this number are UAE SUPPLIERS who received our invitation, but customers write too. Work out which they are from their wording (a supplier talks about registering, their trade licence, receiving jobs, their company; a customer talks about needing a price, getting quotes, a job they want done). If it is genuinely unclear and the answer would differ, ask ONE short friendly question to find out before giving fee details.`;
-    }
-
-    // THEIR OWN RECORD, SCOPED IN SQL (v15, 13 Aug 2026). "Is my profile approved", "how many
-    // inquiries did I miss", "what was my last quotation", "how many suppliers received my
-    // inquiry", "what were I quoted on average" are all data questions about the SENDER. The
-    // scoping is done by fn_wa_context in SQL off their phone number, so this prompt can never be
-    // talked into another person's rows — the model is handed facts, it does not request them.
-    // Pre-reveal a customer gets a rounded band and a count, never the individual quotes and never
-    // a supplier name, which is the same rule the portal enforces.
-    let ownRecord = '';
-    try {
-      const { data: mine } = await admin.rpc('fn_wa_context', { p_audience: audience, p_phone: From });
-      if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n' + JSON.stringify(mine) + '\n';
-      else if (mine && (mine as any).known === false) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD: no account matches this number, so answer generally and invite them to register or sign in rather than guessing at their status.\n';
-    } catch (_e) { /* fall through with no record rather than dropping the message */ }
-    if (timeline && timelineEvents > 0) ownRecord += '\n\nTHIS SENDER\'S CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never repeat something it shows was already sent unless they ask:\n' + JSON.stringify((timeline as any).events) + '\n';
-
-    // THE MODEL GETS THE SAME PACK THE DATABASE ANSWERED FROM. fn_wa_route was reached above and
-    // said a model is needed; its fact_pack and model_brief carry the sender's own rows, the
-    // company register, the list of things that are genuinely unknown, and the rules the model may
-    // not break. Appending them here is what stops the model filling a gap from memory.
-    let brainPack = '';
-    if (route?.fact_pack) {
-      // fn_wa_model_brief (route.model_brief, the old STANDING BRIEF) is NOT sent any more (customer_support, 19 Oct 2026).
-      // It predates the reply rules in _shared/ai_reply.ts and contradicts them: its "ABSOLUTE RULE ON SUBJECT" made the
-      // model answer "how long does installation usually take?" with fn_wa_off_topic_reply's "QuotesDone inquiries only"
-      // sentence (runs 0f48ea10 and c95eb7da, EN and AR), and it said "say you will check", which the answer standard forbids.
-      brainPack = '\n\nFACT PACK (the ONLY source for any fact about this person, their own jobs and quotes, and any '
-        + 'QuotesDone fee; a trade, material, timing or specification question is answered from your own expertise):\n'
-        + JSON.stringify(route.fact_pack) + '\n';
-    }
-
-    // THE COMPANY BLOCK — customer_support's half of the founder's 9 Sep 2026 ruling: "the company
-    // knowledge is literally connected to every seat automatically. Any seat that we made, the
-    // company knowledge should be there."
-    //
-    // p_audience => 'public' is deliberate and is the reason the parameter exists. This channel
-    // answers strangers and suppliers; the INTERNAL block carries the seat list, the founder's
-    // standing decisions and the revenue targets, and none of that belongs in a WhatsApp reply. The
-    // public half is identity, what we sell, the published hard rules and the licence/VAT position,
-    // every figure read from company_registration and pricing_config on this message.
-    //
-    // IT REPLACES A DEADLINE THAT NO LONGER EXISTS. This prompt told suppliers "free until 31 July
-    // 2027; AED 1,000/year from 1 August 2027". The founder ruled on 6 September that there is no
-    // calendar date at all — charging begins with registration number 1,001, whenever that happens —
-    // and pricing_config.supplier_charging_starts has been NULL since. A price typed into a prompt
-    // cannot be corrected by correcting the company.
-    let companyBlock = '';
-    try {
-      const { data: cc } = await admin.rpc('fn_company_context', { p_max_chars: 6000, p_audience: 'public' });
-      companyBlock = String((cc as Record<string, unknown> | null)?.block || '');
-    } catch (_e) { companyBlock = ''; } // a thinner grounding beats a dropped WhatsApp message
-
-    const { ctx, ids } = await retrieveFaq(Body);
-    // THE REPLY IS THE MODEL'S (1195-1197, _shared/ai_reply.ts via model_says.ts): the company brief, the model chain
-    // (conversation_reply: claude-sonnet-5.5 -> gemini -> another family; ruling 1219), the figure and reply guard with a model rewrite, suppliers in English.
-    // Everything code knows about this message goes in as facts: who they are, their own record, the database's own
-    // answer for the intent it recognised, the approved FAQ for it, the live company block.
-    const situation = [audienceBlock,
-      ownRecord.trim(), brainPack.trim(),
-      detReply ? 'OUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\n' + detReply : '',
-      ctx ? 'APPROVED FAQ FOR THIS MESSAGE (may be for the other audience; apply the audience rules):\n' + ctx : '',
-      route?.needs_a_person === true ? 'They need a person: give the direct contact (+971 50 931 9355, call or WhatsApp, Mon-Fri 9am-6pm GST; management@quotesdone.com) and say the team has their message.' : '',
-      'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.',
-      companyBlock ? 'COMPANY BLOCK (live):\n' + companyBlock : ''].filter(Boolean).join('\n\n');
-    let reply = (await say(situation)).slice(0, 1200);
+    const { situation, ids } = await composeSituation(route);
+    mark('facts_ready');
+    // The speculative draft is the reply only when the real route's inputs are exactly the ones it was composed on.
+    // An empty draft (rate-limited, aborted, refused) is no draft: the reply is then asked on the real route, as before.
+    const adoptable = speculative && needsPerson === false && routedIntent === 'none' && route?.needs_a_person === false;
+    const spec = adoptable ? await speculative : null;
+    if (!(spec && spec.text)) specAbort.abort();   // discarded: stop paying for it
+    const drafted = spec && spec.text ? spec : null;
+    timings.speculative = drafted ? 1 : 0;
+    // A person is needed: the facts carry the contact and what to say, so the last chance may answer without the brief.
+    factsAnswer = needsPerson === true || route?.needs_a_person === true || routedIntent === 'contact_human';
+    let reply = (drafted ? adopt(drafted) : await say(situation)).slice(0, 1200);
+    mark('reply_written');
     const llmFailed = !reply;
     const escalate = route?.needs_a_person === true || modelEscalate;
     const lang = /[؀-ۿ]/.test(reply || Body) ? 'ar' : 'en';
@@ -1340,7 +1509,7 @@ async function handleInbound(req: Request): Promise<Response> {
       try { await menuDeps.recordGap(Body, 'no_model_answer'); } catch (_e) { /* */ }
     }
     // The model's reply is checked before it is sent (support_reply_guard.ts): '' = refused after aiReply's own rewrites.
-    if (reply) reply = toContact(reply);
+    if (reply) { reply = toContact(reply); if (!reply) sayAttempts.push('support_reply_guard refused the written reply'); }
 
     const enabled = (await sec('wa_autoreply_enabled')) === 'true';
     let sent = false; let sendErr: string | undefined;
@@ -1348,12 +1517,12 @@ async function handleInbound(req: Request): Promise<Response> {
     if (reply) { if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; } }
     else {
       // The turn is queued for the model's answer; the fixed held notice goes out now only if OpenRouter is down (1339).
-      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, sayOutage ? 'no_model_answer' : 'guard_refused');
+      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, sayOutage ? 'no_model_answer' : sayProblems.length || !llmFailed ? 'guard_refused' : 'no_usable_answer_in_budget');
       reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; heldNotice = !!h.notice;
     }
 
     let rowSaved = true;
-    try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+    try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { timings, enabled, reply_attempts: sayAttempts, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
 
     // A captured fixture send (isDemoPhone: never handed to Twilio) is not a failed delivery: the QA channels run of 19 Oct
@@ -1412,5 +1581,9 @@ async function handleInbound(req: Request): Promise<Response> {
         if (!h.error && (h.data?.length ?? 0) === 0) await admin.rpc('fn_wa_arrival_turn_finished', { p_wa_message_id: arrivalId });
       } catch (_e) { /* the sweep will escalate it: noisy, never silent */ }
     }
+    // The review of a decision (started beside the reply) is filed even when the turn threw after it started.
+    try {
+      await reviewP;
+    } catch (_e) { /* fileReviewRequest never throws; a lost review row must never cost the turn */ }
   }
 }

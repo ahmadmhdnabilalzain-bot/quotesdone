@@ -55,6 +55,25 @@ Deno.test('re-ask: a measured object is not asked its size again; another object
   assertEquals(reaskOf('What clear width should each hinged door be?', g2), 'repeats an earlier question');
 });
 
+Deno.test('a question about who a supplier is licenses the line that says the name is revealed on payment (browser proof, 2 Nov 2026)', () => {
+  const line = 'The supplier name and phone are shown only after you pay the reveal fee on that quote.';
+  assertEquals(unaskedOf(line, heldState(AC, 'Who is the supplier behind my quote? Give me their company name and phone number.')), null);
+  // known-bad control: the same line is still dropped when nothing in the message asks about it
+  assertEquals(unaskedOf(line, heldState(AC, 'The outdoor unit can go on the balcony, about 5 m of pipe.')), 'a line on the fee they did not ask about');
+});
+
+Deno.test('a re-asked fee is answered, not dropped as a repeat; a refund question licenses the refund timing (browser proof, 2 Nov 2026)', () => {
+  const fee = 'The reveal fee is 3% of the selected quote.';
+  const h = heldState(AC, 'Thanks. In one line, what is the fee again?');
+  h.said.push(fee);
+  assertEquals(unaskedOf(fee, h), null);
+  // known-bad control: the same repeated sentence is still dropped when the message asks about nothing it says
+  const h2 = heldState(AC, 'The outdoor unit can go on the balcony, about 5 m of pipe.');
+  h2.said.push('Quotes usually take 3–5 working days.');
+  assertEquals(unaskedOf('Quotes usually take 3–5 working days.', h2), 'a line on how long it takes they did not ask about');
+  assertEquals(unaskedOf('The refund reaches you within 5 working days.', heldState(AC, 'What happens if the supplier I reveal never answers me?')), null);
+});
+
 Deno.test('unasked lines: fee, turnaround, supplier process and hand-off lines are dropped unless the message asks about them', () => {
   const h = heldState(AC, 'The outdoor unit can go on the balcony, about 5 m of pipe.');
   assertEquals(unaskedOf('Quotes usually take 3–5 working days.', h), 'a line on how long it takes they did not ask about');

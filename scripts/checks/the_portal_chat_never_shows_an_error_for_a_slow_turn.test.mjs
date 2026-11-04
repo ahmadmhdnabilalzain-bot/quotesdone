@@ -73,7 +73,7 @@ test('1339: the saved line only when the answer never arrived or OpenRouter was 
   assert.equal(savedLineDue(cut, 'The stored answer.'), false, 'a stored answer found later is shown instead');
   const s = read('src/components/me/PortalShell.tsx');
   assert.match(s, /if \(!reply && token && noVerdict\(j\)\)/, 'only an answer that never arrived is looked for');
-  assert.match(s, /savedLineDue\(j, reply\) \? \[\.\.\.m, \{ role: 'notice', content: t\('asst_saved'\) \}\] : m/, 'the saved line must be gated by savedLineDue');
+  assert.match(s, /savedLineDue\(j, reply\) \? \[\.\.\.m, \{ role: 'notice', content: t\(stored \? 'asst_saved' : 'asst_not_sent'\) \}\] : m/, 'the saved line must be gated by savedLineDue');
   const se = read('supabase/functions/sales_engineer/index.ts');
   assert.match(se, /error: 'no_answer', outage, attempts: a\.attempts/, 'the assist 503 must carry outage');
   assert.match(se, /const outage = a\.outage === true;/);
@@ -86,7 +86,7 @@ test('the panel never prints an error line for a turn; it streams, looks for the
   assert.match(s, /Accept: 'application\/x-ndjson, application\/json'/, 'the portal no longer asks for the stream');
   assert.match(s, /readReply\(r, on\)/);
   assert.match(s, /storedAnswer\(token, q\)/);
-  assert.match(s, /t\('asst_saved'\)/);
+  assert.match(s, /'asst_saved'/);
   const txt = read('src/components/me/portalText.ts');
   assert.ok(!/asst_err:/.test(txt), 'asst_err copy came back');
   assert.equal((txt.match(/asst_saved:/g) || []).length, 2, 'the saved notice must exist in English and Arabic');
@@ -105,6 +105,8 @@ test('the turn is one streamed call on the conversation route, inside its clock,
   assert.match(turn, /rules: portalRules\(\), plainText: true \}/, 'the portal prompt must ask for plain text, not aiReply\'s JSON');
   assert.match(turn, /\.\.\.wrappedReply\(t\)[,\]]/, 'a reply wrapped as JSON must be refused sentence by sentence');
   assert.match(turn, /\.\.\.plainLanguage\(t, lang\)\]/, 'the plain-language gate (1013 item 7) must hold every sentence');
+  // the reply-language rule (3 Nov 2026) holds the whole reply, never one sentence (review of #1830, 4 Nov 2026)
+  assert.match(turn, /checkWhole: \(t: string\) => replyLanguageProblems\(t, lang\),/, 'the reply-language rule must hold the whole reply');
   for (const gone of ['supportReply(', 'think(', 'quoteQuestion(']) assert.ok(!turn.includes(gone), 'a serial reasoning chain is back on the portal turn: ' + gone);
   assert.ok(!s.includes('quoteQuestion('), 'the own-quote decision chain is back');
   assert.match(s, /if \(b\.action !== 'assist'\) return plain\(inner\);/, 'only assist streams; every other action is answered as before');

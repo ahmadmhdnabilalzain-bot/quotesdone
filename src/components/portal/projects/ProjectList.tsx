@@ -86,7 +86,7 @@ export function ProjectList({ token, lang = 'en', onOpen, onCreate, refreshKey =
       ) : projects.length === 0 && !error ? (
         // PRODUCTION HAS ZERO PROJECTS. This says exactly that and what a project is for. It must
         // never imply that anything has been organised, matched or started on the customer's behalf.
-        <div className="rounded-lg border border-dashed border-border bg-white/[0.02] px-5 py-8 text-center">
+        <div className="rounded-lg border border-dashed border-border bg-white/2 px-5 py-8 text-center">
           <h3 className="text-[15px] font-bold text-foreground">{tr(lang, 'empty_title')}</h3>
           <p className="mx-auto mt-2 max-w-[52ch] text-[13px] leading-relaxed text-muted-foreground">{tr(lang, 'empty_body')}</p>
           {onCreate ? (
@@ -169,7 +169,7 @@ function ProjectCard({ project: p, lang, onOpen }: { project: ProjectSummary; la
     </>
   );
 
-  const shell = 'rounded-lg border border-border bg-card p-5 shadow-sm h-full';
+  const shell = 'rounded-lg border border-border bg-card p-5 shadow-xs h-full';
 
   if (!onOpen) return <div className={shell}>{body}</div>;
   return (
@@ -178,8 +178,8 @@ function ProjectCard({ project: p, lang, onOpen }: { project: ProjectSummary; la
       onClick={() => onOpen(p.project_id)}
       className={cn(
         shell,
-        'w-full cursor-pointer text-start transition-colors hover:border-primary/45 hover:bg-white/[0.05]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'w-full cursor-pointer text-start transition-colors hover:border-primary/45 hover:bg-white/5',
+        'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       )}
     >
       {body}

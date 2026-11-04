@@ -53,20 +53,21 @@
 # where they can be read and reviewed rather than hidden in a settings page.
 name: deploy edge functions
 
-# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
+# founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
+# on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
 on:
-  # push:
-    # branches: ['**']
+  push:
+    branches: ['**']
     # scripts/deploy_functions.mjs added 8 Sep 2026. This workflow's only real work is running that
     # script, and it did not rerun when the script changed -- so a fix to the deployer was never
     # exercised by the deployer. Found the hard way: the change that repaired a red deploy job
     # triggered nothing, because it touched no path on this list.
-    # paths:
-      # - 'supabase/functions/**'
-      # - 'supabase/config.toml'
-      # - '.github/workflows/deploy-functions.yml'
-      # - 'scripts/deploy_functions.mjs'
-      # - 'scripts/ci/resolve_diff_base.sh'
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/deploy-functions.yml'
+      - 'scripts/deploy_functions.mjs'
+      - 'scripts/ci/resolve_diff_base.sh'
   workflow_dispatch:
     inputs:
       target:
@@ -107,7 +108,7 @@ env:
 jobs:
   deploy:
     name: deploy changed functions
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -127,7 +128,7 @@ jobs:
       # token, so a busy hour fails the deploy before it starts: PR #785 run 35627998129, "Failed to
       # resolve latest Supabase CLI release: rate limit exceeded". A pinned version downloads directly.
       # Raise it deliberately; scripts/checks/the_function_deploy_pins_its_supabase_cli.test.mjs refuses `latest`.
-      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+      - uses: supabase/setup-cli@d239d1052f6f024a8d746d7e5aeddead63b9cb53 # v3.1.0
         with:
           version: 2.117.0
 

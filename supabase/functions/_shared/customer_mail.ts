@@ -14,7 +14,7 @@
 //   2. owner_role is set — fn_receipt_hand_to_bookkeeper stamps it on rows a seat owns (6 Sep 2026).
 //   3. its body carries the tag the accountant / receipt path writes: "[expense ...]",
 //      "[REFUSED — ...]", "[HELD — ...]", "[receipt received but NOT booked ...]".
-import { isUnsubscribeRequest } from './unsubscribe_mailbox.ts';
+import { INVITATION_MAILBOX, isUnsubscribeRequest } from './unsubscribe_mailbox.ts';
 export const EXPENSE_MAILBOX = 'expenses@mail.quotesdone.com';
 const INTERNAL_LOCALS = new Set(['expenses', 'docs', 'supplier', 'management']);
 const OUR_DOMAIN = /^(?:mail\.)?quotesdone\.com$/;
@@ -46,14 +46,16 @@ export function isCustomerCorrespondence(row: { to_email?: unknown; owner_role?:
 //   no_reply       a no-reply, notification or verification sender (LinkedIn's security-noreply@, 23 Sep);
 //   auto_submitted RFC 3834 Auto-Submitted other than "no": a machine wrote it, and a reply would loop;
 //   calendar       a calendar reply: a text/calendar part, or our calendar+ / plan+ reply addresses.
-export type NoAutoReply = 'founder' | 'internal' | 'bounce' | 'no_reply' | 'auto_submitted' | 'calendar';
+export type NoAutoReply = 'founder' | 'internal' | 'bounce' | 'no_reply' | 'auto_submitted' | 'calendar' | 'daily_answer_cap';
 export interface MailFacts {
   from_email?: unknown; to_email?: unknown; owner_role?: unknown; body?: unknown;
   /** inbound_messages.raw as resend_inbound stores it: message_id, auto_submitted, content_type, calendar. */
-  raw?: { auto_submitted?: unknown; content_type?: unknown; calendar?: unknown; x_autoreply?: unknown; precedence?: unknown } | null;
+  raw?: { auto_submitted?: unknown; content_type?: unknown; calendar?: unknown; x_autoreply?: unknown; precedence?: unknown; list_unsubscribe?: unknown } | null;
+  subject?: unknown;
 }
 const OWN_DOMAIN = /(^|\.)quotesdone\.(com|ae)$/;
-const BOUNCE_LOCAL = /^(mailer-daemon|postmaster)$/;
+// MicrosoftExchange<hex>@<tenant>.onmicrosoft.com: Exchange's own delivery reports (measured 2 Nov 2026).
+const BOUNCE_LOCAL = /^(mailer-daemon|postmaster|microsoftexchange[0-9a-f]*)$/;
 const NO_REPLY_LOCAL = /(^|[-_.+])(no-?reply|do-?not-?reply|donotreply|notifications?|verify|verification|bounces?)([-_.+]|$)/;
 
 export function noAutoReply(m: MailFacts, founderAddrs: string[]): NoAutoReply | null {
@@ -67,6 +69,9 @@ export function noAutoReply(m: MailFacts, founderAddrs: string[]): NoAutoReply |
   if (NO_REPLY_LOCAL.test(local)) return 'no_reply';
   const auto = String(m.raw?.auto_submitted ?? '').trim().toLowerCase();
   if (auto && auto !== 'no') return 'auto_submitted';
+  // An out-of-office, a newsletter or a mailing list, on every mailbox now the whole tenant is read (2 Nov 2026): a reply
+  // to one loops or is noise.
+  if (autoReplied(m)) return 'auto_submitted';
   const to = String(m.to_email ?? '').toLowerCase();
   if (m.raw?.calendar === true || ct.includes('text/calendar') || /(^|[<\s,])(calendar|plan)\+/.test(to)) return 'calendar';
   return null;
@@ -82,7 +87,8 @@ export function noAutoReply(m: MailFacts, founderAddrs: string[]): NoAutoReply |
 // tag, no other internal address), the sender is not on our domain, and the caller has proved the sender is a lead
 // (fn_mail_sender_known = 'supplier'). The founder's own warm-up replies and any stranger writing to supplier@ stay
 // unanswered, exactly as before.
-export const INVITATION_MAILBOX = 'supplier@quotesdone.com';
+// One definition, beside the stop rule that reads it (unsubscribe_mailbox.ts, 28 Oct 2026).
+export { INVITATION_MAILBOX } from './unsubscribe_mailbox.ts';
 // NEVER TO SOMEONE WHO SAID STOP, AND NEVER TO A MACHINE (review of #1699, 28 Oct 2026). A "stop" that resend_inbound
 // could not apply is stored for review with a body starting "[UNSUBSCRIBE REQUEST NOT APPLIED" (needs_review true), which
 // no back-office tag matched: without this, a lead who asked to be left alone would have been sent the registration
@@ -92,11 +98,12 @@ export const INVITATION_MAILBOX = 'supplier@quotesdone.com';
 const AUTO_REPLY_SUBJECT = /^\s*(automatic reply|auto(matic)?[- ]?(reply|response)|out of (the )?office|ooo\b|away from (the )?office|رد تلقائي|خارج المكتب)/i;
 export function autoReplied(m: MailFacts & { subject?: unknown }): boolean {
   if (m.raw?.x_autoreply != null && String(m.raw.x_autoreply).trim() !== '') return true;
+  if (m.raw?.list_unsubscribe != null && String(m.raw.list_unsubscribe).trim() !== '') return true;
   if (/^(auto[_-]?reply|bulk|junk|list)$/i.test(String(m.raw?.precedence ?? '').trim())) return true;
   return AUTO_REPLY_SUBJECT.test(String(m.subject ?? ''));
 }
-export function invitationReplyAnswerable(m: MailFacts & { subject?: unknown }, senderRelation: unknown, suppressed = false): boolean {
-  if (senderRelation !== 'supplier' || suppressed) return false;
+function onlyTheMailboxMadeItInternal(m: MailFacts, suppressed: boolean, box: (address: string) => boolean): boolean {
+  if (suppressed) return false;
   const text = String(m.body ?? '').trim();
   if (/^\[unsubscribe\b/i.test(text) || isUnsubscribeRequest({ to: String(m.to_email ?? ''), subject: String(m.subject ?? ''), text })) return false;
   if (autoReplied(m)) return false;
@@ -105,8 +112,31 @@ export function invitationReplyAnswerable(m: MailFacts & { subject?: unknown }, 
   const from = String(m.from_email ?? '').trim().toLowerCase();
   if (OWN_DOMAIN.test(from.split('@')[1] || '')) return false;
   const to = String(m.to_email ?? '').toLowerCase().split(/[,;]/).map((a) => (a.trim().match(/<?([^<>\s]+@[^<>\s]+?)>?$/) || [])[1] || '').filter(Boolean);
-  return to.includes(INVITATION_MAILBOX) && to.every((a) => a === INVITATION_MAILBOX || !isInternalMailbox(a));
+  return to.some(box) && to.every((a) => box(a) || !isInternalMailbox(a));
 }
+export function invitationReplyAnswerable(m: MailFacts & { subject?: unknown }, senderRelation: unknown, suppressed = false): boolean {
+  return senderRelation === 'supplier' && onlyTheMailboxMadeItInternal(m, suppressed, (a) => a === INVITATION_MAILBOX);
+}
+
+// MAIL TO management@ OR docs@ IN THE TENANT GETS THE NORMAL TRIAGE (2 Nov 2026, customer_support; founder: "All our emails
+// should be with the agents"). Those two are internal so that the portal never shows them as a customer thread
+// (isCustomerCorrespondence), and that also stopped every answer. supplier@ keeps its narrower rule above: a stranger
+// there goes to sales_engineer through z53. expenses@ is the accountant's and is never answered.
+const ANSWERED_INTERNAL_BOX = /^(management|docs)@quotesdone\.com$/;
+export function tenantMailAnswerable(m: MailFacts, suppressed = false): boolean {
+  return onlyTheMailboxMadeItInternal(m, suppressed, (a) => ANSWERED_INTERNAL_BOX.test(a));
+}
+
+// A machine's mail handed in from another tenant mailbox has nothing to answer and nobody to wait for: customer_support
+// owns the row, and it stays off the founder's Inbox. supplier@ is excluded: z53 hands its declines to their seats.
+export function declinedRowFields(m: { to_email?: unknown; provider_email_id?: unknown }): { owner_role: string; needs_review: boolean } | Record<string, never> {
+  if (!String(m.provider_email_id ?? '').startsWith('m365:')) return {};
+  return String(m.to_email ?? '').toLowerCase().includes(INVITATION_MAILBOX) ? {} : { owner_role: 'customer_support', needs_review: false };
+}
+
+// An autoresponder that slips every other rule cannot loop: at most this many automatic answers to one address a day.
+export const DAILY_AUTO_ANSWER_CAP = 5;
+export function overDailyAnswerCap(sentInTheLastDay: number | null | undefined): boolean { return Number(sentInTheLastDay || 0) >= DAILY_AUTO_ANSWER_CAP; }
 
 /** The e-mail around a reply. The reply itself is ALWAYS written by a model in the moment (aiReply; founder rulings
  *  1195/1196, 12 Oct 2026): the person-handoff sentence, the quoted knowledge passage and the 'we received it' receipt that

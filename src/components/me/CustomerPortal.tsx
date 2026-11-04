@@ -122,6 +122,7 @@ import { useReducedMotion } from 'motion/react';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import SupportRatingPrompt from '@/components/portal/SupportRatingPrompt';
 import { signupEmailProblem } from '@/lib/signupEmail';
+import { retryRead, isReadAction } from '@/lib/fetchRetry';
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
 // mount while the Supabase client refreshes asynchronously, so for the first moment after a page
@@ -145,7 +146,7 @@ async function call(path, body, token, timeoutMs = CALL_TIMEOUT_MS) {
   const timer = ac ? setTimeout(() => ac.abort(), timeoutMs) : null;
   let r;
   try {
-    r = await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined });
+    r = await retryRead(async () => await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined }), isReadAction(body), 2, () => !!(ac && ac.signal.aborted));
   } catch (e) {
     return { ok: false, error: (e && e.name === 'AbortError') ? 'qd_timeout' : 'qd_network' };
   } finally { if (timer) clearTimeout(timer); }
@@ -242,8 +243,8 @@ const S = {
   tab: 'flex min-h-11 items-center justify-center rounded-md px-3.5 py-2 text-[13px] font-semibold text-muted-foreground cursor-pointer border-0 bg-transparent',
   tabOn: 'bg-primary/15 text-primary',
   list: 'flex flex-col gap-3',
-  field: 'mt-3 flex h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-  area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y',
+  field: 'mt-3 flex h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring',
+  area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring resize-y',
   fileInput: 'text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
 };
 
@@ -411,7 +412,7 @@ function Login({ onAuth, lang }) {
     try { await onAuth(j.access_token, j.refresh_token, j.locale); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); } };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (<AuthShell lang={lang}><Card className="relative w-full overflow-hidden p-6 shadow-e3 sm:p-8">
-    <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
+    <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-linear-to-r from-transparent via-primary/80 to-transparent" />
     <div className="mb-5 md:hidden"><Kicker>{t(lang, 'auth_kicker')}</Kicker></div>
     <div className={cn(S.tabsWrap, 'mb-5 w-full rounded-btn border border-border bg-secondary/40')} role="tablist">
       <button role="tab" aria-selected={!isSignup} className={cn(S.tab, 'flex-1 transition-colors', !isSignup && cn(S.tabOn, 'shadow-e1'))} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button>
@@ -444,6 +445,9 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
     setErr('');
     take(token, 'kyc', () => call('kyc', { action: 'state' }, token)).then(async (j) => {
       if (!alive.current) return;
+      // A warmed (boot-prefetch) answer that failed in transit is asked once more, fresh (call() itself retries a read),
+      // before the customer sees "Couldn't load your account".
+      if (transportFailed(j)) { j = await call('kyc', { action: 'state' }, token); if (!alive.current) return; }
       if (j && j.error === 'unauthorized') {
         if (retried) { setErr('unauth'); return; }
         try {
@@ -501,18 +505,28 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { if (transportFailed(j)) { setMsg(t(lang, 'load_failed')); return; } setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
+  // A HOOK BELONGS ABOVE THE EARLY RETURN (2 Nov 2026, customer sign-up walk, React error #310): this sat below
+  // `if (!st) return`, so the render that first had the state called one more hook than the loading render and
+  // every new customer's "Complete your account" crashed to "This page couldn't load".
+  const failover = useFailover();
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
   const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob, lang }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
   // sentSms carries the CHANNEL, not a boolean: kyc falls back to a voice call when the number is a
   // landline, and telling someone to check their junk folder for a code that is being read down the
   // phone is the wrong instruction.
   // The first code to a UAE mobile goes by WhatsApp (kyc nextChannel, 18 Oct 2026); 'sms' is the explicit failover.
-  const failover = useFailover();
   const sendSms = async (channel?: 'sms' | 'whatsapp') => { if (!phone) { setMsg(t(lang, 'enter_mobile_first')); return; } setBusy('sms'); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone, ...(channel ? { channel } : {}) }, token); setBusy(''); if (j && j.ok) { setSentSms(j.channel || 'sms'); if (j.channel === 'whatsapp') failover(() => call('kyc', { action: 'phone_failover', phone }, token), () => setSentSms('sms_failover')); } else setMsg(errText(j, lang, 'err_code_send')); };
   const verifySms = async () => { setBusy('vsms'); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone, code: smsCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
   const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg(errText(j, lang, 'err_code_send')); };
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
-  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms', marketing_consent: marketingOptIn === true }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg(errText(j, lang, 'load_failed')); };
+  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms', marketing_consent: marketingOptIn === true }, token); if (j && j.ok) {
+      // THE CERTIFICATE LANDS AFTER THE ANSWER (kyc accept_terms renders the signed PDF in the background), and the account is
+      // complete only once it has (terms_signed). Reading the state once left the customer on this unchanged form, with no word,
+      // until they reloaded (measured 2 Nov 2026 by the sign-up walk: still here 60 s after "Finish & continue"). The button
+      // stays on "Finishing…" while the state is asked again, every 2.5 s for up to two minutes.
+      for (let i = 0; i < 48; i++) { const s = await call('kyc', { action: 'state' }, token).catch(() => null); if (s && s.terms_signed) break; await new Promise((r) => setTimeout(r, 2500)); }
+      setBusy(''); onDone();
+    } else { setBusy(''); setMsg(errText(j, lang, 'load_failed')); } };
   // DOB IS REQUIRED AGAIN (founder's account rule, 14 Sep 2026: name, date of birth with under-18
   // rejected, OTP-verified mobile/email, Terms). The 6 Sep change made it optional because a customer
   // without one was silently stuck; the fix for silence is a message, not dropping the field. kyc now
@@ -867,7 +881,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         // The request just posted is opened by its stable id: a split opens its combined parent, which
         // lists one card per trade; the note says how many trades were sent separately.
         const n = r && Array.isArray(r.child_ids) ? r.child_ids.length : 0;
-        setNote(n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
+        setNote(r && r.none ? '' : n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
         // The first-request concierge (founder ledger 1018): a first request, or one held for its specs, gets the
         // steps and what is missing on screen as well as by e-mail.
         const g = r && r.concierge;
@@ -881,7 +895,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     {/* Each alert opens what it is about (onAlert): "2 quotes to review on HVAC" was a box you could
         read and not act on, and the request it named was somewhere further down the page. */}
     {ov && !!(ov.alerts || []).length && <div className="mb-5 flex flex-col gap-2">{ov.alerts.map((a, i) => (
-      <button key={i} type="button" onClick={() => onAlert(a)} className="flex w-full items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-start transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <button key={i} type="button" onClick={() => onAlert(a)} className="flex w-full items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-start transition-colors hover:border-primary/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
         <span className={cn('mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg',
           a.severity === 'high' ? 'bg-danger/15 text-danger' : a.severity === 'medium' ? 'bg-warn/15 text-warn-fg' : 'bg-primary/15 text-primary')}>
           <BellRing className="h-3.5 w-3.5" aria-hidden />
@@ -943,7 +957,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
             return (<Card key={p.project_id} role="button" tabIndex={0} aria-label={p.name}
               onClick={() => openProject(p.project_id)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProject(p.project_id); } }}
-              className="cursor-pointer p-3.5 transition-colors duration-200 hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              className="cursor-pointer p-3.5 transition-colors duration-200 hover:border-primary/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
               <div className="flex justify-between items-center gap-2"><b className="text-[13.5px] text-foreground">{p.name}</b><span className={S.sub}>{projectStatusLabel(lang, p.status)}</span></div>
               <div className={cn(S.sub, 'mt-1')}>{tf(lang, 'rfqs_open_line', { open: openN, total: totalN })}{' · '}{tf(lang, 'suppliers_engaged_line', { n: Number(p.supplier_count) || 0 })}</div>
               <div className={cn(S.sub, 'mt-0.5')}>{budget == null ? t(lang, 'no_budget_set') : (t(lang, 'budget_label') + ': ' + aed(budget))}</div>
@@ -977,7 +991,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
           .filter(([k, n]) => k === 'all' || n > 0)
           .map(([k, n]) => (
             <button key={k} type="button" onClick={() => setBallFilter(k)} aria-pressed={ballFilter === k}
-              className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                 ballFilter === k ? 'border-primary/45 bg-primary/12 text-primary' : 'border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground')}>
               {t(lang, 'ball_' + k)}
               <span className="tabular-nums opacity-70">{n}</span>
@@ -1140,7 +1154,7 @@ function QuickActions({ lang, onNew, onUpload, onCompare, comparable }) {
       <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:grid-cols-4">
         {rows.map(({ icon: Icon, label, run, off, why }) => (
           <button key={label} type="button" onClick={run} disabled={!!off} title={off ? t(lang, why) : undefined}
-            className={cn('group flex items-center gap-3 rounded-xl border border-border bg-card/60 px-3.5 py-3 text-start transition-[border-color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            className={cn('group flex items-center gap-3 rounded-xl border border-border bg-card/60 px-3.5 py-3 text-start transition-[border-color,transform] duration-200 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
               off ? 'cursor-not-allowed opacity-55' : 'hover:border-primary/40 motion-safe:hover:-translate-y-0.5')}>
             <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-lg', off ? 'bg-secondary/60 text-muted-foreground' : 'bg-primary/12 text-primary')}><Icon className="h-4 w-4" aria-hidden /></span>
             <span className="min-w-0 flex-1">
@@ -1199,7 +1213,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   return (<Card ref={cardRef} id={'inq-' + inq.id} className={cn('scroll-mt-20 p-4 shadow-e1 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-e2 sm:p-5', open && 'border-primary/25 shadow-e2')}>{dialog}
     {/* A11Y (5 Aug 2026): role+tabIndex+onKeyDown rather than a <button>, because this wraps <div>
         children and <div> inside <button> is an invalid content model. */}
-    <div className="flex justify-between items-center gap-2.5 cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setOpen(!open)}
+    <div className="flex justify-between items-center gap-2.5 cursor-pointer rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setOpen(!open)}
       role="button" tabIndex={0} aria-expanded={open}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}>
       <div className="min-w-0">
@@ -1287,7 +1301,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
             <div className="flex h-10 items-center gap-2.5 border-b border-border bg-secondary/40 px-3.5">
               <span className="hidden gap-1.5 sm:flex" aria-hidden><i className="h-2 w-2 rounded-full bg-primary/25" /><i className="h-2 w-2 rounded-full bg-primary/25" /><i className="h-2 w-2 rounded-full bg-primary/25" /></span>
               <div className="min-w-0 truncate font-mono text-label text-foreground">{tf(lang, 'rc_quotes_received', { n: quotes.length })}</div>
-              <Badge variant={anyRevealed ? 'revealed' : 'sealed'} dot className={cn('ms-auto shrink-0', anyRevealed && '!text-accent')}>{t(lang, anyRevealed ? 'lv_open' : 'lv_sealed')}</Badge>
+              <Badge variant={anyRevealed ? 'revealed' : 'sealed'} dot className={cn('ms-auto shrink-0', anyRevealed && 'text-accent!')}>{t(lang, anyRevealed ? 'lv_open' : 'lv_sealed')}</Badge>
             </div>
             <LevelledRows quotes={quotes} vmap={vmap} bestId={bestId} lang={lang} />
             {/* A quote withheld with no word said is its own defect: my_inquiries counts the ones
@@ -1320,7 +1334,7 @@ function LevelledRows({ quotes, vmap, bestId, lang }) {
                 <span role="cell" className="flex min-w-0 flex-col gap-1">
                   <span className="truncate font-medium text-foreground">{supLabel(q.label, lang)}</span>
                   {q.revealed
-                    ? (q.supplier_name ? <Seal open className="qd-revealed !text-accent max-w-full truncate text-label">{q.supplier_name}</Seal> : null)
+                    ? (q.supplier_name ? <Seal open className="qd-revealed text-accent! max-w-full truncate text-label">{q.supplier_name}</Seal> : null)
                     : <span aria-hidden className="leading-none"><Seal className="text-label">{'••••••••••'}</Seal></span>}
                 </span>
                 <span role="cell" className={cn('tabular text-end font-mono', best ? 'font-semibold text-primary' : 'text-foreground')}>{Number(q.price) > 0 ? aed(q.price) : miss}</span>
@@ -1339,7 +1353,7 @@ function LevelledRows({ quotes, vmap, bestId, lang }) {
 function OpenSeal({ play, children }) {
   const [open, setOpen] = useState(!play);
   useEffect(() => { if (open) return; const id = setTimeout(() => setOpen(true), 80); return () => clearTimeout(id); }, []);
-  return <Seal open={open} className="qd-revealed !text-accent max-w-full">{children}</Seal>;
+  return <Seal open={open} className="qd-revealed text-accent! max-w-full">{children}</Seal>;
 }
 
 // A window opened after an await is a popup: see src/lib/openDocument.ts (shared with the supplier portal).
@@ -1618,7 +1632,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   // sitting on 'settling' until the customer reloaded — the copy promises it opens by itself.
   useEffect(() => { if (q.revealed && state !== 'revealed') setState('revealed'); }, [q.revealed]);
   const revealed = state === 'revealed';
-  return (<div ref={hlRef} id={'quote-' + q.id} className={cn('scroll-mt-24 rounded-card border p-3.5 transition-colors duration-500 sm:p-4', lit && 'ring-2 ring-primary ring-offset-2 ring-offset-background', revealed ? 'border-accent/40 bg-accent/[0.04]' : best ? 'border-primary/35 bg-primary/[0.03]' : 'border-border bg-secondary/15')}>{dialog}
+  return (<div ref={hlRef} id={'quote-' + q.id} className={cn('scroll-mt-24 rounded-card border p-3.5 transition-colors duration-500 sm:p-4', lit && 'ring-2 ring-primary ring-offset-2 ring-offset-background', revealed ? 'border-accent/40 bg-accent/4' : best ? 'border-primary/35 bg-primary/3' : 'border-border bg-secondary/15')}>{dialog}
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0"><b className="font-head font-semibold tracking-snug">{supLabel(q.label, lang)}</b>{!revealed ? <span aria-hidden className="ms-2 inline-block align-middle leading-none"><Seal className="text-[11px]">{'••••••••••'}</Seal></span> : null}{best ? <span className="ms-1.5 rounded-chip border border-primary/30 bg-primary/12 px-1.5 py-0.5 align-middle font-mono text-[10px] font-semibold text-primary">{t(lang, 'q_best')}</span> : null}{q.verified ? <span className="text-[11px] font-bold text-primary"> ✓ {t(lang, 'q_verified')}</span> : null}{q.rating != null ? <span className="text-[12px] font-semibold text-accent"> ★ {q.rating}{q.rating_count != null ? ' (' + q.rating_count + ')' : ''}</span> : <span className="text-[11px] text-muted-foreground" title={t(lang, 'q_unrated_tip')}> {t(lang, 'q_unrated')}</span>}</div>
       <div className="shrink-0 text-end"><div className="tabular font-mono text-[18px] font-semibold text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="tabular font-mono text-[10.5px] text-muted-foreground" title={t(lang, 'q_value_tip')}>{t(lang, 'q_value')} {vscore}/100</div> : null}</div>
@@ -1668,7 +1682,7 @@ function RevealMoment({ play, children }) {
   if (!play) return children;
   return (<div className="relative">
     <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}>{children}</M.div>
-    <M.span aria-hidden className="redact pointer-events-none absolute inset-x-3 top-5 !block h-5" style={{ transformOrigin: 'right center' }}
+    <M.span aria-hidden className="redact pointer-events-none absolute inset-x-3 top-5 block! h-5" style={{ transformOrigin: 'right center' }}
       initial={{ scaleX: 1, opacity: 1 }} animate={{ scaleX: 0, opacity: 0 }} transition={{ duration: 0.75, delay: 0.1, ease: [0.7, 0, 0.3, 1] }} />
   </div>);
 }
@@ -1736,8 +1750,8 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   const hire = async () => { if (!(await ask(t(lang, 'c_hire_confirm'), { title: t(lang, 'c_hire'), confirm: t(lang, 'c_hire') }))) return; await act.run('hire', async () => { const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token).catch(() => null); if (j && j.ok) { setDone(t(lang, 'c_hired')); onChange && onChange(); } else setDone(errText(j, lang, 'c_update_fail')); }); };
   const date = (d) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   return (<div className="mt-2.5 flex flex-col gap-2.5">{dialog}
-    <div className="rounded-card border border-accent/35 bg-accent/[0.06] p-3.5">
-      <div className="flex flex-wrap items-center gap-2"><Badge variant="revealed" dot className="!text-accent font-mono uppercase tracking-caps">{t(lang, 'q_unlocked')}</Badge><div className="min-w-0 font-head text-[16px] font-semibold tracking-snug"><OpenSeal play={play}>{s.company_name || t(lang, 'c_supplier')}</OpenSeal></div></div>
+    <div className="rounded-card border border-accent/35 bg-accent/6 p-3.5">
+      <div className="flex flex-wrap items-center gap-2"><Badge variant="revealed" dot className="text-accent! font-mono uppercase tracking-caps">{t(lang, 'q_unlocked')}</Badge><div className="min-w-0 font-head text-[16px] font-semibold tracking-snug"><OpenSeal play={play}>{s.company_name || t(lang, 'c_supplier')}</OpenSeal></div></div>
       {q && q.revealed_at ? <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_revealed_on', { d: date(q.revealed_at) })}</div> : null}
       {won ? <div className="mt-0.5 text-[12px] font-bold text-primary">🏆 {t(lang, 'c_hired_badge')}</div> : null}
       <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_paid', { fee: aed(q.total_charged ?? q.reveal_fee) })}</div>
@@ -1853,7 +1867,7 @@ function ModuleWindow({ id, onClose, onOpenRfq, projectId, token, lang, inqs, on
   return (<section className="mx-auto w-full max-w-[1240px] px-4 py-5 sm:px-6">
     <div className="mb-4 flex items-center gap-3">
       <button type="button" onClick={onClose}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={t(lang, 'nav_overview')}>
         <ArrowRight className={cn('h-4 w-4', !rtl && 'rotate-180')} aria-hidden />
       </button>
@@ -2115,7 +2129,7 @@ function QuoteSpread({ quotes, lang }) {
           </div>
           {/* One band. Not one bar per quote. */}
           <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-secondary/70">
-            <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-primary/35 via-primary/70 to-primary/35 motion-safe:transition-[width] motion-safe:duration-700" style={{ marginInlineStart: '25%' }} />
+            <div className="h-full w-1/2 rounded-full bg-linear-to-r from-primary/35 via-primary/70 to-primary/35 motion-safe:transition-[width] motion-safe:duration-700" style={{ marginInlineStart: '25%' }} />
           </div>
         </>
       ) : (

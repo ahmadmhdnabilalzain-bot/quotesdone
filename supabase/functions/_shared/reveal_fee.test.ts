@@ -65,3 +65,16 @@ Deno.test('base rounds half-up to the fils like public.reveal_fee()', () => {
   assertEquals(revealCharge(0.5, 0.03).base_fee, 0.02);
   assertEquals(revealCharge(33.33, 0.03).base_fee, 1);
 });
+
+// 3 Nov 2026 (accountant, gap #8 money arithmetic): the half-fils cases binary floating point rounded DOWN.
+// public.reveal_fee(33.50) = round(1.0050, 2) = 1.01; Math.round(33.5 * 0.03 * 100) = 100. Fails on the old formula.
+Deno.test('half a fils rounds up exactly as public.reveal_fee() does, for every amount up to AED 20,000', () => {
+  assertEquals(revealCharge(33.5, 0.03).base_fee, 1.01);
+  assertEquals(revealCharge(5.5, 0.03).base_fee, 0.17);
+  assertEquals(revealCharge(1234.5, 0.03).base_fee, 37.04);
+  for (let f = 1; f <= 2_000_000; f++) {
+    const n = f * 3;   // fils x 3% x 100, as an exact integer of hundredths of a fil
+    const want = Math.floor(n / 100) + (n % 100 >= 50 ? 1 : 0);
+    if (fils(revealCharge(f / 100, 0.03).base_fee) !== want) throw new Error(`AED ${f / 100}: ${revealCharge(f / 100, 0.03).base_fee}, want ${want / 100}`);
+  }
+});

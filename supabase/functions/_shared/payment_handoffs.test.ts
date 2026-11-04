@@ -61,6 +61,10 @@ Deno.test('only customer_support delivers, and every seat that asks hears back',
     // — and an eighth (#1549 CS-C11): a verified PDPL correction request goes to it_engineer as data.correction; it asks
     // for the record to be corrected by the due date and delivers nothing.
     if (h.type === 'data.correction' && h.to === 'it_engineer') continue;
+    // — and a ninth (3 Nov 2026): a customer asked on WhatsApp about a late request, so support asks the sales engineer to
+    // chase the suppliers who have not quoted as inquiry.status_chase (handler fn_sales_engineer_chases_for_status);
+    // support itself closes it once the customer is told, and the request delivers nothing to the sales engineer.
+    if (h.type === 'inquiry.status_chase' && h.to === 'sales_engineer') continue;
     assertEquals(h.type, 'delivery.result');
   }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {
@@ -100,8 +104,8 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
   // a comment that must not be answered in public
   assert(has('social.lead', 'marketing', 'sales_engineer') && has('social.escalation', 'marketing', 'customer_support'));
   for (const h of HANDOFF_TYPES.filter((x) => x.from === 'marketing')) {
-    assert(['ceo', 'accountant', 'customer_support'].includes(h.to) || ((h.type === 'social.lead' || h.type === 'invite.reply') && h.to === 'sales_engineer'), JSON.stringify(h));
+    assert(['ceo', 'accountant', 'customer_support'].includes(h.to) || ((h.type === 'social.lead' || h.type === 'invite.reply' || h.type === 'mailbox.supplier_reply') && h.to === 'sales_engineer'), JSON.stringify(h));
   }
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing').map((h) => h.type + '>' + h.to).sort(),
-    ['adspend.recorded>accountant', 'ceo.decision_owed>ceo', 'deliberation.review>ceo', 'delivery.request>customer_support', 'invite.reply>sales_engineer', 'marketing.lead_sourcing>ceo', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
+    ['adspend.recorded>accountant', 'ceo.decision_owed>ceo', 'deliberation.review>ceo', 'delivery.request>customer_support', 'invite.reply>sales_engineer', 'mailbox.supplier_reply>sales_engineer', 'marketing.lead_sourcing>ceo', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
 });

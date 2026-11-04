@@ -7,9 +7,10 @@ import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
 import {
   M365_HARD_CEILING, M365_ID_PREFIX, M365_OFF, M365_REFUSED_ISSUE, M365_SEED_KIND, graphSend, holdForM365, m365Body, m365Carries,
   companyName, m365CopyLint, m365InvitationText, m365Mime, m365Subject, messageIdFor, resolveM365, scrub, switchOn, type Fetch, type M365, STOP_LINE,
-  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo, withPlacementRef, campaignMail,
+  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo, conversationReplyTo, withPlacementRef, campaignMail,
   M365_PACE_MS, M365_PER_RUN, paceM365, qpEncode,
 } from './m365_lane.ts';
+import { M365_FROM_NAME } from './m365_lane.ts';
 import { resendPayload } from './payload.ts';
 import { INVITE_LANE_TYPES } from './invite_lane.ts';
 
@@ -136,7 +137,7 @@ Deno.test('the invitation is variant A, word for word, and passes every rule', (
   const who = { company: 'Sigma Ceramics', trade: 'tiling' };
   assertEquals(m365InvitationText(who), APPROVED);
   assertEquals(m365Subject(who), 'A question about your tiling work');
-  assertEquals(m365Subject({ company: 'Sigma Ceramics' }), 'A question for Sigma Ceramics');
+  assertEquals(m365Subject({ company: 'Sigma Ceramics' }), 'A question about your work in the UAE');
   for (const l of m365CopyLint({ subject: m365Subject(who), body: APPROVED })) assert(l.ok, `${l.rule}: ${l.detail}`);
   // neutral variant: no company, no trade
   const neutral = m365InvitationText();
@@ -265,6 +266,18 @@ Deno.test('Reply-To (6 Oct 2026): dropped only while the reply reader is proven 
   assertEquals(M365_INBOX_AGENT, 'resend_inbound');
 });
 
+Deno.test('an answer to a supplier replies into the read supplier mailbox; every control keeps the old Reply-To', () => {
+  const now = new Date('2026-11-02T12:00:00Z');
+  const base = { type: 'inbound_reply', toSupplier: true, mailbox: 'supplier@quotesdone.com', proofAt: '2026-11-02T11:50:00Z', now, fallback: 'info@quotesdone.com' };
+  assertEquals(conversationReplyTo(base), 'supplier@quotesdone.com');
+  assertEquals(conversationReplyTo({ ...base, toSupplier: false }), 'info@quotesdone.com', 'a customer');
+  assertEquals(conversationReplyTo({ ...base, type: 'login_otp' }), 'info@quotesdone.com', 'another mail type');
+  assertEquals(conversationReplyTo({ ...base, proofAt: null }), 'info@quotesdone.com', 'an unproven reader');
+  assertEquals(conversationReplyTo({ ...base, mailbox: 'x@elsewhere.example.invalid' }), 'info@quotesdone.com', 'a cross-domain Reply-To');
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  assert(src.includes("n.type === 'inbound_reply' ? await inboundReplyTo(n.to_email, replyInfo)"), 'send_outbox no longer asks for the conversation Reply-To');
+});
+
 Deno.test('wiring: send_outbox passes the lane Reply-To through m365ReplyTo, reading the proof under the reader\'s label', () => {
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assert(/m365Mime\(\{[^}]*reply: m365ReplyTo\(\{ proofAt: m365ProofAt, now, fallback: reply \}\)/.test(src), 'the lane MIME no longer asks m365ReplyTo');
@@ -313,7 +326,7 @@ Deno.test('the invitation names the company and its trade, and the subject carri
 Deno.test('opt-out: one-click List-Unsubscribe with -Post in the MIME, and a "stop" reply is an unsubscribe request', async () => {
   const { isUnsubscribeRequest } = await import('../_shared/unsubscribe_mailbox.ts');
   const unsub = 'https://quotesdone.com/u/unsubscribe?e=zz&t=1';
-  const head = unb64(m365Mime({ from: 'Ahmad Alzain at QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '',
+  const head = unb64(m365Mime({ from: M365_FROM_NAME + ' <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '',
     subject: 's', text: m365InvitationText(), unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: '<m@q>', now: new Date() })).split('\r\n\r\n')[0];
   assert(head.includes(`List-Unsubscribe: <${unsub}>, <mailto:unsubscribe@mail.quotesdone.com?subject=unsubscribe>`));
   assert(head.includes('List-Unsubscribe-Post: List-Unsubscribe=One-Click'));
@@ -362,7 +375,7 @@ Deno.test('both routes send the identical approved body and subject: Microsoft 3
     const c = campaignMail(row, row.type === 'supplier_invite_seed' ? {} : who);
     assertEquals(c.bad, [], `${row.type} fails a copy rule`);
     // route 1: the Microsoft 365 MIME, as index.ts builds it
-    const raw = unb64(m365Mime({ from: 'Ahmad Alzain at QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '', subject: c.subject,
+    const raw = unb64(m365Mime({ from: M365_FROM_NAME + ' <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '', subject: c.subject,
       text: c.text, unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: '<m@q>', now: new Date('2026-10-27T04:30:00Z') }));
     const [head, qp] = splitMime(raw);
     const m365Text = qpDecode(qp).replace(/\r\n/g, '\n');
@@ -382,7 +395,9 @@ Deno.test('both routes send the identical approved body and subject: Microsoft 3
 
 Deno.test('wiring: index.ts builds the campaign email with campaignMail on BOTH routes, and the fallback sends it text-only', () => {
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  assert(/const \{ subject: mSubject, text: mBody, bad \} = await campaignFor\(n\);/.test(src), 'the Microsoft 365 lane no longer uses campaignMail');
+  // 3 Nov 2026: a mailbox reply sends its own text (replyMail); every other lane row still sends campaignMail.
+  assert(/const \{ subject: mSubject, text: mBody, bad \} = rm \? [^\n]*: await campaignFor\(n\);/.test(src), 'the Microsoft 365 lane no longer uses campaignMail');
+  assert(/const rm = isReply \? replyMail\(n\) : null;/.test(src), 'only a mailbox reply may skip campaignMail');
   assert(/const camp = supplierSide && isLaneType\(n\.type\) \? await campaignFor\(n\) : null;/.test(src), 'the Resend fallback no longer uses campaignMail');
   assert(/camp\s*\? resendPayload\(\{ from, to: n\.to_email, reply, subject: camp\.subject, html: '', text: camp\.text, unsub,/.test(src), 'the fallback no longer sends the campaign text without HTML');
   assert(/return campaignMail\(n, /.test(src));
@@ -417,9 +432,11 @@ Deno.test('pacing: at most M365_PER_RUN lane sends a run; the rest are re-queued
   assert(paceM365(M365_PER_RUN) && paceM365(M365_PER_RUN + 30));
   assert(M365_PACE_MS >= 5 * 60_000, 'a paced row would come back in the same burst');
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  const pace = src.indexOf('if (paceM365(m365SentRun))'); const send = src.indexOf('await campaignFor(n);');
+  // 3 Nov 2026: the decision is m365Step, which paces with paceM365 every lane row but a mailbox reply (m365_reply.test.ts).
+  assert(/const step = m365Step\(\{ reply: isReply, hold: mh, sentThisRun: m365SentRun \}\);/.test(src), 'index.ts no longer paces by the run count');
+  const pace = src.indexOf("if (step === 'pace')"); const send = src.indexOf('await campaignFor(n);');
   assert(pace > 0 && pace < send, 'index.ts no longer checks pacing before building and sending the lane row');
-  assert(/paceM365\(m365SentRun\)\) \{\s*await admin\.from\('notifications'\)\.update\(\{ status: 'queued', claimed_at: null, not_before: new Date\(Date\.now\(\) \+ M365_PACE_MS\)/.test(src),
+  assert(/step === 'pace'\) \{\s*await admin\.from\('notifications'\)\.update\(\{ status: 'queued', claimed_at: null, not_before: new Date\(Date\.now\(\) \+ M365_PACE_MS\)/.test(src),
     'a paced row is no longer put back in the queue with not_before');
   assert(/sent\+\+; m365SentToday\+\+; m365SentRun\+\+;/.test(src), 'a lane send no longer counts toward the run');
 });
@@ -432,4 +449,95 @@ Deno.test('quoted-printable: "=", UTF-8, a trailing space and long lines are enc
   assert(qp.includes('x=09\r\n'), 'a trailing tab is not encoded');
   assertFalse(/=[0-9A-F]?\r\n[0-9A-F]/.test(qp.replace(/=\r\n/g, '')), 'an =XX was split');
   assertEquals(qpDecode(qp), sample.replace(/\n/g, '\r\n'));
+});
+
+// sales_engineer, 28 Oct 2026: the greeting reads a company name, not a page title. Every leads.company_name behind
+// notifications 116649-116668 (read-only join, 28 Oct 2026), with the greeting each must render. The first four were
+// real rendered failures; the other sixteen already read well and must keep doing so.
+Deno.test('the greeting reads a company name, not a scraped page title (notifications 116649-116668)', () => {
+  const CASES: ReadonlyArray<readonly [string, string]> = [
+    ['Speed Blast Trading L.L.C &#8211; Top notch Industrial Equipments Suppliers in Dubai, UAE', 'Speed Blast Trading L.L.C'],
+    ['CERAMIC MEGA BUILDING MATERIALS TR LLC (Manufacturer and wholesaler of any kind of porcelain tile.)', 'Ceramic Mega Building Materials TR LLC'],
+    ['NRA INTERNATIONAL', 'NRA International'],
+    ['OFFSHORE MIDDLE EAST MARINE EQUIPMENT TRADING L L C', 'Offshore Middle East Marine Equipment Trading LLC'],
+    ['Zoom Building Materials Trading | Construction Materials Supplier in Abu Dhabi, UAE', 'Zoom Building Materials Trading'],
+    ['Mohd Al Qama - Authorized Dealer of RAK Ceramics', 'Mohd Al Qama'],
+    ['Al Sarai Ceramic - KOHLER SHARJAH', 'Al Sarai Ceramic'],
+    ['RAK TILE LLC - Interlocking Paver Blocks Manufacturer- Marble & Granites- Ras Al Khaimah- UAE', 'RAK Tile LLC'],
+    ['BLUE PEARL MARINE SERVICES FZC', 'Blue Pearl Marine Services FZC'],
+    ['SEASWIFT SUBSEA ENGINEERING LLC', 'Seaswift Subsea Engineering LLC'],
+    ['TOTAL SOLUTIONS', 'Total Solutions'],
+    ['ARABIAN AURORA DETERGENTS TRADING L.L.C', 'Arabian Aurora Detergents Trading L.L.C'],
+    ['Infinite Global Fze', 'Infinite Global FZE'],
+    ['Mohammed Zafar Steel Workshop LLC', 'Mohammed Zafar Steel Workshop LLC'],
+    ['NEELKAMAL PLASTIC FACTORY', 'Neelkamal Plastic Factory'],
+    ['Zainab Building Materials Company LLC', 'Zainab Building Materials Company LLC'],
+    ['Buildline Building Materials Trading LLC', 'Buildline Building Materials Trading LLC'],
+    ['Fujairah General Trading Enterprises', 'Fujairah General Trading Enterprises'],
+    ['SENSI Trading LLC', 'SENSI Trading LLC'],
+    ['Volark Tiles', 'Volark Tiles'],
+  ];
+  for (const [raw, want] of CASES) {
+    assertEquals(companyName(raw), want, raw);
+    assert(m365InvitationText({ company: raw }).startsWith(`Hi ${want} team,\n`), raw);
+  }
+  // every entity form decodes before the cut, hex and double-encoded included
+  assertEquals(companyName('Acme Trading &#x2014; Best Prices'), 'Acme Trading');
+  assertEquals(companyName('Acme Trading &amp;#8211; Best Prices'), 'Acme Trading');
+  assertEquals(companyName('Acme Trading LLC, Sharjah'), 'Acme Trading LLC');
+  assertEquals(companyName('Acme Trading, LLC'), 'Acme Trading, LLC');
+  // still a title after every cut: the neutral greeting, never a sentence addressed as a company
+  const title = 'Leading Supplier of Industrial Valves Pumps and Fittings for Oil Gas and Marine Projects';
+  assertEquals(companyName(title), '');
+  assert(m365InvitationText({ company: title }).startsWith('Hello,\n'));
+  assertEquals(companyName('We supply the best tiles'), '');
+});
+
+// Review of #1706, 28 Oct 2026: the old and the new companyName were run over all 20,249 distinct leads.company_name
+// (read-only). These are the shapes where the first cut of the new function read WORSE than the old one; each must keep
+// the old good reading. A long registered name is still a name, a three-letter word is not an acronym, and a letter after
+// "." or "/" is capitalised.
+Deno.test('a long registered name, a three-letter word and a dotted suffix read as the old function read them', () => {
+  const CASES: ReadonlyArray<readonly [string, string]> = [
+    ['AL MARZOQI AUTO ACCESSORIES &#038; MOBILE PHONE TRADING CO LLC', 'Al Marzoqi Auto Accessories & Mobile Phone Trading Co LLC'],
+    ['AL LAZIM MOBILE PHONES &#038; ELECTRIC DEVICES TRADING LLC', 'Al Lazim Mobile Phones & Electric Devices Trading LLC'],
+    ['AL THURATH AL ASEEL CONT &#038; ELEC MECH LLC', 'Al Thurath Al Aseel Cont & Elec Mech LLC'],
+    ['GHOLAM RASUL GEN TRADING CO LLC', 'Gholam Rasul Gen Trading Co LLC'],
+    ['PETRA ENG ARCHITECTURAL CONSULTANTS', 'Petra Eng Architectural Consultants'],
+    ['BAB AL SHAMS DESERT RESORT & SPA', 'Bab Al Shams Desert Resort & Spa'],
+    ['READY MIX BETON L L C', 'Ready Mix Beton LLC'],
+    ['POLY PRODUCTS CO LTD', 'Poly Products Co Ltd'],
+    ['ARABIAN GULF SECURITY SVCS', 'Arabian Gulf Security Svcs'],
+    ['SKY LINE TRADING LLC', 'Sky Line Trading LLC'],
+    ['SCHEFFER SAFETY TRADING L.L.C.O.P.C ( EYEVEX SAFETY ABU DHABI )', 'Scheffer Safety Trading L.L.C.O.P.C'],
+    ['ORYX HEAVY EQUIP.SPARE PARTS TR L L C', 'Oryx Heavy Equip.Spare Parts TR LLC'],
+    ['AMNA NETWORKING SOLUTIONS LLC-SPC', 'Amna Networking Solutions LLC-SPC'],
+    ['GULF WIRELESS &#038; TV CO LLC', 'Gulf Wireless & TV Co LLC'],
+    ['Leeds Furnishing: Premium Home Furnishing in Dubai & Abu Dhabi | Luxury Home', 'Leeds Furnishing'],
+    ['cctv company in Dubai |CCTV Camera Installation Company in Dubai', 'cctv company in Dubai'],
+    // second pass over the whole table: a hyphen, a digit, a dotted suffix and a two-letter word
+    ['HI-TECH BUILDING CONSTRUCTIONS', 'Hi-Tech Building Constructions'],
+    ['HI TECH BUILDING CONSTRUCTIONS', 'Hi Tech Building Constructions'],
+    ['STUDIO-ATI.FZE', 'Studio-Ati.FZE'],
+    ['M H ALI EL-SAIE, DR', 'M H Ali El-Saie, Dr'],
+    ['THE 18TH STREET TRADING', 'The 18th Street Trading'],
+    ['AL WAHA BLDG MATERIALS', 'Al Waha Bldg Materials'],
+    ['CAMELIA FLOWERS-L L C', 'Camelia Flowers-LLC'],
+  ];
+  for (const [raw, want] of CASES) assertEquals(companyName(raw), want, raw);
+  // a keyword list is a title: the neutral greeting
+  assertEquals(companyName('Office Glass Partition Dubai, Glass Work Dubai, Glass Partition Maker'), '');
+  // it never throws, whatever it is handed
+  const hostile = { toString() { throw new Error('boom'); } };
+  assertEquals(companyName(hostile), '');
+  assert(m365InvitationText({ company: hostile as unknown as string }).startsWith('Hello,\n'));
+  for (const odd of [null, undefined, 0, '', ' ', '&#0;', '&#xD800;', '&#99999999;', '()', ' - ', '|', '&amp;amp;amp;']) {
+    const got = companyName(odd);
+    assert(typeof got === 'string' && got === got.trim() && (got === '' || got.length >= 2), JSON.stringify(odd));
+  }
+});
+
+Deno.test('the display name is quoted so its comma stays one name', () => {
+  const head = unb64(m365Mime({ from: M365_FROM_NAME + ' <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '', subject: 's', text: 'x', unsub: '', unsubMailto: 'u@mail.quotesdone.com', messageId: '<m@q>', now: new Date() })).split('\r\n\r\n')[0];
+  assert(head.includes('From: "Ahmad Alzain, QuotesDone" <supplier@quotesdone.com>'));
 });

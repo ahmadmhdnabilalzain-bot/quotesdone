@@ -20,6 +20,7 @@
 import { readVat, type VatRead, type VatTreatment } from './line_specs/vat.ts';
 import { aed, figure } from './money.ts';
 import { normText } from './line_specs/model.ts';
+import { revealCharge } from './reveal_fee.ts';
 
 /** "after discount", "net total": the figure written after the discount. */
 export const AFTER_DISCOUNT = /after\s*(?:the\s*)?discount|net\s*(?:total|amount|price|value)|\u0628\u0639\u062F\s*\u0627\u0644\u062E\u0635\u0645|\u0627\u0644\u0635\u0627\u0641\u064A|\u0635\u0627\u0641\u064A/i;
@@ -146,7 +147,7 @@ export function vatStated(q: PriceRow, lang: L): string {
 export function feeBasisLine(base: number | null, rate: number | null, lang: L): string {
   const b = pos(base); const r = pos(rate);
   if (b == null || r == null) return lang === 'ar' ? 'لا رسوم بطاقة ولا ضريبة قيمة مضافة على رسومنا.' : 'No card fee, no VAT on our fee.';
-  const pctTxt = `${r2(r * 100)}%`; const fee = Math.round(b * r * 100) / 100;
+  const pctTxt = `${r2(r * 100)}%`; const fee = revealCharge(b, r).base_fee;
   return lang === 'ar'
     ? `رسومنا ${pctTxt} من ${money(b, lang)} = ${money(fee, lang)}، بلا رسوم بطاقة ولا ضريبة قيمة مضافة على رسومنا.`
     : `Our fee: ${pctTxt} of ${money(b, lang)} = ${money(fee, lang)}; no card fee, no VAT on our fee.`;

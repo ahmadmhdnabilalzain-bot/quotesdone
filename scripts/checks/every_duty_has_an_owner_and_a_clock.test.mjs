@@ -11,7 +11,7 @@
 //   node --test scripts/checks/every_duty_has_an_owner_and_a_clock.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -65,7 +65,17 @@ test('every customer- and supplier-facing message is written in English and in A
 const POLICY_TS = R('supabase/functions/_shared/suppression_policy.ts');
 const listOf = (src, re) => { const m = src.match(re); assert.ok(m, 'list not found'); return [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]); };
 const TS_LIST = listOf(POLICY_TS, /export const OPT_OUT_TYPES[^=]*=\s*\[([^\]]*)\]/);
-const SQL_LIST = listOf(CHANGE, /create or replace function public\.fn_opt_out_types\(\)[\s\S]*?select array\[([^\]]*)\]/);
+// THE NEWEST COMMITTED DEFINITION (28 Oct 2026, ledger 1401 audit S6): fn_opt_out_types() moved to
+// a_supplier_who_said_stop_is_never_nudged.sql, which adds supplier_invite_nudge. While that file is
+// pending (applied at merge), the list it will make live is the one compared; once applied it is the MANIFEST's last.
+const OPT_OUT_DEF = /create or replace function public\.fn_opt_out_types\(\)[\s\S]*?select array\[([^\]]*)\]/;
+const OPT_OUT_FILE = (() => {
+  const pending = existsSync(join(ROOT, 'scripts/sql/pending')) ? readdirSync(join(ROOT, 'scripts/sql/pending')).map((n) => 'scripts/sql/' + n.replace(/\.txt$/, '.sql')) : [];
+  const manifest = R('scripts/sql/MANIFEST.txt').split(/\r?\n/).filter((l) => l.endsWith('.sql')).reverse();
+  return [...pending, ...manifest].find((f) => existsSync(join(ROOT, f)) && OPT_OUT_DEF.test(R(f)));
+})();
+const OPT_OUT_PENDING = !!OPT_OUT_FILE && existsSync(join(ROOT, 'scripts/sql/pending', OPT_OUT_FILE.split('/').pop().replace(/\.sql$/, '.txt')));
+const SQL_LIST = listOf(R(OPT_OUT_FILE), OPT_OUT_DEF);
 
 test('the SQL opt-out list is the TS opt-out list', () => {
   assert.deepEqual(SQL_LIST, TS_LIST, 'fn_opt_out_types() and OPT_OUT_TYPES disagree');
@@ -79,12 +89,25 @@ test('fn_suppression_stops answers what suppressionStops answers, on every reaso
   const reasons = ['unsubscribe', 'UNSUBSCRIBE ', 'hard_bounce:permanent', 'spam_complaint', 'blocked: pattern', ''];
   const types = [...TS_LIST, 'rfq_quote_reminder', 'rfq_short_of_quotes', 'reveal_outcome_check', 'new_inquiry', 'login_otp'];
   const pairs = reasons.flatMap((r) => types.map((t) => `('${r}','${t}')`)).join(',');
-  const rows = await sql(`select r, t, public.fn_suppression_stops(r, t) as stops from (values ${pairs}) v(r, t)`);
+  // A pending definition is replayed first, in the same rolled-back request, so production answers what it WILL answer.
+  const ask = `select r, t, public.fn_suppression_stops(r, t) as stops from (values ${pairs}) v(r, t)`;
+  const rows = OPT_OUT_PENDING ? await replaySql(R(OPT_OUT_FILE) + '\n' + ask + ';', { retry: false, rows: true }) : await sql(ask);
   assert.ok(Array.isArray(rows) && rows.length === reasons.length * types.length, JSON.stringify(rows).slice(0, 300));
   for (const x of rows) {
     const ts = String(x.r).trim().toLowerCase() !== 'unsubscribe' || TS_LIST.includes(x.t);   // suppressionStops, verbatim rule
     assert.equal(x.stops, ts, `reason '${x.r}', type ${x.t}: SQL ${x.stops}, TS ${ts}`);
   }
+});
+
+// The probe's "nothing to a real address" count must be of ITS OWN writes. Counting every notification with id > the start
+// id also counts another session's rows (2 Nov 2026: a live WhatsApp walk's skipped support_reply, to_email null, failed
+// PR #1650). This fails on the old probe, whose count had no created_at = now() scope.
+test('the real-address count in the probe is scoped to its own transaction, not other sessions rows', () => {
+  const at = PROBE.indexOf('went to a real address or to the founder');
+  assert.ok(at > 0, 'the real-address assertion is gone');
+  const stmt = PROBE.slice(PROBE.lastIndexOf('select count(*) into v_n from public.notifications', at), at);
+  assert.match(stmt, /created_at\s*=\s*now\(\)/, 'the real-address count reads other sessions rows too');
+  assert.match(stmt, /not public\.fn_is_demo_email\(to_email\)[\s\S]*'founder', 'admin'[\s\S]*founder_alert/, 'the assertion was weakened');
 });
 
 test('the rolled-back rehearsal on production answers PROBE OK', { skip: SKIP }, async () => {

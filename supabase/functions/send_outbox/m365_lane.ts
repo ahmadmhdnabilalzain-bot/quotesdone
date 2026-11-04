@@ -33,6 +33,12 @@ export const M365_REFUSED_ISSUE = 'invite_m365_lane_refused';
 export const M365_SEED_KIND = 'invite_m365_seed';
 export const M365_HARD_CEILING = 150;
 export const M365_ID_PREFIX = 'm365:';
+// Written onto notifications.provider_message_id (with the Message-ID) BEFORE the sendMail POST and replaced by the
+// M365_ID_PREFIX id once it is recorded sent (send_outbox/index.ts, 3 Nov 2026). Graph has no idempotency key, so a row that
+// comes back carrying this was handed to Graph by a run that could not record the outcome, and is never posted again.
+// It does not begin with M365_ID_PREFIX, so the lane's daily ceiling (like 'm365:%') never counts it.
+// prevented by: supabase/functions/send_outbox/drill_send_faults.test.ts
+export const M365_PENDING_PREFIX = 'm365-pending:';
 export const HOLD_M365_MS = 30 * 60_000;
 
 export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
@@ -42,8 +48,30 @@ export type CloseFinding = (issueKey: string, note: string) => Promise<unknown>;
 export type M365 = { active: boolean; refused: boolean; mailbox: string; token: string; why: string };
 export const M365_OFF: M365 = { active: false, refused: false, mailbox: '', token: '', why: 'invite_m365_enabled is not true' };
 
+// A SUPPLIER'S REPLY IS ANSWERED FROM THE MAILBOX IT WROTE TO (sales_engineer, 3 Nov 2026). MEASURED: invitation
+// 125102 to lead 19820 left this lane from supplier@ (in its Sent Items); the supplier answered supplier@
+// (inbound_messages 1829); email_triage's answer, notification 125121 (inbound_reply, to_role NULL), went through
+// Resend From info@quotesdone.com, so supplier@'s Outlook showed the supplier's reply and then nothing. All 3
+// inbound_reply rows to suppliers since the switch went on (117599, 121564, 125121) went that way. fn_inbox_send
+// (scripts/sql/a_supplier_reply_goes_back_from_its_own_mailbox.sql, its own PR, applied after this deploys) writes to_role
+// 'supplier' and the lead for a known supplier, and this kind when the message it answers came INTO the
+// lane's mailbox; only a row of this kind is carried here. A reply to a supplier who wrote to another mailbox keeps
+// the Resend route.
+export const M365_REPLY_KIND = 'supplier_mailbox_reply';
+/** A reply in a conversation that arrived in the lane's mailbox (fn_inbox_send writes the kind). */
+export function isMailboxReply(o: { type: unknown; kind: unknown }): boolean {
+  return o.type === 'inbound_reply' && o.kind === M365_REPLY_KIND;
+}
+/** The recipient side m365Carries reads. A known supplier's reply is to_role 'supplier'. A reply to an unknown sender
+ *  who wrote to the supplier mailbox stays to_role NULL (email_triage answers that sender as a customer, in their
+ *  language, so the supplier rules must not act on it) and is still that mailbox's conversation. Never another role. */
+export function laneSide(r: { to_role: unknown; type: unknown; kind: unknown }): boolean {
+  return r.to_role === 'supplier' || (r.to_role == null && isMailboxReply(r));
+}
+
 /** Whether this row is carried by the Microsoft 365 lane at all (before the lane's state is looked at). */
 export function m365Carries(o: { enabled: boolean; type: unknown; kind: unknown; supplierSide: boolean }): boolean {
+  if (o.supplierSide && isMailboxReply(o)) return o.enabled;
   if (!o.supplierSide || !isLaneType(o.type)) return false;
   if (o.type === 'supplier_invite_seed' && o.kind === M365_SEED_KIND) return true;
   return o.enabled;
@@ -112,6 +140,26 @@ export function holdForM365(o: { m365: M365; type: unknown; cappedSentToday: num
   return null;
 }
 
+/** What send_outbox does with a carried row. A mailbox reply is never held and never paced: invite_daily_cap is not
+ *  its number (a reply is not an invitation, and holdForM365 caps only LANE_CAPPED_TYPES); the mailbox's 150/day
+ *  ceiling is, and when the lane is refused, inactive or at that ceiling the reply goes through Resend exactly as it
+ *  did before this lane carried replies. An invitation is held or paced as before. */
+export type M365Step = 'send' | 'hold' | 'pace' | 'resend';
+export function m365Step(o: { reply: boolean; hold: 'unverified' | 'cap' | null; sentThisRun: number }): M365Step {
+  if (o.hold) return o.reply ? 'resend' : 'hold';
+  if (!o.reply && paceM365(o.sentThisRun)) return 'pace';
+  return 'send';
+}
+/** Graph refused a send: an invitation is held (never sent through Resend); a reply goes through Resend in the same run. */
+export function afterRefusal(reply: boolean): 'hold' | 'resend' { return reply ? 'resend' : 'hold'; }
+
+/** The reply as written (email_triage / the Inbox signs its own text), threaded on the supplier's Message-ID. */
+export function replyMail(row: { subject?: unknown; body?: unknown; in_reply_to?: unknown }): { subject: string; text: string; inReplyTo: string; bad: string[] } {
+  const text = String(row.body || '').trim();
+  return { subject: String(row.subject || '').trim() || 'Re: your message', text, inReplyTo: String(row.in_reply_to || '').trim(),
+    bad: text ? [] : ['the reply body is empty'] };
+}
+
 // ---------------------------------------------------------------- the plain-text invitation (marketing)
 // (The wording itself was replaced the same day by variant A, below; the rules in this paragraph still hold.)
 // THE FOUNDER'S EMAIL (27 Oct 2026, founder_instruction 1298-1301): "the wording sounds fine to me"; pitched the way
@@ -124,6 +172,9 @@ export function holdForM365(o: { m365: M365; type: unknown; cappedSentToday: num
 /** Anything a mail client would turn into a link: a scheme, a www. host, or a host followed by a path. */
 export const ANY_LINK = /https?:\/\/|\bwww\.|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\/[^\s]*/i;
 export const STOP_LINE = 'If this isn\'t relevant, reply "stop" and we won\'t contact you again.';
+// 2 Nov 2026 (it_engineer, ledger 1445): a person and company in the display name; low-strength evidence only (the vendor
+// posts say a role address is flagged; nothing from Microsoft or Yahoo). The comma needs the quoted form (RFC 5322).
+export const M365_FROM_NAME = '"Ahmad Alzain, QuotesDone"';
 export const SIGNATURE = 'Best regards,\nAhmad Alzain\nFounder, QuotesDone\nQuotesDone Technologies · Dubai, UAE';
 
 // 19 Oct 2026 (marketing + it_engineer, ledger 1113: no campaign email in spam). MEASURED (GlockApps
@@ -132,19 +183,77 @@ export const SIGNATURE = 'Best regards,\nAhmad Alzain\nFounder, QuotesDone\nQuot
 // addressed to the company and its trade, no promotional word in the subject or the opening, and the opt-out in the
 // List-Unsubscribe headers plus one "reply stop" line. Since 27 Oct 2026 the body carries no link at all (above).
 export type Who = { company?: string; trade?: string };
-const ENTITY: Record<string, string> = { amp: '&', '#038': '&', '#38': '&', quot: '"', '#039': "'", '#39': "'", apos: "'" };
-/** A company name as a person writes it: entities decoded, a "| tagline" or " - branch" cut, SHOUTING lowered. */
+// THE GREETING READS A COMPANY NAME, NOT A PAGE TITLE (sales_engineer, 28 Oct 2026). leads.company_name is often a
+// scraped page title. MEASURED on notifications 116649-116668: "Speed Blast Trading L.L.C &#8211; Top notch Industrial
+// Equipments Suppliers in Dubai, UAE" reached the greeting whole (the entity map had no numeric entities, so the dash cut
+// never saw a dash), "CERAMIC MEGA ... TR LLC (Manufacturer and wholesaler of any kind of porcelain tile.)" kept its
+// tagline and its capitals, "NRA INTERNATIONAL" became "Nra" and "TRADING L L C" kept its spaces. So: decode every
+// entity first, then cut (dash/pipe, a trailing parenthetical, a ", Dubai"/", Suppliers in ..." tail), then case, and a
+// name still too long or written like a sentence gets the neutral "Hello," rather than a title.
+const ENTITY: Record<string, string> = {
+  amp: '&', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', lt: '<', gt: '>', rsquo: "'", lsquo: "'", rdquo: '"', ldquo: '"',
+};
+const decodeOnce = (s: string) => s.replace(/&(?:#(\d{1,7})|#x([0-9a-f]{1,6})|([a-z]+));/gi, (m, dec, hex, name) => {
+  if (name) return ENTITY[name.toLowerCase()] ?? m;
+  const cp = dec ? parseInt(dec, 10) : parseInt(hex, 16);
+  return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
+});
+/** What follows ", " in a page title rather than a name: an emirate, the country, or a "Suppliers in ..." tagline. */
+const PLACE_OR_TAGLINE = /^(?:dubai|uae|u\.a\.e|united arab emirates|abu dhabi|sharjah|ajman|ras al khaimah|fujairah|umm al quwain|al ain|jebel ali)\b|\bsuppliers?\s+in\b/i;
+const LEGAL = /^(?:l\.?l\.?c\.?|fze|fzco|fzc|fz|tr|dmcc|pjsc|wll)$/i;
+/** Two-letter words that are words, not acronyms, when a name is written in capitals ("AL", "CO", "OF"). */
+const SHORT_WORD = new Set('AL EL OF CO BU DE LA LE DA BY TO IN ON OR AT IS AS MY UP NO DR MR MS ST HI'.split(' '));
+/** Three-letter acronyms that carry a vowel. Any other three-letter token with a vowel is a word or an abbreviation and is
+ *  title-cased: MEASURED on all 20,249 distinct leads.company_name (28 Oct 2026, review of #1706), keeping every 3-letter
+ *  token in capitals turned GEN (258 names), ALI (89), IND, MIX, MAT, ENT, AIN, SPA, ENG, BAB and EZZ into shouting. */
+const ACRONYM3 = new Set('UAE UAQ RAK MEP NRA MAF ETA ABD'.split(' '));
+/** Vowel-less abbreviations that read as words, not acronyms: "Co Ltd", "Pvt", "Svcs" (MEASURED 28 Oct 2026: LTD alone
+ *  is in 376 distinct names). */
+const ABBREVIATION = new Set('LTD PVT SVC SVCS MKTG TRDG MFG MNFG DVLP SRVS PCKG CNTG BLDG'.split(' '));
+/** Title case: a letter after anything but a letter, a digit, "_" or an apostrophe ("Gen.Trading", "Center/L.L.C",
+ *  "Ronny's", "18th"). */
+const word = (w: string) => w.toLowerCase().replace(/(^|[^a-z0-9_'’])([a-z])/g, (_m, p, c) => p + c.toUpperCase());
+/** One token of a name written in capitals: a legal suffix or a 2-3 letter acronym stays, anything else is title-cased. */
+const capsToken = (w: string) => {
+  const bare = w.replace(/[^A-Za-z.]/g, '');
+  if (LEGAL.test(bare)) return w.toUpperCase();
+  const letters = w.replace(/[^A-Z]/g, '');
+  if (letters === w && !ABBREVIATION.has(w) && ((w.length === 2 && !SHORT_WORD.has(w)) || (w.length === 3 && (ACRONYM3.has(w) || !/[AEIOUY]/.test(w))) ||
+    (w.length === 4 && !/[AEIOUY]/.test(w)))) return w;
+  return word(w);
+};
+/** One part of a hyphenated capitals token ("LLC-SPC", "HI-TECH", "AL-FUTTAIM"): a legal suffix, a known acronym or a
+ *  vowel-less one stays; anything else is title-cased, so "HI" and "AL" read as words here (review of #1706). */
+const hyphenPart = (w: string) => {
+  if (LEGAL.test(w.replace(/[^A-Za-z.]/g, ''))) return w.toUpperCase();
+  const keep = /^[A-Z]{2,4}$/.test(w) && !ABBREVIATION.has(w) && (ACRONYM3.has(w) || !/[AEIOUY]/.test(w));
+  return keep ? w : word(w);
+};
+/** A company name as a person writes it: entities decoded, a page-title tail cut, SHOUTING lowered; '' for the neutral
+ *  greeting. It never throws: the greeting is not worth a failed send, so any exception reads as "no name". */
 export function companyName(raw: unknown): string {
-  let s = String(raw || '').replace(/&(#0?\d+|[a-z]+);/gi, (m, k) => ENTITY[String(k).toLowerCase()] ?? m);
-  s = s.split(/\s[|–—-]\s/)[0].replace(/\s+/g, ' ').trim();
+  try { return nameFrom(raw); } catch { return ''; }
+}
+function nameFrom(raw: unknown): string {
+  let s = decodeOnce(decodeOnce(String(raw || '')));          // twice: "&amp;#8211;" is a dash too
+  s = s.replace(/\s+/g, ' ').split(/\s*[|»]\s*|\s[–—-]\s|:\s/)[0]; // "Name – tagline", "Name |tagline", "Name: tagline", "Name » x"
+  s = s.replace(/\s*\([^()]*\)?\s*$/, '');                   // "Name (Manufacturer and wholesaler of ...)"
+  const comma = s.indexOf(', ');
+  if (comma > 0 && PLACE_OR_TAGLINE.test(s.slice(comma + 2))) s = s.slice(0, comma);
+  s = s.replace(/\bL\s+L\s+C\b/g, 'LLC').replace(/[\s,;:|–—-]+$/, '').trim();
   if (/[؀-ۿ]/.test(s) || /^zz\s*demo/i.test(s) || s.length < 2) return '';
   // a registered name carrying a web address ("www.khaazay.com online division of ...") gets the neutral greeting:
   // the founder's email carries no link, and the name is never cut into something the company did not write
   if (/https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|ae|net|org|co|biz|info)\b/i.test(s)) return '';
-  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) {
-    s = s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()).replace(/\b(Llc|Fze|Fzco|Fzc|Fz)\b/g, (w) => w.toUpperCase());
-  }
-  return s;
+  // still a title, not a name: too long, too many words, a comma-separated keyword list, or written to the reader. Words
+  // are counted without "&" and legal suffixes: a registered name like "AL MARZOQI AUTO ACCESSORIES & MOBILE PHONE TRADING
+  // CO LLC" is long and is still a name (MEASURED 28 Oct 2026: a plain 8-word / 60-char cap sent 280 such names to "Hello,").
+  const words = s.split(' ').filter((w) => w !== '&' && !LEGAL.test(w.replace(/[^A-Za-z.]/g, '')));
+  if (s.length > 80 || words.length > 10 || (s.match(/, /g) || []).length >= 2) return '';
+  if (words.length >= 4 && /\b(?:we|our|you|your)\b/i.test(s)) return '';
+  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) return s.split(' ').map((t) => (t.includes('-') ? t.split('-').map(hyphenPart).join('-') : capsToken(t))).join(' ')
+      .replace(/\b(?:Llc|Fze|Fzco|Fzc|Dmcc|Pjsc|Wll)\b/g, (w) => w.toUpperCase());   // a suffix inside a dotted token: "Studio-Ati.FZE"
+  return s.split(' ').map((w) => (LEGAL.test(w.replace(/[^A-Za-z.]/g, '')) && /[a-z]/.test(w) && w.length > 2 ? w.toUpperCase() : w)).join(' ');
 }
 /** "fire_fighting" -> "fire fighting"; '' when there is none. */
 export function tradeLabel(slug: unknown): string { return String(slug || '').replace(/[_-]+/g, ' ').trim().toLowerCase(); }
@@ -159,9 +268,8 @@ const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 // docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md (variants B and C are there, unapplied).
 /** The subject asks; it names the trade when known, else the company. Never "invitation", "free", "commission" or "exclusive". */
 export function m365Subject(who: Who = {}): string {
-  const c = companyName(who.company); const t = tradeLabel(who.trade);
-  if (t) return `A question about your ${t} work`;
-  return c ? `A question for ${c}` : 'A question about your work in the UAE';
+  const t = tradeLabel(who.trade);
+  return t ? `A question about your ${t} work` : 'A question about your work in the UAE';
 }
 /** Variant A (27 Oct 2026). Company and trade when known, else the neutral wording. */
 export function m365InvitationText(who: Who = {}): string {
@@ -288,6 +396,16 @@ export function messageIdFor(notificationId: number | string, now: Date): string
 export const M365_INBOX_AGENT = 'resend_inbound';   // = m365_reply_inbox.ts PROOF_LABEL; its rows carry counts.m365_inbox = 1
 export const M365_INBOX_PROOF_MAX_AGE_MS = 2 * 60 * 60_000;
 /** '' = no Reply-To header (replies reach the From mailbox); otherwise the fallback, kept until the reader is proven. */
+// A SUPPLIER ANSWERED IN A CONVERSATION REPLIES INTO THE READ SUPPLIER MAILBOX (2 Nov 2026, customer_support). MEASURED:
+// notification 117599 (inbound_reply, Resend, From and Reply-To info@) was answered 13 minutes later and the reply landed
+// in management@, read by nothing. inbound_reply has no to_role, so it took the customer's Reply-To. supplier@ is on the
+// From's own domain, so the cross-domain reasoning above does not apply. Only while its reader is proven; otherwise the
+// old Reply-To stands.
+export function conversationReplyTo(o: { type: unknown; toSupplier: boolean; mailbox: string | undefined; proofAt: string | null | undefined; now: Date; fallback: string }): string {
+  const mailbox = String(o.mailbox || '').trim();
+  if (o.type !== 'inbound_reply' || !o.toSupplier || !/@quotesdone\.com$/i.test(mailbox)) return o.fallback;
+  return m365ReplyTo({ proofAt: o.proofAt, now: o.now, fallback: o.fallback }) === '' ? mailbox : o.fallback;
+}
 export function m365ReplyTo(o: { proofAt: string | null | undefined; now: Date; fallback: string }): string {
   const t = o.proofAt ? Date.parse(o.proofAt) : NaN;
   const age = o.now.getTime() - t;
@@ -320,14 +438,29 @@ export function qpEncode(text: string): string {
   }).join('\r\n');
 }
 
-/** The whole message as MIME (base64, as sendMail's text/plain mode wants it). An empty reply writes no Reply-To. */
-export function m365Mime(o: { from: string; to: string; reply: string; subject: string; text: string; unsub: string; unsubMailto: string; messageId: string; now: Date }): string {
+/** The whole message as MIME (base64, as sendMail's text/plain mode wants it). An empty reply writes no Reply-To.
+ *  inReplyTo (a mailbox reply) writes In-Reply-To and References, so it threads under the supplier's message.
+ *  `html` (3 Nov 2026, open_tracking.ts): absent or '' = the plain-text message exactly as before; otherwise
+ *  multipart/alternative with the SAME text part first and the HTML twin second (RFC 2046 5.1.4: last part preferred).
+ *  A reply (inReplyTo set) is ALWAYS plain text: its html is ignored, so a threaded answer can never carry a pixel. */
+export function m365Mime(o: { from: string; to: string; reply: string; subject: string; text: string; unsub: string; unsubMailto: string; messageId: string; now: Date; inReplyTo?: string | null; html?: string }): string {
+  const irt = clean(String(o.inReplyTo ?? ''));
+  const thread = irt ? [`In-Reply-To: ${irt.startsWith('<') ? irt : '<' + irt + '>'}`] : [];
+  if (thread.length) thread.push('References: ' + thread[0].slice('In-Reply-To: '.length));
+  const html = irt ? '' : String(o.html || '');
   const lines = [
     `From: ${clean(o.from)}`, `To: ${clean(o.to)}`, ...(clean(o.reply) ? [`Reply-To: ${clean(o.reply)}`] : []), `Subject: ${hdr(clean(o.subject) || 'QuotesDone')}`,
-    `Date: ${o.now.toUTCString()}`, `Message-ID: ${o.messageId}`, 'MIME-Version: 1.0',
+    `Date: ${o.now.toUTCString()}`, `Message-ID: ${o.messageId}`, ...thread, 'MIME-Version: 1.0',
   ];
   if (o.unsub) lines.push(`List-Unsubscribe: <${clean(o.unsub)}>, <mailto:${o.unsubMailto}?subject=unsubscribe>`, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click');
-  lines.push('Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(o.text));
+  const textPart = ['Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(o.text)];
+  if (!html) {
+    lines.push(...textPart);
+  } else {
+    const b = 'qd-alt-' + o.messageId.replace(/[^A-Za-z0-9]/g, '').slice(0, 48);
+    lines.push(`Content-Type: multipart/alternative; boundary="${b}"`, '', `--${b}`, ...textPart, `--${b}`,
+      'Content-Type: text/html; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(html), `--${b}--`, '');
+  }
   return b64(lines.join('\r\n'));
 }
 

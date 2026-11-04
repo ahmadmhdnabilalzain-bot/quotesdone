@@ -69,11 +69,11 @@ export function DrawingGallery({ pages: all, lang, failed = 0 }: { pages: string
             <motion.button type="button"
               onClick={(e) => { opener.current = e.currentTarget; setOpen(k); }}
               whileHover={reduce ? undefined : { y: -2 }} transition={{ duration: 0.2 }}
-              className="group relative block aspect-[3/4] w-full overflow-hidden rounded-chip border border-[var(--line2)] bg-black/30 shadow-e1 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="group relative block aspect-3/4 w-full overflow-hidden rounded-chip border border-(--line2) bg-black/30 shadow-e1 transition-colors hover:border-primary/60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={(ar ? 'فتح صفحة المخطط ' : 'Open drawing page ') + (k + 1)}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={u} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100" />
-              <span className="absolute bottom-1 start-1 rounded-sm bg-black/70 px-1.5 py-0.5 font-mono text-[10.5px] text-white tabular-nums">{ar ? 'ص' : 'p'}{String(k + 1).padStart(2, '0')}</span>
+              <span className="absolute bottom-1 inset-s-1 rounded-sm bg-black/70 px-1.5 py-0.5 font-mono text-[10.5px] text-white tabular-nums">{ar ? 'ص' : 'p'}{String(k + 1).padStart(2, '0')}</span>
             </motion.button>
           </li>
         ))}
@@ -85,7 +85,7 @@ export function DrawingGallery({ pages: all, lang, failed = 0 }: { pages: string
             return (
               <li key={k}>
                 <a href={u} target="_blank" rel="noopener noreferrer" download
-                  className="inline-flex items-center gap-1.5 rounded-chip border border-[var(--line2)] px-2.5 py-1 font-mono text-label text-foreground hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  className="inline-flex items-center gap-1.5 rounded-chip border border-(--line2) px-2.5 py-1 font-mono text-label text-foreground hover:border-primary/60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
                   {ar ? `ملف المخطط بعد إخفاء الهوية (${ext})` : `Drawing file, identity removed (${ext})`}
                 </a>
               </li>
@@ -109,7 +109,7 @@ export function DrawingGallery({ pages: all, lang, failed = 0 }: { pages: string
             </div>
             <div className="flex min-h-0 flex-1 items-center justify-center p-3" onClick={(e) => { if (e.target === e.currentTarget) setOpen(null); }}>
               <motion.img key={open} src={pages[open]} alt={(ar ? 'صفحة المخطط ' : 'Drawing page ') + (open + 1)}
-                className="max-h-full max-w-full rounded-md bg-white object-contain shadow-[var(--lift)]"
+                className="max-h-full max-w-full rounded-md bg-white object-contain shadow-lift"
                 initial={reduce ? false : { opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35, ease: EASE }} />
             </div>
             <p className="px-4 pb-3 text-center text-[11.5px] text-white/60">{ar ? 'أُزيلت بيانات العميل والمشروع من المخطط. تنتهي صلاحية الرابط بعد ساعة — أعيدوا فتح التبويب لتحديثه.' : 'Client and project details were removed from this drawing. The link expires after an hour — reopen the tab to refresh it.'}</p>
@@ -138,11 +138,11 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
   let lastSection = '';
   return (
     <div className="qd-panel mt-4 overflow-hidden p-0">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-(--line) px-4 py-3.5">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-head text-[15px] font-semibold tracking-snug text-foreground">{ar ? 'جدول الكميات' : 'Bill of quantities'}</span>
-            <span className="rounded-chip border border-[var(--line2)] px-1.5 py-px font-mono text-label tabular-nums text-muted-foreground">{rows.length}</span>
+            <span className="rounded-chip border border-(--line2) px-1.5 py-px font-mono text-label tabular-nums text-muted-foreground">{rows.length}</span>
           </div>
           <div className="mt-0.5 text-[12px] text-muted-foreground">
             {ar ? `${rows.length} بند` : `${rows.length} line item${rows.length === 1 ? '' : 's'}`}
@@ -157,7 +157,7 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
       <div className="max-h-[420px] overflow-auto">
         <table className="w-full border-collapse text-[13px]">
           <caption className="sr-only">{ar ? 'جدول الكميات: الوصف والكمية والوحدة' : 'Bill of quantities: description, quantity and unit'}</caption>
-          <thead className="sticky top-0 z-[1] bg-card">
+          <thead className="sticky top-0 z-1 bg-card">
             <tr className="font-mono text-label uppercase tracking-caps text-muted-foreground">
               <th scope="col" className="w-14 px-3 py-2.5 text-start font-medium">#</th>
               {/* 21 Sep 2026 (audit finding 27): in RTL the description column collapsed to one word per line
@@ -179,8 +179,8 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
               if (head) lastSection = sec;
               const c = CONF[String(r.confidence || '')];
               return [
-                head ? <tr key={'s' + i}><th colSpan={5} scope="colgroup" className="border-t border-[var(--line)] bg-white/[.03] px-3 pb-1.5 pt-3 text-start font-mono text-label uppercase tracking-caps text-primary">{head}</th></tr> : null,
-                <tr key={i} className="border-t border-[var(--line)] align-top transition-colors hover:bg-white/[.02]">
+                head ? <tr key={'s' + i}><th colSpan={5} scope="colgroup" className="border-t border-(--line) bg-white/3 px-3 pb-1.5 pt-3 text-start font-mono text-label uppercase tracking-caps text-primary">{head}</th></tr> : null,
+                <tr key={i} className="border-t border-(--line) align-top transition-colors hover:bg-white/2">
                   <td className="px-3 py-2.5 font-mono text-label tabular-nums text-primary">{String(i + 1).padStart(3, '0')}</td>
                   <td className="px-3 py-2.5 text-foreground">
                     {ar && r.description_ar
@@ -198,7 +198,7 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
         </table>
       </div>
       {(assumptions.length > 0 || missing.length > 0) && (
-        <div className="grid gap-3 border-t border-[var(--line)] px-4 py-3 text-[12px] text-muted-foreground sm:grid-cols-2">
+        <div className="grid gap-3 border-t border-(--line) px-4 py-3 text-[12px] text-muted-foreground sm:grid-cols-2">
           {assumptions.length > 0 && <div><div className="mb-1 font-semibold text-foreground/85">{ar ? 'افتراضات' : 'Assumptions'}</div><ul className="list-disc ps-4">{assumptions.slice(0, 8).map((a, i) => <li key={i}>{a}</li>)}</ul></div>}
           {missing.length > 0 && <div><div className="mb-1 font-semibold text-foreground/85">{ar ? 'غير وارد في المخطط' : 'Not on the drawing'}</div><ul className="list-disc ps-4">{missing.slice(0, 8).map((a, i) => <li key={i}>{a}</li>)}</ul></div>}
         </div>
@@ -277,7 +277,7 @@ export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: s
   return (
     <div className="mt-3">
       {list.length > 0 && (
-        <div className="rounded-lg border border-[var(--line)] bg-white/[.02] p-3">
+        <div className="rounded-lg border border-(--line) bg-white/2 p-3">
           <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[.08em] text-muted-foreground">{ar ? 'أسئلة وأجوبة قبل الكشف' : 'Questions before the reveal'}</div>
           <ol className="flex flex-col gap-2.5">
             {list.map((c) => (
@@ -300,7 +300,7 @@ export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: s
             <label className="text-[12.5px] text-muted-foreground">
               <span>{ar ? 'ما الذي تحتاجون إلى معرفته؟ يرى العميل السؤال دون اسمكم، ويصل الرد إلى جميع المورّدين المطابقين.' : 'What do you need to know? The customer sees the question without your name, and the answer reaches every matched supplier.'}</span>
               <textarea value={text} maxLength={1000} rows={2} onChange={(e) => setText(e.target.value)}
-                className="mt-1.5 flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                className="mt-1.5 flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring" />
             </label>
             <div className="flex gap-2">
               <Button size="sm" disabled={busy || !text.trim()} onClick={ask}>{busy ? (ar ? 'جارٍ الإرسال…' : 'Sending…') : (ar ? 'إرسال السؤال' : 'Send question')}</Button>

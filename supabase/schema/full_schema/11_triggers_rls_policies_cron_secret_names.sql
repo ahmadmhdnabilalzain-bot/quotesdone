@@ -89,6 +89,7 @@ CREATE TRIGGER z92_outcome_learning AFTER INSERT ON public.complaint_tickets FOR
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
 CREATE TRIGGER contact_merge_audit_append_only BEFORE DELETE OR UPDATE ON public.contact_merge_audit FOR EACH ROW EXECUTE FUNCTION fn_contact_merge_audit_is_append_only();
 CREATE TRIGGER contact_merge_audit_no_truncate BEFORE TRUNCATE ON public.contact_merge_audit FOR EACH STATEMENT EXECUTE FUNCTION fn_contact_merge_audit_is_append_only();
+CREATE TRIGGER z55_contact_message_reaches_customer_support AFTER INSERT ON public.contact_messages FOR EACH ROW EXECUTE FUNCTION trg_z55_contact_message_reaches_customer_support();
 CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
 CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
@@ -96,6 +97,7 @@ CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_sco
 CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
 CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
+CREATE TRIGGER z40_customer_account_active_notice AFTER UPDATE OF tos_accepted_at ON public.customers FOR EACH ROW WHEN (((old.tos_accepted_at IS NULL) AND (new.tos_accepted_at IS NOT NULL))) EXECUTE FUNCTION fn_customer_account_active_notice();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
@@ -129,10 +131,12 @@ CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
+CREATE TRIGGER a05_test_reply_leaves_review BEFORE UPDATE ON public.inbound_messages FOR EACH ROW WHEN ((new.owner_role = 'it_engineer'::text)) EXECUTE FUNCTION trg_a05_test_reply_leaves_review();
 CREATE TRIGGER trg_inbound_supplier_reply BEFORE INSERT ON public.inbound_messages FOR EACH ROW EXECUTE FUNCTION trg_inbound_supplier_reply();
 CREATE TRIGGER z50_support_wire_email AFTER UPDATE OF triaged_at, replied_at ON public.inbound_messages FOR EACH ROW EXECUTE FUNCTION fn_support_wire_email();
 CREATE TRIGGER z51_support_classify_email AFTER UPDATE OF triaged_at ON public.inbound_messages FOR EACH ROW EXECUTE FUNCTION fn_support_classify_email();
 CREATE TRIGGER z52_invite_reply_reaches_sales_engineer AFTER INSERT ON public.inbound_messages FOR EACH ROW EXECUTE FUNCTION trg_invite_reply_reaches_sales_engineer();
+CREATE TRIGGER z53_supplier_mailbox_mail_gets_its_owner AFTER UPDATE OF triaged_at ON public.inbound_messages FOR EACH ROW WHEN (((new.triaged_at IS NOT NULL) AND (old.triaged_at IS NULL) AND (new.ai_category = 'no_auto_reply'::text) AND (new.ai_summary ~~ 'Not answered automatically:%'::text) AND (new.owner_role IS NULL) AND (new.replied_at IS NULL))) EXECUTE FUNCTION trg_supplier_mailbox_mail_gets_its_owner();
 CREATE TRIGGER a00_inquiries_lang_default BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_inquiries_lang_default();
 CREATE TRIGGER a03_inquiry_split_needs_the_customers_choice BEFORE INSERT OR UPDATE OF parent_inquiry_id, scope_type ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_split_needs_the_customers_choice();
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
@@ -232,6 +236,7 @@ CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON 
 CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
 CREATE TRIGGER a06_notifications_supplier_notice_follows_the_accepted_agreemen BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_supplier_notice_follows_the_accepted_agreement();
 CREATE TRIGGER a07_notifications_supplier_invite_is_whole BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_supplier_invite_is_whole();
+CREATE TRIGGER a08_invoice_ready_waits_for_its_invoice BEFORE INSERT ON public.notifications FOR EACH ROW WHEN (((new.type = 'invoice_ready'::text) AND (new.to_role = 'customer'::text) AND (new.quote_id IS NOT NULL) AND (new.attachments IS NULL))) EXECUTE FUNCTION fn_invoice_ready_waits_for_its_invoice();
 CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
 CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
 CREATE TRIGGER a20_notifications_promotional_consent_gate BEFORE INSERT OR UPDATE OF status ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_promotional_consent_gate();
@@ -239,7 +244,9 @@ CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FO
 CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
 CREATE TRIGGER z05_notifications_supplier_is_english BEFORE INSERT OR UPDATE OF lang, subject, body, to_role ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_supplier_is_english();
 CREATE TRIGGER z06_supplier_notice_whatsapp_twin_under_v11 AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_supplier_notice_whatsapp_twin_under_v11();
+CREATE TRIGGER z30_invoice_ready_asks_for_its_invoice AFTER INSERT ON public.notifications FOR EACH ROW WHEN (((new.type = 'invoice_ready'::text) AND (new.to_role = 'customer'::text) AND (COALESCE(new.channel, 'email'::text) = 'email'::text) AND (new.status = ANY (ARRAY['queued'::text, 'pending'::text])) AND (new.quote_id IS NOT NULL) AND (new.attachments IS NULL))) EXECUTE FUNCTION fn_invoice_ready_asks_for_its_invoice();
 CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
+CREATE TRIGGER z81_invite_schedule_counts_a_real_send AFTER UPDATE OF sent_at ON public.notifications FOR EACH ROW WHEN (((new.type = 'supplier_invite'::text) AND (new.sent_at IS NOT NULL) AND (old.sent_at IS NULL))) EXECUTE FUNCTION trg_invite_schedule_counts_a_real_send();
 CREATE TRIGGER z90_every_send_is_tracked AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_customer_support_adopts_untracked_send();
 CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF status, provider_status ON public.notifications FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
@@ -402,6 +409,8 @@ ALTER TABLE public.accountant_mailbox_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_month_close ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_owner_ruled_subscription ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_renewal_budget ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_reveal_reconcile_item ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_reveal_reconcile_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_spend_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_subscription_paid_from_change ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_ubo_seen ENABLE ROW LEVEL SECURITY;
@@ -504,8 +513,10 @@ ALTER TABLE public.ceo_decision_round ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_directive ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_experiment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_experiment_verdict ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_growth_action ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_identity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_improvement ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_invite_trade_priority ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_launch_gate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_mandate ENABLE ROW LEVEL SECURITY;
@@ -522,6 +533,9 @@ ALTER TABLE public.ceo_seat_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_seat_directive ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_standing_grant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_strategy_memo ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_supplier_channel ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_supplier_funnel_daily ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_supplier_goal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_task ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_task_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_weekly_report ENABLE ROW LEVEL SECURITY;
@@ -542,6 +556,7 @@ ALTER TABLE public.company_charter ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_constitution ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_event ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_faq ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_faq_embed_inflight ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_financial_stance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_index ENABLE ROW LEVEL SECURITY;
@@ -570,6 +585,7 @@ ALTER TABLE public.control_mode_challenge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.control_mode_identity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.control_mode_session ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversation_archive ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversation_archive_attempt ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversation_retention_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversation_retention_pdf ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversation_retention_plan_log ENABLE ROW LEVEL SECURITY;
@@ -628,6 +644,8 @@ ALTER TABLE public.edge_expectation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.edge_health_probe ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_block_pattern ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_domain_mx ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.email_open_event ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.email_open_token ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_platform_domain ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_suppressions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_verifications ENABLE ROW LEVEL SECURITY;
@@ -716,6 +734,7 @@ ALTER TABLE public.integration_matrix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internal_credential ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internal_credential_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inv_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invite_brake ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invite_placement_bar ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invite_placement_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invite_schedule ENABLE ROW LEVEL SECURITY;
@@ -789,6 +808,7 @@ ALTER TABLE public.knowledge_ml_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_module_standard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_vector_ml ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_category ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lead_email_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_prospect ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_sourcing_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_subcategory ENABLE ROW LEVEL SECURITY;
@@ -818,11 +838,14 @@ ALTER TABLE public.marketing_blog_topic ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_calendar_resend_decision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_campaign ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_connection_check ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_duty_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_duty_run ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_fact_watch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_first_touch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_founder_request ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_gap_recruitment_plan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_geo_check ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_geo_fix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_geo_question ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_goal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_insight_day ENABLE ROW LEVEL SECURITY;
@@ -1092,6 +1115,7 @@ ALTER TABLE public.supplier_product_variant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_public_name ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_quote_template ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_recruitment_funnel ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_reply_followup ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_response_watch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_score ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_scorecard ENABLE ROW LEVEL SECURITY;
@@ -1170,6 +1194,8 @@ CREATE POLICY accountant_mailbox_check_service_role_only ON public.accountant_ma
 CREATE POLICY accountant_month_close_service_role_only ON public.accountant_month_close AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_owner_ruled_subscription_service_role_only ON public.accountant_owner_ruled_subscription AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_renewal_budget_service_role_only ON public.accountant_renewal_budget AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY accountant_reveal_reconcile_item_service_role_only ON public.accountant_reveal_reconcile_item AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY accountant_reveal_reconcile_run_service_role_only ON public.accountant_reveal_reconcile_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_subscription_paid_from_change_service_role_only ON public.accountant_subscription_paid_from_change AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_ubo_seen_service_role_only ON public.accountant_ubo_seen AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_vat_threshold_check_service_role_only ON public.accountant_vat_threshold_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1200,7 +1226,9 @@ CREATE POLICY ceo_decision_round_service_role_only ON public.ceo_decision_round 
 CREATE POLICY ceo_directive_service_role_only ON public.ceo_directive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_experiment_service_role_only ON public.ceo_experiment AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_experiment_verdict_service_role_only ON public.ceo_experiment_verdict AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_growth_action_service_role_only ON public.ceo_growth_action AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_improvement_service_role_only ON public.ceo_improvement AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_invite_trade_priority_service_role_only ON public.ceo_invite_trade_priority AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_launch_gate_service_role_only ON public.ceo_launch_gate AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_mandate_service_role_only ON public.ceo_mandate AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_market_report_service_role_only ON public.ceo_market_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1215,11 +1243,15 @@ CREATE POLICY ceo_review_service_role_only ON public.ceo_review AS PERMISSIVE FO
 CREATE POLICY ceo_seat_audit_service_role_only ON public.ceo_seat_audit AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_seat_directive_service_role_only ON public.ceo_seat_directive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_strategy_memo_service_role_only ON public.ceo_strategy_memo AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_supplier_channel_service_role_only ON public.ceo_supplier_channel AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_supplier_funnel_daily_service_role_only ON public.ceo_supplier_funnel_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_supplier_goal_service_role_only ON public.ceo_supplier_goal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_weekly_report_service_role_only ON public.ceo_weekly_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_weekly_review_service_role_only ON public.ceo_weekly_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_year_plan_service_role_only ON public.ceo_year_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_year_plan_milestone_service ON public.ceo_year_plan_milestone AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY charge_audit_service_role_only ON public.charge_audit AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY company_faq_embed_inflight_service_role_only ON public.company_faq_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY company_reputation_snapshot_service_role_only ON public.company_reputation_snapshot AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY company_review_ask_service_role_only ON public.company_review_ask AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY competitor_scan_service_role_only ON public.competitor_scan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1227,6 +1259,7 @@ CREATE POLICY complaint_tickets_service_role_only ON public.complaint_tickets AS
 CREATE POLICY contact_duplicate_group_service_role_only ON public.contact_duplicate_group AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY contact_merge_audit_service_role_only ON public.contact_merge_audit AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY conversation_archive_service_role_only ON public.conversation_archive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY conversation_archive_attempt_service_role_only ON public.conversation_archive_attempt AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY conversation_retention_log_service_only ON public.conversation_retention_log AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY conversation_retention_pdf_service_only ON public.conversation_retention_pdf AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY conversation_retention_plan_log_service_only ON public.conversation_retention_plan_log AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -1251,6 +1284,8 @@ CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SE
   WHERE ((r.ref_table = documents.ref_table) AND (r.ref_id = documents.ref_id)))));
 CREATE POLICY duty_pause_service_role_only ON public.duty_pause AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.edge_health_probe AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY email_open_event_service_role_only ON public.email_open_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY email_open_token_service_role_only ON public.email_open_token AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY email_platform_domain_service_role_only ON public.email_platform_domain AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY error_events_service_role_only ON public.error_events AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY expense_bank_match_service_role ON public.expense_bank_match AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -1267,6 +1302,7 @@ CREATE POLICY governance_sensitive_service_role_only ON public.governance_sensit
 CREATE POLICY os_owner_admin_read ON public.inquiries AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY inquiry_conversation_summary_service_only ON public.inquiry_conversation_summary AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY intake_trade_taxonomy_service_role_only ON public.intake_trade_taxonomy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY invite_brake_service_role_only ON public.invite_brake AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY invite_placement_bar_service_role_only ON public.invite_placement_bar AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY invite_placement_check_service_role_only ON public.invite_placement_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_access_known_service_role_only ON public.it_access_known AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1315,6 +1351,7 @@ CREATE POLICY knowledge_library_state_service_role_only ON public.knowledge_libr
 CREATE POLICY knowledge_ml_claim_service_role_only ON public.knowledge_ml_claim AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_ml_status_service_role_only ON public.knowledge_ml_status AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_vector_ml_service_role_only ON public.knowledge_vector_ml AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY lead_email_check_service_role_only ON public.lead_email_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY lead_prospect_service_role_only ON public.lead_prospect AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY lead_sourcing_run_service_role_only ON public.lead_sourcing_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY lead_trade_class_service_role_only ON public.lead_trade_class AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1331,11 +1368,14 @@ CREATE POLICY marketing_blog_topic_service_role_only ON public.marketing_blog_to
 CREATE POLICY marketing_calendar_resend_decision_service_role_only ON public.marketing_calendar_resend_decision AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_campaign_service_role_only ON public.marketing_campaign AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_connection_check_service_role_only ON public.marketing_connection_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_duty_record_service_role_only ON public.marketing_duty_record AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_duty_run_service_role_only ON public.marketing_duty_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_fact_watch_service_role_only ON public.marketing_fact_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_first_touch_service_role_only ON public.marketing_first_touch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_founder_request_service_role_only ON public.marketing_founder_request AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_gap_recruitment_plan_service_role_only ON public.marketing_gap_recruitment_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_geo_check_service_role_only ON public.marketing_geo_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_geo_fix_service_role_only ON public.marketing_geo_fix AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_geo_question_service_role_only ON public.marketing_geo_question AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_goal_service_role_only ON public.marketing_goal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_insight_day_service_role_only ON public.marketing_insight_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1467,6 +1507,7 @@ CREATE POLICY supplier_performance_service_role_only ON public.supplier_performa
 CREATE POLICY supplier_public_name_service_role_only ON public.supplier_public_name AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_quote_template_service_role_only ON public.supplier_quote_template AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_recruitment_funnel_service_role_only ON public.supplier_recruitment_funnel AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supplier_reply_followup_service_role_only ON public.supplier_reply_followup AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_scorecard_service_role_only ON public.supplier_scorecard AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_voice_note_service_role_only ON public.supplier_voice_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1552,7 +1593,6 @@ select cron.schedule('seat_duty:ceo.five_number_report','*/5 * * * *',$CRON$set 
 select cron.schedule('seat_duty:it_engineer.model_spend','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.model_spend');$CRON$);
 select cron.schedule('seat_duty:customer_support.case_idle_close','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.case_idle_close');$CRON$);
 select cron.schedule('dropbox_backup_second_scheduler','41 */6 * * *',$CRON$select public.fn_backup_kick('pg_cron_second_scheduler', 'enqueue');$CRON$);
-select cron.schedule('kb_embed_daily','20 2 * * *',$CRON$set statement_timeout = '120s'; select public.fn_kb_embed_scheduled_run();$CRON$);
 select cron.schedule('seat_duty:ceo.revision_refile','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.revision_refile');$CRON$);
 select cron.schedule('seat_duty:it_engineer.latency_slo','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.latency_slo');$CRON$);
 select cron.schedule('seat_duty:sales_engineer.demand_forecast','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.demand_forecast');$CRON$);
@@ -1574,6 +1614,27 @@ select cron.schedule('seat_duty:customer_support.delivery_health','*/5 * * * *',
 select cron.schedule('seat_duty:customer_support.complaint_deadlines','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.complaint_deadlines');$CRON$);
 select cron.schedule('seat_duty:customer_support.incident_notices','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.incident_notices');$CRON$);
 select cron.schedule('seat_duty:sales_engineer.supplier_outreach','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.supplier_outreach');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.lead_email_check','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.lead_email_check');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.invite_restart','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.invite_restart');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.supplier_reply_followups','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.supplier_reply_followups');$CRON$);
+select cron.schedule('seat_duty:customer_support.dead_answer_rescue','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.dead_answer_rescue');$CRON$);
+select cron.schedule('seat_duty:ceo.supplier_growth','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.supplier_growth');$CRON$);
+select cron.schedule('seat_duty:ceo.daily_number','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.daily_number');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.supplier_onboarding','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.supplier_onboarding');$CRON$);
+select cron.schedule('company_faq_embed','*/10 * * * *',$CRON$select public.fn_company_faq_embed_tick();$CRON$);
+select cron.schedule('kb_embed','*/10 * * * *',$CRON$set statement_timeout = '120s'; select public.fn_kb_embed_scheduled_run();$CRON$);
+select cron.schedule('seat_duty:marketing.geo_fix','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.geo_fix');$CRON$);
+select cron.schedule('seat_duty:marketing.social_publish','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.social_publish');$CRON$);
+select cron.schedule('seat_duty:marketing.social_inbox','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.social_inbox');$CRON$);
+select cron.schedule('seat_duty:marketing.trend_decision','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.trend_decision');$CRON$);
+select cron.schedule('seat_duty:marketing.kpi_scorecard','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.kpi_scorecard');$CRON$);
+select cron.schedule('seat_duty:marketing.fact_register','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.fact_register');$CRON$);
+select cron.schedule('seat_duty:marketing.paid_spend_report','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.paid_spend_report');$CRON$);
+select cron.schedule('seat_duty:it_engineer.openrouter_unattributed','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.openrouter_unattributed');$CRON$);
+select cron.schedule('seat_duty:it_engineer.postmortem','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.postmortem');$CRON$);
+select cron.schedule('seat_duty:customer_support.status_chase_close','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.status_chase_close');$CRON$);
+select cron.schedule('seat_duty:customer_support.person_followup_email','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.person_followup_email');$CRON$);
+select cron.schedule('seat_duty:accountant.reveal_reconcile','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.reveal_reconcile');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
@@ -1595,7 +1656,9 @@ select cron.schedule('seat_duty:sales_engineer.supplier_outreach','*/5 * * * *',
 --   brand_logo_on_navy_url
 --   brand_logo_on_white_url
 --   brand_mark_transparent_url
+--   ceo_daily_number_golive
 --   ceo_digest_local_time
+--   ceo_growth_act_golive
 --   ceo_weekly_report_local_dow
 --   ceo_weekly_report_local_time
 --   cloudconvert_api_key
@@ -1723,6 +1786,7 @@ select cron.schedule('seat_duty:sales_engineer.supplier_outreach','*/5 * * * *',
 --   email_from_info
 --   email_from_supplier
 --   email_logo_url
+--   email_open_ip_salt
 --   email_reply_info
 --   email_reply_supplier
 --   email_reply_supplier_docs
@@ -1746,6 +1810,7 @@ select cron.schedule('seat_duty:sales_engineer.supplier_outreach','*/5 * * * *',
 --   inbound_webhook_secret
 --   internal_credential_hmac_key
 --   invite_body
+--   invite_ceo_ceiling
 --   invite_daily_cap
 --   invite_enabled
 --   invite_lane_enabled
@@ -1754,7 +1819,9 @@ select cron.schedule('seat_duty:sales_engineer.supplier_outreach','*/5 * * * *',
 --   invite_m365_enabled
 --   invite_m365_mailbox
 --   invite_max_bounce_rate
+--   invite_open_tracking
 --   invite_preheader
+--   invite_reachable_only
 --   invite_subject
 --   invite_target_per_category
 --   invite_target_per_trade
@@ -1819,6 +1886,7 @@ select cron.schedule('seat_duty:sales_engineer.supplier_outreach','*/5 * * * *',
 --   supplier_subscription_aed
 --   supplier_subscription_start
 --   supplier_subscription_term
+--   supplier_terms_carries_from
 --   supplier_terms_html
 --   supplier_terms_label
 --   supplier_terms_version

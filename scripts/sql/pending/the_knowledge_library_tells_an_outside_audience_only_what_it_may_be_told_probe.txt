@@ -1,0 +1,1 @@
+A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same query through node scripts/qsql.mjs; run alone it reports the live readers (the "before"). Never applied on its own; kept as the proof named by "Prevented by:" (scripts/checks/every_customer_reachable_reader_carries_the_audience_rules.test.mjs).

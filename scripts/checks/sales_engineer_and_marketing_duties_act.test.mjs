@@ -136,7 +136,7 @@ do $$ declare o jsonb := '{}'; v jsonb; lid bigint; inq uuid; h bigint; n bigint
                                             = (select count(*) from public.supply_gap where status = 'recruit'),
     'first_is_target', (select exists (select 1 from public.leads l join public.supply_gap g on g.status = 'recruit' and g.trade = any(l.invite_trades)
                                         and (g.emirate = 'UAE' or g.emirate = l.emirate)
-                                        where l.id = (select lead_id from public.fn_supplier_invite_candidates(1) limit 1))));
+                                        where l.id = (select lead_id from public.fn_supplier_invite_candidates(1, null::text[]) limit 1))));
 
   -- REPUTATION: no link -> a finding and nothing sent; a link -> one ask through customer_support, never two
   c := (select id from public.customers where email like '%@example.invalid' order by email limit 1);

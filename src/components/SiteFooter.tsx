@@ -87,7 +87,7 @@ export function SiteFooter() {
         </div>
       </div>
       {/* the sign-off: the wordmark set huge, cut by the viewport edge, lit from above */}
-      <div aria-hidden className="pointer-events-none relative -mb-[0.22em] select-none overflow-hidden text-center font-head font-semibold leading-none tracking-display text-transparent [-webkit-text-stroke:1px_rgba(110,231,212,.16)] [font-size:clamp(64px,17vw,260px)]" dir="ltr">
+      <div aria-hidden className="pointer-events-none relative mb-[-0.22em] select-none overflow-hidden text-center font-head font-semibold leading-none tracking-display text-transparent [-webkit-text-stroke:1px_rgba(110,231,212,.16)] text-[clamp(64px,17vw,260px)]" dir="ltr">
         QuotesDone
       </div>
     </footer>

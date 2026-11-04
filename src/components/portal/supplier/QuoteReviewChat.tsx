@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { srvMsg } from './serverCopy';
 import { failed, fileToBase64, openPdf as openPdfUrl, qr, REVIEW_STATE, type Issue, type Lang, type MessageView, type ThreadView } from './quoteReviewApi';
+import { awaitingReply } from './awaitingReply';
 import { photoToDataUrl } from '@/lib/chatPhoto';
 import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { Ltr } from '@/lib/Ltr';
@@ -62,7 +63,7 @@ const time =(d: string, lang: Lang) => new Date(d).toLocaleTimeString(lang === '
 function Reviewing({ lang }: { lang: Lang }) {
   const t = COPY[lang]; const reduce = useReducedMotion();
   return (
-    <motion.div role="status" aria-live="polite" className="flex max-w-[560px] items-start gap-3 rounded-2xl rounded-ss-sm border border-primary/30 bg-primary/[.06] px-4 py-3"
+    <motion.div role="status" aria-live="polite" className="flex max-w-[560px] items-start gap-3 rounded-2xl rounded-ss-sm border border-primary/30 bg-primary/6 px-4 py-3"
       initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.22, ease: EASE }}>
       <span aria-hidden className="mt-1.5 flex gap-1">
         {[0, 1, 2].map((i) => (
@@ -84,13 +85,13 @@ function IssueList({ issues, lang }: { issues: Issue[]; lang: Lang }) {
   return (
     <ol className="mt-2 flex flex-col gap-1.5">
       {issues.map((x, i) => (
-        <li key={`${x.code}:${x.line_no ?? ''}:${x.boq_line ?? ''}:${x.attr ?? ''}`} className="flex items-start gap-2.5 rounded-md border border-[var(--line)] bg-background/50 px-2.5 py-2 text-[13px] leading-relaxed">
+        <li key={`${x.code}:${x.line_no ?? ''}:${x.boq_line ?? ''}:${x.attr ?? ''}`} className="flex items-start gap-2.5 rounded-md border border-(--line) bg-background/50 px-2.5 py-2 text-[13px] leading-relaxed">
           <span className="mt-px font-mono text-[11.5px] tabular-nums text-muted-foreground"><Ltr>{String(i + 1).padStart(2, '0')}</Ltr></span>
           <span className="min-w-0 flex-1">
             <span className="mb-1 flex flex-wrap gap-1.5">
               <span className={cn('rounded-chip border px-1.5 py-px text-[11px] font-semibold', x.kind === 'adjustment' ? 'border-warn/40 bg-warn/10 text-warn-fg' : 'border-primary/40 bg-primary/10 text-primary')}>{x.kind === 'adjustment' ? t.adjustment : t.clarification}</span>
-              {x.boq_line ? <span className="rounded-chip border border-[var(--line2)] px-1.5 py-px text-[11px] text-muted-foreground">{t.boq(x.boq_line)}</span> : null}
-              {x.line_no && !x.boq_line ? <span className="rounded-chip border border-[var(--line2)] px-1.5 py-px text-[11px] text-muted-foreground">{t.line(x.line_no)}</span> : null}
+              {x.boq_line ? <span className="rounded-chip border border-(--line2) px-1.5 py-px text-[11px] text-muted-foreground">{t.boq(x.boq_line)}</span> : null}
+              {x.line_no && !x.boq_line ? <span className="rounded-chip border border-(--line2) px-1.5 py-px text-[11px] text-muted-foreground">{t.line(x.line_no)}</span> : null}
             </span>
             <span className="text-foreground">{lang === 'ar' ? x.ar : x.en}</span>
           </span>
@@ -118,7 +119,7 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
     <li className={cn('flex flex-col gap-1', eng ? 'items-start' : 'items-end')}>
       <span className="px-1 text-[11.5px] text-muted-foreground">{eng ? t.engineer : t.you} · <Ltr>{time(m.created_at, lang)}</Ltr></span>
       <div dir="auto" className={cn('max-w-[min(620px,100%)] rounded-2xl px-4 py-3 text-[13.5px] leading-relaxed',
-        eng ? 'rounded-ss-sm border border-[var(--line2)] bg-card text-foreground' : 'rounded-se-sm bg-primary/15 text-foreground',
+        eng ? 'rounded-ss-sm border border-(--line2) bg-card text-foreground' : 'rounded-se-sm bg-primary/15 text-foreground',
         m.kind === 'submitted' && 'border-primary/50 bg-primary/10')}>
         {parts ? <>
           <p className="whitespace-pre-line">{parts[0]}</p>
@@ -129,7 +130,7 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
         </> : body ? <p className="whitespace-pre-line">{body}</p> : null}
         {m.attachments.map((a) => (
           <div key={`${a.kind}:${a.name}:${a.quote_id ?? ''}`} className={cn('flex flex-wrap items-center gap-2', body ? 'mt-2.5' : '')}>
-            <span aria-hidden className="rounded-sm border border-[var(--line2)] px-1.5 py-0.5 font-mono text-[10.5px] uppercase text-muted-foreground">{(a.name.split('.').pop() || 'file').slice(0, 4)}</span>
+            <span aria-hidden className="rounded-sm border border-(--line2) px-1.5 py-0.5 font-mono text-[10.5px] uppercase text-muted-foreground">{(a.name.split('.').pop() || 'file').slice(0, 4)}</span>
             <span className="min-w-0 truncate text-[12.5px] text-foreground"><Ltr>{a.name}</Ltr></span>
             {(a.kind === 'quotation_file' || a.kind === 'chat_file') && safeUrl(a.url) ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={safeUrl(a.url)!} target="_blank" rel="noopener noreferrer">{t.download}</a> : null}
             {a.kind === 'standard_quote' && a.quote_id ? <Button size="sm" variant="outline" disabled={opening} onClick={() => openPdf(a.quote_id!, a.lang ?? lang)}>{a.lang === 'en' ? t.pdfEn : t.pdf}</Button> : null}
@@ -178,6 +179,18 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
     return () => clearInterval(h);
   }, [th, busy, token, inquiryId, lang, adopt]);
 
+  // THE ENGINEER'S ANSWER CAN ARRIVE AFTER THE SEND (3 Nov 2026). A turn the model did not answer is held and re-asked
+  // (_shared/reask.ts), and the re-ask posts the answer into this thread about a minute later - but nothing polled
+  // unless a review was running, so the supplier saw no answer until they reloaded (branch nightly 41623020490: "the
+  // engineer never answered the typed prices"). While the last message is the supplier's and under 5 minutes old, the
+  // thread is read again every 4 s. Prevented by: src/components/portal/supplier/awaitingReply.test.mjs.
+  const waitingFor = awaitingReply(th);
+  useEffect(() => {
+    if (!waitingFor || busy) return;
+    const h = setInterval(async () => { const n = ++seq.current; adopt(await qr.thread(token, inquiryId, lang), n); }, 4000);
+    return () => clearInterval(h);
+  }, [waitingFor, busy, token, inquiryId, lang, adopt]);
+
   const count = th ? th.messages.length : 0;
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, [count, busy]);
 
@@ -190,6 +203,11 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
     if (kind === 'upload') { const wait = 900 - (Date.now() - started); if (wait > 0) await new Promise((r) => setTimeout(r, wait)); }
     if (!alive.current) return;
     setBusy(null); adopt(j, n);
+    // An answer lost in transit is not a failed action: the server may have finished it, or still be on it (a running
+    // submission reads 'reviewing', which the 2 s poll above follows). Read the thread again rather than leave the
+    // supplier looking at the state from before they pressed.
+    const code = (j as { code?: string; error?: string } | null)?.code ?? (j as { error?: string } | null)?.error;
+    if (code === 'timeout' || code === 'network') { const m = ++seq.current; adopt(await qr.thread(token, inquiryId, lang), m); }
     if (onChanged && !failed(j as ThreadView)) onChanged();
   };
   const onFile = async (f: File | undefined) => {
@@ -218,15 +236,15 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
     await run('send', () => qr.message(token, inquiryId, v, lang, file || undefined));
   };
 
-  if (!th) return <div className="rounded-panel border border-[var(--line)] p-4 text-[13px] text-muted-foreground" aria-busy="true">{err || t.loading}</div>;
+  if (!th) return <div className="rounded-panel border border-(--line) p-4 text-[13px] text-muted-foreground" aria-busy="true">{err || t.loading}</div>;
   const st = REVIEW_STATE[th.state];
   const reviewing = busy === 'upload' || th.reviewing;
   const openPts = th.open_requests.filter((q) => q.kind !== 'choice');
   const closed = th.state === 'submitted' || th.state === 'closed';
 
   return (
-    <section aria-label={t.log} className="mt-4 overflow-hidden rounded-panel border border-[var(--line)] bg-background/40">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3">
+    <section aria-label={t.log} className="mt-4 overflow-hidden rounded-panel border border-(--line) bg-background/40">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-(--line) px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/15 font-mono text-[11px] font-bold text-primary">SE</span>
           <div className="min-w-0">
@@ -246,13 +264,13 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
       </div>
 
       {openPts.length > 0 && !closed ? (
-        <div className="border-t border-[var(--line)] bg-warn/[.06] px-4 py-2.5 text-[12.5px]">
+        <div className="border-t border-(--line) bg-warn/6 px-4 py-2.5 text-[12.5px]">
           <span className="font-semibold text-foreground">{t.open(openPts.length)}</span>
           <span className="text-muted-foreground"> — {t.tracked}</span>
         </div>
       ) : null}
 
-      <div className="border-t border-[var(--line)] px-3 py-3 sm:px-4">
+      <div className="border-t border-(--line) px-3 py-3 sm:px-4">
         {err ? <div role="alert" className="mb-2 text-[13px] text-danger-fg">{err}</div> : null}
         {closed ? (
           <div role="status" className="text-[13px] text-muted-foreground">{th.state === 'submitted' ? t.submitted : t.closed}</div>
@@ -271,7 +289,7 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
             <textarea id={'qd-rv-' + inquiryId} value={text} rows={2} maxLength={2000} disabled={!th.can_write || !!busy || th.reviewing}
               placeholder={t.placeholder} onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } }}
-              className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60" />
+              className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60" />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 {/* aria-hidden (audit 21 Sep 2026, finding 45): the Button below is the one control; a labelled hidden input made two "Attach quotation" entries for a screen reader. */}

@@ -93,6 +93,18 @@ Deno.test('a rate-limited sender stops at once', async () => {
   assertEquals([a.reply, a.error, g.bodies.length], ['', 'rate_limited', 1]);
 });
 
+// prevented by: this test (review of #1729). The stream got through with a figure the brief does not state, and the
+// rewrite was refused for the rate bucket: no other model is asked, and the result is 'rate_limited' (site_assistant then
+// shows its notice and files no knowledge gap), not "no model produced an answer". A retry refused the same way, likewise.
+Deno.test('a sender rate-limited on a later rung stops there and is reported rate_limited', async () => {
+  const g = gateway([sse(['The reveal fee is 5% of the quote. ']), json({ ok: false, error: 'rate_limited' }, 429)]);
+  const a = await answerFromBrief(C, () => {}, g.f);
+  assertEquals([a.reply, a.error, a.outage, g.bodies.length], ['', 'rate_limited', false, 2]);
+  const g2 = gateway([json({ error: 'all_models_failed' }, 502), json({ ok: false, error: 'rate_limited' }, 429)]);
+  const a2 = await answerFromBrief(C, () => {}, g2.f);
+  assertEquals([a2.reply, a2.error, a2.outage, g2.bodies.length], ['', 'rate_limited', false, 2]);
+});
+
 // prevented by: this test (ruling 1200). A photo with the message reaches the model as an image part of the latest turn.
 Deno.test('a photo rides on the latest message as an image part', async () => {
   const g = gateway([sse(['A wardrobe fits that wall. '])]);
@@ -209,4 +221,23 @@ Deno.test('1339: nothing passes even once more -> no text and not an outage (the
   const g = gateway([sse(['The fee is 5%. ']), said('The fee is 6%.'), said('The fee is 7%.'), said('The fee is 8%.'), said('The fee is 9%.'), said('The fee is 2%.')]);
   const a = await answerFromBrief(C, () => {}, g.f);
   assertEquals([a.reply, a.outage, g.bodies.length], ['', false, 6]);
+});
+
+// A rule for the WHOLE answer (checkWhole) never judges one streamed sentence (review of #1830): the widget's reply language.
+Deno.test('checkWhole runs on the finished answer, not on each streamed sentence', async () => {
+  const seen: string[] = [];
+  const g = gateway([sse(['The reveal fee is 3% of the quote. ', 'No card fee is added, and no VAT.'])]);
+  const c: BriefCall = { ...C, checkWhole: (t) => { seen.push(t); return []; } };
+  const a = await answerFromBrief(c, () => {}, g.f);
+  assertEquals(a.reply, 'The reveal fee is 3% of the quote. No card fee is added, and no VAT.');
+  assertEquals(seen, ['The reveal fee is 3% of the quote. No card fee is added, and no VAT.']);
+});
+
+Deno.test('a whole answer checkWhole refuses is rewritten by the model, with the problem named', async () => {
+  const g = gateway([sse(['The reveal fee is 3% of the quote. ', 'No card fee is added, and no VAT.']), json({ content: 'The reveal fee is 3% of the quote you choose, with no card fee and no VAT. Done.', model: 'm' })]);
+  const c: BriefCall = { ...C, checkWhole: (t) => /Done/.test(t) ? [] : ['it is not in Arabic, the language of this conversation'] };
+  const a = await answerFromBrief(c, () => {}, g.f);
+  assertEquals(a.rewrites, 1);
+  assert(a.reply.includes('Done.'));
+  assert((g.bodies[1].input as { content: string }[]).at(-1)!.content.includes('not in Arabic'));
 });

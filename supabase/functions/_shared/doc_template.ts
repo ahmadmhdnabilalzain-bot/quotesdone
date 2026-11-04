@@ -36,6 +36,8 @@ export type DocIdentity = {
    * are real; a letterhead prints the one you may call. */
   email: string;
   phone: string;
+  /** The calling number (ledger 1482). `phone` is the WhatsApp number and is never called. */
+  callPhone: string;
   web: string;
   signer: string;
   title: string;
@@ -55,7 +57,8 @@ export const FALLBACK: DocIdentity = {
   licence: 'DET Trader License No. 1633275',
   city: 'Dubai, United Arab Emirates',
   email: 'management@quotesdone.com',
-  phone: '+971 50 931 9355',
+  phone: '+1 218 316 6814',
+  callPhone: '+971 56 791 8605',
   // 21 Sep 2026 (customer audit, finding 12): the documents print the TDRA-permitted host the company
   // trades under in the UAE (NOL-26-100000665 is issued for www.quotesdone.ae; UAE visitors are served
   // there). The email stays management@quotesdone.com: measured 21 Sep 2026, it is the one address
@@ -131,15 +134,26 @@ export async function docIdentity(admin: SupabaseClient<any, any, any>): Promise
 }
 
 /** The two footer lines: the legal line (who issues the document and under which licence and
- * permit), then where to reach us. */
-export function footerLines(id: DocIdentity): [string, string] {
-  return [`${id.name} · ${id.licence} · ${id.permit}`, `${id.city} · ${id.email} · ${id.phone} · ${id.web}`];
+ * permit), then where to reach us — or, on a document a supplier receives before the reveal (`noContact`), where a
+ * question about it goes instead: the supplier portal, never a mailbox or a phone (3 Nov 2026, see SUPPLIER_ASK). */
+export function footerLines(id: DocIdentity, noContact = false): [string, string] {
+  if (noContact) return [`${id.name} · ${id.licence} · ${id.permit}`, `${id.city} · ${SUPPLIER_ASK.en} · ${id.web}`];
+  return [`${id.name} · ${id.licence} · ${id.permit}`, `${id.city} · ${id.email} · WhatsApp ${id.phone} · ${id.callPhone} · ${id.web}`];
 }
 
 /** The same two lines for an Arabic document (14 Sep 2026: the founder asked for the Arabic
  * documents to be Arabic throughout). The trade name, licence number, permit number, email, phone
  * and web address are proper nouns and codes and stay as written; the words around them are Arabic. */
-export function footerLinesAr(id: DocIdentity): [string, string] {
+/**
+ * WHERE A SUPPLIER'S QUESTION GOES (3 Nov 2026, sales_engineer). The request PDF a matched supplier downloads printed
+ * our footer's management@quotesdone.com and calling number (nightly journey run 41598217377, drawings step: "FAIL no
+ * contact detail of any shape in the English BOQ PDF"; the same in Arabic). The check is right: the founder's rules
+ * send every supplier question through Support and the pre-reveal Q&A (memory: sales-and-support-divide-by-surface,
+ * supplier-campaign-sends-from-supplier-at-quotesdone-com), so a supplier-facing request carries no mailbox and no
+ * phone at all — the platform's own included, which also keeps "no contact of any shape" a check that sees a leak.
+ */
+export const SUPPLIER_ASK = { en: 'Questions about this request: ask them in your QuotesDone supplier portal', ar: 'للاستفسار عن هذا الطلب: اطرح سؤالك من بوابة المورّدين في QuotesDone' };
+export function footerLinesAr(id: DocIdentity, noContact = false): [string, string] {
   const no = (id.licence.match(/\d{5,}/) || [''])[0];
   const permit = id.permit.replace(/^TDRA\s*/, '');
   // 22 Sep 2026 (DL-08): the authority's full Arabic name, and the Latin acronym TDRA dropped with it.
@@ -151,7 +165,7 @@ export function footerLinesAr(id: DocIdentity): [string, string] {
   // it again. The acronym is the English short form of the authority the line has just named in
   // Arabic; the permit NUMBER is the code that identifies the document and stays.
   return [`${id.name} · رخصة تاجر من دائرة الاقتصاد والسياحة في دبي رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات والحكومة الرقمية ${permit}`,
-    `دبي، الإمارات العربية المتحدة · ${id.email} · ${id.phone} · ${id.web}`];
+    noContact ? `دبي، الإمارات العربية المتحدة · ${SUPPLIER_ASK.ar} · ${id.web}` : `دبي، الإمارات العربية المتحدة · ${id.email} · واتساب ${id.phone} · ${id.callPhone} · ${id.web}`];
 }
 
 /**

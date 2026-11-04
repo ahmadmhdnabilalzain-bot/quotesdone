@@ -24,9 +24,11 @@ import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { rotateAndSettle } from '../_shared/it_rotate_by_api.ts';
 import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
+import { notReached } from '../_shared/not_reached.ts';
+import { anotherRound, ARCHIVE_HARD_MS, isolateOffsets, type SliceOut } from './archive_rounds.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
-import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
+import { pollReplyInbox, pollTenantMailboxes, PROOF_LABEL, type SenderKind } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { heartbeatDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
@@ -157,17 +159,31 @@ const ARCHIVE_SWEEPS = 4, ARCHIVE_BATCH = 4;
 async function archiveTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
-    const one = async (offset: number) => {
+    // A sweep is idempotent (oldest-first, recorded by upsert), so one the platform refused before any worker ran it
+    // is asked once more (2 Nov 2026: 7 conversation_archive 503s in a day, each ~10 s with no execution_id and
+    // x-served-by base/server - the worker never started). _shared/not_reached.ts decides what "refused" means.
+    const signal = AbortSignal.timeout(ARCHIVE_HARD_MS);   // one clock for every call of every round
+    const one = async (offset: number, limit = ARCHIVE_BATCH): Promise<SliceOut & { ok?: boolean; error?: string }> => {
       try {
-        const r = await fetch(FN + '/conversation_archive', {
+        const ask = () => fetch(FN + '/conversation_archive', {
           method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
-          body: JSON.stringify({ __secret: secret, action: 'sweep', limit: ARCHIVE_BATCH, offset }), signal: AbortSignal.timeout(50000),
+          body: JSON.stringify({ __secret: secret, action: 'sweep', limit, offset }), signal: signal,
         });
+        let r = await ask();
+        if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
         return { offset, status: r.status, result: await r.json().catch(() => null) };
       } catch (e) { return { offset, ok: false, error: String((e as Error)?.message || e) }; }
     };
-    const sweeps = await Promise.all(Array.from({ length: ARCHIVE_SWEEPS }, (_, i) => one(i * ARCHIVE_BATCH)));
-    return { status: (sweeps[0] as { status?: number }).status, result: (sweeps[0] as { result?: unknown }).result, sweeps };
+    // ROUNDS UNTIL THE BACKLOG IS CLEAR, AND A DEAD SLICE RE-RUN ONE MESSAGE PER WORKER (archive_rounds.ts).
+    const t0 = Date.now(); const rounds: unknown[] = []; let sweeps: SliceOut[] = [];
+    for (let round = 0; ; round++) {
+      sweeps = await Promise.all(Array.from({ length: ARCHIVE_SWEEPS }, (_, i) => one(i * ARCHIVE_BATCH)));
+      const iso = isolateOffsets(sweeps, ARCHIVE_BATCH);
+      const isolated = iso.length ? await Promise.all(iso.map((o) => one(o, 1))) : [];
+      rounds.push({ sweeps, isolated });
+      if (!anotherRound(sweeps, round, Date.now() - t0)) break;
+    }
+    return { status: sweeps[0]?.status, result: sweeps[0]?.result, rounds: rounds.length, detail: rounds };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -1006,6 +1022,18 @@ async function whatsappTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE WHATSAPP SENDER'S RATING, READ WITHOUT A MESSAGE (2 Nov 2026, ceo). The supplier invitation gate needs a reading
+// under 26 hours old, and until now only a queued invitation caused one, so the channel could never open.
+async function waSenderQualityTick(): Promise<unknown> {
+  try {
+    const r = await fetch(FN + '/send_whatsapp', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
+      body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), read_sender_quality: true }), signal: AbortSignal.timeout(8500),
+    });
+    return { ok: r.ok, status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE ACCOUNTANT'S WEEKLY FINANCIAL REPORT HANGS HERE FOR THE FOURTH TIME, AND FOR THE SAME REASON.
 // The founder, 9 Sep 2026: the accountant must "create weekly report as pdf and share it with me and
 // the CEO". A weekly report needs a schedule and pg_cron is not one any more, so the once-per-ISO-week
@@ -1190,29 +1218,65 @@ async function itIntegrationsTick(): Promise<unknown> {
     } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
   })();
   const replies = m365Replies();   // a third independent path (6 Oct 2026): replies to the Microsoft 365 mailbox
+  // a fourth (2 Nov 2026): every other mailbox of the tenant, after supplier@, so one message addressed to both is taken once
+  const tenantMail = replies.then(() => m365TenantMail());
   const [integ, placement] = await Promise.all([integrations, inboxPlacement()]);
   const inbox = await replies;
+  const tenantInbox = await tenantMail;
   // Either path failing is this step's failure (duty:heartbeat:itintegrations), so it reaches the IT engineer's loop
   // the same beat. The batch is held by the gate regardless. placement carries counts and verdicts only (public).
   const errors = [integ.ok === false ? String(integ.error) : null, placement.ok === false ? 'inbox placement: ' + String(placement.error) : null,
-    inbox.ok === false ? 'm365 reply inbox: ' + String(inbox.why) : null].filter(Boolean);
-  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement, m365_reply_inbox: inbox };
+    inbox.ok === false ? 'm365 reply inbox: ' + String(inbox.why) : null,
+    tenantInbox.ok === false ? 'm365 tenant mailboxes: ' + String(tenantInbox.why) : null].filter(Boolean);
+  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement, m365_reply_inbox: inbox, m365_tenant_mailboxes: tenantInbox };
 }
 
 // REPLIES TO supplier@quotesdone.com (6 Oct 2026, it_engineer + customer_support; _shared/m365_reply_inbox.ts).
 // The invitation lane sends without a Reply-To once this reader is proven, so a supplier's answer lands in that
 // mailbox; this reads it and hands every new message to resend_inbound, the handler every other reply goes through.
+const m365OnFile = async (ids: string[]) => {
+  const { data, error } = await admin.from('inbound_messages').select('provider_email_id').in('provider_email_id', ids);
+  if (error) throw new Error('inbound_messages: ' + error.message);
+  return new Set((data || []).map((r) => String(r.provider_email_id)));
+};
+const m365MessageOnFile = async (ids: string[]) => {
+  const { data, error } = await admin.from('inbound_messages').select('message_id:raw->>message_id').in('raw->>message_id', ids);
+  if (error) throw new Error('inbound_messages: ' + error.message);
+  return new Set((data || []).map((r) => String((r as { message_id: unknown }).message_id)));
+};
+// Who wrote, read only: the founder or staff; a lead (leads.email or claimed_by) or a customer; else a stranger.
+async function m365Sender(address: string): Promise<SenderKind> {
+  const [own, rel] = await Promise.all([admin.rpc('fn_is_founder_own_inbox', { p_addr: address }), admin.rpc('fn_mail_sender_known', { p_email: address })]);
+  if (own.error || rel.error) throw new Error('sender lookup failed');
+  if (own.data === true || rel.data === 'staff') return 'founder';
+  if (rel.data) return 'known';
+  const { data, error } = await admin.from('leads').select('id').ilike('claimed_by', address.replace(/[\\%_]/g, '\\$&')).limit(1);
+  if (error) throw new Error('sender lookup failed');
+  return data?.length ? 'known' : null;
+}
+async function m365TenantMail(): Promise<Record<string, unknown>> {
+  try {
+    return await pollTenantMailboxes({
+      fetchFn: (u, i) => timedFetch(u, i || {}, 25_000), env: (k) => Deno.env.get(k),
+      inviteMailbox: await sec('invite_m365_mailbox'), listedMailboxes: await sec('m365_tenant_mailboxes'),
+      strangersFrom: await sec('m365_tenant_strangers_from'), financialDomains: await sec('m365_financial_domains'), messageOnFile: m365MessageOnFile,
+      inboundToken: await sec('resend_inbound_token'), signingSecret: await sec('resend_inbound_signing_secret'), inboundUrl: FN + '/resend_inbound',
+      onFile: m365OnFile, sender: m365Sender,
+      // counts.m365_tenant and never counts.m365_inbox: send_outbox's proof read cannot select this row.
+      record: async (status, counts, note) => {
+        await admin.from('agent_runs').insert({ agent: PROOF_LABEL, status, counts, note: note.slice(0, 500),
+          started_at: new Date().toISOString(), finished_at: new Date().toISOString() });
+      },
+    });
+  } catch (e) { return { ok: false, why: String((e as Error)?.message || e).slice(0, 200) }; }
+}
 async function m365Replies(): Promise<Record<string, unknown>> {
   try {
     return await pollReplyInbox({
       fetchFn: (u, i) => timedFetch(u, i || {}, 25_000), env: (k) => Deno.env.get(k),
       mailbox: await sec('invite_m365_mailbox'), inboundToken: await sec('resend_inbound_token'),
       signingSecret: await sec('resend_inbound_signing_secret'), inboundUrl: FN + '/resend_inbound',
-      onFile: async (ids) => {
-        const { data, error } = await admin.from('inbound_messages').select('provider_email_id').in('provider_email_id', ids);
-        if (error) throw new Error('inbound_messages: ' + error.message);
-        return new Set((data || []).map((r) => String(r.provider_email_id)));
-      },
+      onFile: m365OnFile, sender: m365Sender, messageOnFile: m365MessageOnFile,
       fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; },
       record: async (status, counts, note) => {
         await admin.from('agent_runs').insert({ agent: PROOF_LABEL, status, counts, note: note.slice(0, 500),
@@ -1325,6 +1389,11 @@ async function itLaterDutiesTick(clock: StepClock = stepClock()): Promise<Record
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;
     return { due: true, approved_rechecked: r?.approved_rechecked, registrations_closed: r?.registrations_closed };
+  });
+  await step('held_registrations', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('held_registrations')) return { due: false };
+    const unreached = await rpc('fn_sales_engineer_closes_unreached_requests');
+    return { due: true, ...((await rpc('fn_sales_engineer_decides_held_registrations')) as Record<string, unknown>), unreached };
   });
   // Its own step, never behind fn_it_restore_table_due: a drill that stops completing is a finding.
   await step('restore_overdue', async () => rpc('fn_it_restore_table_overdue'));
@@ -1663,6 +1732,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   ceoWeeklyReview: { run: ceoWeeklyReviewTick },
   ceoDecisions: { run: ceoDecisionsTick },
   ceoPlan: { run: ceoPlanTick },
+  waSenderQuality: { run: waSenderQualityTick },
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
   caseMemory: { run: caseMemoryEmbedTick },

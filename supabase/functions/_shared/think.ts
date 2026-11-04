@@ -88,6 +88,10 @@ export interface ThinkRequest {
   subject?: Record<string, unknown>;   // what a replay acts on (a command id, a phone, a message id)
   dedupeKey?: string;       // one held row per inbound message
   queueWhenHeld?: boolean;  // default true
+  // LEAN (customer_support, 2 Nov 2026): a decision among given options reads the message, the recent turns, who is asking and the
+  // options; it needs no company brief. Measured on the real exchange: the brief made WhatsApp's one classification call ~150k
+  // tokens and 17-24 s. Lean sends no settled facts to the decide/verify calls; the reply step is a different request and keeps them.
+  lean?: boolean;
   // An ANSWER that also names which seat owns the matter (support_reply.ts, founder_instruction 781). Unlike
   // `decision`, the answer stays the reply; the chosen id comes back as result.route (null if not one of these).
   route?: { id: string; meaning: string }[];
@@ -126,6 +130,63 @@ export interface ThinkRequest {
   reader?: boolean;
   // The reasoning effort asked of the model for the answer or decision (a choice among a few options needs little).
   effort?: 'low' | 'medium' | 'high';
+  // Sampling temperature for every call of this run (absent: 0.2, and 0 for the independent check). The quote hold
+  // gate's readers pass 0 (sales_engineer, 2 Nov 2026): the same quotation must read the same way every time.
+  temperature?: number;
+  // A ROUTINE SCHEDULED DUTY RUNS ON THE SEAT'S EASY ROUTE (it_engineer, 3 Nov 2026; ruling 1056: the CEO has Opus for
+  // HARD tasks only). Every internal_judgement step of this run is asked as routine_employee_reasoning, which fn_ai_route
+  // gives every seat on its cheap model. Set by replayHeld for EASY_DUTY_SURFACES; a caller may set it for its own duty.
+  easy?: boolean;
+  // AN INTERNAL DUTY (it_engineer, 3 Nov 2026): the seat's own scheduled work. A model it PAID for an empty answer is not
+  // asked again (the CEO's Opus replays, 3 Nov: every second attempt empty at 35-38 s, paid twice). DECLARED, never inferred
+  // from the audience: an internal-audience judgement about a real supplier or visitor (a held supplier-profile read, a
+  // routing decision) is not a duty and keeps every retry. Set by replayHeld for INTERNAL_DUTY_SURFACE only.
+  internalDuty?: boolean;
+}
+/** The held-question surfaces that are a seat's own scheduled work about the company, never about a person's case. */
+export const INTERNAL_DUTY_SURFACE = /^[a-z_]+\.(knowledge_refresh|postmortem|root_cause|ceo_revision|management_review|target_forecast|marketing_month_plan|experiment_approval|experiment_verdict)$/;
+/** The class a step is asked as: an easy run's own judgement goes on the seat's routine route (see ThinkRequest.easy). */
+export function easyClass(taskClass: string, easy: boolean | undefined): string {
+  return easy === true && taskClass === 'internal_judgement' ? 'routine_employee_reasoning' : taskClass;
+}
+/** Held-question surfaces that are routine for their seat: the quarterly knowledge re-check ('<seat>.knowledge_refresh')
+ *  confirms an entry against its source. Measured on the CEO's (ceo.knowledge_refresh): Opus, about USD 0.6 a day, and on
+ *  3 Nov every second attempt came back an empty completion at 35-38 s, paid twice. prevented by: _shared/think_spend.test.ts */
+export const EASY_DUTY_SURFACE = /\.knowledge_refresh$/;
+/** Arabic-Indic and Eastern Arabic-Indic digits as ASCII, so a figure written either way is the same figure. */
+const asciiDigits = (s: string) => s.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+/** Lower case, ASCII digits, no thousands commas, split into words, numbers and '%'. */
+const toks = (s: string) => asciiDigits(String(s ?? '').toLowerCase()).replace(/(\d),(?=\d{3})/g, '$1').match(/\d+(?:\.\d+)?|%|[\p{L}]+/gu) ?? [];
+const FUNCTION_WORDS = new Set(['a', 'an', 'the', 'per', 'of', 'to', 'for', 'in', 'on', 'at', 'and', 'or', 'is', 'are', 'be', 'by', 'up', 'within', 'about']);
+const isNum = (t: string) => /^\d/.test(t);
+const COMPARATOR_TAIL = new Set(['than', 'least', 'most']);
+/** A figure in context: the word before it and the first content word (or %) after it, as they appear in the text. */
+export type Figure = { num: string; before: string | null; after: string | null };
+function figuresIn(t: string[]): Figure[] {
+  return t.flatMap((x, i) => {
+    if (!isNum(x)) return [];
+    const back = t.slice(Math.max(0, i - 4), i).reverse().filter((y) => !FUNCTION_WORDS.has(y));
+    // a comparator keeps the word it compares ("more than 3" is not "less than 3")
+    const before = back[0] && !isNum(back[0]) ? (COMPARATOR_TAIL.has(back[0]) && back[1] && !isNum(back[1]) ? back[1] + ' ' + back[0] : back[0]) : null;
+    // '%' is part of the figure, and the word after it is still compared ("3% of the quote" is not "3% of the subscription")
+    const pct = t[i + 1] === '%';
+    const after = t.slice(i + (pct ? 2 : 1), i + (pct ? 5 : 4)).find((y) => !FUNCTION_WORDS.has(y)) ?? null;
+    return [{ num: pct ? x + '%' : x, before, after: after && !isNum(after) ? after : null }];
+  });
+}
+export function figuresOf(answer: string): Figure[] { return figuresIn(toks(answer)); }
+/**
+ * True only when the answer states at least one figure and EVERY figure is printed in ONE of the sources with the same
+ * word before it and the same content word after it ("AED 1500 ... month" is not "AED 1500 ... year"; "USD 1500" is not
+ * "AED 1500"). Anything else - no figure, or one figure that differs - goes to the independent model.
+ */
+export function figuresGrounded(answer: string, sources: string[]): boolean {
+  const figs = figuresOf(answer);
+  if (!figs.length) return false;
+  const inSrc = sources.map((s) => figuresIn(toks(s)));
+  // an answer figure with nothing after it ("costs 3%.") claims no unit to contradict; one with a word must match it
+  const same = (a: Figure, b: Figure) => a.num === b.num && a.before === b.before && (a.after === null || a.after === b.after);
+  return figs.every((f) => inSrc.some((src) => src.some((g) => same(f, g))));
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -157,7 +218,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high' }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high'; temperature?: number; signal?: AbortSignal; internal?: boolean }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Why the last embed of this text in this space returned null, when the embedder said (ml_embed_client's `why`). */
@@ -202,6 +263,12 @@ export const BRIEF_SOURCE_ID = 'brief';
 // JSON object'. Every class think() writes in allows at least 2,000 (model_policy: internal_judgement and
 // routine_employee_reasoning 2,000; the audience classes and ceo__internal_judgement 4,000).
 export const SYNTH_MAX = 2000;
+// A LEAN CHOICE WRITES LITTLE (customer_support, 2 Nov 2026). Its caller reads decision.choice (and `also`) and nothing else, yet the
+// model wrote a two-or-three sentence "answer" and a reasoning trail first: decode time is most of the ~15 s classification.
+// Lean decisions are told to keep every other field minimal, and are capped at this many tokens (the JSON itself is ~100).
+export const LEAN_DECIDE_MAX = 500;
+const LEAN_DECIDE_NOTE = `
+This choice is read by a program: only "decision" (and any "Also" keys) is used. Keep "answer" to at most eight words, "reasoning" [], "cited" [], "asked_back" null, and write nothing outside the JSON object.`;
 // The planner runs on a reasoning model whose hidden tokens count against the clock: on the seat exam (19 Oct 2026)
 // 41 of 432 plans (routine_employee_reasoning on gpt-6-luna-pro) hit the gateway's 47 s wall and the question was held
 // (25 of 67 for ceo); the slowest plan that finished took 47.3 s.
@@ -586,14 +653,21 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     steps.push({ id: 'fixture', kind: 'hold', goal: 'our own test traffic is never sent to a paid model', status: 'skipped', detail: 'subject.fixture' });
     return await hold('fixture_no_spend', {});
   }
-  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, subject: req.subject ?? null }) }; }
+  // internal: a DECLARED internal duty asked for an internal audience (defaultDeps tells ai_gateway, which then never
+  // re-asks the same model after a paid empty answer); anything else - every customer's, supplier's or visitor's case - is not.
+  const internalDuty = req.internalDuty === true && INTERNAL_AUDIENCES.has(audience);
+  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, taskClass: easyClass(o.taskClass, req.easy), subject: req.subject ?? null, internal: internalDuty, ...(req.temperature != null ? { temperature: req.temperature } : {}) }) }; }
   // A PROVIDER BLIP IS RETRIED ONCE (ceo, ledger 1003 stage 2, 19 Oct 2026). Measured on the real-model seat exam: 27 of
   // 633 questions were held for one 502/503/546 or a gateway deadline on the plan or the answer, not for anything the
   // model said. A model call writes nothing, so one more try is safe; a hold, an open circuit or a refusal is not retried.
   { const base = deps; deps = { ...base, llm: async (p, s, i, o) => {
     const r = await base.llm(p, s, i, o);
     const e = String(r.error ?? '');
-    if (r.content || p === 'verify' || !TRANSIENT_MODEL_ERROR.test(e) || SLOW_MODEL_ERROR.test(e) || /circuit_open|open-circuit|founder_hold/.test(e)) return r;
+    // ...but never for our own work (an internal duty or a test run) after a model was PAID for an empty answer (it_engineer,
+    // 3 Nov 2026): asking again bought the same nothing twice (the CEO's Opus replays, 3 Nov). A customer's, supplier's or
+    // visitor's turn keeps its second chance.
+    const ownWork = internalDuty || !!e2eRunTag();
+    if (r.content || p === 'verify' || !TRANSIENT_MODEL_ERROR.test(e) || SLOW_MODEL_ERROR.test(e) || /circuit_open|open-circuit|founder_hold/.test(e) || (ownWork && /empty_completion/.test(e))) return r;
     steps.push({ id: p + '.retry', kind: p, goal: 'one retry after a provider error', status: 'done', detail: r.error });
     return await base.llm(p, s, i, o);
   } }; }
@@ -606,7 +680,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
 
   // a. DECOMPOSE
-  const facts0 = settledFacts(audience, req.seat);
+  const facts0 = req.lean === true && deciding ? '' : settledFacts(audience, req.seat);
   const d0 = req.plan ? { content: JSON.stringify({ steps: req.plan.steps, facts: [] }), error: null }
     : await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
       JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
@@ -740,12 +814,14 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     + (req.ask && !deciding ? `
 Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '')
     + (req.also ?? []).map((a) => `
-Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.`).join('');
+Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.`).join('')
+    + (req.lean === true && deciding ? LEAN_DECIDE_NOTE : '');
+  const synthMax = req.lean === true && deciding ? LEAN_DECIDE_MAX : req.maxTokens?.synthesise ?? SYNTH_MAX;
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
+      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: synthMax, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (req.reader && draft && typeof draft === 'object') {
       draft.asked_back = null;
@@ -770,6 +846,17 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
       const p = await req.polish(String(draft.answer ?? '')).catch(() => null);
       if (p) { draft = { ...draft, answer: p }; steps.push({ id: 'polish', kind: 'synthesise', goal: "the caller's rewrite, before the check", status: 'done' }); }
     }
+    // CODE FIRST (it_engineer, 3 Nov 2026). Measured: 52 knowledge_validation calls a week on Sonnet, 23-48k mostly
+    // uncached prompt tokens each, for an ~18-token verdict. What the check looks for is a limit, a sum or a safety
+    // statement the sources do not support; a figure is the part code can prove. When every figure the answer states,
+    // with the word that follows it, is printed in the sources or the settled facts, code agrees and no model is asked.
+    // An answer with no figure, or with one the sources do not print, still goes to the independent model. So does every
+    // answer a customer, supplier or visitor reads (their text is checked whole, review of #1330), and every request whose
+    // caller DEMANDED the check (stakes 'high'): code decides only the seat's own answers the planner judged high-stakes.
+    if (INTERNAL_AUDIENCES.has(audience) && req.stakes !== 'high' && figuresGrounded(String(draft.answer ?? ''), [facts0, ...sources.map((s) => s.title + '\n' + s.excerpt)])) {
+      verified = { status: 'agreed', by: 'code', notes: 'every figure in the answer is printed in the sources or the settled facts' };
+      steps.push({ id: 'verify', kind: 'verify', goal: 'independent check of a high-stakes answer', status: 'done', detail: verified });
+    } else {
     const v = await deps.llm('verify', VERIFY_PROMPT + (req.maxTokens?.verify ? '\nReturn ONLY that JSON object, no other text: "problems" is [] when you agree, else at most two short items.' : ''), JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources }),
       { taskClass: taskClassFor('verify', audience, deciding), seat: req.seat, counterpartModel: model, max: req.maxTokens?.verify ?? 600, sysStable: facts0 });
     const vj = parseJson<{ verdict?: string; problems?: string[] }>(v.content);
@@ -781,7 +868,7 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
+        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: synthMax, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
       const fixed = parseJson<Draft>(r.content);
       if (req.reader && fixed && typeof fixed === 'object') { fixed.asked_back = null; keepProvenFields(fixed, req.decision, textOf(ctx) + '\n' + req.question); }
       if (fixed) groundDraft(fixed, missing);
@@ -790,6 +877,7 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
       confidence = Math.min(confidence, 0.5);
     }
     steps.push({ id: 'verify', kind: 'verify', goal: 'independent check of a high-stakes answer', status: 'done', detail: verified });
+    }
   }
 
   // Research that was cited goes back as pending knowledge, so the next question is answered from knowledge.
@@ -854,32 +942,40 @@ export function withDeadline(deps: ThinkDeps, deadline: number, minMs = MIN_STEP
 // the heartbeat's deps (heartbeatDeps) use it. Other callers keep the in-worker session: their latency, not a batch.
 // prevented by: _shared/held_replay_keeps_gte_out_of_the_worker.test.ts
 export type GtePlacement = 'worker' | 'remote';
-export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement } = {}): ThinkDeps {
+// cacheTtlMin (public_site, 3 Nov 2026): measured 809 calls on 73 distinct prompts in 7 days with 0 cache hits, because
+// every think() call opted out of the gateway cache. A caller whose identical question gets an identical answer passes a
+// TTL; the memo replays only the byte-identical prompt (cacheExact), never a similar one.
+export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement; embedTimeoutMs?: number; cacheTtlMin?: number } = {}): ThinkDeps {
+  // 8 s covers embed_ml's cold start (1.2-2.6 s); a visitor waiting on a page (public_site) gets a shorter clock, and a
+  // timeout is the same null an embed failure is: the caller goes on without the vector (it_engineer, review of #1786).
+  const embedMs = o.embedTimeoutMs ?? 8000;
   // why each remote embed returned null, per space and text, for the step detail (embedFailure); cleared on success
   const embedFails = new Map<string, string>();
   const noteFail = (sp: EmbedSpace, t: string) => (why: string) => { embedFails.set(sp + '\u0001' + t, why); };
   const settle = (sp: EmbedSpace, t: string, v: number[] | null) => { if (v) embedFails.delete(sp + '\u0001' + t); return v; };
+  const memoMin = o.cacheTtlMin ?? 0;
   return {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: o.timeoutMs ?? 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2, ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
+      // A declared internal duty (think: req.internalDuty for an internal audience) tells ai_gateway so (internal_duty).
+      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: o.timeoutMs ?? 45_000, cacheTtlMin: memoMin, ...(memoMin > 0 ? { cacheExact: true } : {}), ...(o.internal === true ? { internalDuty: true } : {}), json: true, temperature: o.temperature ?? (phase === 'verify' ? 0 : 0.2), ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
       // A photo or drawing the person sent rides as image parts; the gateway routes it to a vision-capable model.
       const last = o.images?.length ? { role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] } : { role: 'user', content: input };
       // history (chat_history.ts): the conversation so far as real turns before this one, cached by the gateway
       const content = o.history?.length ? [...o.history, last] : o.images?.length ? [last] : input;
       // sysStable: the byte-stable prefix (the company brief) the gateway marks cacheable; `system` follows it.
-      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}), ...(o.effort ? { effort: o.effort } : {}) });
+      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}), ...(o.effort ? { effort: o.effort } : {}), ...(o.signal ? { signal: o.signal } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {
       // The model runs in embed_ml, never in this worker (ml_embed_client.ts); 8 s covers its cold start (1.2-2.6 s).
-      if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return settle('ml', t, await embedQueryMlRemote(admin, t, fn, 8000, noteFail('ml', t))); }
+      if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return settle('ml', t, await embedQueryMlRemote(admin, t, fn, embedMs, noteFail('ml', t))); }
       const { embedLine } = await import('./gte_embed.ts');
       // Outside the edge runtime (the seat exam on a machine) there is no Supabase.ai: the same gte-small answers from
       // embed_ml instead of null, so a run off the edge retrieves exactly as the edge does (ml_embed_client.embedGteRemote).
       // deno-lint-ignore no-explicit-any
-      if (o.gte === 'remote' || !(globalThis as any).Supabase?.ai) { const { embedGteRemote } = await import('./ml_embed_client.ts'); return settle('gte', t, await embedGteRemote(admin, t, fn, 8000, noteFail('gte', t))); }
+      if (o.gte === 'remote' || !(globalThis as any).Supabase?.ai) { const { embedGteRemote } = await import('./ml_embed_client.ts'); return settle('gte', t, await embedGteRemote(admin, t, fn, embedMs, noteFail('gte', t))); }
       return await embedLine(t);
     },
     embedFailure: (t, sp) => embedFails.get(sp + '\u0001' + t) ?? null,
@@ -992,7 +1088,7 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
   const one = async (row: HeldRow) => {
     // One row's failure never abandons the batch: a throw is resolved as still held, and counted.
     let r: ThinkResult;
-    try { r = await think(d, { ...row.request, context: { ...row.request.context } as ThinkContext, queueWhenHeld: false }); }
+    try { r = await think(d, { ...row.request, context: { ...row.request.context } as ThinkContext, queueWhenHeld: false, easy: row.request.easy ?? EASY_DUTY_SURFACE.test(row.surface), internalDuty: INTERNAL_DUTY_SURFACE.test(row.surface) }); }
     catch (err) { r = { status: 'held', answer: '', steps: [], context_used: {}, missing_context: [], sources: [], confidence: 0, reason: 'threw: ' + String((err as Error)?.message || err).slice(0, 200) }; }
     const { data: res, error: e } = await d.rpc('fn_reason_held_resolve', { p_id: row.id, p_result: r });
     // The answer goes back on the channel it came from (_shared/reasoned_delivery.ts) - for this row and for every row

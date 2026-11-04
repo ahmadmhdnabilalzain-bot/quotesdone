@@ -11,6 +11,7 @@ test('the tab bar publishes its measured height and nothing assumes a fixed one'
   assert.match(s, /<nav ref=\{tabBar\} aria-label=\{t\('nav_main_bar'\)\}/, 'the tab bar no longer carries the ref that measures it');
   assert.match(s, /setProperty\('--qd-tabbar-h', el\.offsetHeight \+ 'px'\)/);
   assert.match(s, /\.observe\(el, \{ box: 'border-box' \}\)/, 'the bar is observed without its safe-area padding');
-  assert.ok((s.match(/bottom-\[var\(--qd-tabbar-h,0px\)\]/g) || []).length >= 2, 'a panel above the bar no longer uses its real height');
+  // Tailwind 4 writes a CSS-variable value as bottom-(--x,0px); v3 needed bottom-[var(--x,0px)]. Same rule.
+  assert.ok((s.match(/bottom-(?:\[var\(--qd-tabbar-h,0px\)\]|\(--qd-tabbar-h,0px\))/g) || []).length >= 2, 'a panel above the bar no longer uses its real height');
   assert.doesNotMatch(s, /bottom-\[calc\(\d+px\+env\(safe-area-inset-bottom\)\)\]/, 'a hard-coded bar height is back');
 });

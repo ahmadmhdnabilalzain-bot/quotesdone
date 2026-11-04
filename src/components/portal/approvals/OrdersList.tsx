@@ -70,7 +70,7 @@ function OrderLines({ order, lang }: { order: CustomerOrder; lang: Lang }) {
         const price = numOrNull(l.unit_price);
         const got = numOrNull(l.qty_received);
         return (
-          <li key={`${order.id}:${l.line_no ?? i}`} className="rounded-md border border-border bg-white/[0.02] px-3 py-2">
+          <li key={`${order.id}:${l.line_no ?? i}`} className="rounded-md border border-border bg-white/2 px-3 py-2">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="text-[13px] text-foreground">{l.description || `#${l.line_no ?? i + 1}`}</span>
               <span className="text-[12.5px] tabular-nums text-muted-foreground">
@@ -159,7 +159,7 @@ export function OrdersList({ token, lang = 'en', onOpenRfq, className }: OrdersL
           <Skeleton className="h-[148px] w-full rounded-lg" aria-hidden="true" />
         </>
       ) : error ? null : orders.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border bg-white/[0.02] px-5 py-8 text-center">
+        <div className="rounded-lg border border-dashed border-border bg-white/2 px-5 py-8 text-center">
           <h3 className="text-[15px] font-bold text-foreground">{tr(lang, 'empty_orders_title')}</h3>
           <p className="mx-auto mt-2 max-w-[62ch] text-[13px] leading-relaxed text-muted-foreground">
             {tr(lang, 'empty_orders_body')}

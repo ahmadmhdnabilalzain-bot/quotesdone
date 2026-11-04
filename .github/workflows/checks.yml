@@ -29,13 +29,14 @@ concurrency:
   group: checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
+# founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
+# on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
 on:
-  # push:
-    # branches: ['main']
-    # paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
-  # pull_request:
-    # paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
+  push:
+    branches: ['main']
+    paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
+  pull_request:
+    paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
   workflow_dispatch:
 
 # Deno reads only the npm: specifiers the edge functions import, never the Next.js app's package.json: with
@@ -47,12 +48,33 @@ env:
 jobs:
   checks:
     name: classification, pricing and refund checks
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-8' }}
-    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    # 45 (was 20): on the 2-core GitHub-hosted runner (ledger 1410) npm test takes ~6 min and the Deno OCR redaction checks ~15 more;
+    # the 20-minute cap cancelled the job inside "A scanned drawing is redacted by OCR" on #1751 (run 41360091215) with nothing failing.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      # 4 NOV 2026 (it_engineer; founder: "merging is extremely slow"). The two OCR steps below took 743 s + 29 s of
+      # this job's ~19 min on EVERY pull request (measured on #1861), including PRs that touch no drawing code. On a
+      # pull request they now run only when the change touches drawing, OCR, redaction or identity code, this
+      # workflow, or the dependencies. A push to main and a manual run always run them, so main keeps full coverage.
+      - name: Does this change touch drawing or OCR code?
+        id: ocr
+        env:
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        # The PR's own file list from the API (the repo is private and the checkout keeps no credentials, so a git fetch of
+        # the base would fail). Every file the two OCR checks import (deno info on both, review of #1863) is matched, plus
+        # the OCR data in public/ocr. Any failure to list the files runs the checks.
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; echo "not a pull request: run"; exit 0; fi
+          files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename' 2>/dev/null) || { echo "run=true" >> "$GITHUB_OUTPUT"; echo "file list unavailable: run"; exit 0; }
+          [ -n "$files" ] || { echo "run=true" >> "$GITHUB_OUTPUT"; echo "empty file list: run"; exit 0; }
+          if echo "$files" | grep -qE '^(supabase/functions/(_shared/(scan_|ocr|anonymise|identity|drawing|redact|pdf_|doc_read/|cad|stroke_font|boq_|supplier_copy|attachment|vendor/|zz_demo)|drawing_|cad_)|scripts/(cad|lib/scan_ocr|lib/supabase_keys)|public/ocr/|\.github/workflows/checks\.yml|package(-lock)?\.json|deno\.(json|lock))'; then echo "run=true" >> "$GITHUB_OUTPUT"; echo "drawing/OCR code changed: run"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no drawing/OCR change: the OCR steps are skipped on this PR"; fi
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -120,11 +142,13 @@ jobs:
       # 70% confidence is held, a sheet with no title block is held, and the CAD worker publishes a clean page as
       # one recorded run. The engine's worker thread needs --allow-env and imagescript's codec comes from deno.land.
       - name: A scanned drawing is redacted by OCR, or held
+        if: steps.ocr.outputs.run == 'true'
         run: >-
           deno test --no-lock --node-modules-dir=auto --allow-read=. --allow-env
           --allow-net=deno.land
           supabase/functions/_shared/scan_redact.check.ts
       - name: A scanned PDF set is counted by OCR to the hand count (scan_takeoff.check.ts)
+        if: steps.ocr.outputs.run == 'true'
         run: >-
           deno test --no-lock --node-modules-dir=auto --allow-read=. --allow-env
           --allow-net=deno.land,esm.sh
@@ -144,7 +168,7 @@ jobs:
   # finding either, and a linter people mute is worse than no linter.
   migration-lint:
     name: lint migrations for locking operations
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -173,7 +197,7 @@ jobs:
 
   typecheck:
     name: typecheck the app
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -193,7 +217,7 @@ jobs:
 
   deno-check:
     name: typecheck the edge functions
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -255,7 +279,7 @@ jobs:
   # service, which nothing else in this workflow does.
   otp-race:
     name: a sign-in code survives 5 guesses and verifies once under a burst
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
       postgres:
