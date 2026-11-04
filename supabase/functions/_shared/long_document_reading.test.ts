@@ -191,3 +191,54 @@ Deno.test('a model quote of an Arabic word is found in text where pdf.js swapped
   assert(r.ok);
   assertEquals(r.ok && r.trades.map((t) => t.code), ['general_contracting']);
 });
+
+Deno.test('a 1,100-page profile is complete at the 1,000-page cap: never selected again, the model never asked about an empty text, the unread pages filed once (review of #1833)', async () => {
+  const { proposeTradesFromDocs } = await import('./supplier_doc_trades.ts');
+  const { PDFJS_MAX_PAGES } = await import('./doc_read/pdf.ts');
+  const OF = 1100, PER_RUN = 400;
+  // the page reader, stubbed: at most PER_RUN pages a run, never past the cap, empty text when asked to start beyond it
+  const reader = (from: number) => {
+    const last = Math.min(from + PER_RUN - 1, PDFJS_MAX_PAGES, OF);
+    const text = from > last ? '' : Array.from({ length: last - from + 1 }, (_, k) => `Page ${from + k}: ${from + k === 700 ? 'Pest control for residential premises' : 'ZZ DEMO reference project'}`).join('\n');
+    return { ok: true as const, kind: 'pdf', text, tables: [], quantities: [], children: [], needs: null, notes: [], pages: { read: Math.max(last, from - 1), of: OF } };
+  };
+  let asked = 0;
+  const deps = { services: [], budget: { left: 0 }, normTrades: async () => null, embed: async () => null,
+    chooseTrades: async (text: string) => { asked++; assert(text.trim(), 'the model was asked about an empty text');
+      return { ok: true, trades: /Pest control for residential/.test(text) ? [{ code: 'pest_control', quote: 'Pest control for residential premises', reason: 'listed' }] : [], rejected: [] }; } } as unknown as TradeResolveDeps;
+  let caps: Record<string, unknown> = {};
+  const filed: Record<string, unknown>[] = [];
+  const admin = { from: (t: string) => {
+    const b: Record<string, unknown> = {};
+    Object.assign(b, { select: () => b, eq: () => b,
+      maybeSingle: async () => ({ data: t === 'supplier_capabilities' ? caps : t === 'leads' ? { company_name: 'ZZ DEMO Pest LLC' } : null }),
+      limit: async () => ({ data: t === 'agent_actions' && filed.length ? [{ id: 1 }] : [] }),
+      upsert: async (row: Record<string, unknown>) => { caps = { ...caps, ...row }; return {}; },
+      insert: async (row: Record<string, unknown>) => { filed.push(row); return {}; } });
+    return b;
+  } };
+  const docs = () => (caps.source_docs as { docs: { status: string; resume?: boolean; pages?: { read: number; of: number }; trades: { code: string }[] }[] }).docs;
+  let doc: Record<string, unknown> = { path: 'profiles/7/big.pdf', name: 'big.pdf', kind: 'profile', read: reader(1) };
+  let runs = 0;
+  for (;;) {
+    runs++;
+    const r = await proposeTradesFromDocs(admin as never, 7, [doc as never], deps);
+    assert(r.ok, JSON.stringify(r));
+    const [next] = stuckOf([{ supplier_id: 7, source_docs: caps.source_docs }]);
+    if (!next || runs > 6) break;
+    const c = next.docs[0];
+    doc = { ...c, read: reader(c.from_page!) };
+  }
+  // 1-400, 401-800, 801-1000: three runs, then nothing is selected
+  assertEquals([runs, stuckOf([{ supplier_id: 7, source_docs: caps.source_docs }]).length], [3, 0]);
+  assertEquals([docs()[0].pages, docs()[0].resume, docs()[0].trades.map((t) => t.code)], [{ read: 1000, of: 1100 }, undefined, ['pest_control']]);
+  assertEquals(filed.length, 1);
+  assertEquals([filed[0].kind, (filed[0].detail as { pages_read: number }).pages_read], ['doc_partially_read', 1000]);
+  // a continuation from page 1,001 (it reads nothing): no chooser call, resume false, the evidence kept, still filed once
+  const askedBefore = asked;
+  const again = await proposeTradesFromDocs(admin as never, 7, [{ path: 'profiles/7/big.pdf', name: 'big.pdf', kind: 'profile', from_page: 1001, prev: { ...docs()[0], resume: true } as never, read: reader(1001) }], deps);
+  assert(again.ok);
+  assertEquals([asked, docs()[0].resume, docs()[0].pages, docs()[0].trades.map((t) => t.code), filed.length], [askedBefore, undefined, { read: 1000, of: 1100 }, ['pest_control'], 1]);
+  // a stored `resume` at the cap (written before this fix) is not selected either
+  assertEquals(stuckOf([{ supplier_id: 7, source_docs: { docs: [{ ...docs()[0], resume: true }] } }]), []);
+});

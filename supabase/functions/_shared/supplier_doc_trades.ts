@@ -31,6 +31,7 @@
 // budget_spent), so an empty proposal is never mistaken for a document that names nothing.
 import { readDocument, type DocumentRead } from './doc_read/index.ts';
 import { type Extracted, LIMITS } from './doc_read/types.ts';
+import { pagesLeft } from './doc_read/pdf.ts';
 import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
 import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, tradesOfText, type ExactState, type MeaningState, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
@@ -225,7 +226,15 @@ ${whole}`;
   const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes, fromPage: doc.from_page }) : null);
   const text = r && r.ok ? allText(r) : '';
   const p = (r && r.ok && r.pages && r.pages.read < r.pages.of) ? r.pages : doc.pages_read;
-  if (p && p.read < p.of) { partial = p; resumable = p === (r && r.ok ? r.pages : undefined); }
+  // resumable only while pages remain under the reader's page cap; past it the unread pages are filed (docPartiallyRead), not re-read
+  if (p && p.read < p.of) { partial = p; resumable = p === (r && r.ok ? r.pages : undefined) && pagesLeft(p); }
+  // A CONTINUATION THAT READ NOTHING NEW keeps the evidence it had and never asks the model about an empty text (review of #1833)
+  if (doc.prev && r && r.ok && !r.needs && !text.trim()) {
+    const { resume: _resume, pages: _pages, ...kept } = doc.prev;
+    const said = partial ? `read ${partial.read} of ${partial.of} pages; the rest of the document was not read` : '';
+    const was = (doc.prev.reason ?? '').replace(/ ?\(read \d+ of \d+ pages;[^)]*\)$/, '');
+    return { ...kept, read_at: base.read_at, trades: doc.prev.trades || [], ...(partial ? { pages: partial, reason: was ? `${was} (${said})` : said } : {}) };
+  }
   // The file's own text layer wins; then code's OCR of the scan; the vision model's transcription only when neither exists.
   // A SCAN WITH A STRAY TEXT LAYER (M12, 19 Oct 2026): the group profile is an image-only scan whose PDF still carries a stray text
   // layer: the reader reads 71 characters, 13 of them letters or digits ("58", "GLOBAL REACH"; measured 19 Oct 2026). That non-empty layer won over code's 15,179-character OCR, so the model was given

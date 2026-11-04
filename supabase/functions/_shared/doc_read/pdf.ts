@@ -43,6 +43,9 @@ export const arabicLigatureFix = (t: string) => t.replace(AR_LIGATURE_HAMZA, 'ا
 // bound on what the budget and LIMITS.maxTextChars already bound, and it was the one that bit: a 300-page text profile was read
 // to page 250 in 237 ms (locally) and its services on page 270 were never read. The budget and the text cap still stop the read.
 export const PDFJS_MAX_PAGES = 1000, PDFJS_BUDGET_MS = 700, SCAN_PROBE_PAGES = 3;
+// A READ IS COMPLETE AT THE PAGE CAP (4 Nov 2026, review of #1833): a 1,100-page file is read to page 1,000 and no further, so "pages left" is
+// measured against min(of, PDFJS_MAX_PAGES). Past it a continuation would start at page 1,001, read nothing, and be selected by every sweep.
+export const pagesLeft = (p: { read: number; of: number }) => p.read < Math.min(p.of, PDFJS_MAX_PAGES);
 export type PdfjsRead = { status: 'text' | 'no_text' | 'failed'; text: string; pages: number; of?: number; detail?: string };
 // ABOVE LIMITS.maxBytes THE BUFFER IS HANDED OVER, NOT COPIED (19 Oct 2026, sales_engineer): copying an 85 MB brochure
 // took the read to 265 MB, past the edge's 256 MB; handing it over keeps it at 171 MB (measurements in types.ts LIMITS).

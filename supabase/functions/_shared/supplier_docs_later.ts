@@ -28,7 +28,7 @@ import { LIMITS } from './doc_read/types.ts';
 import { liveTradeDeps } from './trade_resolve.ts';
 import { modelReadText, proposeTradesFromDocs, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { readDocument } from './doc_read/index.ts';
-import { pdfjsText } from './doc_read/pdf.ts';
+import { pagesLeft, pdfjsText } from './doc_read/pdf.ts';
 import { toB64 } from './document_expiry.ts';
 import { timedFetch } from './timed_fetch.ts';
 
@@ -260,7 +260,7 @@ export function stuckOf(rows: { supplier_id: number; source_docs: unknown }[], n
     const docs: LaterDoc[] = [...all
       .filter((d) => d.status === 'reading' && !d.retry && now - Date.parse(d.read_at) >= REREAD_AFTER_MIN * 60_000)
       .map((d) => ({ path: d.path, name: d.name, kind: d.kind, gate: d.kind !== 'licence' })),
-      ...all.filter((d) => d.status === 'read' && d.resume && d.pages && d.pages.read < d.pages.of)
+      ...all.filter((d) => d.status === 'read' && d.resume && d.pages && pagesLeft(d.pages))
       .map((d) => ({ path: d.path, name: d.name, kind: d.kind, gate: false, from_page: d.pages!.read + 1, prev: d }))];
     if (docs.length) out.push({ supplier_id: Number(r.supplier_id), docs });
   }
