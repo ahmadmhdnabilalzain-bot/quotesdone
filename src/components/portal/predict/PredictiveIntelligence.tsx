@@ -120,7 +120,7 @@ function ForecastPanel({ forecast, lang }: { forecast: Forecast; lang: Lang }) {
           <h4 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">{tr(lang, 'fc_by_category')}</h4>
           <ul className="mt-1.5 flex list-none flex-col gap-1.5 p-0">
             {by_category.map((c) => (
-              <li key={c.category} className="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-border bg-white/[0.02] px-3 py-2">
+              <li key={c.category} className="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-border bg-white/2 px-3 py-2">
                 <span className="text-[13px] text-foreground">{categoryLabel(c.category, lang)}</span>
                 <span className="text-[12px] tabular-nums text-muted-foreground">
                   {c.share_pct === null || c.share_pct === undefined ? '' : `${c.share_pct}% ${tr(lang, 'fc_share')} · `}

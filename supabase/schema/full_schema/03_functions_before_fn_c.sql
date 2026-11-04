@@ -5202,6 +5202,205 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_reveal_reconcile_findings()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb; v_last public.accountant_reveal_reconcile_run; v_live jsonb; v_req timestamptz;
+begin
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'item', i.outcome || ':' || i.key,
+      'owner_seat', case when i.outcome = 'second_payment' then 'ceo' else 'accountant' end,
+      'subject', 'transactions',
+      'title', case i.outcome
+        when 'failed' then 'A paid reveal has no sale: Stripe ' || i.key || ' (AED ' || round(coalesce(i.amount_fils, 0) / 100.0, 2)
+                           || ', quote ' || i.quote_id || ') could not be recorded: ' || coalesce(left(i.error, 160), 'no reason given')
+        when 'refunded_unrecorded' then 'A paid reveal with no sale was partly refunded: Stripe ' || i.key || ' (quote ' || i.quote_id
+                           || '); decide whether the sale is recorded or the rest refunded'
+        when 'test_mode_not_demo' then 'A TEST-mode Stripe payment names a quote that is not a demo account''s, so it was not recorded: ' || i.key
+                           || ' (AED ' || round(coalesce(i.amount_fils, 0) / 100.0, 2) || ', quote ' || i.quote_id || ')'
+        when 'second_payment' then 'A revealed quote was paid a second time: ' || coalesce(i.payment_intent, i.key)
+                           || ' (AED ' || round(coalesce(i.amount_fils, 0) / 100.0, 2) || ', quote ' || i.quote_id || ') must be refunded'
+        else 'A paid reveal has waited over 3 hours to be recorded: Stripe ' || i.key || ' is past the sweep''s per-run bound' end,
+      'blast', 'customer_facing', 'affected', 1, 'demo', false,
+      'evidence', jsonb_build_object('stripe', i.key, 'livemode', i.livemode, 'quote_id', i.quote_id, 'invoice_id', i.invoice_id,
+        'payment_intent', i.payment_intent, 'amount_fils', i.amount_fils, 'currency', i.currency, 'paid_at', i.paid_at,
+        'outcome', i.outcome, 'error', i.error, 'attempts', i.attempts, 'first_seen_at', i.first_seen_at,
+        'transaction_id', i.transaction_id,
+        'remedy', case i.outcome
+          when 'failed' then 'the hourly sweep retries it; read the error (a quote that no longer exists, or a PaymentIntent Stripe would not return)'
+          when 'test_mode_not_demo' then 'a test-mode payment may only touch demo data (stripe_webhook rule): find who paid the real quote through the test key; nothing was written'
+          when 'second_payment' then 'a CEO-approved refund of the second payment; the first payment is the sale'
+          when 'refunded_unrecorded' then 'the accountant decides: record the sale, or refund the remainder through the CEO'
+          else 'more than 50 unmatched live payments an hour (the sweep''s per-run bound): read the failed and second-payment items first' end))
+    order by i.first_seen_at), '[]'::jsonb)
+    into v_items
+    from public.accountant_reveal_reconcile_item i
+   where i.resolved_at is null and not i.demo
+     and (i.outcome in ('failed', 'refunded_unrecorded', 'second_payment', 'test_mode_not_demo')
+          or (i.outcome = 'deferred' and i.first_seen_at < now() - interval '3 hours'))
+     -- #1835: recordRevealSale raises reveal:second_payment:<pi> itself; the same payment is not filed twice.
+     and not (i.outcome = 'second_payment' and exists (select 1 from public.it_engineer_finding f
+                where f.issue_key = 'reveal:second_payment:' || i.payment_intent and f.closed_at is null));
+
+  -- The sweep's own health, from its last report.
+  select r.* into v_last from public.accountant_reveal_reconcile_run r where r.reported_at is not null order by r.reported_at desc, r.id desc limit 1;
+  select min(r.requested_at) into v_req from public.accountant_reveal_reconcile_run r
+   where r.requested_at > coalesce(v_last.reported_at, '-infinity') and r.requested_at < now() - interval '2 hours';
+  if v_req is not null and (v_last.id is null or v_last.reported_at < now() - interval '3 hours') then
+    v_items := v_items || jsonb_build_array(jsonb_build_object('item', 'sweep_silent', 'owner_seat', 'accountant', 'subject', 'accountant_reveal_reconcile_run',
+      'title', 'The reveal sweep has not reported since ' || coalesce(to_char(v_last.reported_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai', 'it was registered')
+               || ': a paid reveal with no sale would go unseen',
+      'blast', 'agent_facing', 'affected', 1,
+      'evidence', jsonb_build_object('last_reported_at', v_last.reported_at, 'unanswered_since', v_req,
+        'last_dispatches', (select coalesce(jsonb_agg(jsonb_build_object('id', r.id, 'requested_at', r.requested_at, 'http_status', r.http_status,
+                              'http_error', left(r.http_error, 200)) order by r.id desc), '[]'::jsonb)
+                              from (select * from public.accountant_reveal_reconcile_run order by id desc limit 3) r),
+        'remedy', 'read the accountant function''s logs for action reveal_reconcile; cred_fn_accountant and project_ref must be in app_secrets')));
+  end if;
+  if v_last.id is not null then
+    v_live := v_last.result->'modes'->'live';
+    if v_last.result ? 'error' then
+      v_items := v_items || jsonb_build_array(jsonb_build_object('item', 'sweep_error', 'owner_seat', 'accountant', 'subject', 'accountant_reveal_reconcile_run',
+        'title', 'The reveal sweep stopped before it compared anything: ' || left(v_last.result->>'error', 200),
+        'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('run', v_last.id, 'reported_at', v_last.reported_at, 'error', v_last.result->>'error')));
+    elsif coalesce(v_live->>'basis', 'not_read') <> 'measured' then
+      v_items := v_items || jsonb_build_array(jsonb_build_object('item', 'stripe_live_unread', 'owner_seat', 'accountant', 'subject', 'accountant_reveal_reconcile_run',
+        'title', 'The reveal sweep could not read live Stripe (' || coalesce(v_live->>'basis', 'not_read') || '): live reveals are not being compared with the books',
+        'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('run', v_last.id, 'reported_at', v_last.reported_at, 'live', v_live)));
+    elsif coalesce((v_live->>'truncated')::boolean, false) then
+      v_items := v_items || jsonb_build_array(jsonb_build_object('item', 'listing_truncated', 'owner_seat', 'accountant', 'subject', 'accountant_reveal_reconcile_run',
+        'title', 'Live Stripe holds more paid payments in the reveal sweep''s window than it reads (5 pages of 100): shorten gl_settings.reveal_reconcile_window_days or raise the bound',
+        'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('run', v_last.id, 'window_days', v_last.window_days, 'live', v_live)));
+    end if;
+  end if;
+  return public.fn_accountant_duty_settle('reveal_reconcile', v_items);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_reveal_reconcile_record(p_run_id bigint, p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_run bigint; x jsonb; n_kept int := 0; n_refused int := 0; n_resolved int := 0; v_demo boolean; v_qid uuid;
+  c_uuid constant text := '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
+begin
+  if jsonb_typeof(p_r) is distinct from 'object' or jsonb_typeof(coalesce(p_r->'outcomes', '[]'::jsonb)) is distinct from 'array' then
+    raise exception 'fn_accountant_reveal_reconcile_record(run, readings): readings must be an object with an outcomes array';
+  end if;
+  select id into v_run from public.accountant_reveal_reconcile_run where id = p_run_id;
+  if v_run is null then   -- a call the duty did not dispatch (the founder, by hand): it is a run of its own
+    insert into public.accountant_reveal_reconcile_run (window_days)
+    values (greatest(1, least(90, coalesce(nullif(p_r->>'days', '')::int, 30)))) returning id into v_run;
+  end if;
+  update public.accountant_reveal_reconcile_run
+     set reported_at = now(),
+         result = (p_r - 'outcomes') || jsonb_build_object('reported', jsonb_array_length(coalesce(p_r->'outcomes', '[]'::jsonb)))
+   where id = v_run;
+
+  for x in select e from jsonb_array_elements(coalesce(p_r->'outcomes', '[]'::jsonb)) e loop
+    if coalesce(x->>'key', '') !~ '^(in|pi)_[A-Za-z0-9_]+$' or coalesce(btrim(x->>'quote_id'), '') = ''
+       or coalesce(x->>'outcome', '') not in ('recovered', 'second_payment', 'refunded', 'refunded_unrecorded', 'failed', 'deferred', 'test_mode_not_demo')
+       or coalesce(x->>'source', '') not in ('invoice', 'payment_intent') then
+      n_refused := n_refused + 1;   -- 'recorded' (a plain match) never needs a row; anything malformed is refused, not guessed
+      continue;
+    end if;
+    v_qid := case when x->>'quote_id' ~ c_uuid then (x->>'quote_id')::uuid end;
+    -- DEMO: a test-mode payment, an email the one demo rule names, or a customer the database marks is_demo.
+    -- 'test_mode_not_demo': a test payment whose quote is not provably a demo account's. It reaches the findings,
+    -- unless Stripe's own customer e-mail is a demo address (fn_is_demo_email, the identity that picks the Stripe test
+    -- key, #1835): the e2e teardown deletes a demo quote while its paid test invoice stays in the window, and that is
+    -- demo, not a finding.
+    v_demo := case when x->>'outcome' = 'test_mode_not_demo' then public.fn_is_demo_email(x->>'customer_email')
+      else (not coalesce((x->>'livemode')::boolean, false)
+           or public.fn_is_demo_email(x->>'customer_email')
+           or exists (select 1 from public.customers c where c.is_demo and c.id::text = x->>'customer_id')
+           or exists (select 1 from public.quotes q join public.inquiries iq on iq.id = q.inquiry_id
+                        join public.customers c on c.id = iq.customer_id where q.id = v_qid and c.is_demo)) end;
+    insert into public.accountant_reveal_reconcile_item as it (key, livemode, source, quote_id, invoice_id, payment_intent,
+        customer_id, customer_email, amount_fils, currency, paid_at, demo, outcome, transaction_id, error, last_run_id, resolved_at)
+    values (x->>'key', coalesce((x->>'livemode')::boolean, false), x->>'source', x->>'quote_id', nullif(x->>'invoice_id', ''),
+        nullif(x->>'payment_intent', ''), nullif(x->>'customer_id', ''), lower(nullif(x->>'customer_email', '')),
+        nullif(x->>'amount_fils', '')::bigint, nullif(x->>'currency', ''),
+        case when x->>'paid_at' ~ '^[0-9]+$' then to_timestamp((x->>'paid_at')::bigint) end,
+        v_demo, x->>'outcome', case when x->>'transaction_id' ~ c_uuid then (x->>'transaction_id')::uuid end,
+        left(nullif(x->>'error', ''), 1000), v_run,
+        case when x->>'outcome' in ('recovered', 'refunded') then now() end)
+    -- 'deferred' says only "not looked at this run": it never overwrites what an earlier run found (failed, second payment).
+    on conflict (key) do update set
+        outcome = case when excluded.outcome = 'deferred' and it.resolved_at is null then it.outcome else excluded.outcome end,
+        error = case when excluded.outcome = 'deferred' and it.resolved_at is null then it.error else excluded.error end,
+        demo = excluded.demo,
+        payment_intent = coalesce(excluded.payment_intent, it.payment_intent),
+        customer_email = coalesce(excluded.customer_email, it.customer_email),
+        transaction_id = coalesce(excluded.transaction_id, it.transaction_id),
+        attempts = it.attempts + 1, last_seen_at = now(), last_run_id = excluded.last_run_id,
+        resolved_at = case when excluded.outcome in ('recovered', 'refunded') then coalesce(it.resolved_at, now())
+                           when excluded.outcome = 'deferred' then null end;
+    n_kept := n_kept + 1;
+  end loop;
+
+  -- A payment the books now hold by another path (the webhook, a by-hand recording) is resolved, whatever this run saw.
+  update public.accountant_reveal_reconcile_item i
+     set outcome = 'recorded_elsewhere', resolved_at = now(), transaction_id = t.id
+    from public.transactions t
+   where i.resolved_at is null and i.outcome in ('failed', 'refunded_unrecorded', 'deferred')
+     and ((i.invoice_id is not null and t.stripe_invoice_id = i.invoice_id) or (i.payment_intent is not null and t.payment_ref = i.payment_intent));
+  get diagnostics n_resolved = row_count;
+
+  return jsonb_build_object('run', v_run, 'kept', n_kept, 'refused', n_refused, 'resolved_elsewhere', n_resolved,
+    'findings', public.fn_accountant_reveal_reconcile_findings());
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_reveal_reconcile_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_days int; v_ref text; v_key text; v_cred text; v_run bigint; v_req bigint; v_harvested int := 0; v_pruned int := 0;
+begin
+  -- The last dispatches' HTTP answers (pg_net keeps responses 6 hours; this runs every hour).
+  update public.accountant_reveal_reconcile_run r
+     set http_status = coalesce(h.status_code, 0),
+         http_error = case when h.status_code = 200 then null else left(coalesce(h.error_msg, h.content::text, 'no answer'), 500) end
+    from net._http_response h
+   where h.id = r.request_id and r.http_status is null;
+  get diagnostics v_harvested = row_count;
+  delete from public.accountant_reveal_reconcile_run where requested_at < now() - interval '60 days';
+  get diagnostics v_pruned = row_count;
+
+  -- One sweep at a time: none is sent while the last is unanswered and under 30 minutes old.
+  if exists (select 1 from public.accountant_reveal_reconcile_run
+              where reported_at is null and http_status is null and requested_at > now() - interval '30 minutes') then
+    return jsonb_build_object('dispatched', false, 'why', 'a sweep is in flight', 'harvested', v_harvested,
+                              'findings', public.fn_accountant_reveal_reconcile_findings());
+  end if;
+
+  v_days := greatest(1, least(90, coalesce((select num_value::int from public.gl_settings where key = 'reveal_reconcile_window_days'), 30)));
+  select value into v_ref from public.app_secrets where key = 'project_ref';
+  v_key := public.fn_gateway_client_key();
+  select value into v_cred from public.app_secrets where key = 'cred_fn_accountant';
+  if coalesce(v_ref, '') = '' or coalesce(v_key, '') = '' or coalesce(v_cred, '') = '' then
+    -- A duty that cannot send has failed: the seat shows red (fn_seat_duty_health), it does not report green.
+    raise exception 'fn_accountant_reveal_reconcile_tick: project_ref, the gateway key or cred_fn_accountant is missing from app_secrets';
+  end if;
+  insert into public.accountant_reveal_reconcile_run (window_days) values (v_days) returning id into v_run;
+  v_req := net.http_post(url := 'https://' || v_ref || '.supabase.co/functions/v1/accountant',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_key, 'apikey', v_key),
+    body := jsonb_build_object('__secret', v_cred, 'action', 'reveal_reconcile', 'run_id', v_run, 'days', v_days),
+    timeout_milliseconds := 140000);
+  update public.accountant_reveal_reconcile_run set request_id = v_req where id = v_run;
+  return jsonb_build_object('dispatched', true, 'run', v_run, 'request', v_req, 'window_days', v_days, 'harvested', v_harvested,
+                            'pruned', v_pruned, 'findings', public.fn_accountant_reveal_reconcile_findings());
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_risk_screen_tick()
  RETURNS jsonb
  LANGUAGE plpgsql

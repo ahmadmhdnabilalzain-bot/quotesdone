@@ -4,7 +4,7 @@
 // quote_review_actions.ts, and both are documented in docs/api/supplier_portal_quotations.md — the
 // contract a mobile app calls too (founder: "later this will be a mobile app as well"). This file only
 // calls the server; the conversation's state and the review rules live there, never here.
-import { call } from './api';
+import { call, REASONING_TIMEOUT_MS } from './api';
 
 export type Lang = 'en' | 'ar';
 export type ReviewState = 'none' | 'open' | 'reviewing' | 'changes_requested' | 'awaiting_choice' | 'awaiting_upload' | 'ready_to_submit' | 'submitted' | 'closed';
@@ -66,19 +66,26 @@ export const failed = <T extends { ok: true }>(r: Result<T> | null | undefined):
 // so a catch on it is unreachable. `failed()` above is the test; do not add one back.
 const post = <T>(body: Record<string, unknown>, token: string): Promise<Result<T>> =>
   call('supplier_api', body, token);
+// THE REVIEW'S WRITE ACTIONS WAIT FOR THEIR ANSWER (3 Nov 2026, sales_engineer). Each one ends with the engineer's
+// MODEL-written message (quote_review_flow.ts say(), rulings 1195-1197), and submit also runs submit_quote and prints
+// the quotation. At the 20 s default the portal gave up on a submission that went through: branch nightly 41650411756,
+// mobile - quote_reviews.status 'submitted', the quote 'submitted', and the chat never said so. They wait
+// REASONING_TIMEOUT_MS, as the other reasoning actions do (./api.ts).
+const reasoned = <T>(body: Record<string, unknown>, token: string): Promise<Result<T>> =>
+  call('supplier_api', body, token, { timeoutMs: REASONING_TIMEOUT_MS });
 
 export const qr = {
   inquiries: (token: string) => post<InquiriesList>({ action: 'inquiries_list' }, token),
   inquiry: (token: string, id: string) => post<InquiryDetail>({ action: 'inquiry_detail', inquiry_id: id }, token),
   documents: (token: string, id: string) => post<InquiryDocuments>({ action: 'inquiry_documents', inquiry_id: id }, token),
   thread: (token: string, id: string, lang: Lang) => post<ThreadView>({ action: 'review_thread', inquiry_id: id, lang }, token),
-  start: (token: string, id: string, lang: Lang) => post<ThreadView>({ action: 'review_start', inquiry_id: id, lang }, token),
+  start: (token: string, id: string, lang: Lang) => reasoned<ThreadView>({ action: 'review_start', inquiry_id: id, lang }, token),
   message: (token: string, id: string, text: string, lang: Lang, file?: { b64: string; filename: string; mime: string }) =>
-    post<ThreadView>({ action: 'review_message', inquiry_id: id, text, lang, ...(file ? { file } : {}) }, token),
+    reasoned<ThreadView>({ action: 'review_message', inquiry_id: id, text, lang, ...(file ? { file } : {}) }, token),
   upload: (token: string, id: string, file: { b64: string; filename: string; mime: string }, lang: Lang, text?: string) =>
-    post<ThreadView>({ action: 'review_upload', inquiry_id: id, file, text, lang }, token),
-  choose: (token: string, id: string, choice: 'generate' | 'reupload', lang: Lang) => post<ThreadView>({ action: 'review_choose', inquiry_id: id, choice, lang }, token),
-  submit: (token: string, id: string, lang: Lang) => post<ThreadView>({ action: 'review_submit', inquiry_id: id, lang }, token),
+    reasoned<ThreadView>({ action: 'review_upload', inquiry_id: id, file, text, lang }, token),
+  choose: (token: string, id: string, choice: 'generate' | 'reupload', lang: Lang) => reasoned<ThreadView>({ action: 'review_choose', inquiry_id: id, choice, lang }, token),
+  submit: (token: string, id: string, lang: Lang) => reasoned<ThreadView>({ action: 'review_submit', inquiry_id: id, lang }, token),
   quotePdf: (token: string, quoteId: string, lang: Lang) => call('supplier_api', { action: 'quote_pdf', quote_id: quoteId, lang }, token),
   withdraw: (token: string, quoteId: string) => call('supplier_api', { action: 'withdraw_quote', quote_id: quoteId }, token),
   /** The inquiry as the sales engineer's document (PDF, one language per file), cached server-side. */

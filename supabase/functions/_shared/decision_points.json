@@ -753,7 +753,7 @@
     {
      "file": "supabase/functions/public_site/index.ts",
      "must_contain": [
-      "catalogueCategoryOf(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 })"
+      "catalogueCategoryOf(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000, cacheTtlMin: PUBLIC_MEMO_MIN })"
      ]
     },
     {
@@ -1103,7 +1103,7 @@
     {
      "file": "supabase/functions/public_site/index.ts",
      "must_contain": [
-      "priceGuidanceFor(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 })"
+      "priceGuidanceFor(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000, cacheTtlMin: PUBLIC_MEMO_MIN })"
      ],
      "must_not_contain": [
       "p_question"
@@ -3024,7 +3024,8 @@
     {
      "file": "supabase/functions/wa_inbound/index.ts",
      "must_contain": [
-      "await fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp'"
+      "? fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp'",
+      "await reviewP;"
      ]
     },
     {

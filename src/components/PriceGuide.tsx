@@ -82,7 +82,7 @@ export function PriceGuide({ slug }: { slug?: string }) {
             <input
               id={id} name="question" type="text" inputMode="text" autoComplete="off" enterKeyHint="search"
               dir="auto" value={q} maxLength={300} onChange={(e) => setQ(e.target.value)} placeholder={t('ph')}
-              className="min-w-0 flex-1 rounded-full border border-[var(--line2)] bg-navy-deep/60 px-5 py-3 text-[14.5px] text-paper shadow-[var(--key)] outline-none placeholder:text-faint focus-visible:border-teal focus-visible:ring-2 focus-visible:ring-teal/30"
+              className="min-w-0 flex-1 rounded-full border border-(--line2) bg-navy-deep/60 px-5 py-3 text-[14.5px] text-paper shadow-key outline-hidden placeholder:text-faint focus-visible:border-teal focus-visible:ring-2 focus-visible:ring-teal/30"
             />
             <button type="submit" disabled={busy} aria-busy={busyShown || undefined} className="btn-key press inline-flex items-center justify-center gap-2 rounded-full bg-teal px-6 py-3 text-[14px] font-bold text-[#04231F] hover:bg-[#1ED0BC] disabled:cursor-progress disabled:opacity-50">
               {busyShown ? <Spinner /> : null}
@@ -92,7 +92,7 @@ export function PriceGuide({ slug }: { slug?: string }) {
           <div className="mt-3 flex flex-wrap gap-2">
             {chips.map((c) => (
               <button key={c} type="button" dir="auto" disabled={busy} onClick={() => { setQ(c); ask({ question: c }, c); }}
-                className="rounded-full border border-[var(--line)] px-3 py-1.5 text-[12px] text-muted transition-colors hover:border-teal/50 hover:text-white disabled:cursor-progress disabled:opacity-50">
+                className="rounded-full border border-(--line) px-3 py-1.5 text-[12px] text-muted transition-colors hover:border-teal/50 hover:text-white disabled:cursor-progress disabled:opacity-50">
                 {c}
               </button>
             ))}
@@ -104,7 +104,7 @@ export function PriceGuide({ slug }: { slug?: string }) {
         {busyShown && <p className="inline-flex items-center gap-2 text-[13px] text-faint"><Spinner />{t('busy')}</p>}
         {res && res.ok && res.bands && (
           <>
-            <ul className="divide-y divide-[var(--line)] overflow-hidden rounded-[14px] border border-[var(--line2)]">
+            <ul className="divide-y divide-(--line) overflow-hidden rounded-[14px] border border-(--line2)">
               {res.bands.map((b) => (
                 <li key={b.item + b.low} className="flex flex-col gap-1 bg-navy-deep/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <span dir="ltr" className="text-start text-[13.5px] text-paper/90 rtl:text-end">{b.item}</span>
@@ -134,7 +134,7 @@ export function PriceGuide({ slug }: { slug?: string }) {
             onClick={() => { saveDraft({ text: asked, category: null, emirate: null }); startRouteProgress(); startGoing(() => router.push('/me?draft=1')); }}
             disabled={going}
             aria-busy={goingShown || undefined}
-            className="press mt-4 inline-flex items-center gap-2 rounded-full border border-teal/50 px-5 py-2.5 text-[13.5px] font-semibold text-teal-light transition-colors hover:bg-teal/[0.08] disabled:cursor-progress"
+            className="press mt-4 inline-flex items-center gap-2 rounded-full border border-teal/50 px-5 py-2.5 text-[13.5px] font-semibold text-teal-light transition-colors hover:bg-teal/8 disabled:cursor-progress"
           >
             {goingShown ? <Spinner /> : null}
             {t('cta')}

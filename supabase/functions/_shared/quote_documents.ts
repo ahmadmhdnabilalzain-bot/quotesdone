@@ -32,6 +32,7 @@ import { arUnit as glossaryUnit, arCount as glossaryCount, arAttr, CATEGORY_AR, 
 import { METHOD_NOTE_AR, METHOD_NOTE_EN } from '../quote_compare/deterministic.ts';
 
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
+import { knownNameRe, scrubIdentityText } from './identity_text.ts';
 import { aed, aedRange, figure } from './money.ts';
 import { needsArabic } from './arabic_script.ts';
 import { feeBaseOf, feeBasisLine, NOT_RESPONSIBLE, priceStated, vatShort, vatStated, type PriceRow } from './stated_price.ts';
@@ -60,7 +61,11 @@ export function supplierLabel(i: number): string { let n = Number(i) || 0, out =
 const HIDDEN = { en: '[contact hidden until reveal]', ar: '[بيانات التواصل مخفية حتى الكشف]' };
 function escapeRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 /** Blank emails, phone numbers, web addresses and the named suppliers out of one string. */
-export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'): string {
+/**
+ * `parties: false` (a quotation the customer PAID to reveal, review of #1838 item 1): firm and person names are left
+ * alone, so the party chip and the supplier's own words name the supplier; contacts and numbers are still masked.
+ */
+export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en', opts: { parties?: boolean } = {}): string {
   let t = String(s == null ? '' : s);
   // The placeholder follows the script of the text it sits in, not the page: an Arabic placeholder
   // inside an English supplier note turned the whole note right-to-left and scrambled its order.
@@ -69,16 +74,24 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   // (drawing_boq/drawing_chain.test.ts) the inquiry PDF dropped it — 6 characters in English, 5 in Arabic —
   // so a scrubbed BOQ line printed "call  on  or ," with nothing saying something was taken out.
   t = t.replace(/█+/g, H);
-  t = t.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, H);
+  // A match starts only where the token starts (?<!...): without it a 20 KB run with no "@" was retried from every
+  // position, quadratic, 1,064 ms in CI on "0-0-0-..." (identity_text.test.ts "no shape backtracks").
+  t = t.replace(/(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, H);
   t = t.replace(/\b(?:https?:\/\/|www\.)\S+/gi, H);
-  t = t.replace(/\b[\w-]+\.(?:com|ae|net|org|co)(?:\.[a-z]{2})?\b/gi, H);
+  // With its path: "instagram.com/alnoortrading" kept the handle (second review of #1838).
+  t = t.replace(/(?<![\w-])[\w-]+\.(?:com|ae|net|org|co)(?:\.[a-z]{2})?\b(?:\/[^\s,;)\]]*)?/gi, H);
   // A TRN or licence number finds the company on a public register (founder, 14 Sep 2026). Before
   // the phone patterns, which would otherwise take a 15-digit TRN apart and leave its label behind.
   t = t.replace(TRN_LABELLED, H).replace(TRN_BARE, H).replace(LICENCE_NO, H);
-  // UAE numbers in every usual spelling, then any international-looking run of 9+ digits.
-  t = t.replace(/(?:\+|00)?971[\s-]?\(?0?\)?[\s-]?\d(?:[\s-]?\d){6,8}\b/g, H);
-  t = t.replace(/\b0[2-9](?:[\s-]?\d){7,8}\b/g, H);
+  // UAE numbers are read by the shared list below (3 Nov 2026, review of #1838: "\b0[2-9](?:[\s-]?\d){7,8}" took
+  // "03 120 4500" out of a BOQ row and "075 110 160" out of a pipe list). Any other international run of 9+ digits:
   t = t.replace(/\+\d(?:[\s-]?\d){8,13}\b/g, H);
+  // 3 Nov 2026 (identity_never_leaks_before_reveal.mjs): every shape in the shared list (_shared/identity_text.ts), and
+  // each named supplier by knownNameRe too: its suffix-free core and any two consecutive words of its name.
+  // Whole names only here: these documents carry several suppliers' text and a fragment of one supplier's name is
+  // another's ordinary scope (review of #1838 item 2). The supplier's own text lost its fragments at save.
+  t = scrubIdentityText(t, H, { parties: opts.parties });
+  for (const n of names) { const re = knownNameRe(n); if (re && String(n).replace(/[^A-Za-z؀-ۿ]/g, '').length >= 3) t = t.replace(re, H); }
   for (const n of names) {
     const v = String(n || '').trim();
     if (v.length < 3) continue;
@@ -90,11 +103,11 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   return t;
 }
 // deno-lint-ignore no-explicit-any
-function maskDeep(v: any, names: string[], lang: Lang): any {
-  if (typeof v === 'string') return maskContacts(v, names, lang);
-  if (Array.isArray(v)) return v.map((x) => maskDeep(x, names, lang));
+function maskDeep(v: any, names: string[], lang: Lang, parties = true): any {
+  if (typeof v === 'string') return maskContacts(v, names, lang, { parties });
+  if (Array.isArray(v)) return v.map((x) => maskDeep(x, names, lang, parties));
   // deno-lint-ignore no-explicit-any
-  if (v && typeof v === 'object') { const o: any = {}; for (const k of Object.keys(v)) o[k] = (k === 'link') ? v[k] : maskDeep(v[k], names, lang); return o; }
+  if (v && typeof v === 'object') { const o: any = {}; for (const k of Object.keys(v)) o[k] = (k === 'link') ? v[k] : maskDeep(v[k], names, lang, parties); return o; }
   return v;
 }
 
@@ -454,7 +467,9 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   const names = args.maskNames || [];
   const body: Record<string, unknown> = {
     lang, ref, name: docName(ref, 'quotation', lang), title: T('Quotation', 'عرض أسعار'),
-    cover: maskDeep(cover0, names, lang), control, blocks: maskDeep(blocks, names, lang), options: { letterhead: true },
+    // A REVEALED quotation (partyName set) names its supplier: firm and person shapes are not masked there (review of
+    // #1838 item 1: the chip read "[contact hidden until reveal]" after a paid reveal). Contacts still are, as before.
+    cover: maskDeep(cover0, names, lang, !args.partyName), control, blocks: maskDeep(blocks, names, lang, !args.partyName), options: { letterhead: true },
   };
   if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
   return { body, ref, untranslated: [...k.untranslated] };
@@ -920,7 +935,7 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
   const relabel = (v: any): any => typeof v === 'string' ? (v.startsWith(ORIGINAL) ? CUSTOMER_ORIGINAL + v.slice(ORIGINAL.length) : v) : Array.isArray(v) ? v.map(relabel) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([kk, x]) => [kk, kk === 'sub' ? relabel(x) : relabel(x)])) : v;
   const body: Record<string, unknown> = {
     title: T('Inquiry', 'استفسار'), ref, name: docName(ref, 'inquiry', lang), lang,
-    cover: relabel(maskDeep(cover0, [], lang)), control, blocks: relabel(maskDeep(blocks, [], lang)), options: { letterhead: true },
+    cover: relabel(maskDeep(cover0, [], lang)), control, blocks: relabel(maskDeep(blocks, [], lang)), options: { letterhead: true, contact: false },
   };
   if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
   return { body, ref, job, drawings, untranslated: [...k.untranslated] };

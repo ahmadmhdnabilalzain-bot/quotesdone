@@ -266,9 +266,9 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
       className={cn(
         // THE MOBILE TAB BAR STAYS TAPPABLE (E2E stage 1, D7, 30 Sep 2026): below md the panel stops above the
         // 56px tab bar instead of covering it (inset-y-0 put it over the menu; 18 nav taps timed out at 375px).
-        'fixed top-0 bottom-[var(--qd-tabbar-h,0px)] md:bottom-0 z-40 flex w-full flex-col border-border bg-card shadow-e3',
+        'fixed top-0 bottom-(--qd-tabbar-h,0px) md:bottom-0 z-40 flex w-full flex-col border-border bg-card shadow-e3',
         // max-w, not w: a fixed 420px panel is 45px wider than a 375px viewport and cannot shrink.
-        'end-0 sm:w-full sm:max-w-[420px] sm:border-s',
+        'inset-e-0 sm:w-full sm:max-w-[420px] sm:border-s',
         'motion-safe:animate-in motion-safe:slide-in-from-bottom-4 sm:motion-safe:slide-in-from-right-4 motion-safe:duration-300',
       )}
     >
@@ -351,7 +351,7 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
         </Button>
         <input ref={inpRef} value={val} onChange={(e) => setVal(e.target.value)} disabled={busy}
           aria-label={t('asst_ph')} placeholder={t('asst_ph')}
-          className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3.5 text-[13.5px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3.5 text-[13.5px] text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" />
         <Button type="submit" size="sm" className="h-11 px-3.5" disabled={busy || (!val.trim() && !photo)} aria-label={t('asst_send')}>
           <Send className={cn('h-4 w-4', rtl && 'rotate-180')} aria-hidden />
         </Button>
@@ -372,10 +372,10 @@ export function StatTile({ icon: Icon, label, value, hint, tone = 'default' }) {
       tone === 'accent' && 'border-primary/40',
     )}>
       {/* The kit's lit top edge, on the tile that is asking for a decision. */}
-      {tone === 'accent' ? <span aria-hidden className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" /> : null}
+      {tone === 'accent' ? <span aria-hidden className="absolute inset-x-6 top-0 h-px bg-linear-to-r from-transparent via-primary/80 to-transparent" /> : null}
       <div className="flex items-start justify-between gap-2">
         {/* Wraps, never truncates: "AWAITING YOUR DECISI…" cut the tile's one word that mattered. */}
-        <div className="min-w-0 break-words font-mono text-label uppercase tracking-caps text-muted-foreground">{label}</div>
+        <div className="min-w-0 wrap-break-word font-mono text-label uppercase tracking-caps text-muted-foreground">{label}</div>
         <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-panel border',
           tone === 'accent' ? 'border-primary/35 bg-primary/12 text-primary' : 'border-border bg-secondary/40 text-muted-foreground')}>
           <Icon className="h-4 w-4" aria-hidden />
@@ -531,14 +531,14 @@ export function PortalShell({
         style={{ order: rankOf(item.id, order) }}
         className={cn(
           'group relative flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[14px] font-medium transition-colors duration-200',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
           active ? 'bg-primary/14 font-semibold text-primary' : 'text-foreground/80 hover:bg-secondary/50 hover:text-foreground',
         )}
       >
         {/* The active marker is on the INLINE START edge so it lands on the correct side in Arabic. */}
-        {active ? <span className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-primary" aria-hidden /> : null}
+        {active ? <span className="absolute inset-y-1.5 inset-s-0 w-[3px] rounded-full bg-primary" aria-hidden /> : null}
         <Icon className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-        <span className="min-w-0 flex-1 break-words text-start leading-snug">{t(item.label)}</span>
+        <span className="min-w-0 flex-1 wrap-break-word text-start leading-snug">{t(item.label)}</span>
         {item.badge === 'unread' && unread > 0
           ? <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span>
           : null}
@@ -593,18 +593,18 @@ export function PortalShell({
             <form onSubmit={submitAsk} className="min-w-0 flex-1" role="search">
               <label className="sr-only" htmlFor="qd-ask">{t('ask_ph')}</label>
               <div className="group relative flex items-center">
-                <Sparkles className="pointer-events-none absolute start-3.5 h-4 w-4 text-primary" aria-hidden />
+                <Sparkles className="pointer-events-none absolute inset-s-3.5 h-4 w-4 text-primary" aria-hidden />
                 <input
                   id="qd-ask" ref={searchRef} value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder={narrow ? t('ask_ph_short') : t('ask_ph')} autoComplete="off"
                   className={cn(
                     'h-11 w-full rounded-btn border border-input bg-card ps-11 pe-3 sm:pe-16 text-[13.5px] text-foreground shadow-e1',
-                    'placeholder:text-muted-foreground focus-visible:outline-none',
+                    'placeholder:text-muted-foreground focus-visible:outline-hidden',
                     'focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/25',
                     'transition-[border-color,box-shadow] duration-200',
                   )}
                 />
-                <kbd className="pointer-events-none absolute end-3 hidden rounded border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:block">⌘K</kbd>
+                <kbd className="pointer-events-none absolute inset-e-3 hidden rounded border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:block">⌘K</kbd>
               </div>
             </form>
 
@@ -615,14 +615,14 @@ export function PortalShell({
             <div className="relative shrink-0">
               <button type="button" ref={bellBtn} onClick={() => setBellOpen((v) => !v)}
                 aria-label={t('alerts_label')} aria-expanded={bellOpen}
-                className="relative grid h-10 w-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                className="relative grid h-10 w-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
                 <Bell className="h-[18px] w-[18px]" aria-hidden />
-                {alerts > 0 ? <span className="absolute end-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" aria-hidden /> : null}
+                {alerts > 0 ? <span className="absolute inset-e-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" aria-hidden /> : null}
               </button>
               {bellOpen && (
                 <>
                   <button type="button" aria-label={t('close')} onClick={() => setBellOpen(false)} className="fixed inset-0 z-40 cursor-default" />
-                  <div className="absolute end-0 z-50 mt-2 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-xl border border-border bg-card shadow-lg motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200">
+                  <div className="absolute inset-e-0 z-50 mt-2 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-xl border border-border bg-card shadow-lg motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200">
                     <div className="border-b border-border px-4 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70">{t('alerts_label')}</div>
                     {!alertList.length ? (
                       <p className="px-4 py-4 text-[13px] text-muted-foreground">{t('attention_none')}</p>
@@ -633,7 +633,7 @@ export function PortalShell({
                         {alertList.map((a, i) => (
                           <li key={i}>
                             <button type="button" onClick={() => { setBellOpen(false); if (onAlert) onAlert(a); }}
-                              className="flex w-full items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                              className="flex w-full items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-secondary/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                               <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full',
                                 a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} aria-hidden />
                               <span className="min-w-0 flex-1">
@@ -654,7 +654,7 @@ export function PortalShell({
             {/* Its name is the customer's INITIAL below lg, where the name span is hidden — one
                 letter, for a control that opens Account (a11y review, 18 Sep 2026). */}
             <button type="button" onClick={() => go('account')} aria-label={t('mod_account')}
-              className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl py-1 ps-1 pe-2 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl py-1 ps-1 pe-2 transition-colors hover:bg-secondary/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
               <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-[12px] font-bold text-primary">
                 {String(customerName || '?').trim().charAt(0).toUpperCase()}
               </span>
@@ -690,16 +690,16 @@ export function PortalShell({
           return (
             <button key={item.id} type="button" onClick={() => go(item.id)} aria-current={active ? 'page' : undefined}
               className={cn('relative flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[11.5px] font-semibold leading-tight transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                 active ? 'text-primary' : 'text-foreground/75')}>
               <Icon className="h-[18px] w-[18px]" aria-hidden />
               {/* Wraps to a second line before it would ever be cut. */}
-              <span className="max-w-full break-words text-center">{t(item.label)}</span>
+              <span className="max-w-full wrap-break-word text-center">{t(item.label)}</span>
               {/* The dot is decoration; the COUNT is the information, and the sidebar says it out
                   loud (line above). A phone must not tell a screen-reader user less than a desktop
                   does about the same state (a11y review, 18 Sep 2026). */}
               {item.badge === 'unread' && unread > 0 ? <>
-                <span className="absolute end-[22%] top-1.5 h-2 w-2 rounded-full bg-primary" aria-hidden />
+                <span className="absolute inset-e-[22%] top-1.5 h-2 w-2 rounded-full bg-primary" aria-hidden />
                 <span className="sr-only">{unread}</span>
               </> : null}
               {active ? <span className="absolute inset-x-5 top-0 h-[2px] rounded-full bg-primary" aria-hidden /> : null}
@@ -708,7 +708,7 @@ export function PortalShell({
         })}
         <button type="button" ref={moreBtn} onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-controls="qd-nav-more"
           className={cn('flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[11.5px] font-semibold leading-tight transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+            'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
             moreOpen ? 'text-primary' : 'text-foreground/75')}>
           {moreOpen ? <X className="h-[19px] w-[19px]" aria-hidden /> : <Menu className="h-[19px] w-[19px]" aria-hidden />}
           <span>{t('nav_more')}</span>
@@ -722,7 +722,7 @@ export function PortalShell({
           {/* THE SHEET GIVES FULL NAMES, one per row: a two-column grid cut "What you may need
               next" at 375px. */}
           <nav id="qd-nav-more" aria-label={t('nav_more_title')}
-            className="fixed inset-x-0 bottom-[var(--qd-tabbar-h,0px)] z-40 max-h-[70vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
+            className="fixed inset-x-0 bottom-(--qd-tabbar-h,0px) z-40 max-h-[70vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
             {overflowGroups.map((g) => (
               <div key={g.caption} role="group" aria-labelledby={'qd-more-' + g.caption} className="mb-3">
                 <div id={'qd-more-' + g.caption} className="px-1 pb-1 text-[12.5px] font-semibold text-muted-foreground">{t(g.caption)}</div>
@@ -733,10 +733,10 @@ export function PortalShell({
                     return (
                       <button key={item.id} type="button" onClick={() => go(item.id)} aria-current={active ? 'page' : undefined}
                         className={cn('flex min-h-11 items-center gap-2.5 rounded-xl border px-3 py-2 text-start text-[14px] font-medium',
-                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                           active ? 'border-primary/40 bg-primary/12 text-primary' : 'border-border bg-secondary/25 text-foreground')}>
                         <Icon className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                        <span className="min-w-0 flex-1 break-words leading-snug">{t(item.label)}</span>
+                        <span className="min-w-0 flex-1 wrap-break-word leading-snug">{t(item.label)}</span>
                       </button>
                     );
                   })}

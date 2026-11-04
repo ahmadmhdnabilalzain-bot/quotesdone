@@ -44,6 +44,7 @@ import { defaultDeps, type ThinkDeps } from '../_shared/think.ts';
 import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_shared/reasoned_books.ts';
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 import { exchangeInternal, stampHeaders, fromDomainAuthenticated, replyStopRefusal, senderAuthenticated } from '../_shared/suppression_policy.ts';
+import { classifyPrompt, leadWritable } from './supplier_doc_gate.ts';
 import { approvalTokenOf, calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 import { registerRowsFor } from '../_shared/expense_mailbox.ts';
 import { M365_INBOUND_PREFIX } from '../_shared/m365_reply_inbox.ts';
@@ -735,6 +736,13 @@ export const handler = observe('resend_inbound', async (req) => {
       return J({ ok: true, receipt: true, booked: false, held: true, reason: kind === null ? 'awaiting_reasoning' : kind === 'other' ? 'not_an_expense_document' : 'amount_unreadable', doc: heldPath });
     }
 
+    // WHO SENT IT IS PROVEN, NOT READ OFF THE FROM HEADER (customer_support, 19 Oct 2026, review of #1498): email_triage
+    // gives a reply the sender's own account only when the receiving server authenticated the From domain (aligned
+    // DMARC, DKIM or SPF pass, fromDomainAuthenticated). The webhook is metadata-only, so the headers are read when absent.
+    // Read here, before the documents, since 3 Nov 2026: a licence is written only for an authenticated sender (supplier_doc_gate.ts).
+    const authHdrs = hdrs?.['authentication-results'] ? hdrs : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
+    const senderAuth = senderAuthenticated(providerEmailId, authHdrs?.['authentication-results'], from);
+
     // ---- Supplier document handling (store + classify + AUTO-EXTRACT + apply) ----
     let lead: any = null;
     if (orSafeEmail(from)) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
@@ -764,7 +772,7 @@ export const handler = observe('resend_inbound', async (req) => {
       stored++;
       let ai:any = { relevant:null, category:'other', summary:'', suggested_field:null, confidence:'low' };
       if (key) {
-        const content:any[] = [{ type:'text', text:`Email from supplier ${lead?.company_name||from}. Subject: ${subject}. Body: ${text}. Attached file: ${fname} (${mime}). Classify this document.` }];
+        const content:any[] = [{ type:'text', text: classifyPrompt(String(lead?.company_name||from), subject, text, fname, mime) }];
         if (/^image\//.test(sniffedMime)) { try { content.push({ type:'image_url', image_url:{ url:`data:${sniffedMime};base64,${bytesToB64(bytes)}` } }); } catch {} }
         // ZERO-COST GUARD (16 Aug 2026). This is the estate's only direct
         // POST to OpenRouter's /chat/completions - real paid inference, on a path an inbound
@@ -792,7 +800,7 @@ export const handler = observe('resend_inbound', async (req) => {
       const cat = String(ai.category||'other');
       let extracted:any = null; const fields:string[] = [];
       if (lead && inbSecret) {
-        if (cat === 'trade_license') {
+        if (cat === 'trade_license' && leadWritable(lead, senderAuth)) {
           const ex = await extractDoc('license', bytes, mime, fname, inbSecret);
           if (!ex?.doc) unreadDocs.push(fname);   // ruling 1177: nothing read at all -> ask for a clearer copy (a low-confidence read WAS read; it goes to review)
           if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
@@ -815,7 +823,7 @@ export const handler = observe('resend_inbound', async (req) => {
             if (w.licenceSetAside) { const i = fields.findIndex((f) => f.startsWith('licence no ')); if (i >= 0) fields[i] = 'licence no set aside for review (held by another claimed company)'; }
             if (w.error) { console.error('resend_inbound: licence readings not saved —', String(w.error.message ?? '')); fields.length = 0; }
           }
-        } else if (cat === 'company_profile' || cat === 'catalogue') {
+        } else if ((cat === 'company_profile' || cat === 'catalogue') && leadWritable(lead, senderAuth)) {
           const ex = await extractDoc('profile', bytes, mime, fname, inbSecret);
           if (!ex?.profile) unreadDocs.push(fname);
           const u:any = { doc_extracted_at: new Date().toISOString() };
@@ -840,16 +848,13 @@ export const handler = observe('resend_inbound', async (req) => {
     // it. It was needs_review=false, which email_triage's selection excludes, so a customer's question was stored
     // and never read. raw keeps what the reply and noAutoReply need (_shared/customer_mail.ts).
     const hv = (k: string) => { const v = hdrs?.[k] ?? hdrs?.[k.toLowerCase()]; return v == null ? null : String(Array.isArray(v) ? v[0] : v); };
-    // WHO SENT IT IS PROVEN, NOT READ OFF THE FROM HEADER (customer_support, 19 Oct 2026, review of #1498): email_triage
-    // gives a reply the sender's own account only when the receiving server authenticated the From domain (aligned
-    // DMARC, DKIM or SPF pass, fromDomainAuthenticated). The webhook is metadata-only, so the headers are read when absent.
-    const authHdrs = hdrs?.['authentication-results'] ? hdrs : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
+    // sender_authenticated: read above, before the documents (senderAuth)
     const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'),
       // 27 Oct 2026 (marketing): the other auto-reply marks, so an out-of-office never takes an invited lead's one
       // invite.reply handoff (fn_marketing_files_invite_reply reads them)
       x_auto_response_suppress: hv('x-auto-response-suppress'), precedence: hv('precedence'), x_autoreply: hv('x-autoreply') ?? hv('x-autorespond'), list_unsubscribe: hv('list-unsubscribe') ?? hv('list-id'),
       in_reply_to: hv('in-reply-to'), references: hv('references'),
-      content_type: hv('content-type'), sender_authenticated: senderAuthenticated(providerEmailId, authHdrs?.['authentication-results'], from),
+      content_type: hv('content-type'), sender_authenticated: senderAuth,
       // 2 Nov 2026: our own tenant's Exchange wrote it (its NDRs carry no DMARC result); read by fn_mail_bounce_marks_its_send
       exchange_internal: exchangeInternal(providerEmailId, stampHeaders(hv), from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();

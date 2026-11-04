@@ -12,10 +12,19 @@ export const WA_HISTORY_ROWS = 500;
 type Admin = any;
 
 /** Every earlier turn this number had with us, oldest first, as the model's `conversation`. */
-export async function waConversation(admin: Admin, from: string, before: string, capturedCounts = false): Promise<Turn[]> {
+// A FAILED READ IS SAID, NOT SWALLOWED (it_engineer, 3 Nov 2026, failure drill D10). supabase-js RETURNS a read error, it
+// does not throw, so a 500 / statement timeout / reset on this read became `data: null` -> [] and the model answered with
+// no memory of the conversation while nothing recorded it. Measured by wa_inbound/drill_inbound_faults.test.ts: no row
+// field, no finding, no agent_runs entry. The message is still answered (a thin answer beats none); `onUnavailable` is how
+// the caller makes the gap visible (wa_inbound raises an it_engineer finding). Awaited, so the record lands with the turn.
+// prevented by: wa_inbound/drill_inbound_faults.test.ts
+export async function waConversation(admin: Admin, from: string, before: string, capturedCounts = false,
+  onUnavailable?: (error: string) => Promise<void> | void): Promise<Turn[]> {
+  const unavailable = async (e: unknown) => { try { await onUnavailable?.(String((e as Error)?.message ?? e).slice(0, 300)); } catch (_e) { /* the record is best effort */ } };
   try {
-    const { data } = await admin.from('wa_messages').select('inbound,reply,sent')
+    const { data, error } = await admin.from('wa_messages').select('inbound,reply,sent')
       .eq('wa_from', from).lt('created_at', before).order('created_at', { ascending: false }).limit(WA_HISTORY_ROWS);
+    if (error) { await unavailable(error.message || error.code || 'read failed'); return []; }
     const rows = ((data ?? []) as { inbound?: string | null; reply?: string | null; sent?: boolean | null }[]).slice().reverse();
     const out: Turn[] = [];
     for (const r of rows) {
@@ -23,5 +32,5 @@ export async function waConversation(admin: Admin, from: string, before: string,
       const ours = String(r.reply || '').trim(); if (ours && (r.sent === true || capturedCounts)) out.push({ role: 'seat', text: ours });
     }
     return out;
-  } catch (_e) { return []; }   // a missing history thins the answer; it never loses the message
+  } catch (e) { await unavailable(e); return []; }   // a missing history thins the answer; it never loses the message
 }

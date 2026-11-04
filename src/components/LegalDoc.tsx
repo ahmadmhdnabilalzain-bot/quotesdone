@@ -62,7 +62,7 @@ export function LegalDoc({ slug, locale, lead }: { slug: string; locale: string;
   return (
     <>
       <SiteHeader />
-      <main id="main" className="legalx !p-0" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+      <main id="main" className="legalx p-0!" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         <PageHero
           kicker={t.kicker}
           title={<span dangerouslySetInnerHTML={{ __html: title }} />}
@@ -85,8 +85,8 @@ export function LegalDoc({ slug, locale, lead }: { slug: string; locale: string;
                       <li key={o.href}>
                         <a href={o.href} aria-current={o.on ? 'page' : undefined}
                           className={o.on
-                            ? 'block rounded-chip bg-teal/10 px-2 py-1.5 text-small font-medium !text-teal-light'
-                            : 'block rounded-chip px-2 py-1.5 text-small !text-muted transition-colors hover:bg-teal-light/[0.05] hover:!text-white'}>
+                            ? 'block rounded-chip bg-teal/10 px-2 py-1.5 text-small font-medium text-teal-light!'
+                            : 'block rounded-chip px-2 py-1.5 text-small text-muted! transition-colors hover:bg-teal-light/5 hover:text-white!'}>
                           {o.label}
                         </a>
                       </li>
@@ -99,7 +99,7 @@ export function LegalDoc({ slug, locale, lead }: { slug: string; locale: string;
           <article className="min-w-0 max-w-[760px]">
             {lead ? <div className="mb-10">{lead}</div> : null}
             <div
-              className="text-copy [&_.card]:mb-6 [&_.muted]:!mb-6 [&_.muted]:!not-italic [&_.muted]:!text-lead [&_h2]:!mb-3 [&_h2]:!mt-14 [&_h2]:scroll-mt-28 [&_h2]:border-t [&_h2]:border-line [&_h2]:pt-8 [&_h2]:!text-h3 [&_li::marker]:text-teal-light [&_p]:!mb-4"
+              className="text-copy [&_.card]:mb-6 [&_.muted]:mb-6! [&_.muted]:not-italic! [&_.muted]:text-lead! [&_h2]:mb-3! [&_h2]:mt-14! [&_h2]:scroll-mt-28 [&_h2]:border-t [&_h2]:border-line [&_h2]:pt-8 [&_h2]:text-h3! [&_li::marker]:text-teal-light [&_p]:mb-4!"
               dangerouslySetInnerHTML={{ __html: body }}
             />
             {note ? <div className="mt-14" dangerouslySetInnerHTML={{ __html: note }} /> : null}
