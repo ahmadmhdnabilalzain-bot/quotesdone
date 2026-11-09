@@ -236,6 +236,7 @@
     "code_cdns": {
       "what": "modules and model files the edge functions load at boot, and the pinned LibreDWG .wasm doc_read/dwg.ts fetches on first DWG (cdn.jsdelivr.net, else the same checksum-verified file out of its registry.npmjs.org tarball)",
       "hosts": ["esm.sh", "cdn.jsdelivr.net", "deno.land", "huggingface.co", "registry.npmjs.org"], "secrets": [],
+      "env": ["ML_MODEL_HF_REPO"], "env_note": "ML_MODEL_HF_REPO (edge secret, a public owner/name model repo): _shared/ml_embed.ts loads the embedding model from huggingface.co instead of the billed Storage bucket ml-models (9 Nov 2026); unset = Storage",
       "owner_seat": "it_engineer", "blast": "internal",
       "notify_founder": false, "notify_why": "nothing he can do about a public CDN; the finding stays with the IT engineer",
       "probe": { "kind": "http", "method": "GET", "url": "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/package.json", "auth": "none", "ok": [200], "every_minutes": 60 },

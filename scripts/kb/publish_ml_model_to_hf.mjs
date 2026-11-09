@@ -17,7 +17,8 @@
 //
 //   HF_TOKEN=<write token> node scripts/kb/publish_ml_model_to_hf.mjs --owner=Quotesdone            # 1-3
 //   HF_TOKEN=<write token> node scripts/kb/publish_ml_model_to_hf.mjs --owner=Quotesdone --set-secret
-// In a claude.ai cloud session the token is a network secret for huggingface.co: pass HF_TOKEN=proxy-injected.
+// In a claude.ai cloud session the token is a network secret for huggingface.co: pass a placeholder in its
+// shape, HF_TOKEN=hf_proxyinjected (@huggingface/hub refuses a value not starting hf_; the proxy replaces the header).
 import { createHash } from 'node:crypto';
 import { ML_MODEL } from './ml_embed_recipe.mjs';
 import { supabaseAccessToken } from '../lib/supabase_token.mjs';
