@@ -11,7 +11,8 @@
 //   device 'auto'                   uses that native session; the full 118 MB model then dies at 298 MB (Memory)
 //   + the trimmed 45.5 MB model     loads in 1.2-2.6 s cold, a question embeds in ~35 ms, 20 questions in 190 ms,
 //                                   8 rows of 1,200 chars in 1.3 s; 16 rows exceed the worker's resources
-// The model files come from Storage (in-region, free); nothing here is OpenRouter.
+// The model files come from Storage, or from Hugging Face when ML_MODEL_HF_REPO is set (see extractor()). Storage is
+// NOT free: a public-bucket download is billed cached egress (measured 9 Nov 2026). Nothing here is OpenRouter.
 //
 // FAIL SOFT, NEVER WRONG. Anything that goes wrong returns null and the caller uses the gte-small path with
 // the gte routines. A vector is never returned for the wrong space. The pipeline is built once per worker
@@ -25,7 +26,7 @@
 // so the deployed bundle still holds only the jsDelivr +esm above: the 24 Sep measurements stand unchanged.
 // @ts-types="npm:@huggingface/transformers@3.8.1"
 import * as TJS from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm';
-import { ML_MODEL, ML_MODEL_PATH, mlQueryText, mlRowText, rowText } from './ml_embed_recipe.ts';
+import { ML_MODEL, ML_MODEL_PATH, mlQueryText, mlRowText, rowText, modelFromHf } from './ml_embed_recipe.ts';
 import { embedLine } from './gte_embed.ts';
 
 export const ML_EMBED_MS = 20_000;   // a cold start downloads the model (1.2-2.6 s measured); a warm embed is tens of ms
@@ -42,9 +43,16 @@ async function extractor(): Promise<any> {
       const { pipeline, env } = TJS as any;
       env.allowLocalModels = false;
       env.useBrowserCache = false;
-      env.remoteHost = Deno.env.get('SUPABASE_URL') + ML_MODEL_PATH;
-      env.remotePathTemplate = '{model}/';
-      return await pipeline('feature-extraction', ML_MODEL, { dtype: 'q8', device: 'auto' });
+      // WHERE THE MODEL COMES FROM (9 Nov 2026, it_engineer). Each cold worker downloads the 47.6 MB model. From
+      // this project's public Storage bucket that download is Supabase CACHED EGRESS, which is billed: measured on
+      // production 2 Nov 2026, 2,565 downloads at the CDN edge (~122 GB) in one day, and the 1 TB days of 19 and
+      // 27 Oct match ~21,000-25,000. Set the edge secret ML_MODEL_HF_REPO (e.g. Quotesdone/multilingual-e5-small-ar-en,
+      // a PUBLIC Hugging Face model repo holding the same five files) and the model is fetched from Hugging Face,
+      // which charges no egress. Unset, it is read from Storage exactly as before.
+      const hf = modelFromHf(Deno.env.get('ML_MODEL_HF_REPO'));
+      env.remoteHost = hf ? 'https://huggingface.co/' : Deno.env.get('SUPABASE_URL') + ML_MODEL_PATH;
+      env.remotePathTemplate = hf ? '{model}/resolve/{revision}/' : '{model}/';
+      return await pipeline('feature-extraction', hf ?? ML_MODEL, { dtype: 'q8', device: 'auto' });
     })();
     pipe.catch(() => { pipe = null; });   // a failed load is retried by the next call, not cached forever
   }
