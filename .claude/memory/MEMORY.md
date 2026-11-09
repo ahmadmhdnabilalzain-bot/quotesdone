@@ -88,6 +88,9 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 - [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
 ## Working the estate
+- [deno --node-modules-dir=auto breaks next build (9 Nov)](deno-node-modules-auto-breaks-next-build.md) — two Reacts → useContext null on /_global-error; rm -rf node_modules && npm ci; use =none in a shared tree
+- [Docker and a local database in a cloud session (9 Nov)](docker-and-a-local-database-in-a-cloud-session.md) — dockerd &, mirror.gcr.io, --network=host + CA secret; `npm run db:local` rebuilds the whole public schema and measures it
+- [Checks read split code through a sources helper; oxlint not ESLint (9 Nov)](checks-read-split-code-through-a-sources-helper.md) — functionSource()/portal_sources; arabic hashes keyed by path; typescript-eslint refuses TS 7
 - [Identity shapes live in one list (3 Nov)](identity-shapes-live-in-one-list.md) — every scrubber runs _shared/identity_text.ts; measure with identity_never_leaks_before_reveal.mjs (480 trials)
 - [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
 - [The otp-race step runs on a throwaway Postgres in the cloud container (28 Oct)](the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container.md) — no Docker daemon, but Postgres 16 is installed; run it as the postgres user and set QD_OTP_RACE_PG
