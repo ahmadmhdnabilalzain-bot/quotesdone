@@ -11,7 +11,8 @@
     "test": "node scripts/checks/run.mjs",
     "gate": "node scripts/ci/local_gate.mjs",
     "test:phase-d": "node scripts/checks/run.mjs --profile=phase-d",
-    "regen:canonical-manifest": "node scripts/checks/canonical_routine_manifest.mjs --all --emit"
+    "regen:canonical-manifest": "node scripts/checks/canonical_routine_manifest.mjs --all --emit",
+    "db:local": "node scripts/db/local_from_mirror.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.3.1",
