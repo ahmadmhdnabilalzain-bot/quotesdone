@@ -18,11 +18,12 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const API = readFileSync(root + 'src/components/portal/supplier/api.ts', 'utf8');
 const COPY = readFileSync(root + 'src/components/portal/supplier/serverCopy.ts', 'utf8');
-const PORTAL = readFileSync(root + 'src/components/portal/SupplierPortal.tsx', 'utf8');
+const PORTAL = readSupplierPortal();
 const PLATFORM_546 = JSON.stringify({ code: 'WORKER_RESOURCE_LIMIT', message: 'Function failed due to not having enough compute resources (please check logs)' });
 
 // The real api.ts, with its env import stubbed and its retry import (fetchRetry, #1769) pointed at the real file, loaded by Node's own type stripping.

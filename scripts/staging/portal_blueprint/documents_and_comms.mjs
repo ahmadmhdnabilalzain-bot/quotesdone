@@ -55,7 +55,8 @@ export const EXPECTED = 21;   // 26 until 21 Sep 2026; the five §15 neg-* legs 
 
 // ---- the repository, read once ---------------------------------------------------------------
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const slurp = (rel) => { try { return readFileSync(join(ROOT, rel), 'utf8'); } catch (_e) { return ''; } };
+// readSource: a portal's entry path reads the whole portal it was before the 9 Nov 2026 split.
+const slurp = (rel) => { try { return readSource(rel); } catch (_e) { return ''; } };
 const N = (s, re) => (String(s || '').match(re) || []).length;
 const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
 const B = (v) => `select ${v ? 'true' : 'false'}`;
@@ -67,6 +68,7 @@ const B = (v) => `select ${v ? 'true' : 'false'}`;
 // DocumentVault.tsx is imported at CustomerPortal.tsx:19 and fetches customer_documents. Two of the
 // five section modules already measured the closure. See ../portal_surface.mjs.
 import { PORTAL_SRC, PORTAL_FILES, componentSrc } from '../portal_surface.mjs';
+import { readSource } from '../../lib/portal_sources.mjs';
 const PORTAL_PATH = `the /me route closure (${PORTAL_FILES.length} file(s), entry src/components/me/CustomerPortal.tsx)`;
 const PORTAL = PORTAL_SRC;
 // A source file we cannot read is an UNMEASURED requirement, not a missing feature. Throwing here

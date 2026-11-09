@@ -9,9 +9,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const slice = (file, start, end) => {
-  const s = readFileSync(new URL('../../' + file, import.meta.url), 'utf8');
+  // customer_api/index.ts names the whole function (index.ts plus its modules since 9 Nov 2026).
+  const s = file === 'supabase/functions/customer_api/index.ts' ? functionSource('customer_api') : readFileSync(new URL('../../' + file, import.meta.url), 'utf8');
   const a = s.indexOf(start); assert.ok(a >= 0, `${file}: ${start} not found`);
   const b = s.indexOf(end, a + start.length); assert.ok(b > a, `${file}: end marker not found`);
   return s.slice(a, b);

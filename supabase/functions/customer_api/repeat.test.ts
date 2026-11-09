@@ -1,5 +1,7 @@
 import { assertEquals } from 'jsr:@std/assert@1';
 import { repeatPlan, type Original } from './repeat.ts';
+// The function is index.ts plus its modules (9 Nov 2026 split): read all of it, as the node checks do.
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const base: Original = {
   category: 'tiling', emirate: 'Dubai', raw_input: 'Porcelain tiles 60x60, 120 m2', summary: 'Tiling 120 m2', budget: '20000',
@@ -28,7 +30,7 @@ Deno.test('a future date is kept as the customer gave it', () => {
 });
 
 Deno.test('a suspended customer cannot repeat: repeat_inquiry is on the list the suspension gate reads', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('customer_api');
   const list = src.match(/const MUTATING = \[([^\]]*)\]/)?.[1] || '';
   assertEquals(list.includes("'repeat_inquiry'"), true);
 });

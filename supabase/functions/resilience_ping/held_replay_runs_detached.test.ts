@@ -5,7 +5,15 @@
 // run's deadline. Read from the source: the function's module cannot be imported without its environment.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 
-const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+// The function is index.ts plus shared.ts and ticks/*.ts (split 9 Nov 2026): read them all, index.ts first.
+async function functionText(): Promise<string> {
+  const parts = [await Deno.readTextFile(new URL('./index.ts', import.meta.url)), await Deno.readTextFile(new URL('./shared.ts', import.meta.url))];
+  const names: string[] = [];
+  for await (const e of Deno.readDir(new URL('./ticks/', import.meta.url))) if (e.isFile && e.name.endsWith('.ts')) names.push(e.name);
+  for (const n of names.sort()) parts.push(await Deno.readTextFile(new URL('./ticks/' + n, import.meta.url)));
+  return parts.join('\n');
+}
+const src = await functionText();
 // comments out, so a sentence that names a call never counts as one
 const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
 function body(fn: string): string {

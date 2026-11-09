@@ -4,6 +4,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { readCustomerPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 const R = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta.url)), 'utf8');
 const SQL = R('scripts/sql/a_customer_with_no_supplier_is_told_the_truth_and_nothing_is_left_waiting.sql');
 
@@ -12,7 +14,7 @@ test('the screen promises no quote, and the list does not then say matching', ()
   assert.match(none, /cannot promise a quote/);
   assert.doesNotMatch(none, /as soon as a quote arrives/);
   assert.match(R('src/components/me/NewRequest.tsx'), /onDone\(\{ none: true/);
-  assert.match(R('src/components/me/CustomerPortal.tsx'), /r && r\.none \? ''/);
+  assert.match(readCustomerPortal(), /r && r\.none \? ''/);
 });
 
 test('the e-mails promise no quote to a request nobody has', () => {
@@ -28,5 +30,5 @@ test('a request held for its specs is not told it has no supplier, and is not cl
 
 test('a request that reached nobody is closed on the clock, and the customer is told', () => {
   assert.match(SQL, /interval '14 days'[\s\S]*status = 'expired'[\s\S]*request_closed_no_supplier/);
-  assert.match(R('supabase/functions/resilience_ping/index.ts'), /rpc\('fn_sales_engineer_closes_unreached_requests'\)/);
+  assert.match(functionSource('resilience_ping'), /rpc\('fn_sales_engineer_closes_unreached_requests'\)/);
 });

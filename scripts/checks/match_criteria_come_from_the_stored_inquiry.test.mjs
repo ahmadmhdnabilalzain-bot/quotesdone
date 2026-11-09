@@ -28,10 +28,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FN = 'supabase/functions/sales_engineer/index.ts';
-const CAPI = 'supabase/functions/customer_api/index.ts';
 
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
@@ -99,7 +99,7 @@ test('every criterion is read from the one src source', () => {
 
 test('the one runtime caller still passes only inquiry_id and persist', () => {
   // If this ever changes, the derivation above starts discarding something a caller relies on.
-  const capi = readFileSync(REPO + CAPI, 'utf8');
+  const capi = functionSource('customer_api');
   const call = capi.slice(capi.indexOf('functions/v1/sales_engineer'));
   const body = call.slice(call.indexOf('JSON.stringify('), call.indexOf(') })'));
   assert.match(body, /action: 'match'/, 'customer_api no longer asks for a match here');

@@ -9,6 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 
@@ -23,7 +24,7 @@ test('kyc accept_terms answers before the certificate is rendered', () => {
   // the PDF, and z20_leads_mandatory_item_landed_reverifies verifies the supplier when signed_terms_path lands.
   assert.match(acc, /if \(typeof rt\?\.waitUntil === 'function'\) \{ rt\.waitUntil\(certify\); return J\(/,
     'an accepting party waits on the render');
-  const sa = read('supabase/functions/supplier_api/index.ts');
+  const sa = functionSource('supplier_api');
   assert.ok(!/setTimeout\(r, 750\)/.test(sa), 'supplier_api polls for the certificate again');
   // The acceptance is still RECORDED before any answer: supplier_api writes accepted_terms_at in the same update.
   assert.match(sa, /const rec = await supplierTermsRecord\(secretVal, clientIp\(req\)/, 'save_profile no longer records the acceptance');
@@ -41,7 +42,7 @@ test('supplier_portal marks the probe from a verified credential only', () => {
   assert.match(sp, /if \(!who\.ok\) return annotate\(J\(refusalBody\(who\), who\.status\), await probeCaller\(admin, req, 'supplier_portal'\)\);/);
   const lp = read('supabase/functions/_shared/launch_path.ts');
   assert.match(lp, /id: 'api:supplier_portal', url: fnUrl\('supplier_portal'\), init: withProbe\(/);
-  const rp = read('supabase/functions/resilience_ping/index.ts');
+  const rp = functionSource('resilience_ping');
   assert.match(rp, /probeLaunchPath\([^\n]*sec\('cred_fn_resilience_ping'\)/, 'resilience_ping does not hand the probe its credential');
 });
 

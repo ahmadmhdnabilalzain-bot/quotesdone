@@ -3,6 +3,8 @@
 import { assert, assertEquals, assertFalse, assertMatch } from 'jsr:@std/assert@1';
 import { pendingFounderSubject, servicesHoldMail, SERVICES_UNCONFIRMED } from './services_hold_copy.ts';
 import { rerunGateAfterConfirm } from './supplier_capability.ts';
+// customer_api and supplier_api are index.ts plus modules since 9 Nov 2026: read the whole function, as the node checks do.
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 Deno.test('a services hold is told to confirm its services, never that someone is reviewing it', () => {
   const m = servicesHoldMail('ZZ DEMO Co');
@@ -19,7 +21,7 @@ Deno.test('the founder is not told "auto-approve is off" for a services hold, an
 });
 
 Deno.test('save_profile routes a services hold through the helpers', async () => {
-  const src = await Deno.readTextFile(new URL('../supplier_api/index.ts', import.meta.url));
+  const src = functionSource('supplier_api');
   assertMatch(src, /decision === 'pending' && v\.reason === SERVICES_UNCONFIRMED\s*\?\s*servicesHoldMail\(name\)/);
   assertMatch(src, /pendingFounderSubject\(v\.reason\)/);
 });

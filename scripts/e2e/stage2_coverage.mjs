@@ -16,6 +16,7 @@
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { liveDuties } from './stage2_duties.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const walk = (dir, out = []) => {
   if (!existsSync(dir)) return out;
@@ -60,7 +61,7 @@ export async function buildInventory(repo, read) {
   const dbTypes = (await read(`select distinct type from public.notifications where created_at > now() - interval '365 days' and type is not null`)).map((r) => r.type);
   for (const t of uniq([...codeTypes, ...dbTypes])) add('notice', t, 'notifications');
   // seat duties
-  for (const d of await liveDuties(read, readFileSync(join(repo, 'supabase/functions/resilience_ping/index.ts'), 'utf8'))) add('duty', d.duty, d.source);
+  for (const d of await liveDuties(read, functionSource('resilience_ping'))) add('duty', d.duty, d.source);
   return items;
 }
 

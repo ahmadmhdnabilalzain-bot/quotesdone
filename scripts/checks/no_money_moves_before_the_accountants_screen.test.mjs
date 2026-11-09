@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (f) => readFileSync(join(REPO, f), 'utf8');
@@ -25,7 +26,8 @@ test('every reveal door passes canReveal, and canReveal asks the screen and refu
   assert.match(guard, SCREEN, 'reveal_guard.ts no longer asks fn_accountant_money_screen');
   assert.match(guard, /hold === true\) return refuse\('under_review'\)/, 'reveal_guard.ts does not refuse a held reveal');
   for (const f of ['stripe_checkout', 'stripe_confirm', 'customer_api']) {
-    assert.match(read(`supabase/functions/${f}/index.ts`), /canReveal\(admin,/, `${f} no longer passes canReveal`);
+    // customer_api is index.ts plus its modules since 9 Nov 2026 (the reveal action is in actions/reveal.ts)
+    assert.match(f === 'customer_api' ? functionSource(f) : read(`supabase/functions/${f}/index.ts`), /canReveal\(admin,/, `${f} no longer passes canReveal`);
   }
 });
 

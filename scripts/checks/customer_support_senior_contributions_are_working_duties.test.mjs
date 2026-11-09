@@ -20,6 +20,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -115,7 +116,7 @@ test('static CS-C10 / CS-C12: the complaint update and the incident notices are 
   const v = code(read(VOICE));
   assert.match(v, /p_by = 'outage_fallback' and p_body is distinct from r\.draft/, 'the send accepts a code-written body that is not the recorded draft');
   assert.ok(v.includes('revoke execute on function public.fn_customer_support_voice_send(text, text, text, text) from public, anon, authenticated;'), 'voice_send is not revoked');
-  assert.ok(read('supabase/functions/resilience_ping/index.ts').includes("supportVoice: { run: () => kickDetached('supportVoice') }"), 'nothing runs the writer');
+  assert.ok(functionSource('resilience_ping').includes("supportVoice: { run: () => kickDetached('supportVoice') }"), 'nothing runs the writer');
   assert.ok(read('supabase/functions/_shared/duty_voice.ts').includes('modelOrOutage(a, r.draft)'), 'the writer sends the draft without the outage gate');
 });
 

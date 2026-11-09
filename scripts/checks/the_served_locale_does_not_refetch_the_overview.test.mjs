@@ -12,12 +12,9 @@
 //   node --test scripts/checks/the_served_locale_does_not_refetch_the_overview.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readCustomerPortal } from '../lib/portal_sources.mjs';
 
-const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const src = readFileSync(join(REPO, 'src/components/me/CustomerPortal.tsx'), 'utf8');
+const src = readCustomerPortal();
 
 test('loadInq marks the served locale as loaded before adopting it', () => {
   const body = src.slice(src.indexOf('const loadInq = (first)'), src.indexOf('const loadOv = (first)'));

@@ -19,6 +19,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionFiles, functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FNS = join(REPO, 'supabase', 'functions');
@@ -36,7 +37,7 @@ test('config.toml still names wa_templates_watch and ceo_agent as JWT-gated (the
 });
 
 test('every internal call from resilience_ping carries the gateway key', () => {
-  const found = calls(read(join(FNS, 'resilience_ping', 'index.ts')));
+  const found = calls(functionSource('resilience_ping'));
   assert.ok(found.length >= 10, `expected the internal calls, found ${found.length}`);
   const bare = found.filter((c) => !/GATEWAY|Authorization/.test(c.headers));
   assert.deepEqual(bare.map((c) => `line ${c.at} -> ${c.slug ?? '(dynamic)'}`), []);
@@ -45,11 +46,11 @@ test('every internal call from resilience_ping carries the gateway key', () => {
 test('no edge function calls a JWT-gated function without a key', () => {
   const bad = [];
   for (const d of readdirSync(FNS)) {
-    const f = join(FNS, d, 'index.ts');
-    if (!existsSync(f)) continue;
-    for (const c of calls(read(f))) {
+    if (!existsSync(join(FNS, d, 'index.ts'))) continue;
+    // every runtime file of the function, not index.ts alone: a function split into modules keeps its calls there
+    for (const f of functionFiles(d)) for (const c of calls(read(join(REPO, f)))) {
       if (c.slug && jwtRequired.has(c.slug) && c.headers.startsWith('{') && !/GATEWAY|Authorization/.test(c.headers)) {
-        bad.push(`${d}/index.ts:${c.at} -> ${c.slug}`);
+        bad.push(`${f.replace('supabase/functions/', '')}:${c.at} -> ${c.slug}`);
       }
     }
   }

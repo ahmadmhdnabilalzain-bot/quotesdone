@@ -159,13 +159,26 @@ function importsOf(src: string): Map<string, { file: string; name: string }> {
       out.set(local || orig, { file, name: orig });
     }
   };
-  for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*'\.\.\/_shared\/([^']+)'/g)) bind(m[1], m[2], /\s+as\s+/);
-  for (const m of src.matchAll(/const\s*\{([^}]*)\}\s*=\s*await\s+import\(\s*'\.\.\/_shared\/([^']+)'\s*\)/g)) bind(m[1], m[2], /\s*:\s*/);
+  // (?:\.\.\/)+ : the ticks moved into resilience_ping/ticks/ on 9 Nov 2026 import from ../../_shared/.
+  for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*'(?:\.\.\/)+_shared\/([^']+)'/g)) bind(m[1], m[2], /\s+as\s+/);
+  for (const m of src.matchAll(/const\s*\{([^}]*)\}\s*=\s*await\s+import\(\s*'(?:\.\.\/)+_shared\/([^']+)'\s*\)/g)) bind(m[1], m[2], /\s*:\s*/);
   return out;
 }
 
 Deno.test('resilience_ping hands heartbeatDeps to every deps-taking call: never defaultDeps, never undefined, never left to a default', async () => {
-  const raw = await Deno.readTextFile(new URL('../resilience_ping/index.ts', import.meta.url));
+  // The whole function, not index.ts alone: on 9 Nov 2026 its ticks moved into resilience_ping/ticks/*.ts and
+  // shared.ts (a pure move). Every runtime .ts file in the folder, index.ts first, tests left out.
+  const root = new URL('../resilience_ping/', import.meta.url);
+  const files: string[] = [];
+  const walkFn = async (dir: URL, rel: string) => {
+    for await (const e of Deno.readDir(dir)) {
+      if (e.isDirectory) await walkFn(new URL(e.name + '/', dir), rel + e.name + '/');
+      else if (e.name.endsWith('.ts') && !/\.(test|check)\.ts$/.test(e.name)) files.push(rel + e.name);
+    }
+  };
+  await walkFn(root, '');
+  files.sort((a, b) => (a === 'index.ts' ? -1 : b === 'index.ts' ? 1 : a.localeCompare(b)));
+  const raw = (await Promise.all(files.map((f) => Deno.readTextFile(new URL(f, root))))).join('\n');
   const src = code(raw);
   const lineOf = (i: number) => src.slice(0, i).split('\n').length;
   const inWorkerAt = [...src.matchAll(/\bdefaultDeps\s*\(/g)].map((m) => lineOf(m.index!));

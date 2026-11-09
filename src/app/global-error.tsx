@@ -15,8 +15,8 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           <h1 style={{ fontSize: 24, margin: 0 }}>Something went wrong.</h1>
           <p style={{ opacity: 0.8 }}>It is our fault, not yours. Please try again.</p>
           <h2 dir="rtl" lang="ar" style={{ fontSize: 22, margin: '24px 0 0' }}>حدث خطأ.</h2>
-          <p dir="rtl" lang="ar" style={{ opacity: 0.8 }}>الخطأ من جهتنا وليس منك. يُرجى المحاولة مرة أخرى.</p>
-          <button type="button" onClick={() => reset()} style={btn}>Try again · حاول مرة أخرى</button>
+          <p dir="rtl" lang="ar" style={{ opacity: 0.8 }}>نعتذر عن ذلك، فالخلل من جهتنا. يُرجى إعادة المحاولة.</p>
+          <button type="button" onClick={() => reset()} style={btn}>Try again · إعادة المحاولة</button>
           {error.digest ? <p style={{ marginTop: 16, fontFamily: 'monospace', fontSize: 12, opacity: 0.6 }}>Reference: {error.digest}</p> : null}
         </main>
       </body>

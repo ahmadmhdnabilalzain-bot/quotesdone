@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 const read = (p) => fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 test('Inquiries offers "Add another option" once a quote exists, and opens the form as a new option', () => {
   const tab = read('src/components/portal/supplier/InquiriesTab.tsx');
@@ -11,7 +12,7 @@ test('Inquiries offers "Add another option" once a quote exists, and opens the f
   assert.match(tab, /\{ newOption: form === 'new' \}/);
 });
 test('the portal passes it to QuoteForm, which sends new_option', () => {
-  const portal = read('src/components/portal/SupplierPortal.tsx');
+  const portal = readSupplierPortal();
   assert.match(portal, /newOption=\{!!o\?\.newOption\}/);
   assert.match(portal, /newOption \? \{ new_option: true \}/);
 });

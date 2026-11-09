@@ -36,6 +36,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../../lib/safe_replay.mjs';
+import { functionSource } from '../../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -45,7 +46,7 @@ const SQL = code(read(FILE));
 // 18 Oct 2026: the Outlook seed moved to management@quotesdone.com, read app-only by the M365 app send_outbox sends with.
 const MOVED = code(read('scripts/sql/the_outlook_seed_is_read_by_the_microsoft_365_app_that_already_sends.sql'));
 const TS = read('supabase/functions/_shared/inbox_placement.ts');
-const PING = read('supabase/functions/resilience_ping/index.ts');
+const PING = functionSource('resilience_ping');
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
 // A routine's body, from its create statement to the closing $fn$, so prose elsewhere cannot satisfy it.

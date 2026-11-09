@@ -5,6 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const R = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const MOBILE = /971\s?50\s?931\s?9355|971509319355/;
@@ -29,7 +30,7 @@ test('the signed Supplier Agreement keeps its text: the mobile leaves it only wi
 });
 
 test('a request with no supplier does not page the founder, and the form mails nobody', () => {
-  const c = R('supabase/functions/customer_api/index.ts');
+  const c = functionSource('customer_api');
   assert.doesNotMatch(c, /event: 'rfq_no_supplier'/);
   assert.doesNotMatch(c, /type: 'rfq_no_supplier'/);
   assert.doesNotMatch(R('supabase/functions/contact_submit/index.ts'), /requestDelivery/);

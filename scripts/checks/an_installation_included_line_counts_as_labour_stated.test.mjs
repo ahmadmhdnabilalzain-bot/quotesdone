@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -28,6 +29,6 @@ test('the canonical trg_quote_quality counts a stated labour or install, zero in
 });
 
 test('supplier_api still records "installation included" as a stated install of 0', () => {
-  const api = read('supabase/functions/supplier_api/index.ts');
+  const api = functionSource('supplier_api');
   assert.match(api, /i === 0 && !anyInstall && fromScope\.installation_included \? 0 : null/);
 });

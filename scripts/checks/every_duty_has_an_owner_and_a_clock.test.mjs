@@ -17,12 +17,13 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
 const CHANGE = R('scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql');
 const PROBE = R('scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock_probe.sql');
-const PING = R('supabase/functions/resilience_ping/index.ts');
+const PING = functionSource('resilience_ping');
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';

@@ -5,9 +5,8 @@
 //   node --test scripts/checks/a_supplier_upload_survives_one_gateway_failure.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { retryTransient, isTransientUploadError } from '../../src/lib/signedUpload.ts';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 test('one 502 is retried and the upload completes', async () => {
   let n = 0;
@@ -29,6 +28,6 @@ test('what counts as transient', () => {
   for (const e of [null, { status: 413 }, { _http: 401 }, { code: 'bad_response', _http: 404 }]) assert.ok(!isTransientUploadError(e), JSON.stringify(e));
 });
 test('the portal uploads through retryTransient', () => {
-  const s = readFileSync(fileURLToPath(new URL('../../src/components/portal/SupplierPortal.tsx', import.meta.url)), 'utf8');
+  const s = readSupplierPortal();
   assert.match(s, /const uploadDirect = \(kind, file, token\) => retryTransient\(/);
 });

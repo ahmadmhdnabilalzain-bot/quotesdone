@@ -27,6 +27,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { definitions } from '../lib/canonical_sql.mjs';
 import { pendingNotes } from '../lib/pending_sql.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
@@ -119,7 +120,8 @@ test('the senders never frame or template a supplier message in Arabic', () => {
 
 test('supplier_api and its review flow write to a supplier in English only', () => {
   for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/supplier_api/quote_review_actions.ts']) {
-    const s = read(f).replace(/\/\/.*$/gm, '');
+    // supplier_api/index.ts names the whole function (index.ts plus its modules since 9 Nov 2026).
+    const s = (f === 'supabase/functions/supplier_api/index.ts' ? functionSource('supplier_api') : read(f)).replace(/\/\/.*$/gm, '');
     for (const re of [/sup\.locale/, /full\?\.locale/, /body\.lang === 'ar'/, /String\(sup\.locale/]) {
       assert.doesNotMatch(s, re, `${f}: a supplier message or document takes its language from ${re.source} again`);
     }
@@ -127,7 +129,7 @@ test('supplier_api and its review flow write to a supplier in English only', () 
 });
 
 test('create_inquiry stores the language the customer chose on every inquiry it creates', () => {
-  const s = read('supabase/functions/customer_api/index.ts');
+  const s = functionSource('customer_api');
   const inserts = s.match(/from\('inquiries'\)\.insert\(\{[^}]{0,120}/g) || [];
   assert.ok(inserts.length >= 4, `expected the four create_inquiry inserts, found ${inserts.length}`);
   for (const i of inserts) assert.match(i, /lang: inquiryLang/, 'an inquiry is created without the customer\'s chosen language: ' + i.slice(0, 80));

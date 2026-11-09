@@ -25,9 +25,12 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { replaySql } from '../lib/safe_replay.mjs';
 import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
+// A proof that names one of these index.ts files means the whole function: index.ts plus the modules it was split into.
+const WHOLE_FN = /^supabase\/functions\/(resilience_ping|customer_api|supplier_api)\/index\.ts$/;
 const REGISTRY = JSON.parse(read('supabase/functions/_shared/decision_points.json'));
 const ENGINE = 'scripts/sql/every_seat_reasons_before_it_answers.sql';
 const MIGRATE = 'scripts/sql/meaning_is_decided_by_reasoning_not_by_word_lists.sql';
@@ -64,7 +67,7 @@ test('no migrated decision point is decided by a word list again, and each one a
   for (const p of REGISTRY.points.filter((x) => x.status === 'migrated')) {
     assert.ok(Array.isArray(p.proof) && p.proof.length, `${p.id}: a migrated point needs a proof`);
     for (const pr of p.proof) {
-      const src = code(pr.file, read(pr.file));
+      const src = code(pr.file, WHOLE_FN.test(pr.file) ? functionSource(pr.file.split('/')[2]) : read(pr.file));
       for (const s of pr.must_contain ?? []) assert.ok(src.includes(s), `${p.id}: ${pr.file} no longer contains ${s}`);
       for (const s of pr.must_not_contain ?? []) assert.ok(!src.includes(s), `${p.id}: ${pr.file} is word-matching again (${s})`);
     }
@@ -85,7 +88,7 @@ test('no migrated decision point is decided by a word list again, and each one a
   assert.ok(read('supabase/functions/_shared/case_recall.ts').includes("admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {"), 'case_recall.ts lost fn_case_recall');
   // 7 Oct 2026 (ledger 1175), 12 Oct: REPLAY_CLAIM a claim, concurrently, bounded by REPLAY_MAX_ROWS and REPLAY_BUDGET_MS per tick.
   // 27 Oct (#1687, #1688): on heartbeatDeps(admin), in its own detached run kicked by reasoning_held, handed that run's deadline.
-  const rp = read('supabase/functions/resilience_ping/index.ts');
+  const rp = functionSource('resilience_ping');
   assert.match(rp, /step\('reasoning_held', async \(\) => kickDetached\('heldReplay'\)\)/);
   assert.match(rp, /replayHeld\(admin, REPLAY_CLAIM, heartbeatDeps\(admin\), \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\),\s*\{ maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS, deadline \}\)/);
 });

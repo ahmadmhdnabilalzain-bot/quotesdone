@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pendingNotes } from '../lib/pending_sql.mjs';
+import { readSource, readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '../..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
@@ -56,12 +57,12 @@ test('supplier and customer sign-up never ask Supabase Auth to send mail', () =>
   // signInWithOtp call would put every campaign sign-up behind that 30.
   const files = ['src/components/portal/SupplierPortal.tsx', 'src/components/me/CustomerPortal.tsx'];
   for (const f of files) {
-    assert.doesNotMatch(code(read(f)), /\.auth\.(signUp|signInWithOtp|resetPasswordForEmail)\(/, f + ' calls the rate-limited auth mailer');
+    assert.doesNotMatch(code(readSource(f)), /\.auth\.(signUp|signInWithOtp|resetPasswordForEmail)\(/, f + ' calls the rate-limited auth mailer');
   }
 });
 
 test('the portal shows the email-not-sent refusal in the reader\'s language', () => {
-  assert.match(read('src/components/portal/SupplierPortal.tsx'), /\[\/could not send the \(sms\|email\)\/i, 'err_code_send'\]/);
+  assert.match(readSupplierPortal(), /\[\/could not send the \(sms\|email\)\/i, 'err_code_send'\]/);
 });
 
 test('a served country\'s OTP burst is judged by codes never used, not by volume', () => {

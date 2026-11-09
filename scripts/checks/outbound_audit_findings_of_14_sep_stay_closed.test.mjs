@@ -7,6 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const R = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const manifest = R('scripts/sql/MANIFEST.txt').split('\n').map((l) => l.trim()).filter((l) => l.endsWith('.sql'));
@@ -15,7 +16,7 @@ const SENDABLE = 'scripts/sql/the_invite_composer_calls_a_sendability_check_that
 const GUARD = 'scripts/sql/the_demo_guard_holds_a_row_moved_back_to_the_queue_and_its_release_exists.sql';
 
 test('1. supplier_api search returns named fields only, never claimed_by', () => {
-  const api = R('supabase/functions/supplier_api/index.ts');
+  const api = functionSource('supplier_api');
   const line = api.split('\n').find((l) => l.includes("action === 'search'"));
   assert.ok(line, 'search action not found');
   assert.ok(!/\.\.\.r\b/.test(line), 'search spreads the raw row again');

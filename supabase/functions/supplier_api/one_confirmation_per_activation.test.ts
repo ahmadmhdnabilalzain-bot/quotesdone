@@ -3,8 +3,10 @@
 // AND the approval trigger's supplier_approved notice, each with a WhatsApp twin: two confirmations for one activation.
 // The approval trigger is the one confirmation; save_profile's notice goes only while the registration is not active.
 import { assert, assertMatch } from 'jsr:@std/assert';
+// The function is index.ts plus its modules (9 Nov 2026 split): read all of it, as the node checks do.
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
-const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+const src = functionSource('supplier_api');
 
 Deno.test('save_profile queues registration_received only for a decision short of approved', () => {
   assertMatch(src, /\.\.\.\(decision === 'approved' \? \[\] : \[\{ type: 'registration_received', to_email: email, to_role: 'supplier'/);

@@ -29,7 +29,7 @@ Deno.test('wa_inbound stores an authenticated message on arrival, before any bra
 Deno.test('only a crashed turn is left at received: a finished turn closes its arrival row, and resilience_ping sweeps the rest', async () => {
   assert(/\bcatch \(e\) \{\s*crashed = true;/.test(code), 'the exception path no longer marks the turn as crashed');
   assert(/finally \{[\s\S]{0,400}if \(!crashed && arrivalId != null\)[\s\S]{0,200}stage: 'handled'/.test(code), 'a finished turn no longer closes its arrival row');
-  const ping = await Deno.readTextFile(new URL('../resilience_ping/index.ts', import.meta.url));
+  const ping = await Deno.readTextFile(new URL('../resilience_ping/ticks/it_engineer.ts', import.meta.url));
   assert(/rpc\('fn_wa_arrival_sweep'/.test(ping), 'resilience_ping no longer runs fn_wa_arrival_sweep');
   const sql = await Deno.readTextFile(new URL('../../../scripts/sql/a_whatsapp_message_whose_turn_crashed_reaches_customer_support_in_five_minutes.sql', import.meta.url));
   assert(/meta->>'stage' = 'received'[\s\S]{0,200}interval '5 minutes'[\s\S]{0,300}for update skip locked[\s\S]{0,300}'stage', 'escalated'/.test(sql),

@@ -17,6 +17,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { selfTest, LABELLED, SCENARIOS, gradeConversation } from '../eval/conversation_quality.mjs';
 import { BRIEF_TEXT } from '../../supabase/functions/_shared/brief.generated.ts';
+import { functionSource } from '../lib/function_sources.mjs';
 
 test('every grader catches its known-bad turn and passes its known-good one', () => {
   const r = selfTest();
@@ -39,7 +40,7 @@ test('a superseded quantity in a restatement is caught across a whole scripted c
 });
 
 test('the brief states the inquiry edit window the product enforces', () => {
-  const api = readFileSync(new URL('../../supabase/functions/customer_api/index.ts', import.meta.url), 'utf8');
+  const api = functionSource('customer_api');
   const ms = api.match(/const EDIT_WINDOW_MS = ([^;]+);/)[1].split('*').map(Number).reduce((a, b) => a * b);   // "60 * 60e3"
   assert.equal(ms, 3_600_000, 'customer_api EDIT_WINDOW_MS');
   const line = BRIEF_TEXT.split('\n').find((l) => /edit an inquiry within/i.test(l));

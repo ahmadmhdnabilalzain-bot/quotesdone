@@ -14,6 +14,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -24,14 +25,14 @@ function walk(d, out = []) {
 const SYSTEM = /^(NODE_ENV|VERCEL_ENV|VERCEL_DEPLOYMENT_ID|NEXT_PUBLIC_VERCEL_ENV|VERCEL_URL|VERCEL)$/;
 const used = [...new Set(walk(join(ROOT, 'src')).flatMap((f) => [...readFileSync(f, 'utf8').matchAll(/process\.env\.([A-Z0-9_]+)/g)].map((m) => m[1])))]
   .filter((k) => !SYSTEM.test(k)).sort();
-const listed = JSON.parse(/const SITE_ENV_NAMES = (\[[^\]]*\])/.exec(read('supabase/functions/resilience_ping/index.ts'))[1].replace(/'/g, '"')).sort();
+const listed = JSON.parse(/const SITE_ENV_NAMES = (\[[^\]]*\])/.exec(functionSource('resilience_ping'))[1].replace(/'/g, '"')).sort();
 
 test('the daily step checks exactly the env var names the site reads', () => {
   assert.deepEqual(listed, used, 'update SITE_ENV_NAMES in resilience_ping/index.ts to the names src/ reads');
 });
 
 test('the snapshot asks for no value and keeps none', () => {
-  const r = read('supabase/functions/resilience_ping/index.ts');
+  const r = functionSource('resilience_ping');
   const tick = r.slice(r.indexOf('async function vercelSnapshotTick'), r.indexOf('async function dropboxHealthTick'));
   assert.ok(!/decrypt/i.test(tick), 'the env list is never requested decrypted');
   const s = read('supabase/functions/_shared/vercel_snapshot.ts');

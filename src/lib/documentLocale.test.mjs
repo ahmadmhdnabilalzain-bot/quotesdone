@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { urlLocale, applyDocumentLocale, localisedPath, adoptLocale, LOCALE_COOKIE } from './documentLocale.ts';
+import { readSource } from '../../scripts/lib/portal_sources.mjs';
 
 const SRC = join(import.meta.dirname, '..');
 const ROOT = join(SRC, '..');
@@ -128,14 +129,14 @@ test('no stylesheet sets a direction on html, body or :root', () => {
 // guarded by scripts/checks/the_supplier_portal_is_always_english.test.mjs.
 test('the customer portal starts from the URL, adopts the registered language, and writes <html> through the one helper', () => {
   for (const f of ['components/me/CustomerPortal.tsx']) {
-    const s = read(join(SRC, f));
+    const s = readSource('src/' + f);
     assert.match(s, /urlLocale\(window\.location\.pathname\)/, f + ' must start from the URL');
     assert.match(s, /applyDocumentLocale\(lang\)/, f + ' must write the root element through applyDocumentLocale');
     assert.match(s, /onAuth\(j\.access_token, j\.refresh_token, j\.locale\)/, f + ' must take the account language at sign-in');
     assert.match(s, /const onAuth = \(access, refresh, locale\) => \{ (onServedLocale\(locale\)|adoptLocale\(locale, setLang\));/, f + ' must adopt it before the first paint');
   }
-  assert.match(read(join(SRC, 'components/portal/SupplierPortal.tsx')), /applyDocumentLocale\(lang\)/, 'SupplierPortal still writes <html> through the one helper');
-  assert.match(read(join(SRC, 'components/me/CustomerPortal.tsx')), /const onServedLocale = [^\n]*\n[^\n]*\n[^\n]*\n\s*adoptLocale\(l, setLangState\);/, 'CustomerPortal must adopt the served locale');
+  assert.match(readSource('src/components/portal/SupplierPortal.tsx'), /applyDocumentLocale\(lang\)/, 'SupplierPortal still writes <html> through the one helper');
+  assert.match(readSource('src/components/me/CustomerPortal.tsx'), /const onServedLocale = [^\n]*\n[^\n]*\n[^\n]*\n\s*adoptLocale\(l, setLangState\);/, 'CustomerPortal must adopt the served locale');
 });
 
 test('sign-in returns the account language (login_otp, both verify paths)', () => {
@@ -148,5 +149,5 @@ test('each language switch carries the note, in both languages', () => {
   assert.equal((text.match(/lang_note:/g) || []).length, 2);
   assert.match(read(join(SRC, 'components/me/PortalShell.tsx')), /title=\{t\('lang_note'\)\}/);
   assert.match(read(join(SRC, 'components/me/PortalShell.tsx')), /\{t\('lang_note'\)\}<\/p>/);
-  assert.match(read(join(SRC, 'components/me/CustomerPortal.tsx')), /\{t\(lang, 'lang_note'\)\}/);
+  assert.match(readSource('src/components/me/CustomerPortal.tsx'), /\{t\(lang, 'lang_note'\)\}/);
 });

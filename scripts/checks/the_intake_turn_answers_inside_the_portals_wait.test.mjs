@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readCustomerPortal } from '../lib/portal_sources.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO, p), 'utf8');
@@ -27,7 +28,7 @@ const DECISIONS = read('supabase/functions/_shared/reasoned_decisions.ts');
 const THINK = read('supabase/functions/_shared/think.ts');
 const SLOTS = read('supabase/functions/inquiry_intake/slots.ts');
 const GUARD = read('supabase/functions/_shared/support_reply_guard.ts');
-const PORTAL = read('src/components/me/CustomerPortal.tsx');
+const PORTAL = readCustomerPortal();
 const NEW_REQUEST = read('src/components/me/NewRequest.tsx');
 const TEXT = read('src/components/me/portalText.ts');
 

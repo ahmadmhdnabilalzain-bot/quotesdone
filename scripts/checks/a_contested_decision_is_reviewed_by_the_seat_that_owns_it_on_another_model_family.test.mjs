@@ -20,6 +20,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -78,7 +79,7 @@ test('static: every decision type routes to its owning seat and no route names t
 });
 
 test('static: an open review is decided by the heartbeat, on another family, and the seats act on it', () => {
-  const ping = read('supabase/functions/resilience_ping/index.ts');
+  const ping = functionSource('resilience_ping');
   assert.ok(ping.includes("await step('review_requests', async () => {") && ping.includes("action: 'review_requests', limit: 1 })"), 'the heartbeat no longer drives the review');
   const ceo = read('supabase/functions/ceo_agent/index.ts');
   assert.ok(ceo.includes("if (action === 'review_requests') {") && ceo.includes('await decideOpenReviews(liveReviewIO(admin), '), 'ceo_agent no longer decides open reviews');

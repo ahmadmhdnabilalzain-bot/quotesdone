@@ -17,12 +17,13 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
 import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
 const WEEKLY = R('scripts/sql/the_ceo_weekly_review_acts_on_every_missed_target.sql');
 const MONTHLY = R('scripts/sql/every_seat_reviews_itself_every_month.sql');
-const PING = R('supabase/functions/resilience_ping/index.ts');
+const PING = functionSource('resilience_ping');
 const applied = (f) => R('scripts/sql/MANIFEST.txt').split('\n').some((l) => l.trim() === `scripts/sql/${f}.sql`);
 
 test('the weekly review is delivered through fn_notify_founder with kind ceo_weekly_review, at level info, by code', () => {

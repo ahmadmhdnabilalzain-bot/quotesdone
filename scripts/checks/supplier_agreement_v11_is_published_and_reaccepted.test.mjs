@@ -13,6 +13,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -90,7 +92,7 @@ test('the exported agreement text and the registry SQL are v11', () => {
 });
 
 test('a supplier on an older version is asked again, and the record is read server-side', () => {
-  const api = read('supabase/functions/supplier_api/index.ts');
+  const api = functionSource('supplier_api');
   assert.match(api, /accepted_terms_at,accepted_terms_version,/);
   assert.match(api, /terms_current: await secretVal\('terms_version'\)/);
   const acc = api.slice(api.indexOf("if (action === 'accept_terms')"), api.indexOf("if (action === 'settings')"));
@@ -101,7 +103,7 @@ test('a supplier on an older version is asked again, and the record is read serv
   const helper = read('supabase/functions/_shared/supplier_terms.ts');
   for (const s of ["sec('terms_version')", 'accepted_terms_at:', 'accepted_terms_version: v', 'accepted_terms_ip: ip', 'accepted_terms_sha256:']) assert.ok(helper.includes(s), 'the terms record does not carry ' + s);
   assert.doesNotMatch(acc, /body\.terms_version/, 'the browser must not choose the version');
-  const portal = read('src/components/portal/SupplierPortal.tsx');
+  const portal = readSupplierPortal();
   const src = /export function needsReaccept\(me\) \{([\s\S]*?)\n\}/.exec(portal)?.[1];
   assert.ok(src, 'needsReaccept not found');
   const needs = new Function('me', src);

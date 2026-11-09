@@ -11,10 +11,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 // Whole-line // comments only: a block-comment strip would eat 'image/*,...' accept lists across the file (it did).
-const code = (p) => readFileSync(root + p, 'utf8').split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+const code = (p, text = readFileSync(root + p, 'utf8')) => text.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
 const walk = (d) => readdirSync(root + d).flatMap((f) => {
   const p = `${d}/${f}`;
   return statSync(root + p).isDirectory() ? walk(p) : (/\.(ts|tsx)$/.test(f) && !/\.test\./.test(f) ? [p] : []);
@@ -36,7 +37,7 @@ test('no src file calls .storage / .from / .rpc / .functions on a supaClient-bui
 });
 
 test('the supplier portal uploads on the signed URL by hand', () => {
-  const s = code('src/components/portal/SupplierPortal.tsx');
+  const s = code(null, readSupplierPortal());
   assert.match(s, /uploadToSignedUrl\(SUPA_URL, ANON, 'supplier-docs', u\.path, u\.token, file, file\.type\)/);
 });
 

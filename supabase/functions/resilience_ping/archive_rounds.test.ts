@@ -25,7 +25,8 @@ Deno.test('KNOWN-BAD control: a slice killed by one oversized message is re-run 
 });
 
 Deno.test('the heartbeat runs rounds and isolates dead slices', () => {
-  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  // archiveTick moved to ticks/platform.ts when index.ts was split (9 Nov 2026)
+  const src = Deno.readTextFileSync(new URL('./ticks/platform.ts', import.meta.url));
   assertMatch(src, /const iso = isolateOffsets\(sweeps, ARCHIVE_BATCH\);/);
   assertMatch(src, /iso\.map\(\(o\) => one\(o, 1\)\)/);
   assertMatch(src, /if \(!anotherRound\(sweeps, round, Date\.now\(\) - t0\)\) break;/);

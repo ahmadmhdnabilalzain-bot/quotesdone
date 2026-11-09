@@ -17,6 +17,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FN = join(REPO, 'supabase/functions');
@@ -103,7 +104,7 @@ test('wa_status checks the signature before recording, fails closed, and is reac
 });
 
 test('resilience_ping runs the status backstop on every tick', () => {
-  const rp = src('supabase/functions/resilience_ping/index.ts');
+  const rp = functionSource('resilience_ping');
   const i = rp.indexOf('async function whatsappTick');
   const tick = rp.slice(i, rp.indexOf('\n}\n', i));
   assert.ok(tick.includes("FN + '/wa_status'") && tick.includes('poll: true'), 'whatsappTick no longer calls the wa_status backstop poll');

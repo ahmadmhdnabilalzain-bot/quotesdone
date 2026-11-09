@@ -10,9 +10,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { uaeMobile } from '../../src/components/portal/supplier/uaeMobile.ts';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const copy = readFileSync(new URL('../../src/components/portal/supplier/serverCopy.ts', import.meta.url), 'utf8');
-const portal = readFileSync(new URL('../../src/components/portal/SupplierPortal.tsx', import.meta.url), 'utf8');
+const portal = readSupplierPortal();
 const keysOf = (name) => {
   const body = new RegExp(`const ${name}: Record<string, string> = \\{([\\s\\S]*?)\\n\\};`).exec(copy);
   assert.ok(body, `${name} not found in serverCopy.ts`);

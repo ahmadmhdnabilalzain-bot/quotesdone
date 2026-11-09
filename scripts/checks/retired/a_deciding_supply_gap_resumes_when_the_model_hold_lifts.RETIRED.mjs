@@ -26,6 +26,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { readSchemaMirror } from '../lib/schema_mirror.mjs';
+import { functionSource } from '../../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const SCHEMA = readSchemaMirror();
@@ -44,7 +45,7 @@ test('the gap files its decision, the replay resumes it when the gate opens, the
   assert.match(due, /in \('founder_hold', 'no_paid_ai_switch', 'empty_route_state'\) then\s+return '\[\]'::jsonb/);
   assert.match(due, /where status = 'held' and attempts < 3/, 'the replay no longer claims held questions');
   assert.match(fn('fn_reason_apply_sales_engineer__supply_gap'), /set status = case when v_choice = 'recruit' then 'recruit' else 'deferred' end/);
-  assert.match(readFileSync(join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8'), /step\('reasoning_held', async \(\) => replayHeld\(admin,/);
+  assert.match(functionSource('resilience_ping'), /step\('reasoning_held', async \(\) => replayHeld\(admin,/);
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));

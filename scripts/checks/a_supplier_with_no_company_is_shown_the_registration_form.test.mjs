@@ -13,6 +13,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, ' ');
@@ -28,7 +29,7 @@ test("every edge-function answer of error 'no_company' carries code 'no_company'
 });
 
 test('the portal routes no_company to Onboarding, and call() keeps a server code', () => {
-  const portal = strip(readFileSync(join(ROOT, 'src/components/portal/SupplierPortal.tsx'), 'utf8'));
+  const portal = strip(readSupplierPortal());
   assert.match(portal, /if \(err === 'no_company'\) return <Onboarding/, 'Dashboard must mount Onboarding on no_company');
   assert.match(portal, /setErr\(\(j && \(j\.code \|\| j\.error\)\)/, 'Dashboard must read the server code first');
   const api = strip(readFileSync(join(ROOT, 'src/components/portal/supplier/api.ts'), 'utf8'));

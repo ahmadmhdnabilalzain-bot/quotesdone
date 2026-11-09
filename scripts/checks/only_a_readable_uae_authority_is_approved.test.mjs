@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 const R = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta.url)), 'utf8');
 const SQL = R('scripts/sql/only_a_readable_uae_authority_is_approved_and_a_held_registration_has_a_decider.sql');
 
@@ -18,7 +19,7 @@ test('both authority holds stand before automatic approval, and an approved supp
 });
 
 test('a supplier cannot type the authority, and an old licence never judges a new one', () => {
-  const api = R('supabase/functions/supplier_api/index.ts');
+  const api = functionSource('supplier_api');
   assert.doesNotMatch(/const PROFILE_COLS = \[[^\]]*\]/.exec(api)[0], /license_authority/);
   assert.match(api, /upd\.trade_license_no = null; upd\.license_authority = null;/);
   assert.match(R('supabase/functions/supplier_portal/index.ts'), /upd\.license_authority = null; upd\.license_expiry = null;/);
@@ -29,7 +30,7 @@ test('the decider asks, then closes through the ceo seat, on a clock that is act
   assert.match(SQL, /v_days >= 14[\s\S]*approval_decided_by = 'ceo'/);
   assert.match(SQL, /'registration incomplete after 14 days: '/, 'the gate reopens only on this wording');
   assert.match(SQL, /v_asks = 0 or \(v_asks = 1 and v_days >= 3\) or \(v_asks = 2 and v_days >= 7\)/);
-  assert.match(R('supabase/functions/resilience_ping/index.ts'), /rpc\('fn_sales_engineer_decides_held_registrations'\)/);
+  assert.match(functionSource('resilience_ping'), /rpc\('fn_sales_engineer_decides_held_registrations'\)/);
   assert.match(SQL, /revoke execute on function public\.fn_sales_engineer_decides_held_registrations\(timestamptz\) from public, anon, authenticated;/);
 });
 

@@ -13,12 +13,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readCustomerPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (f) => readFileSync(join(REPO, f), 'utf8');
 
 test('customer_api reads and writes the missing specs through the one door, and releases a completed request', () => {
-  const src = read('supabase/functions/customer_api/index.ts');
+  const src = functionSource('customer_api');
   assert.match(src, /\.rpc\('fn_inquiry_missing_specs'/, 'missing_specs no longer asks the live hold check');
   assert.match(src, /\.rpc\('fn_inquiry_add_missing_specs'[^)]*p_source: 'customer_portal'/, 'add_missing_specs does not go through the one door');
   assert.match(src, /const MUTATING = \[[^\]]*'add_missing_specs'/, 'a banned customer could still add specs');
@@ -27,7 +29,7 @@ test('customer_api reads and writes the missing specs through the one door, and 
 });
 
 test('the portal shows the missing fields on a held, open request', () => {
-  const cp = read('src/components/me/CustomerPortal.tsx');
+  const cp = readCustomerPortal();
   assert.match(cp, /inq\.rfq_ready === false[\s\S]{0,160}<MissingSpecs /, 'the portal does not show MissingSpecs on a held request');
   const ms = read('src/components/me/MissingSpecs.tsx');
   assert.match(ms, /action: 'missing_specs'/);

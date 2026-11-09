@@ -30,6 +30,7 @@ import { join, dirname, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -94,7 +95,7 @@ test('the gateway refuses a review class without its author, and writes the auth
   assert.match(gw, /if \(counterpart && !ladder\.length && fullLadder\.length && skipped\.some/, 'an unreachable reviewer is held and recorded');
   assert.match(gw, /p_require_caps: caps\.length \? caps : null,\s*\}\) : await admin\.rpc\('fn_ai_route'/, 'a review carries its capabilities');
   assert.match(gw, /' \| reviewer_tier=' \+ route\.reviewer_tier/);
-  assert.match(read('supabase/functions/resilience_ping/index.ts'), /rpc\('fn_it_review_independence_watch'\)/);
+  assert.match(functionSource('resilience_ping'), /rpc\('fn_it_review_independence_watch'\)/);
   const sql = read(FILE);
   assert.match(sql, /'third_family_fallback'/);
   assert.match(sql, /substring\(coalesce\(new\.model_selected_because, ''\) from 'counterpart_model=\(\[\^ \|\]\+\)'\)/);

@@ -8,13 +8,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const SIX_SQL = read('scripts/sql/the_mandatory_six_have_one_definition_and_the_sales_engineer_verifies.sql');
 const SWEEP_SQL = read('scripts/sql/the_sales_engineer_closes_a_registration_left_incomplete_for_fourteen_days.sql');
 const MATCH_SQL = read('scripts/sql/a_supplier_is_matchable_only_once_approved.sql');
 const REG_TS = read('supabase/functions/_shared/supplier_registration.ts');
-const API = read('supabase/functions/supplier_api/index.ts');
+const API = functionSource('supplier_api');
 const KYC = read('supabase/functions/kyc/index.ts');
 const COPY = read('src/components/portal/supplier/serverCopy.ts');
 const MANIFEST = read('scripts/sql/MANIFEST.txt');
@@ -91,7 +92,7 @@ test('the 14-day close and the expiry jobs are scheduled on the heartbeat', () =
   assert.match(SWEEP_SQL, /insert into public\.it_duty_schedule[\s\S]*'supplier_docs'/);
   assert.match(SWEEP_SQL, /public\.fn_reconcile_doc_blocks\(0\)/);
   assert.match(SWEEP_SQL, /perform public\.fn_it_duty_ran\('supplier_docs'/);
-  assert.match(read('supabase/functions/resilience_ping/index.ts'), /rpc\('fn_sales_engineer_supplier_documents_tick'\)/);
+  assert.match(functionSource('resilience_ping'), /rpc\('fn_sales_engineer_supplier_documents_tick'\)/);
 });
 
 test('the three files are in the apply order, in dependency order', () => {

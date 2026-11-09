@@ -25,6 +25,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 // Every file that registers a model and states its price. A later file that registers a model the
@@ -233,7 +234,7 @@ const pending = () => existsSync(join(REPO, PENDING_NOTE));
 // and once those steps had real model work, the detached run ended before reaching it. The cheap, scheduled readings
 // must come before the first step that can call a model.
 test('the scheduled readings run before any model-calling step in the itlater chain', () => {
-  const src = readFileSync(join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8');
+  const src = functionSource('resilience_ping');
   const body = src.slice(src.indexOf('async function itLaterDutiesTick('), src.indexOf('async function launchPathTick('));
   const at = (name) => { const i = body.indexOf(`await step('${name}'`); assert.ok(i > 0, `step ${name} is not in itLaterDutiesTick`); return i; };
   const firstModel = Math.min(...['deliberations', 'reasoning_held', 'routine_judgements'].map(at));

@@ -25,7 +25,8 @@ export function modelCallers() {
   const out = [];
   for (const d of readdirSync(FNDIR, { withFileTypes: true })) {
     if (!d.isDirectory() || d.name.startsWith('_')) continue;
-    const files = readdirSync(join(FNDIR, d.name)).filter((f) => f.endsWith('.ts') && !f.includes('.test.'));
+    // recursive: a function's source is its folder (customer_api and supplier_api keep their actions in actions/ and lib/ since 9 Nov 2026)
+    const files = readdirSync(join(FNDIR, d.name), { recursive: true }).map(String).filter((f) => f.endsWith('.ts') && !f.includes('.test.'));
     if (files.some((f) => MODEL_PATH.test(readFileSync(join(FNDIR, d.name, f), 'utf8')))) out.push(d.name);
   }
   return out.sort();

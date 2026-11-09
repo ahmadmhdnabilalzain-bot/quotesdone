@@ -12,6 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -118,7 +119,7 @@ test('every routine the file creates pins search_path and is revoked from public
 });
 
 test('the portal asks again, listing every change after the version accepted and linking what was accepted', () => {
-  const portal = read('src/components/portal/SupplierPortal.tsx');
+  const portal = readSupplierPortal();
   const obj = /const AGREEMENT_CHANGES = (\{[\s\S]*?\n\});/.exec(portal)[1];
   const fn = /export function agreementChanges\(accepted, current, ar\) \{([\s\S]*?)\n\}/.exec(portal)[1];
   const changes = new Function('accepted', 'current', 'ar', `const AGREEMENT_CHANGES = ${obj};${fn}`);

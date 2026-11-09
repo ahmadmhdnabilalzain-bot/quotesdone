@@ -14,13 +14,15 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 // A file carries a pending note until it is applied, then its MANIFEST line instead.
 const pendingOrApplied = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt'))) ||
   readFileSync(join(REPO, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map((l) => l.trim()).includes(f);
 const FILE = 'scripts/sql/routine_work_is_code_and_the_model_answers_only_real_judgement.sql';
-const code = (p) => readFileSync(join(REPO, p), 'utf8').split('\n').map((l) => l.replace(/--.*$/, '').replace(/\/\/.*$/, '')).join('\n');
+const stripped = (s) => s.split('\n').map((l) => l.replace(/--.*$/, '').replace(/\/\/.*$/, '')).join('\n');
+const code = (p) => stripped(readFileSync(join(REPO, p), 'utf8'));
 const SQL = code(FILE);
 /** The body of `create or replace function public.<name>(` up to its closing `$fn$` / `$function$`. */
 function body(name) {
@@ -51,7 +53,7 @@ test('lessons: the hourly run is SQL only; only the weekly run reasons, and only
   assert.ok(!/think\(/.test(hourly), 'the grouping half calls think()');
   assert.ok(ts.indexOf('if (!opts.reason)') < ts.indexOf('await think('), 'think() is reached before the no-model return');
   assert.match(ts, /fn_lesson_clusters_to_reason/, 'the weekly run reasons groups below the threshold');
-  const ping = code('supabase/functions/resilience_ping/index.ts');
+  const ping = stripped(functionSource('resilience_ping'));
   assert.match(ping, /async function learningGroupTick[\s\S]*?\{ reason: false \}/, 'the hourly tick is not the no-model run');
   assert.match(SQL, /\('learningGroup', interval '1 hour'/);
   assert.match(SQL, /\('learningDistil', interval '7 days'/, 'reasoning runs more often than weekly');

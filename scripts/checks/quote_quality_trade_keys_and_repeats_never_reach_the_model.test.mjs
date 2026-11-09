@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILE = 'scripts/sql/quote_quality_trade_keys_and_repeat_requests_are_code_not_the_model.sql';
@@ -34,7 +35,7 @@ test('quote quality is structural: no held verdict, and supplier_api asks no mod
   assert.match(b, /v_cat_status := 'not_read';/, 'an unread category does not fall to the structural score');
   assert.doesNotMatch(b, /match_regex|~\*|ilike/, 'the quote text is pattern-matched');
   assert.match(SQL, /set status = 'expired'\s+where status = 'held' and surface = 'sql\.trg_quote_quality'/);
-  const api = code('supabase/functions/supplier_api/index.ts');
+  const api = functionSource('supplier_api').split('\n').map((l) => l.replace(/--.*$/, '').replace(/\/\/.*$/, '')).join('\n');
   assert.ok(!api.includes('reasonQuoteAspects'), 'supplier_api reasons the quote aspects again');
   assert.ok(!code('supabase/functions/_shared/reasoned_suppliers.ts').includes("surface: 'sql.trg_quote_quality'"));
 });

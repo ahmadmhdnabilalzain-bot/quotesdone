@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 const R = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta.url)), 'utf8');
 const SQL = R('scripts/sql/a_licence_name_becomes_the_company_name_and_an_unreadable_field_is_held.sql');
 const has = (s, why) => assert.ok(SQL.includes(s), why || s);
@@ -57,7 +58,7 @@ test('the supplier is asked for a clearer copy when a field stays unread', () =>
 });
 
 test('process_docs reads every labelled field by code, asks the model (with one retry) when any of the three is unread, and reads a photo profile', () => {
-  const api = R('supabase/functions/supplier_api/index.ts');
+  const api = functionSource('supplier_api');
   assert.match(api, /codeFields = await readLicenceFields\(/);
   assert.match(api, /licenceNeedsModel\(/);
   assert.match(api, /if \(codeFields\.licence_no\) upd\.trade_license_no = codeFields\.licence_no;/);
@@ -79,7 +80,7 @@ test('process_docs reads every labelled field by code, asks the model (with one 
 // number to the held model. Every upload path that writes a licence must read its number by code.
 test('every licence upload path reads the licence number by code, not only by the model', () => {
   for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/supplier_portal/index.ts']) {
-    const src = R(f);
+    const src = f === 'supabase/functions/supplier_api/index.ts' ? functionSource('supplier_api') : R(f);
     assert.match(src, /codeFields = await readLicenceFields\(/, f + ' does not read the licence fields by code');
     assert.ok(src.includes('if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;'), f + ' does not write the number code read');
   }

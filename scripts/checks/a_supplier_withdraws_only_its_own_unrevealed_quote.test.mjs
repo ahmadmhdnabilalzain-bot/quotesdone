@@ -6,9 +6,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const api = fs.readFileSync(path.join(ROOT, 'supabase/functions/supplier_api/index.ts'), 'utf8');
+const api = functionSource('supplier_api');
 const body = api.split("if (action === 'withdraw_quote') {")[1]?.split("if (action === 'submit_quote') {")[0] || '';
 
 test('withdraw_quote exists and is fenced', () => {

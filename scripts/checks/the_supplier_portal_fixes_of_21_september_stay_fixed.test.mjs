@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { pendingNotes } from '../lib/pending_sql.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const read = (...p) => readFileSync(join(ROOT, ...p), 'utf8');
@@ -42,7 +43,8 @@ test('finding 7: quoteRef and jobNo take the inquiry (with rfq_no), not a bare i
   const qr = code(read('supabase', 'functions', 'supplier_api', 'quote_review.ts'));
   assert.match(qr, /export const jobNo = [\s\S]{0,200}jobNoOf\(/, 'jobNo must delegate to the one reader');
   for (const f of [['supabase', 'functions', 'supplier_api', 'index.ts'], ['supabase', 'functions', 'customer_api', 'index.ts']]) {
-    assert.doesNotMatch(code(read(...f)), /quoteRef\(\s*(?:String\()?[a-z_.]*(?:inquiry_id|iid)\b/, `${f.join('/')}: quoteRef is handed the inquiry row`);
+    // f names the whole function: index.ts plus its modules since 9 Nov 2026.
+    assert.doesNotMatch(code(functionSource(f[2])), /quoteRef\(\s*(?:String\()?[a-z_.]*(?:inquiry_id|iid)\b/, `${f.join('/')}: quoteRef is handed the inquiry row`);
   }
 });
 
@@ -85,7 +87,7 @@ test('finding 26/27: the Arabic BOQ reads the sales engineer vocabulary and its 
   assert.match(rfq, /r\.description_ar/);
   assert.match(rfq, /r\.section_ar/);
   assert.match(rfq, /<th scope="col" className="[^"]*min-w-\[[^"]*">\{ar \? 'الوصف'/, 'the description column keeps a minimum width in RTL');
-  const api = code(read('supabase', 'functions', 'supplier_api', 'index.ts'));
+  const api = code(functionSource('supplier_api'));
   assert.match(api, /boqWithArabic\(/);
   const qd = code(read('supabase', 'functions', '_shared', 'quote_documents.ts'));
   // 23 Sep 2026 (decision point trade_glossary_ar): the inquiry PDF prints the REASONED Arabic of the description

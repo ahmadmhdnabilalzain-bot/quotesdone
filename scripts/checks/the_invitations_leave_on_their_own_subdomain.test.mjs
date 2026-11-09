@@ -25,6 +25,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -127,7 +128,8 @@ test('no sign-up code or notice sender can reach the lane', () => {
   for (const fn of readdirSync(dir)) {
     const p = join(dir, fn, 'index.ts');
     if (fn === 'send_outbox' || !existsSync(p)) continue;
-    if (/invite_lane|hello\.quotesdone\.com/.test(readFileSync(p, 'utf8'))) hits.push(fn);
+    // the whole function (index.ts and the modules it was split into), not index.ts alone
+    if (/invite_lane|hello\.quotesdone\.com/.test(functionSource(fn))) hits.push(fn);
   }
   for (const f of readdirSync(join(dir, '_shared')).filter((f) => f.endsWith('.ts'))) {
     if (/invite_lane|hello\.quotesdone\.com/.test(readFileSync(join(dir, '_shared', f), 'utf8'))) hits.push('_shared/' + f);

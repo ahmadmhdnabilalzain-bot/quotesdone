@@ -18,6 +18,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -43,8 +44,10 @@ test('no edge function or portal file calls a fuzzy or keyword supplier matcher'
 });
 
 test('customer_api matches through the sales engineer on every path', () => {
-  const src = read('supabase/functions/customer_api/index.ts');
-  const body = src.slice(src.indexOf('async function matchAndNotify('), src.indexOf('\ntype Cfg'));
+  const src = functionSource('customer_api');
+  // to the function's own closing brace: `type Cfg` followed it in the single file; since the 9 Nov 2026 split it is in another module
+  const at = src.indexOf('async function matchAndNotify(');
+  const body = src.slice(at, src.indexOf('\n}\n', at));
   assert.ok(body.length > 100, 'matchAndNotify was not found');
   assert.match(body, /functions\/v1\/sales_engineer`[\s\S]*action: 'match'/, 'matchAndNotify does not ask the sales engineer');
   assert.doesNotMatch(body, /useRouter|admin\.rpc\('match_/, 'matchAndNotify has a path that skips the sales engineer');

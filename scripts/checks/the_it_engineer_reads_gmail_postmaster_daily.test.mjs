@@ -24,6 +24,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -125,8 +126,8 @@ test('static: the IT daily line keeps every canonical key and carries the Postma
 });
 
 test('static: resilience_ping runs it on the heartbeat, the registry and the pending note are in place', () => {
-  const ping = read('supabase/functions/resilience_ping/index.ts');
-  assert.match(ping, /import \{ runPostmasterStep, takePostmasterReading \} from '\.\.\/_shared\/it_postmaster_readings\.ts';/);
+  const ping = functionSource('resilience_ping');
+  assert.match(ping, /import \{ runPostmasterStep, takePostmasterReading \} from '(?:\.\.\/)+_shared\/it_postmaster_readings\.ts';/);
   // Deploy order: the function ships on merge, the SQL may be pending; the step goes through runPostmasterStep,
   // which records a missing routine/table as skipped (tested in it_postmaster_readings.test.ts).
   assert.match(ping, /step\('postmaster', \(\) => runPostmasterStep\(/);

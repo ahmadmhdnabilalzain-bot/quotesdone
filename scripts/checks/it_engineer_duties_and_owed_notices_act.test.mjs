@@ -20,6 +20,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -27,7 +28,7 @@ const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql
   'scripts/sql/the_it_engineer_watches_licences_and_every_seats_knowledge.sql',
   'scripts/sql/a_customer_notice_that_failed_is_sent_again.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
-const PING = read('supabase/functions/resilience_ping/index.ts');
+const PING = functionSource('resilience_ping');
 
 test('resilience_ping sends owed notices from the queue and records each attempt', () => {
   assert.match(PING, /rpc\('fn_reason_held_notice_due'/, 'the owed notices do not come from fn_reason_held_notice_due');

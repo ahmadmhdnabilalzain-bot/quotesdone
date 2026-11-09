@@ -24,16 +24,16 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
-const API = 'supabase/functions/supplier_api/index.ts';
 const DOOR = 'supabase/functions/supplier_api/create_company.ts';
 const COPY = 'src/components/portal/supplier/serverCopy.ts';
 const noComments = (t) => t.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
 
 test('static: the door delegates, looks up the address before inserting, claims under a guard, never echoes the database', () => {
-  const api = read(API);
+  const api = functionSource('supplier_api');
   const i = api.indexOf("if (action === 'create_company')");
   assert.ok(i > 0, 'create_company is gone from supplier_api');
   const door = api.slice(i, api.indexOf('\n', i));
@@ -58,7 +58,7 @@ test('static: the door delegates, looks up the address before inserting, claims 
 });
 
 test('static: the /portal?t= claim writes under the same guard, and no supplier_api answer carries a database sentence', () => {
-  const api = read(API);
+  const api = functionSource('supplier_api');
   const i = api.indexOf("if (action === 'claim')");
   assert.ok(i > 0, 'claim is gone from supplier_api');
   const claim = api.slice(i, api.indexOf('\n', i));

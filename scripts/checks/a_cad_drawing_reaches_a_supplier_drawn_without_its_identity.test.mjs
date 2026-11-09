@@ -12,9 +12,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
-const api = read('supabase/functions/customer_api/index.ts');
+const api = functionSource('customer_api');
 const redact = read('supabase/functions/drawing_redact/index.ts');
 const page = read('supabase/functions/_shared/drawing_redact_page.ts');
 const worker = read('scripts/cad_read_worker.ts');

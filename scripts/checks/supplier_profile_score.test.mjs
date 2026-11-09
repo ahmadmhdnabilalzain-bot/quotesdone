@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { profileScore } from '../../src/components/portal/supplier/profileScore.ts';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const FULL = {
   license_doc_path: 'x.pdf', trade_license_no: '1', license_expiry: '2027-06-24', company_profile_doc_path: 'p.pdf',
@@ -38,7 +39,7 @@ test('an unconfirmed scope links to Services; no eligibility read does not count
 });
 
 test('every fix names a real portal tab, labels are English only, and the panel is on the portal', () => {
-  const portal = readFileSync(new URL('../../src/components/portal/SupplierPortal.tsx', import.meta.url), 'utf8');
+  const portal = readSupplierPortal();
   const tabs = portal.match(/const MAIN_TABS = \[([^\]]*)\]/)[1] + portal.match(/const ACCOUNT_TABS = \[([^\]]*)\]/)[1];
   for (const i of profileScore({}, null).items) {
     assert.ok(tabs.includes(`'${i.tab}'`), i.tab);

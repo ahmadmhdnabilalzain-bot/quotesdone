@@ -7,6 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pt, ptList } from './privacy.ts';
+import { readSource } from '../../../scripts/lib/portal_sources.mjs';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const SQL = read('../../../scripts/sql/a_person_can_get_a_copy_of_their_data_and_have_it_erased_where_no_law_requires_it_kept.sql');
@@ -22,7 +23,7 @@ test('every routine the screen calls is granted to authenticated, with the argum
 });
 
 test('both account pages mount the controls; the supplier one is English only', () => {
-  assert.ok(read('../me/CustomerPortal.tsx').includes("<PrivacyControls token={token} lang={lang === 'ar' ? 'ar' : 'en'} />"));
+  assert.ok(readSource('src/components/me/CustomerPortal.tsx').includes("<PrivacyControls token={token} lang={lang === 'ar' ? 'ar' : 'en'} />"));
   assert.ok(read('./supplier/SupplierSettings.tsx').includes('<PrivacyControls token={token} lang="en" />'));
   for (const id of ['privacy-export', 'privacy-erase', 'privacy-code', 'privacy-erase-cancel']) assert.ok(UI.includes(`data-testid="${id}"`), id);
 });
@@ -97,7 +98,7 @@ test('each portal calls the routines with its OWN session, never a shared storag
   has(UI, "supaRpcAs(token || '', fn, args)");
   for (const s of ['qd-portal-auth', 'qd-cust-auth', 'supaRpcMaybeOne', 'supaClient(']) lacks(UI, s);
   // and that token is the portal's own: the customer's comes from qd-cust-token, the supplier's from qd-sup-token
-  const cust = read('../me/CustomerPortal.tsx'), sup = read('./SupplierPortal.tsx'), set = read('./supplier/SupplierSettings.tsx');
+  const cust = readSource('src/components/me/CustomerPortal.tsx'), sup = readSource('src/components/portal/SupplierPortal.tsx'), set = read('./supplier/SupplierSettings.tsx');
   has(cust, "localStorage.setItem('qd-cust-token'"); lacks(cust, 'qd-sup-token');
   has(sup, "localStorage.setItem('qd-sup-token'"); lacks(sup, 'qd-cust-token');
   has(sup, '<SupplierSettings token={token}'); has(set, '<PrivacyControls token={token}');

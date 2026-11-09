@@ -1,0 +1,465 @@
+// supplier_api — quotations: template_list / template_save / template_delete, extract_quote, spec_hold / spec_fill /
+// spec_approve, withdraw_quote, submit_quote.
+//
+// The if-chain below is index.ts's own, moved line for line with its original indentation, so each
+// `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
+// index.ts calls this group with the request's context and returns the first Response a group gives.
+// Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,116-line index.ts split into modules, a pure move).
+import { envGatewayVision, b64Bytes } from '../../_shared/read_every_attachment.ts';
+import { clearerCopyAsk } from '../../_shared/clearer_copy.ts';
+import { readQuotationFile, supabaseReviewRepo } from '../quote_review_flow.ts';
+import { safeFilename, SAFE_DOCS } from '../../_shared/attachment.ts';
+import { SUPPLIER_LOCALE } from '../../_shared/registered_locale.ts';
+import { sanitizeAndScan } from '../../_shared/malware.ts';
+import { defaultDeps } from '../../_shared/think.ts';
+// The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
+// warranty and the ex-VAT price, or the quote is held; options are separate quotations.
+import { approve, deskAssess, fillIn, formSchema, gate, gateInputKey, readAndAssess, supabaseRepo, type Ctx } from '../../_shared/line_specs/workflow.ts';
+import { readQuote } from '../../_shared/reasoned_matching.ts';
+import { requirementsOf } from '../../_shared/line_specs/assess.ts';
+import { optionAmount, splitOptions } from '../../_shared/line_specs/options.ts';
+import { statedPrice, storedPrice } from '../../_shared/stated_price.ts';
+import { findTrn } from '../../_shared/identity_numbers.ts';
+import { deriveLineFields, deriveTermsFromScope } from '../../_shared/line_specs/derive.ts';
+import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from '../quote_review.ts';
+import { issueAsMissing, resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from '../submit_review.ts';
+import { scrubDeep, scrubIdentity, scrubLine } from '../identity_scrub.ts';
+import { cleanTemplate } from '../quote_template.ts';
+import { newOptionRefusal } from '../new_option.ts';
+import { type ActionCtx, J, SUPA_URL, admin, failed, logged, secretVal } from '../context.ts';
+import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
+import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
+import { acceptLive, acceptRule, kickDelivery, notifyNewQuote, supersedeQualityHold, supplierOf } from '../lib/quote_acceptance.ts';
+import { regenRender } from '../lib/arabic_quotation.ts';
+
+export async function quoteActions(c: ActionCtx): Promise<Response | undefined> {
+  const { req, jwt, email, body, action, safeInquiryOf } = c;
+    // T3 QUOTE TEMPLATES (sales_engineer, 5 Oct 2026): structure a supplier reuses, never a price
+    // (quote_template.ts refuses one; the table's CHECK refuses one again). Scoped to the caller's company.
+    if (action === 'template_list' || action === 'template_save' || action === 'template_delete') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const tbl = () => admin.from('supplier_quote_template');
+      const unavailable = (e: { code?: string; message?: string } | null) => e && (e.code === '42P01' || /supplier_quote_template/.test(String(e.message || '')) && /does not exist|schema cache/.test(String(e.message || '')));
+      if (action === 'template_save') {
+        const c = cleanTemplate(body.template);
+        if (!c.ok) return J({ error: c.message, code: c.code, message: c.message }, 400);
+        const { data, error } = await tbl().upsert({ supplier_id: sup.id, ...c.template, updated_at: new Date().toISOString() }, { onConflict: 'supplier_id,name' }).select('id').maybeSingle();
+        if (unavailable(error)) return J({ error: 'Templates are not available yet.', code: 'templates_unavailable' }, 503);
+        if (error) return J({ error: error.code === '23514' ? 'A template cannot carry a price.' : 'Could not save the template.', code: error.code === '23514' ? 'template_has_price' : 'template_save_failed' }, 400);
+        return J({ ok: true, id: data?.id });
+      }
+      if (action === 'template_delete') {
+        const id = Number(body.id); if (!Number.isInteger(id)) return J({ error: 'not found', code: 'not_found' }, 404);
+        const { error } = await tbl().delete().eq('id', id).eq('supplier_id', sup.id);
+        if (unavailable(error)) return J({ error: 'Templates are not available yet.', code: 'templates_unavailable' }, 503);
+        return error ? J({ error: 'Could not delete the template.', code: 'template_delete_failed' }, 500) : J({ ok: true });
+      }
+      const { data, error } = await tbl().select('id,name,line_headings,terms,warranty,validity,inclusions,exclusions,payment_terms,updated_at').eq('supplier_id', sup.id).order('name');
+      if (unavailable(error)) return J({ ok: true, templates: [], unavailable: true });
+      return error ? J({ error: 'Could not load templates.', code: 'template_list_failed' }, 500) : J({ ok: true, templates: data || [] });
+    }
+    if (action === 'extract_quote') {
+      const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,accepted_terms_at').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      // The enquiry must be one this supplier was matched to (finding SP-N-03). This also makes
+      // inquiry_id a validated uuid before it is put into the storage path below, which it was not.
+      const inquiry_id = await matchedInquiry(Number(sup.id), body.inquiry_id);
+      if (!inquiry_id) return J({ error: 'not_found', code: 'not_found' }, 404);
+      const images = Array.isArray(body.images) ? body.images : [];
+      const orig = body.original || {};
+      // 14 Sep 2026: a Word, Excel, email or zip quotation has no page images, but quote_extract can
+      // now read the original itself (doc_read, no model). Only a request with neither is unreadable.
+      if (!images.length && !orig.b64) return J({ error: 'Could not read the file pages. Please attach a clear PDF or photo.', code: 'quote_no_pages' }, 400);
+      let original_file_path: string | null = null, original_file_name: string | null = null;
+      // AUDIT 9.1 (3 Aug 2026). The supplier's original quotation document. It is stored and later
+      // served back to admins and, on some paths, referenced to the customer. It had no type check
+      // and defaulted to application/octet-stream, and the failure was swallowed - so a rejected or
+      // failed upload silently produced a quote with no attached document.
+      if (orig.path) {
+        // Finding SP-N-04: a path the caller supplies is accepted only under this supplier's own prefix.
+        if (!ownQuoteFile(orig.path, Number(sup.id))) return J(NOT_MY_FILE, 400);
+        original_file_path = String(orig.path);
+        original_file_name = safeFilename(orig.filename || 'quotation', 'application/pdf');
+      } else if (orig.b64) {
+        const sc = await sanitizeAndScan({ input: String(orig.b64), declaredMime: orig.mime, filename: orig.filename || 'quotation', allow: SAFE_DOCS,
+                                           scan: { source: 'supplier_api.quotation', subject: String(sup.id), filename: orig.filename, bucket: 'quote-files' } });
+        if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That quotation file cannot be accepted. Please attach a PDF, photo, Word, Excel or email file.' }, sc.status);
+        const s = sc.result;
+        original_file_name = safeFilename(orig.filename || 'quotation', s.mime);
+        original_file_path = `quotes/${sup.id}/${inquiry_id}/${Date.now()}_${original_file_name}`;
+        const up = await admin.storage.from('quote-files').upload(original_file_path, s.bytes, { contentType: s.mime, upsert: true });
+        if (up.error) return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your quotation file. Please try again.' }, 502);
+      }
+      const { data: inq } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
+      const secret = await secretVal('cred_fn_supplier_api');
+      let jd: any = {};
+      try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: (sup as any).id, email }, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { logged('quote_extract call', e); return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed' }, 502); }
+      // Under the OpenRouter hold quote_extract has no model to call, so this is the expected path:
+      // the code tells the portal to say "fill in the form", which is a complete way to quote.
+      // RULING 1177 (12 Oct 2026): 'fill the form instead' was the answer to every quotation quote_extract could not price.
+      // The original now goes through the read-every-attachment helper (the vision model transcribes it, the quotation
+      // parser prices it, one more asking); only when that fails too is the supplier asked for a clearer copy, in English.
+      // A total quote_extract held as ambiguous is the supplier's to state; no other reader is asked to guess it (#1562).
+      if (jd?.error === 'total_ambiguous') return J({ error: 'total_ambiguous', code: 'quote_total_ambiguous', review_reason: jd.review_reason ?? null, proposal: jd.proposal ?? null, original_file_path, original_file_name, message: 'We read your quotation but could not be sure of its total (' + String(jd.review_reason || '').replace(/_/g, ' ') + '). Please type the total in the form.' }, 422);
+      if (!jd?.ok && orig.b64) {
+        const seen = await readQuotationFile(b64Bytes(String(orig.b64)), String(orig.filename || 'quotation'), String(orig.mime || ''), [String((sup as any).company_name || '')].filter(Boolean), undefined, envGatewayVision({ subject: { supplier_id: (sup as any).id, email } })).catch(() => null);
+        if (seen?.proposal) jd = { ok: true, proposal: seen.proposal, extracted_by_model: 'read_every_attachment' };
+      }
+      if (!jd?.ok) { logged('quote_extract answer', `${jd?.error ?? 'no error'} ${jd?.detail ?? ''}`); return J({ error: 'quote_unreadable', code: 'quote_read_failed', message: clearerCopyAsk('supplier', 'en', String(orig.filename || 'your quotation')) }, 502); }
+      // WHO READ IT (founder instruction ~891). The model quote_extract read this quotation with, kept per supplier and
+      // inquiry so the quote submitted from it carries its author and quote_compare can be routed to another family.
+      const readBy = typeof jd.extracted_by_model === 'string' && jd.extracted_by_model ? jd.extracted_by_model : 'unknown';
+      const { error: xmErr } = await admin.from('quote_extraction_model').upsert({ subject_key: `${sup.id}:${inquiry_id}`, model: readBy, extracted_at: new Date().toISOString() });
+      if (xmErr) console.error('quote_extraction_model: ' + xmErr.message);
+      return J({ ok: true, proposal: jd.proposal, original_file_path, original_file_name });
+    }
+    // THE TWO WAYS OUT OF A HOLD (founder, 14 Sep 2026). (a) fill in the missing details here: the
+    // sales engineer regenerates the standardised quotation and the supplier approves it, and only
+    // then is it released; (b) upload a revised quote, which is submit_quote again and supersedes the
+    // hold. Every step is the sales_engineer seat's (_shared/line_specs/workflow.ts).
+    if (action === 'spec_hold' || action === 'spec_fill' || action === 'spec_approve') {
+      const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const qid = String(body.quote_id || '');
+      if (!UUID_RE.test(qid)) return J({ error: 'not found', code: 'not_found' }, 404);
+      const repo = supabaseRepo(admin, { dispatch: kickDelivery });
+      const q = await repo.quote(qid);
+      if (!q || Number(q.supplier_id) !== Number(sup.id)) return J({ error: 'not found', code: 'not_found' }, 404);
+      const { data: inqRow } = await admin.from('inquiries').select('category,spec,rfq_no').eq('id', q.inquiry_id).maybeSingle();
+      const { count: optCount } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiry_id).eq('supplier_id', sup.id);
+      // deno-lint-ignore no-explicit-any
+      const spec: any = inqRow?.spec;
+      const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(spec), ref: jobNo({ id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no }), multiOption: (optCount || 0) > 1,
+                    ...(await specChecklist(inqRow?.category ?? null, String(q.id), 'stored')) };
+      const signed = async (b?: string | null, p?: string | null) => { if (!b || !p) return null; try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
+      if (action === 'spec_hold') {
+        const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
+        const hold = hs?.[0] || null;
+        const lines = await repo.lines(qid);
+        const a = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity);
+        return J({ ok: true, quote_id: qid, option_no: q.option_no, hold: hold ? { ...hold, pdf_url: await signed(hold.pdf_bucket, hold.pdf_path) } : null, schema: formSchema(a, lines) });
+      }
+      if (action === 'spec_fill') {
+        // The regenerated quotation is the standard quotation (quoteDocument, via workflow.ts pdfBody) in
+        // the supplier's own language, under the one alias this supplier carries on this job (the rule
+        // quote_pdf above uses). Audit 22 Sep 2026, finding 1: it was a blank page.
+        const render = regenRender(q, sup, inqRow);
+        const out = await fillIn(repo, qid, supplierOf(sup, email), body.values && typeof body.values === 'object' ? scrubDeep(body.values, sup.company_name, []) as typeof body.values : {}, ctx, render);
+        if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 400);
+        if (out.complete) return J({ ...out, pdf_url: await signed(out.pdf?.bucket, out.pdf?.path) });
+        return J(out);
+      }
+      // THE THIRD DOOR (review of #854, finding SP-F-02). spec_approve RELEASES a held quote to the
+      // customer through approve() -> acceptLive(), so "the review runs at the one door" was not true
+      // while this one skipped it: a quote held for missing specs, filled in through spec_fill and
+      // approved here, went out with rules 1-7 never asked. The release now depends on the review of the
+      // STORED quote — by then the row, not any request, is the quotation — read through the same
+      // scrubbed inbox and with the same engineer-recorded explanations.
+      // IT RUNS AS THE PRECHECK, NOT INSIDE accept (re-review of #854). approve() marks the hold
+      // released before it calls accept, and liveHold() reads only 'open' and 'awaiting_approval', so
+      // a refusal from inside accept left the quote unsent AND the hold desk shut: spec_fill and
+      // spec_approve both answered not_awaiting_approval and the supplier was told only that the quote
+      // "still waits on its commercial terms", naming nothing to do. As a precheck the hold goes back
+      // to 'open' carrying the review's own issues, in the shape the hold surface already renders.
+      const out = await approve(repo, qid, supplierOf(sup, email), email, body.confirm, ctx,
+        async (row) => (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted,
+        async (row) => {
+          const inqSafe = await safeInquiryOf(req, jwt, String(row.inquiry_id));
+          // A transient inbox failure is NOT an approval and NOT a silent stranding: the desk stays
+          // open with something the supplier can act on (try again), rather than closing on them.
+          if (!inqSafe) return { missing: [{ scope: 'quote' as const, line_no: null, description: null, attr: 'review_unavailable', type: 'text' as const,
+            label_en: 'We could not read this job just now, so we have not sent your quotation. Please confirm your approval again in a moment.',
+            label_ar: 'تعذّر علينا قراءة هذا الطلب الآن، ولذلك لم نرسل عرضكم. يُرجى تأكيد الموافقة مرة أخرى بعد قليل.' }] };
+          const rrow = await supabaseReviewRepo(admin).review(String(row.inquiry_id), Number(sup.id)).catch(() => null);
+          // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
+          const rvw = reviewQuotation(inqSafe, await readWorking(defaultDeps(admin, 'supplier_api'), inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)), 'review:' + inqSafe.id + ':' + sup.id));
+          if (rvw.approved) return null;
+          return { missing: rvw.issues.map(issueAsMissing), issues: rvw.issues };
+        });
+      if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
+      return J(out);
+    }
+    // WITHDRAW BEFORE THE REVEAL (QA walk, 19 Oct 2026: the portal showed a "Withdrawn" status but gave the
+    // supplier no way to reach it, and this function had no action for it). Only this supplier's own option,
+    // only on an enquiry we sent them, only while it is a draft or with the customer and nobody has revealed
+    // it. A revealed quote is the customer's paid decision and is never withdrawn from here.
+    if (action === 'withdraw_quote') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const { data: qt } = await admin.from('quotes').select('id,inquiry_id,status').eq('id', String(body.quote_id || '')).eq('supplier_id', sup.id).maybeSingle();
+      if (!qt || !(await matchedInquiry(Number(sup.id), qt.inquiry_id))) return J({ error: 'not_found', code: 'not_found' }, 404);
+      const { count: revealed } = await admin.from('transactions').select('id', { count: 'exact', head: true }).eq('quote_id', qt.id);
+      if (revealed) return J({ error: 'This quotation was already revealed to the customer, so it can no longer be withdrawn.', code: 'already_revealed' }, 409);
+      if (!['draft', 'submitted'].includes(String(qt.status))) return J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
+      const { data: done, error: wErr } = await admin.from('quotes').update({ status: 'withdrawn' }).eq('id', qt.id).in('status', ['draft', 'submitted']).select('id');
+      if (wErr) return J({ error: 'could_not_withdraw', code: 'could_not_withdraw' }, 500);
+      return done?.length ? J({ ok: true, status: 'withdrawn' }) : J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
+    }
+    if (action === 'submit_quote') {
+      const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      // FIRST, AND BEFORE ANYTHING ELSE IS SAID ABOUT THIS ACCOUNT: is this enquiry one we sent them?
+      // (finding SP-N-03 — this door never asked.) Every read below is keyed on this id, not on the body's.
+      const inquiryId = await matchedInquiry(Number(sup.id), body.inquiry_id);
+      if (!inquiryId) return J({ error: 'not_found', code: 'not_found' }, 404);
+      if (!sup.accepted_terms_at) return J({ error: 'accept the supplier terms first', code: 'terms_not_accepted' }, 400);
+      // 3 SEP 2026 (MASTER_PLAN #11): there is no admin queue and never was - approval is the automatic
+      // licence gate on save. Say what actually blocked it and what unblocks it, instead of promising a
+      // human decision "within 3 working days" that nobody would ever make.
+      if (sup.approval_status !== 'approved') {
+        const why = String(sup.licence_gate_reason || sup.rejection_reason || '').trim();
+        return J({ error: 'Your registration is not verified yet' + (why ? ': ' + why : '') + '. Upload a clear, in-date trade licence from your Profile tab - it is re-checked automatically the moment it is saved, with no admin step.', code: 'not_verified', params: { reason: why || null }, reason: why || null }, 403);
+      }
+      // AUDIT 4.2. This gate used to read the stored registration_status, which setRegistration()
+      // set to 'due' on every supplier past the (off-by-one) free count regardless of the date -
+      // blocking suppliers from quoting a year before the fee is contractually charged. It now
+      // asks the single source of truth, and fails CLOSED on an unavailable answer rather than
+      // silently opening the paywall.
+      {
+        const { data: regSt, error: regErr } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: sup.id });
+        const reg = regSt as any;
+        if (regErr || !reg?.ok) { logged('submit_quote registration state', regErr ?? 'lead_not_found'); return J({ error: 'registration_state_unavailable', code: 'registration_state_unavailable', hint: 'We could not confirm your registration status. Please try again shortly.' }, 503); }
+        if (reg.may_quote === false) return J({ error: 'Your ' + String(reg.currency || 'AED') + ' ' + Number(reg.fee_due || 0) + ' annual Subscription Fee is due. Please pay it in Billing to send quotes.', code: 'registration_due', params: { fee: Number(reg.fee_due || 0), currency: String(reg.currency || 'AED') }, registration: { status: reg.status, fee_due: reg.fee_due, currency: reg.currency, reason: reg.reason } }, 402);
+      }
+      const { data: inqStat } = await admin.from('inquiries').select('status').eq('id', inquiryId).maybeSingle();
+      if (inqStat && CONCLUDED.includes(String(inqStat.status))) return J({ error: 'This request has been concluded — the customer has already selected a supplier. Thank you for your interest, and best of luck on the next one.', code: 'inquiry_concluded' }, 409);
+      const amt = Number(body.amount); if (!(amt > 0)) return J({ error: 'invalid amount', code: 'invalid_amount' }, 400);
+      const isUpload = body.source === 'upload';
+      const items = Array.isArray(body.items) ? body.items : [];
+      // Free text the supplier typed. On the FORM path it goes through scrubIdentity (see the
+      // helper's note, 27 Jul 2026) before it is ever stored, because these four columns are read
+      // straight back out to the buyer pre-payment. The UPLOAD path is left as-is: quote_extract
+      // already anonymised it and supplies its own masked_terms, so scrubbing twice would only
+      // mangle text a model has already cleaned.
+      // 15 Sep 2026 (security review): the UPLOAD path is scrubbed too. submit_quote is callable
+      // directly, so "source: upload" was a way past scrubIdentity for text typed by hand, and under the
+      // model hold the quotation review sends every upload down this path. scrubIdentity leaves text
+      // that is already clean unchanged, so a quotation quote_extract anonymised is unaffected.
+      const maskHits: string[] = [];
+      const scrub = (v: unknown, n: number) => scrubIdentity(clip(v, n), sup.company_name, maskHits);
+      // What the scope itself states is read into its columns (line_specs/derive.ts — audit 21 Sep
+      // 2026, finding 15): "Exclusions: …" typed inside the scope, and "installation included".
+      const fromScope = deriveTermsFromScope(body.scope, body.exclusions);
+      const sNotes = scrub(body.notes, 1000), sScope = scrub(body.scope, 2000), sCond = scrub(body.conditions, 2000), sExcl = scrub(body.exclusions || fromScope.exclusions || '', 2000);
+      const priorMasked: string[] = Array.isArray(body.masked_terms) ? body.masked_terms.map((x: unknown) => String(x)) : [];
+      const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];
+      const { data: inqRow } = await admin.from('inquiries').select('category,spec,rfq_no').eq('id', inquiryId).maybeSingle();
+      // deno-lint-ignore no-explicit-any
+      const requirements = requirementsOf(inqRow?.spec);
+      const category = inqRow?.category ?? null;
+
+      // VAT (founder, 14 Sep 2026: supplier VAT details are hidden from the customer). The price the
+      // customer compares and the 3% is taken on is the price EXCLUDING VAT; the supplier's VAT
+      // treatment, VAT amount and TRN are kept on the quote for the record only (vat.ts).
+      const vatText = [body.notes, body.scope, body.conditions, body.exclusions, body.payment_terms, body.vat_note, ...items.map((it: any) => it?.description)].filter(Boolean).map(String).join('\n');
+      const trn = findTrn(vatText) || (/^100\d{12}$/.test(String(body.trn || '')) ? String(body.trn) : null);
+
+      // OPTIONS (founder, 14 Sep 2026: "if a supplier wanted to share 2 options on his quote, they will
+      // be considered two different quotations ... each will have its own ID in the system"). A
+      // submission whose lines carry option headings becomes one quote row per option, sharing the
+      // submission's commercial terms; a single-option submission targets option_no (1, the one it
+      // is editing, or a new one when the supplier adds another option).
+      const normItems = items.map((it: any) => ({ ...it, description: String(it?.description ?? ''), amount: numOrNull(it?.amount) ?? (((numOrNull(it?.qty) || 0) * (numOrNull(it?.unit_price) || 0)) || null) }));
+      const opts = splitOptions(normItems, body.option_totals && typeof body.option_totals === 'object' ? body.option_totals : {});
+      const multi = opts.length > 1;
+      const { data: mine } = await admin.from('quotes').select('id,option_no,status').eq('inquiry_id', inquiryId).eq('supplier_id', sup.id);
+      const maxOpt = Math.max(0, ...(mine || []).map((r: any) => Number(r.option_no) || 1));
+      if (body.new_option === true) {
+        const { count: revealedQuotes } = await admin.from('transactions').select('id', { count: 'exact', head: true }).eq('fee_status', 'paid').in('quote_id', (mine || []).map((r: any) => r.id).concat(['00000000-0000-0000-0000-000000000000']));   // only a PAID reveal counts: a failed or unpaid checkout never blocks an option
+        const refusal = newOptionRefusal(body.new_option, revealedQuotes || 0);
+        if (refusal) return J(refusal.body, refusal.status);
+      }
+      const single = Number(body.option_no) >= 1 ? Math.floor(Number(body.option_no)) : (body.new_option === true ? maxOpt + 1 : 1);
+      const plan = multi ? opts.map((o) => ({ option_no: o.option_no, lines: o.lines, amount: optionAmount(o) })) : [{ option_no: single, lines: opts[0]?.lines ?? normItems, amount: amt as number | null }];
+      if (plan.some((p) => p.option_no > 20)) return J({ error: 'A quote can carry at most 20 options.', code: 'too_many_options' }, 400);
+      const noTotal = plan.find((p) => !(Number(p.amount) > 0));
+      if (noTotal) return J({ error: 'Enter the total for option ' + noTotal.option_no + '.', code: 'option_total_missing', params: { option: noTotal.option_no } }, 400);
+      // Finding SP-N-04: the attached quotation file must be one of this supplier's own objects.
+      const origPath = body.original_file_path == null || String(body.original_file_path) === '' ? null : String(body.original_file_path);
+      if (origPath && !ownQuoteFile(origPath, Number(sup.id))) return J(NOT_MY_FILE, 400);
+
+      // ── THE QUOTATION REVIEW RUNS AT EVERY DOOR (audit 22 Sep 2026, finding SP-F-02) ────────────
+      // The founder, 15 Sep 2026: the review is "the most important part in the whole supplier portal".
+      // Its rules live in quote_review.ts reviewQuotation — every BOQ line priced, quantities and units
+      // matching the BOQ, prices in AED, the VAT basis stated, the lines adding up to the total, a
+      // concrete validity, and the hold desk's own exact-specs assessment — and until now they ran ONLY
+      // inside the chat. Two portal doors post to submit_quote directly (InquiriesTab -> QuoteForm, and
+      // the Quote Builder's one-click accept), so a quotation that failed any of rules 1-7 reached the
+      // customer through them.
+      //
+      // IT IS A HOLD, NOT A REFUSAL, and that correction matters (review of #854): a hard 400 would have
+      // taken both quoting doors offline, because neither form has a field for several of the details
+      // the review asks for. The quote is still written and still recoverable — exactly what the hold
+      // desk already does — it simply never reaches the customer until the review passes. QuoteForm
+      // already renders `held`, and the two ways out (spec_fill here, or a revised quotation through the
+      // chat) are unchanged.
+      //
+      // WHAT THE SUPPLIER ALREADY EXPLAINED STILL COUNTS. A BOQ line the chat recorded as excluded, or a
+      // quantity the supplier explained, lives in quote_reviews.working — written by the engineer, not by
+      // the caller — so it is read from the row and never from the request body. A supplier posting
+      // straight to this endpoint has no such row, and every rule applies to them in full.
+      const confirmedTerms = (() => { const t = sanitizeTermsSpec(body.terms_spec); return t ? scrubDeep(t, sup.company_name, maskHits) as typeof t : t; })();
+      const reviewRow = await supabaseReviewRepo(admin).review(inquiryId, Number(sup.id)).catch(() => null);
+      const safeInq = await safeInquiryOf(req, jwt, inquiryId);
+      if (!safeInq) return J({ error: 'not_found', code: 'not_found' }, 404);
+      // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
+      const rv = reviewQuotation(safeInq, await readWorking(defaultDeps(admin, 'supplier_api'), safeInq, withResolved(
+        workingFromSubmit(body, { notes: String(sNotes ?? ''), scope: String(sScope ?? ''), conditions: String(sCond ?? ''), exclusions: String(sExcl ?? '') }, confirmedTerms || {}, allMasked, trn),
+        resolvedFrom(reviewRow?.working)), 'review:' + safeInq.id + ':' + sup.id));
+      const lang: 'en' | 'ar' = SUPPLIER_LOCALE;
+      const reviewIssues = rv.approved ? null : rv.issues.map((i) => ({ code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, en: i.en, ar: i.ar }));
+      const reviewMissing = rv.approved ? [] : rv.issues.map(issueAsMissing);
+      const reviewMessage = reviewIssues ? rv.issues.slice(0, 3).map((i) => (lang === 'ar' ? i.ar : i.en)).join(' ') : null;
+
+      // The quote's author for quote_compare's independence routing: a typed quote has no model author; an uploaded one
+      // carries the model quote_extract read it with (recorded at 'extract'), or 'unknown', which fails closed.
+      // body.source is the client's word, so it never decides this (#880 review, item 2): the server's own extraction
+      // record does. A record => its model; an upload with no record => 'unknown' (fails closed); otherwise typed by a person.
+      const { data: xm } = await admin.from('quote_extraction_model').select('model').eq('subject_key', `${sup.id}:${inquiryId}`).maybeSingle();
+      const quoteAuthor = typeof xm?.model === 'string' && xm.model ? xm.model : (isUpload ? 'unknown' : 'deterministic');
+      const submission_id = crypto.randomUUID();
+      const repo = supabaseRepo(admin, { dispatch: kickDelivery });
+      const supplier = supplierOf(sup, email);
+      const ref = jobNo({ id: String(inquiryId), rfq_no: inqRow?.rfq_no });
+      const multiOption = multi || single > 1 || (mine || []).length > 1;
+      const results: any[] = [];
+      let anyAccepted = false;
+      for (const p of plan) {
+        // Rulings 1207/1208: the supplier's discount and VAT exactly as stated; price_ex_vat (and quote_amount, which the
+        // reveal fee reads) is the price AFTER the stated discount, excluding VAT — never the gross (_shared/stated_price.ts).
+        const vat = statedPrice({ amount: p.amount, subtotal: multi ? null : numOrNull(body.subtotal), vat_amount: multi ? null : numOrNull(body.vat_amount), text: vatText,
+          stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat),
+          gross_amount: multi ? null : numOrNull(body.gross_amount), discount_amount: multi ? null : numOrNull(body.discount_amount),
+          discount_label: multi ? null : clip(body.discount_label, 80), net_amount: multi ? null : numOrNull(body.net_amount) });
+        const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, ...storedPrice(vat, p.amount), supplier_trn: trn,
+          discount_label: vat.discount_label ? scrub(vat.discount_label, 80) : null,
+          notes: sNotes, lead_time: scrub(body.lead_time, 200), validity: scrub(body.validity, 200), payment_terms: scrub(body.payment_terms, 400), warranty: scrub(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: (() => { const m = [...allMasked, ...maskHits.filter((h) => !allMasked.includes(h))]; return m.length ? m : null; })(), structured: p.lines.length > 0 };
+        // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
+        // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.
+        if (confirmedTerms) (det as Record<string, unknown>).terms_spec = confirmedTerms;
+        // Capture the status BEFORE the write. A new row is created as a draft, never in the
+        // 'submitted' column default: a dry_run preflight or a held quote must not be visible to the
+        // customer even for a moment (caught by a demo walkthrough on 21 Jul 2026).
+        const prior = (mine || []).find((r: any) => (Number(r.option_no) || 1) === p.option_no) || null;
+        // A DRY RUN LEAVES THE ESTATE AS IT FOUND IT (audit 22 Sep 2026, finding SP-C-02). "Check before
+        // sending" reached the dry-run branch AFTER the writes below: it updated the prior quote row with
+        // whatever was on screen, deleted its lines and re-inserted the new ones, and then restored only
+        // `status`. A check run on a reopened quote that had already been sent therefore REWROTE the sent
+        // quotation — amount, terms and every line — and a check on a new option left a draft behind. The
+        // scorer, the accept rule and the hold assessment all read the row by id, so the row must exist
+        // while they run; what must not survive is the change. The row and its lines are snapshotted here
+        // and put back below, and a snapshot we could not take refuses the check rather than risking it.
+        const dryRun = body.dry_run === true;
+        const snapCols = [...Object.keys(det), 'status', 'submittable'].join(',');
+        let snapRow: Record<string, unknown> | null = null;
+        let snapLines: Record<string, unknown>[] = [];
+        if (dryRun && prior) {
+          const [{ data: sr, error: se }, { data: sl, error: sle }] = await Promise.all([
+            admin.from('quotes').select(snapCols).eq('id', prior.id).maybeSingle(),
+            admin.from('quote_items').select('*').eq('quote_id', prior.id),
+          ]);
+          if (se || sle || !sr) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
+          snapRow = sr as unknown as Record<string, unknown>; snapLines = (sl || []) as unknown as Record<string, unknown>[];
+        }
+        let qid: string;
+        if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return failed(String(action), error); qid = String(prior.id); }
+        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
+        try {
+          await admin.from('quote_items').delete().eq('quote_id', qid);
+          // A line's own words fill brand / model / specification where the caller sent none; a scope
+          // that says installation is included, with no line carrying a labour or install figure, marks
+          // the first line install = 0 — "included in the rate" — so the scorer's labour-or-installation
+          // count reads what the supplier wrote (derive.ts, finding 15).
+          const anyInstall = p.lines.some((it: any) => numOrNull(it.labour) != null || numOrNull(it.install) != null);
+          const rows = p.lines.slice(0, 80).map((raw: any, i: number) => { const it = scrubLine(raw, sup.company_name, maskHits); const dv = deriveLineFields(it); return { quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand || dv.brand, 120), model: clip(it.model || dv.model, 120), specification: clip(it.specification || dv.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install) ?? (i === 0 && !anyInstall && fromScope.installation_included ? 0 : null), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300), ...(() => { const s = sanitizeSpec(it.spec); return Object.keys(s.spec).length ? { spec: s.spec, spec_source: s.source } : {}; })() }; });
+          // A line item with no description is dropped, not stored blank - a quote line the buyer
+          // cannot read is worse than one that is absent.
+          const clean = rows.filter((r: { description: string | null }) => r.description);
+          if (clean.length) await admin.from('quote_items').insert(clean);
+        } catch (_e) { /* */ }
+        // Preflight (dry_run). Runs the real scorer, the real accept rule and the real hold gate's
+        // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
+        // The gate's own context: the same checklist, the same settled readings, the same assessment (workflow.ts
+        // readAndAssess), so "check before sending" and the submission give one verdict for one quotation.
+        const gctx: Ctx = { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)),
+          // His quotation is READ by reasoning before the check (decision points 29-30); held: nothing is read and he is asked.
+          read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: ls, terms: qr, requirements }) };
+        const gkey = await gateInputKey((await repo.quote(qid))!, await repo.lines(qid), gctx);
+        if (dryRun) {
+          const acc = await acceptRule(qid);
+          const { a, settled } = await readAndAssess(repo, qid, gctx);
+          await sameVerdict(gkey, a, settled, qid, 'preflight');
+          // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
+          // own ids, so anything that references a line still does). A row this check CREATED is removed.
+          let restored = true;
+          try {
+            if (prior && snapRow) {
+              const u = await admin.from('quotes').update(snapRow).eq('id', qid);
+              const d = await admin.from('quote_items').delete().eq('quote_id', qid);
+              const i2 = snapLines.length ? await admin.from('quote_items').insert(snapLines) : { error: null };
+              restored = !u.error && !d.error && !i2.error;
+            } else {
+              const d = await admin.from('quote_items').delete().eq('quote_id', qid);
+              const dq = await admin.from('quotes').delete().eq('id', qid);
+              restored = !d.error && !dq.error;
+            }
+          } catch (_e) { restored = false; }
+          // A FAILED RESTORE IS AN INCIDENT, NOT A FIELD ON A 200 (review of #854). Until this line it
+          // answered ok:true with restored:false and a console line nobody reads, so a SENT quotation
+          // could be left with its lines deleted and its terms overwritten and nothing would page. It
+          // now writes an agent_runs error row — observe() pages those — and answers 500.
+          if (!restored) {
+            console.error('submit_quote dry_run: could not restore quote', qid);
+            try {
+              await admin.from('agent_runs').insert({ agent: 'supplier_api', status: 'error', started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+                counts: { signal: 'dry_run_restore_failed', quote_id: qid, supplier_id: sup.id, inquiry_id: inquiryId, had_prior: !!prior, lines: snapLines.length },
+                note: ('submit_quote dry_run could not restore quote ' + qid + ' after the preflight. The row may hold the checked figures instead of the ones the supplier sent. Restore it from this row.').slice(0, 500) });
+            } catch (_e) { /* the page must not be what breaks the response */ }
+            return J({ error: 'preflight_restore_failed', code: 'preflight_restore_failed', quote_id: qid, message: 'The check could not be undone cleanly and we have raised it. Please do not resend until we confirm.' }, 500);
+          }
+          results.push({ quote_id: qid, option_no: p.option_no, dry_run: true, accepted: false, restored, submittable: acc.submittable, would_accept: acc.accept && !a.held && !reviewIssues, review_issues: reviewIssues, status_after: prior?.status ?? null,
+            accept_via: acc.submittable ? 'structured_score' : (acc.formComplete ? 'form_complete' : (!acc.requireStructured ? 'structured_not_required' : null)),
+            require_structured: acc.requireStructured, priced_items: acc.priced, total_items: p.lines.length, score: acc.score,
+            // The preflight card reads spec_missing, so the review's own issues belong in it for the
+            // same reason (re-review of #854) — otherwise "Check before sending" calls a quote that
+            // will be held a complete one.
+            spec_missing: [...a.missing, ...reviewMissing], would_hold: a.held || !!reviewIssues });
+          continue;
+        }
+        // THE HOLD GATE (founder, 14 Sep 2026). The sales engineer holds a quote that does not state
+        // every required detail exactly, records which line and which detail, and tells the supplier.
+        const g = await gate(repo, qid, supplier, gctx);
+        await sameVerdict(gkey, g.assessment, g.settled, qid, 'submission');
+        // a submission the door did not accept never inherits the wait of an earlier accepted one (review of #1108)
+        if (g.held) { await supersedeQualityHold(qid); results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
+        // THE REVIEW'S OWN RULES, held the same way (finding SP-F-02). The gate above is the exact-specs
+        // assessment; these are rules 1-7 — the BOQ priced line by line, quantities and units, prices in
+        // AED, the VAT basis, the lines adding up, a concrete validity — which no door but the chat ran.
+        // The quote stays a draft the supplier can complete or replace; it does not reach the customer.
+        if (reviewIssues) {
+          try { await admin.from('quotes').update({ status: 'draft' }).eq('id', qid); } catch (_e) { /* the result below already says it was not accepted */ }
+          await supersedeQualityHold(qid);
+          // THE CARD ALREADY KNOWS HOW TO SHOW THIS (re-review of #854). The portal renders a held
+          // quote from `missing` / `spec_missing` — assess.ts MissingItem — and a review hold carried
+          // neither, so QuoteCheck printed "Nothing missing — this is a complete quote." over a quote
+          // that had just been held. The issues now go out in BOTH shapes: `missing` for every surface
+          // that already reads it, `review_issues` for a client that wants the codes.
+          results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, code: 'quote_review_changes', missing: reviewMissing, review_issues: reviewIssues, message: reviewMessage });
+          continue;
+        }
+        const live = await acceptLive(qid, String(inquiryId), false);
+        if (live.accepted) anyAccepted = true;
+        results.push({ quote_id: qid, option_no: p.option_no, held: false, ...live });
+      }
+      if (anyAccepted) await notifyNewQuote(String(inquiryId));
+      if (multi) return J({ ok: true, options: results, submission_id, accepted: results.some((r) => r.accepted), held: results.some((r) => r.held), dry_run: body.dry_run === true, code: 'options_split', params: { count: results.length } });
+      const r0 = results[0];
+      const q = { id: r0.quote_id, option_no: r0.option_no, status: r0.accepted ? 'submitted' : 'draft' };
+      if (body.dry_run === true) return J({ ok: true, ...r0 });
+      if (r0.held) return J({ ok: true, quote: q, accepted: false, held: true, missing: r0.missing ?? null, review_issues: r0.review_issues ?? null, code: r0.code || 'spec_hold',
+        message: r0.message || 'Your quote is on hold until the exact details listed are stated. Fill them in here or upload a revised quote.' });
+      if (r0.accepted) return J({ ok: true, quote: q, submittable: r0.submittable, accepted: true, coaching: r0.coaching, score: r0.score });
+      return J({ ok: true, quote: q, submittable: false, accepted: false, coaching: r0.coaching, score: r0.score, code: 'draft_saved', message: 'Your quote was saved as a draft. Add the missing details so we can send it to the customer.' });
+    }
+}

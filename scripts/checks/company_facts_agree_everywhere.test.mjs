@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { loadFacts, findings, statements, wrongWordings, denylisted, currentDocs, rewrite } from '../legal/company_facts.mjs';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const root = ROOT.pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -43,7 +44,7 @@ test('every repository surface states each company figure as company_facts.json 
   const HISTORY_BLOCK = /const AGREEMENT_CHANGES = \{[\s\S]*?\nexport function agreementChanges/;
   files.push('src/components/portal/SupplierPortal.tsx');
   for (const p of files) {
-    let t; try { t = read(p); } catch { continue; }
+    let t; try { t = p === 'src/components/portal/SupplierPortal.tsx' ? readSupplierPortal() : read(p); } catch { continue; }
     if (p === 'src/components/portal/SupplierPortal.tsx') { assert.match(t, HISTORY_BLOCK, 'the history block moved: update HISTORY_BLOCK'); t = t.replace(HISTORY_BLOCK, ''); }
     for (const f of findings(t)) bad.push(`${p}: ${f.fact} says ${f.got}, source says ${f.want}: "${f.text}"`);
     for (const w of wrongWordings(t)) bad.push(`${p}: ${w.rule} worded "${w.text}"; the one wording is: ${w.say}`);
@@ -119,7 +120,7 @@ test('the Supplier Agreement module a supplier signs is the current legal.json t
 });
 
 test('every archived agreement version is still readable and linked', () => {
-  const portal = read('src/components/portal/SupplierPortal.tsx');
+  const portal = readSupplierPortal();
   // 6 Oct 2026 (Customer Terms v10): the Customer Terms are archived too (terms-v9 -> /terms/v9/).
   for (const k of F.surfaces.archived_documents) {
     const [, doc, v] = /^(.*)-(v\d+(?:\.\d+)?)$/.exec(k);

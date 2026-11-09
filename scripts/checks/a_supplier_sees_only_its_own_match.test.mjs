@@ -16,20 +16,22 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pendingNotes, manifestHas } from '../lib/pending_sql.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const read = (...p) => readFileSync(join(ROOT, ...p), 'utf8');
 const code = (s) => s.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
 const sqlCode = (s) => s.replace(/--[^\n]*/g, '');
 
-const API = code(read('supabase', 'functions', 'supplier_api', 'index.ts'));
+const API = code(functionSource('supplier_api'));
 const SQL = sqlCode(read('scripts', 'sql', 'a_supplier_sees_only_the_jobs_it_was_matched_to.sql'));
-/** One action's body, from `if (action === 'x')` to the next top-level action test. */
+/** One action's body, from `if (action === 'x')` to the next top-level action test, or to the end of the handler that
+ *  holds it (the column-0 `}` that closes its action group since the 9 Nov 2026 split; `};` of handle before it). */
 function action(name) {
   const i = API.indexOf(`action === '${name}'`);
   assert.notEqual(i, -1, `supplier_api has no ${name} action`);
   const rest = API.slice(i);
-  const j = rest.slice(1).search(/\n {4}if \(action ===/);
+  const j = rest.slice(1).search(/\n {4}if \(action ===|\n\}/);
   return j === -1 ? rest : rest.slice(0, j + 1);
 }
 const RECOMMEND = SQL.slice(SQL.indexOf('function public.fn_supplier_quote_recommend'), SQL.indexOf('function public.fn_supplier_opportunities'));
@@ -179,7 +181,7 @@ test('SP-F-04: summary, spec and budget all pass the BOQ\'s own gate — redacti
   assert.match(inbox, /spec_withheld: specWithheld/, 'a withheld brief must be said out loud, as the BOQ already is');
   assert.match(inbox, /budget_withheld: budgetWithheld/);
   assert.doesNotMatch(inbox, /scrubDeep\(|scrubIdentity\(i\.budget|scrubDeepSeeded|redactText\(/, 'the un-gated scrubbers are what left the project name in');
-  assert.doesNotMatch(code(read('supabase', 'functions', 'supplier_api', 'index.ts')), /import \{[^}]*redactText/, 'nothing in supplier_api reaches for the un-scanned redactor any more');
+  assert.doesNotMatch(code(functionSource('supplier_api')), /import \{[^}]*redactText/, 'nothing in supplier_api reaches for the un-scanned redactor any more');
   const scrub = code(read('supabase', 'functions', 'supplier_api', 'identity_scrub.ts'));
   assert.match(scrub, /export function inboxField[\s\S]{0,400}redactBoq\(scrubDeep\(v, buyerName, hits\) as T, seeds\)/);
   assert.match(scrub, /export function inboxBoq[\s\S]{0,300}inboxField\(neutraliseCadLines\(boq\) as T/, 'one gate, not two');

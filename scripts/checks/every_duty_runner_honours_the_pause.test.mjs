@@ -5,12 +5,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const between = (s, a, b) => { const i = s.indexOf(a); assert.ok(i >= 0, 'missing: ' + a); const j = s.indexOf(b, i + a.length); return s.slice(i, j < 0 ? undefined : j); };
 
 test('resilience_ping skips a paused plan step and a paused later-duty step (rotate_by_api among them)', () => {
-  const s = read('supabase/functions/resilience_ping/index.ts');
+  const s = functionSource('resilience_ping');
   const main = between(s, 'const steps: Step[] = [];', 'await runSteps(');
   assert.match(main, /pausedDuties\(admin\)/, 'the plan loop does not read duty_pause');
   assert.match(main, /pause\.has\('resilience_ping\.' \+ name\)/, 'the plan loop does not skip a paused step');

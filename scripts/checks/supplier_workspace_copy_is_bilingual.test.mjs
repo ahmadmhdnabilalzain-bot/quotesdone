@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const ROOT = process.cwd();
 const { WORKSPACE_COPY: C, ws } = await import(pathToFileURL(join(ROOT, 'src/components/portal/supplier/workspaceCopy.ts')).href);
@@ -43,7 +44,7 @@ test('every code the server emits has words', () => {
 });
 
 test('the tabs read in the founder\'s order, in both languages', () => {
-  const src = readFileSync(join(ROOT, 'src/components/portal/SupplierPortal.tsx'), 'utf8');
+  const src = readSupplierPortal();
   assert.match(src, /const MAIN_TABS = \['services', 'rfqs', 'quotes', 'messages', 'documents', 'insights'\];/);
   assert.match(src, /const ACCOUNT_TABS = \['profile', 'billing', 'settings'\];/);
   assert.deepEqual(['services', 'rfqs', 'quotes', 'messages', 'documents', 'insights'].map((k) => ws('en', 'tab_' + k)),

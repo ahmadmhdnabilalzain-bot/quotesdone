@@ -15,9 +15,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const PORTAL = readFileSync(root + 'src/components/portal/SupplierPortal.tsx', 'utf8');
+const PORTAL = readSupplierPortal();
 const API = readFileSync(root + 'src/components/portal/supplier/api.ts', 'utf8');
 const MEASURED_MS = 18019;
 
@@ -34,7 +35,8 @@ test('the Documents tab save, the registration licence upload and the quotation 
     const c = callOf(action);
     assert.match(c, /token, \{ timeoutMs: REASONING_TIMEOUT_MS \}\);$/, `${action} must pass { timeoutMs: REASONING_TIMEOUT_MS }: ${c.slice(0, 120)}`);
   }
-  assert.match(PORTAL, /import \{ call, REASONING_TIMEOUT_MS[^}]*\} from '\.\/supplier\/api';/);
+  // './supplier/api' from the entry, '../api' from supplier/core/ (the portal was split there, 9 Nov 2026): the same module.
+  assert.match(PORTAL, /import \{ call, REASONING_TIMEOUT_MS[^}]*\} from '(\.\/supplier|\.\.)\/api';/);
 });
 
 test('the reasoning timeout stays well over the measured read, and the default stays 20 s', () => {

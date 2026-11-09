@@ -9,13 +9,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 // Comments are stripped: a check that greps source must not match the comment that explains the fix.
 const strip = (src) => src.replace(/^\s*\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
 const read = (p) => strip(readFileSync(join(ROOT, p), 'utf8'));
 const no = (re, src, msg) => assert.ok(!re.test(src), msg || 'must not match ' + re);
-const PORTAL = read('src/components/portal/SupplierPortal.tsx');
+const PORTAL = strip(readSupplierPortal());
 const FN = read('supabase/functions/supplier_portal/index.ts');
 const OVERVIEW = read('supabase/functions/supplier_portal/overview.ts');
 const COPY = read('src/components/portal/supplier/serverCopy.ts');

@@ -3,12 +3,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const strip = (s) => s.replace(/^\s*\/\/.*$/gm, '');
 
 test('M2: an anonymous resilience_ping call runs no step and writes no tick row', () => {
-  const src = read('supabase/functions/resilience_ping/index.ts');
+  const src = functionSource('resilience_ping');
   const serve = src.slice(src.indexOf('Deno.serve('), src.indexOf('const sweep = observe('));
   // Two shapes carry the same property: the ternary, or (since 12 Oct 2026, #1305, the detached slow steps) a
   // gate that returns liveness for any unauthenticated call BEFORE the handler reads the body, starts a detached

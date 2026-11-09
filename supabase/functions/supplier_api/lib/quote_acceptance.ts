@@ -1,0 +1,94 @@
+// supplier_api — the accept rule, the quality hold and acceptLive, and telling the customer of a new quote.
+// Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,116-line index.ts split into modules, a pure move).
+import { SUPPLIER_LOCALE } from '../../_shared/registered_locale.ts';
+import type { MissingItem } from '../../_shared/line_specs/assess.ts';
+import { requestDelivery } from '../../_shared/deliver.ts';
+import { SUPA_URL, admin, secretVal } from '../context.ts';
+
+export async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
+
+// THE COMMERCIAL ACCEPT RULE, read from the stored quote (14 Sep 2026). It lived inline in
+// submit_quote; approving a regenerated quotation must clear the same bar, so both call this.
+// 5 Aug 2026: completeness is a property of the QUOTE, not of the screen it arrived through — an
+// uploaded quotation with priced lines, validity, warranty and lead time is as complete as a typed one.
+export async function acceptRule(qid: string) {
+  const { data: q } = await admin.from('quotes').select('lead_time,validity,warranty').eq('id', qid).maybeSingle();
+  const { data: qi } = await admin.from('quote_items').select('unit_price,amount').eq('quote_id', qid);
+  // deno-lint-ignore no-explicit-any
+  let score: any = null; try { const { data } = await admin.rpc('fn_quote_structured_score', { p_quote: qid }); score = data; } catch (_e) { /* */ }
+  const submittable = !!(score && score.submittable);
+  try { await admin.from('quotes').update({ submittable }).eq('id', qid); } catch (_e) { /* */ }
+  const requireStructured = (await secretVal('require_structured_quotes')) === 'true';
+  const priced = (qi || []).filter((r: { unit_price: number | null; amount: number | null }) => (Number(r.unit_price) || 0) > 0 || (Number(r.amount) || 0) > 0).length;
+  const formComplete = priced >= 1 && !!q?.validity && !!q?.warranty && !!q?.lead_time;
+  return { accept: submittable || formComplete || !requireStructured, submittable, formComplete, requireStructured, priced, score };
+}
+export async function notifyNewQuote(inquiryId: string) {
+  try {
+    const { data: inq } = await admin.from('inquiries').select('customer_id,summary').eq('id', inquiryId).maybeSingle();
+    if (!inq?.customer_id) return;
+    const { data: c } = await admin.from('customers').select('email').eq('id', inq.customer_id).maybeSingle();
+    if (c?.email) await notify([{ type: 'new_quote', to_email: c.email, to_role: 'customer', inquiry_id: inquiryId, subject: 'You have a new quote on QuotesDone', body: 'A supplier submitted a quote for your request' + (inq.summary ? ': ' + inq.summary : '') + '. Log in to view the full quotation and compare.' }]);
+  } catch (_e) { /* */ }
+}
+// "WE NOTIFY DIRECTLY" (founder, 14 Sep 2026). The sales engineer's notices are delivery requests
+// customer_support sends (#614). Queued rows would otherwise wait for the next outbox tick; this asks
+// both of support's dispatchers to send now. Best-effort: the scheduled flush still sends if it fails.
+export async function kickDelivery() {
+  const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return;
+  await Promise.allSettled(['send_outbox', 'send_whatsapp'].map((fn) => fetch(`${SUPA_URL}/functions/v1/${fn}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret }) })));
+}
+/** The supplier as the hold desk addresses them: every channel on file, in their language. */
+// deno-lint-ignore no-explicit-any
+export const supplierOf = (sup: any, email: string) => ({ id: Number(sup.id), email: email || null, phone: sup.whatsapp || sup.phone || null, locale: SUPPLIER_LOCALE });
+/**
+ * The quality hold on this quote, if the gate just opened (or kept) one: the fixes as MissingItem rows (the shape every
+ * hold surface renders) and the message. Null when the quote went out. Suppliers are written in English only, so
+ * label_ar carries the English sentence too. Before the SQL is applied the table is absent and this answers null.
+ */
+async function qualityHold(qid: string): Promise<{ missing: MissingItem[]; message: string } | null> {
+  const { data: q } = await admin.from('quotes').select('status').eq('id', qid).maybeSingle();
+  if (!q || String(q.status) !== 'draft') return null;
+  const { data: h, error } = await admin.from('quote_quality_hold').select('fixes_en,release_due,released_at,superseded_at').eq('quote_id', qid).maybeSingle();
+  if (error || !h || h.released_at || h.superseded_at) return null;
+  const missing: MissingItem[] = String(h.fixes_en || '').split('\n').map((l) => l.replace(/^\d+\.\s*/, '').trim()).filter(Boolean)
+    .map((l, i) => ({ scope: 'quote', line_no: null, description: null, attr: 'quality_fix_' + (i + 1), label_en: l, label_ar: l, type: 'text' }));
+  const due = h.release_due ? new Date(h.release_due).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+  return { missing, message: 'Your quotation is on hold: our quality check found the points listed. Correct them and send it again.'
+    + (due ? ' If they are not corrected by ' + due + ' (Dubai time), it is shown to the customer as it stands, with the points beside it.' : '')
+    + ' We are also e-mailing you this list.' };
+}
+/**
+ * A SUBMISSION THE DOOR DID NOT ACCEPT ENDS THE QUALITY HOLD (review of #1108, 29 Sep 2026). The hold remembers the
+ * version acceptLive accepted; the duty only ever releases that exact content. A later submission that the exact-specs
+ * gate, the review's rules 1-7 or the accept rule refuses leaves a draft the wait must never publish, so its hold is
+ * superseded here and closed without a release. A later accepted submission opens a fresh hold through the gate.
+ */
+export async function supersedeQualityHold(qid: string) {
+  try { await admin.from('quote_quality_hold').update({ superseded_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('quote_id', qid).is('released_at', null).is('superseded_at', null); } catch (_e) { /* absent before the SQL is applied */ }
+}
+/** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
+export async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
+  // Quote quality is scored by structure in trg_quote_quality; the category aspects are no longer read by the
+  // model (24 Sep 2026, it_engineer, quote_quality_trade_keys_and_repeat_requests_are_code_not_the_model.sql).
+  const r = await acceptRule(qid);
+  // deno-lint-ignore no-explicit-any
+  let coaching: any = null;
+  if (r.accept) {
+    try { await admin.from('quotes').update({ status: 'submitted' }).eq('id', qid); } catch (_e) { /* */ }
+    // THE QUALITY CHECK (founder ledger 1018, 29 Sep 2026; scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_
+    // before_the_customer_sees_it.sql). z40_quote_quality_gate keeps a quote with missing checklist specs, a price outside
+    // the UAE range or no validity / delivery time / VAT basis a draft for up to 24 h. The status is read back: a held
+    // quote is answered as held, with the exact fixes, and the customer is not told of a quote they cannot see.
+    const qh = await qualityHold(qid);
+    if (qh) return { accepted: false, submittable: r.submittable, score: r.score, coaching, held: true, code: 'quality_hold', missing: qh.missing, message: qh.message };
+    await admin.from('inquiries').update({ status: 'quoted' }).eq('id', inquiryId).in('status', ['sent', 'quoted']);
+    if (notifyCustomer) await notifyNewQuote(inquiryId);
+    if (!r.submittable) { try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: qid }); coaching = data; } catch (_e) { /* */ } }
+    return { accepted: true, submittable: r.submittable, score: r.score, coaching };
+  }
+  try { await admin.from('quotes').update({ status: 'draft' }).eq('id', qid); } catch (_e) { /* */ }
+  await supersedeQualityHold(qid);
+  try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: qid }); coaching = data; } catch (_e) { /* */ }
+  return { accepted: false, submittable: false, score: r.score, coaching };
+}

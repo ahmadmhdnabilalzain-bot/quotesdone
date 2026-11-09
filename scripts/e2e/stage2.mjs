@@ -31,6 +31,7 @@ import { demoPdf } from '../lib/demo_pdf.mjs';
 import { buildInventory, classify, summarise } from './stage2_coverage.mjs';
 import { liveDuties, probeDuty } from './stage2_duties.mjs';
 import { docIsRead, readingSettled } from './stage2_reading.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
@@ -727,7 +728,7 @@ async function realRun(pre) {
       } finally { await browser.close(); }
     },
     S18: async () => {
-      const ds = await liveDuties(read, readFileSync(join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8'));
+      const ds = await liveDuties(read, functionSource('resilience_ping'));
       const out = [];
       for (const d of ds) {
         const r = await probeDuty(d, tag);
@@ -1251,7 +1252,7 @@ if (MODE === '--dry-run') {
   const vc = await verifyClean(probeTag, {});
   const pathsOk = !td.error && Object.values(lc).every((v) => v === 0 || String(v).startsWith('PENDING')) && vc.clean;
   // Every live duty, in an aborted transaction: no model, nothing commits. Measures today which duty would write a real row.
-  const dp = []; for (const d of await liveDuties(read, readFileSync(join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8'))) dp.push({ duty: d.duty, ...(await probeDuty(d, probeTag)) });
+  const dp = []; for (const d of await liveDuties(read, functionSource('resilience_ping'))) dp.push({ duty: d.duty, ...(await probeDuty(d, probeTag)) });
   const dBad = dp.filter((x) => x.error || x.real);
   log(`${dBad.length ? 'FAIL' : 'OK  '} ${dp.length} live duties ran in aborted transactions: ${dp.length - dBad.length} clean, ${dBad.length} errored or wrote a real row${dBad.length ? ' — ' + dBad.map((x) => x.duty + ':' + (x.error || 'real=' + x.real)).join('; ').slice(0, 600) : ''}`);
   save('duties/duty_probes_dry_run.json', dp);

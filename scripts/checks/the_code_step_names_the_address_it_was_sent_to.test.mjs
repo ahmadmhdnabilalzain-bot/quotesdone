@@ -10,9 +10,9 @@
 // It reads source only (no network, no secret), so it runs in the checks job. The behaviour is walked by the e2e.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
-const SRC = readFileSync(new URL('../../src/components/portal/SupplierPortal.tsx', import.meta.url), 'utf8');
+const SRC = readSupplierPortal();
 const code = SRC.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, ' ');   // a comment naming the shape must not satisfy the check
 
 test('the code step shows "code sent to <address>" instead of the e-mail step subtitle', () => {

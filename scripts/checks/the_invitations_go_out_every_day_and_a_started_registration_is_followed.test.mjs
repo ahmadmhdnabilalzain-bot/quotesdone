@@ -15,8 +15,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readSchemaMirror } from '../lib/schema_mirror.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
-const ping = readFileSync('supabase/functions/resilience_ping/index.ts', 'utf8');
+const ping = functionSource('resilience_ping');
 const claim = readFileSync('supabase/functions/claim_lookup/index.ts', 'utf8');
 const sql = readFileSync('scripts/sql/the_invitations_go_out_every_day_and_a_started_registration_is_followed.sql', 'utf8');
 const manifest = readFileSync('scripts/sql/MANIFEST.txt', 'utf8').split(/\r?\n/);

@@ -12,7 +12,7 @@ import { useParams } from 'next/navigation';
 // so a visitor who quotes it to support can be matched to that report.
 const T = {
   en: { code: 'Something went wrong', h: 'This page did not load.', p: 'It is our fault, not yours. Try again, or go back to the home page.', retry: 'Try again', home: 'Home', ref: 'Reference' },
-  ar: { code: 'حدث خطأ', h: 'تعذّر تحميل هذه الصفحة.', p: 'الخطأ من جهتنا وليس منك. حاول مرة أخرى، أو عُد إلى الصفحة الرئيسية.', retry: 'حاول مرة أخرى', home: 'الرئيسية', ref: 'رقم المرجع' },
+  ar: { code: 'حدث خطأ', h: 'تعذّر تحميل هذه الصفحة.', p: 'نعتذر عن ذلك، فالخلل من جهتنا. يُرجى إعادة المحاولة أو العودة إلى الصفحة الرئيسية.', retry: 'إعادة المحاولة', home: 'الصفحة الرئيسية', ref: 'رقم المرجع' },
 };
 
 export default function LocaleError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {

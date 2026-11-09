@@ -14,8 +14,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
-const SRC = readFileSync(new URL('../../src/components/portal/SupplierPortal.tsx', import.meta.url), 'utf8');
+const SRC = readSupplierPortal();
 const code = SRC.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, ' ');   // a comment naming the old shape must not satisfy the check
 
 test('the dashboard is not mounted while the invitation claim is in flight', () => {

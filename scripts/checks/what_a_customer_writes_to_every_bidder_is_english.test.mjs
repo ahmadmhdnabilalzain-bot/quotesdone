@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -55,7 +56,7 @@ test('a clarification answer in Arabic is kept as written and its supplier copy 
 });
 
 test('a note on a live request in Arabic is kept as written and its supplier copy is held for English', () => {
-  arabicIsHeld(handler(code(R('supabase/functions/customer_api/index.ts')), "if (action === 'rfq_note') {", "if (action === 'my_inquiries')"), 'rfq_note');
+  arabicIsHeld(handler(code(functionSource('customer_api')), "if (action === 'rfq_note') {", "if (action === 'my_inquiries')"), 'rfq_note');
 });
 
 test('every supplier e-mail on these paths drops a row carrying Arabic', () => {

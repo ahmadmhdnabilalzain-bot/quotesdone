@@ -8,11 +8,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readCustomerPortal, readSupplierPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (f) => readFileSync(new URL('../../' + f, import.meta.url), 'utf8');
-const portal = read('src/components/portal/SupplierPortal.tsx');
+const portal = readSupplierPortal();
 const settings = read('src/components/portal/supplier/SupplierSettings.tsx');
-const api = read('supabase/functions/supplier_api/index.ts');
+const api = functionSource('supplier_api');
 
 test('the supplier portal renders English and offers no language toggle', () => {
   assert.match(portal, /const lang: string = 'en';/, 'lang must be the constant English');
@@ -38,6 +40,6 @@ test('supplier_api save_settings stores English whatever locale arrives', () => 
 });
 
 test('the customer portal keeps its Arabic toggle', () => {
-  const shell = read('src/components/me/PortalShell.tsx') + read('src/components/me/CustomerPortal.tsx');
+  const shell = read('src/components/me/PortalShell.tsx') + readCustomerPortal();
   assert.match(shell, /عربي/, 'the customer portal must still offer عربي');
 });

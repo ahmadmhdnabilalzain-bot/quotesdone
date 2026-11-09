@@ -37,6 +37,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionFiles } from '../lib/function_sources.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FN = (p) => path.join(REPO, 'supabase', 'functions', p);
@@ -46,7 +47,9 @@ export const REPLY_PATHS = [
   '_shared/ai_reply.ts', '_shared/support_reply.ts', '_shared/brief_answer.ts', '_shared/reasoned_delivery.ts', '_shared/clearer_copy.ts',
   'wa_inbound/index.ts', 'wa_inbound/model_says.ts', 'wa_inbound/menu_flow.ts',
   'sales_engineer/index.ts', 'site_assistant/index.ts', 'site_assistant/visitor_scope.ts', 'email_triage/index.ts',
-  'supplier_api/index.ts', 'supplier_api/quote_review_flow.ts',
+  'supplier_api/quote_review_flow.ts',
+  // supplier_api/index.ts was split on 9 Nov 2026 into index.ts, context.ts, lib/ and actions/: every one of them is read.
+  ...functionFiles('supplier_api').map((f) => f.replace('supabase/functions/', '')).filter((f) => /^supplier_api\/(index|context)\.ts$|^supplier_api\/(lib|actions)\//.test(f)),
 ];
 
 const GATE = /outage|Outage|llmDown|modelOrOutage/;

@@ -18,9 +18,10 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const SRC = readFileSync(join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8');
+const SRC = functionSource('resilience_ping');
 
 // Every `call('<slug>', <ms>, <body>, <credVar>)` inside the orphan step's job list.
 function jobs() {

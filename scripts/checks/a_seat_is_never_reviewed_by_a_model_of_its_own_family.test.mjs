@@ -23,6 +23,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
 import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -39,7 +40,7 @@ test('the gateway routes a review away from its author and refuses one that name
   assert.match(gw, /counterpart \? await admin\.rpc\('fn_ai_route_review(_for)?'/, 'ai_gateway must route counterpart_model through fn_ai_route_review');
   assert.match(gw, /!counterpart && \/\^seat_deliberation_\//, 'a seat_deliberation class without counterpart_model must be refused');
   assert.match(read('supabase/functions/_shared/llm.ts'), /counterpart_model: opts\.counterpartModel/);
-  const rp = read('supabase/functions/resilience_ping/index.ts');
+  const rp = functionSource('resilience_ping');
   assert.match(rp, /advanceOpenDeliberations\(admin, 3\)/);
   assert.match(rp, /rpc\('fn_it_deliberation_independence_watch'\)/);
 });

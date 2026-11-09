@@ -22,6 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pendingNotes } from '../lib/pending_sql.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL_FILE = 'scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql';
@@ -35,7 +36,7 @@ const fnBody = (name) => {
 };
 
 test('A. the plan runs on the heartbeat', () => {
-  const rp = readFileSync(path.join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8');
+  const rp = functionSource('resilience_ping');
   assert.match(rp, /ceoPlan: \{ run: ceoPlanTick \}/, 'resilience_ping has no ceoPlan runner');
   assert.match(rp, /admin\.rpc\('fn_ceo_plan_tick'\)/);
   assert.match(code, /insert into public\.resilience_step[\s\S]*'ceoPlan'/, 'no resilience_step row schedules ceoPlan');

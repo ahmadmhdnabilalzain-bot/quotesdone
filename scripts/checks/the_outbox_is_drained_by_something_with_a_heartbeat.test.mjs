@@ -26,6 +26,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
   || existsSync(join(homedir(), '.supabase', 'access-token'));
@@ -65,7 +66,7 @@ test('the outbox is a live queue, not an empty one', { skip: SKIP }, async () =>
 // THE MECHANISM, read out of the file that is deployed. The healthy path returns early, so the
 // drain has to be called BEFORE that return to run at all on a working day.
 test('the heartbeat drains the outbox on the healthy path, not only during an outage', () => {
-  const src = readFileSync('supabase/functions/resilience_ping/index.ts', 'utf8');
+  const src = functionSource('resilience_ping');
 
   // MATCH THE CODE, NOT THE PROSE. The first draft searched for "if (healthy) return" and found it
   // inside outboxTick's own doc comment, which quotes the line it was written to fix — so the check
@@ -81,7 +82,7 @@ test('the heartbeat drains the outbox on the healthy path, not only during an ou
     + 'That is the exact defect of 9 Sep 2026: mail could only escape during an outage.');
 
   // And the drain must actually reach the sender rather than merely counting the queue.
-  const fn = src.slice(src.indexOf('async function outboxTick'), src.indexOf('async function backupTick'));
+  const fn = src.slice(src.indexOf('async function outboxTick'), src.indexOf('\n}\n', src.indexOf('async function outboxTick')));  // outboxTick alone (it was the span up to backupTick while one file)
   assert.match(fn, /\/send_outbox/, 'outboxTick does not call send_outbox');
 
   // THE HEARTBEAT MUST BEAT WHEN THERE IS NOTHING TO DO. The first version of outboxTick returned
