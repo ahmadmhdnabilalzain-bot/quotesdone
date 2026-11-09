@@ -88,6 +88,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 - [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
 ## Working the estate
+- [Direct database access is closed (9 Nov)](direct-database-access-is-closed.md) — SSL enforced, network restrictions closed; add a machine's IP before psql/db dump
 - [deno --node-modules-dir=auto breaks next build (9 Nov)](deno-node-modules-auto-breaks-next-build.md) — two Reacts → useContext null on /_global-error; rm -rf node_modules && npm ci; use =none in a shared tree
 - [Docker and a local database in a cloud session (9 Nov)](docker-and-a-local-database-in-a-cloud-session.md) — dockerd &, mirror.gcr.io, --network=host + CA secret; `npm run db:local` rebuilds the whole public schema and measures it
 - [Checks read split code through a sources helper; oxlint not ESLint (9 Nov)](checks-read-split-code-through-a-sources-helper.md) — functionSource()/portal_sources; arabic hashes keyed by path; typescript-eslint refuses TS 7
