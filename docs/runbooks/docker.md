@@ -42,6 +42,10 @@ docker build --target runner -t quotesdone-web .
 docker run --rm -p 3000:3000 quotesdone-web
 ```
 
+## Graceful shutdown
+
+The runner image starts `node node_modules/next/dist/bin/next start` directly (not `npx`, which swallows SIGTERM), and the compose services run with `init: true` and `stop_grace_period: 10s`, so `docker stop` ends the server in about a second instead of waiting for SIGKILL.
+
 ## Troubleshooting
 
 - **`429 Too Many Requests` from Docker Hub.** Anonymous pulls are rate-limited. Use any mirror of the

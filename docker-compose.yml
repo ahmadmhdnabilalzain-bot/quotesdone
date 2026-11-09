@@ -18,6 +18,8 @@ x-dev: &dev
     args:
       NODE_IMAGE: ${NODE_IMAGE:-node:24-bookworm}
   image: quotesdone-dev:local
+  init: true
+  stop_grace_period: 10s
   working_dir: /app
   volumes:
     - .:/app
