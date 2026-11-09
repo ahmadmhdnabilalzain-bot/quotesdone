@@ -53,7 +53,7 @@ export function portalFindings(src) {
 
 test('W1: every surface that can refuse files its turn for the re-ask, with the turn as data and its own turn id', () => {
   assert.deepEqual(portalFindings(functionSource('sales_engineer')), []);
-  assert.deepEqual(intakeFindings(read('supabase/functions/inquiry_intake/index.ts')), []);
+  assert.deepEqual(intakeFindings(functionSource('inquiry_intake')), []);
   const ms = code(read('supabase/functions/wa_inbound/model_says.ts'));
   assert.match(ms, /turn_id: 'wa:'/, 'WhatsApp: two people sending the same words must be two turns (qhash reads context)');
   assert.match(ms, /reask: \{ message: question,/, 'WhatsApp: the turn must be filed as data for the re-ask');
@@ -100,7 +100,7 @@ test('W3: the portal and the request chat show a pending state and poll until th
   assert.match(nr, /poll_turn_id: tid/);
   const txt = read('src/components/me/portalText.ts');
   for (const k of ['asst_working', 'asst_with_team', 'nr_working', 'nr_with_team']) assert.equal((txt.match(new RegExp(k + ':', 'g')) || []).length, 2, k + ' in English and Arabic');
-  assert.match(code(read('supabase/functions/inquiry_intake/index.ts')), /const pollId = turnIdOf\(b\?\.poll_turn_id\);/);
+  assert.match(code(functionSource('inquiry_intake')), /const pollId = turnIdOf\(b\?\.poll_turn_id\);/);
 });
 
 test('W4: the hand-off notice is the model\'s; its fixed line only behind an outage', () => {

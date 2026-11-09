@@ -6949,7 +6949,7 @@
  "supabase/functions/email_triage/index.ts": [
   "21457f021dbc"
  ],
- "supabase/functions/inquiry_intake/index.ts": [
+ "supabase/functions/inquiry_intake/handle.ts": [
   "3a572c138209",
   "55c9470094df",
   "60f44ec8b539",

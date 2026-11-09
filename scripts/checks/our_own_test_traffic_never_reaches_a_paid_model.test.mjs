@@ -54,7 +54,7 @@ const NAMES_SUBJECT = {
   'supabase/functions/license_extract/index.ts': /fn: 'license_extract', subject: body\.subject/,
 };
 test('every consumer the E2E harness drives names its subject to the gateway', () => {
-  for (const [f, re] of Object.entries(NAMES_SUBJECT)) assert.match(read(f), re, `${f} no longer names its subject`);
+  for (const [f, re] of Object.entries(NAMES_SUBJECT)) assert.match(f === 'supabase/functions/inquiry_intake/index.ts' ? functionSource('inquiry_intake') : read(f), re, `${f} no longer names its subject`);
   const api = functionSource('supplier_api');
   // Five reader calls: the licence, the profile, the scanned catalogue (sales_engineer, 3 Nov 2026: a scanned
   // catalogue now reaches the model), quote_extract, and extract_quote reading through read_every_attachment (ruling 1177).

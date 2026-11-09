@@ -13,6 +13,7 @@
 //   - think()'s cross-family check: the verify step still goes to a model of another family (counterpartModel).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { functionSource } from '../lib/function_sources.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +24,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const read = (p) => fs.readFileSync(path.join(REPO, p), 'utf8');
 const num = (src, name) => { const m = new RegExp(`\\b${name}\\s*=\\s*([\\d_]+)`).exec(src); assert.ok(m, `${name} is not a number literal`); return Number(m[1].replace(/_/g, '')); };
 
-const INDEX = read('supabase/functions/inquiry_intake/index.ts');
+const INDEX = functionSource('inquiry_intake');
 const CLOCK = read('supabase/functions/inquiry_intake/turn_clock.ts');
 const DECISIONS = read('supabase/functions/_shared/reasoned_decisions.ts');
 const THINK = sharedModuleSource('think');

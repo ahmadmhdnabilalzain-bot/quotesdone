@@ -61,7 +61,7 @@ test('a fixture row is never replayed: fn_reason_held_due expires it before any 
   assert.match(due.slice(exp, claim), /ZZ DEMO\|@example\\.invalid[\s\S]*subject->>'fixture' = 'true'/);
   const think = sharedModuleSource('think');
   assert.match(think, /if \(isFixtureRequest\(req\)\)[^\n]*\n\s*else if \(req\.queueWhenHeld !== false\)/);
-  assert.match(readFileSync('supabase/functions/inquiry_intake/index.ts', 'utf8'), /endsWith\('@example\.invalid'\) \? \{ fixture: true \}/);
+  assert.match(functionSource('inquiry_intake'), /endsWith\('@example\.invalid'\) \? \{ fixture: true \}/);
 });
 
 test('no department budget halt and no pair ceiling: fn_ai_route never refuses or degrades on spend', () => {
