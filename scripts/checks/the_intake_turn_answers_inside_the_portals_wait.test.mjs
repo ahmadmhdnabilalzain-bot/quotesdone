@@ -17,7 +17,7 @@ import { functionSource } from '../lib/function_sources.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readCustomerPortal } from '../lib/portal_sources.mjs';
+import { readCustomerPortal, readSource } from '../lib/portal_sources.mjs';
 import { sharedModuleSource } from '../lib/function_sources.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -31,7 +31,7 @@ const THINK = sharedModuleSource('think');
 const SLOTS = read('supabase/functions/inquiry_intake/slots.ts');
 const GUARD = read('supabase/functions/_shared/support_reply_guard.ts');
 const PORTAL = readCustomerPortal();
-const NEW_REQUEST = read('src/components/me/NewRequest.tsx');
+const NEW_REQUEST = readSource('src/components/me/NewRequest.tsx');
 const TEXT = read('src/components/me/portalText.ts');
 
 test('the turn budget fits inside the portal wait, with room for the edge and the network', () => {

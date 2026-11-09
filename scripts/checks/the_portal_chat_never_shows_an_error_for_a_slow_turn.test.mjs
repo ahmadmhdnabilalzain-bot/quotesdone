@@ -17,6 +17,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { functionSource } from '../lib/function_sources.mjs';
 import { answerAfter, noVerdict, readReply, savedLineDue } from '../../src/lib/portalReply.ts';
+import { readSource } from '../lib/portal_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const ndjson = (lines, { cut = false } = {}) => new Response(new ReadableStream({ start(c) {
@@ -72,7 +73,7 @@ test('1339: the saved line only when the answer never arrived or OpenRouter was 
   const unsaid = await readReply(new Response(JSON.stringify({ ok: false, error: 'no_answer' }), { status: 503, headers: { 'content-type': 'application/json' } }));
   assert.equal(savedLineDue(unsaid), false, 'no outage field is not an outage');
   assert.equal(savedLineDue(cut, 'The stored answer.'), false, 'a stored answer found later is shown instead');
-  const s = read('src/components/me/PortalShell.tsx');
+  const s = readSource('src/components/me/PortalShell.tsx');
   assert.match(s, /if \(!reply && token && noVerdict\(j\)\)/, 'only an answer that never arrived is looked for');
   assert.match(s, /savedLineDue\(j, reply\) \? \[\.\.\.m, \{ role: 'notice', content: t\(stored \? 'asst_saved' : 'asst_not_sent'\) \}\] : m/, 'the saved line must be gated by savedLineDue');
   const se = functionSource('sales_engineer');
@@ -82,7 +83,7 @@ test('1339: the saved line only when the answer never arrived or OpenRouter was 
 });
 
 test('the panel never prints an error line for a turn; it streams, looks for the stored answer, then says it is saved', () => {
-  const s = read('src/components/me/PortalShell.tsx');
+  const s = readSource('src/components/me/PortalShell.tsx');
   assert.ok(!s.includes("t('asst_err')"), 'the error line is back in the portal assistant');
   assert.match(s, /Accept: 'application\/x-ndjson, application\/json'/, 'the portal no longer asks for the stream');
   assert.match(s, /readReply\(r, on\)/);

@@ -19,6 +19,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { answerRightAfter, pendingDue, waitingOf } from '../../src/lib/portalReply.ts';
 import { functionSource } from '../lib/function_sources.mjs';
+import { readSource } from '../lib/portal_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const SQL = 'scripts/sql/a_refused_turn_is_asked_again_within_minutes_never_left_silent.sql';
@@ -89,12 +90,12 @@ test('W2: one list of re-ask surfaces in TypeScript and SQL; the replay leaves t
 });
 
 test('W3: the portal and the request chat show a pending state and poll until the answer lands', () => {
-  const ps = code(read('src/components/me/PortalShell.tsx'));
+  const ps = code(readSource('src/components/me/PortalShell.tsx'));
   assert.match(ps, /pendingDue\(j\) \? \[\.\.\.m, \{ role: 'pending', q, content: t\('asst_working'\) \}\]/);
   assert.match(ps, /if \(!reply && pendingDue\(j\)\) watch\(q\);/);
   assert.match(ps, /answerRightAfter\(j && j\.turns, question\)/);
   assert.match(ps, /m\.role === 'user' \|\| m\.role === 'assistant'/, 'a pending marker is UI state: never sent back as history');
-  const nr = code(read('src/components/me/NewRequest.tsx'));
+  const nr = code(readSource('src/components/me/NewRequest.tsx'));
   assert.match(nr, /const pending = r\.pending && r\.reask_turn_id && !r\.assistant_message \? r\.reask_turn_id : null;/);
   assert.match(nr, /if \(pending\) watchTurn\(/);
   assert.match(nr, /poll_turn_id: tid/);

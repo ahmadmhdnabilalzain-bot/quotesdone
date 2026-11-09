@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mergeAttachment } from './requestAttachments.ts';
+import { readSource } from '../../scripts/lib/portal_sources.mjs';
 
 const sheet = { drawing_file_path: null, drawing_file_name: 'ZZDEMO_boq.csv', drawing_redacted_paths: null, boq: { boq: [{ description: 'a' }, { description: 'b' }, { description: 'c' }], category: 'flooring' }, brief_source: 'boq' };
 const pdf = { drawing_file_path: 'drawings/c/1_plan.pdf', drawing_file_name: 'ZZDEMO_plan.pdf', drawing_redacted_paths: ['redacted/u/page_p1.jpg', 'redacted/u/page_p2.jpg'], boq: { boq: [{ description: 'm2 25.6' }] }, brief_source: 'drawing' };
@@ -49,7 +50,7 @@ test('a held drawing shares nothing of itself and takes nothing away', () => {
 });
 
 test('NewRequest keeps every attachment and never marks itself ready without the intake', () => {
-  const src = readFileSync(join(import.meta.dirname, '..', 'components', 'me', 'NewRequest.tsx'), 'utf8');
+  const src = readSource('src/components/me/NewRequest.tsx');
   assert.match(src, /mergeAttachment\(/, 'adopt() must merge, not replace');
   // Ready is the intake's word (status 'ready'), set in exactly one place: runIntake.
   const readies = src.match(/setReady\(true\)/g) || [];

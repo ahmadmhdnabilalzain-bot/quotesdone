@@ -6,7 +6,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-const s = readFileSync('src/components/me/PortalShell.tsx', 'utf8');
+import { readSource } from '../lib/portal_sources.mjs';
+const s = readSource('src/components/me/PortalShell.tsx');
 test('the tab bar publishes its measured height and nothing assumes a fixed one', () => {
   assert.match(s, /<nav ref=\{tabBar\} aria-label=\{t\('nav_main_bar'\)\}/, 'the tab bar no longer carries the ref that measures it');
   assert.match(s, /setProperty\('--qd-tabbar-h', el\.offsetHeight \+ 'px'\)/);

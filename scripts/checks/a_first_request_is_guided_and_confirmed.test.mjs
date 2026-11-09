@@ -14,7 +14,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readCustomerPortal } from '../lib/portal_sources.mjs';
+import { readCustomerPortal, readSource } from '../lib/portal_sources.mjs';
 import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
@@ -33,7 +33,7 @@ test('customer_api serves the guidance and confirms every posted request', () =>
 });
 
 test('the portal shows the guidance on a first request and after posting', () => {
-  const nr = read('src/components/me/NewRequest.tsx');
+  const nr = readSource('src/components/me/NewRequest.tsx');
   assert.match(nr, /action: 'concierge'/, 'the composer no longer asks for the guidance');
   assert.match(nr, /first_inquiry[\s\S]{0,120}<ConciergeSteps/, 'the composer does not show the guidance on a first request');
   const cp = readCustomerPortal();

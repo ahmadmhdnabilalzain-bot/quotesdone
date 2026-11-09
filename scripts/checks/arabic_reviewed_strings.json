@@ -3480,16 +3480,12 @@
  ],
  "src/components/me/NewRequest.tsx": [
   "15b233b4ba6e",
-  "1a648010caf1",
   "4a7b99474bf7",
   "72ef00ac7f7b"
  ],
  "src/components/me/PortalShell.tsx": [
-  "91262f796854",
-  "9d0e14c86252",
   "ad9ba68b566f",
-  "f01251ebcbc3",
-  "f085945a9a01"
+  "f01251ebcbc3"
  ],
  "src/components/me/auth/CustomerPortalView.tsx": [
   "4b0c472fa944"
@@ -3514,6 +3510,9 @@
   "0ca8a80933b5",
   "60e23efe864f",
   "dbe2feb7df27"
+ ],
+ "src/components/me/newRequest/helpers.ts": [
+  "1a648010caf1"
  ],
  "src/components/me/portalText.ts": [
   "00883d7920a3",
@@ -3836,6 +3835,11 @@
   "6dfb72ee6864",
   "9a6e6a098915",
   "da814493fcc3"
+ ],
+ "src/components/me/shell/AssistantPanel.tsx": [
+  "91262f796854",
+  "9d0e14c86252",
+  "f085945a9a01"
  ],
  "src/components/me/specOptionsAr.ts": [
   "002b0a1a4c81",

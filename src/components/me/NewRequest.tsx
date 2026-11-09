@@ -25,7 +25,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as M from 'motion/react-m';
 import { AnimatePresence, useReducedMotion } from 'motion/react';
-import { Paperclip, Mic, Square, SendHorizontal, Sparkles, AlertTriangle, Siren, UserRound, ChevronLeft, ChevronRight, Eraser, FileSpreadsheet } from 'lucide-react';
+import { Paperclip, Mic, Square, SendHorizontal, Sparkles, AlertTriangle, Siren, UserRound, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
@@ -33,62 +33,21 @@ import { mergeAttachment } from '@/lib/requestAttachments';
 import { supaRpcMaybeOne } from '@/lib/supaClient';
 import { specGuideText } from '@/lib/specGuide';
 import { ConciergeSteps } from './ConciergeSteps';
-import { boqNote, confidenceWord } from '@/lib/boqNotes';
+import { boqNote } from '@/lib/boqNotes';
 import { t, tf, errText, emirateName } from './portalText';
 import { countPhrase } from '@/lib/countedNoun';
 import { markupSvg } from './markup';
 import { DEVICE_TYPES } from '../../../supabase/functions/drawing_boq/legend_vocabulary';
 import { recognitionLangs, getRecognition, speechErrorKey } from './speech';
 
-const DICT_NAME = { en: { en: 'English', ar: 'Arabic' }, ar: { en: 'الإنجليزية', ar: 'العربية' } };
-
-const fileB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(String(rd.result).split(',')[1] || ''); rd.readAsDataURL(f); });
-async function fileToImages(file) {
-  const b64 = await fileB64(file);
-  // Photos (incl. HEIC and multi-page TIFF) become JPEG pages in this browser; ocrClient throws
-  // HEIC_UNSUPPORTED where the browser cannot decode HEIC, which onFile tells the customer.
-  if ((file.type && file.type.startsWith('image/')) || /\.(heic|heif|tiff?)$/i.test(file.name || '')) {
-    const { toJpegPages } = await import('./ocrClient');
-    const images = await toJpegPages(file);
-    return { images, b64: (images[0] && images[0].data) || b64, mime: (images[0] && images[0].mime) || 'image/jpeg' };
-  }
-  if (file.type === 'application/pdf') {
-    try {
-      const { rasterisePdf } = await import('./pdfRaster');
-      const raw = atob(b64); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-      return { images: await rasterisePdf(arr), b64, mime: 'application/pdf' };
-    } catch (_e) { return { images: [], b64, mime: 'application/pdf' }; }
-  }
-  return { images: [], b64, mime: file.type || 'application/octet-stream' };
-}
 // The recorder's WAV encoder is shared with the supplier Services tab (15 Sep 2026).
 import { blobToWavB64 } from '@/lib/wavEncode';
+import { DICT_NAME, fileB64, fileToImages, DOC_RE, REFUSED_DRAWING_RE, BOQ_ERR, qText, SLOW_TURN_MS, newTurnId, turnNotReached, readinessPct } from './newRequest/helpers';
+import { Fact, RequirementsCard } from './newRequest/RequirementsCard';
+import { ReadinessBar, QuestionChips } from './newRequest/Readiness';
+import { BoqTable } from './newRequest/BoqTable';
+import { RedactionEditor } from './newRequest/RedactionEditor';
 
-// ATTACH A BOQ (founder, 14 Sep 2026). A spreadsheet goes to analyze_boq (cells read with no model);
-// a PDF BOQ is read like a drawing, from its text layer. BOQ_ERR maps the server's refusal to words.
-// 14 Sep 2026 ("the sales agent need to be extremely capable of reading all types of document"): every
-// document drawing_boq's 'document' mode reads goes to analyze_document; PDFs, photos and DWG keep the
-// drawing path (redacted pages for suppliers).
-const DOC_RE = /\.(xlsx|xlsm|xls|csv|ods|docx?|pptx|odt|odp|rtf|txt|eml|msg|xml|x8[1-6]|zip|dxf)$/i;
-// Founder ruling 28 Sep 2026: a drawing is PDF or CAD (DWG/DXF) only. The server refuses the rest the same way
-// (supabase/functions/_shared/drawing_format.ts); refused here first so nothing is uploaded.
-const REFUSED_DRAWING_RE = /\.(rvt|rfa|rte|rft|ifc|ifczip|ifcxml|dgn|dgnlib|dwf|dwfx|skp|3dm|nwd|nwc|nwf|step|stp|pln)$/i;
-const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: 'nr_boq_err_macro', encrypted: 'nr_boq_err_encrypted', file_type_not_allowed: 'nr_boq_err_type', unsafe_file_type: 'nr_boq_err_type', drawing_format_not_accepted: 'nr_drawing_format' };
-
-// A question may arrive as a sentence or as {key, text|question|label}; the chip needs text.
-const qText = (q) => (q == null ? '' : typeof q === 'string' ? q : String(q.text || q.question || q.label || q.key || ''));
-// readiness is {filled, required} from the rebuilt intake or a 0-100 number from the old one.
-// After this long the indicator says the turn is still being worked on (the server's own budget is 24 s).
-const SLOW_TURN_MS = 12000;
-// One id per customer message, sent again on a retry (inquiry_intake/turn_clock.ts turnIdOf: 6-64 of [A-Za-z0-9_-]).
-const newTurnId = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-// The turn never reached us: the wait ran out, the connection dropped, or the edge answered with a page that is not
-// JSON (a 504). An answer the function itself gave (rate limit, a refusal) is not this, and is shown as before.
-const turnNotReached = (r) => !r || r.error === 'qd_timeout' || r.error === 'qd_network' || (r.error === 'qd_bad_response' && !(Number(r.status) >= 400 && Number(r.status) < 500));
-const readinessPct = (r) => {
-  if (r && typeof r === 'object') { const req = Number(r.required); return req > 0 ? Math.round((Math.min(Number(r.filled) || 0, req) / req) * 100) : null; }
-  const n = Number(r); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
-};
 
 export function NewRequest({ token, lang, call, llmAvailable, initialText, pickFile, onDone, onCancel }) {
   const ar = lang === 'ar';
@@ -709,155 +668,5 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         </div>
       </div>
     </section>
-  );
-}
-
-const Fact = ({ k, v }) => <div className="flex gap-1.5"><dt className="text-muted-foreground">{k}:</dt><dd className="text-foreground">{v}</dd></div>;
-
-// WHAT THE CUSTOMER TOLD THE SALES ENGINEER, editable before Send: one row per question (materials,
-// installation, warranty, the date). "Change" offers the same options the question did; the tapped
-// label goes to create_inquiry as requirement_edits and the server reads it again
-// (_shared/intake_requirements.ts applyEdits), so nothing the browser sends is trusted as parsed.
-function RequirementsCard({ items, edits, onEdit, lang }) {
-  const [open, setOpen] = useState(null);
-  return (
-    <div className="mt-3 rounded-xl border border-border bg-card/60 p-3">
-      <div className="text-[12.5px] font-semibold text-foreground">{t(lang, 'nr_req_title')}</div>
-      <dl className="mt-1 space-y-1.5">
-        {items.map((it) => {
-          const shown = edits[it.key] || it.answer;
-          return (
-            <div key={it.key}>
-              <div className="flex flex-wrap items-baseline gap-x-1.5 text-[12.5px]">
-                <dt className="text-muted-foreground">{it.label}:</dt>
-                <dd className="text-foreground">{shown}</dd>
-                <button type="button" className="ms-auto text-[12px] font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-expanded={open === it.key} onClick={() => setOpen(open === it.key ? null : it.key)}>{t(lang, open === it.key ? 'nr_req_keep' : 'nr_req_change')}</button>
-              </div>
-              {open === it.key ? (
-                <div className="mt-1 flex flex-wrap gap-1.5" role="group" aria-label={it.question}>
-                  {it.options.map((o) => (
-                    <button key={o} type="button" onClick={() => { onEdit(it.key, o); setOpen(null); }}
-                      className={cn('rounded-full border px-2.5 py-1 text-[12px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring', shown === o ? 'border-primary/55 bg-primary/15 font-semibold text-primary' : 'border-border bg-card/60 text-foreground hover:border-primary/40')}>{o}</button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
-      </dl>
-    </div>
-  );
-}
-
-function ReadinessBar({ pct, lang, reduce }) {
-  return (
-    <div className="border-b border-border px-5 py-2">
-      <div className="flex items-center justify-between"><span className="font-mono text-label uppercase tracking-caps text-muted-foreground">{t(lang, 'nr_readiness')}</span><span className="tabular font-mono text-label text-foreground">{pct}%</span></div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary/70" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t(lang, 'nr_readiness')}>
-        <M.div className="h-full rounded-full bg-linear-to-r from-primary/60 to-primary" initial={reduce ? false : { width: 0 }} animate={{ width: pct + '%' }} transition={{ duration: reduce ? 0 : 0.7, ease: [0.2, 0.8, 0.2, 1] }} />
-      </div>
-    </div>
-  );
-}
-
-function QuestionChips({ questions, next, left, lang, onPick, reduce }) {
-  return (
-    <div className="mt-2 ps-1">
-      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{left > 0 ? tf(lang, 'nr_left', { n: left }) : t(lang, 'nr_chips_hint')}</div>
-      <div className="flex flex-wrap gap-1.5">
-        {questions.slice(0, 8).map((q, i) => (
-          <M.button key={q + i} type="button" onClick={() => onPick(q)}
-            initial={reduce ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.2, delay: reduce ? 0 : 0.05 * i }}
-            className={cn('rounded-full border px-3 py-1.5 text-start text-[12.5px] transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
-              q === next ? 'border-primary/55 bg-primary/15 font-semibold text-primary' : 'border-border bg-card/60 text-foreground hover:border-primary/40')}>
-            {q}
-          </M.button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// The BOQ the reader pulled off the drawing, before Send. The customer is the only person who can
-// say it was read wrong, and they were shown a line count and nothing else.
-function BoqTable({ boq, lang }) {
-  const rows = boq.boq.slice(0, 40);
-  const conf = (c) => confidenceWord(c, lang);
-  const list = (x) => (Array.isArray(x) ? x : x ? [x] : []).map((v) => (typeof v === 'string' ? v : v && (v.text || v.item || v.note || JSON.stringify(v)))).filter(Boolean);
-  const assumptions = list(boq.assumptions).map((s) => boqNote(s, lang)), missing = list(boq.missing_info).map((s) => boqNote(s, lang));
-  return (
-    <div className="rounded-2xl border border-border bg-card/60 p-3.5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-[13px] font-bold text-foreground">{t(lang, 'nr_boq_title')}</h3>
-        {boq.confidence != null ? <span className="text-[11.5px] text-muted-foreground">{tf(lang, 'nr_boq_overall', { c: conf(boq.confidence) })}</span> : null}
-      </div>
-      <div className="mt-2 max-h-[240px] overflow-auto rounded-lg border border-border">
-        <table className="w-full text-[12px]">
-          <thead className="sticky top-0 bg-secondary font-mono text-label uppercase tracking-caps text-muted-foreground"><tr>
-            <th scope="col" className="px-2.5 py-1.5 text-start font-semibold">{t(lang, 'nr_boq_item')}</th>
-            <th scope="col" className="px-2.5 py-1.5 text-end font-semibold">{t(lang, 'nr_boq_qty')}</th>
-            <th scope="col" className="px-2.5 py-1.5 text-start font-semibold">{t(lang, 'nr_boq_unit')}</th>
-            <th scope="col" className="px-2.5 py-1.5 text-end font-semibold">{t(lang, 'nr_boq_conf')}</th>
-          </tr></thead>
-          <tbody>{rows.map((r, i) => (
-            <tr key={i} className="border-t border-border/60">
-              <td className="px-2.5 py-1.5 text-foreground">{r.description || r.item || r.name || '—'}</td>
-              <td className="tabular px-2.5 py-1.5 text-end font-mono text-foreground">{r.qty ?? r.quantity ?? '—'}</td>
-              <td className="px-2.5 py-1.5 text-muted-foreground">{r.unit || '—'}</td>
-              <td className="px-2.5 py-1.5 text-end tabular-nums text-muted-foreground">{conf(r.confidence)}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
-      {assumptions.length ? <div className="mt-2 text-[12px] text-muted-foreground"><b className="text-foreground">{t(lang, 'nr_boq_assumptions')}: </b>{assumptions.join(' · ')}</div> : null}
-      {missing.length ? <div className="mt-1 text-[12px] text-warn-fg"><b>{t(lang, 'nr_boq_missing')}: </b>{missing.join(' · ')}</div> : null}
-    </div>
-  );
-}
-
-// THE CUSTOMER-DRAWN REDACTION. Boxes are stored normalised to the page (0..1), so they mean the
-// same thing at the 1600px width drawing_redact works at as they do on this screen.
-function RedactionEditor({ lang, images, onApply, onSkip, reduce }) {
-  const [page, setPage] = useState(0);
-  const [boxes, setBoxes] = useState(() => images.map(() => []));
-  const [drag, setDrag] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const surf = useRef(null);
-  const pt = (e) => { const r = surf.current.getBoundingClientRect(); return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) }; };
-  const down = (e) => { e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_e) {} const p = pt(e); setDrag({ x0: p.x, y0: p.y, x1: p.x, y1: p.y }); };
-  const move = (e) => { if (!drag) return; const p = pt(e); setDrag((d) => ({ ...d, x1: p.x, y1: p.y })); };
-  const up = () => {
-    if (!drag) return;
-    const b = { x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) };
-    if (b.w > 0.005 && b.h > 0.005) setBoxes((all) => all.map((l, i) => (i === page ? [...l, b] : l)));
-    setDrag(null);
-  };
-  const total = boxes.reduce((n, l) => n + l.length, 0);
-  const apply = async () => { setBusy(true); await onApply(boxes); setBusy(false); };
-  const live = drag ? { x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) } : null;
-  const pct = (v) => (v * 100) + '%';
-  return (
-    <M.div initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-primary/35 bg-card/70 p-3.5">
-      <h3 className="text-[13.5px] font-bold text-foreground">{t(lang, 'rd_title')}</h3>
-      <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">{t(lang, 'rd_body')}</p>
-      <div className="mt-2.5 flex items-center justify-between gap-2 text-[12px] text-muted-foreground" dir="ltr">
-        <button type="button" className="grid h-8 w-8 place-items-center rounded-lg border border-border disabled:opacity-40" disabled={page === 0} onClick={() => setPage((p) => p - 1)} aria-label={t(lang, 'rd_prev')}><ChevronLeft className="h-4 w-4" aria-hidden /></button>
-        <span>{tf(lang, 'rd_page', { n: page + 1, total: images.length })} · {tf(lang, 'rd_boxes', { n: total, c: countPhrase(lang, total, 'area') })}</span>
-        <button type="button" className="grid h-8 w-8 place-items-center rounded-lg border border-border disabled:opacity-40" disabled={page >= images.length - 1} onClick={() => setPage((p) => p + 1)} aria-label={t(lang, 'rd_next')}><ChevronRight className="h-4 w-4" aria-hidden /></button>
-      </div>
-      <div ref={surf} className="relative mt-2 cursor-crosshair touch-none select-none overflow-hidden rounded-lg border border-border bg-white" dir="ltr"
-        role="img" aria-label={tf(lang, 'rd_canvas', { n: page + 1 })}
-        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}>
-        <img src={'data:' + images[page].mime + ';base64,' + images[page].data} alt="" draggable={false} className="block h-auto w-full" />
-        {boxes[page].map((b, i) => <span key={i} className="redact absolute rounded-[1px]! bg-black/90!" style={{ left: pct(b.x), top: pct(b.y), width: pct(b.w), height: pct(b.h) }} />)}
-        {live ? <span className="absolute border-2 border-dashed border-primary bg-primary/20" style={{ left: pct(live.x), top: pct(live.y), width: pct(live.w), height: pct(live.h) }} /> : null}
-      </div>
-      <div className="mt-2.5 flex flex-wrap items-center gap-2">
-        <Button size="sm" disabled={busy || total === 0} onClick={apply}>{busy ? t(lang, 'rd_applying') : t(lang, 'rd_apply')}</Button>
-        <Button size="sm" variant="outline" disabled={busy || !boxes[page].length} onClick={() => setBoxes((all) => all.map((l, i) => (i === page ? [] : l)))}><Eraser className="me-1 h-3.5 w-3.5" aria-hidden />{t(lang, 'rd_clear')}</Button>
-        <Button size="sm" variant="link" className="h-auto px-0" disabled={busy} onClick={onSkip}>{t(lang, 'rd_skip')}</Button>
-      </div>
-    </M.div>
   );
 }

@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { readCustomerPortal, readSupplierPortal } from '../lib/portal_sources.mjs';
+import { readCustomerPortal, readSupplierPortal, readSource } from '../lib/portal_sources.mjs';
 import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (f) => readFileSync(new URL('../../' + f, import.meta.url), 'utf8');
@@ -40,6 +40,6 @@ test('supplier_api save_settings stores English whatever locale arrives', () => 
 });
 
 test('the customer portal keeps its Arabic toggle', () => {
-  const shell = read('src/components/me/PortalShell.tsx') + readCustomerPortal();
+  const shell = readSource('src/components/me/PortalShell.tsx') + readCustomerPortal();
   assert.match(shell, /عربي/, 'the customer portal must still offer عربي');
 });

@@ -11,13 +11,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { functionSource } from '../lib/function_sources.mjs';
+import { readSource } from '../lib/portal_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const api = functionSource('customer_api');
 const worker = read('scripts/cad_read_worker.ts');
 const scan = read('supabase/functions/_shared/scan_redact.ts');
 const engine = read('scripts/lib/scan_ocr.ts');
-const portal = read('src/components/me/NewRequest.tsx');
+const portal = readSource('src/components/me/NewRequest.tsx');
 const checks = read('.github/workflows/checks.yml');
 const SQL = 'scripts/sql/a_scanned_drawing_is_queued_for_ocr_redaction.sql';
 

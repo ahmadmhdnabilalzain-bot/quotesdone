@@ -17,6 +17,7 @@ import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { liveDuties } from './stage2_duties.mjs';
 import { functionSource } from '../lib/function_sources.mjs';
+import { readSource } from '../lib/portal_sources.mjs';
 
 const walk = (dir, out = []) => {
   if (!existsSync(dir)) return out;
@@ -41,7 +42,7 @@ export async function buildInventory(repo, read) {
     else add('route', rel, f);
   }
   // portal tabs
-  const shell = readFileSync(join(repo, 'src/components/me/PortalShell.tsx'), 'utf8');
+  const shell = readSource('src/components/me/PortalShell.tsx');
   for (const m of shell.matchAll(/\{ id: '([a-z_]+)',\s+icon:/g)) add('tab', `customer:${m[1]}`, 'PortalShell.tsx');
   const sp = walk(join(repo, 'src/components/portal')).filter((f) => /\.tsx$/.test(f)).map((f) => readFileSync(f, 'utf8')).join('\n');
   for (const id of uniq([...sp.matchAll(/(?:(?:tab|view|section) === |set(?:Tab|View|Section)\()'([a-z_]+)'/g)].map((m) => m[1]))) add('tab', `supplier:${id}`, 'src/components/portal');
