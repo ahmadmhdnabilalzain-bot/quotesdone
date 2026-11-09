@@ -99,6 +99,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
             {t.category && (
               <p className="mt-8 font-mono text-label uppercase tracking-caps text-teal-light">{t.category}</p>
             )}
+            {/* oxlint-disable-next-line jsx-a11y/heading-has-content -- false positive: content arrives through the spread (children or dangerouslySetInnerHTML) */}
             <h1
               lang={t.lang} dir={rtl ? 'rtl' : 'ltr'}
               className="mt-4 max-w-[22ch] text-balance font-head text-display-sm text-white"

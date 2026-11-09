@@ -1,7 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { SectionHeader } from '@/components/SectionHeader';
 import { PriceGuide } from '@/components/PriceGuide';
-import s from '@/components/home/sealed.module.css';
+import '@/components/home/sealed.module.css';
 
 export function PriceSection() {
   const t = useTranslations('price');

@@ -57,6 +57,7 @@ const STEPS = [
   ['scan-redact', 'checks', 'a scanned drawing is redacted by OCR, or held', `${DENO} --allow-env --allow-net=deno.land supabase/functions/_shared/scan_redact.check.ts`],
   ['scan-takeoff', 'checks', 'a scanned PDF set is counted by OCR to the hand count', `${DENO} --allow-env --allow-net=deno.land,esm.sh supabase/functions/_shared/scan_takeoff.check.ts`],
   ['migration-lint', 'migration-lint', 'lint migrations for locking operations (squawk)', () => { const f = migrations(); return f.length ? `npx squawk ${f.join(' ')}` : null; }],
+  ['lint', 'typecheck', 'lint the website (oxlint; warnings are counted debt, errors fail)', 'npm run lint'],
   ['typecheck', 'typecheck', 'typecheck the app', 'npm run typecheck'],
   ['audit', 'typecheck', 'no HIGH or CRITICAL advisory in a production dependency', 'npm audit --omit=dev --audit-level=high'],
   ['deno-gated', 'deno-check', 'typecheck the gated edge functions', 'deno check --no-lock --node-modules-dir=auto '

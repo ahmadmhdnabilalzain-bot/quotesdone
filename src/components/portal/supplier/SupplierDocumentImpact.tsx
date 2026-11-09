@@ -90,7 +90,7 @@ export const docNote = (lang: Lang, x: Doc) => {
 const fmt = (lang: Lang, d: string) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 // `initial` is the document_impact payload the dashboard call already carries (15 Sep 2026).
-export default function SupplierDocumentImpact({ token, lang = 'en', goTo, initial = null }:
+export default function SupplierDocumentImpact({ token, lang = 'en', initial = null }:
   { token?: string | null; lang?: Lang; goTo?: (tab: string) => void; initial?: Impact | null }) {
   const [d, setD] = useState<Impact | null>(initial);
   const [err, setErr] = useState('');

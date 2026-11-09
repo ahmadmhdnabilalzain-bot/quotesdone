@@ -106,6 +106,7 @@ e2e-reports/
 !/next-env.d.ts
 !/next.config.mjs
 !/.nvmrc
+!/.oxlintrc.json
 !/package-lock.json
 !/package.json
 !/postcss.config.mjs

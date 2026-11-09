@@ -53,6 +53,7 @@ export function BlogIndex({ locale }: { locale: string }) {
                     {t.category ? <span className="font-mono text-label uppercase tracking-caps text-teal-light">{t.category}</span> : <span />}
                     <span className="tabular font-mono text-label text-faint">{String(i + 1).padStart(2, '0')}</span>
                   </span>
+                  {/* oxlint-disable-next-line jsx-a11y/heading-has-content -- false positive: content arrives through the spread (children or dangerouslySetInnerHTML) */}
                   <h2
                     lang={t.lang} dir={rtl ? 'rtl' : 'ltr'}
                     className={`mt-5 text-balance font-head font-semibold tracking-snug text-white ${lead ? 'text-h2' : 'text-[19px] leading-snug'}`}

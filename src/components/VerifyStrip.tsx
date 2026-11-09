@@ -1,7 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { SectionHeader } from '@/components/SectionHeader';
-import s from '@/components/home/sealed.module.css';
+import '@/components/home/sealed.module.css';
 
 // "HOW WE VERIFY" — the third-party proof that is real today (website audit ADOPT 9): the licence
 // check, the mandatory six, Stripe as the payment rail with the refund rule, and our own DET

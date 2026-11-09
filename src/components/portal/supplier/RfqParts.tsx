@@ -71,7 +71,7 @@ export function DrawingGallery({ pages: all, lang, failed = 0 }: { pages: string
               whileHover={reduce ? undefined : { y: -2 }} transition={{ duration: 0.2 }}
               className="group relative block aspect-3/4 w-full overflow-hidden rounded-chip border border-(--line2) bg-black/30 shadow-e1 transition-colors hover:border-primary/60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={(ar ? 'فتح صفحة المخطط ' : 'Open drawing page ') + (k + 1)}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* oxlint-disable-next-line nextjs/no-img-element */}
               <img src={u} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100" />
               <span className="absolute bottom-1 inset-s-1 rounded-sm bg-black/70 px-1.5 py-0.5 font-mono text-[10.5px] text-white tabular-nums">{ar ? 'ص' : 'p'}{String(k + 1).padStart(2, '0')}</span>
             </motion.button>

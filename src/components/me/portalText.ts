@@ -69,7 +69,7 @@ export const T = {
     next_4_refund:'Everything you paid is refunded if they do not respond within {w} working days: we chase them for you after {c}, and banks take {bmin}-{bmax} working days to show a refund.',
     // ── shell ──
     nav_main:'Portal navigation', nav_work:'Your work', nav_collaborate:'Working with others', nav_intelligence:'Suggestions for you',
-    nav_account:'Your account', nav_overview:'Overview', nav_requests:'My requests', nav_more:'More', nav_more_title:'All sections', nav_main_bar:'Main sections', nav_main_bar:'Main sections',
+    nav_account:'Your account', nav_overview:'Overview', nav_requests:'My requests', nav_more:'More', nav_more_title:'All sections', nav_main_bar:'Main sections',
     alerts_label:'Alerts',
     ask_ph:'Ask about your requests, quotes or documents…', ask_ph_short:'Ask your sales engineer…',
     asst_title:'QuotesDone sales engineer', asst_sub:'Answers from your own account',
@@ -313,7 +313,7 @@ Object.assign(T.en, {
   q_best: 'Best value', q_verified: 'licence verified', q_unrated: 'Not yet rated on QuotesDone', q_unrated_tip: 'Ratings on QuotesDone come only from customers who hired this supplier through us. Ratings from other websites are not counted.',
   q_value: 'Value', q_value_tip: 'Guide only — blends price, quote completeness, and a QuotesDone rating where the supplier has one. A supplier not yet rated here is scored on the rest, not marked down for it.',
   q_lead: 'Lead time', q_warranty: 'Warranty', q_terms: 'Terms', q_win: 'win rate', q_note: "Supplier's note: ", q_excl: 'Not included: ', q_cond: 'Conditions: ', q_validity: 'Validity: ', q_why: 'Why we matched this supplier: ',
-  q_pdf: 'View quote (PDF)', q_pdf_busy: 'Preparing…', q_pdf_fail: 'Could not open the PDF',
+  q_pdf: 'View quote (PDF)', q_pdf_busy: 'Preparing…',
   q_not_responsible: 'Prices, discounts, VAT and terms are exactly as the supplier stated them. QuotesDone is not responsible for the supplier\'s quotation details.',
   q_fee_line: 'Reveal fee {fee} — refunded in full if the supplier does not respond within {w} working days (we chase them after {c}).',
   q_reveal: 'Reveal & contact', q_wait: 'Please wait…', q_redirecting: 'Taking you to payment…', q_loading_contact: 'Loading contact…', q_checkout_fail: 'Could not start checkout. Please try again.',
@@ -476,7 +476,7 @@ Object.assign(T.ar, {
   q_best: 'أفضل قيمة', q_verified: 'رخصة موثّقة', q_unrated: 'لم يُقيَّم بعد على QuotesDone', q_unrated_tip: 'التقييمات على QuotesDone تأتي فقط من عملاء تعاقدوا مع هذا المورّد عبرنا. لا تُحتسب التقييمات من مواقع أخرى.',
   q_value: 'القيمة', q_value_tip: 'إرشادي فقط — يجمع بين السعر واكتمال العرض وتقييم QuotesDone إن وُجد. المورّد غير المقيَّم بعد يُقيَّم على بقية العناصر دون خصم.',
   q_lead: 'مدة التوريد', q_warranty: 'الضمان', q_terms: 'شروط الدفع', q_win: 'نسبة الفوز', q_note: 'ملاحظة المورّد: ', q_excl: 'غير شامل: ', q_cond: 'الشروط: ', q_validity: 'صلاحية العرض: ', q_why: 'سبب مطابقتنا لهذا المورّد: ',
-  q_pdf: 'عرض السعر (PDF)', q_pdf_busy: 'جارٍ التحضير…', q_pdf_fail: 'تعذّر فتح الملف',
+  q_pdf: 'عرض السعر (PDF)', q_pdf_busy: 'جارٍ التحضير…',
   q_not_responsible: 'الأسعار والخصومات وضريبة القيمة المضافة والشروط كما ذكرها المورّد تمامًا. ولا تتحمّل QuotesDone أي مسؤولية عن تفاصيل عرض المورّد.',
   q_fee_line: 'رسوم الكشف {fee} — تُردّ بالكامل إذا لم يردّ المورّد خلال {w} أيام عمل (نتابعه نيابةً عنك بعد {c}).',
   q_reveal: 'اكشف وتواصل', q_wait: 'يُرجى الانتظار…', q_redirecting: 'جارٍ تحويلك إلى الدفع…', q_loading_contact: 'جارٍ تحميل بيانات التواصل…', q_checkout_fail: 'تعذّر بدء الدفع. يُرجى المحاولة مرة أخرى.',
@@ -546,7 +546,7 @@ export const tf = (lang, k, v = {}) => String(t(lang, k)).replace(/\{(\w+)\}/g, 
 /** The three sentinels call() answers with instead of throwing (CP-08). A reader that does not
  *  test a field of its own must ask this before it stores the answer, or a network blip is filed
  *  as the server's reply — which is how a registered customer was shown the sign-up form. */
-export const transportFailed = (j) => !!(j && j.ok === false && /^qd_/.test(String(j.error || '')));
+export const transportFailed = (j) => !!(j && j.ok === false && String(j.error || '').startsWith('qd_'));
 /** A string whose Arabic form carries {c} takes the counted noun from src/lib/countedNoun.ts,
  *  filled in by the caller: countPhrase(lang, n, 'line') → tf(lang, key, { n, c }). portalText
  *  imports nothing, because scripts/checks imports this file with bare node. */

@@ -62,7 +62,6 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: P
     if (mode === 'settings') { reset(); setEditing(false); requestAnimationFrame(() => changeRef.current?.focus()); }
     onDone();
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const kyc = (body: Record<string, unknown>): Promise<any> => call('kyc', body, token).catch(() => null);
 
   const choose = async () => {

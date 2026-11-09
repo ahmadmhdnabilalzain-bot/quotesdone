@@ -117,7 +117,7 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
   const live = React.useRef(true);
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
   const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => { if (live.current) setWaState(k && k.whatsapp ? k.whatsapp : undefined); }).catch(() => {});
-  useEffect(() => { loadWa(); }, [token]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadWa(); }, [token]);   // oxlint-disable-line react-hooks/exhaustive-deps
 
   // A TAB THAT COULD LOAD FOR EVER. The `else` below looked total because `call()` answers a
   // refusal as { ok:false } at HTTP 200 — but a dropped connection REJECTS instead, and with no
@@ -145,7 +145,7 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
   }, [token, lang]);
   // `load` is deliberately NOT a dependency here: it changes identity when `lang` does, and a
   // language switch must not refetch the settings — `lang` only picks which error string to show.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [token]);
 
   const save = async () => {

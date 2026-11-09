@@ -13,7 +13,7 @@
 // /blog is prefixed too: all 32 blog posts now carry Arabic (14 Sep 2026), so the English-only
 // exception ServiceDoc used to make is gone.
 export function arLinks(html: string): string {
-  return html.replace(/href="\/(?!ar[\/"]|_next)/g, 'href="/ar/');
+  return html.replace(/href="\/(?!ar[/"]|_next)/g, 'href="/ar/');
 }
 
 const PHONE = String.raw`\+\d[\d\s-]{6,}\d`;

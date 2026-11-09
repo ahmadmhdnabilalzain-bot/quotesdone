@@ -139,7 +139,6 @@ export function ProjectRoom({ project, rfqs, orders, documents, inquiries = NO_I
       const owned: Array<{ dispose(): void }> = [];
       const track = <T extends { dispose(): void }>(x: T): T => { owned.push(x); return x; };
       const blocks: Array<import('three').Mesh> = [];
-      const levelCount = model.levels.length;
 
       // A thin plate under each band. It is a plate, not a floor slab pretending to be a storey —
       // the caption under the canvas names what the bands are.

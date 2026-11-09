@@ -15,7 +15,7 @@ import { useEffect, useId, useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { publicSite, saveDraft, fmtNum } from '@/lib/publicSite';
-import s from '@/components/home/sealed.module.css';
+import '@/components/home/sealed.module.css';
 import { Spinner, useDelayedFlag } from '@/components/ui/busy';
 import { startRouteProgress } from '@/components/ui/route-progress';
 
@@ -52,7 +52,7 @@ export function PriceGuide({ slug }: { slug?: string }) {
     catch (_e) { setRes({ ok: false, reason: 'error' }); }
     finally { setBusy(false); }
   }
-  useEffect(() => { if (topic) ask({ topic }, topic); }, [topic]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (topic) ask({ topic }, topic); }, [topic]); // oxlint-disable-line react-hooks/exhaustive-deps
   const busyShown = useDelayedFlag(busy);
   // /me is the customer-portal bundle; this jump was silent until it landed.
   const [going, startGoing] = useTransition();

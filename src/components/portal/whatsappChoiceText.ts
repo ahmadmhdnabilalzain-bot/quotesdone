@@ -173,18 +173,15 @@ export const waText = (lang: WaLang, k: WaKey): string => (WA_TEXT[lang] || EN)[
 // the last test in WhatsAppChoice.test.mjs re-reads kyc so the next addition cannot slip the same way.
 export const WA_ERROR_CODES = ['mobile_not_verified', 'bad_opt', 'bad_phone', 'rate_limited', 'wrong_code', 'whatsapp_unavailable', 'save_failed', 'send_failed', 'fixture_number', 'email_not_sent', 'enter_name', 'bad_mobile', 'email_suppressed', 'enter_code', 'too_many_attempts', 'code_expired', 'code_burned', 'sms_unavailable', 'sms_rate_limited', 'sms_send_failed', 'unexpected_error', 'resend_too_soon'] as const;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function waErrorKey(j: any): WaKey {
   const c = j && (j.code || j.error);
   return (WA_ERROR_CODES as readonly string[]).includes(c) ? (('err_' + c) as WaKey) : 'err_generic';
 }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const waErrorText = (lang: WaLang, j: any): string => waText(lang, waErrorKey(j));
 
 // send_code answers whatsapp_unavailable (in `error` per the contract; `code` accepted too) when the
 // WhatsApp sender is not live. That is not the person's mistake, so it is not shown as an error:
 // the flow says so plainly and lets signup continue.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const waUnavailable = (j: any): boolean => !!j && (j.error === 'whatsapp_unavailable' || j.code === 'whatsapp_unavailable');
 
 // The sign-up step is finished only when the server holds an answer (founder, 15 Sep 2026: "Sign-up
@@ -195,11 +192,9 @@ export const waSignupSettled = (wa: WaState | null | undefined): boolean => !!(w
 // The one-time dashboard card: only for an account that FINISHED sign-up (terms signed) and was never
 // asked — i.e. accounts made before the question was part of sign-up. A new account cannot finish
 // without answering, so it never sees the card; one still mid-registration sees the sign-up step instead.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const waNeedsPrompt = (k: any): boolean => !!k && k.terms_signed === true && !!k.whatsapp && k.whatsapp.asked === false;
 
 // The code went by SMS whenever kyc says a channel other than WhatsApp carried it.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const waSentBySms = (j: any): boolean => !!j && !!j.channel && j.channel !== 'whatsapp';
 
 // What Settings says the state is. A different number that is not verified is NOT shown as the
