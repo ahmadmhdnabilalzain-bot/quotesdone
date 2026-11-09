@@ -184,7 +184,8 @@ Deno.test('the size and ink guards judge a { mime, data } page, not the text of 
 });
 
 Deno.test('the portal still sends pages as { mime, data } (the shape the tests above replay)', async () => {
-  const src = await Deno.readTextFile(new URL('../../../src/components/portal/SupplierPortal.tsx', import.meta.url));
+  // The whole supplier portal: SupplierPortal.tsx was split into src/components/portal/supplier/core/ on 9 Nov 2026.
+  const src = readSupplierPortal();
   assertEquals(/images:\s*\[\{\s*mime:\s*file\.type,\s*data:\s*b64\s*\}\]/.test(src), true);
   const raster = await Deno.readTextFile(new URL('../../../src/components/me/pdfRaster.ts', import.meta.url));
   assertEquals(/Promise<\{\s*mime:\s*string;\s*data:\s*string\s*\}\[\]>/.test(raster), true);
@@ -193,6 +194,7 @@ Deno.test('the portal still sends pages as { mime, data } (the shape the tests a
 // REVIEW OF #1707 (28 Oct 2026, sales_engineer). The data URL names the page's own type, and a page that is not
 // base64 never reaches the provider: the request falls back to the file, or license_extract refuses it by name.
 import { hasReadablePage, pageMime } from './licence_extract.ts';
+import { readSupplierPortal } from '../../../scripts/lib/portal_sources.mjs';
 const JPEG_B64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDA==';
 
 Deno.test("the data URL carries the page's mime, image/jpeg or image/png, never a fixed one", () => {
