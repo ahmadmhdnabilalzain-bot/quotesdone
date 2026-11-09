@@ -12,6 +12,7 @@ import { functionSource } from '../lib/function_sources.mjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -49,7 +50,7 @@ test('email_triage: an answer that cannot be recorded stops the batch instead of
 });
 
 test('resend_inbound: an email already on file is answered before any reader or model', () => {
-  const ri = read('supabase/functions/resend_inbound/index.ts');
+  const ri = functionSource('resend_inbound');
   const dedupe = ri.indexOf(".eq('provider_email_id', providerEmailId)");
   // 23 Sep 2026: the receipt model fallback is gone; the first model call is the reasoning (documentKind, think()).
   const firstModel = ri.indexOf('await documentKind(');

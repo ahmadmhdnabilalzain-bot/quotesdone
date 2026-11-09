@@ -25,7 +25,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const F = (p) => join(ROOT, 'supabase', 'functions', p);
 // Comments are taken out first: a sentence explaining the rule must not satisfy the check (apply-discipline §7).
 // customer_api/index.ts, supplier_api/index.ts and wa_inbound/index.ts name the whole function: index.ts plus its modules since 9 Nov 2026.
-const whole = (p) => (/^(customer_api|supplier_api|wa_inbound|accountant)\/index\.ts$/.test(p) ? functionSource(p.split('/')[0]) : readFileSync(F(p), 'utf8'));
+const whole = (p) => (/^(customer_api|supplier_api|wa_inbound|accountant|resend_inbound)\/index\.ts$/.test(p) ? functionSource(p.split('/')[0]) : readFileSync(F(p), 'utf8'));
 const code = (p) => whole(p).split('\n').map((l) => l.replace(/^\s*\/\/.*$/, '').replace(/\s\/\/\s.*$/, '')).join('\n');
 
 test('the helper reads code first, then the model at most twice, and says unreadable only after both', () => {

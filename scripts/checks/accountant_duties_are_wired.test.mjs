@@ -19,7 +19,8 @@ import { functionSource } from '../lib/function_sources.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
 // accountant/index.ts names the whole function: index.ts plus the modules it was split into on 9 Nov 2026.
-const SRC = (p) => (p === 'supabase/functions/accountant/index.ts' ? functionSource('accountant') : R(p));
+// A split function's index.ts names the whole function: index.ts plus its modules (accountant, resend_inbound: 9 Nov 2026).
+const SRC = (p) => (/^supabase\/functions\/(accountant|resend_inbound)\/index\.ts$/.test(p) ? functionSource(p.split('/')[2]) : R(p));
 const FILES = {
   ad: 'scripts/sql/the_accountant_reconciles_meta_invoices_daily_even_at_zero_spend.sql',
   runway: 'scripts/sql/the_accountant_sends_the_ceo_the_runway_against_the_budget_every_month.sql',

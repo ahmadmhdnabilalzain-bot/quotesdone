@@ -31,7 +31,7 @@ test('an approval stands only while the licence name has been read', () => {
 
 test('every upload path records the licence name, a scan included', () => {
   assert.match(functionSource('supplier_api'), /licenceModelPayload\(/);
-  assert.match(R('supabase/functions/resend_inbound/index.ts'), /licence_legal_name: licenceNameFromModel\(dc\)/);
+  assert.match(functionSource('resend_inbound'), /licence_legal_name: licenceNameFromModel\(dc\)/);
   assert.match(functionSource('wa_inbound'), /licence_legal_name: licenceNameFromModel\(doc\)/);
   // The portal's Documents tab (E2E stage 1, D1, 30 Sep 2026): it read only the expiry, so every licence uploaded
   // there was held as licence_name_unread. Same shared reader, same "a new licence replaces the old name" rule.

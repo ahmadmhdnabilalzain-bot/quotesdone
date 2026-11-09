@@ -16,6 +16,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const noComments = (t) => t.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
@@ -63,7 +64,7 @@ test('an invitation reply whose classification did not read is recorded as held 
 });
 
 test('the word rule still runs first, in resend_inbound, before anything is stored for the triage', () => {
-  const inbound = noComments(read('supabase/functions/resend_inbound/index.ts'));
+  const inbound = noComments(functionSource('resend_inbound'));
   const words = inbound.indexOf('isUnsubscribeRequest({ to, subject, text: fullText })');
   const stored = inbound.indexOf('const rawFacts = {');
   assert.ok(words > 0 && stored > words, 'resend_inbound must read the word rule before it stores a mail for email_triage');

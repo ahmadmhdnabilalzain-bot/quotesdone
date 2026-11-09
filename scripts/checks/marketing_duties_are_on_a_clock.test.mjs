@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (f) => readFileSync(join(REPO, f), 'utf8');
@@ -116,7 +117,7 @@ test('the launch plan is re-sent only when it changed, carries his changes, and 
 });
 
 test('his reply to approve+<token> reaches fn_marketing_approval_reply', () => {
-  const inbound = read('supabase/functions/resend_inbound/index.ts');
+  const inbound = functionSource('resend_inbound');
   assert.match(inbound, /approvalTokenOf\(\{ to, subject \}\)/);
   assert.match(inbound, /rpc\('fn_marketing_approval_reply'/);
 });

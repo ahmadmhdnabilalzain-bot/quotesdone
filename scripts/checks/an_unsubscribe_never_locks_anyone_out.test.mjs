@@ -10,6 +10,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 
@@ -39,7 +40,7 @@ test('the three gates of a reply stop, in order: protected address, authenticate
 });
 
 test('resend_inbound gates an unsubscribe email before writing a suppression', () => {
-  const src = read('supabase/functions/resend_inbound/index.ts');
+  const src = functionSource('resend_inbound');
   const gate = src.indexOf('await replyStopRefusal(admin, { from, protectedList: [...adminList, ...fwdList, EXPENSE_MAILBOX]');
   const auth = src.indexOf('senderAuthenticated(providerEmailId, hdrs');
   const refused = src.indexOf('if (why) {', auth);

@@ -18,9 +18,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const src = readFileSync(join(root, 'supabase', 'functions', 'resend_inbound', 'index.ts'), 'utf8');
+const src = functionSource('resend_inbound');
 
 // The receipt branch only - so an assertion cannot be satisfied by unrelated code elsewhere.
 const dedupStart = src.indexOf("const { data: sameDay }");

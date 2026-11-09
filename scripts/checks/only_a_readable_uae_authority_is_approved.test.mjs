@@ -48,7 +48,7 @@ test('every corpus authority is in the apply-time table logic, and unknown is ne
 test('nothing approved, unknown or answered is closed, and every licence door clears the old fields', () => {
   assert.match(SQL, /v_replied or \(v_days >= 14 and \(v_ever_approved or r\.reason = 'licence_authority_unconfirmed'\)\)/);
   assert.ok(SQL.indexOf('fn_ceo_task_open') < SQL.indexOf("approval_decided_by = 'ceo'"), 'the ceo branch must come before the close');
-  for (const f of ['supabase/functions/resend_inbound/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.match(f.includes('wa_inbound') ? functionSource('wa_inbound') : R(f), /trade_license_no: null, license_authority: null, license_expiry: null/, f);
+  for (const f of ['supabase/functions/resend_inbound/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.match(functionSource(f.split('/')[2]), /trade_license_no: null, license_authority: null, license_expiry: null/, f);
 });
 
 test('the supplier is shown why', () => {

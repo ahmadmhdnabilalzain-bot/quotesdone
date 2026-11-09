@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { definitions } from '../lib/canonical_sql.mjs';
 import { manifestWithPending } from '../lib/pending_sql.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
@@ -160,7 +161,7 @@ test('an automatic reply files no handoff: the latest filer asks fn_inbound_is_a
   assert.ok(filer.indexOf('fn_inbound_is_auto_reply') < filer.indexOf('fn_seat_handoff('), 'the auto-reply test must come before the handoff is filed');
   for (const k of ['auto_submitted', 'x_auto_response_suppress', 'precedence', 'x_autoreply']) {
     assert.match(auto, new RegExp(`p_raw->>'${k}'`), `fn_inbound_is_auto_reply no longer reads ${k}`);
-    assert.match(read('supabase/functions/resend_inbound/index.ts'), new RegExp(`${k}: hv\\(`), `resend_inbound no longer stores ${k}`);
+    assert.match(functionSource('resend_inbound'), new RegExp(`${k}: hv\\(`), `resend_inbound no longer stores ${k}`);
   }
   assert.match(auto, /revoke execute on function public\.fn_inbound_is_auto_reply\(text, text, jsonb\) from public, anon, authenticated;/);
   // the verdict row keeps both sides: the two measured machine replies, and a person who thanks us first
