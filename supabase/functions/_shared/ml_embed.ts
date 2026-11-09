@@ -26,7 +26,7 @@
 // so the deployed bundle still holds only the jsDelivr +esm above: the 24 Sep measurements stand unchanged.
 // @ts-types="npm:@huggingface/transformers@3.8.1"
 import * as TJS from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm';
-import { ML_MODEL, ML_MODEL_PATH, mlQueryText, mlRowText, rowText, modelFromHf } from './ml_embed_recipe.ts';
+import { ML_MODEL, ML_MODEL_PATH, mlQueryText, mlRowText, rowText, modelFromHf, ML_MODEL_HF_REVISION } from './ml_embed_recipe.ts';
 import { embedLine } from './gte_embed.ts';
 
 export const ML_EMBED_MS = 20_000;   // a cold start downloads the model (1.2-2.6 s measured); a warm embed is tens of ms
@@ -52,7 +52,7 @@ async function extractor(): Promise<any> {
       const hf = modelFromHf(Deno.env.get('ML_MODEL_HF_REPO'));
       env.remoteHost = hf ? 'https://huggingface.co/' : Deno.env.get('SUPABASE_URL') + ML_MODEL_PATH;
       env.remotePathTemplate = hf ? '{model}/resolve/{revision}/' : '{model}/';
-      return await pipeline('feature-extraction', hf ?? ML_MODEL, { dtype: 'q8', device: 'auto' });
+      return await pipeline('feature-extraction', hf ?? ML_MODEL, { dtype: 'q8', device: 'auto', ...(hf ? { revision: ML_MODEL_HF_REVISION } : {}) });
     })();
     pipe.catch(() => { pipe = null; });   // a failed load is retried by the next call, not cached forever
   }

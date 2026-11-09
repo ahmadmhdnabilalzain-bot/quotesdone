@@ -35,4 +35,5 @@ test('the scheduler history is purged every hour, in batches, keeping seven days
   assert.ok(fn, 'fn_cron_history_purge(p_keep interval default 7 days, p_batch) is not defined');
   assert.match(fn[0], /limit greatest\(p_batch, 1\)/, 'the purge must delete in bounded batches (21 Sep: an unbounded delete restarted production)');
   assert.match(both, /revoke execute on function public\.fn_cron_history_purge\(interval, int\) from public, anon, authenticated/i);
+  assert.match(both, /\('cron_job', 'cron_history_purge_hourly', 'it_engineer'/, 'the purge job must name its seat in writer_seat');
 });

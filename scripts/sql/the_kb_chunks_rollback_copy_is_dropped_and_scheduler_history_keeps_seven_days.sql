@@ -16,10 +16,11 @@
 --   1. Drops public.kb_chunks_old (its own trigger and defaults go with it). Not the copy-and-swap tooling:
 --      kb_chunks_swap_log and fn_kb_chunks_swap_log stay for the next rewrite.
 --   2. fn_cron_history_purge(keep, batch): deletes finished scheduler runs older than `keep` (7 days), at most
---      `batch` (20,000) rows per call, by runid (the primary key), so no call is the 50k-row seq-scan delete that
+--      `batch` (20,000) rows per call, oldest first by runid (the primary key), stopping at the batch size, so no call is the 50k-row seq-scan delete that
 --      restarted production on 21 Sep (.claude/memory/a-big-batch-delete-restarted-production.md). Hourly, the
 --      ~520,000-row backlog is gone in about a day; after that each run removes about an hour's worth.
---   3. Schedules it hourly at minute 37 (off the :00 and the 5-minute marks the seat duties fire on).
+--   3. Schedules it hourly at minute 37 (off the :00 and the 5-minute marks the seat duties fire on), registered in
+--      cron_registry and writer_seat with owner it_engineer (every job names its seat).
 --
 -- Prevented by: scripts/checks/the_scheduler_history_is_purged_and_no_rollback_copy_lingers.test.mjs.
 
@@ -32,17 +33,15 @@ security definer
 set search_path to 'pg_catalog', 'pg_temp'
 as $fn$
 declare
-  v_cut bigint;
   v_n integer;
 begin
-  -- The newest run that is old enough. runid rises with start_time, so everything at or below it is older.
-  select max(runid) into v_cut
-    from cron.job_run_details
-   where start_time < now() - p_keep
-     and status in ('succeeded', 'failed');
-  if v_cut is null then return 0; end if;
+  -- Walk the primary key from the oldest run and stop at the batch size: no full scan of the table each hour.
   delete from cron.job_run_details
-   where runid in (select runid from cron.job_run_details where runid <= v_cut order by runid limit greatest(p_batch, 1));
+   where runid in (select runid from cron.job_run_details
+                    where start_time < now() - p_keep
+                      and status in ('succeeded', 'failed')
+                    order by runid
+                    limit greatest(p_batch, 1));
   get diagnostics v_n = row_count;
   return v_n;
 end
@@ -54,6 +53,17 @@ comment on function public.fn_cron_history_purge(interval, int) is
   'Deletes finished pg_cron run history older than p_keep (default 7 days), at most p_batch rows per call, by runid. it_engineer, 9 Nov 2026.';
 
 select cron.schedule('cron_history_purge_hourly', '37 * * * *', $CRON$select public.fn_cron_history_purge();$CRON$);
+insert into public.cron_registry (jobname, human_name, category, purpose) values
+  ('cron_history_purge_hourly', 'the scheduler keeps seven days of history', 'IT',
+   'Hourly at :37: fn_cron_history_purge() deletes finished pg_cron runs older than 7 days, at most 20,000 per call, '
+   || 'oldest first by runid. Before 9 Nov 2026 nothing deleted any: 698,600 rows since 19 Jul.')
+on conflict (jobname) do update
+  set human_name = excluded.human_name, category = excluded.category, purpose = excluded.purpose;
+insert into public.writer_seat (kind, name, owner_seat, note, owner_file) values
+  ('cron_job', 'cron_history_purge_hourly', 'it_engineer',
+   'Hourly: fn_cron_history_purge() keeps 7 days of cron.job_run_details, in batches of 20,000.',
+   'scripts/sql/the_kb_chunks_rollback_copy_is_dropped_and_scheduler_history_keeps_seven_days.sql')
+on conflict (kind, name) do update set owner_seat = excluded.owner_seat, note = excluded.note, owner_file = excluded.owner_file;
 
 -- PROBE: read-only; returns its verdict as a row (the file holds DDL, so it must not raise).
 with j as (select count(*) n from cron.job where jobname = 'cron_history_purge_hourly' and active),
@@ -69,5 +79,9 @@ select case
   when (select n from f) <> 1 then 'PROBE FAILED: fn_cron_history_purge missing or not security definer'
   when (select n from anon) <> 0 then 'PROBE FAILED: anon can execute fn_cron_history_purge'
   when (select n from j) <> 1 then 'PROBE FAILED: cron_history_purge_hourly not scheduled and active'
+  when (select count(*) from public.writer_seat where kind = 'cron_job' and name = 'cron_history_purge_hourly' and owner_seat = 'it_engineer') <> 1
+    then 'PROBE FAILED: cron_history_purge_hourly names no seat in writer_seat'
+  when (select count(*) from public.cron_registry where jobname = 'cron_history_purge_hourly') <> 1
+    then 'PROBE FAILED: cron_history_purge_hourly is not in cron_registry'
   else 'PROBE OK: kb_chunks_old gone, kb_chunks has ' || (select n from live) || ' rows, hourly purge scheduled, anon cannot run it'
 end as verdict;

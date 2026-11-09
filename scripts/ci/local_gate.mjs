@@ -89,7 +89,7 @@ function run(step, extraEnv = {}) {
   if (cmd === null) return Promise.resolve({ result: 'PASS', note: 'nothing to run (only generated baseline migrations)', secs: 0 });
   const log = join(LOGS, `${step.id}.log`); const t0 = Date.now();
   return new Promise((done) => {
-    const p = spawn(cmd, { cwd: REPO, shell: true, detached: process.platform !== 'win32', env: { ...process.env, ...env, ...(step.env || {}), ...extraEnv } });
+    const p = spawn(cmd, { cwd: REPO, shell: true, detached: process.platform !== 'win32', env: { ...process.env, ...env, ...(OFFLINE ? { QD_OFFLINE: '1', SUPABASE_ACCESS_TOKEN: '' } : {}), ...(step.env || {}), ...extraEnv } });
     let out = '';
     p.stdout.on('data', (d) => { out += d; }); p.stderr.on('data', (d) => { out += d; });
     // The whole tree: with shell: true, p is only the shell, and killing it alone leaves the command running.
