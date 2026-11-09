@@ -1,13 +1,17 @@
 // RULINGS 1195/1196/1197 (12 Oct 2026): in wa_inbound every CONVERSATION reply is written by a model in that turn.
-// index.ts cannot be driven end to end offline, so this reads it: every text that reaches sendWa(From, …) is assigned
+// the handler cannot be driven end to end offline, so this reads it (index.ts and the modules it calls): every text that reaches sendWa(From, …) is assigned
 // only from the model (say / sayFor / sayC, model_says.ts), from a guard over such text, from the HELD NOTICE (the
 // fixed receipt when no model answered — a notification, review of #1335), or '' — and the one named notification
 // (the accepted-offer confirmation). It fails the moment a literal sentence, a routine's own message, an FAQ row or a
 // deterministic answer is assigned to a reply variable again. The menu's sends are proved by menu_flow.test.ts
 // (1195-1197 test); the writer and the held notice by model_says.test.ts.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
+import { functionFiles } from '../../../scripts/lib/function_sources.mjs';
 
-const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+// The handler's own code: every runtime file of the function except the sibling modules that were never part of index.ts.
+const SIBLINGS = ['coverage.ts', 'directive_gate.ts', 'founder_directive.ts', 'founder_queries.ts', 'menu.ts', 'menu_flow.ts', 'model_says.ts', 'wa_row.ts'];
+const src = functionFiles('wa_inbound').filter((f: string) => !SIBLINGS.some((s) => f.endsWith('/' + s)))
+  .map((f: string) => Deno.readTextFileSync(new URL('../../../' + f, import.meta.url))).join('\n');
 const code = src.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
 
 Deno.test('1195-1197: every WhatsApp reply variable is assigned only model-written text, the held notice, or nothing', () => {
@@ -37,12 +41,12 @@ Deno.test('1195-1197: every WhatsApp reply variable is assigned only model-writt
 // founder_instruction 1339 (27 Oct 2026): the accepted-offer confirmation is a reply to their message, so the model writes
 // it from the template; the template itself goes out only when OpenRouter is down (sayOutage), and it is marked.
 Deno.test('1339: the accepted-offer confirmation is the model\'s; the template only when OpenRouter is down, and marked', () => {
-  assert(/if \(!text && sayOutage\) \{ text = msg\.body; notice = true; \}/.test(code), 'the template is gated on the outage');
+  assert(/if \(!text && t\.sayOutage\) \{ text = msg\.body; notice = true; \}/.test(code), 'the template is gated on the outage');
   assert(!/so\.state === 'accepted'\) \{ text = msg\.body;/.test(code), 'the template is sent as-is again while the model is up');
 });
 Deno.test('1339: every held notice is gated on the outage of the last model call', () => {
-  assert(/holdUnwritten\(\{[^}]*outage: sayOutage/.test(code), 'heldTurn passes the outage of the last say to holdUnwritten');
-  assert(/sayOutage = !r\.text && r\.outage;/.test(code), 'sayFor records whether OpenRouter was down');
+  assert(/holdUnwritten\(\{[^}]*outage: t\.sayOutage/.test(code), 'heldTurn passes the outage of the last say to holdUnwritten');
+  assert(/t\.sayOutage = !r\.text && r\.outage;/.test(code), 'sayFor records whether OpenRouter was down');
 });
 
 Deno.test('1195-1197: no stored-sentence road remains, and no path leaves the person silent', () => {
@@ -56,7 +60,7 @@ Deno.test('1195-1197: no stored-sentence road remains, and no path leaves the pe
 
 Deno.test('review of #1335: the per-number rate key is carried, and the model\'s own escalate flag is OR-ed with the router', () => {
   assert(code.includes("rateKey: signal ? 'wa-spec:' + From : 'wa:' + From"), 'the per-number ceiling (wa:<From>) reaches the gateway; a speculative draft has its own bucket');
-  assert(code.includes('const escalate = route?.needs_a_person === true || modelEscalate;'), 'a complaint the router misses still reaches a person');
+  assert(code.includes('const escalate = route?.needs_a_person === true || t.modelEscalate;'), 'a complaint the router misses still reaches a person');
 });
 
 // customer_support, 2 Nov 2026: the reply is asked beside the classification. A draft asked before the class is known is adopted ONLY

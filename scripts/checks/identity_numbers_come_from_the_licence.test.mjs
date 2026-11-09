@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+import { functionSource } from '../lib/function_sources.mjs';
 const C = JSON.parse(read('src/content/company.json'));
 const SRC = JSON.parse(read('docs/legal/company_identity_sources.json'));
 const walk = (d) => readdirSync(join(ROOT, d)).flatMap((n) => { const p = join(d, n); return statSync(join(ROOT, p)).isDirectory() ? walk(p) : [p]; });
@@ -34,7 +35,7 @@ function surfaces() {
   }
   for (const f of ['src/content/company.json', 'src/content/marketing.json', 'messages/en.json', 'messages/ar.json', 'src/lib/seo.ts',
     'supabase/functions/site_assistant/index.ts', 'supabase/functions/wa_inbound/index.ts', 'supabase/functions/supplier_pay/index.ts',
-    'supabase/functions/_shared/brand_assets/letterhead.html', 'supabase/functions/_shared/supplier_agreement.ts']) out.push([f, read(f)]);
+    'supabase/functions/_shared/brand_assets/letterhead.html', 'supabase/functions/_shared/supplier_agreement.ts']) out.push([f, f.endsWith('wa_inbound/index.ts') ? functionSource('wa_inbound') : read(f)]);
   for (const f of walk('src/components').filter((p) => /\.tsx?$/.test(p))) out.push([relative(ROOT, join(ROOT, f)).replace(/\\/g, '/'), read(f)]);
   return out;
 }

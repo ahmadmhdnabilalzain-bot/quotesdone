@@ -1,0 +1,58 @@
+// speculation.ts - TWO READS THAT START BESIDE THE CLASSIFICATION: the reply composed on the commonest route (the speculative draft)
+// and the supplier's price-change reading. Moved out of index.ts's handleInbound unchanged (9 Nov 2026, customer_support); both are
+// aborted through specAbort when the turn is answered another way.
+import { supplierDirectiveAllowed } from './directive_gate.ts';
+import { composeSituation } from './compose.ts';
+import { GATEWAY, itFinding, sec, admin } from './shared.ts';
+import type { WaTurn } from './turn.ts';
+
+export function startSpeculation(t: WaTurn): void {
+  const { From, Body, audience, internalCaller, typedQuestion, askModel } = t;
+  // THE REPLY STARTS BESIDE THE CLASSIFICATION (customer_support, 2 Nov 2026). Measured: the classification is 11-14 s of a 23-41 s
+  // turn and the reply waited for it. The commonest class is "needs no person, no intent row fits" (p_needs_person false,
+  // p_intent 'none'): the reply is composed on THAT route (fn_wa_route_dry: the same answer, no wa_answer_log row) and asked now.
+  // When the classification says exactly that, this draft IS the reply; any other class (an intent, a person, a complaint, held)
+  // discards it and the reply is asked on the real route as before. A discarded draft is never adopted, so it cannot escalate,
+  // flag or be sent; the only send is the one at the end of the turn. Null (autoreply off, the dry route not applied) = no speculation.
+  // A discarded draft is ABORTED (specAbort), so it stops costing; it also runs in its own rate bucket (askModel). A draft that
+  // cannot start is never silent: the dry route missing or failing files an IT finding, and the turn takes the normal path.
+  const specAbort = new AbortController();
+  const speculative: Promise<Awaited<ReturnType<typeof askModel>> | null> | null = typedQuestion && audience !== 'founder'
+    ? (async () => {
+        if ((await sec('wa_autoreply_enabled')) !== 'true') return null;
+        const { data, error } = await admin.rpc('fn_wa_route_dry', { p_phone: From, p_body: Body.slice(0, 4000), p_needs_person: false, p_intent: 'none' });
+        if (error || !data) {
+          await itFinding('wa_inbound:route_dry_unavailable', 'The WhatsApp reply cannot start beside the classification: fn_wa_route_dry failed or is not applied', { error: error?.message ?? 'returned nothing' });
+          return null;
+        }
+        const { situation: s0 } = await composeSituation(t, data as Record<string, unknown>);
+        return await askModel(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', s0, undefined, undefined, specAbort.signal);
+      })().catch(async (e) => {
+        await itFinding('wa_inbound:speculative_reply_threw', 'The speculative WhatsApp reply threw; the turn took the normal path', { error: String((e as Error)?.message || e).slice(0, 300) });
+        return null;
+      })
+    : null;
+  // THE PRICE-CHANGE READING STARTS BESIDE THE CLASSIFICATION TOO (customer_support, 3 Nov 2026). It reads only the body,
+  // yet it was asked after menuTurn had waited for the readings. Measured on the real exchange on main (run 41530397323,
+  // ai_cost_log): on 14 of 14 supplier text turns the supplier_directive call started 0.75-0.95 s after the classification
+  // ended and took 5.1-6.8 s, in series, so supplier turns were classified at 16.6-23.6 s against 11.6-12.7 s for a
+  // number with no account. A turn the menu answers aborts it (specAbort), like the speculative draft.
+  let directiveP: Promise<{ change?: boolean; amount?: unknown } | null> | null = null;
+  const directiveRead = () => (directiveP ??= (async () => {
+    const gsecret = await sec('cred_fn_ai');
+    const csys = 'Decide whether this message from a supplier is an INSTRUCTION TO CHANGE THEIR QUOTATION PRICE, and if so to what amount in AED.\n'
+      + 'Return STRICT JSON ONLY. If it is: {"change":true,"amount":"<the new total price as a bare number, no currency, no commas>"}.\n'
+      + 'Otherwise, including every question, every request for information, anything about their licence or profile, anything asking to CREATE a new quotation, and anything you are unsure about: {"change":false}.\n'
+      + 'A relative instruction with no stated total ("drop it a bit", "make it cheaper") is NOT a change — return false, because I cannot act on an amount you had to invent.';
+    const cr = await fetch(GATEWAY, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: gsecret, fn: 'supplier_directive', sys: csys, input: Body.slice(0, 600), temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),
+      signal: AbortSignal.any([AbortSignal.timeout(40000), specAbort.signal]),
+    });
+    const cj = await cr.json().catch(() => ({} as Record<string, unknown>));
+    const cm = String((cj as { content?: string })?.content || '').match(/\{[\s\S]*\}/);
+    return cm ? JSON.parse(cm[0]) : null;
+  })().catch(() => null));   // a classifier failure must never swallow their message: it reads as "not a change"
+  if (supplierDirectiveAllowed({ audience, internalCaller }) && typedQuestion) directiveRead();   // never read for a turn it cannot apply
+  Object.assign(t, { specAbort, speculative, directiveRead });
+}

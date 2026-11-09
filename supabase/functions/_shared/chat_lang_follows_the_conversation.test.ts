@@ -5,6 +5,7 @@
 // (knowledge/brief/company.md §10): a customer is answered in the language of the inquiry; a visitor in the language they
 // write in. A message in one script decides; a message that mixes both keeps the language the conversation began in.
 import { assertEquals } from 'jsr:@std/assert@1';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 import { langOf, turnLang } from './chat_answers.ts';
 import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
@@ -51,7 +52,7 @@ Deno.test('the widget, the portal, aiReply (WhatsApp) and the WhatsApp language 
   assert(/checkWhole: \(t: string\) => replyLanguageProblems\(t, lang\)/.test(functionSource('sales_engineer')), 'sales_engineer checkWhole');
   assert(/replyLanguageProblems\(t, replyLang\)/.test(read('./ai_reply.ts')), 'aiReply whole-reply check');
   assert(!/const sentenceCheck = [^\n]*replyLanguageProblems/.test(read('./ai_reply.ts')) && /const sentenceCheck = [^\n]*audience === 'supplier' \? english/.test(read('./ai_reply.ts')), 'aiReply\'s sentence check judges only a supplier\'s language');
-  assert(/langGiven \?\? turnLang\(Body/.test(read('../wa_inbound/index.ts')), 'wa_inbound language');
+  assert(/langGiven \?\? turnLang\(Body/.test(functionSource('wa_inbound')), 'wa_inbound language');
 });
 
 // A MESSAGE WITH NO LETTERS KEEPS THE CONVERSATION'S LANGUAGE (review of #1830): "14", a phone number, "OK" say nothing about it.

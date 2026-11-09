@@ -42,10 +42,15 @@ import { functionFiles } from '../lib/function_sources.mjs';
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FN = (p) => path.join(REPO, 'supabase', 'functions', p);
 
+// wa_inbound/index.ts was split on 9 Nov 2026 into index.ts and the modules it calls: every one of them is a reply path. The sibling
+// modules listed apart (menu_flow.ts, model_says.ts) and the ones that never held reply text (menu, coverage, founder_*, directive_gate, wa_row) are not repeated.
+const WA_SIBLINGS = new Set(['coverage.ts', 'directive_gate.ts', 'founder_directive.ts', 'founder_queries.ts', 'menu.ts', 'menu_flow.ts', 'model_says.ts', 'wa_row.ts']);
+export const WA_HANDLER = functionFiles('wa_inbound').map((f) => f.replace('supabase/functions/', '')).filter((f) => !WA_SIBLINGS.has(f.split('/').pop()));
+
 /** The reply paths of the two seats (customer- and supplier-facing words). Test files are not reply paths. */
 export const REPLY_PATHS = [
   '_shared/ai_reply.ts', '_shared/support_reply.ts', '_shared/brief_answer.ts', '_shared/reasoned_delivery.ts', '_shared/clearer_copy.ts',
-  'wa_inbound/index.ts', 'wa_inbound/model_says.ts', 'wa_inbound/menu_flow.ts',
+  ...WA_HANDLER, 'wa_inbound/model_says.ts', 'wa_inbound/menu_flow.ts',
   'site_assistant/index.ts', 'site_assistant/visitor_scope.ts', 'email_triage/index.ts',
   'supplier_api/quote_review_flow.ts',
   // supplier_api/index.ts was split on 9 Nov 2026 into index.ts, context.ts, lib/ and actions/: every one of them is read.
@@ -70,7 +75,7 @@ export function replyFindings(file, src) {
       out.push(`${file}:${i + 1}: R1 code fallback after a model reply, no outage gate: ${l.trim().slice(0, 140)}`);
     }
     // R2: a registered code-written reply used outside its definition, with no gate nearby
-    const uses = /\b(?:QR_HELD_NOTICE|HELD_NOTICE\[|caseConfirm\(|capReply\(|personContactNotice\()/.test(l) || (file === 'wa_inbound/index.ts' && /\btext\s*=\s*msg\.body\b/.test(l));
+    const uses = /\b(?:QR_HELD_NOTICE|HELD_NOTICE\[|caseConfirm\(|capReply\(|personContactNotice\()/.test(l) || (file === 'wa_inbound/spec_offer.ts' && /\btext\s*=\s*msg\.body\b/.test(l));
     const compares = /(?:===|!==)\s*\w*HELD_NOTICE|HELD_NOTICE\S*\s*(?:===|!==)|\.includes\(/.test(l);
     // a draft held in a local (`const confirm = caseConfirm(…)`) must meet its gate before the block ends (8 lines)
     const draftLocal = /^\s*const \w+ = /.test(l) && GATE.test(lines.slice(i, i + 9).join('\n'));
@@ -94,8 +99,8 @@ export function noticeFindings(files) {
   const qr = stripComments(files['supplier_api/quote_review_flow.ts'] || '').join('\n');
   if (!/outage \? await repo\.addMessage\(\{[^}]*body: QR_HELD_NOTICE/.test(qr)) out.push('supplier_api/quote_review_flow.ts: R4 QR_HELD_NOTICE is added without outage');
   if (/await held\(repo, deps, [^;]*\)\.catch/.test(qr)) out.push('supplier_api/quote_review_flow.ts: R4 a failed/killed review adds the held notice without asking the model first');
-  const wa = stripComments(files['wa_inbound/index.ts'] || '').join('\n');
-  for (const m of wa.matchAll(/holdUnwritten\(\{([^}]*)/g)) if (!/outage:/.test(m[1])) out.push('wa_inbound/index.ts: R4 holdUnwritten called without outage');
+  const wa = stripComments(WA_HANDLER.map((p) => files[p] || '').join('\n')).join('\n');
+  for (const m of wa.matchAll(/holdUnwritten\(\{([^}]*)/g)) if (!/outage:/.test(m[1])) out.push('wa_inbound: R4 holdUnwritten called without outage');
   // the WhatsApp "needs a person" contact notice (ledger 1348): the model writes it, code's words only on the outage
   const rd = stripComments(files['_shared/reasoned_delivery.ts'] || '').join('\n');
   const at = rd.indexOf("if (row.surface === 'wa_inbound.needs_a_person') {");
@@ -139,8 +144,8 @@ test('1339: every reply-path file this check names exists (a renamed file is re-
 test('known-bad: the old fallbacks are caught', () => {
   // the shape main's inquiry_intake heldReply had (HELD_FOR_SPECS whenever aiReply gave '', model up or not)
   assert.equal(replyFindings('x.ts', '  return r.reply || HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en;\n').length, 1);
-  // wa_inbound/index.ts, main: the accepted-offer template sent as-is
-  assert.equal(replyFindings('wa_inbound/index.ts', "            } else if (so.state === 'accepted') { text = msg.body; notice = true; }\n").length, 1);
+  // wa_inbound/spec_offer.ts (index.ts before the split), main: the accepted-offer template sent as-is
+  assert.equal(replyFindings('wa_inbound/spec_offer.ts', "            } else if (so.state === 'accepted') { text = msg.body; notice = true; }\n").length, 1);
   // wa_inbound/menu_flow.ts, main: the case confirmation sent as-is
   assert.equal(replyFindings('wa_inbound/menu_flow.ts', "    await reply(d, inp, lang, 'menu_case', caseConfirm(lang, c), null, { case_ref: c.ref });\n").length, 1);
   // supplier_api/quote_review_flow.ts, main: the held notice added whatever the cause

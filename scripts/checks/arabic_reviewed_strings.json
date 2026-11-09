@@ -7536,19 +7536,22 @@
   "8e45f4f4e95a",
   "cdda50dc07b3"
  ],
- "supabase/functions/wa_inbound/index.ts": [
-  "1967d96de607",
-  "5cbb277245b5",
-  "61e5bb9d6ede",
-  "6c8d4e17edaa",
-  "75e7c95e9ceb",
-  "7fea49861151",
-  "a59d3e5b21bb",
-  "c09183a62789",
-  "caa8dfdaf4f5",
-  "cb974acf7755",
-  "e687fbf0ba76",
+ "supabase/functions/wa_inbound/arrival.ts": [
   "f00b7f659d1a"
+ ],
+ "supabase/functions/wa_inbound/faq.ts": [
+  "5cbb277245b5"
+ ],
+ "supabase/functions/wa_inbound/general_turn.ts": [
+  "caa8dfdaf4f5"
+ ],
+ "supabase/functions/wa_inbound/media_in.ts": [
+  "75e7c95e9ceb",
+  "7fea49861151"
+ ],
+ "supabase/functions/wa_inbound/replies.ts": [
+  "61e5bb9d6ede",
+  "c09183a62789"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
   "027ef5367e8d",

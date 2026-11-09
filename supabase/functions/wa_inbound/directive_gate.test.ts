@@ -3,6 +3,7 @@
 // classifier's amount went to fn_supplier_apply_change whatever the supplier had written.
 import { assert, assertEquals } from 'jsr:@std/assert';
 import { amountInOwnWords, founderDirectiveAllowed, supplierDirectiveAllowed } from './directive_gate.ts';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 Deno.test('a founder setting change needs a verified Twilio signature from the founder number', () => {
   assertEquals(founderDirectiveAllowed({ audience: 'founder', signatureVerified: true }), true);
@@ -30,7 +31,7 @@ Deno.test('the amount must be one the supplier wrote; the stubbed classifier inv
 });
 
 Deno.test('wa_inbound runs both directives through the gate', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('wa_inbound');
   // the instruction is still read when unverified, and the founder is told it was not applied (review of #1836)
   assert(/parsed\?\.directive === true && parsed\?\.key && !founderDirectiveAllowed\(\{ audience, signatureVerified \}\)\) \{\s*directive = \{ ok: false/.test(src), 'founder_directive refused, and said');
   assert(/\} else if \(parsed\?\.directive === true && parsed\?\.key\) \{\s*const \{ data: applied \} = await admin\.rpc\('fn_founder_apply_setting'/.test(src), 'only the allowed branch applies');

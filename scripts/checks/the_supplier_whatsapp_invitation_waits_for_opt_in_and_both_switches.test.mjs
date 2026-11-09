@@ -16,6 +16,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
@@ -232,7 +233,7 @@ const optinSource = (n) => `(select string_agg(o.source, ',') from public.suppli
 const ASK = (n) => `public.fn_supplier_whatsapp_consent_ask_record('whatsapp:+97150000007${n}', 'Thanks for your message. ' || public.fn_wa_consent_question(), 'sales_engineer')`;
 
 test('wa_inbound hands the button payload to the one rule, and nothing else in it records an opt-in', () => {
-  const src = read('supabase/functions/wa_inbound/index.ts');
+  const src = functionSource('wa_inbound');
   assert.match(src, /rpc\('fn_marketing_files_wa_invite_reply', \{ p_from: From, p_body: Body\.slice\(0, 4000\), p_button_payload: ButtonPayload \|\| null \}\)/);
   assert.doesNotMatch(src, /from\('supplier_whatsapp_optin'\)\.(insert|upsert)/, 'wa_inbound writes opt-ins only through the rule');
   assert.ok(gateTs.includes("{ id: 'supplier_invite_yes', title: 'Set up my page' }"), 'the button id the SQL rule matches');

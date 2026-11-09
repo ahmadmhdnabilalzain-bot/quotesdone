@@ -1,0 +1,63 @@
+// supplier_directive.ts - A SUPPLIER ASKING FOR A CHANGE, NOT AN ANSWER (v18): "adjust my quotation price" is applied by
+// fn_supplier_apply_change, scoped in SQL by phone. Moved out of index.ts's handleInbound unchanged (9 Nov 2026, customer_support).
+// A Response means the change was applied or refused and the turn is over; undefined means it was not a change.
+import { amountInOwnWords, supplierDirectiveAllowed } from './directive_gate.ts';
+import { admin, sec, TW } from './shared.ts';
+import { sendWa, toContact } from './replies.ts';
+import type { WaTurn } from './turn.ts';
+
+// ---- A SUPPLIER ASKING FOR A CHANGE, NOT AN ANSWER (v18) ---------------
+// "Adjust my quotation price" is the one verb on the supplier's list, and until now this
+// function could only describe what a supplier would have to go and do themselves.
+//
+// The same shape the founder's settings got, with one difference that matters: the SCOPING IS
+// NOT THE MODEL'S JOB. fn_supplier_apply_change resolves the supplier from the phone number in
+// SQL and decides everything — which quotation, whether it is committed, whether a customer
+// has already paid to reveal them, whether the move is a fat-fingered zero — so the worst a
+// misclassification can do is produce a refusal. The model's entire job is turning a sentence
+// into a number.
+//
+// cache_ttl_min: 0 IS LOAD-BEARING, for the reason measured on 13 Aug: ai_gateway's cache does
+// a SEMANTIC lookup at 0.95 over (sys_stable + sys).slice(0,400) + convo.slice(0,800), and a
+// classifier whose system prompt dwarfs its one-line input gets the PREVIOUS caller's answer.
+// Three different founder messages were all classified as the first one's directive that way.
+// Twilio-vouched only, never the internal JSON path, and only an amount they wrote (directive_gate.ts, 3 Nov 2026).
+export async function supplierDirective(t: WaTurn): Promise<Response | undefined> {
+  const { From, Body, Profile, MessageSid, audience, internalCaller, directiveRead, receivedAt, logRun, waInsert, sayFor, heldTurn } = t;
+  if (supplierDirectiveAllowed({ audience, internalCaller })) {
+    try {
+      const parsed = await directiveRead();   // started beside the classification (above); asked here when it was not
+      const ownAmount = parsed?.change === true ? amountInOwnWords(parsed?.amount, Body) : null;
+      if (ownAmount) {
+        const { data: applied } = await admin.rpc('fn_supplier_apply_change', {
+          p_phone: From, p_field: 'quote_price', p_value: ownAmount,
+          p_inbound: Body.slice(0, 1500), p_channel: 'whatsapp',
+        });
+        if (applied) {
+          // The routine decided (re-priced or refused); the model says it to the supplier, in English (1195-1197).
+          const out = await sayFor('supplier')('They asked to change their quotation price to AED ' + ownAmount + '. The pricing routine result, to report accurately (applied or refused, old and new total, the reason):\n' + JSON.stringify(applied), 'en');
+          let replyD = out ? toContact(out.slice(0, 1200)) : '';
+          const enabledD = (await sec('wa_autoreply_enabled')) === 'true';
+          let sentD = false; let sendErrD: string | undefined = replyD ? undefined : 'no_model_reply';
+          if (enabledD && replyD) { const r = await sendWa(From, replyD); sentD = r.ok; sendErrD = r.err; }
+          if (!replyD) { const h = await heldTurn('supplier', 'en', 'The pricing routine result: ' + JSON.stringify(applied), 'supplier_directive'); replyD = h.notice; sentD = h.sent; sendErrD = h.err ?? undefined; }
+          try {
+            await waInsert(receivedAt, {
+              wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
+              inbound: Body, reply: replyD, lang: 'en', escalated: false, sent: sentD,
+              meta: { enabled: enabledD, audience: 'supplier', route: 'supplier_directive',
+                      applied: applied?.ok === true, directive: applied, send_error: sendErrD || null,
+                      provenance_verified: true, message_sid: MessageSid || null },
+            });
+          } catch (_e) { /* the reply already went out */ }
+          await logRun(applied?.ok === true ? 'ok' : 'error',
+            { audience: 'supplier', route: 'supplier_directive', applied: applied?.ok === true, sent: sentD },
+            applied?.ok === true
+              ? ('supplier re-priced a quotation by WhatsApp: ' + String(applied?.old) + ' -> ' + String(applied?.new))
+              : ('supplier price change REFUSED: ' + String(applied?.refusal || '').slice(0, 200)));
+          return TW(200);
+        }
+      }
+    } catch (_e) { /* a classifier failure must never swallow their message: fall through and answer it */ }
+  }
+}

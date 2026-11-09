@@ -79,7 +79,7 @@ Deno.test('every conversation reply that knows the party passes the list (sales_
   const src = (f: string) => Deno.readTextFile(new URL('../' + f, import.meta.url));
   assert(/replyProblems\(t, known, \{ allowed, forbidden \}\)/.test(functionSource('sales_engineer')), 'sales_engineer portal');
   assert(/forbidden: await preRevealIdentities\(admin, \{ leadId: Number\(sup\.id\) \}\)/.test(functionSource('supplier_api')), 'supplier_api quotation chat');
-  assert(/modelSays\([\s\S]{0,300}?forbidden: await forbidden/.test(await src('wa_inbound/index.ts')), 'wa_inbound sayFor');
+  assert(/modelSays\([\s\S]{0,300}?forbidden: await t\.forbidden/.test(functionSource('wa_inbound')), 'wa_inbound sayFor');
   const et = await src('email_triage/index.ts');
   assert(/aiReply\(deps, \{[^}]*forbidden/.test(et) && /namesForbidden\(r\.answer, forbidden\)/.test(et), 'email_triage answer()');
 });

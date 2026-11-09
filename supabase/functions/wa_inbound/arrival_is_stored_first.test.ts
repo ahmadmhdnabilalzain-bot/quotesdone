@@ -1,12 +1,15 @@
 // A CUSTOMER'S WHATSAPP MESSAGE IS STORED BEFORE ANYTHING IS DONE WITH IT (19 Oct 2026, seat customer_support).
 // Sandbox run 5 (tag 321d13ae, S19): a Twilio-signed demo message got HTTP 200 and was found in no table 4 s later.
 // Its wa_messages row was written 73 s after arrival, at the END of the model-written turn (#1335); an isolate killed
-// inside that window lost the message, and wa_inbound_seen made Twilio's redelivery a "duplicate". index.ts cannot be
-// driven offline, so this reads it: once the sender is authenticated, the arrival row is inserted before the first
+// inside that window lost the message, and wa_inbound_seen made Twilio's redelivery a "duplicate". The handler cannot be
+// driven offline here, so this reads it (the whole function: index.ts and the modules it calls, in that order): once the sender is authenticated, the arrival row is inserted before the first
 // branch that can answer or return, and the turn's rows complete it rather than being its first write.
 import { assert } from 'jsr:@std/assert@1';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
-const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+const src = functionSource('wa_inbound');
+const index = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+const arrivalSrc = await Deno.readTextFile(new URL('./arrival.ts', import.meta.url));
 const code = src.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
 
 Deno.test('wa_inbound stores an authenticated message on arrival, before any branch or model call', () => {
@@ -20,15 +23,19 @@ Deno.test('wa_inbound stores an authenticated message on arrival, before any bra
     const before = after.slice(Math.max(0, m.index! - 2500), m.index!);
     assert(/waInsert\(receivedAt/.test(before), 'a return between authentication and the arrival row stores nothing');
   }
+  // The arrival row is written by the FIRST phase the handler runs (arrival.ts); every later phase is called after it, and none of them
+  // is in arrival.ts, so nothing below can answer, return or ask a model before the message is stored.
+  const phases = ['acceptArrival(t, req)', 'makeSay(t)', 'specOfferReply(t)', 'identify(t)', 'startClassification(t)', 'answerFromTheMenu(t)', 'founderTurn(t)', 'mediaIn(t)', 'supplierDirective(t)', 'answerTurn(t)'];
+  const at = phases.map((p) => index.indexOf(p));
+  assert(at[0] > 0 && at.every((a, i) => i === 0 || a > at[i - 1]), 'index.ts must call acceptArrival first and then the phases in their order');
   for (const later of ["fn_spec_offer_whatsapp_reply", 'menuMeaning(', 'await modelSays(', 'holdUnwritten({', "fn_identify_contact"]) {
-    const at = code.indexOf(later);
-    assert(at > arrival, `${later} runs before the message is stored`);
+    assert(code.includes(later) && !arrivalSrc.includes(later), `${later} runs before the message is stored`);
   }
 });
 
 Deno.test('only a crashed turn is left at received: a finished turn closes its arrival row, and resilience_ping sweeps the rest', async () => {
   assert(/\bcatch \(e\) \{\s*crashed = true;/.test(code), 'the exception path no longer marks the turn as crashed');
-  assert(/finally \{[\s\S]{0,400}if \(!crashed && arrivalId != null\)[\s\S]{0,200}stage: 'handled'/.test(code), 'a finished turn no longer closes its arrival row');
+  assert(/finally \{[\s\S]{0,400}if \(!crashed && t\.arrivalId != null\)[\s\S]{0,200}stage: 'handled'/.test(code), 'a finished turn no longer closes its arrival row');
   const ping = await Deno.readTextFile(new URL('../resilience_ping/ticks/it_engineer.ts', import.meta.url));
   assert(/rpc\('fn_wa_arrival_sweep'/.test(ping), 'resilience_ping no longer runs fn_wa_arrival_sweep');
   const sql = await Deno.readTextFile(new URL('../../../scripts/sql/a_whatsapp_message_whose_turn_crashed_reaches_customer_support_in_five_minutes.sql', import.meta.url));

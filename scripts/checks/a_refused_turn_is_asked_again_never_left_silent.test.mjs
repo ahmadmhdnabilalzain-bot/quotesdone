@@ -57,7 +57,7 @@ test('W1: every surface that can refuse files its turn for the re-ask, with the 
   const ms = code(read('supabase/functions/wa_inbound/model_says.ts'));
   assert.match(ms, /turn_id: 'wa:'/, 'WhatsApp: two people sending the same words must be two turns (qhash reads context)');
   assert.match(ms, /reask: \{ message: question,/, 'WhatsApp: the turn must be filed as data for the re-ask');
-  assert.match(code(read('supabase/functions/wa_inbound/index.ts')), /outage: sayOutage, problems: sayProblems,/, 'WhatsApp: the refused drafts\' problems must be filed');
+  assert.match(code(functionSource('wa_inbound')), /outage: t\.sayOutage, problems: t\.sayProblems,/, 'WhatsApp: the refused drafts\' problems must be filed');
   const sa = code(functionSource('supplier_api'));
   assert.match(sa, /turn_id: 'qr:'/);
   assert.match(sa, /reask: \{ message: q,[^}]*audience: 'supplier', lang: 'en'/, 'supplier thread: filed in English');
