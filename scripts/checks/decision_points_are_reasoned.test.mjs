@@ -31,6 +31,8 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 // A proof that names one of these index.ts files means the whole function: index.ts plus the modules it was split into.
 const WHOLE_FN = /^supabase\/functions\/(resilience_ping|customer_api|supplier_api|sales_engineer|wa_inbound|accountant|inquiry_intake|resend_inbound|supplier_portal)\/index\.ts$/;
+// _shared/quote_documents.ts is a barrel since 9 Nov 2026: a proof that names it means the barrel plus _shared/quote_documents/.
+const SPLIT_SHARED = /^supabase\/functions\/_shared\/(quote_documents)\.ts$/;
 const REGISTRY = JSON.parse(read('supabase/functions/_shared/decision_points.json'));
 const ENGINE = 'scripts/sql/every_seat_reasons_before_it_answers.sql';
 const MIGRATE = 'scripts/sql/meaning_is_decided_by_reasoning_not_by_word_lists.sql';
@@ -67,7 +69,7 @@ test('no migrated decision point is decided by a word list again, and each one a
   for (const p of REGISTRY.points.filter((x) => x.status === 'migrated')) {
     assert.ok(Array.isArray(p.proof) && p.proof.length, `${p.id}: a migrated point needs a proof`);
     for (const pr of p.proof) {
-      const src = code(pr.file, WHOLE_FN.test(pr.file) ? functionSource(pr.file.split('/')[2]) : read(pr.file));
+      const src = code(pr.file, WHOLE_FN.test(pr.file) ? functionSource(pr.file.split('/')[2]) : SPLIT_SHARED.test(pr.file) ? sharedModuleSource(pr.file.split('/')[3].replace(/\.ts$/, '')) : read(pr.file));
       for (const s of pr.must_contain ?? []) assert.ok(src.includes(s), `${p.id}: ${pr.file} no longer contains ${s}`);
       for (const s of pr.must_not_contain ?? []) assert.ok(!src.includes(s), `${p.id}: ${pr.file} is word-matching again (${s})`);
     }

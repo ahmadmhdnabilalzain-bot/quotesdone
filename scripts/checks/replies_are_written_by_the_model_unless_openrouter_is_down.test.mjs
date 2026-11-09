@@ -53,6 +53,8 @@ export const REPLY_PATHS = [
   ...WA_HANDLER, 'wa_inbound/model_says.ts', 'wa_inbound/menu_flow.ts',
   'site_assistant/index.ts', 'site_assistant/visitor_scope.ts', 'email_triage/index.ts',
   'supplier_api/quote_review_flow.ts',
+  // quote_review_flow.ts is a barrel since 9 Nov 2026; the conversation lives in supplier_api/quote_review_flow/: every file is read.
+  ...functionFiles('supplier_api').map((f) => f.replace('supabase/functions/', '')).filter((f) => f.startsWith('supplier_api/quote_review_flow/')),
   // supplier_api/index.ts was split on 9 Nov 2026 into index.ts, context.ts, lib/ and actions/: every one of them is read.
   // sales_engineer/index.ts was split on 9 Nov 2026 the same way (index.ts, context.ts, lib/, actions/): every one of them is read.
   ...functionFiles('sales_engineer').map((f) => f.replace('supabase/functions/', '')).filter((f) => /^sales_engineer\/(index|context)\.ts$|^sales_engineer\/(lib|actions)\//.test(f)),
@@ -70,6 +72,8 @@ export function replyFindings(file, src) {
   const near = (i) => lines.slice(Math.max(0, i - 3), i + 4).join('\n');
   lines.forEach((l, i) => {
     if (!l.trim() || /^\s*(import|export (const|function|type|interface)|export async function)\b/.test(l)) return;
+    // a barrel's re-export names a constant, it does not use it (quote_review_flow.ts since 9 Nov 2026)
+    if (/^\s*export (?:type )?\{[^}]*\} from '[^']+';\s*$/.test(l)) return;
     // R1: a model reply with a code-written fallback after `||`
     if (/(?:\b\w+\.reply|(?<![.\w])(?:reply|text|said|line))\s*\|\|\s*(?:['"`][^'"`\n]{12,}|[A-Z][A-Z0-9_]{3,}\b|(?:caseConfirm|replyFromState|clearerCopyAsk|capReply)\()/.test(l) && !GATE.test(l)) {
       out.push(`${file}:${i + 1}: R1 code fallback after a model reply, no outage gate: ${l.trim().slice(0, 140)}`);
@@ -96,7 +100,8 @@ export function noticeFindings(files) {
   const out = [];
   const ms = stripComments(files['wa_inbound/model_says.ts'] || '').join('\n');
   if (!/const notice = io\.outage \? HELD_NOTICE\[lang\] : ''/.test(ms)) out.push('wa_inbound/model_says.ts: R4 holdUnwritten sends HELD_NOTICE without io.outage');
-  const qr = stripComments(files['supplier_api/quote_review_flow.ts'] || '').join('\n');
+  const qr = Object.entries(files).filter(([k]) => k === 'supplier_api/quote_review_flow.ts' || k.startsWith('supplier_api/quote_review_flow/'))
+    .map(([, src]) => stripComments(src || '').join('\n')).join('\n');
   if (!/outage \? await repo\.addMessage\(\{[^}]*body: QR_HELD_NOTICE/.test(qr)) out.push('supplier_api/quote_review_flow.ts: R4 QR_HELD_NOTICE is added without outage');
   if (/await held\(repo, deps, [^;]*\)\.catch/.test(qr)) out.push('supplier_api/quote_review_flow.ts: R4 a failed/killed review adds the held notice without asking the model first');
   const wa = stripComments(WA_HANDLER.map((p) => files[p] || '').join('\n')).join('\n');

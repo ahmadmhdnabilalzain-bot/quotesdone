@@ -32,3 +32,14 @@ test('a split shared module reads as its barrel first, then every runtime file o
 test('a shared module that does not exist is an error, never an empty string', () => {
   assert.throws(() => sharedModuleSource('no_such_module'), /does not exist/);
 });
+
+test('a shared module that is still one file reads as that file alone', () => {
+  assert.deepEqual(sharedModuleFiles('money'), ['supabase/functions/_shared/money.ts']);
+});
+
+test('the quote documents module reads as its barrel first, then its folder', () => {
+  const files = sharedModuleFiles('quote_documents');
+  assert.equal(files[0], 'supabase/functions/_shared/quote_documents.ts');
+  assert.ok(files.length > 1, 'the folder _shared/quote_documents/ is part of the module');
+  assert.ok(files.slice(1).every((f) => f.startsWith('supabase/functions/_shared/quote_documents/') && !/\.(test|check)\.ts$/.test(f)), files.join('\n'));
+});
