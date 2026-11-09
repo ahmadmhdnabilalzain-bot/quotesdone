@@ -14,6 +14,7 @@ import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '.
 import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../../_shared/supplier_terms.ts';
 import { type ActionCtx, J, SUPA_URL, admin, cors, failed, logged, secretVal } from '../context.ts';
 import { PROFILE_COLS, clip } from '../lib/fields.ts';
+import { phoneChanged } from '../lib/phone_change.ts';
 import { notify } from '../lib/quote_acceptance.ts';
 import { priorCrossCheck, recordServicesCrossCheck } from '../lib/services_check.ts';
 
@@ -81,10 +82,13 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
     }
 
     if (action === 'save_profile') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,locale,accepted_terms_at,accepted_terms_version').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,locale,accepted_terms_at,accepted_terms_version,phone').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
+      // A verified mobile stays verified only while it is the number that was verified (H1, 9 Nov 2026):
+      // see lib/phone_change.ts. Prevented by supplier_api/phone_change.test.ts.
+      if (phoneChanged(sup.phone, upd.phone)) upd.owner_phone_verified = false;
       if (Array.isArray(body.service_emirates)) upd.service_emirates = body.service_emirates;
       // THE HOME EMIRATE COMES FROM THE CHIPS (15 Sep 2026, sales_engineer). Since #695 sign-up asks the
       // emirate once, as service-emirate chips, so leads.emirate stopped being filled and nothing here
