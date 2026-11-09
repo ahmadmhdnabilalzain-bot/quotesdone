@@ -6,7 +6,7 @@ migration is stored in.
 
 ## Count correction
 
-`scripts/verify_migrations_in_repo.mjs` reported **22** applied-but-absent migrations. The true
+`scripts/archive/verify_migrations_in_repo.mjs` reported **22** applied-but-absent migrations. The true
 number needing verbatim recovery is **30**. The audit matched by *name*, and eight consolidated
 files reused an applied migration's name while containing merged content from several migrations —
 so they matched the audit and were still not verbatim. Name matching cannot prove fidelity; only a
@@ -48,7 +48,7 @@ checksum can.
 Total 296,347 characters across 30 migrations. **Execution order is version order.**
 
 Recovered files are written as `supabase/migrations/2026080223NN_<name>.sql` by
-`scripts/recover_stage_a_b_b5.mjs`, which verifies each against the checksum above and refuses to
+`scripts/archive/recover_stage_a_b_b5.mjs`, which verifies each against the checksum above and refuses to
 report success on drift.
 
 ## What happens to the previously consolidated files

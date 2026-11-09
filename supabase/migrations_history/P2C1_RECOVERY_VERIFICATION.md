@@ -17,7 +17,7 @@ six-line provenance header that is excluded from the checksum. Checksums were co
 
 ### Two counting corrections, both found by measurement rather than by reading
 
-1. `scripts/verify_migrations_in_repo.mjs` reported **22** applied-but-absent migrations. The true
+1. `scripts/archive/verify_migrations_in_repo.mjs` reported **22** applied-but-absent migrations. The true
    figure was **30**, because eight hand-written consolidations reused an applied migration's *name*
    while containing merged content. Name matching cannot prove fidelity; only a checksum can.
 2. The replay counts applied migrations in the version window instead of trusting either manifest.
@@ -30,7 +30,7 @@ the applied record. Every count in this document is now derived from `schema_mig
 
 ## 2. Production ↔ repository parity
 
-`node scripts/verify_repo_production_parity.mjs`
+`node scripts/archive/verify_repo_production_parity.mjs`
 
 ```
 production migrations, all             : 634
@@ -60,7 +60,7 @@ prefix at all.** The repository has never been a faithful record of the database
 only window that is. This is a material operational risk: a rebuild from the repository today would
 not reproduce production, and no reviewer can see most of what has been applied. It should be a
 work item of its own; recovering it uses exactly the tooling built here
-(`scripts/qsql.mjs`, `scripts/verify_repo_production_parity.mjs`).
+(`scripts/qsql.mjs`, `scripts/archive/verify_repo_production_parity.mjs`).
 
 ## 3. Replay verification
 
@@ -86,7 +86,7 @@ DIFF: (no differences)
 The teardown-residue assertion exists because without it a fingerprint match could be produced by a
 teardown that quietly did nothing. Teardown set: 11 views, 37 tables, 46 function names across all
 overloads, 2 enum types — derived from the recovered files by
-`scripts/inventory_recovered.mjs`, not from a name pattern.
+`scripts/archive/inventory_recovered.mjs`, not from a name pattern.
 
 Replay source is the recorded `statements`, which are SHA-256 identical to the repository files, so
 replaying them replays the repository. A clean empty database is not a usable target: these
@@ -174,7 +174,7 @@ Stage B.6, `2026080223NN` for Stage A/B/B.5. Two problems, one of them dangerous
    Stage A on top of itself.
 
 All 45 files are now named `<applied version>_<name>.sql`, taken from each file's own recovery
-header rather than invented (`scripts/rename_recovered_to_applied_version.mjs`). Filename order is
+header rather than invented (`scripts/archive/rename_recovered_to_applied_version.mjs`). Filename order is
 now applied order, and push sees them as already applied.
 
 The three `p2_01` / `p2_02` / `p2_03` files still carry a filename version that differs from the

@@ -7,7 +7,7 @@
 // that forgot the variable therefore drove the LIVE database from all four, silently, with the
 // only warning in the admin console module those pages never import.
 //
-// That is the same defect the deploy tooling already fixed once (decision D1: deploy_functions.ps1
+// That is the same defect the deploy tooling already fixed once (decision D1: scripts/archive/deploy_functions.ps1
 // "was pinned to the production ref in three places, so the only deploy tool in the repo could
 // only ever target production"). Here it survived in the frontend.
 //

@@ -1,9 +1,12 @@
 # Retired checks
 
-Sixty-two checks whose **subject was deleted**, kept for reading. Nothing runs them: the runner
+Sixty-eight checks whose **subject was deleted**, kept for reading. Nothing runs them: the runner
 (`scripts/checks/run.mjs`) only executes `*.test.mjs` / `*.test.ts`, no workflow names them, and no
 live file imports them. Moved here from `scripts/checks/` on 22 Sep 2026 (founder instruction 642) so
-that the folder of live gates holds only live gates. Older documents and SQL comments that cite
+that the folder of live gates holds only live gates; 3 more that had been retired in place since
+(`a_handoff_waiting_more_than_a_day_is_a_finding`, `the_founder_gets_one_it_digest_per_tick`,
+`the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes`) were moved in on 9 Nov 2026.
+Measured 9 Nov 2026: `ls scripts/checks/retired/*.RETIRED.mjs | wc -l` = 68, and the table has 68 rows. Older documents and SQL comments that cite
 `scripts/checks/<name>.RETIRED.mjs` mean the same file in this folder.
 
 The house rule stays: a check retires WITH its subject — renamed `*.RETIRED.mjs` and moved here,
@@ -17,7 +20,9 @@ The reason column is the file's own header, shortened.
 
 | check | why it was retired (from its header) |
 |---|---|
+| `a_deciding_supply_gap_resumes_when_the_model_hold_lifts.RETIRED.mjs` | RETIRED 5 Oct 2026 (it_engineer) WITH ITS SUBJECT. A supply gap no longer waits in 'deciding' for the model; the LLM burn audit of 5 Oct 2026 (R8) measured 77 gaps holding one identical question with demand 0. |
 | `a_failed_scheduled_run_has_a_reader.RETIRED.mjs` | RETIRED 7 SEPTEMBER 2026 — ITS SUBJECT WAS REMOVED, NOT BROKEN. This asserted that the set of scheduled jobs failing since the stand-down has not changed. |
+| `a_handoff_waiting_more_than_a_day_is_a_finding.RETIRED.mjs` | RETIRED 19 Oct 2026 (it_engineer): the 'open_over_24h' item it asserted was removed; an answered it.finding whose problem is still open is the open queue itself. |
 | `active_signal_types_are_executable.RETIRED.mjs` | RETIRED 7 SEPTEMBER 2026 — ITS SUBJECT WAS REMOVED, NOT BROKEN. This asserted that every active kernel signal type resolves to something that can execute it. |
 | `an_exam_answer_never_becomes_knowledge.RETIRED.mjs` | RETIRED 9 September 2026 — its subject was deleted on 7 September 2026. WHAT WAS DROPPED. This check compared the knowledge body against an independently authored certification question bank. Every table and routine it names is gone from production htdblwldjkcgjvmqkbeh, measured 9 Sep 2026: select … |
 | `an_exam_is_not_edited_to_be_passed.RETIRED.mjs` | RETIRED 9 September 2026 — its subject was deleted on 7 September 2026, the day it was written. WHAT WAS DROPPED. Every table and routine both legs drive is gone from production htdblwldjkcgjvmqkbeh, measured 9 Sep 2026: select to_regclass('public.role_certification') -> null select … |
@@ -69,11 +74,15 @@ The reason column is the file's own header, shortened.
 | `pricing_consistency.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: supabase/functions/supplier_api — Pricing consistency across the supplier surface. IMPORTANT: this guarded the 3% reveal fee, and it must come back the moment a pricing surface exists again -- it is retired because its only subject is gone, not because the rule … |
 | `protected_table_guards_actually_fire.RETIRED.mjs` | RETIRED 9 September 2026 -- with its subject, not softened to green. it drove the a00_/a02_ guards on phase_c_refund_decision and phase_c_workflow_step_run. Those tables and their triggers were dropped. |
 | `quote_compare_bad_id_is_not_a_stalled_customer.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: supabase/functions/quote_compare — Quote comparison. Part of the RFQ pipeline, which the founder is rebuilding per agent. |
+| `reports_have_a_pdf.RETIRED.mjs` | RETIRED 22 Sep 2026 (documents-language audit, DL-13) WITH ITS SUBJECT: the report_pdf edge function is not deployed and the enqueue triggers were dropped. |
 | `scenario_expectation_drift.RETIRED.mjs` | RETIRED 9 SEP 2026 — THE BASELINE, BOTH VIEWS AND THE LEDGER ARE GONE; THERE IS NOTHING TO COMPARE. This file was, by its own account below, only a backstop that noticed if a write-time guard had quietly gone. The guard, the thing it guarded and the baseline it compared against were all dropped with the Phase A–D estate on 9 … |
 | `sql_files_match_live.RETIRED.mjs` | RETIRED 17 Aug 2026 — THIS CHECK CHOSE THE WRONG FILE AND SAID 0. It ranks the files that define a routine by GIT COMMIT TIME and, for a tie inside one commit, accepts live if it matches ANY candidate. The final Phase C acceptance found that certifying operations_assistance_company_reports.sql and … |
 | `supplier_eligibility_covers_match_gates.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: supabase/functions/supplier_portal — Supplier eligibility against the match gates. |
 | `supplier_inbox_identity.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: supplier_api The supplier API surface. Deleted 8 Sep 2026. |
 | `supplier_notification_identity.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: customer_api The customer API surface. Deleted 8 Sep 2026. |
+| `the_enterprise_pipeline_update_carries_a_where.RETIRED.mjs` | RETIRED 30 September 2026 - its subject was deleted. fn_sales_engineer_enterprise_pipeline was dropped with enterprise accounts (founder ruling 30 Sep 2026). |
+| `the_founder_gets_one_it_digest_per_tick.RETIRED.mjs` | RETIRED 22 Sep 2026 WITH ITS SUBJECT (it_engineer, founder instruction 642). The IT digest now leaves once a day at 19:00 Dubai, email only. |
+| `the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.RETIRED.mjs` | RETIRED 27 Oct 2026 (it_engineer): its subject is gone. The founder stopped test mail to his own inboxes; the morning seed was retired. |
 | `the_reporting_map_is_what_the_founder_approved.RETIRED.mjs` | RETIRED 9 September 2026 -- with its subject, not softened to green. it called fn_phase_c_* to read the reporting map. The founder approves nothing now and the routine is dropped. |
 | `upload_kind_is_classified.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: supabase/functions/customer_api — Upload classification on the customer surface. |
 | `v3_runtime_behaviour.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was removed from the company, not from the check. Subject: the v3 knowledge runtime for department agents and category specialists. |

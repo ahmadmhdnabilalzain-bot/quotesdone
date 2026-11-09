@@ -2,7 +2,7 @@
 //
 // ── HOW IT SURFACED ─────────────────────────────────────────────────────────────────────────────
 // The weekly executive meeting now puts its top three priorities to a second officer through
-// fn_challenge (scripts/gen_exec_meeting_agenda_debate_priorities.mjs). Verifying that on staging
+// fn_challenge (scripts/archive/gen_exec_meeting_agenda_debate_priorities.mjs). Verifying that on staging
 // produced a challenge with stance `recommend_against`, confidence 0.75 — and `reasoning` empty.
 //
 // ── THE DEFECT ──────────────────────────────────────────────────────────────────────────────────

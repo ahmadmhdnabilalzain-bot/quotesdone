@@ -1,7 +1,7 @@
 // BRING STAGING UP TO WHAT PRODUCTION ACTUALLY RUNS.
 //
 // verify_prod_parity had been red at 5/8 on seven objects. Diffed character by character
-// (scripts/diff_drifted_objects.mjs), three carry REAL fixes that only ever reached production:
+// (scripts/archive/diff_drifted_objects.mjs), three carry REAL fixes that only ever reached production:
 //
 //   enqueue_supplier_invites  production marks both CTEs MATERIALIZED, with a comment recording why:
 //                             without the keyword Postgres inlines them into a correlated subquery
