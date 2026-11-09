@@ -1,6 +1,6 @@
 // A NAMED INQUIRY DECIDES ITS OWN MATCH CRITERIA — THE CALLER DOES NOT.
 //
-// 23 Sep 2026 (sales_engineer). The `match` action of supabase/functions/sales_engineer/index.ts
+// 23 Sep 2026 (sales_engineer). The `match` action of supabase/functions/sales_engineer/ (actions/operator.ts)
 // took `body.inquiry_id` and then read `body.trades`, `body.products`, `body.brands`,
 // `body.emirate`, `body.value`, `body.project_type`, `body.need` and `body.text` as `body.x || inq.x`
 // — so the body won on every criterion of an inquiry the caller had not been checked against.
@@ -26,17 +26,16 @@
 //   node --test scripts/checks/match_criteria_come_from_the_stored_inquiry.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
-const FN = 'supabase/functions/sales_engineer/index.ts';
+const FN = 'supabase/functions/sales_engineer/';
 
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
 function matchBranch() {
-  const src = readFileSync(REPO + FN, 'utf8');
+  const src = functionSource('sales_engineer');
   const from = src.indexOf("if (action === 'match') {");
   const to = src.indexOf("if (action === 'health') {", from);
   assert.ok(from > 0 && to > from, 'the match branch was not found in ' + FN);
@@ -54,7 +53,7 @@ test('no caller without an owner check can reach match, and the build enforces i
   // type, and this asserts both halves of it: the cutoff still precedes the branch in source order,
   // and the assignment that goes red if it ever stops doing so is still present. Measured 23 Sep 2026:
   // deleting the cutoff makes `deno check` fail with TS2322 on that assignment.
-  const src = readFileSync(REPO + FN, 'utf8');
+  const src = functionSource('sales_engineer');
   const cutoff = src.indexOf("if (caller.kind === 'customer') return J({ error: 'forbidden', action }, 403);");
   const branch = src.indexOf("if (action === 'match') {");
   assert.ok(cutoff > 0, 'the customer cutoff is gone from sales_engineer');

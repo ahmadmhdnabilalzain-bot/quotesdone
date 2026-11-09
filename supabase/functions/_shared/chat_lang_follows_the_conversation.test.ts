@@ -6,6 +6,7 @@
 // write in. A message in one script decides; a message that mixes both keeps the language the conversation began in.
 import { assertEquals } from 'jsr:@std/assert@1';
 import { langOf, turnLang } from './chat_answers.ts';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const mixed = 'ZZ DEMO sorry, الزجاج 8 مم مو 6mm. And the villa is in Sharjah, Al Rahmaniya, not Dubai like I told you before?';
 const enStart = [{ role: 'user', content: 'ZZ DEMO Hi, I need aluminium windows for my villa in Sharjah: 12 windows.' }, { role: 'assistant', content: 'Thanks.' }];
@@ -47,7 +48,7 @@ Deno.test('the widget, the portal, aiReply (WhatsApp) and the WhatsApp language 
   // the language is a WHOLE-reply rule (review of #1830): handed to answerFromBrief as checkWhole, never run per streamed sentence
   assert(/replyLanguageProblems\(t, lang\)/.test(read('../site_assistant/reply_check.ts')), 'the widget\'s whole-reply language check');
   assert(/checkWhole: siteReplyLanguage\(replyLang\)/.test(read('../site_assistant/index.ts')), 'site_assistant passes it as checkWhole');
-  assert(/checkWhole: \(t: string\) => replyLanguageProblems\(t, lang\)/.test(read('../sales_engineer/index.ts')), 'sales_engineer checkWhole');
+  assert(/checkWhole: \(t: string\) => replyLanguageProblems\(t, lang\)/.test(functionSource('sales_engineer')), 'sales_engineer checkWhole');
   assert(/replyLanguageProblems\(t, replyLang\)/.test(read('./ai_reply.ts')), 'aiReply whole-reply check');
   assert(!/const sentenceCheck = [^\n]*replyLanguageProblems/.test(read('./ai_reply.ts')) && /const sentenceCheck = [^\n]*audience === 'supplier' \? english/.test(read('./ai_reply.ts')), 'aiReply\'s sentence check judges only a supplier\'s language');
   assert(/langGiven \?\? turnLang\(Body/.test(read('../wa_inbound/index.ts')), 'wa_inbound language');

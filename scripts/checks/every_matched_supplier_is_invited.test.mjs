@@ -5,7 +5,7 @@
 // sweep widened by at most match_max_fanout.
 //
 // This check fails if an invitation count cap comes back on either path that writes inquiry_matches:
-//   1. supabase/functions/sales_engineer/index.ts — the match reads neither dial, stops on no count, and asks
+//   1. supabase/functions/sales_engineer/ (the match action, actions/operator.ts) — the match reads neither dial, stops on no count, and asks
 //      fn_match_capability for every candidate (MATCH_ALL), not a top N;
 //   2. fn_rfq_short_of_quotes_tick — its winning definition (MANIFEST order, then files noted as pending) reads no
 //      fanout dial and puts no LIMIT on the candidates it invites.
@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { definitions } from '../lib/canonical_sql.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO, p), 'utf8');
@@ -24,7 +25,7 @@ const sqlCode = (s) => s.replace(/--.*$/gm, '');
 const DIAL = new RegExp('match_max_' + 'fanout');
 
 test('sales_engineer invites every matched supplier: no fanout dial, no count stop, no top-N limit', () => {
-  const src = tsCode(read('supabase/functions/sales_engineer/index.ts'));
+  const src = tsCode(functionSource('sales_engineer'));
   assert.ok(!DIAL.test(src), 'sales_engineer reads a fanout dial again');
   assert.ok(!/picked\.length\s*>=|usedByTrade/.test(src), 'a count stop is back in the pick loop');
   assert.match(src, /const picked = aboveFloor;/, 'the invited list is no longer every supplier above the floor');

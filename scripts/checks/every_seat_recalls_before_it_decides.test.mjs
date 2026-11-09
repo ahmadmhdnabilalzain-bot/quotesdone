@@ -35,9 +35,9 @@ const SQL_FILE = 'scripts/sql/every_seat_remembers_its_cases_and_recalls_them_by
 
 // file, seat, path, and the text of the step that decides — the recall must come before it.
 export const DECISION_PATHS = [
-  ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'assist', "admin.rpc('fn_sales_assist'"],
-  ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'match', "admin.rpc('fn_match_capability'"],
-  ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'spec_offer', "admin.rpc('fn_spec_offer_open'"],
+  ['supabase/functions/sales_engineer/actions/portal.ts', 'sales_engineer', 'assist', "admin.rpc('fn_sales_assist'"],
+  ['supabase/functions/sales_engineer/actions/operator.ts', 'sales_engineer', 'match', "admin.rpc('fn_match_capability'"],
+  ['supabase/functions/sales_engineer/lib/spec_offer.ts', 'sales_engineer', 'spec_offer', "admin.rpc('fn_spec_offer_open'"],
   ['supabase/functions/site_assistant/index.ts', 'customer_support', 'reply', 'const sys = `You are QuotesDone'],
   ['supabase/functions/ceo_agent/index.ts', 'ceo', 'decide', "admin.from('ceo_approval').insert("],
   ['supabase/functions/ceo_agent/index.ts', 'ceo', 'judgement', 'await llm('],

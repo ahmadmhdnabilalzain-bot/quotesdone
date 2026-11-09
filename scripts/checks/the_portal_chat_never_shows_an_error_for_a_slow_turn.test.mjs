@@ -15,6 +15,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 import { answerAfter, noVerdict, readReply, savedLineDue } from '../../src/lib/portalReply.ts';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
@@ -74,7 +75,7 @@ test('1339: the saved line only when the answer never arrived or OpenRouter was 
   const s = read('src/components/me/PortalShell.tsx');
   assert.match(s, /if \(!reply && token && noVerdict\(j\)\)/, 'only an answer that never arrived is looked for');
   assert.match(s, /savedLineDue\(j, reply\) \? \[\.\.\.m, \{ role: 'notice', content: t\(stored \? 'asst_saved' : 'asst_not_sent'\) \}\] : m/, 'the saved line must be gated by savedLineDue');
-  const se = read('supabase/functions/sales_engineer/index.ts');
+  const se = functionSource('sales_engineer');
   assert.match(se, /error: 'no_answer', outage, attempts: a\.attempts/, 'the assist 503 must carry outage');
   assert.match(se, /const outage = a\.outage === true;/);
   assert.match(se, /error: 'no_model_credential', outage: true \}/, 'no credential is an outage (openrouter_down.ts)');
@@ -93,9 +94,10 @@ test('the panel never prints an error line for a turn; it streams, looks for the
 });
 
 test('the turn is one streamed call on the conversation route, inside its clock, with no think() chain on its path', () => {
-  const s = read('supabase/functions/sales_engineer/index.ts');
+  const s = functionSource('sales_engineer');
   const a = s.indexOf("if (action === 'assist') {");
-  const turn = s.slice(a, s.indexOf('// ── CONVERSATIONS', a));
+  // the turn is the assist handler: the last one in actions/portal.ts, so it ends where the next module's header comment begins
+  const turn = s.slice(a, s.indexOf('\n// sales_engineer — ', a));
   assert.ok(a > 0 && turn.length > 0);
   assert.match(turn, /const deadline = t0 \+ PORTAL_TURN_MS;/);
   assert.match(turn, /await answerFromBrief\(\{/);

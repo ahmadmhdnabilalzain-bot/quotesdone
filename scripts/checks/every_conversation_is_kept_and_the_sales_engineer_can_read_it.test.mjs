@@ -55,7 +55,7 @@ test('no edge function removes a row from a conversation store', () => {
 });
 
 test('the sales engineer seat reads the whole record, and the heartbeat archives it', () => {
-  const se = readFileSync(join(FN, 'sales_engineer', 'index.ts'), 'utf8');
+  const se = functionSource('sales_engineer');
   assert.match(se, /action === 'conversations'/, 'sales_engineer lost its conversations action');
   assert.match(se, /rpc\('fn_conversation_record'/, 'the conversations action no longer reads fn_conversation_record');
   assert.match(se, /from\('assistant_logs'\)\.insert/, 'the portal chat with the sales engineer is no longer saved');

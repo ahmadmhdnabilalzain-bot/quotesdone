@@ -1,6 +1,6 @@
 // A FAILED NO-EXACT-SPEC CHECK BACKS OFF INSTEAD OF RETRYING EVERY TICK (it_engineer, 22 Sep 2026,
 // founder instruction 705). The recurrence check for scripts/sql/a_failed_spec_check_backs_off_instead_of
-// _retrying_every_tick.sql and the sweep in supabase/functions/sales_engineer/index.ts.
+// _retrying_every_tick.sql and the sweep in supabase/functions/sales_engineer/lib/spec_offer.ts.
 //
 // Two halves:
 //   REPOSITORY  the sweep asks quote_compare for technical_only (no model) and reports every failure to
@@ -16,13 +16,15 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 
 test('the sweep never asks for the paid comparison and never retries silently', () => {
-  const se = read('supabase/functions/sales_engineer/index.ts');
-  const sweep = se.slice(se.indexOf('async function specOfferSweep'), se.indexOf("const { data: due, error: dErr }"));
+  const se = functionSource('sales_engineer');
+  const sweepAt = se.indexOf('async function specOfferSweep');
+  const sweep = se.slice(sweepAt, se.indexOf("const { data: due, error: dErr }", sweepAt));
   assert.ok(sweep.length > 200, 'specOfferSweep not found');
   assert.match(sweep, /functions\/v1\/quote_compare[\s\S]*technical_only: true/, 'the sweep must ask quote_compare for technical_only');
   assert.match(sweep, /fn_spec_offer_failed/, 'every failure must be counted by fn_spec_offer_failed');

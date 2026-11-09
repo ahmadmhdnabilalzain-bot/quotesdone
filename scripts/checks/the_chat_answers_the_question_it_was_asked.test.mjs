@@ -11,6 +11,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 
@@ -23,7 +24,7 @@ test('site_assistant has no stored-answer route: the reply is one model call fro
 });
 
 test('sales_engineer gives the own quote to the model as a fact, prints no assembled passages, no raw tags', () => {
-  const s = read('supabase/functions/sales_engineer/index.ts');
+  const s = functionSource('sales_engineer');
   const own = s.indexOf('answerFromOwnQuotes(caller.customerId');
   const rpc = s.indexOf("rpc('fn_sales_assist'");
   assert.ok(own > 0 && rpc > 0 && own < rpc, 'own-quote fact must precede fn_sales_assist');

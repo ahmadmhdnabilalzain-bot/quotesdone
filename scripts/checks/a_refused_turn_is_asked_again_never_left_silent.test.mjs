@@ -41,7 +41,10 @@ export function portalFindings(src) {
   const out = [];
   const s = code(src);
   const a = s.indexOf("if (action === 'assist') {");
-  const turn = s.slice(a, s.indexOf('// ── CONVERSATIONS', a) > 0 ? s.indexOf('// ── CONVERSATIONS', a) : undefined);
+  // The turn ends where its handler ends. assist is the last handler of actions/portal.ts, and the next module's first line is an import
+  // or an export; the old end marker was a comment, which code() has already removed, so the slice used to run to the end of the file.
+  const nextModule = s.slice(a).search(/\n(import|export) /);
+  const turn = s.slice(a, nextModule > 0 ? a + nextModule : undefined);
   if (!/const owed = !reply && a\.outage !== true;/.test(turn)) out.push('the portal turn does not decide that a refused turn is owed an answer');
   if (!/p_surface: 'sales_engineer\.portal_unwritten'/.test(turn)) out.push('a refused portal turn is not filed for the re-ask');
   if (!/error: 'no_answer', outage, attempts: a\.attempts, pending, held_id/.test(turn)) out.push('the portal is not told the turn is pending');
@@ -49,7 +52,7 @@ export function portalFindings(src) {
 }
 
 test('W1: every surface that can refuse files its turn for the re-ask, with the turn as data and its own turn id', () => {
-  assert.deepEqual(portalFindings(read('supabase/functions/sales_engineer/index.ts')), []);
+  assert.deepEqual(portalFindings(functionSource('sales_engineer')), []);
   assert.deepEqual(intakeFindings(read('supabase/functions/inquiry_intake/index.ts')), []);
   const ms = code(read('supabase/functions/wa_inbound/model_says.ts'));
   assert.match(ms, /turn_id: 'wa:'/, 'WhatsApp: two people sending the same words must be two turns (qhash reads context)');
@@ -80,7 +83,7 @@ test('W2: one list of re-ask surfaces in TypeScript and SQL; the replay leaves t
   const pending = existsSync(new URL('../../scripts/sql/pending/a_refused_turn_is_asked_again_within_minutes_never_left_silent.txt', import.meta.url));
   const listed = read('scripts/sql/MANIFEST.txt').split(/\r?\n/).some((l) => l.trim() === SQL);
   assert.ok(pending !== listed, pending ? 'a pending file that is also in MANIFEST' : 'the file is neither pending with a note nor in MANIFEST');
-  assert.match(code(read('supabase/functions/sales_engineer/index.ts')), /if \(action === 'reask_turns'\) \{/);
+  assert.match(code(functionSource('sales_engineer')), /if \(action === 'reask_turns'\) \{/);
   assert.match(ts, /otherFamilyFirst: true, effort: 'high'/, 'the re-ask must ask differently, not repeat the refused call');
   assert.match(ts, /const safe = await customerSafe\(/, 'customerSafe must run again on the portal re-ask');
 });
@@ -144,7 +147,7 @@ export function reviewFindings(sql, reask, portal) {
 }
 
 test('review of #1657: the kick sends the publishable key and only when a row is due; a lost claim and an unfiled turn change nothing', () => {
-  assert.deepEqual(reviewFindings(read(SQL), read('supabase/functions/_shared/reask.ts'), code(read('supabase/functions/sales_engineer/index.ts'))), []);
+  assert.deepEqual(reviewFindings(read(SQL), read('supabase/functions/_shared/reask.ts'), code(functionSource('sales_engineer'))), []);
   assert.ok(read(SQL).includes('revoke execute on function public.fn_reask_any_due() from public, anon, authenticated;'), 'no revoke for fn_reask_any_due()');
 });
 

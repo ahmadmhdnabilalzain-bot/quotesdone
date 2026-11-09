@@ -7221,7 +7221,7 @@
   "f6176e44ad65",
   "f9c2c1a81aed"
  ],
- "supabase/functions/sales_engineer/index.ts": [
+ "supabase/functions/sales_engineer/lib/own_quotes.ts": [
   "326fac240e11"
  ],
  "supabase/functions/sales_engineer/portal_conversation.ts": [
