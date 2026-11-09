@@ -5,6 +5,7 @@
 // attempt; or the build-test expiry loses its fixture criteria. Offline: reads the committed tree only.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { functionSource } from '../lib/function_sources.mjs';
 import { readFileSync, readdirSync } from 'node:fs';
 import { sharedModuleSource } from '../lib/function_sources.mjs';
 
@@ -22,7 +23,7 @@ test('no spend ceiling or per-class cap exists in the gateway, the guards or any
   const capKey = "'llm_" + "cap_'";
   const gate = ['fn', 'llm', 'budget', 'gate'].join('_');
   for (const f of ['supabase/functions/ai_gateway/index.ts', 'supabase/functions/_shared/spend_guards.ts']) {
-    const c = code(readFileSync(f, 'utf8'));
+    const c = code(f === 'supabase/functions/ai_gateway/index.ts' ? functionSource('ai_gateway') : readFileSync(f, 'utf8'));
     assert.ok(!c.includes(gate) && !c.includes(ceilingKey), `${f} reads no spend ceiling`);
   }
   for (const f of readdirSync('scripts/sql').filter((x) => x.endsWith('.sql'))) {
@@ -76,5 +77,5 @@ test('no department budget halt and no pair ceiling: fn_ai_route never refuses o
   const pair = code(f.slice(f.indexOf('CREATE OR REPLACE FUNCTION public.fn_seat_deliberation_budget(')));
   assert.doesNotMatch(pair, /cap_aed_month/);
   assert.match(pair, /'ok', true/);
-  assert.doesNotMatch(code(readFileSync('supabase/functions/ai_gateway/index.ts', 'utf8')), /budget_halted/);
+  assert.doesNotMatch(code(functionSource('ai_gateway')), /budget_halted/);
 });

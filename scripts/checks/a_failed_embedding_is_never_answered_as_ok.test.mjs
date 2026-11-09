@@ -9,6 +9,7 @@
 //   node --test scripts/checks/a_failed_embedding_is_never_answered_as_ok.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { functionSource } from '../lib/function_sources.mjs';
 import { readFileSync } from 'node:fs';
 
 const ROOT = new URL('../../', import.meta.url);
@@ -30,9 +31,9 @@ test('a real vector is 200 ok:true and carries the vector unchanged', () => {
 });
 
 test("ai_gateway answers the embed action only through embedAnswer", () => {
-  const src = readFileSync(new URL('supabase/functions/ai_gateway/index.ts', ROOT), 'utf8').replace(/\r\n/g, '\n');
+  const src = functionSource('ai_gateway').replace(/\r\n/g, '\n');
   const start = src.indexOf("body.action === 'embed'");
-  assert.ok(start > 0, 'the embed action branch was not found in ai_gateway/index.ts');
+  assert.ok(start > 0, 'the embed action branch was not found in the ai_gateway function');
   const branch = src.slice(start, src.indexOf('\n    }\n', start));
   assert.match(branch, /embedAnswer\(/, 'the embed branch no longer uses embedAnswer');
   assert.match(branch, /return J\(a\.body, a\.status\)/, 'the embed branch must return embedAnswer\'s status');

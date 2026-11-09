@@ -24,7 +24,7 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 // check lets a test run through INSIDE its tagged, open window and tags the costed row; untagged or outside its
 // window it is still refused before the provider key is read.
 test('ruling 1260: inside its window a test run is tagged and costed; outside it, it is refused', () => {
-  const gw = read('supabase/functions/ai_gateway/index.ts');
+  const gw = functionSource('ai_gateway');
   const fx = gw.indexOf("admin.rpc('fn_ai_subject_is_fixture'");
   const key = gw.indexOf("sec('openrouter_api_key')");
   const dry = gw.indexOf('if (dry) {');

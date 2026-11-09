@@ -3,8 +3,9 @@
 // worker, by the in-process model. Every vector now comes from embed_ml through _shared/ml_embed_client.ts.
 //   deno test supabase/functions/ai_gateway/embed_is_remote.test.ts
 import { assert, assertMatch } from 'jsr:@std/assert';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
-const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url)).replace(/\r\n/g, '\n');
+const src = functionSource('ai_gateway').replace(/\r\n/g, '\n');
 
 Deno.test('the gateway source builds no model session of its own', () => {
   assert(!/Supabase\s*\??\.\s*ai/.test(src), 'ai_gateway/index.ts reaches the in-process model again');

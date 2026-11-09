@@ -8,6 +8,7 @@
 // our_own_test_traffic_never_reaches_a_paid_model.test.mjs.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { functionSource } from '../lib/function_sources.mjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +17,7 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 
 test('ai_gateway: at most two paid calls per request, and none after a refusal that cannot change', () => {
-  const gw = read('supabase/functions/ai_gateway/index.ts');
+  const gw = functionSource('ai_gateway');
   assert.match(gw, /const plan = attemptPlan\(ladder\)/, 'the paid attempts must come from attemptPlan');
   // 3 Nov 2026: an empty completion our own work paid for moves to the next model, never the same one again (emptyPaid).
   assert.match(gw, /pi = nextAttempt\(plan, pi, (emptyPaid \? 'next' : )?failureKind\(failStatus\)\)/, 'the next attempt must depend on why the last one failed');

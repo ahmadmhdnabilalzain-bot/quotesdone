@@ -83,7 +83,7 @@ test('every review class is declared with the author classes it judges', () => {
 });
 
 test('the gateway refuses a review class without its author, and writes the author where the backstop reads it', () => {
-  const gw = read('supabase/functions/ai_gateway/index.ts');
+  const gw = functionSource('ai_gateway');
   assert.match(gw, /from\('model_policy'\)\.select\('reviews_class'\)/);
   assert.match(gw, /outcome: 'review_needs_counterpart'/);
   assert.match(gw, /route\.why = String\(route\.why \?\? ''\) \+ ' \| counterpart_model=' \+/);

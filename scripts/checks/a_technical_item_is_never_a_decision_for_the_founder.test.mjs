@@ -9,6 +9,7 @@
 import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { functionSource } from '../lib/function_sources.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
@@ -32,7 +33,7 @@ test('no review- or deliberation-independence class routes to the founder', () =
 });
 
 test('a closed rehearsal window is never a review hold; a drill never judges an unknown author', () => {
-  const gw = readFileSync('supabase/functions/ai_gateway/index.ts', 'utf8');
+  const gw = functionSource('ai_gateway');
   assert.match(gw, /\^\(founder_hold\|exception\|rehearsal_window_closed\):/, 'ai_gateway must not record a rehearsal_window_closed refusal as a review_hold');
   const drill = readFileSync('scripts/e2e/expert_conversation_rehearsal.mjs', 'utf8');
   assert.doesNotMatch(drill, /\|\|\s*'unknown'/, 'the drill must not send counterpart_model unknown to the judge');
