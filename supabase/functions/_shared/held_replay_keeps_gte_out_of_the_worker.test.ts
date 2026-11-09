@@ -148,6 +148,18 @@ async function depsTakers(): Promise<Map<string, Taker>> {
     }
   };
   await walk(SHARED, '');
+  // A barrel (think.ts, split into think/*.ts on 9 Nov 2026) re-exports names defined in a folder beside it: a caller imports
+  // the barrel, so each re-exported taker is also known under the barrel's own path.
+  for (const e of Deno.readDirSync(SHARED)) {
+    if (!e.isFile || !e.name.endsWith('.ts') || e.name.endsWith('.test.ts')) continue;
+    const src = await Deno.readTextFile(new URL(e.name, SHARED));
+    for (const m of src.matchAll(/^export\s+(?:type\s+)?\{([^}]*)\}\s*from\s*'\.\/([^']+)'/gm)) {
+      for (const name of m[1].split(',').map((x) => x.trim()).filter(Boolean)) {
+        const t = out.get(m[2] + '::' + name);
+        if (t) out.set(e.name + '::' + name, t);
+      }
+    }
+  }
   return out;
 }
 /** local name -> the _shared file and exported name it is bound to, from static and dynamic imports. */

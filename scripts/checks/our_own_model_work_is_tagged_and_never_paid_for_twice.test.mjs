@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sharedModuleSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -33,7 +34,7 @@ test('every request the WhatsApp exchange driver makes carries the run tag and i
 });
 
 test('internal duty is DECLARED per surface by the replay, never inferred from the audience or the function', () => {
-  const th = read('supabase/functions/_shared/think.ts');
+  const th = sharedModuleSource('think');
   assert.match(th, /const internalDuty = req\.internalDuty === true && INTERNAL_AUDIENCES\.has\(audience\);/);
   assert.match(th, /internalDuty: INTERNAL_DUTY_SURFACE\.test\(row\.surface\)/, 'only replayHeld declares it, by surface');
   assert.match(th, /\(ownWork && \/empty_completion\/\.test\(e\)\)/, 'only our own work skips the retry after a paid empty answer');

@@ -25,7 +25,7 @@ import { join, dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
-import { functionSource } from '../lib/function_sources.mjs';
+import { functionSource, sharedModuleSource } from '../lib/function_sources.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -42,8 +42,10 @@ function walk(dir, out = []) {
 }
 
 test('think() recalls through the shared recall, which opens the judgement WITH its recall record', () => {
-  const think = read('supabase/functions/_shared/think.ts');
-  const body = think.slice(think.indexOf('export async function think('), think.indexOf('// ── the live dependencies'));
+  const think = sharedModuleSource('think');
+  // think() is the function itself: from its signature to the closing brace at column 0 (the modules are joined in path order).
+  const start = think.indexOf('export async function think(');
+  const body = think.slice(start, think.indexOf('\n}\n', start) + 3);
   const at = body.indexOf('await recallCases(deps');
   assert.ok(at > 0, 'think() no longer recalls through recallCases');
   assert.ok(at < body.indexOf("deps.llm('synthesise'"), 'think() recalls after it has decided');
@@ -57,7 +59,7 @@ test('think() recalls through the shared recall, which opens the judgement WITH 
 // 28 Sep 2026: 9 of 9 production judgements sat at 'recalled' forever, and none said which recalled case it
 // used. The trace must name the case a decision followed (scripts/sql/a_decision_names_the_recalled_case_it_followed.sql).
 test('a decision closes its judgement and names the recalled case it followed', () => {
-  const think = read('supabase/functions/_shared/think.ts');
+  const think = sharedModuleSource('think');
   assert.match(think, /p_followed: o\.followed \?\? null/, 'think() no longer passes the cases it followed');
   assert.match(think, /followed: \(draft\.cited \?\? \[\]\)\.filter/, 'think() no longer derives followed cases from what it cited');
   const recall = read('supabase/functions/_shared/case_recall.ts');
@@ -74,7 +76,7 @@ test('no think() caller runs another engine, and every reasoning seat routes thr
   const offenders = [];
   for (const f of walk(join(REPO, 'supabase', 'functions'))) {
     const src = readFileSync(f, 'utf8');
-    if (/(^|[^.\w])think\(deps|await think\(/.test(src) && !/from '(\.\/|\.\.\/|\.\.\/_shared\/)think\.ts'/.test(src) && !f.endsWith('think.ts')) offenders.push(f);
+    if (/(^|[^.\w])think\(deps|await think\(/.test(src) && !/from '(\.\/|\.\.\/|\.\.\/_shared\/)think\.ts'/.test(src) && !f.endsWith('think.ts') && !f.includes('/_shared/think/')) offenders.push(f);
   }
   assert.deepEqual(offenders, []);
 });

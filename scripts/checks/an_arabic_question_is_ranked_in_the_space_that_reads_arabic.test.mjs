@@ -19,6 +19,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readPacks, rowsOf } from '../kb/verified_packs.mjs';
 import { mlClean, mlQueryText, mlRowText, gteReads, ML_QUERY_PREFIX, ML_PASSAGE_PREFIX } from '../kb/ml_embed_recipe.mjs';
+import { sharedModuleSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -61,7 +62,7 @@ test('gte-small is not asked about an Arabic question, in think() or in the dail
   assert.equal(gteReads('ما معدات شحن CCS2 وType 2 في الإمارات؟'), false);
   assert.equal(gteReads('How is rebar priced in the UAE?'), true);
   assert.equal(gteReads('Price of OPC cement in Dubai - إسمنت'), true);
-  assert.match(read('supabase/functions/_shared/think.ts'), /const vg = rt === ROUTINES\.ml && gteReads\(s\.query\) \?/);
+  assert.match(sharedModuleSource('think'), /const vg = rt === ROUTINES\.ml && gteReads\(s\.query\) \?/);
   assert.match(read(FILE), /fn_reason_retrieve_ml\(q\.seat, q\.embedding_ml, case when q\.lang = 'ar' then null else q\.embedding end, 6\)/);
 });
 

@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCustomerPortal } from '../lib/portal_sources.mjs';
+import { sharedModuleSource } from '../lib/function_sources.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO, p), 'utf8');
@@ -25,7 +26,7 @@ const num = (src, name) => { const m = new RegExp(`\\b${name}\\s*=\\s*([\\d_]+)`
 const INDEX = read('supabase/functions/inquiry_intake/index.ts');
 const CLOCK = read('supabase/functions/inquiry_intake/turn_clock.ts');
 const DECISIONS = read('supabase/functions/_shared/reasoned_decisions.ts');
-const THINK = read('supabase/functions/_shared/think.ts');
+const THINK = sharedModuleSource('think');
 const SLOTS = read('supabase/functions/inquiry_intake/slots.ts');
 const GUARD = read('supabase/functions/_shared/support_reply_guard.ts');
 const PORTAL = readCustomerPortal();

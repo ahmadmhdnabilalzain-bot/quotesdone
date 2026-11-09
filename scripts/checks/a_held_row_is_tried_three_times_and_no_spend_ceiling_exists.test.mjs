@@ -6,6 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
+import { sharedModuleSource } from '../lib/function_sources.mjs';
 
 const FILE = 'scripts/sql/a_held_row_is_tried_three_times_and_the_build_test_backlog_is_expired.sql';
 const SQL = readFileSync(FILE, 'utf8');
@@ -57,7 +58,7 @@ test('a fixture row is never replayed: fn_reason_held_due expires it before any 
   const exp = due.indexOf("set status = 'expired'"), claim = due.indexOf('for update skip locked');
   assert.ok(exp > 0 && exp < claim, 'fixture rows are expired before the claim');
   assert.match(due.slice(exp, claim), /ZZ DEMO\|@example\\.invalid[\s\S]*subject->>'fixture' = 'true'/);
-  const think = readFileSync('supabase/functions/_shared/think.ts', 'utf8');
+  const think = sharedModuleSource('think');
   assert.match(think, /if \(isFixtureRequest\(req\)\)[^\n]*\n\s*else if \(req\.queueWhenHeld !== false\)/);
   assert.match(readFileSync('supabase/functions/inquiry_intake/index.ts', 'utf8'), /endsWith\('@example\.invalid'\) \? \{ fixture: true \}/);
 });

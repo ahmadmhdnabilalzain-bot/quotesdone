@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { replaySql } from '../lib/safe_replay.mjs';
 import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
-import { functionSource } from '../lib/function_sources.mjs';
+import { functionSource, sharedModuleSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -79,7 +79,7 @@ test('no migrated decision point is decided by a word list again, and each one a
     assert.ok(typeof p.held === 'string' && p.held.length > 20, `${p.id}: a migrated point says what happens under the hold (held)`);
   }
   // the engine every migrated point goes through
-  const th = read('supabase/functions/_shared/think.ts');
+  const th = sharedModuleSource('think');
   for (const s of ["deps.rpc(rt.retrieve, ", "gte: { retrieve: 'fn_reason_retrieve', recall: 'fn_case_recall'", "ml: { retrieve: 'fn_reason_retrieve_ml', recall: 'fn_case_recall_ml'", "deps.rpc('fn_reason_hold'", "deps.rpc('fn_reason_propose_knowledge'", 'counterpartModel: model', 'refuse(draft']) {
     assert.ok(th.includes(s), `think.ts lost ${s}`);
   }
