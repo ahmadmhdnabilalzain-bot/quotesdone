@@ -30,7 +30,7 @@ import { functionSource } from '../lib/function_sources.mjs';
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 // A proof that names one of these index.ts files means the whole function: index.ts plus the modules it was split into.
-const WHOLE_FN = /^supabase\/functions\/(resilience_ping|customer_api|supplier_api|sales_engineer|wa_inbound)\/index\.ts$/;
+const WHOLE_FN = /^supabase\/functions\/(resilience_ping|customer_api|supplier_api|sales_engineer|wa_inbound|accountant)\/index\.ts$/;
 const REGISTRY = JSON.parse(read('supabase/functions/_shared/decision_points.json'));
 const ENGINE = 'scripts/sql/every_seat_reasons_before_it_answers.sql';
 const MIGRATE = 'scripts/sql/meaning_is_decided_by_reasoning_not_by_word_lists.sql';

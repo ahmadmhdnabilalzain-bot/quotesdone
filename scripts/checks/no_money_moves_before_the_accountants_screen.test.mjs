@@ -32,7 +32,8 @@ test('every reveal door passes canReveal, and canReveal asks the screen and refu
 });
 
 test('execute_refunds asks the screen for each approved refund before Stripe is called', () => {
-  const src = read('supabase/functions/accountant/index.ts');
+  // the whole function (index.ts plus its modules since 9 Nov 2026); the slice below ends inside the same handler
+  const src = functionSource('accountant');
   const start = src.indexOf("if (action === 'execute_refunds')");
   assert.ok(start > 0, 'execute_refunds is gone from the accountant');
   const body = src.slice(start, src.indexOf('// A single named refund', start));

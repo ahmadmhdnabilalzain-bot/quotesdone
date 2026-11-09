@@ -1,5 +1,5 @@
-// accountant — the contract of the door, pinned offline (it_engineer, 9 Nov 2026), written BEFORE the 1,715-line
-// index.ts was split into modules so the split could be proved against it.
+// accountant — the contract of the door, pinned offline (9 Nov 2026), written BEFORE the 1,715-line index.ts was
+// split into modules so the split could be proved against it: 48/48 on the single file, 48/48 on the split one.
 //
 // What it pins, driving the REAL handler (Deno.serve is captured on import) over a stubbed fetch that answers as
 // PostgREST, GoTrue, Storage, Stripe and Resend would. Nothing reaches a real host: every URL that is not

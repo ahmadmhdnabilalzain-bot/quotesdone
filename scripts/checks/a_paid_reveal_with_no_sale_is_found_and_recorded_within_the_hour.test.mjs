@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -21,7 +22,9 @@ const F = 'scripts/sql/a_paid_reveal_with_no_sale_is_found_and_recorded_within_t
 const PROBE = F.replace(/\.sql$/, '_probe.sql');
 const code = read(F).split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const SWEEP = read('supabase/functions/_shared/reveal_reconcile.ts');
-const ACC = read('supabase/functions/accountant/index.ts');
+// the whole accountant function: index.ts plus the modules it was split into on 9 Nov 2026 (reveal_reconcile and
+// bank_statement are both in actions/reconcile.ts, in that order, so the slice below stays inside the one handler)
+const ACC = functionSource('accountant');
 
 const body = (fn) => {
   const at = code.indexOf(`create or replace function public.${fn}(`);
@@ -63,7 +66,7 @@ test('the runtime records through recordRevealSale only, with a bounded sweep, a
   assert.match(a, /xs\.slice\(i \* 100, i \* 100 \+ 100\)/, 'the transactions lookup is not chunked');
   assert.match(a, /rpc\('fn_accountant_reveal_reconcile_record'/);
   assert.match(a, /throw new Error\('transactions could not be read: '/, 'an unread book must stop the sweep, not read as empty');
-  assert.match(ACC, /import \{ recordRevealSale \} from '\.\.\/_shared\/reveal_sale\.ts';/);
+  assert.match(ACC, /import \{ recordRevealSale \} from '(\.\.\/)+_shared\/reveal_sale\.ts';/);   // actions/ is one level deeper
 });
 
 test('the sweep never records an invoice id as the payment reference, and lists by created[gte] with paging', () => {

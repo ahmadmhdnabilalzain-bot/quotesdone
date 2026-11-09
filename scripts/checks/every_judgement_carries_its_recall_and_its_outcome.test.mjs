@@ -63,7 +63,9 @@ test('a decision closes its judgement and names the recalled case it followed', 
   const recall = read('supabase/functions/_shared/case_recall.ts');
   assert.match(recall, /export async function decideJudgement[\s\S]{0,400}p_followed: followed/, 'decideJudgement no longer records followed cases');
   for (const f of ['supabase/functions/accountant/index.ts', 'supabase/functions/marketing_channels/index.ts']) {
-    assert.match(read(f), /await decideJudgement\(admin, memory,/, `${f} decides without closing its judgement`);
+    // accountant/index.ts names the whole function: index.ts plus the modules it was split into on 9 Nov 2026
+    const src = f === 'supabase/functions/accountant/index.ts' ? functionSource('accountant') : read(f);
+    assert.match(src, /await decideJudgement\(admin, memory,/, `${f} decides without closing its judgement`);
   }
   assert.match(read('scripts/sql/a_decision_names_the_recalled_case_it_followed.sql'), /errcode = '22023'/, 'a decision may claim a case it never recalled');
 });
