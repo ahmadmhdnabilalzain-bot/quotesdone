@@ -1,0 +1,70 @@
+# QuotesDone local stack (it_engineer, 9 Nov 2026). Commands and troubleshooting: docs/runbooks/docker.md
+#
+#   docker compose up app                 the website on http://localhost:3000, live-reloading the repo
+#   docker compose run --rm checks        the offline gate: typecheck, deno check, unit tests, the OTP race
+#   docker compose run --rm shell         a shell with node, deno and the supabase CLI, at the repo root
+#
+# The repo is bind-mounted at /app, so the container runs exactly the files on disk (and their git
+# history, which several checks read). node_modules lives in a named volume so the Linux build of
+# every native package never mixes with a Windows or macOS checkout.
+#
+# Production steps of the gate (the ones that read the live Supabase project) are not run here; they
+# need SUPABASE_ACCESS_TOKEN and run with `npm run gate` from a machine that holds it.
+
+x-dev: &dev
+  build:
+    context: .
+    target: dev
+    args:
+      NODE_IMAGE: ${NODE_IMAGE:-node:24-bookworm}
+  image: quotesdone-dev:local
+  working_dir: /app
+  volumes:
+    - .:/app
+    - node_modules:/app/node_modules
+    - next_cache:/app/.next
+  env_file:
+    - path: .env.local
+      required: false
+
+services:
+  app:
+    <<: *dev
+    command: ["sh", "-c", "npm ci --no-audit --no-fund --loglevel=error --prefer-offline && npm run dev -- --hostname 0.0.0.0"]
+    ports:
+      - "3000:3000"
+
+  checks:
+    <<: *dev
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      QD_OTP_RACE_PG: postgres://postgres:race@db:5432/postgres
+    command: ["sh", "-c", "npm ci --no-audit --no-fund --loglevel=error --prefer-offline && npm run gate -- --offline"]
+
+  shell:
+    <<: *dev
+    profiles: ["tools"]
+    command: ["bash"]
+    stdin_open: true
+    tty: true
+
+  # A throwaway Postgres for the checks that need a real database (the OTP race). Never production.
+  db:
+    image: ${POSTGRES_IMAGE:-postgres:16}
+    profiles: ["tools"]
+    environment:
+      POSTGRES_PASSWORD: race
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    tmpfs:
+      - /var/lib/postgresql/data
+
+volumes:
+  node_modules:
+  next_cache:

@@ -1,0 +1,19 @@
+{
+  "name": "QuotesDone",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "shell",
+  "runServices": ["shell", "db"],
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [3000],
+  "postCreateCommand": "npm ci --no-audit --no-fund --loglevel=error",
+  "customizations": {
+    "vscode": {
+      "extensions": ["denoland.vscode-deno", "dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "bradlc.vscode-tailwindcss"],
+      "settings": {
+        "deno.enablePaths": ["supabase/functions"],
+        "editor.formatOnSave": false
+      }
+    }
+  }
+}
