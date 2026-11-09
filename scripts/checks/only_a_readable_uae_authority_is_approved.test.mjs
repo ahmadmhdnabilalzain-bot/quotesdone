@@ -22,7 +22,7 @@ test('a supplier cannot type the authority, and an old licence never judges a ne
   const api = functionSource('supplier_api');
   assert.doesNotMatch(/const PROFILE_COLS = \[[^\]]*\]/.exec(api)[0], /license_authority/);
   assert.match(api, /upd\.trade_license_no = null; upd\.license_authority = null;/);
-  assert.match(R('supabase/functions/supplier_portal/index.ts'), /upd\.license_authority = null; upd\.license_expiry = null;/);
+  assert.match(functionSource('supplier_portal'), /upd\.license_authority = null; upd\.license_expiry = null;/);
   assert.match(R('supabase/functions/_shared/document_expiry.ts'), /licenceNeedsModel = [^\n]*!c\?\.authority/);
 });
 

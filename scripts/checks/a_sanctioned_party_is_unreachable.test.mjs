@@ -48,7 +48,7 @@ const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
 // customer_api and supplier_api are index.ts plus modules since 9 Nov 2026: their entry below means the whole function.
-const WHOLE = /^supabase\/functions\/(customer_api|supplier_api)\/index\.ts$/;
+const WHOLE = /^supabase\/functions\/(customer_api|supplier_api|supplier_portal)\/index\.ts$/;
 const src = (p) => (WHOLE.test(p) ? functionSource(p.match(WHOLE)[1]) : readFileSync(p, 'utf8'));
 
 // Each entry: the file, and the code shape that must be in it. The shapes are calls and returns.

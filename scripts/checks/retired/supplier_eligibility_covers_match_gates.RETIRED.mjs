@@ -34,8 +34,9 @@ import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { functionSource } from '../../lib/function_sources.mjs';
 
-const SRC = readFileSync('supabase/functions/supplier_portal/index.ts', 'utf8');
+const SRC = functionSource('supplier_portal');
 const PORTAL = readFileSync('src/components/portal/SupplierPortal.tsx', 'utf8');
 
 // The eligibility handler only — assertions about "the panel" must not be satisfied by a mention

@@ -87,10 +87,10 @@ test('static: registrations get the existing refusal, claim leaks no Postgres te
   assert.match(map, /includes\('SANCTIONED_PARTY_BLOCKED'\)\) return \{ body: \{ \.\.\.SANCTIONED_REGISTRATION_REFUSAL \}, status: 403 \}/, 'claim: the sanctions trigger no longer gets the create_company 403');
   assert.match(door('process_docs'), /updateLeadSettingAsideClashingLicence\(admin as unknown as LeadWriter, sup\.id, upd, 'supplier_api\.process_docs'\)/, 'process_docs: a clashing licence fails the whole document write again');
   for (const [file, source] of [['supabase/functions/supplier_portal/index.ts', 'supplier_portal.save_documents'], ['supabase/functions/resend_inbound/index.ts', 'resend_inbound'], ['supabase/functions/wa_inbound/index.ts', 'wa_inbound']]) {
-    assert.match(/(wa_inbound|resend_inbound)\/index\.ts$/.test(file) ? functionSource(file.split('/').at(-2)) : read(file), new RegExp(`updateLeadSettingAsideClashingLicence\\(admin as unknown as LeadWriter, [\\w.]+, \\w+, '${source.replace('.', '\\.')}'\\)`), `${file}: a clashing licence fails the whole document write again`);
+    assert.match(/(wa_inbound|resend_inbound|supplier_portal)\/index\.ts$/.test(file) ? functionSource(file.split('/').at(-2)) : read(file), new RegExp(`updateLeadSettingAsideClashingLicence\\(admin as unknown as LeadWriter, [\\w.]+, \\w+, '${source.replace('.', '\\.')}'\\)`), `${file}: a clashing licence fails the whole document write again`);
   }
   // No second copy of the sentence: the one server copy lives in _shared/duplicate_company.ts.
-  for (const f of [API, 'supabase/functions/supplier_portal/index.ts']) assert.doesNotMatch(f === API ? functionSource('supplier_api') : read(f), /A company with this name is already registered/, `the refusal sentence was written again in ${f}`);
+  for (const f of [API, 'supabase/functions/supplier_portal/index.ts']) assert.doesNotMatch(f === API ? functionSource('supplier_api') : functionSource('supplier_portal'), /A company with this name is already registered/, `the refusal sentence was written again in ${f}`);
   const portal = readSupplierPortal();
   assert.match(portal, /if \(c === 'company_already_registered'\) return c;/, 'the claim screen no longer recognises the code');
   assert.match(portal, /if \(j\.extracted && j\.extracted\.licence_set_aside\) setMsg\(srvText\(lang, 'company_already_registered'\)\)/, 'the licence upload no longer says the number was set aside');

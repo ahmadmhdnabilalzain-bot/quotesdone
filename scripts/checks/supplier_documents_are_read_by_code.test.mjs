@@ -24,7 +24,7 @@ test('every supplier upload path reads the document by code into a trade proposa
     'readStoredDocsLater no longer reads uploads into the proposal');
   for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/supplier_portal/index.ts', 'supabase/functions/supplier_catalog_ingest/index.ts']) {
     // supplier_api/index.ts names the whole function (index.ts plus its modules since 9 Nov 2026).
-    assert.match(f === 'supabase/functions/supplier_api/index.ts' ? functionSource('supplier_api') : read(f), /proposeTradesFromDocs\(admin, |readStoredDocsLater\(admin, /, `${f} does not read uploads into the proposal`);
+    assert.match(f === 'supabase/functions/supplier_api/index.ts' ? functionSource('supplier_api') : f === 'supabase/functions/supplier_portal/index.ts' ? functionSource('supplier_portal') : read(f), /proposeTradesFromDocs\(admin, |readStoredDocsLater\(admin, /, `${f} does not read uploads into the proposal`);
   }
 });
 
@@ -50,7 +50,7 @@ test('a trade outside the list becomes a reviewed proposal, and the ledger recor
 });
 
 test('the dead capability_agent scope prompt is gone', () => {
-  assert.doesNotMatch(read('supabase/functions/supplier_portal/index.ts'), /confirm_questions/);
+  assert.doesNotMatch(functionSource('supplier_portal'), /confirm_questions/);
 });
 
 test('the SQL is in the index, and its table and routine are closed', () => {

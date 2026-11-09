@@ -80,7 +80,7 @@ test('process_docs reads every labelled field by code, asks the model (with one 
 // number to the held model. Every upload path that writes a licence must read its number by code.
 test('every licence upload path reads the licence number by code, not only by the model', () => {
   for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/supplier_portal/index.ts']) {
-    const src = f === 'supabase/functions/supplier_api/index.ts' ? functionSource('supplier_api') : R(f);
+    const src = f === 'supabase/functions/supplier_api/index.ts' ? functionSource('supplier_api') : functionSource('supplier_portal');
     assert.match(src, /codeFields = await readLicenceFields\(/, f + ' does not read the licence fields by code');
     assert.ok(src.includes('if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;'), f + ' does not write the number code read');
   }
