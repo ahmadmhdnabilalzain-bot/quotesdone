@@ -125,7 +125,7 @@ test('the heartbeat runs it hourly through fn_it_duty_settle and mails nobody it
   const src = functionSource('resilience_ping');
   assert.match(src, /^\s{2}launchpath:\s*\{\s*run:\s*launchPathTick\s*\}/m, 'launchpath is not in STEP_RUN');
   const at = src.indexOf('async function launchPathTick');
-  const body = strip(src.slice(at, src.indexOf('\nasync function', at + 10)));
+  const body = strip(src.slice(at, src.indexOf('\n}\n', at) + 3));
   assert.match(body, /fn_it_duty_settle/);
   assert.match(body, /duty:launch_path:down/);
   assert.doesNotMatch(body, /fn_notify_founder|founder_alerts|send_outbox|sendEmail/, 'the tick must not mail the founder directly');

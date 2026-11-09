@@ -116,8 +116,8 @@ test('the accountant\'s duties tick is run and reported', () => {
 // Both are asserted at the source, because the alternative is importing a module that needs a live
 // Deno runtime and service-role environment variables.
 test('a deferred orphan job is shaped as a failure failureOf can read', () => {
-  const tick = src.slice(src.indexOf('async function orphanTick'), src.indexOf('async function tableExportTick'));
-  assert.ok(tick.length > 0, 'orphanTick was not found before tableExportTick');
+  const tick = src.slice(src.indexOf('async function orphanTick'), src.indexOf('\n}\n', src.indexOf('async function orphanTick')) + 3);
+  assert.ok(tick.length > 0, 'orphanTick was not found');
   // NOT a doesNotMatch on the old shape: this file's own comment above names it, and a check that
   // greps source matches its own prose (apply-discipline, 9 Sep 2026). The positive assertion is the
   // one that has teeth — replace the shape and it fails.
@@ -127,7 +127,7 @@ test('a deferred orphan job is shaped as a failure failureOf can read', () => {
 });
 
 test('the orphan step lifts a body-level failure out of an HTTP 200', () => {
-  const tick = src.slice(src.indexOf('async function orphanTick'), src.indexOf('async function tableExportTick'));
+  const tick = src.slice(src.indexOf('async function orphanTick'), src.indexOf('\n}\n', src.indexOf('async function orphanTick')) + 3);
   assert.match(tick, /const inner = r\.status < 400 \? failureOf\(b\) : null/, 'call() no longer inspects the response body');
   assert.match(tick, /inner\s*\n?\s*\?\s*\{ ok: false, error:/, 'a failed body is not lifted to the top of the entry');
   assert.match(src, /import \{[^}]*failureOf[^}]*\} from '\.\/steps\.ts'/, 'failureOf is not imported');
