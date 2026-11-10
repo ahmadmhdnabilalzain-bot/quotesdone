@@ -22,8 +22,8 @@ import { accountKey, loadTranscript } from '../_shared/chat_history.ts';
 import { capRule, capStage, carriedTurns, carryState, intakeKey, mergeState, openPortalEpisode, readState, registerPatch, saysDontKnow,
   stateSummary, statusOfStage, type Dialect, type InquiryState, type StatePatch } from '../_shared/inquiry_state.ts';
 import { ADVISE_RULE, heldProblem, problemIndex, problemsFor, readSolution, serviceKeysOfChoice, solutionPatch, solutionsBlock, solutionStateText, stateServiceKeys } from '../_shared/solution_catalogue.ts';
-import { adviseUnknown, packFields, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
-  type TradeContext } from '../_shared/inquiry_trades.ts';
+import { adviseUnknown, packFields, placeTrades, slugOfTrade, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
+  type Placement, type TradeContext } from '../_shared/inquiry_trades.ts';
 import { blockingGate, briefConditions, withPack } from './blocking_gate.ts';
 
 export async function handle(req: Request): Promise<Response> {
@@ -582,8 +582,19 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // when they are new to the state, their packs are read now (one bounded read) so this turn's checklist already carries
     // the trade's own specs and the next turn's prompt its services and location rules.
     const modelCodes = out && llmParseOk ? validCodes(out.trade_codes, taxonomy) : [];
-    const codesNow = modelCodes.length ? modelCodes : (st?.trade_codes ?? []);
+    let codesNow = modelCodes.length ? modelCodes : (st?.trade_codes ?? []);
     if (modelCodes.length && modelCodes.join() !== (tradeCtx?.codes ?? []).join()) tradeCtx = (await tradeContext(admin, modelCodes, ar ? 'ar' : 'en', taxonomy)) ?? tradeCtx;
+    // THE PLACEMENT FOLLOWS THE CHOSEN SERVICES (evidence run of 10 Nov 2026, finding b1; _shared/inquiry_trades.ts
+    // placeTrades): the trade that owns the chosen services is the placed trade, and a job one supplier type does is one
+    // trade. The model's codes are the input; the services it named (and the ones the state or the chosen option hold)
+    // decide. A placement that differs from the context read is read again, so the checklist asked IS the placed trade's.
+    const keysIn = out && llmParseOk ? validServiceKeys(out.service_keys, tradeCtx?.services) : [];
+    const heldKeys = (solution0: ReturnType<typeof readSolution> | null) => (solution0?.chosen_option ? serviceKeysOfChoice(solution0.chosen_option) : stateServiceKeys(st));
+    const placement: Placement | null = codesNow.length ? placeTrades(codesNow, [...new Set([...heldKeys(out && llmParseOk ? readSolution(out) : null), ...keysIn])]) : null;
+    if (placement && placement.by === 'services') {
+      codesNow = placement.codes;
+      if (codesNow.join() !== (tradeCtx?.codes ?? []).join()) tradeCtx = (await tradeContext(admin, codesNow, ar ? 'ar' : 'en', taxonomy)) ?? tradeCtx;
+    }
     // The job's checklist(s): the ones the model named this turn, else the ones held from an earlier turn, else each trade's first.
     const modelTopics = out && llmParseOk ? validTopics(out.checklist_topics, tradeCtx) : [];
     const topicsNow: string[] = modelTopics.length ? modelTopics : validTopics(prevTopics, tradeCtx);
@@ -592,7 +603,8 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     checklist = withPack(checklist, tradeCtx, String((out && out.category) || category || ''), topicsNow);
     // What the model put to them and what they chose (rule 13), and the services of their trades it named.
     const solution = out && llmParseOk ? readSolution(out) : null;
-    const modelServiceKeys = out && llmParseOk ? validServiceKeys(out.service_keys, tradeCtx?.services) : [];
+    // The service keys of the placed trades only (placeTrades): a request is never sent to a trade it was not placed in.
+    const modelServiceKeys = placement && placement.by === 'services' ? keysIn.filter((k) => placement.keys.includes(k)) : keysIn;
     if (out && llmParseOk && checklist.length && out.status !== 'rejected') {
       const prevDet0 = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
       // THE ANSWER TO THE SPEC A HOLD ASKED IS READ BY CODE FIRST (27 Oct 2026, ledger 580; slots.ts says why).
@@ -717,6 +729,10 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // No word map is left to disagree with the model (23 Sep 2026): the model's trade stands, or the trade a
     // previous turn stored; with neither it is 'general' — no trade, never the nearest one.
     if (!cat || (!validSlugs.includes(cat) && cat !== 'general')) { cat = (validSlugs.includes(String(draft.category)) ? draft.category : null) || 'general'; }
+    // The category follows the placement (finding b1): the placed primary trade's own slug when it has one ('wallpaper',
+    // 'hvac', 'swimming-pools'); a trade with no slug keeps the model's category, as before.
+    const placedSlug = placement && placement.by === 'services' ? slugOfTrade(placement.primary, validSlugs) : null;
+    if (placedSlug) cat = placedSlug;
     category = cat;
     let status = ['rejected', 'needs_info', 'ready', 'held'].includes(out.status) ? out.status : 'needs_info';
     // HELD FOR SPECS (slots.ts MAX_OPEN_TURNS): only questions the customer has not answered in three turns are
@@ -750,6 +766,13 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     turns.push({ role: 'assistant', text: out.assistant_message || '', agent: ACTOR });
 
     let trades = Array.isArray(out.trades) ? out.trades.map((s: any) => String(s)).filter((s: string) => validSlugs.includes(s)) : [];
+    // ONE TRADE IS ONE TRADE (finding b1): a placement of one trade is one slug, whatever slugs the model listed beside it,
+    // so the composer offers no "one contractor or separate quotes" choice for a job one supplier type does. A multi-trade
+    // placement lists the placed trades' own slugs first.
+    if (placement && placement.by === 'services') {
+      const placedSlugs = placement.codes.map((c) => slugOfTrade(c, validSlugs)).filter((x): x is string => !!x);
+      trades = placement.multi ? [...new Set([...placedSlugs, ...trades])] : (category && validSlugs.includes(category) ? [category] : []);
+    }
     if (category && validSlugs.includes(category) && !trades.includes(category)) trades.unshift(category);
     if (trades.includes('flooring') && trades.includes('tiling')) trades = trades.filter((c: string) => c !== 'tiling');
     trades = Array.from(new Set(trades)).slice(0, 6);

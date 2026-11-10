@@ -32,6 +32,8 @@
 // The trade is chosen by the model's reading of the whole conversation (ruling 890); nothing here reads the customer's words.
 // prevented by: supabase/functions/_shared/inquiry_trades.test.ts (a spread across all twelve groups) and
 //   supabase/functions/inquiry_intake/a_request_is_ready_only_when_every_blocking_spec_is_answered.test.ts
+import { COMPOSITE, tradeOfCategory } from './line_specs/model.ts';
+import { SAME_AS } from './line_specs/taxonomy_trades.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
@@ -382,4 +384,67 @@ export function adviseUnknown(details: Record<string, unknown>, fields: PackFiel
   const out = { ...details };
   for (const k of unknown) if (keys.has(k) && !filled(out[k])) out[k] = SUPPLIER_TO_ADVISE;
   return out;
+}
+
+// ── PLACEMENT FOLLOWS THE CHOSEN SERVICES (evidence run of 10 Nov 2026, ledger 1604, finding b1) ─────────────────────
+// "Old PVC wall panels on an MDF partition: remove and install new PVC wall panels" (Business Bay) was placed in
+// trade_codes [interior_fitout, joinery] while its chosen services were [wallpaper.wall_cladding, wallpaper.wall_panels,
+// interior_fitout.refurbishment, joinery.wood_panelling]: the wall-panel trade itself was not placed, a fit-out's
+// blocking specs (MEP scope, authority approvals) were asked of a panel job, and the composer offered a turnkey
+// contractor for what one wall-panel installer does. The model's trade list is an INPUT here, not the final word. The
+// placement is decided in code from the service keys (each key names its trade: <trade>.<service>) and the taxonomy:
+//   * a WHOLE-SCOPE trade (a fit-out, combined MEP, general contracting: a trade whose own job is to carry several others
+//     — line_specs' composite trades, by EXACT mapping only) is primary only when the chosen services span at least
+//     WHOLE_SCOPE_SPREAD specialist trades (or name no specialist at all): then it is a genuine multi-trade job, and
+//     every trade that owns a chosen service stays placed beside it. Two specialist scopes are not a fit-out: they are
+//     one specialist, or two quotes (the PVC job named wall panels and wood panelling, and was one installer's job);
+//   * otherwise the PRIMARY trade is the specialist that owns the most chosen services (a tie goes to the model's
+//     order, then to the first key named). It is one supplier type: another specialist stays only when it owns as many
+//     chosen services as the primary (a genuinely co-equal second scope), and a whole-scope trade never joins it;
+//   * the service keys kept are the placed trades' own, so the request never invites a trade it was not placed in.
+// With no chosen service the model's codes stand, as before. Pure: nothing here reads the customer's words.
+
+/** A trade whose own job carries several others (a fit-out, combined MEP, general contracting). Exact mappings only: a code
+ *  tradeOfCategory resolves to 'general' merely because it knows no better (a bus rental) is NOT whole-scope. */
+export function isWholeScopeTrade(code: string): boolean {
+  const c = String(code ?? '').trim().toLowerCase();
+  const t = tradeOfCategory(c);
+  if (!COMPOSITE.has(t)) return false;
+  return t !== 'general' || c === 'general' || SAME_AS[c] === 'general';
+}
+export interface Placement { codes: string[]; primary: string | null; keys: string[]; multi: boolean; by: 'services' | 'model' }
+/** The trades a request is placed in, from its chosen service keys and the model's codes (both already validated). */
+export function placeTrades(modelCodes: string[], serviceKeys: string[]): Placement {
+  const codes = [...new Set((modelCodes ?? []).map(String).filter(Boolean))];
+  const keys = [...new Set((serviceKeys ?? []).map(String).filter((k) => /^[a-z0-9_]+\.[a-z0-9_]+$/.test(k)))];
+  if (!keys.length) return { codes: codes.slice(0, 4), primary: codes[0] ?? null, keys: [], multi: codes.length > 1, by: 'model' };
+  const tradeOf = (k: string) => k.slice(0, k.indexOf('.'));
+  const count = new Map<string, number>(); const first = new Map<string, number>();
+  keys.forEach((k, i) => { const t = tradeOf(k); count.set(t, (count.get(t) ?? 0) + 1); if (!first.has(t)) first.set(t, i); });
+  const rank = (t: string) => { const i = codes.indexOf(t); return i < 0 ? codes.length + (first.get(t) ?? 0) : i; };
+  const owners = [...count.keys()].sort((a, b) => (count.get(b)! - count.get(a)!) || (rank(a) - rank(b)));
+  const specialists = owners.filter((t) => !isWholeScopeTrade(t));
+  const whole = [...new Set([...codes, ...owners])].filter(isWholeScopeTrade).sort((a, b) => rank(a) - rank(b));
+  let primary: string; let placed: string[];
+  if (whole.length && (specialists.length >= WHOLE_SCOPE_SPREAD || !specialists.length)) {
+    primary = whole[0];
+    placed = [...new Set([primary, ...owners.filter((t) => t !== primary), ...codes])];
+  } else {
+    primary = specialists[0];
+    placed = [primary, ...specialists.slice(1).filter((t) => count.get(t) === count.get(primary))];
+  }
+  placed = placed.slice(0, 4);
+  return { codes: placed, primary, keys: keys.filter((k) => placed.includes(tradeOf(k))), multi: placed.length > 1, by: 'services' };
+}
+/** How many specialist trades the chosen services must span before a whole-scope trade (a fit-out) is the placement. A
+ *  judgement, written down: partitions plus paint is one gypsum contractor's job; partitions, ceilings, power and AC is a
+ *  fit-out. Below it the specialist placement stands and the customer still chooses one contractor or separate quotes. */
+export const WHOLE_SCOPE_SPREAD = 3;
+/** The category slug of a placed trade: the code itself, or its hyphenated spelling, when it is a listed slug. */
+export function slugOfTrade(code: string | null | undefined, slugs: string[]): string | null {
+  const c = String(code ?? '').trim().toLowerCase();
+  if (!c) return null;
+  if (slugs.includes(c)) return c;
+  const h = c.replace(/_/g, '-');
+  return slugs.includes(h) ? h : null;
 }
