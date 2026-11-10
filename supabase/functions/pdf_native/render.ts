@@ -191,10 +191,10 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
 
   const title = String(body.title || 'Document');
   const refText = body.ref ? String(body.ref) : '';
-  const dateEn = body.date ? String(body.date) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  const dateEn = body.date ? String(body.date) : new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'long', year: 'numeric' });
   // Western digits in the Arabic date too: the amounts, references and quantities on the same
   // page are Western, and a page mixing ٢٠٢٦ with 2026 reads as two documents stapled together.
-  const dateAr = body.date_ar ? String(body.date_ar) : new Date().toLocaleDateString('ar-AE-u-nu-latn', { day: '2-digit', month: 'long', year: 'numeric' });
+  const dateAr = body.date_ar ? String(body.date_ar) : new Date().toLocaleDateString('ar-AE-u-nu-latn', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'long', year: 'numeric' });
   const dateFor = () => RTL ? dateAr : dateEn;
   const control = body.control ? String(body.control) : '';
   let lockupTrimmed = true;

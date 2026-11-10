@@ -65,6 +65,23 @@ for (const f of walk(FN_DIR)) {
   }
 }
 
+// MONEY AND MESSAGES ARE HELD AT ZERO, NOT AT THE RATCHET (10 Nov 2026, it_engineer, founder ledger 1605).
+// The ratchet bounds the TOTAL, so one call added to a refund path could hide behind one removed from a drawing
+// reader. The functions that move money or send a message to a person carry no unbounded call at all: measured
+// 10 Nov 2026, the last 13 such sites (accountant x4, stripe_setup x3, send_whatsapp x1, wa_template_setup x5)
+// were wrapped in timedFetch in the same change that added this rule (65 -> 52). stripe_setup_page is not here:
+// its one call site is browser JavaScript inside the HTML string it serves, not a call this function makes.
+export const ZERO_TOLERANCE = ['accountant', 'refund_flow', 'refunds_api', 'reveal_invoice', 'send_outbox', 'send_sms',
+  'send_whatsapp', 'sms_inbound', 'stripe_checkout', 'stripe_confirm', 'stripe_setup', 'stripe_webhook', 'supplier_pay',
+  'wa_inbound', 'wa_status', 'wa_template_setup', 'wa_templates_watch'].map((d) => `supabase/functions/${d}/`);
+const zeroBreaches = findings.filter((f) => ZERO_TOLERANCE.some((p) => f.file.startsWith(p)));
+if (zeroBreaches.length && !process.argv.includes('--list')) {
+  console.error(`FINDING: ${zeroBreaches.length} unbounded fetch(es) in a function that moves money or sends a message; those are held at 0:`);
+  for (const f of zeroBreaches) console.error(`  ${f.file}:${f.line}  ${f.text}`);
+  console.error('Wrap each in timedFetch() from supabase/functions/_shared/timed_fetch.ts.');
+  process.exit(1);
+}
+
 const baseline = JSON.parse(readFileSync(BASELINE, 'utf8'));
 const count = findings.length;
 // --list is a report, not a verdict: it prints the sites and exits 0 so it can be piped.

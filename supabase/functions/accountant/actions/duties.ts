@@ -13,6 +13,7 @@ import { reasonBankLines } from '../../_shared/reasoned_books.ts';
 import { draftDisputes } from '../../_shared/dispute_draft.ts';
 import { type InboundItem, type MailboxMessage, mailboxMessages } from '../../_shared/expense_mailbox.ts';
 import { type ActionCtx, EXPENSE_MAILBOX, J, SUPA_URL, admin, run, sec } from '../context.ts';
+import { timedFetch } from '../../_shared/timed_fetch.ts';
 
 export async function dutyActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, action } = c;
@@ -30,7 +31,7 @@ export async function dutyActions(c: ActionCtx): Promise<Response | undefined> {
       const since = Math.floor(Date.now() / 1000) - 45 * 86400;
       // deno-lint-ignore no-explicit-any
       const S = async (key: string, path: string): Promise<{ ok: boolean; status: number; j: any }> => {
-        const r = await fetch('https://api.stripe.com/v1/' + path, { headers: { Authorization: 'Bearer ' + key } });
+        const r = await timedFetch('https://api.stripe.com/v1/' + path, { headers: { Authorization: 'Bearer ' + key } });
         return { ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) };
       };
       const keys = { live: await sec('stripe_secret_key'), test: await sec('stripe_secret_key_test') };
@@ -117,7 +118,7 @@ export async function dutyActions(c: ActionCtx): Promise<Response | undefined> {
         const key = s.livemode ? keys.live : keys.test;
         if (!key || !s.trigger) continue;
         // The evidence is already saved on the dispute; this call only submits it.
-        const r = await fetch('https://api.stripe.com/v1/disputes/' + encodeURIComponent(String(s.dispute)), {
+        const r = await timedFetch('https://api.stripe.com/v1/disputes/' + encodeURIComponent(String(s.dispute)), {
           method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ submit: 'true', 'metadata[submit_trigger]': String(s.trigger) }).toString(),
         });

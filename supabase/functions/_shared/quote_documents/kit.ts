@@ -40,7 +40,7 @@ function kit(lang: Lang, names: string[] = [], arTexts: ArTexts = {}) {
   const sentence = (v: any): any => typeof v === 'string'
     ? (ar ? arLabelWords(v).replace(/\bAED\s?([\d,.]+)/g, '$1 درهم') : v)
     : Array.isArray(v) ? v.map(sentence) : (v && typeof v === 'object') ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === 'link' ? x : sentence(x)])) : v;
-  const today = () => new Date().toLocaleDateString(ar ? 'ar-AE-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const today = () => new Date().toLocaleDateString(ar ? 'ar-AE-u-nu-latn' : 'en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'long', year: 'numeric' });
   return { ar, T, money, loc, cell, dur, pay, label, sentence, today, untranslated };
 }
 type Kit = ReturnType<typeof kit>;

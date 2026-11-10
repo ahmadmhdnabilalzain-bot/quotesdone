@@ -18,6 +18,7 @@ import { sanitizeUpload, SAFE_UPLOAD } from '../../_shared/attachment.ts';
 // a mailbox anybody can send to, so the same verdict applies here as on the live inbound path.
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { safeFetch } from '../../_shared/safe_url.ts';
+import { timedFetch } from '../../_shared/timed_fetch.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../../_shared/email_print.ts';
 import { decideJudgement, recallCases } from '../../_shared/case_recall.ts';
@@ -59,7 +60,7 @@ export async function expenseActions(c: ActionCtx): Promise<Response | undefined
       const fwdList = String(await sec('expense_forwarders') || '').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
       const allowed = new Set([...adminList, ...fwdList]);
 
-      const R = (u: string) => fetch(u, { headers: { Authorization: 'Bearer ' + rkey } });
+      const R = (u: string) => timedFetch(u, { headers: { Authorization: 'Bearer ' + rkey } });
 
       // 1. THE WHOLE HISTORY, PAGED. `has_more` is Resend's own answer, not an inference from a
       //    short page; the loop stops on it, and pages_capped says so when the cap stopped it instead.
