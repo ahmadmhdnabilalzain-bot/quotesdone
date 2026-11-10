@@ -3,6 +3,7 @@
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,516-line index.ts split into modules, a pure move).
 import { safeFilename, SAFE_UPLOAD, SAFE_CAD } from '../../_shared/attachment.ts';
 import { heldRun } from '../drawing_hold.ts';
+import { pdfIdentityTerms } from '../../_shared/drawing_identity_gate.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../../_shared/malware.ts';
@@ -164,6 +165,46 @@ export async function recordHeld(row: ReturnType<typeof heldRun>): Promise<void>
     const { error } = await admin.from('drawing_redaction_runs').insert(row);
     if (error) console.error(`[drawing] the hold of ${row.source_path} was not recorded: ${error.message}`);
   } catch (e) { console.error(`[drawing] the hold of ${row.source_path} was not recorded: ${String((e as Error)?.message || e)}`); }
+  await drawingIdentityFinding('drawing_held', { source_path: row.source_path, reason: (row.verify_detail as { reason?: string })?.reason ?? null, pages_in: row.pages_in, pages_out: row.pages_out });
+}
+
+// A DRAWING, OR WHAT WAS READ FROM IT, HELD FROM SUPPLIERS IS THE SALES ENGINEER'S FINDING (10 Nov 2026, evidence run
+// ea40c830, ruling 1608 audit). The hold was a row on drawing_redaction_runs that no seat reads, and the request went to
+// suppliers without its drawing while nobody was told but the customer. One finding per kind per hour (the cadReadHeld
+// pattern above: a run of uploads must not flood the queue), naming the latest case. The evidence carries ids, paths and
+// counts only - never a term the gate matched, which is the customer's own identity.
+const FINDING_TITLE = {
+  drawing_held: 'A customer drawing is held from suppliers: not every page could be redacted and verified, so the request goes without it',
+  boq_identity_dropped: 'Lines read from a customer drawing still named a party (title block) and were dropped before suppliers saw the request',
+  boq_held: 'The take-off read from a customer drawing could not be proved free of identity and was held from suppliers',
+  sent_without_drawing: 'A request went to suppliers without its drawing: the drawing was not redacted and verified at Send',
+} as const;
+export async function drawingIdentityFinding(kind: keyof typeof FINDING_TITLE, evidence: Record<string, unknown>): Promise<void> {
+  try {
+    const { error } = await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: `sales_engineer:${kind}:` + new Date().toISOString().slice(0, 13),
+      p_title: FINDING_TITLE[kind],
+      p_where: 'customer_api analyze_drawing / create_inquiry -> drawing_redaction_runs, inquiries.boq', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { ...evidence, at: new Date().toISOString() },
+      p_raised_by: 'sales_engineer',
+    });
+    if (error) console.error(`[drawing] the ${kind} finding was not written: ${error.message}`);
+  } catch (e) { console.error(`[drawing] the ${kind} finding was not written: ${String((e as Error)?.message || e)}`); }
+}
+
+/**
+ * The identity terms of a request's stored drawing, read again AT SEND from the file itself (never from the browser).
+ * Not a PDF -> { pdf: false, terms: [] }; a file that cannot be read back, or a PDF whose text layer cannot be read ->
+ * terms null (the caller holds what was read from it).
+ */
+export async function storedDrawingTerms(path: string | null): Promise<{ pdf: boolean; words: number; terms: string[] | null }> {
+  if (!path) return { pdf: false, words: -1, terms: [] };
+  try {
+    const { data } = await admin.storage.from('drawing-files').download(path);
+    // A file that cannot be read back is unknown, not clean: terms null, and the caller holds what was read from it.
+    if (!data) return { pdf: false, words: -1, terms: null };
+    return await pdfIdentityTerms(new Uint8Array(await data.arrayBuffer()));
+  } catch (_e) { return { pdf: false, words: -1, terms: null }; }
 }
 
 // AUDIT 9.1 (3 Aug 2026). This is the least trusted input in the system: the customer drawing
