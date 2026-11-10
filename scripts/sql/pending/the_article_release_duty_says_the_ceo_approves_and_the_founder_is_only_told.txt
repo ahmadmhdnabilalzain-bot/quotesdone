@@ -1,0 +1,5 @@
+Committed on branch ceo-seat-qualification-audit (10 Nov 2026) and NOT applied: the session's brief for the seat audit was
+production SELECT-only, no apply. Rehearsed rolled back on production (REHEARSED). A data-only file: it rewrites one
+seat_duty text and returns a PROBE OK / PROBE FAILED verdict row. It moves when the merge session applies it:
+node scripts/apply_sql.mjs scripts/sql/the_article_release_duty_says_the_ceo_approves_and_the_founder_is_only_told.sql --apply --ddl --seat marketing,
+then this note is deleted and the file is appended to the END of scripts/sql/MANIFEST.txt in the same commit. Seat: marketing.
