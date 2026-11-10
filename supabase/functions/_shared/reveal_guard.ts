@@ -123,6 +123,13 @@ const REFUSALS: Record<string, { status: number; en: string; ar: string }> = {
     en: 'Before a supplier is revealed we run a routine check on the accounts involved, and this reveal is waiting for a person to look at it. You have not been charged. We will e-mail you as soon as you can reveal.',
     ar: 'قبل كشف أي مورّد نُجري تحققًا اعتياديًا على الحسابات المعنية، وهذا الكشف بانتظار مراجعة أحد موظفينا. لم يُخصم منكم أي مبلغ، وسنراسلكم بالبريد الإلكتروني فور إتاحة الكشف.',
   },
+  // A TRADE UNDER THE FLOOR IS NEVER A PAID REVEAL (founder ledger 1614; public.fn_trade_reveal_allowed): fewer than 5 verified
+  // suppliers left in the request's trade means the comparison it would pay to act on is not the one the T&C describe.
+  trade_below_floor: {
+    status: 409,
+    en: 'Requests in this trade are paused while we onboard more verified suppliers, so a supplier cannot be revealed on it right now. You have not been charged, and your quotes are kept.',
+    ar: 'أوقفنا الطلبات في هذا التخصص مؤقتًا ريثما نسجّل مزيدًا من الموردين المعتمدين، لذلك لا يمكن كشف مورّد فيه الآن. لم يُخصم منكم أي مبلغ، وعروضكم محفوظة.',
+  },
   account_sanctioned: {
     status: 403,
     en: 'This supplier account is permanently closed and cannot be revealed.',
@@ -165,6 +172,11 @@ export async function canReveal(
   if (!already) {
     const held = heldQuoteIds([{ quote: q, items: (await itemsByQuote(admin, [qid]))[qid] || [] }], inq.category ?? null, inq.spec);
     if (held.has(qid)) return refuse('quote_on_hold');
+    // The trade's verified suppliers at the moment of payment (ledger 1614). FAIL CLOSED like the screen below: an
+    // unreadable answer is a 500 from the caller, never a charge.
+    const tr = await admin.rpc('fn_trade_reveal_allowed', { p_inquiry: inq.id });
+    if (tr?.error) throw new Error('fn_trade_reveal_allowed failed: ' + JSON.stringify(tr.error));
+    if (tr?.data && (tr.data as { allowed?: boolean }).allowed === false) return refuse('trade_below_floor');
     // Last, because it writes: the accountant re-screens both parties now and records a hold or a note
     // (scripts/sql/the_accountant_screens_every_party_and_holds_money_for_review_before_it_moves.sql).
     // FAIL CLOSED, like the sanctions read: an unreadable screen is a 500 from the caller, never a charge.

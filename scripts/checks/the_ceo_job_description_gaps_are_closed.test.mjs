@@ -32,6 +32,8 @@ const FILES = [
   'scripts/sql/the_ceo_answers_every_report_it_is_sent_the_day_it_arrives.sql',
   'scripts/sql/the_ceo_turns_the_binding_constraint_into_an_improvement_every_week.sql',
   'scripts/sql/the_ceo_decides_whether_january_holds_on_supply_coverage.sql',
+  // ledger 1614 replaces its all-trades rule with trade-by-trade opening; 1616 ends its founder mail
+  'scripts/sql/a_trade_opens_to_customers_as_soon_as_it_has_enough_verified_suppliers.sql',
   'scripts/sql/the_ceo_monthly_report_is_a_board_pack.sql',
   'scripts/sql/the_ceo_holds_the_marketing_seat_to_its_month_plan_date.sql',
   'scripts/sql/the_ceo_audits_every_seat_each_quarter.sql',
@@ -201,8 +203,9 @@ end $$;`);
   assert.equal(o.gate_now.decision, null, 'the gate decided January in September');
   assert.ok(['not_ready', 'ready', 'not_measurable'].includes(o.gate_now.verdict));
   assert.equal(o.gate_dec.decision === 'launch_waits' || o.gate_dec.decision === 'january_holds', true);
-  assert.ok(o.gate_dec.founder_notice, 'the founder was not told the December decision');
-  assert.equal(o.gate_dec_again, null, 'the founder was told the same decision twice in a week');
+  // ledger 1616 (10 Nov 2026): the launch decision is the CEO's; the founder reads it in his daily brief, never in a gate mail
+  assert.equal(o.gate_dec.founder_notice ?? null, null, 'the launch gate mailed the founder (ledger 1616: the daily brief only)');
+  assert.equal(o.gate_dec_again ?? null, null, 'the launch gate mailed the founder on a rerun');
   assert.ok(['launch_waits', 'january_holds'].includes(o.gate_apr), 'the first run of a quarter took no decision');
   assert.equal(o.gate_apr_rerun_keeps, true, 'a rerun in the same week erased the decision');
   assert.equal(o.gate_apr_next, null, 'the quarter was decided twice');
