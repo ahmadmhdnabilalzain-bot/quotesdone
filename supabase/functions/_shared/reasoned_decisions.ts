@@ -61,13 +61,24 @@ export async function commandIntent(deps: ThinkDeps, o: {
 // `deadline` (epoch ms) cuts every model call at the turn's clock (turn_clock.ts withDeadline). A decision cut there is
 // held like any model that did not answer: nothing is chosen and nothing is filled.
 
+// THE WHOLE CONVERSATION, NOT ITS FIRST 4,000 CHARACTERS (10 Nov 2026, sales_engineer; founder ledger 1572). Both intake
+// readings sent the opening 4,000 characters of the customer's text as the question (and the spec reader the same slice
+// again as the conversation), so in a long chat an answer given late never reached them: the reader could not prove a spec
+// the customer had stated, and the field was asked again. The customer's whole text (the intake passes only their own
+// messages, at most 100 per inquiry by the cap) now rides as the conversation, which is also what the evidence guard
+// reads, and the question carries its newest part. Nothing is cut for length below chat_history's ~2M-character budget.
+// prevented by: _shared/reasoned_decisions_whole_conversation.test.ts
+export const QUESTION_TAIL = 4000;
+/** The newest part of the customer's text, for the question line; the whole text rides in the context. */
+export const newest = (conversation: string) => conversation.length <= QUESTION_TAIL ? conversation : conversation.slice(-QUESTION_TAIL);
+
 /** Intake: the model's trade and the checklist evidence disagree — which trade is it? (surface inquiry_intake.trade) */
 export async function tradeOf(deps: ThinkDeps, o: {
   conversation: string; candidates: { slug: string; label: string }[]; dedupeKey?: string; subject?: Record<string, unknown>; deadline?: number;
 }): Promise<Reasoned<string>> {
   const result = await think(o.deadline ? withDeadline(deps, o.deadline) : deps, {
-    seat: 'sales_engineer', surface: 'inquiry_intake.trade', question: o.conversation.slice(0, 4000), dedupeKey: o.dedupeKey, subject: o.subject,
-    context: { audience: 'customer' },
+    seat: 'sales_engineer', surface: 'inquiry_intake.trade', question: newest(o.conversation), dedupeKey: o.dedupeKey, subject: o.subject,
+    context: { audience: 'customer', conversation: [{ role: 'customer', text: o.conversation }] },
     plan: { steps: [] }, effort: 'low',
     decision: { name: 'trade', options: o.candidates.map((c) => ({ id: c.slug, meaning: `the job is ${c.label} work` })) },
   });
@@ -86,8 +97,8 @@ export async function statedSpecs(deps: ThinkDeps, o: {
   conversation: string; fields: { key: string; question: string }[]; category: string; dedupeKey?: string; deadline?: number;
 }): Promise<Reasoned<Record<string, { value: string; evidence: string }>>> {
   const result = await think(o.deadline ? withDeadline(deps, o.deadline) : deps, {
-    seat: 'sales_engineer', surface: 'inquiry_intake.exact_spec', question: o.conversation.slice(0, 4000), dedupeKey: o.dedupeKey,
-    context: { audience: 'customer', trade: o.category, conversation: [{ role: 'customer', text: o.conversation.slice(0, 4000) }] },
+    seat: 'sales_engineer', surface: 'inquiry_intake.exact_spec', question: newest(o.conversation), dedupeKey: o.dedupeKey,
+    context: { audience: 'customer', trade: o.category, conversation: [{ role: 'customer', text: o.conversation }] },
     ...readerOfTheirOwnText('which of the listed specs the customer has already stated, each with their own words as evidence'),
     effort: 'low', queueWhenHeld: false,
     decision: { name: 'stated_specs', fields: o.fields },

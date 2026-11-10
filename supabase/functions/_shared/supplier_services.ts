@@ -39,6 +39,7 @@ import { readDocument } from './doc_read/index.ts';
 import { tradeOfWords } from './reasoned_matching.ts';
 import { defaultDeps } from './think.ts';
 import { runtimeWaitUntil } from './async_webhook.ts';
+import { aliasPairsOf, type AliasPair, type LicenceCheck, type ProposedService } from './profile_services.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -158,7 +159,19 @@ export async function servicesState(admin: Admin, supplierId: number) {
     return { code, source, label_en: t?.label || code.replace(/_/g, ' '), label_ar: t?.label_ar ?? null, services: byTrade[code] || [] };
   });
   const ticked = firstRun ? [] : selected;
+  // WHAT THE SUPPLIER'S OWN DOCUMENTS SAY HE DOES, AS SERVICES (10 Nov 2026, ledger 1573): read at upload by
+  // supplier_doc_trades (profile_services.servicesOfText), each with his own words and whether his licence covers it.
+  // OFFERED, NOT TICKED: founder 862 ("it start unticked") and 857 (a service is his only when he ticks it) stand; the tab
+  // shows them first, marked as proposed, with one button that ticks them all for him to review.
+  const src = (cap?.source_docs && typeof cap.source_docs === 'object') ? cap.source_docs as Record<string, unknown> : {};
+  const labelByKey = new Map(rows.map((r) => [serviceKey(r.trade_code, r.code), r]));
+  const proposedServices = (Array.isArray(src.proposed_services) ? src.proposed_services as ProposedService[] : [])
+    .filter((p) => p && known.has(p.key))
+    .map((p) => ({ key: p.key, trade: p.trade, label_en: labelByKey.get(p.key)?.label_en ?? p.label_en, label_ar: labelByKey.get(p.key)?.label_ar ?? '',
+                   phrase: p.phrase, snippet: p.snippet, via: p.via, licence: p.licence, doc: p.doc, stated: selected.includes(p.key) }));
+  const licenceCheck = (src.licence_check && typeof src.licence_check === 'object') ? src.licence_check as LicenceCheck : null;
   return {
+    proposed_services: proposedServices, licence_check: licenceCheck,
     ok: true, confirmed: base.confirmed, first_run: firstRun,
     capability: cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
     services_by_trade: byTrade, checklist,
@@ -533,6 +546,8 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   };
   const [status, out] = await capabilityConfirm(admin, supplierId, confirmBody);
   if (status !== 200) return [status, out];
+  // HIS OWN WORDS FOR WHAT HE CONFIRMED (10 Nov 2026, ledger 1573): kept on his capability and filed to the alias queue.
+  const aliasing = await recordOwnPhrases(admin, supplierId, stated, phrasesOf(body.phrases));
 
   // A pending taxonomy item that never reaches the sales engineer is the supplier's words lost, so
   // the failure is logged rather than swallowed (TypeScript review, 18 Sep 2026). It does not fail
@@ -574,8 +589,55 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
         await propose(unnamed);
       } catch (e) { console.error('services_save_rewrite background reading failed', supplierId, String((e as Error)?.message || e)); }
     })());
-    return [200, { ...out, services: stated, implied, removed, own_words: own, resolved, proposed_trades: [], reading_words: toReason }];
+    return [200, { ...out, services: stated, implied, removed, own_words: own, resolved, proposed_trades: [], reading_words: toReason, aliasing }];
   }
   const fresh = await propose(proposals);
-  return [200, { ...out, services: stated, implied, removed, own_words: own, resolved, proposed_trades: fresh.map((p) => p.code) }];
+  return [200, { ...out, services: stated, implied, removed, own_words: own, resolved, proposed_trades: fresh.map((p) => p.code), aliasing }];
+}
+
+// ── HIS OWN WORDS BECOME NAMES, THROUGH THE SALES ENGINEER (10 Nov 2026, sales_engineer; founder ledger 1573/1579) ──────
+// Measured (design audit 10 Nov 2026): "PVC decorative panels", read off a profile and confirmed by the supplier, stayed a
+// phrase nobody else's words could ever equal: taxonomy_trade_proposal holds trades only. Now each phrase he confirmed for a
+// service — a line of his profile the documents proposed it from, or a line meaning read from his own description — is
+//   * kept on his capability (supplier_capabilities.service_phrases: [{phrase, key, at}]), and
+//   * filed to public.service_alias_proposal (fn_service_alias_propose). Only the sales engineer's approval
+//     (fn_service_alias_decide; sales_engineer action alias_decide) makes it an alias, and an alias only translates text to
+//     a code: matching still compares codes (ruling 890).
+// Never fails the confirm: until the SQL is applied both writes answer an error, which is logged and returned as `aliasing`.
+export const phrasesOf = (v: unknown): { phrase: string; key: string }[] =>
+  (Array.isArray(v) ? v : []).flatMap((x) => (x && typeof x === 'object' ? [{ phrase: String((x as { phrase?: unknown }).phrase ?? ''), key: String((x as { key?: unknown }).key ?? '') }] : []));
+
+export async function recordOwnPhrases(admin: Admin, supplierId: number, stated: string[], sent: { phrase: string; key: string }[]):
+  Promise<{ pairs: number; proposed: number; error?: string }> {
+  try {
+    const { data: cap } = await admin.from('supplier_capabilities').select('source_docs,service_phrases').eq('supplier_id', supplierId).maybeSingle();
+    const fromDocs = (Array.isArray(cap?.source_docs?.proposed_services) ? cap!.source_docs.proposed_services as ProposedService[] : [])
+      .map((p) => ({ phrase: p.phrase, key: p.key }));
+    const pairs: AliasPair[] = aliasPairsOf([...fromDocs, ...sent], stated);
+    if (!pairs.length) return { pairs: 0, proposed: 0 };
+    const at = new Date().toISOString();
+    const prev = Array.isArray(cap?.service_phrases) ? cap!.service_phrases as { phrase: string; key: string; at?: string }[] : [];
+    const merged = [...prev.filter((p) => !pairs.some((q) => q.key === p.key && q.phrase.toLowerCase() === String(p.phrase).toLowerCase())), ...pairs.map((p) => ({ ...p, at }))]
+      .filter((p) => stated.includes(p.key)).slice(-100);
+    const { error: upErr } = await admin.from('supplier_capabilities').update({ service_phrases: merged }).eq('supplier_id', supplierId);
+    if (upErr) console.error('recordOwnPhrases: service_phrases not written', supplierId, upErr.message);
+    const { data, error } = await admin.rpc('fn_service_alias_propose', { p_supplier_id: supplierId, p_pairs: pairs, p_source: 'supplier_confirmed' });
+    if (error) { console.error('recordOwnPhrases: alias queue', supplierId, error.message); return { pairs: pairs.length, proposed: 0, error: error.message }; }
+    const proposed = Number((data as { proposed?: number })?.proposed ?? 0);
+    if (proposed > 0) {
+      const target = String(supplierId);
+      const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'service_alias_review').eq('status', 'pending').eq('target_id', target).limit(1);
+      if (!open?.length) {
+        await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'service_alias_review', status: 'pending', risk: 'low',
+          title: `Review a supplier's own names for services he confirmed (${proposed})`,
+          detail: { supplier_id: supplierId, pairs, waiting_for: 'sales_engineer to approve or reject each phrase as an alias (sales_engineer action alias_proposals / alias_decide)' },
+          target_table: 'service_alias_proposal', target_id: target });
+      }
+    }
+    return { pairs: pairs.length, proposed };
+  } catch (e) {
+    const m = String((e as Error)?.message || e).slice(0, 200);
+    console.error('recordOwnPhrases failed', supplierId, m);
+    return { pairs: 0, proposed: 0, error: m };
+  }
 }

@@ -3,7 +3,7 @@
 import { assert, assertEquals, assertThrows } from 'jsr:@std/assert';
 import { KNOWLEDGE_TEXT } from '../_shared/company_brief.ts';   // every compiled block: the playbooks ride in the trade packs since 3 Nov 2026
 import { S } from '../../../scripts/e2e/adaptive_conversation_bank.mjs';
-import { extractSlots, fillsOf, jobStart, parseExtraction, PLANS, planState, plansFrom, stateBlock, stem, stems, SUMMARY_AFTER, targets,
+import { extractSlots, fillsOf, jobStart, parseExtraction, PLANS, planState, plansFrom, stateBlock, stem, stems, SUMMARY_AFTER, MAX_PLAN_SLOTS, isUnsure, episodeStart, targets,
   tradeOf, type Turn } from './conversation_plan.ts';
 
 const u = (content: string): Turn => ({ role: 'user', content });
@@ -26,7 +26,7 @@ Deno.test('every playbook section names its must-haves, location and timing amon
     assert(p, `no plan for the category ${c}`);
     const ids = p!.slots.map((s) => s.id);
     assert(ids.includes('timing') && ids.includes('location'), `${c}: ${ids.join(',')}`);
-    assert(ids.length <= 2 * SUMMARY_AFTER, c);
+    assert(ids.length <= MAX_PLAN_SLOTS, c);
   }
   assertThrows(() => plansFrom('## X (x)\n- **Open:** a\n- **Must-haves (asked in this order):** colour; timing'), Error, 'unknown slot "colour"');
 });
@@ -87,7 +87,7 @@ Deno.test('the state: the single next must-have, then the summary, then New requ
   assert(s8.changed.has('doors') && /they changed this/.test(stateBlock(s8)), stateBlock(s8));
 });
 
-Deno.test(`after ${SUMMARY_AFTER} replies the next reply is the summary, the rest noted to confirm`, () => {
+Deno.test(`after ${SUMMARY_AFTER} replies that bring no must-have the next reply is the summary, the rest noted to confirm`, () => {
   const past: Turn[] = [u('I need CCTV for my shop.')];
   for (let i = 0; i < SUMMARY_AFTER; i++) past.push(a('Do you need a monitor in the shop?'), u('Maybe.'));
   past.pop();
@@ -95,6 +95,43 @@ Deno.test(`after ${SUMMARY_AFTER} replies the next reply is the summary, the res
   assertEquals(st.mode, 'summary');
   assert(st.toConfirm.has('timing') && st.toConfirm.has('location'), [...st.toConfirm].join(','));
   assert(/THIS REPLY IS THE SUMMARY/.test(stateBlock(st)));
+});
+// THE REPLY COUNT IS COUNTED FROM THE LAST MUST-HAVE GIVEN (10 Nov 2026, founder ledger 1572: "until the inquiry is
+// complete"). It counted every reply: a customer still giving must-haves at reply 7 was cut to the summary.
+Deno.test('a plan that is still moving keeps asking past six replies', () => {
+  const past: Turn[] = [u('I need CCTV for my shop.')];
+  for (let i = 0; i < SUMMARY_AFTER; i++) past.push(a('Do you need a monitor in the shop?'), u(i === SUMMARY_AFTER - 1 ? 'The shop is in Deira, Dubai.' : 'Maybe.'));
+  past.push(a('How many cameras do you need?'));
+  const st = planState(past, 'Maybe.');
+  assert(st.seatTurns > SUMMARY_AFTER, String(st.seatTurns));
+  assertEquals(st.mode, 'ask', 'a must-have given one reply ago: the plan is moving');
+});
+Deno.test('from message 95 the summary is due whatever is open; at 80 only the missing must-haves; at 100 nothing is asked', () => {
+  const past: Turn[] = [u('I need CCTV for my shop.'), a('How many cameras do you need?')];
+  const s95 = planState(past, '4 cameras.', null, true, 'summarise');
+  assertEquals(s95.mode, 'summary');
+  assert(/AT ITS LIMIT/.test(stateBlock(s95)) && /THIS REPLY IS THE SUMMARY/.test(stateBlock(s95)), stateBlock(s95));
+  const s80 = planState(past, '4 cameras.', null, true, 'converge');
+  assertEquals([s80.mode, s80.also], ['ask', null]);
+  assert(/NEAR ITS LIMIT/.test(stateBlock(s80)), stateBlock(s80));
+  const s100 = planState(past, '4 cameras.', null, true, 'handoff');
+  assertEquals(s100.mode, 'handoff');
+  assert(/LAST MESSAGE/.test(stateBlock(s100)) && !/ASK NOW/.test(stateBlock(s100)), stateBlock(s100));
+});
+Deno.test("I don't know in Egyptian, Levantine, Gulf and Arabizi puts the asked must-have to confirm", () => {
+  for (const said of ['مش عارف والله', 'ما بعرف', 'مدري', 'mesh 3aref']) {
+    assert(isUnsure(said), said);
+    const st = planState([u('I need CCTV for my shop.'), a('Which area is the shop in?')], said);
+    assert(st.unsure, said);
+    assert(st.toConfirm.has('location') && st.next !== 'location', said + ': ' + [...st.toConfirm].join(','));
+  }
+});
+Deno.test('the episode starts after a confirmed summary and does not move as the chat grows', () => {
+  const t: Turn[] = [u('I need a wardrobe.'), a('Here is your request as I have it: a wardrobe. Is this correct?'), u('Yes, that is correct.'),
+    a('Press New request to send it.'), u('Thanks.'), a('You are welcome.'), u('Also, I need my kitchen redone.')];
+  assertEquals(episodeStart(t), 3);
+  assertEquals(episodeStart([...t, a('Which emirate?'), u('Dubai')]), 3);
+  assertEquals(episodeStart(t.slice(0, 2)), 0);
 });
 
 Deno.test('one conversation per customer: a second job after a confirmed summary starts a fresh plan', () => {
@@ -202,7 +239,8 @@ Deno.test('a figure inside a question about the platform is not the budget; a st
 Deno.test('a summary-due reply is told to answer a direct question first; a statement or a confirmation is not a question', () => {
   let past: Turn[] = [];
   const seat = 'Which board and colour?';
-  for (const m of ['I need aluminium windows for my villa in Al Barsha.', 'About 2.4 m wide, 2.7 m high.', 'Sliding.', 'Grey frames.', 'Within 5 weeks.', 'Dubai, Al Barsha.']) past = [...past, u(m), a(seat)];
+  // every must-have given, so the summary is due (since 10 Nov 2026 a reply count alone no longer makes it due while the plan moves)
+  for (const m of ['I need aluminium windows for my villa in Al Barsha.', 'About 2.4 m wide, 2.7 m high.', 'Sliding.', 'Grey frames.', 'Within 5 weeks.', 'Dubai, Al Barsha.', 'Remove the old ones, they are existing frames.']) past = [...past, u(m), a(seat)];
   const q = planState(past, 'What is the fee again?');
   assertEquals(q.mode, 'summary');
   assert(q.direct, 'a question that states no must-have');

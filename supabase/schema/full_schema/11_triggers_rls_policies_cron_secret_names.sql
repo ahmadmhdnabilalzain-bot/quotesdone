@@ -261,6 +261,7 @@ CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW 
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
 CREATE TRIGGER a000_org_task_demo_files_nothing BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_demo_files_nothing();
 CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
+CREATE TRIGGER a06_org_task_goes_to_its_kinds_owner BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_goes_to_its_kinds_owner();
 CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
 CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
 CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
@@ -401,6 +402,7 @@ ALTER TABLE public.accountant_issued_document ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_mailbox_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_month_close ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_month_scan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_owner_ruled_subscription ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_renewal_budget ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_reveal_reconcile_item ENABLE ROW LEVEL SECURITY;
@@ -759,6 +761,8 @@ ALTER TABLE public.it_query_stat_snapshot ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_refusal_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_restore_drill_result ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_restore_drill_table ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_safe_fix_family ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_safe_fix_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_security_baseline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_sender_health_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_spend_daily ENABLE ROW LEVEL SECURITY;
@@ -864,6 +868,7 @@ ALTER TABLE public.marketing_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_scorecard_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_step_release ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_trend ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_trend_source ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_video_idea ENABLE ROW LEVEL SECURITY;
@@ -913,10 +918,12 @@ ALTER TABLE public.org_role ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_role_alias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_role_committee ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_role_identity ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.org_task_kind_handler ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_task_question_reading ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_workflow_ownership ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_workflow_step ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.originator_close_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.os_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.os_department ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.os_fresh_start ENABLE ROW LEVEL SECURITY;
@@ -1186,6 +1193,7 @@ CREATE POLICY accountant_founder_close_pack_service_role_only ON public.accounta
 CREATE POLICY accountant_issued_document_service_role_only ON public.accountant_issued_document AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_mailbox_check_service_role_only ON public.accountant_mailbox_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_month_close_service_role_only ON public.accountant_month_close AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY accountant_month_scan_service_role_only ON public.accountant_month_scan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_owner_ruled_subscription_service_role_only ON public.accountant_owner_ruled_subscription AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_renewal_budget_service_role_only ON public.accountant_renewal_budget AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_reveal_reconcile_item_service_role_only ON public.accountant_reveal_reconcile_item AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1323,6 +1331,8 @@ CREATE POLICY it_query_stat_snapshot_service_role_only ON public.it_query_stat_s
 CREATE POLICY it_refusal_policy_service_role_only ON public.it_refusal_policy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_restore_drill_result_service_role_only ON public.it_restore_drill_result AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_restore_drill_table_service_role_only ON public.it_restore_drill_table AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_safe_fix_family_service_role_only ON public.it_safe_fix_family AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_safe_fix_run_service_role_only ON public.it_safe_fix_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_security_baseline_service_role_only ON public.it_security_baseline AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_sender_health_daily_service_role_only ON public.it_sender_health_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_spend_daily_service_role_only ON public.it_spend_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1392,6 +1402,7 @@ CREATE POLICY marketing_recruitment_source_service_role_only ON public.marketing
 CREATE POLICY marketing_report_service_role_only ON public.marketing_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_review_service_role_only ON public.marketing_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_scorecard_report_service_role_only ON public.marketing_scorecard_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_step_release_service_role_only ON public.marketing_step_release AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_trend_service_role_only ON public.marketing_trend AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_trend_source_service_role_only ON public.marketing_trend_source AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_video_idea_service_role_only ON public.marketing_video_idea AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1402,7 +1413,9 @@ CREATE POLICY notice_plain_language_cause_service_role_only ON public.notice_pla
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_type_severity_service_role_only ON public.notification_type_severity AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY org_task_kind_handler_service_role_only ON public.org_task_kind_handler AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY org_task_question_reading_service_role_only ON public.org_task_question_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY originator_close_record_service_role_only ON public.originator_close_record AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY otp_blocked_prefix_service_role_only ON public.otp_blocked_prefix AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY otp_prefix_allowed_service_role_only ON public.otp_prefix_allowed AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY otp_served_country_service_role_only ON public.otp_served_country AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1552,7 +1565,6 @@ select cron.schedule('seat_duty:it_engineer.knowledge_recall','*/5 * * * *',$CRO
 select cron.schedule('cs_held_question_route','*/5 * * * *',$CRON$select public.fn_cs_held_question_route(); select public.fn_ceo_support_handover_duty();$CRON$);
 select cron.schedule('seat_duty:ceo.queue_work','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.queue_work');$CRON$);
 select cron.schedule('rehearsal_window_sweep','*/10 * * * *',$CRON$select public.fn_rehearsal_window_sweep();$CRON$);
-select cron.schedule('seat_duty:accountant.receipt_bank_match','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.receipt_bank_match');$CRON$);
 select cron.schedule('seat_duty:customer_support.decision_objection_escalate','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.decision_objection_escalate');$CRON$);
 select cron.schedule('seat_duty:accountant.receipt_intake','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.receipt_intake');$CRON$);
 select cron.schedule('seat_duty:accountant.charge_recovery','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.charge_recovery');$CRON$);
@@ -1632,6 +1644,9 @@ select cron.schedule('seat_duty:accountant.reveal_reconcile','*/5 * * * *',$CRON
 select cron.schedule('cron_history_purge_hourly','37 * * * *',$CRON$select public.fn_cron_history_purge();$CRON$);
 select cron.schedule('site_uptime_5min','2-59/5 * * * *',$CRON$set statement_timeout = '30s'; select public.fn_site_uptime_tick();$CRON$);
 select cron.schedule('openrouter_low_balance_hourly','23 * * * *',$CRON$select public.fn_openrouter_low_balance_tick();$CRON$);
+select cron.schedule('seat_duty:ceo.close_answered_handoffs','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.close_answered_handoffs');$CRON$);
+select cron.schedule('seat_duty:ceo.org_task_handlers','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.org_task_handlers');$CRON$);
+select cron.schedule('seat_duty:it_engineer.safe_fix','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.safe_fix');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

@@ -312,7 +312,7 @@
       "agent_autonomy_from": "setting", "agent_failure_rate_limit": "setting", "ai_health_fails": "state kept by a watcher", "ai_spend_spike_multiple": "setting",
       "bd_daily_cap": "setting", "bd_outreach_enabled": "setting", "bd_source_mode": "setting", "brand_avatar_url": "setting",
       "brand_logo_on_navy_url": "setting", "brand_logo_on_white_url": "setting", "brand_mark_transparent_url": "setting",
-      "ceo_digest_local_time": "setting", "ceo_weekly_report_local_dow": "setting", "ceo_weekly_report_local_time": "setting", "company_trn": "setting",
+      "ceo_digest_local_time": "setting", "ceo_daily_number_golive": "setting", "ceo_growth_act_golive": "setting", "invite_ceo_ceiling": "setting", "invite_reachable_only": "setting", "ceo_weekly_report_local_dow": "setting", "ceo_weekly_report_local_time": "setting", "company_trn": "setting",
       "containment_maintenance": "setting", "cos_frozen": "setting", "cron_down_last_alert": "state kept by a watcher", "default_post_image": "setting",
       "excluded_job_scopes": "setting", "founder_mobile": "setting", "founder_name": "setting", "founder_public_name": "setting",
       "founding_free_limit": "setting", "invite_body": "setting", "invite_daily_cap": "setting", "invite_enabled": "setting", "invite_lane_enabled": "setting", "invite_lane_from": "setting", "invite_lane_since": "setting", "invite_lane_since": "setting",

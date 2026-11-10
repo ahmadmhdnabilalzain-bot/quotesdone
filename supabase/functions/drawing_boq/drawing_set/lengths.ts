@@ -44,7 +44,16 @@ export function mergeLengths<T extends SetBoq>(set: T, lengths: { lines: Takeoff
   if (!lengths.lines.length) return { ...set, missing_info: [...(lengths.dense.length ? [DENSE_NOTE(lengths.dense.join(', '), MAX_MEASURED_LINES.toLocaleString('en'))] : []), ...set.missing_info] };
   const got = new Set(lengths.lines.map((l) => l.type));
   const anyDuct = lengths.lines.some((l) => l.type.startsWith('duct:'));
-  const keep = set.boq.filter((l) => !(l.qty === null && ((anyDuct && (l.type === 'duct:rectangular' || l.type === 'duct:round')) || (l.type.startsWith('pipe:') && got.has(l.type)))));
+  // THE MODEL'S OWN LINE FOR A MEASURED SIZE (10 Nov 2026). Since 3 Nov the model reads the set first (cross_check.ts) and
+  // its lines join code's; a model line "Supply ductwork 26x18" with no length stayed beside the measured "Rectangular
+  // ductwork 26x18 16,433.2 m", so the size read as unmeasured. A line with no type of its own (the model's) that names a
+  // measured duct or pipe size is that measurement; it goes, and the measured line stands.
+  const sizes = lengths.lines.map((l) => l.type.replace(/^(duct|pipe):/, '').replace(/ \(1" liner\)$/, '').toLowerCase()).filter((z) => /\d/.test(z));
+  const namesMeasured = (l: TakeoffLine) => !l.type && /duct|pipe/i.test(`${l.description} ${l.item}`) && sizes.some((z) => {
+    const m = /^(\d+)x(\d+)$/.exec(z);
+    return m ? new RegExp(`(^|[^\\d])${m[1]}\\s*[x×]\\s*${m[2]}([^\\d]|$)`, 'i').test(`${l.description} ${l.item}`) : false;
+  });
+  const keep = set.boq.filter((l) => !namesMeasured(l) && !(l.qty === null && ((anyDuct && (l.type === 'duct:rectangular' || l.type === 'duct:round')) || (l.type.startsWith('pipe:') && got.has(l.type)))));
   const still = keep.some((l) => /^(duct|pipe):/.test(l.type) && l.qty === null);
   return { ...set, boq: [...keep, ...lengths.lines], missing_info: [still ? NO_LENGTHS_NOTE : PLAN_LENGTHS_NOTE, ...(lengths.dense.length ? [DENSE_NOTE(lengths.dense.join(', '), MAX_MEASURED_LINES.toLocaleString('en'))] : []), ...missing] };
 }

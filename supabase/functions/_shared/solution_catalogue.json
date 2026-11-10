@@ -1,0 +1,1457 @@
+{
+ "about": "THE SOLUTION CATALOGUE (10 Nov 2026, sales_engineer; founder ledger 1572 and 1579). For each trade family the common situations a customer describes and the two or three solutions an experienced UAE estimator would put to them, each with one reason, the honest trade-off, what must be true first, and the taxonomy service keys (taxonomy_trade_service, '<trade>.<code>') that do that work, so the option a customer chooses names the services matching uses. Written by sales_engineer from established construction practice: no price, no figure, no brand and no supplier anywhere in it (solution_catalogue.test.ts fails on a digit or a currency word). It is reference for the model's own reasoning, never text read out to a customer. Read by _shared/solution_catalogue.ts; checked by scripts/checks/every_solution_option_names_a_taxonomy_service.test.mjs.",
+ "families": [
+  {
+   "code": "wall_finishes", "en": "Wall finishes and cladding", "ar": "تشطيبات الجدران وتكسياتها",
+   "trades": ["wallpaper", "fitout", "interior-design", "carpentry-joinery", "commercial-retail-fitout", "painting", "gypsum"],
+   "problems": [
+    {
+     "code": "cover_existing_board",
+     "situation": "an existing wall, partition or board (MDF, plywood, old panelling or a plain plastered wall) that they want to cover or give a new look",
+     "qualify": "the size (width and height), one face or both, whether it is a wet or humid area, the look they want (wood, marble, plain colour), budget and timing",
+     "options": [
+      {"code": "pvc_wpc_panels", "en": "PVC or WPC decorative wall panels", "ar": "ألواح جدارية ديكورية من PVC أو WPC",
+       "why": "moisture-proof, fixed quickly over a sound board, many wood, marble and fluted looks",
+       "trade_off": "the joints show and they feel like plastic up close",
+       "check": "the board must be flat and firmly fixed",
+       "services": ["wallpaper.wall_panels", "wallpaper.wall_cladding"]},
+      {"code": "architectural_film", "en": "Architectural vinyl film wrap", "ar": "تغليف بفيلم فينيل معماري",
+       "why": "the thinnest finish, keeps the existing shape and edges, fast and clean to apply",
+       "trade_off": "needs a smooth sealed surface, and edges can lift or scratch where it is knocked",
+       "check": "dents and joints are filled and sanded first",
+       "services": ["interior_fitout.decoration", "wallpaper.supply_install"]},
+      {"code": "paint_or_laminate", "en": "Paint, or a laminate (HPL) facing", "ar": "دهان، أو تكسية بالفورمايكا (HPL)",
+       "why": "paint is the simplest refresh; a laminate facing is the hardest-wearing surface",
+       "trade_off": "paint on MDF needs sealing and shows dents; laminate needs joinery work and edge banding",
+       "check": "MDF is primed with a sealer before paint",
+       "services": ["painting.decorative", "painting.interior", "joinery.wood_panelling"]}
+     ]
+    },
+    {
+     "code": "feature_wall",
+     "situation": "a plain wall they want to turn into a feature or accent wall (living room, majlis, reception, bedroom headboard wall)",
+     "qualify": "the wall size, the style they like (photos help), lighting on it, budget and timing",
+     "options": [
+      {"code": "wallpaper", "en": "Wallpaper or a printed mural", "ar": "ورق جدران أو جدارية مطبوعة",
+       "why": "the widest choice of patterns and the quickest change",
+       "trade_off": "less resistant to knocks and humidity than panels",
+       "check": "the wall is dry and smooth",
+       "services": ["wallpaper.supply_install", "wallpaper.murals"]},
+      {"code": "fluted_or_3d_panels", "en": "Fluted, slatted or 3D wall panels", "ar": "ألواح جدارية مضلّعة أو ثلاثية الأبعاد",
+       "why": "real depth and texture, and they can hide uneven walls and cables",
+       "trade_off": "they take a few centimetres of the room and cost more than paper or paint",
+       "check": "sockets and switches on that wall are planned before fixing",
+       "services": ["wallpaper.wall_panels", "joinery.wood_panelling"]},
+      {"code": "decorative_paint", "en": "Decorative paint finish (stucco, microcement, limewash)", "ar": "دهانات ديكورية (ستكو، ميكروسمنت، جير)",
+       "why": "seamless, no joints, a hand-made look",
+       "trade_off": "the result depends on the applicator's skill and it is slower to apply",
+       "check": "a sample patch is approved first",
+       "services": ["painting.decorative"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "painting", "en": "Painting and coatings", "ar": "الدهانات والطلاءات",
+   "trades": ["painting", "fitout", "general-building-contracting"],
+   "problems": [
+    {
+     "code": "repaint_interior",
+     "situation": "rooms or a whole home to repaint (tired walls, a colour change, moving in or out)",
+     "qualify": "the number of rooms or the area, ceiling height, walls only or ceilings and doors too, colour change from dark to light, furnished or empty, budget and timing",
+     "options": [
+      {"code": "standard_repaint", "en": "Standard emulsion repaint", "ar": "إعادة دهان بدهان مائي عادي",
+       "why": "the usual move-in or move-out finish, quick and economical",
+       "trade_off": "marks easily and is less washable",
+       "check": "cracks and nail holes are filled first",
+       "services": ["painting.repainting", "painting.interior"]},
+      {"code": "washable_premium", "en": "Washable premium paint (matt or silk)", "ar": "دهان فاخر قابل للغسل (مطفي أو نصف لامع)",
+       "why": "stands up to cleaning, good for children's rooms, corridors and kitchens",
+       "trade_off": "costs more per coat",
+       "check": "a low-odour product where people stay in the home",
+       "services": ["painting.interior"]},
+      {"code": "decorative_finish", "en": "Decorative finish on a feature wall", "ar": "تشطيب ديكوري على جدار مميّز",
+       "why": "adds character where plain paint would be flat",
+       "trade_off": "slower and depends on the applicator",
+       "check": "a sample patch is approved first",
+       "services": ["painting.decorative"]}
+     ]
+    },
+    {
+     "code": "exterior_faded_cracked",
+     "situation": "the outside of a villa or building looks faded, chalky, or has hairline cracks",
+     "qualify": "villa or building, storeys and access, the wall area, how bad the cracks are, budget and timing",
+     "options": [
+      {"code": "exterior_repaint", "en": "Exterior repaint with a weather-resistant paint", "ar": "إعادة دهان خارجي بدهان مقاوم للعوامل الجوية",
+       "why": "restores the colour and protects against sun and dust",
+       "trade_off": "hairline cracks can show through again",
+       "check": "the wall is pressure-washed and primed",
+       "services": ["painting.exterior"]},
+      {"code": "elastomeric_texture", "en": "Elastomeric or textured exterior coating", "ar": "طلاء خارجي مرن أو محبّب",
+       "why": "bridges hairline cracks and lasts longer in UAE heat",
+       "trade_off": "costs more and changes the look of the surface",
+       "check": "loose plaster is repaired first",
+       "services": ["painting.exterior", "painting.protective_coating"]},
+      {"code": "repair_then_repaint", "en": "Plaster crack repair, then repaint", "ar": "إصلاح شروخ اللياسة ثم إعادة الدهان",
+       "why": "deals with the cause before the finish",
+       "trade_off": "an extra trade and more time",
+       "check": "a crack wider than a hairline, or one that keeps growing, is seen by an engineer first",
+       "services": ["masonry_blockwork.plastering", "painting.exterior"]}
+     ]
+    },
+    {
+     "code": "damp_stained_wall",
+     "situation": "paint or wallpaper peeling, bubbling, stained or growing mould from damp",
+     "qualify": "which wall and room, what is on the other side (bathroom, outside wall, pipes), how long it has been there, the area, budget and timing",
+     "options": [
+      {"code": "fix_source_then_anti_damp", "en": "Find and fix the source, then an anti-damp paint system", "ar": "معالجة مصدر الرطوبة ثم نظام دهان مقاوم للرطوبة",
+       "why": "paint alone never cures damp; the leak or seepage is stopped first",
+       "trade_off": "needs leak finding and two trades",
+       "check": "the wall is allowed to dry before painting",
+       "services": ["plumbing.maintenance", "waterproofing.wet_areas", "painting.repainting"]},
+      {"code": "replaster_and_repaint", "en": "Remove the damaged plaster, replaster and repaint", "ar": "إزالة اللياسة التالفة وإعادة اللياسة والدهان",
+       "why": "salt-damaged plaster keeps blistering whatever paint goes on",
+       "trade_off": "dusty, and the room is out of use for a while",
+       "check": "the source of the damp is already fixed",
+       "services": ["masonry_blockwork.plastering", "painting.interior"]},
+      {"code": "moisture_resistant_cladding", "en": "Moisture-resistant wall panels after the repair", "ar": "ألواح جدارية مقاومة للرطوبة بعد الإصلاح",
+       "why": "a durable, washable face where some humidity stays (laundry, store room)",
+       "trade_off": "it hides the wall, so a returning leak is noticed late",
+       "check": "never fitted over active damp",
+       "services": ["wallpaper.wall_panels"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "gypsum_ceilings_partitions", "en": "Gypsum ceilings and partitions", "ar": "الأسقف والقواطع الجبسية",
+   "trades": ["gypsum", "fitout", "commercial-retail-fitout", "interior-design"],
+   "problems": [
+    {
+     "code": "new_false_ceiling",
+     "situation": "a ceiling to lower, to hide pipes, ducts or cables, or to add lighting",
+     "qualify": "the room sizes and ceiling height, what must stay accessible (AC units, valves), the lighting wanted, budget and timing",
+     "options": [
+      {"code": "flat_board_ceiling", "en": "Flat gypsum board ceiling", "ar": "سقف معلّق من ألواح الجبس المسطّحة",
+       "why": "a clean seamless finish for homes and offices",
+       "trade_off": "access panels are needed wherever services must be reached",
+       "check": "moisture-resistant board in bathrooms and kitchens",
+       "services": ["gypsum.false_ceiling"]},
+      {"code": "lay_in_tile_grid", "en": "Lay-in tile grid ceiling", "ar": "سقف معلّق ببلاطات على شبكة",
+       "why": "every tile lifts out, so services stay reachable; common in offices and shops",
+       "trade_off": "a commercial look, and the grid shows",
+       "check": "acoustic tiles where noise matters",
+       "services": ["gypsum.false_ceiling", "gypsum.acoustic_ceiling"]},
+      {"code": "bulkhead_with_cove", "en": "Decorative bulkhead with cove or linear lighting", "ar": "سقف ديكوري بإطار جانبي وإضاءة مخفية",
+       "why": "keeps most of the height and adds hidden lighting",
+       "trade_off": "more detailing work and an electrician alongside",
+       "check": "the lighting is planned before the board goes up",
+       "services": ["gypsum.decorative", "electrical.lighting"]}
+     ]
+    },
+    {
+     "code": "divide_a_room",
+     "situation": "a room or an open area to divide into two spaces (an extra bedroom, an office, a meeting room)",
+     "qualify": "the length and height of the partition, doors in it, privacy or soundproofing needed, natural light to keep, budget and timing",
+     "options": [
+      {"code": "gypsum_stud_partition", "en": "Gypsum stud partition", "ar": "قاطع جبسي على هيكل معدني",
+       "why": "quick, light and can be insulated for sound",
+       "trade_off": "blocks the light, and heavy items need fixing plates inside",
+       "check": "the building or landlord allows the change",
+       "services": ["gypsum.partitions", "thermal_insulation.acoustic_insulation"]},
+      {"code": "glass_partition", "en": "Glass partition", "ar": "قاطع زجاجي",
+       "why": "keeps the daylight and an open feel",
+       "trade_off": "less privacy and less sound reduction unless double-glazed or frosted",
+       "check": "toughened or laminated safety glass only",
+       "services": ["glazing.partitions", "glazing.frameless"]},
+      {"code": "joinery_partition", "en": "Joinery partition with built-in storage", "ar": "قاطع خشبي مع وحدات تخزين مدمجة",
+       "why": "divides the space and adds shelves or wardrobes at the same time",
+       "trade_off": "thicker and slower to make",
+       "check": "moisture-resistant board where it is humid",
+       "services": ["joinery.custom_furniture", "joinery.wood_panelling"]}
+     ]
+    },
+    {
+     "code": "wet_area_ceiling_damage",
+     "situation": "a bathroom or kitchen ceiling that is sagging, stained, cracked or growing mould",
+     "qualify": "which room and its size, whether there is a bathroom or tank above, how long it has been there, budget and timing",
+     "options": [
+      {"code": "fix_leak_and_replace_mr_board", "en": "Fix the leak above, then replace with moisture-resistant board", "ar": "إصلاح التسريب في الأعلى ثم الاستبدال بألواح جبس مقاومة للرطوبة",
+       "why": "a stained ceiling almost always means water from above",
+       "trade_off": "needs a plumber and a gypsum installer",
+       "check": "an access panel is added for the pipes",
+       "services": ["plumbing.maintenance", "gypsum.false_ceiling"]},
+      {"code": "metal_or_pvc_strip_ceiling", "en": "Metal or PVC strip ceiling", "ar": "سقف شرائح معدنية أو PVC",
+       "why": "does not absorb water and wipes clean",
+       "trade_off": "a more utilitarian look",
+       "check": "the leak above is fixed first",
+       "services": ["gypsum.false_ceiling"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "glass_and_glazing", "en": "Glass and glazing", "ar": "الزجاج وأعماله",
+   "trades": ["glass", "aluminium", "fitout", "commercial-retail-fitout"],
+   "problems": [
+    {
+     "code": "office_glass_partition",
+     "situation": "an office or shop that needs glass partitions or glass meeting rooms",
+     "qualify": "the run length and height, number of doors, privacy (frosting or film), sound reduction, landlord rules, budget and timing",
+     "options": [
+      {"code": "frameless_toughened", "en": "Frameless toughened glass with patch-fitted doors", "ar": "زجاج مقسّى بدون إطارات مع أبواب زجاجية",
+       "why": "the cleanest, most open look",
+       "trade_off": "least sound reduction",
+       "check": "manifestation strips at eye level for safety",
+       "services": ["glazing.frameless", "glazing.partitions"]},
+      {"code": "aluminium_framed_glazed", "en": "Aluminium-framed glazed partition", "ar": "قاطع زجاجي بإطار ألمنيوم",
+       "why": "sturdier, takes standard doors and blinds",
+       "trade_off": "the frames show",
+       "check": "the frame colour matches the office",
+       "services": ["glazing.partitions", "aluminium.windows_doors"]},
+      {"code": "double_glazed_acoustic", "en": "Double-glazed acoustic partition", "ar": "قاطع زجاجي مزدوج عازل للصوت",
+       "why": "real privacy for meeting rooms and managers' offices",
+       "trade_off": "heavier and dearer",
+       "check": "the ceiling above is closed off too, or sound passes over",
+       "services": ["glazing.partitions", "thermal_insulation.acoustic_insulation"]}
+     ]
+    },
+    {
+     "code": "shower_enclosure",
+     "situation": "a shower that needs a glass screen or enclosure (a new bathroom, or replacing a curtain or an old screen)",
+     "qualify": "the shower opening sizes, walk-in or a door, the hardware finish, clear or frosted, budget and timing",
+     "options": [
+      {"code": "frameless_screen", "en": "Frameless toughened glass screen or door", "ar": "حاجز أو باب دش من الزجاج المقسّى بدون إطار",
+       "why": "a modern look and easy to clean",
+       "trade_off": "needs level, square walls and good sealing",
+       "check": "toughened safety glass only, never plain annealed glass",
+       "services": ["glazing.partitions", "glazing.tempered_laminated"]},
+      {"code": "framed_sliding", "en": "Framed sliding enclosure", "ar": "كابينة دش منزلقة بإطار",
+       "why": "fits tight spaces and seals better",
+       "trade_off": "the tracks need regular cleaning",
+       "check": "toughened safety glass",
+       "services": ["glazing.partitions"]},
+      {"code": "fixed_walk_in_panel", "en": "Fixed walk-in panel", "ar": "لوح زجاجي ثابت لدش مفتوح",
+       "why": "no door to break, the simplest option",
+       "trade_off": "some splashing unless the shower is large enough",
+       "check": "the floor falls to the drain",
+       "services": ["glazing.partitions"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "windows_and_doors", "en": "Windows and exterior doors", "ar": "النوافذ والأبواب الخارجية",
+   "trades": ["aluminium", "glass", "garage-doors"],
+   "problems": [
+    {
+     "code": "windows_heat_noise_dust",
+     "situation": "windows that let in heat, noise or dust, or old windows that no longer close well",
+     "qualify": "the number of windows and their rough sizes, which floor, sliding or hinged, noise or heat the main concern, budget and timing",
+     "options": [
+      {"code": "thermal_break_double_glazed", "en": "New thermal-break aluminium windows with double glazing", "ar": "نوافذ ألمنيوم جديدة بعازل حراري وزجاج مزدوج",
+       "why": "the biggest gain in heat, noise and dust",
+       "trade_off": "the dearest, with some disturbance to the walls",
+       "check": "building or community approval for a change of look",
+       "services": ["aluminium.windows_doors"]},
+      {"code": "upvc_double_glazed", "en": "uPVC double-glazed windows", "ar": "نوافذ uPVC بزجاج مزدوج",
+       "why": "very good sealing and insulation for homes",
+       "trade_off": "thicker frames and fewer colours than aluminium",
+       "check": "a profile suited to strong sun",
+       "services": ["aluminium.windows_doors"]},
+      {"code": "reseal_and_film", "en": "Keep the frames: new seals, adjustment and solar film", "ar": "إبقاء الإطارات مع تجديد العوازل وضبطها وتركيب فيلم حراري",
+       "why": "the cheapest, quickest improvement",
+       "trade_off": "less noise reduction than new double glazing",
+       "check": "the frames are sound",
+       "services": ["doors.window_film", "aluminium.windows_doors"]}
+     ]
+    },
+    {
+     "code": "garage_or_shop_door",
+     "situation": "a garage or shop front that needs a new door or shutter, or an old one to automate",
+     "qualify": "the opening width and height, manual or motorised, insulation, how often it opens, budget and timing",
+     "options": [
+      {"code": "sectional_door", "en": "Insulated sectional overhead door", "ar": "باب علوي مقطّعي معزول",
+       "why": "neat, insulated and quiet for villa garages",
+       "trade_off": "needs headroom inside the garage",
+       "check": "the ceiling height above the opening",
+       "services": ["doors.automatic_doors"]},
+      {"code": "roller_shutter", "en": "Roller shutter", "ar": "باب شتر رول",
+       "why": "secure and takes little space; usual for shops and stores",
+       "trade_off": "noisier and less insulated",
+       "check": "a box space above the opening",
+       "services": ["doors.shutters"]},
+      {"code": "automate_existing", "en": "Motorise the existing door", "ar": "تركيب محرّك للباب الحالي",
+       "why": "keeps a sound door and adds a remote",
+       "trade_off": "only worth it if the door is in good condition",
+       "check": "a power point near the opening",
+       "services": ["doors.automatic_doors"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "floors_and_tiles", "en": "Floors and tiles", "ar": "الأرضيات والبلاط",
+   "trades": ["tiling", "flooring", "carpets", "marble-granite", "epoxy-flooring", "fitout"],
+   "problems": [
+    {
+     "code": "cracked_or_loose_tiles",
+     "situation": "floor or wall tiles that are cracked, loose, or sound hollow when tapped",
+     "qualify": "how many tiles or the area, which room, spare tiles available, whether they want the same look or a change, budget and timing",
+     "options": [
+      {"code": "replace_affected_tiles", "en": "Replace only the damaged tiles", "ar": "استبدال البلاط التالف فقط",
+       "why": "least work and mess",
+       "trade_off": "matching old tiles is often impossible, and hollow tiles nearby may follow",
+       "check": "a sample of spare or matching tiles",
+       "services": ["flooring.tiling"]},
+      {"code": "full_retile", "en": "Remove and retile the area", "ar": "إزالة البلاط وإعادة التبليط بالكامل",
+       "why": "fixes the bed underneath and gives a uniform new floor",
+       "trade_off": "noisy, dusty and the room is out of use",
+       "check": "in a wet area, waterproofing is redone under the new tiles",
+       "services": ["flooring.tiling", "demolition_works.interior_strip_out"]},
+      {"code": "overlay_new_floor", "en": "Overlay: new tiles or SPC vinyl over the sound old floor", "ar": "تركيب أرضية جديدة فوق القديمة (بلاط أو فينيل SPC)",
+       "why": "no demolition, fast",
+       "trade_off": "raises the floor, so doors may need trimming; only over firmly bonded tiles",
+       "check": "the hollow tiles are fixed first",
+       "services": ["flooring.tiling", "flooring.parquet_vinyl"]}
+     ]
+    },
+    {
+     "code": "floor_upgrade",
+     "situation": "a floor to change or upgrade in living areas or bedrooms",
+     "qualify": "the area per room, what is there now, children or pets, the look they want, budget and timing",
+     "options": [
+      {"code": "large_porcelain", "en": "Large-format porcelain tiles", "ar": "بلاط بورسلين بمقاسات كبيرة",
+       "why": "tough, cool underfoot and easy to clean in the UAE climate",
+       "trade_off": "hard and cold in feel, grout lines show",
+       "check": "a level screed for large tiles",
+       "services": ["flooring.tiling"]},
+      {"code": "wood_look_vinyl_or_laminate", "en": "SPC vinyl or laminate (wood look)", "ar": "أرضيات فينيل SPC أو لامينيت بمظهر الخشب",
+       "why": "warm look, quick to fit, often over the existing floor",
+       "trade_off": "laminate dislikes water; less prestige than real wood",
+       "check": "SPC rather than laminate near water",
+       "services": ["flooring.parquet_vinyl"]},
+      {"code": "engineered_wood_or_marble", "en": "Engineered wood or marble", "ar": "خشب هندسي أو رخام",
+       "why": "a premium natural finish",
+       "trade_off": "the dearest; wood needs care against humidity, marble against stains",
+       "check": "marble is sealed after laying",
+       "services": ["flooring.parquet_vinyl", "flooring.marble_granite"]}
+     ]
+    },
+    {
+     "code": "outdoor_floor_slippery_hot",
+     "situation": "an outdoor, terrace or pool-side floor that is slippery, too hot underfoot, or worn",
+     "qualify": "the area, around a pool or not, shade, the look they want, budget and timing",
+     "options": [
+      {"code": "anti_slip_porcelain", "en": "Anti-slip outdoor porcelain", "ar": "بورسلين خارجي مانع للانزلاق",
+       "why": "a high slip rating and low upkeep",
+       "trade_off": "can get hot in direct sun if dark",
+       "check": "a light colour in full sun",
+       "services": ["flooring.tiling"]},
+      {"code": "textured_natural_stone", "en": "Textured natural stone", "ar": "حجر طبيعي بسطح خشن",
+       "why": "stays cooler and grips well when wet",
+       "trade_off": "needs sealing and costs more",
+       "check": "a flamed or bush-hammered finish, never polished outdoors",
+       "services": ["marble_stone.stone_fabrication", "flooring.marble_granite"]},
+      {"code": "interlock_pavers", "en": "Interlock pavers", "ar": "بلاط انترلوك",
+       "why": "economical, easy to lift and repair",
+       "trade_off": "joints can grow weeds and settle if the base is weak",
+       "check": "a compacted base",
+       "services": ["landscaping.hardscape", "road_works.interlock_paving"]}
+     ]
+    },
+    {
+     "code": "warehouse_or_garage_floor",
+     "situation": "a concrete floor in a warehouse, garage, workshop or car park that is dusty, stained or worn",
+     "qualify": "the area, the traffic (people, cars, forklifts), chemicals or water on it, how long it can be closed, budget and timing",
+     "options": [
+      {"code": "epoxy_coating", "en": "Epoxy floor coating", "ar": "طلاء أرضيات إيبوكسي",
+       "why": "dust-free, easy to clean and resists oil",
+       "trade_off": "can be slippery when wet without an anti-slip finish",
+       "check": "the concrete is dry and ground first",
+       "services": ["flooring.epoxy"]},
+      {"code": "polyurethane_screed", "en": "Polyurethane or self-levelling screed", "ar": "طبقة بولي يوريثان أو ذاتية التسوية",
+       "why": "tougher under heavy traffic and heat",
+       "trade_off": "dearer than a coating",
+       "check": "the expected loads are known",
+       "services": ["flooring.epoxy"]},
+      {"code": "grind_and_seal", "en": "Grind and seal the concrete", "ar": "جلي الخرسانة ومعالجتها بمادة مانعة للغبار",
+       "why": "the most economical dust-proofing",
+       "trade_off": "less colour and protection than a coating",
+       "check": "cracks are repaired first",
+       "services": ["flooring.epoxy"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "stone_and_worktops", "en": "Marble, stone and worktops", "ar": "الرخام والحجر وأسطح العمل",
+   "trades": ["marble-granite", "kitchens", "tiling"],
+   "problems": [
+    {
+     "code": "marble_dull_or_stained",
+     "situation": "marble floors or tops that look dull, scratched, etched or stained",
+     "qualify": "the area, which rooms, the kind of damage, furnished or empty, budget and timing",
+     "options": [
+      {"code": "polish_restore", "en": "Grinding, honing and polishing restoration", "ar": "جلي وتلميع الرخام وإعادة تأهيله",
+       "why": "brings back the shine and removes most scratches",
+       "trade_off": "wet work over a few days",
+       "check": "a test area first",
+       "services": ["marble_stone.stone_polishing"]},
+      {"code": "seal_and_maintain", "en": "Deep clean and impregnating seal", "ar": "تنظيف عميق وطبقة حماية",
+       "why": "stops new stains on stone in good condition",
+       "trade_off": "does not remove deep scratches",
+       "check": "renewed periodically",
+       "services": ["marble_stone.stone_polishing", "cleaning.deep_cleaning"]},
+      {"code": "replace_damaged_slabs", "en": "Replace cracked or badly stained pieces", "ar": "استبدال القطع المكسورة أو التالفة",
+       "why": "the only fix for cracks and deep stains",
+       "trade_off": "matching the stone can be hard",
+       "check": "the same stone is still available",
+       "services": ["marble_stone.marble_supply", "marble_stone.stone_fabrication"]}
+     ]
+    },
+    {
+     "code": "choose_worktop",
+     "situation": "a kitchen or vanity worktop to choose (new kitchen, replacement, or a chipped or stained top)",
+     "qualify": "the run lengths, sink and hob cut-outs, the look they want, how heavily the kitchen is used, budget and timing",
+     "options": [
+      {"code": "quartz", "en": "Engineered quartz", "ar": "كوارتز صناعي",
+       "why": "non-porous, consistent colour, very low upkeep",
+       "trade_off": "avoid hot pans directly on it",
+       "check": "templated on site after the cabinets are fixed",
+       "services": ["marble_stone.worktops_vanities"]},
+      {"code": "granite", "en": "Granite", "ar": "جرانيت",
+       "why": "natural, very hard and heat-resistant",
+       "trade_off": "needs sealing; patterns vary slab to slab",
+       "check": "the slab is chosen in person",
+       "services": ["marble_stone.worktops_vanities", "marble_stone.marble_supply"]},
+      {"code": "sintered_porcelain", "en": "Sintered stone or porcelain slab", "ar": "حجر ملبّد أو ألواح بورسلين",
+       "why": "heat and stain proof, thin and modern",
+       "trade_off": "edges chip if knocked; needs a skilled fabricator",
+       "check": "edge detail agreed before cutting",
+       "services": ["marble_stone.worktops_vanities"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "waterproofing", "en": "Waterproofing and leaks", "ar": "العزل المائي والتسريبات",
+   "trades": ["waterproofing", "roofing", "insulation", "plumbing", "general-building-contracting"],
+   "problems": [
+    {
+     "code": "roof_leak",
+     "situation": "a roof or terrace that leaks or seeps into the rooms below, especially after rain or AC condensate",
+     "qualify": "the roof area, what is on it now (tiles, old membrane, AC units), where the water shows inside, access, budget and timing",
+     "options": [
+      {"code": "bituminous_membrane", "en": "Torch-applied bituminous membrane with protection", "ar": "عزل بلفائف بيتومينية بالتسخين مع طبقة حماية",
+       "why": "a proven, robust roof system",
+       "trade_off": "heavy work; needs a protective screed or tiles over it",
+       "check": "the old layers are assessed and the falls to drains corrected",
+       "services": ["waterproofing.roof"]},
+      {"code": "liquid_membrane", "en": "Liquid-applied membrane (polyurethane or acrylic)", "ar": "عزل سائل (بولي يوريثان أو أكريليك)",
+       "why": "seamless around AC stands and pipes, often over the existing roof",
+       "trade_off": "the life depends on the thickness applied and UV exposure",
+       "check": "a UV-stable top coat if left exposed",
+       "services": ["waterproofing.roof"]},
+      {"code": "inverted_roof_insulated", "en": "Membrane with insulation boards on top (inverted roof)", "ar": "عزل مائي مع ألواح عزل حراري فوقه",
+       "why": "stops the leak and cuts heat into the top floor",
+       "trade_off": "the most work and adds weight",
+       "check": "the roof can take the added layers",
+       "services": ["waterproofing.roof", "thermal_insulation.roof_insulation"]}
+     ]
+    },
+    {
+     "code": "bathroom_leaking_below",
+     "situation": "a bathroom, kitchen or balcony leaking into the room, ceiling or flat below",
+     "qualify": "which room, when it shows (after showers, all the time), the age of the bathroom, whether they want a renovation anyway, budget and timing",
+     "options": [
+      {"code": "leak_detection_and_pipe_repair", "en": "Leak detection, then repair the pipe or drain", "ar": "كشف التسريب ثم إصلاح الأنبوب أو الصرف",
+       "why": "often the cause is a pipe or a drain joint, not the floor",
+       "trade_off": "some tiles may be opened",
+       "check": "a pressure test of the supply lines",
+       "services": ["plumbing.maintenance", "plumbing.drainage"]},
+      {"code": "rewaterproof_and_retile", "en": "Strip, waterproof the wet area and retile", "ar": "إزالة البلاط وعزل المنطقة الرطبة وإعادة التبليط",
+       "why": "the lasting cure when the original membrane has failed",
+       "trade_off": "the bathroom is out of use for days",
+       "check": "a flood test before tiling",
+       "services": ["waterproofing.wet_areas", "flooring.tiling"]},
+      {"code": "regrout_and_seal", "en": "Regrout with epoxy grout and reseal joints", "ar": "إعادة الترويب بترويبة إيبوكسي وتجديد السيليكون",
+       "why": "fixes seepage through tired grout and silicone at little cost",
+       "trade_off": "does not cure a failed membrane or a pipe leak",
+       "check": "only when the source is the joints",
+       "services": ["flooring.tiling", "waterproofing.wet_areas"]}
+     ]
+    },
+    {
+     "code": "basement_or_wall_damp",
+     "situation": "a basement, ground-floor wall or boundary wall that is damp, with salts or peeling paint near the ground",
+     "qualify": "the wall length and height, inside or outside, new or existing building, access to the outside face, budget and timing",
+     "options": [
+      {"code": "external_tanking", "en": "External membrane on the outside face", "ar": "عزل خارجي على الوجه الخارجي للجدار",
+       "why": "stops water at the source",
+       "trade_off": "needs excavation or outside access",
+       "check": "drainage at the wall foot",
+       "services": ["waterproofing.basement"]},
+      {"code": "internal_crystalline", "en": "Internal crystalline or cementitious tanking", "ar": "عزل داخلي بمواد بلّورية أو إسمنتية",
+       "why": "done from inside, no digging",
+       "trade_off": "treats the symptom side, not the source",
+       "check": "the wall is sound concrete or block",
+       "services": ["waterproofing.basement"]},
+      {"code": "injection_damp_course", "en": "Injected damp-proof course and replaster", "ar": "حقن عازل للرطوبة الصاعدة ثم إعادة اللياسة",
+       "why": "for rising damp in walls",
+       "trade_off": "the plaster must be renewed afterwards",
+       "check": "a plumbing leak is ruled out first",
+       "services": ["waterproofing.basement", "masonry_blockwork.plastering"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "plumbing", "en": "Plumbing and bathrooms", "ar": "السباكة والحمامات",
+   "trades": ["plumbing", "mep", "combined-mep"],
+   "problems": [
+    {
+     "code": "low_water_pressure",
+     "situation": "weak water pressure in showers or taps, or pressure that drops when two taps run",
+     "qualify": "villa or apartment, tank on the roof or mains, the age of the pipes, all taps or some, budget and timing",
+     "options": [
+      {"code": "booster_pump", "en": "Booster pump with a pressure vessel", "ar": "مضخة تقوية ضغط مع خزان ضغط",
+       "why": "the usual fix when the supply is from a roof tank",
+       "trade_off": "a pump to service and some noise",
+       "check": "space and power near the tank",
+       "services": ["plumbing.heaters_pumps"]},
+      {"code": "clean_tank_and_lines", "en": "Clean the tank and descale the lines, aerators and mixers", "ar": "تنظيف الخزان وإزالة الترسبات من الخطوط والخلاطات",
+       "why": "scale and sediment often choke the flow",
+       "trade_off": "does not help if the pipes are undersized",
+       "check": "the tank is cleaned and disinfected",
+       "services": ["water_treatment_services.water_tank_cleaning_disinfection", "plumbing.maintenance"]},
+      {"code": "repipe", "en": "Replace old supply pipes", "ar": "استبدال خطوط التغذية القديمة",
+       "why": "the lasting cure for corroded or undersized pipes",
+       "trade_off": "opens walls and floors",
+       "check": "done with a bathroom renovation if one is planned",
+       "services": ["plumbing.water_supply"]}
+     ]
+    },
+    {
+     "code": "no_hot_water",
+     "situation": "no hot water, a water heater leaking or tripping, or hot water that runs out",
+     "qualify": "the heater size and age, where it sits, how many bathrooms, budget and timing",
+     "options": [
+      {"code": "replace_heater", "en": "Replace the water heater like for like", "ar": "استبدال سخان الماء بآخر مماثل",
+       "why": "quick, and old heaters are rarely worth repairing",
+       "trade_off": "the same running cost as before",
+       "check": "the safety valve and drain are renewed too",
+       "services": ["plumbing.heaters_pumps"]},
+      {"code": "heat_pump_or_solar", "en": "Heat-pump or solar water heater", "ar": "سخان بمضخة حرارية أو بالطاقة الشمسية",
+       "why": "much lower running cost for a family home",
+       "trade_off": "higher first cost and needs roof or outdoor space",
+       "check": "roof access and orientation",
+       "services": ["solar.water_heaters", "plumbing.heaters_pumps"]},
+      {"code": "point_of_use", "en": "Instant point-of-use heaters", "ar": "سخانات فورية عند نقطة الاستخدام",
+       "why": "no waiting and no storage tank",
+       "trade_off": "needs a strong electrical supply per point",
+       "check": "the electrical capacity is confirmed",
+       "services": ["plumbing.heaters_pumps", "electrical.wiring_install"]}
+     ]
+    },
+    {
+     "code": "bathroom_renovation",
+     "situation": "a bathroom that is old, dated or damaged and needs renovating",
+     "qualify": "the bathroom size, shower or bath, keep the layout or move fittings, the finish level, budget and timing",
+     "options": [
+      {"code": "full_renovation", "en": "Full renovation: strip, waterproof, new pipes, tiles and fittings", "ar": "تجديد كامل: إزالة وعزل وتمديدات وبلاط وأدوات صحية جديدة",
+       "why": "everything is new, including what is hidden",
+       "trade_off": "the longest and dearest option",
+       "check": "the building's rules on working hours",
+       "services": ["plumbing.sanitary_fixtures", "plumbing.water_supply", "waterproofing.wet_areas", "flooring.tiling"]},
+      {"code": "fittings_swap", "en": "New fittings and vanity, keep the tiles", "ar": "تغيير الأدوات الصحية والمغسلة مع إبقاء البلاط",
+       "why": "a quick update when the tiles are sound",
+       "trade_off": "the old tiles set the look",
+       "check": "the new fittings suit the existing connections",
+       "services": ["plumbing.sanitary_fixtures"]},
+      {"code": "overlay_refresh", "en": "Refresh: tile overlay or wall panels, plus new fittings", "ar": "تحديث بتكسية فوق البلاط أو ألواح جدارية مع أدوات جديدة",
+       "why": "a new look in days without demolition",
+       "trade_off": "only over sound, bonded tiles and dry walls",
+       "check": "no leaks behind the walls",
+       "services": ["flooring.tiling", "wallpaper.wall_panels", "plumbing.sanitary_fixtures"]}
+     ]
+    },
+    {
+     "code": "blocked_or_smelly_drain",
+     "situation": "drains that block again and again, overflow, or smell",
+     "qualify": "which fittings, how often it happens, villa or building, budget and timing",
+     "options": [
+      {"code": "jetting", "en": "High-pressure jetting of the lines", "ar": "تنظيف الخطوط بالضغط العالي",
+       "why": "clears grease and scale along the whole line",
+       "trade_off": "returns if the cause is a broken or badly sloped pipe",
+       "check": "the chambers are accessible",
+       "services": ["plumbing.drainage"]},
+      {"code": "camera_survey_and_repair", "en": "Camera survey, then repair the faulty section", "ar": "فحص الخطوط بالكاميرا ثم إصلاح الجزء التالف",
+       "why": "finds the real cause before anything is dug up",
+       "trade_off": "costs more than a one-off clearing",
+       "check": "a written report of what was found",
+       "services": ["plumbing.drainage"]},
+      {"code": "traps_and_vents", "en": "Fix the traps and vent pipes", "ar": "إصلاح السيفونات وأنابيب التهوية",
+       "why": "smells usually come from dry traps or missing vents",
+       "trade_off": "does not help a blockage further down",
+       "check": "every fitting is checked",
+       "services": ["plumbing.drainage", "plumbing.maintenance"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "air_conditioning", "en": "Air conditioning and ventilation", "ar": "التكييف والتهوية",
+   "trades": ["hvac", "mep", "combined-mep"],
+   "problems": [
+    {
+     "code": "ac_not_cooling",
+     "situation": "an AC unit that is not cooling, is leaking water, noisy, or tripping",
+     "qualify": "the type (split, ducted, window), how many units, their age, what it is doing, budget and timing",
+     "options": [
+      {"code": "service_and_repair", "en": "Diagnose and repair (cleaning, gas, fan or drain)", "ar": "فحص وإصلاح (تنظيف، فريون، مروحة أو تصريف)",
+       "why": "most faults are dirt, low gas from a leak, or a blocked drain",
+       "trade_off": "an old unit may fail again soon",
+       "check": "a gas leak is found and fixed, not only refilled",
+       "services": ["hvac.maintenance_amc"]},
+      {"code": "replace_with_inverter", "en": "Replace with a new inverter unit", "ar": "استبدال بوحدة إنفرتر جديدة",
+       "why": "lower power bills and quieter; worth it for old units",
+       "trade_off": "the first cost",
+       "check": "the right capacity for the room",
+       "services": ["hvac.supply_install"]},
+      {"code": "maintenance_contract", "en": "Annual maintenance contract", "ar": "عقد صيانة سنوي",
+       "why": "regular cleaning prevents most breakdowns in summer",
+       "trade_off": "a yearly cost",
+       "check": "the visits and parts covered",
+       "services": ["hvac.maintenance_amc"]}
+     ]
+    },
+    {
+     "code": "new_ac_system",
+     "situation": "AC to install in a new space, an extension, or to replace a whole system",
+     "qualify": "the rooms and their sizes, ceiling (false ceiling for ducts or not), apartment, villa or office, budget and timing",
+     "options": [
+      {"code": "wall_splits", "en": "Wall-mounted split units", "ar": "مكيفات سبليت جدارية",
+       "why": "economical and each room controlled on its own",
+       "trade_off": "visible indoor units",
+       "check": "a place for each outdoor unit",
+       "services": ["hvac.supply_install"]},
+      {"code": "ducted_concealed", "en": "Ducted concealed units", "ar": "مكيفات مخفية بمجاري هواء",
+       "why": "hidden, even air through the rooms",
+       "trade_off": "needs a false ceiling and access for service",
+       "check": "the ceiling void depth",
+       "services": ["hvac.supply_install", "hvac.ducting", "gypsum.false_ceiling"]},
+      {"code": "vrf_system", "en": "VRF system", "ar": "نظام VRF",
+       "why": "efficient for large villas and offices with many rooms",
+       "trade_off": "the highest first cost and specialist service",
+       "check": "a load calculation by the installer",
+       "services": ["hvac.vrf_chiller"]}
+     ]
+    },
+    {
+     "code": "stale_air_or_ac_smell",
+     "situation": "a smell, dust, mould or stuffy air coming from the AC or in closed rooms",
+     "qualify": "the system type, how many outlets, any health concerns, budget and timing",
+     "options": [
+      {"code": "duct_cleaning", "en": "Duct and coil cleaning", "ar": "تنظيف مجاري الهواء والملفات",
+       "why": "removes the dust and mould that cause the smell",
+       "trade_off": "returns without regular maintenance",
+       "check": "before and after photos",
+       "services": ["cleaning.ac_duct", "hvac.maintenance_amc"]},
+      {"code": "fresh_air_unit", "en": "Fresh-air unit or ventilation fans", "ar": "وحدة هواء نقي أو مراوح تهوية",
+       "why": "brings in filtered outside air",
+       "trade_off": "adds a little cooling load",
+       "check": "routes for the ducts",
+       "services": ["hvac.ducting"]},
+      {"code": "air_quality_test", "en": "Indoor air-quality test first", "ar": "فحص جودة الهواء الداخلي أولاً",
+       "why": "measures what is actually wrong before spending",
+       "trade_off": "a test only, the fix comes after",
+       "check": "a written result",
+       "services": ["cleaning.air_quality"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "electrical", "en": "Electrical and lighting", "ar": "الكهرباء والإنارة",
+   "trades": ["electrical", "mep", "combined-mep", "generators"],
+   "problems": [
+    {
+     "code": "tripping_or_faulty_power",
+     "situation": "breakers that trip, sockets that do not work, burning smells or old wiring",
+     "qualify": "what trips and when, the age of the building, villa or apartment, budget and timing",
+     "options": [
+      {"code": "fault_finding", "en": "Fault finding and repair", "ar": "تتبّع العطل وإصلاحه",
+       "why": "most trips come from one appliance or one faulty circuit",
+       "trade_off": "an old installation may show more faults",
+       "check": "a licensed electrician; urgent if there is a burning smell",
+       "services": ["electrical.maintenance"]},
+      {"code": "db_upgrade", "en": "Distribution board upgrade with new protection", "ar": "تحديث لوحة التوزيع وأجهزة الحماية",
+       "why": "safer protection and room for new circuits",
+       "trade_off": "power is off while it is changed",
+       "check": "utility approval if the load increases",
+       "services": ["electrical.db_panels"]},
+      {"code": "rewire", "en": "Partial or full rewiring", "ar": "إعادة تمديد الأسلاك جزئياً أو كلياً",
+       "why": "the lasting cure for old or damaged wiring",
+       "trade_off": "opens walls; best done with a renovation",
+       "check": "a test certificate after",
+       "services": ["electrical.wiring_install"]}
+     ]
+    },
+    {
+     "code": "lighting_upgrade",
+     "situation": "lighting to improve: dark rooms, old fittings, or a new look",
+     "qualify": "the rooms, the ceiling type, the mood wanted, dimming or smart control, budget and timing",
+     "options": [
+      {"code": "led_downlights", "en": "LED downlights and spots", "ar": "سبوتات ووحدات إنارة LED",
+       "why": "even, efficient light",
+       "trade_off": "needs a false ceiling or surface fittings",
+       "check": "warm or neutral colour chosen per room",
+       "services": ["electrical.lighting"]},
+      {"code": "cove_and_linear", "en": "Hidden cove and linear lighting", "ar": "إضاءة مخفية وخطية",
+       "why": "a soft, modern atmosphere",
+       "trade_off": "needs gypsum detailing",
+       "check": "drivers are accessible",
+       "services": ["electrical.lighting", "gypsum.decorative"]},
+      {"code": "smart_lighting_control", "en": "Smart lighting control and dimming", "ar": "تحكّم ذكي بالإضاءة وتعتيم",
+       "why": "scenes and control from the phone",
+       "trade_off": "more cost and programming",
+       "check": "compatible dimmable fittings",
+       "services": ["home_automation.lighting_control", "electrical.lighting"]}
+     ]
+    },
+    {
+     "code": "ev_charger",
+     "situation": "an electric-car charger at a home, building or business",
+     "qualify": "villa or building, parking position, distance to the board, the car model, budget and timing",
+     "options": [
+      {"code": "ac_wallbox", "en": "AC wallbox charger", "ar": "شاحن جداري AC",
+       "why": "the usual home charger, overnight charging",
+       "trade_off": "slower than public fast chargers",
+       "check": "the supply capacity and the utility's approval",
+       "services": ["ev_charging.ac_wallbox_chargers", "ev_charging.authority_approvals"]},
+      {"code": "dc_fast", "en": "DC fast charger", "ar": "شاحن سريع DC",
+       "why": "for businesses and fleets that need quick turnaround",
+       "trade_off": "much higher cost and power demand",
+       "check": "a load study and approvals",
+       "services": ["ev_charging.dc_fast_chargers", "ev_charging.authority_approvals"]}
+     ]
+    },
+    {
+     "code": "backup_power",
+     "situation": "backup power for outages (a site, a clinic, servers, a villa)",
+     "qualify": "what must keep running, for how long, indoor or outdoor, budget and timing",
+     "options": [
+      {"code": "standby_generator_ats", "en": "Standby generator with automatic changeover", "ar": "مولد احتياطي مع لوحة تحويل تلقائي",
+       "why": "runs the whole load for long outages",
+       "trade_off": "fuel, noise and maintenance",
+       "check": "space, ventilation and approvals",
+       "services": ["power_generators.generator_supply", "power_generators.ats_panels"]},
+      {"code": "ups", "en": "UPS for critical equipment", "ar": "نظام UPS للأجهزة الحساسة",
+       "why": "no break at all for servers and medical equipment",
+       "trade_off": "short run time unless sized large",
+       "check": "the critical load is listed",
+       "services": ["power_generators.ups"]},
+      {"code": "generator_rental", "en": "Generator rental", "ar": "استئجار مولد",
+       "why": "for temporary sites and events",
+       "trade_off": "a running cost while hired",
+       "check": "fuel and refuelling arranged",
+       "services": ["power_generators.generator_rental"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "joinery", "en": "Joinery, wardrobes and doors", "ar": "النجارة والخزائن والأبواب",
+   "trades": ["carpentry-joinery", "custom-furniture", "kitchens", "fitout"],
+   "problems": [
+    {
+     "code": "wardrobe_storage",
+     "situation": "a bedroom or dressing area that needs wardrobes or more storage",
+     "qualify": "the wall width and ceiling height, the door type they prefer, the inside layout, the finish, budget and timing",
+     "options": [
+      {"code": "hinged_built_in", "en": "Built-in wardrobe with hinged doors", "ar": "خزانة مدمجة بأبواب مفصلية",
+       "why": "full access and the most finish choices",
+       "trade_off": "needs space in front to open the doors",
+       "check": "moisture-resistant board near bathrooms",
+       "services": ["joinery.wardrobes"]},
+      {"code": "sliding_doors", "en": "Built-in wardrobe with sliding doors", "ar": "خزانة مدمجة بأبواب منزلقة",
+       "why": "saves space in smaller rooms",
+       "trade_off": "only half is open at a time",
+       "check": "a level floor and ceiling for the tracks",
+       "services": ["joinery.wardrobes"]},
+      {"code": "walk_in_open", "en": "Open walk-in system", "ar": "غرفة ملابس مفتوحة",
+       "why": "easy to see everything, flexible",
+       "trade_off": "dust on open shelves",
+       "check": "enough room depth",
+       "services": ["joinery.wardrobes", "joinery.custom_furniture"]}
+     ]
+    },
+    {
+     "code": "damaged_or_old_doors",
+     "situation": "interior doors that are swollen, sagging, damaged, or simply dated",
+     "qualify": "how many doors, their sizes, frames in good condition or not, fire rating needed, the finish, budget and timing",
+     "options": [
+      {"code": "repair_rehang", "en": "Repair, plane and rehang", "ar": "إصلاح وضبط وإعادة تركيب",
+       "why": "the cheapest fix for a sound door",
+       "trade_off": "the look stays the same",
+       "check": "the cause of swelling (water) is fixed",
+       "services": ["joinery.wooden_doors"]},
+      {"code": "new_leaf_same_frame", "en": "New door leaves in the existing frames", "ar": "دلف أبواب جديدة على الإطارات الحالية",
+       "why": "a new look without breaking the walls",
+       "trade_off": "frames limit the choice of sizes",
+       "check": "the frames are square and sound",
+       "services": ["joinery.wooden_doors"]},
+      {"code": "full_door_set", "en": "Complete door sets (frame, leaf and hardware)", "ar": "أطقم أبواب كاملة (إطار ودلفة وإكسسوارات)",
+       "why": "everything matches and closes properly",
+       "trade_off": "more work around the openings",
+       "check": "fire-rated sets where the building requires them",
+       "services": ["joinery.wooden_doors", "doors.wooden_doors", "doors.fire_doors"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "kitchens", "en": "Kitchens", "ar": "المطابخ",
+   "trades": ["kitchens", "carpentry-joinery", "custom-furniture"],
+   "problems": [
+    {
+     "code": "tired_kitchen",
+     "situation": "an existing kitchen that works but looks tired, dated or damaged",
+     "qualify": "the kitchen layout and length of units, the state of the cabinets, keep the appliances or not, budget and timing",
+     "options": [
+      {"code": "reface_or_wrap", "en": "Reface: new door fronts or a vinyl wrap on the doors", "ar": "تجديد الواجهات: أبواب جديدة أو تغليف بالفينيل",
+       "why": "a new look in days, no demolition",
+       "trade_off": "the carcasses and layout stay as they are",
+       "check": "the carcasses are dry and sound",
+       "services": ["joinery.kitchens", "interior_fitout.decoration"]},
+      {"code": "doors_and_worktop", "en": "New doors and a new worktop", "ar": "أبواب جديدة وسطح عمل جديد",
+       "why": "the two things that change the look most",
+       "trade_off": "more cost; the sink and hob are disconnected for a while",
+       "check": "the worktop is templated after the doors",
+       "services": ["joinery.kitchens", "marble_stone.worktops_vanities"]},
+      {"code": "full_new_kitchen", "en": "Full new kitchen", "ar": "مطبخ جديد بالكامل",
+       "why": "a new layout, storage and finishes",
+       "trade_off": "the dearest and the kitchen is out of use",
+       "check": "plumbing and power positions are confirmed",
+       "services": ["joinery.kitchens"]}
+     ]
+    },
+    {
+     "code": "kitchen_material_choice",
+     "situation": "a new kitchen where they are deciding the cabinet material and finish",
+     "qualify": "the layout and lengths, how heavily it is used, near water or the sea, the finish they like, budget and timing",
+     "options": [
+      {"code": "mr_mdf_finished", "en": "Moisture-resistant MDF with acrylic, lacquer or HPL fronts", "ar": "MDF مقاوم للرطوبة بواجهات أكريليك أو لاكر أو HPL",
+       "why": "the common choice: wide finish range, good value",
+       "trade_off": "standard MDF swells if water gets into cut edges",
+       "check": "moisture-resistant grade under the sink",
+       "services": ["joinery.kitchens"]},
+      {"code": "marine_plywood", "en": "Marine plywood carcasses", "ar": "هياكل من الخشب البحري",
+       "why": "much better against water and heavy loads",
+       "trade_off": "costs more",
+       "check": "the edges are sealed",
+       "services": ["joinery.kitchens"]},
+      {"code": "aluminium_or_stainless", "en": "Aluminium or stainless steel cabinets", "ar": "خزائن ألمنيوم أو ستانلس ستيل",
+       "why": "waterproof and termite-proof; suits outdoor and staff kitchens",
+       "trade_off": "fewer looks and a colder feel",
+       "check": "the grade of stainless near the sea",
+       "services": ["joinery.kitchens", "steel.stainless"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "landscaping", "en": "Gardens and landscaping", "ar": "الحدائق وتنسيقها",
+   "trades": ["landscaping", "swimming-pools"],
+   "problems": [
+    {
+     "code": "garden_makeover",
+     "situation": "a garden or yard to redo or create (bare sand, dead grass, a new villa)",
+     "qualify": "the garden area, shade, water supply, children or pets, upkeep they can manage, budget and timing",
+     "options": [
+      {"code": "natural_lawn_irrigation", "en": "Natural lawn and planting with automatic irrigation", "ar": "عشب طبيعي ونباتات مع ري آلي",
+       "why": "cool and green, the natural look",
+       "trade_off": "water and regular maintenance",
+       "check": "a drip or sprinkler plan suited to the plants",
+       "services": ["landscaping.softscape", "landscaping.irrigation", "landscaping.maintenance"]},
+      {"code": "artificial_grass", "en": "Artificial grass", "ar": "عشب صناعي",
+       "why": "green all year with little water or upkeep",
+       "trade_off": "gets hot in full sun",
+       "check": "a compacted, draining base",
+       "services": ["landscaping.artificial_grass"]},
+      {"code": "hardscape_and_beds", "en": "Hardscape with planting beds and shade", "ar": "أعمال صلبة مع أحواض زراعة وتظليل",
+       "why": "a usable outdoor living area with less upkeep",
+       "trade_off": "less green and more first cost",
+       "check": "levels and drainage",
+       "services": ["landscaping.hardscape", "landscaping.softscape"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "pools", "en": "Swimming pools", "ar": "المسابح",
+   "trades": ["swimming-pools", "landscaping"],
+   "problems": [
+    {
+     "code": "pool_water_problem",
+     "situation": "pool water that is green, cloudy, or a pump or filter that is not working",
+     "qualify": "the pool size, the age of the equipment, chlorine or salt system, budget and timing",
+     "options": [
+      {"code": "clean_and_maintain", "en": "Clean, balance the water and a maintenance plan", "ar": "تنظيف وموازنة المياه مع خطة صيانة",
+       "why": "most water problems are chemistry and filtration",
+       "trade_off": "a running cost",
+       "check": "the visit frequency in summer",
+       "services": ["swimming_pools.pool_maintenance"]},
+      {"code": "equipment_service", "en": "Service or replace the pump and filter", "ar": "صيانة أو استبدال المضخة والفلتر",
+       "why": "a weak pump or a spent filter cannot keep the water clear",
+       "trade_off": "the equipment cost",
+       "check": "the pump is matched to the pool volume",
+       "services": ["swimming_pools.pool_equipment"]}
+     ]
+    },
+    {
+     "code": "pool_losing_water_or_tiles",
+     "situation": "a pool losing water, with loose or cracked tiles, or a rough finish",
+     "qualify": "how much water it loses, the pool age and finish, budget and timing",
+     "options": [
+      {"code": "leak_detection_repair", "en": "Leak detection and targeted repair", "ar": "كشف التسريب وإصلاحه في موضعه",
+       "why": "finds whether the shell, the pipes or the fittings leak",
+       "trade_off": "the pool may be partly drained",
+       "check": "pressure tests of the lines",
+       "services": ["swimming_pools.pool_construction", "swimming_pools.pool_equipment"]},
+      {"code": "refinish_retile", "en": "Drain, waterproof and retile or refinish", "ar": "تفريغ المسبح وعزله وإعادة تبليطه أو تشطيبه",
+       "why": "the lasting cure for an old shell finish",
+       "trade_off": "the pool is out of use for weeks",
+       "check": "the shell is inspected once empty",
+       "services": ["swimming_pools.pool_construction", "waterproofing.wet_areas"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "outdoor_shade", "en": "Shade structures and pergolas", "ar": "المظلات والبرجولات",
+   "trades": ["tents-and-shade-structures", "aluminium", "steel", "landscaping"],
+   "problems": [
+    {
+     "code": "need_outdoor_shade",
+     "situation": "a terrace, garden, roof, play area or parking that needs shade",
+     "qualify": "the area to cover, fixed to the house or free-standing, wind exposure, the look they want, budget and timing",
+     "options": [
+      {"code": "aluminium_louvre_pergola", "en": "Aluminium pergola with adjustable louvres", "ar": "برجولا ألمنيوم بشرائح قابلة للتحريك",
+       "why": "sun or open sky at the turn of a handle, low upkeep",
+       "trade_off": "the dearest option",
+       "check": "community approval where needed",
+       "services": ["aluminium.pergolas_shades", "aluminium.louvres"]},
+      {"code": "tensile_shade_sail", "en": "Tensile membrane or shade sail", "ar": "مظلة شد إنشائي أو أشرعة تظليل",
+       "why": "large spans for less, a light modern look",
+       "trade_off": "the fabric is renewed after some years",
+       "check": "posts and footings sized for wind",
+       "services": ["tents_shades.shade_sails", "tents_shades.tensile_structures"]},
+      {"code": "car_park_shade", "en": "Car park shade structure", "ar": "مظلات مواقف السيارات",
+       "why": "made for parking bays",
+       "trade_off": "a functional rather than decorative look",
+       "check": "the number of bays",
+       "services": ["tents_shades.car_park_shades"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "pests", "en": "Pest control", "ar": "مكافحة الآفات",
+   "trades": ["pest", "cleaning"],
+   "problems": [
+    {
+     "code": "insects_indoors",
+     "situation": "cockroaches, ants, bed bugs or other insects inside a home, office or kitchen",
+     "qualify": "which pest, the property type and size, children or pets, a food business or not, budget and timing",
+     "options": [
+      {"code": "gel_and_targeted", "en": "Gel baits and targeted low-odour treatment", "ar": "طُعوم جل ومعالجة موضعية قليلة الرائحة",
+       "why": "effective on cockroaches and ants, the home stays in use",
+       "trade_off": "takes a couple of visits to finish",
+       "check": "a municipality-approved company and products",
+       "services": ["pest_control.general_pest_control"]},
+      {"code": "full_treatment_contract", "en": "Full treatment with a follow-up contract", "ar": "معالجة شاملة مع عقد متابعة",
+       "why": "for heavy infestations and food businesses",
+       "trade_off": "the property is cleared for some hours",
+       "check": "the service report a food business needs",
+       "services": ["pest_control.general_pest_control", "pest_control.disinfection"]}
+     ]
+    },
+    {
+     "code": "termites_or_rodents",
+     "situation": "termites in wood or walls, or rats and mice",
+     "qualify": "which pest, where it is seen, villa or building, budget and timing",
+     "options": [
+      {"code": "termite_treatment", "en": "Termite treatment (soil barrier or bait stations)", "ar": "معالجة النمل الأبيض (حاجز تربة أو محطات طُعم)",
+       "why": "stops the colony, not only what is seen",
+       "trade_off": "monitoring over months",
+       "check": "damaged wood is replaced afterwards",
+       "services": ["pest_control.termite_treatment"]},
+      {"code": "rodent_control", "en": "Rodent control with proofing of entry points", "ar": "مكافحة القوارض مع سد منافذ الدخول",
+       "why": "baiting plus sealing gaps keeps them out",
+       "trade_off": "several visits",
+       "check": "gaps around pipes and doors are sealed",
+       "services": ["pest_control.rodent_control"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "cleaning", "en": "Cleaning", "ar": "التنظيف",
+   "trades": ["cleaning", "facade-cleaning", "water-tank-cleaning"],
+   "problems": [
+    {
+     "code": "move_or_post_works_clean",
+     "situation": "a home or office to clean before moving in or out, or after building works",
+     "qualify": "the property type and size, furnished or empty, after works or not, budget and timing",
+     "options": [
+      {"code": "deep_clean", "en": "Deep cleaning", "ar": "تنظيف عميق",
+       "why": "every surface, kitchen and bathroom done thoroughly",
+       "trade_off": "takes a full day or more",
+       "check": "water and power are on",
+       "services": ["cleaning.deep_cleaning"]},
+      {"code": "post_construction_clean", "en": "Post-construction cleaning", "ar": "تنظيف ما بعد البناء",
+       "why": "removes builders' dust, paint and adhesive safely",
+       "trade_off": "costs more than a normal deep clean",
+       "check": "the contractor has finished all works",
+       "services": ["cleaning.post_construction"]}
+     ]
+    },
+    {
+     "code": "water_tank_or_greasy_exhaust",
+     "situation": "a water tank to clean, or a kitchen hood and exhaust duct full of grease",
+     "qualify": "the tank size and access, or the hood and duct length, a food business or not, budget and timing",
+     "options": [
+      {"code": "tank_clean_disinfect", "en": "Water tank cleaning and disinfection", "ar": "تنظيف خزان المياه وتعقيمه",
+       "why": "clean water and the certificate many buildings need",
+       "trade_off": "no water for some hours",
+       "check": "a lab test of the water where required",
+       "services": ["water_treatment_services.water_tank_cleaning_disinfection", "water_treatment.water_testing"]},
+      {"code": "hood_duct_degrease", "en": "Kitchen hood and exhaust duct degreasing", "ar": "تنظيف شفاط المطبخ ومجاري العادم من الدهون",
+       "why": "grease in ducts is a fire risk",
+       "trade_off": "done outside service hours",
+       "check": "before and after photos for the inspection",
+       "services": ["cleaning.kitchen_exhaust"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "security_systems", "en": "CCTV and access control", "ar": "كاميرات المراقبة والتحكّم بالدخول",
+   "trades": ["security", "smart-home", "it-networking"],
+   "problems": [
+    {
+     "code": "cameras_needed",
+     "situation": "cameras for a home, shop, office or building",
+     "qualify": "the areas to cover, indoor or outdoor, how long to keep recordings, remote viewing, budget and timing",
+     "options": [
+      {"code": "ip_cameras_nvr", "en": "IP cameras with a network video recorder", "ar": "كاميرات IP مع جهاز تسجيل شبكي",
+       "why": "sharp images, remote viewing, and the system most approvals expect",
+       "trade_off": "cabling to each camera",
+       "check": "the recording period the authority requires for the business type",
+       "services": ["security_systems.cctv", "av_it.data_cabling"]},
+      {"code": "wireless_cloud_cameras", "en": "Wireless cameras with cloud recording", "ar": "كاميرات لاسلكية مع تسجيل سحابي",
+       "why": "quick to install in a home",
+       "trade_off": "depends on Wi-Fi and a subscription; not for licensed premises",
+       "check": "a strong Wi-Fi signal at each camera",
+       "services": ["security_systems.cctv"]}
+     ]
+    },
+    {
+     "code": "control_who_enters",
+     "situation": "control of who enters a building, office, gate or villa",
+     "qualify": "the number of doors or gates, how many users, attendance tracking, visitor handling, budget and timing",
+     "options": [
+      {"code": "card_or_fob", "en": "Card or fob readers", "ar": "قارئات بطاقات أو مفاتيح إلكترونية",
+       "why": "simple and cheap to add users",
+       "trade_off": "cards get lent or lost",
+       "check": "fail-safe release for fire exits",
+       "services": ["security_systems.access_control"]},
+      {"code": "biometric_or_face", "en": "Fingerprint or face recognition", "ar": "بصمة الإصبع أو التعرّف على الوجه",
+       "why": "no cards to lose and time attendance in one",
+       "trade_off": "costs more and handles personal data",
+       "check": "consent and data handling",
+       "services": ["security_systems.access_control"]},
+      {"code": "video_intercom_smart_lock", "en": "Video intercom with smart lock", "ar": "انتركم مرئي مع قفل ذكي",
+       "why": "see and open for visitors from the phone",
+       "trade_off": "suited to homes and small offices",
+       "check": "power and network at the door",
+       "services": ["home_automation.intercom"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "fire_safety", "en": "Fire safety", "ar": "السلامة من الحريق",
+   "trades": ["safety", "mep"],
+   "problems": [
+    {
+     "code": "fire_alarm_system",
+     "situation": "a fire alarm to install or upgrade, or a Civil Defence inspection to pass",
+     "qualify": "the building type and size, floors, what exists now, the Civil Defence requirement or notice, budget and timing",
+     "options": [
+      {"code": "conventional_alarm", "en": "Conventional fire alarm", "ar": "نظام إنذار حريق تقليدي",
+       "why": "economical for small premises",
+       "trade_off": "shows the zone, not the exact device",
+       "check": "a Civil Defence approved contractor and system",
+       "services": ["fire_fighting.fire_alarm", "fire_fighting.civil_defence"]},
+      {"code": "addressable_alarm", "en": "Addressable fire alarm", "ar": "نظام إنذار حريق معنون",
+       "why": "pinpoints each device; expected in larger buildings",
+       "trade_off": "costs more",
+       "check": "a Civil Defence approved contractor and system",
+       "services": ["fire_fighting.fire_alarm", "fire_fighting.civil_defence"]},
+      {"code": "maintenance_and_renewal", "en": "Maintenance contract and certificate renewal", "ar": "عقد صيانة وتجديد شهادة الدفاع المدني",
+       "why": "keeps the existing system approved",
+       "trade_off": "a yearly cost",
+       "check": "the defects in the last report are fixed",
+       "services": ["fire_fighting.civil_defence", "fire_fighting.extinguishers"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "blinds_curtains", "en": "Blinds and curtains", "ar": "الستائر",
+   "trades": ["blinds-curtains", "upholstery", "interior-design"],
+   "problems": [
+    {
+     "code": "too_much_sun_or_privacy",
+     "situation": "rooms with too much sun or glare, or no privacy, or old curtains to replace",
+     "qualify": "the number of windows and their sizes, blackout or light filtering, manual or motorised, the style, budget and timing",
+     "options": [
+      {"code": "roller_blackout", "en": "Roller blinds (blackout or sunscreen)", "ar": "ستائر رول (معتمة أو حاجبة للشمس)",
+       "why": "neat, cut glare, easy to clean",
+       "trade_off": "a plainer look than fabric curtains",
+       "check": "inside or outside the window recess",
+       "services": ["curtains_blinds.roller_blinds"]},
+      {"code": "curtains_lined", "en": "Curtains with blackout lining and sheers", "ar": "ستائر قماش ببطانة معتمة مع ستائر شفافة",
+       "why": "a soft, warm look with privacy by day",
+       "trade_off": "more fabric to clean",
+       "check": "ceiling or wall track",
+       "services": ["curtains_blinds.curtains", "upholstery.curtains"]},
+      {"code": "motorised", "en": "Motorised blinds or curtains", "ar": "ستائر بمحرّك",
+       "why": "large or high windows and smart-home control",
+       "trade_off": "more cost and a power point needed",
+       "check": "power at each window",
+       "services": ["curtains_blinds.motorised_blinds"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "upholstery_furniture", "en": "Upholstery and made-to-measure seating", "ar": "التنجيد والجلسات حسب الطلب",
+   "trades": ["upholstery", "custom-furniture"],
+   "problems": [
+    {
+     "code": "worn_sofa_or_majlis",
+     "situation": "a sofa, majlis seating or chairs that are worn, sagging or out of style",
+     "qualify": "the number of seats or the run length, the frame condition, the fabric wanted, budget and timing",
+     "options": [
+      {"code": "reupholster", "en": "Reupholster with new foam and fabric", "ar": "إعادة تنجيد بإسفنج وقماش جديد",
+       "why": "keeps a good frame and changes the look",
+       "trade_off": "only worth it if the frame is sound",
+       "check": "the frame is checked when the old fabric comes off",
+       "services": ["upholstery.sofa"]},
+      {"code": "new_made_to_measure", "en": "New made-to-measure majlis or sofa", "ar": "مجلس أو كنب جديد حسب المقاس",
+       "why": "a perfect fit for the room and a new frame",
+       "trade_off": "the dearest and takes longer",
+       "check": "the room is measured on site",
+       "services": ["upholstery.majlis", "home_furniture.majlis_seating"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "smart_home_av_it", "en": "Smart home, audio-visual and networks", "ar": "المنزل الذكي والصوتيات والشبكات",
+   "trades": ["smart-home", "av-systems", "it-networking"],
+   "problems": [
+    {
+     "code": "weak_wifi_or_network",
+     "situation": "weak or dropping Wi-Fi, or an office network to set up",
+     "qualify": "the area and floors, how many users or devices, walls between rooms, existing cabling, budget and timing",
+     "options": [
+      {"code": "mesh_or_access_points", "en": "Mesh Wi-Fi or ceiling access points", "ar": "شبكة واي فاي متشابكة أو نقاط وصول سقفية",
+       "why": "even coverage through the property",
+       "trade_off": "access points need a cable back to the router",
+       "check": "a coverage survey of the rooms",
+       "services": ["it_services.network_install"]},
+      {"code": "structured_cabling", "en": "Structured data cabling", "ar": "تمديدات كابلات بيانات منظّمة",
+       "why": "the most reliable for offices and many devices",
+       "trade_off": "cable routes and some disruption",
+       "check": "a labelled, tested installation",
+       "services": ["it_services.structured_cabling", "av_it.data_cabling"]}
+     ]
+    },
+    {
+     "code": "smart_home_or_av",
+     "situation": "a home to make smart (lighting, curtains, AC, security) or a home cinema or sound system",
+     "qualify": "new build or existing, the rooms, what they want to control, budget and timing",
+     "options": [
+      {"code": "wireless_retrofit", "en": "Wireless smart-home retrofit", "ar": "تحويل ذكي لاسلكي للمنزل القائم",
+       "why": "no new wiring, done room by room",
+       "trade_off": "depends on Wi-Fi and the device brand",
+       "check": "a strong network first",
+       "services": ["home_automation.smart_home"]},
+      {"code": "wired_integrated", "en": "Wired, integrated automation system", "ar": "نظام أتمتة سلكي متكامل",
+       "why": "the most reliable for new builds and large villas",
+       "trade_off": "cabling at the construction stage and programming cost",
+       "check": "planned with the electrical drawings",
+       "services": ["home_automation.smart_home", "home_automation.integration"]},
+      {"code": "home_cinema_audio", "en": "Home cinema or multi-room audio", "ar": "سينما منزلية أو نظام صوت متعدد الغرف",
+       "why": "a designed sound and picture for the room",
+       "trade_off": "acoustic treatment adds cost",
+       "check": "the room size and seating",
+       "services": ["av_it.audio_visual"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "solar", "en": "Solar energy", "ar": "الطاقة الشمسية",
+   "trades": ["solar", "electrical"],
+   "problems": [
+    {
+     "code": "cut_power_bills",
+     "situation": "high electricity bills, or a wish to add solar to a villa, building or factory",
+     "qualify": "the roof area and type, the monthly consumption, the emirate and utility, backup wanted, budget and timing",
+     "options": [
+      {"code": "grid_tied_pv", "en": "Grid-connected solar PV", "ar": "نظام طاقة شمسية متصل بالشبكة",
+       "why": "offsets daytime use under the utility's net-metering rules",
+       "trade_off": "no power during an outage without batteries",
+       "check": "the utility's approval before installation",
+       "services": ["solar.pv_install", "solar.grid_connection"]},
+      {"code": "pv_with_battery", "en": "Solar PV with battery storage", "ar": "طاقة شمسية مع بطاريات تخزين",
+       "why": "evening use and backup in outages",
+       "trade_off": "batteries add a lot of cost",
+       "check": "the loads to back up are listed",
+       "services": ["solar.pv_install", "solar.battery_storage"]},
+      {"code": "solar_water_heating", "en": "Solar water heating", "ar": "تسخين المياه بالطاقة الشمسية",
+       "why": "the cheapest solar saving for a family home",
+       "trade_off": "covers hot water only",
+       "check": "roof space near the bathrooms",
+       "services": ["solar.water_heaters"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "signage", "en": "Signage", "ar": "اللوحات الإعلانية",
+   "trades": ["signage", "acrylic", "commercial-retail-fitout"],
+   "problems": [
+    {
+     "code": "shop_sign",
+     "situation": "a shop, office or building sign (new, or replacing an old one)",
+     "qualify": "the sign size and position, lit or not, the landlord or mall rules, the logo files, budget and timing",
+     "options": [
+      {"code": "illuminated_3d_letters", "en": "Illuminated 3D letters", "ar": "حروف بارزة مضيئة",
+       "why": "the premium look and visible at night",
+       "trade_off": "the dearest per metre",
+       "check": "municipality and landlord approval",
+       "services": ["signage.letters_3d"]},
+      {"code": "lightbox", "en": "Lightbox sign", "ar": "لوحة صندوق مضيء",
+       "why": "economical and bright",
+       "trade_off": "a flatter, simpler look",
+       "check": "municipality and landlord approval",
+       "services": ["signage.lightbox"]},
+      {"code": "printed_panel", "en": "Printed panel or large-format graphics", "ar": "لوحة مطبوعة أو جرافيك بمقاس كبير",
+       "why": "the quickest and cheapest",
+       "trade_off": "not lit and fades in the sun",
+       "check": "UV-resistant print outdoors",
+       "services": ["signage.large_format"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "office_and_shop_fitout", "en": "Office and shop fit-out", "ar": "تجهيز المكاتب والمحلات",
+   "trades": ["fitout", "commercial-retail-fitout", "interior-design", "engineering-and-architectural-consultancies"],
+   "problems": [
+    {
+     "code": "empty_unit_to_fit_out",
+     "situation": "an empty office, shop, clinic or restaurant unit (shell and core, or an old fit-out) to fit out",
+     "qualify": "the business, the unit area, a design or not, the landlord's fit-out rules, approvals, opening date and budget",
+     "options": [
+      {"code": "design_and_build", "en": "Design and build (one company designs, gets approvals and builds)", "ar": "تصميم وتنفيذ (جهة واحدة تصمّم وتستخرج الموافقات وتنفّذ)",
+       "why": "one point of responsibility and the fastest start",
+       "trade_off": "less independent control of the design",
+       "check": "the scope of drawings and approvals is written into the quote",
+       "services": ["interior_fitout.turnkey", "design_consultancy.interior_design"]},
+      {"code": "design_then_tender", "en": "Separate designer, then fit-out contractors quote the design", "ar": "مصمّم مستقل ثم تسعير التنفيذ على التصميم",
+       "why": "competitive quotes on the same drawings",
+       "trade_off": "longer: two stages",
+       "check": "authority drawings are part of the design",
+       "services": ["design_consultancy.interior_design", "interior_fitout.office", "interior_fitout.retail"]},
+      {"code": "light_refurbishment", "en": "Light refurbishment of the existing fit-out", "ar": "تجديد خفيف للتجهيز القائم",
+       "why": "reuses what is sound: paint, flooring, lighting and branding",
+       "trade_off": "the layout stays as it is",
+       "check": "the existing services are in working order",
+       "services": ["interior_fitout.refurbishment"]}
+     ]
+    },
+    {
+     "code": "office_layout_change",
+     "situation": "an office that needs more desks, meeting rooms or quiet space",
+     "qualify": "the area and headcount, meeting rooms needed, keep the ceiling and AC or not, working hours allowed, budget and timing",
+     "options": [
+      {"code": "open_plan_workstations", "en": "Open-plan workstations", "ar": "محطات عمل مفتوحة",
+       "why": "the most desks in the space",
+       "trade_off": "noise without acoustic treatment",
+       "check": "power and data at each desk",
+       "services": ["office_furniture.workstations_desks", "interior_fitout.office"]},
+      {"code": "glass_meeting_rooms", "en": "Glass meeting rooms", "ar": "غرف اجتماعات زجاجية",
+       "why": "privacy while keeping daylight",
+       "trade_off": "AC and lighting may need to be split",
+       "check": "the fire system is adjusted by an approved contractor",
+       "services": ["glazing.partitions", "interior_fitout.office"]},
+      {"code": "acoustic_pods", "en": "Acoustic pods and phone booths", "ar": "كبائن عازلة للصوت للاجتماعات والمكالمات",
+       "why": "quiet space without building work",
+       "trade_off": "free-standing units take floor space",
+       "check": "ventilation and power at each pod",
+       "services": ["office_furniture.acoustic_pods_booths"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "building_and_structure", "en": "Building works, cracks and extensions", "ar": "أعمال البناء والشروخ والملاحق",
+   "trades": ["general-building-contracting", "masonry", "demolition", "engineering-and-architectural-consultancies", "structural-steel-fabrication", "steel"],
+   "problems": [
+    {
+     "code": "cracks_in_walls",
+     "situation": "cracks in walls, ceilings or the boundary wall",
+     "qualify": "where they are, how wide and long, whether they grow, the age of the building, budget and timing",
+     "options": [
+      {"code": "plaster_repair", "en": "Plaster crack repair and repaint", "ar": "إصلاح شروخ اللياسة وإعادة الدهان",
+       "why": "fine surface cracks are usually shrinkage in the plaster",
+       "trade_off": "only for hairline cracks that are not growing",
+       "check": "the crack is monitored for a few weeks",
+       "services": ["masonry_blockwork.plastering", "painting.repainting"]},
+      {"code": "engineer_assessment", "en": "Structural engineer's assessment first", "ar": "تقييم مهندس إنشائي أولاً",
+       "why": "wide, diagonal or growing cracks can mean movement",
+       "trade_off": "a fee before any repair",
+       "check": "the engineer's written repair method",
+       "services": ["engineering_consultancy.structural_design", "engineering_consultancy.supervision"]}
+     ]
+    },
+    {
+     "code": "extra_room_or_annex",
+     "situation": "an extension, an extra room, a majlis or a staff annex on a villa plot",
+     "qualify": "the size and use, single storey or more, the plot and community rules, drawings and permits, budget and timing",
+     "options": [
+      {"code": "block_extension", "en": "Concrete and blockwork extension", "ar": "ملحق من الخرسانة والطابوق",
+       "why": "permanent, matches the villa, the usual approved route",
+       "trade_off": "longest build and needs full permits",
+       "check": "municipality approval with stamped drawings",
+       "services": ["general_contracting.extensions_annexes", "engineering_consultancy.authority_approvals"]},
+      {"code": "steel_or_modular", "en": "Steel-frame or modular building", "ar": "مبنى بهيكل حديدي أو وحدات جاهزة",
+       "why": "much faster on site",
+       "trade_off": "insulation and finish need care in UAE heat",
+       "check": "the authority accepts the system on that plot",
+       "services": ["prefab_buildings.modular_steel_buildings", "steel.structural_steel"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "metalwork", "en": "Gates, fences and railings", "ar": "البوابات والأسوار والدرابزين",
+   "trades": ["steel", "structural-steel-fabrication", "aluminium", "glass"],
+   "problems": [
+    {
+     "code": "gate_fence_or_rusty_railing",
+     "situation": "a gate, fence or railing to build, or existing metalwork that is rusting",
+     "qualify": "the lengths and heights, sliding or swing gate, motorised or not, near the sea or not, the look, budget and timing",
+     "options": [
+      {"code": "galvanised_painted_steel", "en": "Galvanised and painted mild steel", "ar": "حديد مجلفن ومدهون",
+       "why": "strong and economical, any design",
+       "trade_off": "needs repainting over the years",
+       "check": "hot-dip galvanising before paint outdoors",
+       "services": ["steel.gates_fencing", "steel.fabrication_welding"]},
+      {"code": "stainless_or_glass", "en": "Stainless steel or glass balustrade", "ar": "درابزين ستانلس ستيل أو زجاج",
+       "why": "no rust and a modern look for stairs and balconies",
+       "trade_off": "costs more",
+       "check": "marine grade near the sea; laminated safety glass",
+       "services": ["steel.stainless", "steel.handrails", "glazing.frameless"]},
+      {"code": "aluminium_fence", "en": "Aluminium slatted gate or fence", "ar": "بوابة أو سور ألمنيوم بشرائح",
+       "why": "never rusts and needs little upkeep",
+       "trade_off": "less strong against impact than steel",
+       "check": "the gate motor suits the gate weight",
+       "services": ["aluminium.louvres", "steel.gates_fencing"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "insulation_comfort", "en": "Heat and noise insulation", "ar": "العزل الحراري والصوتي",
+   "trades": ["insulation", "waterproofing", "gypsum", "roofing"],
+   "problems": [
+    {
+     "code": "top_floor_too_hot",
+     "situation": "rooms that stay hot (a top floor, a west-facing wall, a roof room) or high cooling bills",
+     "qualify": "which rooms, the roof or wall area, what is on the roof now, budget and timing",
+     "options": [
+      {"code": "roof_insulation", "en": "Roof insulation boards with waterproofing", "ar": "ألواح عزل حراري للسطح مع العزل المائي",
+       "why": "stops most heat entering through the roof",
+       "trade_off": "the roof finish is opened",
+       "check": "combined with any waterproofing work due",
+       "services": ["thermal_insulation.roof_insulation", "waterproofing.roof"]},
+      {"code": "reflective_roof_coating", "en": "Heat-reflective roof coating", "ar": "طلاء عاكس للحرارة للسطح",
+       "why": "quick and cheaper, reflects the sun",
+       "trade_off": "less effect than real insulation",
+       "check": "the roof is sound and clean",
+       "services": ["waterproofing.roof", "painting.protective_coating"]},
+      {"code": "window_solar_film", "en": "Solar control film on the windows", "ar": "فيلم حراري للنوافذ",
+       "why": "cuts heat and glare through glass",
+       "trade_off": "slightly darker rooms",
+       "check": "the film allowed by the building",
+       "services": ["doors.window_film"]}
+     ]
+    },
+    {
+     "code": "noise_between_rooms",
+     "situation": "noise coming through walls, ceilings or doors (neighbours, a home office, a music room)",
+     "qualify": "which walls or ceilings, the noise source, the room size, budget and timing",
+     "options": [
+      {"code": "acoustic_lining", "en": "Acoustic wall or ceiling lining with insulation", "ar": "تبطين الجدار أو السقف بعزل صوتي",
+       "why": "adds mass and absorption where the noise comes in",
+       "trade_off": "takes some room space",
+       "check": "gaps at sockets and edges are sealed",
+       "services": ["thermal_insulation.acoustic_insulation", "gypsum.partitions"]},
+      {"code": "solid_core_doors_seals", "en": "Solid-core doors with acoustic seals", "ar": "أبواب مصمتة مع عوازل صوت",
+       "why": "doors are often the weakest point",
+       "trade_off": "does not fix noise through walls",
+       "check": "the gap under the door is sealed",
+       "services": ["joinery.wooden_doors"]}
+     ]
+    }
+   ]
+  },
+  {
+   "code": "lifts", "en": "Lifts", "ar": "المصاعد",
+   "trades": ["elevators"],
+   "problems": [
+    {
+     "code": "villa_lift_or_old_lift",
+     "situation": "a lift to add to a villa, or an old lift that breaks down often",
+     "qualify": "the floors served, space for a shaft, the number of people, the lift's age, budget and timing",
+     "options": [
+      {"code": "home_lift", "en": "Home lift (compact, low pit)", "ar": "مصعد منزلي مدمج",
+       "why": "fits villas with little building work",
+       "trade_off": "slower and smaller than a building lift",
+       "check": "the shaft and pit space",
+       "services": ["elevators.home_lifts"]},
+      {"code": "modernise", "en": "Modernise the existing lift (controls, drive, doors)", "ar": "تحديث المصعد القائم (التحكّم والمحرّك والأبواب)",
+       "why": "fewer breakdowns without replacing the whole lift",
+       "trade_off": "the lift is out of service during the works",
+       "check": "a survey of the shaft and rails",
+       "services": ["elevators.modernisation"]},
+      {"code": "maintenance_contract", "en": "Maintenance contract", "ar": "عقد صيانة",
+       "why": "regular servicing and the safety certificate",
+       "trade_off": "a yearly cost",
+       "check": "the response time to a breakdown",
+       "services": ["elevators.maintenance"]}
+     ]
+    }
+   ]
+  }
+ ]
+}

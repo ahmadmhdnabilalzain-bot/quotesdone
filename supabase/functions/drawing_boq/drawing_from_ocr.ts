@@ -182,25 +182,28 @@ export function titleBlock(text: string, lines?: OcrLine[], sheetW?: number): Ti
 }
 
 // ── LEGEND ─────────────────────────────────────────────────────────────────────────────────────────
-export type LegendEntry = { text: string; type: string; en: string; unit: 'nos' | 'm' };
+export type LegendEntry = { text: string; type: string; en: string; unit: 'nos' | 'm'; section?: string };
 export function legend(text: string, lines?: OcrLine[]): LegendEntry[] {
   // With boxes, one reading per PRINTED line (the longest); a truncated second reading of the same
   // line ("V/ALL MOUNTED SOUNDER BE") is not a second legend entry. Measured: it became "Sounder".
   const L = lines ? printedLines(lines).sort((a, b) => a.bbox.y - b.bbox.y).map((l) => clean(l.text)) : textLines(text);
   const best = new Map<string, LegendEntry>();
-  const push = (l: string) => {
+  const push = (l: string, headed = true) => {
     const d = deviceTypeOf(l);
     if (!d || d.type === 'fire_rated_cable' || d.type === 'loop_isolator') return;
+    // Every trade's words (legend_vocabulary TRADES, 10 Nov 2026) are legend entries only UNDER a legend heading: without
+    // one, "Single leaf timber door" in a photographed BOQ would make the photo a drawing and lose its BOQ rows (bench).
+    if (!headed && d.section) return;
     // A fragment ("[OR ¢/w SOUNDER") names a combined device it did not resolve to; it is not a
     // plain sounder.
     if (/c\s*\/?\s*w\b/i.test(foldOcr(l)) && !/_sounder$/.test(d.type)) return;
     const cur = best.get(d.type);
-    if (!cur || l.length > cur.text.length) best.set(d.type, { text: l, type: d.type, en: d.en, unit: d.unit });
+    if (!cur || l.length > cur.text.length) best.set(d.type, { text: l, type: d.type, en: d.en, unit: d.unit, ...(d.section ? { section: d.section } : {}) });
   };
   const start = L.findIndex((l) => labelOf(l) === 'legend' || /مفتاح|دليل الرموز/.test(l));
   if (start >= 0) for (let i = start + 1; i < L.length && labelOf(L[i]) !== 'notes'; i++) push(L[i]);
   // Entries whose heading was not read: a short all-caps line that is nothing but a device name.
-  for (const l of L) if (l.length <= 48 && /^[A-Z0-9 ¢©/&\-\[\]]+$/i.test(l) && !/L\s*1\s*\//i.test(l)) push(l);
+  for (const l of L) if (l.length <= 48 && /^[A-Z0-9 ¢©/&\-\[\]]+$/i.test(l) && !/L\s*1\s*\//i.test(l)) push(l, false);
   const order = DEVICE_TYPES.map((d) => d.type);
   return [...best.values()].sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
 }
@@ -332,7 +335,7 @@ export function readDrawing(input: string | OcrLine[], counts: Counts = {}, shee
   for (const e of lg) {
     const c = counts[e.type];
     boq.push({
-      section: 'Fire alarm — devices (from the legend)', type: e.type, description: e.en, item: e.en,
+      section: e.section ? `${e.section} (from the legend)` : 'Fire alarm — devices (from the legend)', type: e.type, description: e.en, item: e.en,
       qty: null, estimate: c ? c.count : null, unit: e.unit, qty_status: 'to_confirm',
       basis: c ? `counted on the drawing: ${c.basis}` : 'the legend shows this device type; its count could not be read from the drawing',
       confidence: 'low',
