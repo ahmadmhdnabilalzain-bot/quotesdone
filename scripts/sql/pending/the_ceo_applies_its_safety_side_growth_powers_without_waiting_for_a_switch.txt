@@ -1,5 +1,0 @@
-Committed on branch ceo-seat-qualification-audit (10 Nov 2026) and NOT applied: the session's brief for the seat audit was
-production SELECT-only, no apply. Rehearsed rolled back on production with its probe: PROBE OK (10 decisions for the next
-Dubai day, 9 applied on the safety side with the switch off, the cap raise 20 -> 30 held back, the ceiling untouched).
-It moves when the merge session applies it: node scripts/apply_sql.mjs scripts/sql/the_ceo_applies_its_safety_side_growth_powers_without_waiting_for_a_switch.sql --apply --ddl --seat ceo,
-then this note is deleted and the file is appended to the END of scripts/sql/MANIFEST.txt in the same commit. Seat: ceo.

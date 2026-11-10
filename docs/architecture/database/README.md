@@ -20,8 +20,8 @@ override list in the areas file), so a routine is found by its subject even thou
 | [Marketing](marketing.md) | 173 | 75 | 4 | 9 | 7 |
 | [Knowledge](knowledge.md) | 127 | 69 | 8 | 2 | 3 |
 | [IT, operations and monitoring](it-ops-monitoring.md) | 370 | 115 | 16 | 21 | 6 |
-| [Seats, agents and duties](seats-agents-duties.md) | 568 | 227 | 17 | 21 | 3 |
-| **total** | **2082** | **793** | **88** | **99** | **78** |
+| [Seats, agents and duties](seats-agents-duties.md) | 569 | 227 | 17 | 21 | 3 |
+| **total** | **2083** | **793** | **88** | **99** | **78** |
 
 ## How to read a routine row
 
