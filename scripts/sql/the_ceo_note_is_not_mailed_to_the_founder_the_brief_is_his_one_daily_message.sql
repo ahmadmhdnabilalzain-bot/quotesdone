@@ -168,3 +168,8 @@ begin
   return jsonb_build_object('day', v_day, 'misses', v_verdict->'misses', 'stuck_new', n_stuck_new, 'matters', to_jsonb(v_matters),
                             'note_handoff_id', v_note, 'note', v_body, 'priorities', v_prio, 'directives', v_dir);
 end $function$;
+
+-- The duty's job description says the same (its register is the_ceo_runs_the_company_on_the_founders_year_one_targets.sql).
+update public.seat_duty
+   set what = 'The morning read against the year-one path, the day''s priorities per seat, stuck handoffs re-run and the signals; what matters is kept on the day, never mailed to the founder (ledger 1609: the daily brief is his one daily message).'
+ where duty = 'ceo.daily_run';
