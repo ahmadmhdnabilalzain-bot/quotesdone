@@ -6,7 +6,7 @@
       "topic": "Facade access and maintenance - what the buyer must state",
       "topic_ar": "الوصول إلى الواجهات وصيانتها: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for facade access and maintenance must state: building and facade area; access method; BMU or equipment inspection and certification; work scope and frequency; operator certification; method statement and risk assessment; working hours and permits; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: facade area or drops, access method and work scope with frequency. A site visit is needed.",
+      "body_en": "Each quoted service line for facade access and maintenance must state: building and facade area; access method; BMU or equipment inspection and certification; work scope and frequency; operator certification; method statement and risk assessment; working hours and permits; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): facade area or drops, access method and work scope with frequency. A site visit is needed.",
       "body_ar": "حتى يسعّر موردو الوصول إلى الواجهات وصيانتها العمل نفسه، يجب أن يذكر كل بند في عرض السعر: المبنى ومساحة الواجهة؛ طريقة الوصول إلى الواجهة؛ فحص واعتماد وحدة صيانة المبنى (BMU) أو المعدات؛ نطاق العمل وعدد مراته؛ شهادات المشغلين؛ بيان طريقة العمل وتقييم المخاطر؛ ساعات العمل والتصاريح؛ التراخيص التي يحملها المورد؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر كل معيار أو شهادة برقمه. أي بند ينقصه شيء من هذه المواصفات يُعلَّق ويُطلب من المورد استكماله؛ لا يُخمَّن شيء، ولا تُقارن العروض إلا إذا كانت على الأساس نفسه. هذه القائمة خاصة بفئة الوصول إلى الواجهات وصيانتها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مساحة الواجهة أو عدد الإنزالات، ووسيلة الوصول، ونطاق العمل وتكراره. وتلزم زيارة الموقع.",
       "required_specs": [
         "building and facade area",
@@ -49,13 +49,6 @@
           "blocking": true
         },
         {
-          "spec": "work scope and frequency",
-          "why_needed_to_price": "Cleaning, sealant repair, glass replacement and inspection are different tasks.",
-          "uae_options": "cleaning; repairs; inspection",
-          "follow_up_if": "",
-          "blocking": true
-        },
-        {
           "spec": "BMU or equipment inspection and certification",
           "why_needed_to_price": "Uncertified BMUs cannot be used.",
           "uae_options": "current third-party certificate",
@@ -63,10 +56,66 @@
           "blocking": false
         },
         {
+          "spec": "work scope and frequency",
+          "why_needed_to_price": "Cleaning, sealant repair, glass replacement and inspection are different tasks.",
+          "uae_options": "cleaning; repairs; inspection",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "operator certification",
+          "why_needed_to_price": "Only certified operators may run BMUs and rope access; certified crews cost more.",
+          "uae_options": "IRATA or SPRAT rope access levels; BMU operator certificates.",
+          "follow_up_if": "If certificates are not shown, the offer should not be compared.",
+          "blocking": false
+        },
+        {
+          "spec": "method statement and risk assessment",
+          "why_needed_to_price": "A method statement and risk assessment are needed for approval and take engineering time.",
+          "uae_options": "Method statement; risk assessment; rescue plan.",
+          "follow_up_if": "If the building management requires approval, ask for these before mobilisation.",
+          "blocking": false
+        },
+        {
           "spec": "working hours and permits",
           "why_needed_to_price": "Night work or road closures add cost.",
           "uae_options": "day; night; permits",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and unlicensed offers are often cheaper for that reason.",
+          "uae_options": "Trade licence for the activity in the emirate or free zone; authority approvals or registrations where the trade requires them.",
+          "follow_up_if": "If the licence does not name the activity or the emirate of the site, the offer cannot be accepted until it does.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels set the staffing, frequency and standby the provider must carry, and so most of the price.",
+          "uae_options": "Defined frequency, response time, attendance hours and measurable KPIs; penalties or service credits by agreement.",
+          "follow_up_if": "If no level is stated, ask the buyer for frequency and response expectations before comparing quotes.",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Mobilisation and overheads are spread over the term, so a short contract costs more per month than a long one.",
+          "uae_options": "Single job; 6 months; 1 year; 2-3 years with renewal and escalation terms.",
+          "follow_up_if": "If the term is open, ask the supplier to quote one year and state the price for each renewal year.",
+          "blocking": false
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
         }
       ],

@@ -5,7 +5,7 @@
       "id": "lighting_fixtures:spec-checklist",
       "topic": "Lighting fixtures - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For lighting fixtures (trade code lighting_fixtures only), every quoted line must state: Fixture type and code; Wattage and lumen output; Colour temperature and CRI; Beam angle and optics; IP and IK rating; Driver and dimming protocol; Emergency version; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Blocking: type or code, lumen output, IP rating, dimming and quantity. A lighting design may be needed to fix quantities.",
+      "body_en": "For lighting fixtures (trade code lighting_fixtures only), every quoted line must state: Fixture type and code; Wattage and lumen output; Colour temperature and CRI; Beam angle and optics; IP and IK rating; Driver and dimming protocol; Emergency version; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): type or code, lumen output, IP rating, dimming and quantity. A lighting design may be needed to fix quantities.",
       "body_ar": "في نشاط وحدات الإنارة (رمز النشاط lighting_fixtures فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الوحدة ورمزها؛ القدرة والتدفق الضوئي؛ درجة حرارة اللون ومؤشر تجسيد اللون؛ زاوية الشعاع والبصريات؛ تصنيف IP و IK؛ المشغّل وبروتوكول التعتيم؛ النسخة الطارئة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: النوع أو الرمز، والتدفق الضوئي، ودرجة الحماية، والتعتيم، والكمية. وقد يلزم تصميم إنارة لتحديد الكميات.",
       "required_specs": [
         "Fixture type and code",
@@ -61,6 +61,13 @@
           "blocking": false
         },
         {
+          "spec": "Beam angle and optics",
+          "why_needed_to_price": "Beam angle and optics decide fitting choice and price.",
+          "uae_options": "Narrow, medium or wide beam; lenses and reflectors.",
+          "follow_up_if": "If the lighting design is not done, ask for the lux targets and mounting height.",
+          "blocking": false
+        },
+        {
           "spec": "IP and IK rating",
           "why_needed_to_price": "Outdoor and wet areas need higher ratings.",
           "uae_options": "IP20-IP67",
@@ -75,6 +82,13 @@
           "blocking": true
         },
         {
+          "spec": "Emergency version",
+          "why_needed_to_price": "Emergency fittings need batteries and civil defence acceptance.",
+          "uae_options": "none; maintained; non-maintained",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
           "spec": "Quantity and unit of measure",
           "why_needed_to_price": "Quantity sets price breaks.",
           "uae_options": "pieces; metres for linear",
@@ -82,14 +96,57 @@
           "blocking": true
         },
         {
-          "spec": "Emergency version",
-          "why_needed_to_price": "Emergency fittings need batteries and civil defence acceptance.",
-          "uae_options": "none; maintained; non-maintained",
-          "follow_up_if": "",
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "The standard a product is made and tested to defines what is being bought; products to different standards are not like-for-like.",
+          "uae_options": "EN, BS, IEC, ASTM or GSO standards; test reports from an accredited (EIAC or ILAC-recognised) lab.",
+          "follow_up_if": "If no test report to the stated standard is offered, ask for it before comparing prices.",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "A product or service without the approval the emirate requires cannot be used, so the cost and time of approval must be in or out of the price.",
+          "uae_options": "MoIAT conformity for regulated products; civil defence approval for fire-related items; municipality or utility approval.",
+          "follow_up_if": "If the supplier holds no current approval for this exact item, ask who obtains it, how long it takes and who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Freight, unloading and the distance to site are part of the price; a delivered price to Dubai is not the same as one to Al Dhafra.",
+          "uae_options": "Ex-works or ex-warehouse; delivered to site within an emirate; delivered and offloaded; Incoterms for imports.",
+          "follow_up_if": "If the site is remote or has access limits (time windows, small vehicles only), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "why_needed_to_price": "Supply-only and supply-install-commission are different prices; testing and commissioning are often left out silently.",
+          "uae_options": "Supply only; supply and install; install, test and commission with records and training.",
+          "follow_up_if": "If commissioning, testing or training is needed, state it so all quotes include it.",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "The defects period decides how long the provider must return at its own cost, which it prices in.",
+          "uae_options": "12 months defects liability is common on UAE works; longer warranties for specific systems by agreement.",
+          "follow_up_if": "If the buyer needs a longer period, ask for it priced separately.",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "lighting_fixtures:uae-standards-and-approvals",

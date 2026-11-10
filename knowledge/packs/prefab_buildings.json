@@ -5,7 +5,7 @@
       "id": "prefab_buildings:spec-checklist",
       "topic": "Prefabricated buildings - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For prefabricated buildings quotes to be compared like-for-like, every quoted line (goods) must state: (1) building use and occupancy; (2) plan dimensions and number of floors; (3) structural system (steel frame, sandwich panel, container, precast); (4) wall and roof panel type, thickness and core; (5) fire rating of panels; (6) design wind load and structural calculations; (7) MEP scope (electrical, AC, plumbing); (8) foundation and installation scope; (9) authority approvals; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the prefab_buildings trade.\n\nExpert interview (2026-11-10): Blocking: use, size and floors, buy or rent, panel type and MEP scope. No site visit is needed for a factory price; site levels matter for installation.",
+      "body_en": "For prefabricated buildings quotes to be compared like-for-like, every quoted line (goods) must state: (1) building use and occupancy; (2) plan dimensions and number of floors; (3) structural system (steel frame, sandwich panel, container, precast); (4) wall and roof panel type, thickness and core; (5) fire rating of panels; (6) design wind load and structural calculations; (7) MEP scope (electrical, AC, plumbing); (8) foundation and installation scope; (9) authority approvals; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the prefab_buildings trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): use, size and floors, buy or rent, panel type and MEP scope. No site visit is needed for a factory price; site levels matter for installation.",
       "body_ar": "لكي تُقارن عروض المباني الجاهزة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) استخدام المبنى ونوع الإشغال؛ (2) أبعاد المسقط وعدد الطوابق؛ (3) النظام الإنشائي (هيكل فولاذي، أو ألواح ساندويتش، أو حاويات، أو خرسانة مسبقة الصب)؛ (4) نوع ألواح الجدران والسقف وسماكتها ونوع الحشوة؛ (5) تصنيف مقاومة الألواح للحريق؛ (6) حمل الرياح التصميمي والحسابات الإنشائية؛ (7) نطاق الأعمال الكهروميكانيكية (كهرباء، وتكييف، وسباكة)؛ (8) نطاق الأساسات والتركيب؛ (9) موافقات الجهات المختصة؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة prefab_buildings فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الاستخدام، والمقاس وعدد الطوابق، والشراء أو الاستئجار، ونوع الألواح، ونطاق الأعمال الكهروميكانيكية. ولا تلزم زيارة الموقع لسعر المصنع، لكن مناسيب الموقع مهمة للتركيب.",
       "required_specs": [
         "building use and occupancy",
@@ -52,11 +52,11 @@
           "blocking": true
         },
         {
-          "spec": "buy or rent, and rental period",
-          "why_needed_to_price": "Purchase and rental are priced on different bases.",
-          "uae_options": "buy new; buy used; rent monthly",
-          "follow_up_if": "",
-          "blocking": true
+          "spec": "structural system (steel frame, sandwich panel, container, precast)",
+          "why_needed_to_price": "Structural system decides cost.",
+          "uae_options": "Steel frame; sandwich panel; container; precast.",
+          "follow_up_if": "If not stated, ask the use and life.",
+          "blocking": false
         },
         {
           "spec": "wall and roof panel type, thickness and core",
@@ -64,6 +64,20 @@
           "uae_options": "EPS; PU/PIR; rock wool sandwich panels",
           "follow_up_if": "Fire-sensitive use: ask for rock wool.",
           "blocking": true
+        },
+        {
+          "spec": "fire rating of panels",
+          "why_needed_to_price": "Fire-rated panels cost more and are needed for approval.",
+          "uae_options": "Panels with fire certificates.",
+          "follow_up_if": "If not stated, ask for Civil Defence requirements.",
+          "blocking": false
+        },
+        {
+          "spec": "design wind load and structural calculations",
+          "why_needed_to_price": "Wind load and calculations decide structure.",
+          "uae_options": "Design wind speed; calculations.",
+          "follow_up_if": "If coastal or exposed, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
         },
         {
           "spec": "MEP scope (electrical, AC, plumbing)",
@@ -85,9 +99,45 @@
           "uae_options": "contractor; owner",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Freight, unloading and the distance to site are part of the price; a delivered price to Dubai is not the same as one to Al Dhafra.",
+          "uae_options": "Ex-works or ex-warehouse; delivered to site within an emirate; delivered and offloaded; Incoterms for imports.",
+          "follow_up_if": "If the site is remote or has access limits (time windows, small vehicles only), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "The length and scope of the warranty change the supplier's risk and price; parts-only and parts-and-labour are not the same offer.",
+          "uae_options": "Manufacturer warranty 1-2 years; extended by agreement; workmanship warranty from the installer.",
+          "follow_up_if": "If the period is shorter than the buyer needs or excludes labour, ask for the extended option as a separate price.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "buy or rent, and rental period",
+          "why_needed_to_price": "Purchase and rental are priced on different bases.",
+          "uae_options": "buy new; buy used; rent monthly",
+          "follow_up_if": "",
+          "blocking": true
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "prefab_buildings:uae-standards-and-approvals",

@@ -5,7 +5,7 @@
       "id": "tents_shades:spec-checklist",
       "topic": "Tents and shade structures - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For tents and shade structures quotes to be compared like-for-like, every quoted line (goods) must state: (1) structure type (tent, car park shade, sail, pergola); (2) covered area and dimensions; (3) fabric type (PVC, PVDF, HDPE) and weight in g/m2; (4) fire rating of fabric; (5) steel structure and coating; (6) design wind speed; (7) foundations; (8) permit for temporary or permanent structure; (9) colour and UV resistance; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tents_shades trade.\n\nExpert interview (2026-11-10): Blocking: structure type, size, rent or buy with dates, fabric fire rating for public use, and the interior scope. Large or event tents need a site visit.",
+      "body_en": "For tents and shade structures quotes to be compared like-for-like, every quoted line (goods) must state: (1) structure type (tent, car park shade, sail, pergola); (2) covered area and dimensions; (3) fabric type (PVC, PVDF, HDPE) and weight in g/m2; (4) fire rating of fabric; (5) steel structure and coating; (6) design wind speed; (7) foundations; (8) permit for temporary or permanent structure; (9) colour and UV resistance; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tents_shades trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): structure type, size, rent or buy with dates, fabric fire rating for public use, and the interior scope. Large or event tents need a site visit.",
       "body_ar": "لكي تُقارن عروض الخيام والمظلات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الهيكل (خيمة، أو مظلة مواقف، أو شراع، أو برجولة)؛ (2) المساحة المغطاة والأبعاد؛ (3) نوع القماش (PVC أو PVDF أو HDPE) ووزنه بالغرام للمتر المربع؛ (4) تصنيف القماش في الحريق؛ (5) الهيكل الفولاذي وطلاؤه؛ (6) سرعة الرياح التصميمية؛ (7) الأساسات؛ (8) تصريح الهيكل المؤقت أو الدائم؛ (9) اللون ومقاومة الأشعة فوق البنفسجية؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tents_shades فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع المنشأ، والمقاس، والاستئجار أو الشراء مع التواريخ، وتصنيف حريق القماش للاستخدام العام، ونطاق التجهيز الداخلي. والخيام الكبيرة أو خيام الفعاليات تحتاج إلى زيارة للموقع.",
       "required_specs": [
         "structure type (tent, car park shade, sail, pergola)",
@@ -53,11 +53,11 @@
           "blocking": true
         },
         {
-          "spec": "buy or rent, and event dates",
-          "why_needed_to_price": "Rental is priced per event or per day including erection; purchase is a different price.",
-          "uae_options": "rent for an event; seasonal (Ramadan); buy",
-          "follow_up_if": "Ramadan or peak season: ask about availability early.",
-          "blocking": true
+          "spec": "fabric type (PVC, PVDF, HDPE) and weight in g/m2",
+          "why_needed_to_price": "Fabric type and weight decide cost and life.",
+          "uae_options": "PVC, PVDF, HDPE; g/m2.",
+          "follow_up_if": "If long life is needed, ask for PVDF.",
+          "blocking": false
         },
         {
           "spec": "fire rating of fabric",
@@ -67,11 +67,18 @@
           "blocking": true
         },
         {
-          "spec": "flooring, AC, lighting and furniture inside the tent",
-          "why_needed_to_price": "These often double the rental price.",
-          "uae_options": "none; raised floor; carpet; AC units; lighting; furniture",
-          "follow_up_if": "",
-          "blocking": true
+          "spec": "steel structure and coating",
+          "why_needed_to_price": "Steel structure and coating decide cost.",
+          "uae_options": "Galvanised; painted.",
+          "follow_up_if": "If coastal, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "design wind speed",
+          "why_needed_to_price": "Wind speed decides structure.",
+          "uae_options": "Design wind speed.",
+          "follow_up_if": "If exposed, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
         },
         {
           "spec": "foundations",
@@ -86,6 +93,55 @@
           "uae_options": "organiser obtains; supplier assists",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "colour and UV resistance",
+          "why_needed_to_price": "Colour and UV resistance decide fabric.",
+          "uae_options": "Colour; UV warranty.",
+          "follow_up_if": "If the inquiry is silent on colour and uv resistance, each supplier prices its own default; ask the buyer so every quote rests on the same colour and uv resistance.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Freight, unloading and the distance to site are part of the price; a delivered price to Dubai is not the same as one to Al Dhafra.",
+          "uae_options": "Ex-works or ex-warehouse; delivered to site within an emirate; delivered and offloaded; Incoterms for imports.",
+          "follow_up_if": "If the site is remote or has access limits (time windows, small vehicles only), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "The length and scope of the warranty change the supplier's risk and price; parts-only and parts-and-labour are not the same offer.",
+          "uae_options": "Manufacturer warranty 1-2 years; extended by agreement; workmanship warranty from the installer.",
+          "follow_up_if": "If the period is shorter than the buyer needs or excludes labour, ask for the extended option as a separate price.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "buy or rent, and event dates",
+          "why_needed_to_price": "Rental is priced per event or per day including erection; purchase is a different price.",
+          "uae_options": "rent for an event; seasonal (Ramadan); buy",
+          "follow_up_if": "Ramadan or peak season: ask about availability early.",
+          "blocking": true
+        },
+        {
+          "spec": "flooring, AC, lighting and furniture inside the tent",
+          "why_needed_to_price": "These often double the rental price.",
+          "uae_options": "none; raised floor; carpet; AC units; lighting; furniture",
+          "follow_up_if": "",
+          "blocking": true
         }
       ],
       "site_visit_required_when": "A site visit is needed for large or event tents to check the ground, access and anchoring; a small rental can be priced from size and surface.",

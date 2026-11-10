@@ -5,7 +5,7 @@
       "id": "electrical_wholesale:spec-checklist",
       "topic": "Electrical wholesale - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for electrical wholesale must state: item and catalogue number; brand; rating; product standard; ECAS certificate for regulated items; quantity and unit; country of origin; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: catalogue number or full rating, brand, rating and quantity. No site visit is needed.",
+      "body_en": "Each quoted product line for electrical wholesale must state: item and catalogue number; brand; rating; product standard; ECAS certificate for regulated items; quantity and unit; country of origin; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): catalogue number or full rating, brand, rating and quantity. No site visit is needed.",
       "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة تجارة الأدوات الكهربائية بالجملة: الصنف ورقم الكتالوج؛ العلامة التجارية؛ التصنيف الكهربائي؛ معيار المنتج؛ شهادة ECAS للأصناف الخاضعة للوائح؛ الكمية والوحدة؛ بلد المنشأ؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: رقم الكتالوج أو التصنيف الكامل، والعلامة، والتصنيف، والكمية. ولا تلزم زيارة الموقع.",
       "required_specs": [
         "item and catalogue number",
@@ -56,11 +56,11 @@
           "blocking": true
         },
         {
-          "spec": "quantity and unit",
-          "why_needed_to_price": "Price breaks follow quantity.",
-          "uae_options": "pieces; boxes; metres",
-          "follow_up_if": "",
-          "blocking": true
+          "spec": "product standard",
+          "why_needed_to_price": "Products to different standards are not like-for-like.",
+          "uae_options": "IEC, BS, EN standards.",
+          "follow_up_if": "If not named, ask the specification.",
+          "blocking": false
         },
         {
           "spec": "ECAS certificate for regulated items",
@@ -70,14 +70,57 @@
           "blocking": false
         },
         {
+          "spec": "quantity and unit",
+          "why_needed_to_price": "Price breaks follow quantity.",
+          "uae_options": "pieces; boxes; metres",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
           "spec": "country of origin",
           "why_needed_to_price": "The same brand may supply from several factories.",
           "uae_options": "stated per line",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "why_needed_to_price": "A product or service without the approval the emirate requires cannot be used on the project, so the cost of approvals must be in or out of the price explicitly.",
+          "uae_options": "MoIAT conformity (ECAS/EQM) for regulated products; civil defence listing for fire-related items; utility approval (DEWA, ADDC/AADC, SEWA, EtihadWE); municipality approval.",
+          "follow_up_if": "If the supplier has no current certificate for this exact product, ask who obtains it, how long it takes and who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery and installation scope",
+          "why_needed_to_price": "Supply-only, supply-and-deliver and supply-and-install are different prices; unloading, hoisting and installation are where quotes silently differ.",
+          "uae_options": "Ex-works; delivered to site (kerbside); delivered and offloaded; supplied and installed; tested and commissioned.",
+          "follow_up_if": "If installation is wanted, state the site, floor and access; if supply only, state who unloads and moves the goods into place.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty",
+          "why_needed_to_price": "Warranty length and whether it covers parts only or parts and labour change the risk the buyer carries and the price of the offer.",
+          "uae_options": "Manufacturer warranty 1-2 years as standard; extended warranty by agreement; installer workmanship warranty separate.",
+          "follow_up_if": "If the warranty is shorter than the buyer needs, or excludes labour or call-outs, ask for the extended option as a separate price.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "electrical_wholesale:uae-standards-and-approvals",

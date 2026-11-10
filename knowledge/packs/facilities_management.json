@@ -5,7 +5,7 @@
       "id": "facilities_management:spec-checklist",
       "topic": "Facilities management - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for facilities management must state: property type and area; services in scope; asset register; planned maintenance standard; staffing and shifts; response and resolution times; helpdesk and CAFM system; key performance indicators; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: property and area, services in scope, asset register, staffing and the pricing basis. A site survey is unavoidable.",
+      "body_en": "Each quoted service line for facilities management must state: property type and area; services in scope; asset register; planned maintenance standard; staffing and shifts; response and resolution times; helpdesk and CAFM system; key performance indicators; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): property and area, services in scope, asset register, staffing and the pricing basis. A site survey is unavoidable.",
       "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة إدارة المرافق: نوع العقار ومساحته؛ الخدمات ضمن النطاق؛ سجل الأصول؛ معيار الصيانة المخططة؛ الموظفون والورديات؛ أزمنة الاستجابة والحل؛ مكتب المساعدة ونظام إدارة المرافق؛ مؤشرات الأداء الرئيسية؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: العقار ومساحته، والخدمات المشمولة، وسجل الأصول، والتوظيف، وأساس التسعير. ومسح الموقع ضروري.",
       "required_specs": [
         "property type and area",
@@ -58,6 +58,13 @@
           "blocking": true
         },
         {
+          "spec": "planned maintenance standard",
+          "why_needed_to_price": "The maintenance standard sets the task list and frequency.",
+          "uae_options": "SFG20 or manufacturer schedules; PPM calendar.",
+          "follow_up_if": "If no standard is named, ask the provider which it will use.",
+          "blocking": false
+        },
+        {
           "spec": "staffing and shifts",
           "why_needed_to_price": "Resident technicians and shifts set most of the cost.",
           "uae_options": "resident; mobile team; 24 h",
@@ -72,11 +79,53 @@
           "blocking": false
         },
         {
+          "spec": "helpdesk and CAFM system",
+          "why_needed_to_price": "A helpdesk and CAFM system add staff and licence costs.",
+          "uae_options": "24/7 helpdesk; CAFM software with reports.",
+          "follow_up_if": "If the buyer has its own CAFM, ask whether the provider will use it.",
+          "blocking": false
+        },
+        {
+          "spec": "key performance indicators",
+          "why_needed_to_price": "KPIs with penalties shift risk to the provider.",
+          "uae_options": "Response, completion and PPM compliance KPIs.",
+          "follow_up_if": "If KPIs are linked to payment, state them so all bidders price the same risk.",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and unlicensed offers are often cheaper for that reason.",
+          "uae_options": "Trade licence for the activity in the emirate or free zone; authority approvals or registrations where the trade requires them.",
+          "follow_up_if": "If the licence does not name the activity or the emirate of the site, the offer cannot be accepted until it does.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels set the staffing, frequency and standby the provider must carry, and so most of the price.",
+          "uae_options": "Defined frequency, response time, attendance hours and measurable KPIs; penalties or service credits by agreement.",
+          "follow_up_if": "If no level is stated, ask the buyer for frequency and response expectations before comparing quotes.",
+          "blocking": false
+        },
+        {
           "spec": "contract duration",
           "why_needed_to_price": "Lump sum, cost-plus and schedule-of-rates contracts carry different risk.",
           "uae_options": "lump sum; cost plus; schedule of rates",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "A site visit and asset survey are unavoidable before a firm FM price.",

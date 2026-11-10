@@ -30,7 +30,7 @@
       "id": "interior_fitout:fitout-spec-checklist",
       "topic": "Fit-out RFQ — what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "A fit-out request must define: location, building, unit number and area (with the landlord's handover condition — shell & core or Cat A — and the landlord's fit-out guide attached); use/occupancy (office, retail, F&B is excluded here, clinic, showroom) since it drives approvals and fire requirements; procurement route (design & build or build-only with drawings/BOQ); design brief or drawings (layout, headcount, rooms, finishes, brand guidelines); MEP scope (HVAC modification, electrical, lighting, data, fire alarm, sprinklers, plumbing); specialist items (AV, security/access control, furniture, signage, kitchen/pantry equipment); authority approvals and who obtains them (Dubai Municipality or relevant authority, Civil Defence, DEWA/utility, landlord/free-zone NOCs); programme and target handover date; working-hour restrictions; insurance required; payment terms, retention and DLP; warranty expectations; and whether furniture and IT are in or out. Also state the evaluation basis (lump sum vs re-measure, and the format of the price breakdown). Attach the existing layout, site photographs and any available as-built drawings; zone authorities such as DDA and DMCC's facilities manager ask for these, and a missing existing-layout plan is a common reason for rejection.\n\nExpert interview (2026-11-10): Blocking: unit and area, handover condition, use, drawings or brief, MEP scope and approvals responsibility. A site visit is unavoidable.",
+      "body_en": "A fit-out request must define: location, building, unit number and area (with the landlord's handover condition — shell & core or Cat A — and the landlord's fit-out guide attached); use/occupancy (office, retail, F&B is excluded here, clinic, showroom) since it drives approvals and fire requirements; procurement route (design & build or build-only with drawings/BOQ); design brief or drawings (layout, headcount, rooms, finishes, brand guidelines); MEP scope (HVAC modification, electrical, lighting, data, fire alarm, sprinklers, plumbing); specialist items (AV, security/access control, furniture, signage, kitchen/pantry equipment); authority approvals and who obtains them (Dubai Municipality or relevant authority, Civil Defence, DEWA/utility, landlord/free-zone NOCs); programme and target handover date; working-hour restrictions; insurance required; payment terms, retention and DLP; warranty expectations; and whether furniture and IT are in or out. Also state the evaluation basis (lump sum vs re-measure, and the format of the price breakdown). Attach the existing layout, site photographs and any available as-built drawings; zone authorities such as DDA and DMCC's facilities manager ask for these, and a missing existing-layout plan is a common reason for rejection.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): unit and area, handover condition, use, drawings or brief, MEP scope and approvals responsibility. A site visit is unavoidable.",
       "body_ar": "يجب أن يحدد طلب تسعير التشطيب: الموقع والمبنى ورقم الوحدة والمساحة (مع حالة التسليم من المالك، هيكل ونواة أو فئة A، وإرفاق دليل التشطيبات لدى المالك)؛ والاستخدام أو الإشغال (مكتب، محل، عيادة، معرض) لأنه يحدد الموافقات ومتطلبات الحريق؛ ومسار الشراء (تصميم وتنفيذ، أو تنفيذ فقط بمخططات وجدول كميات)؛ ومتطلبات التصميم أو المخططات (التخطيط، عدد الموظفين، الغرف، التشطيبات، دليل الهوية)؛ ونطاق الأعمال الكهروميكانيكية (تعديل التكييف، الكهرباء، الإنارة، الشبكات، إنذار الحريق، الرشاشات، السباكة)؛ والبنود المتخصصة (الأنظمة السمعية البصرية، الأمن والتحكم في الدخول، الأثاث، اللافتات، معدات المطبخ الصغير)؛ وموافقات الجهات ومن يستخرجها (البلدية أو الجهة المختصة، الدفاع المدني، هيئة الكهرباء والماء، عدم ممانعة المالك أو المنطقة الحرة)؛ والبرنامج الزمني وتاريخ التسليم المستهدف؛ وقيود ساعات العمل؛ والتأمين المطلوب؛ وشروط الدفع والمحتجزات وفترة المسؤولية عن العيوب؛ وتوقعات الضمان؛ وهل الأثاث وتقنية المعلومات ضمن النطاق. مع ذكر أساس التقييم (مبلغ مقطوع أو إعادة قياس، وشكل تفصيل الأسعار). وأرفق المخطط الحالي وصور الموقع وأي مخططات منفذة متاحة؛ فجهات المناطق مثل سلطة دبي للتطوير ومدير مرافق مركز دبي للسلع المتعددة تطلبها، وغياب مخطط الوضع الحالي سبب شائع للرفض.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الوحدة والمساحة، وحالة التسليم من المالك، والاستخدام، والمخططات أو متطلبات التصميم، ونطاق الأعمال الكهروميكانيكية، ومسؤولية الاعتمادات. وزيارة الموقع ضرورية.",
       "required_specs": [
         "location, building, unit, area",
@@ -87,6 +87,13 @@
           "blocking": true
         },
         {
+          "spec": "procurement route",
+          "why_needed_to_price": "Lump-sum, design-and-build and cost-plus routes carry different risk and price.",
+          "uae_options": "Lump sum; design and build; cost plus.",
+          "follow_up_if": "If the route is not chosen, ask the buyer.",
+          "blocking": false
+        },
+        {
           "spec": "design brief or drawings",
           "why_needed_to_price": "Without drawings a contractor can only give a per-m2 estimate.",
           "uae_options": "design-and-build; tender drawings; IFC drawings",
@@ -99,6 +106,13 @@
           "uae_options": "modify existing; new",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "specialist items (AV, security, furniture, signage)",
+          "why_needed_to_price": "Specialist items add large costs and are often by others.",
+          "uae_options": "AV, security, furniture, signage.",
+          "follow_up_if": "If by others, ask for coordination scope.",
+          "blocking": false
         },
         {
           "spec": "authority approvals and responsibility",
@@ -115,10 +129,45 @@
           "blocking": false
         },
         {
+          "spec": "working-hour restrictions",
+          "why_needed_to_price": "Restricted hours raise labour cost.",
+          "uae_options": "Night or weekend only.",
+          "follow_up_if": "If in a mall or tower, ask for permitted hours.",
+          "blocking": false
+        },
+        {
+          "spec": "insurance",
+          "why_needed_to_price": "Insurance adds cost.",
+          "uae_options": "CAR and third-party.",
+          "follow_up_if": "If the landlord requires limits, state them.",
+          "blocking": false
+        },
+        {
+          "spec": "payment terms, retention, DLP",
+          "why_needed_to_price": "Payment terms, retention and DLP change cash flow.",
+          "uae_options": "Milestones; 5-10% retention; 12-month DLP.",
+          "follow_up_if": "If not stated, the contractor assumes its own.",
+          "blocking": false
+        },
+        {
+          "spec": "warranties",
+          "why_needed_to_price": "Warranties per system change risk.",
+          "uae_options": "Joinery, MEP, finishes.",
+          "follow_up_if": "If long warranties are needed, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
           "spec": "furniture and IT in or out",
           "why_needed_to_price": "Loose furniture and IT can double a fit-out total.",
           "uae_options": "in; out",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "pricing basis and breakdown format",
+          "why_needed_to_price": "A priced breakdown lets quotes be compared.",
+          "uae_options": "BOQ by trade.",
+          "follow_up_if": "If not given, ask for a breakdown.",
           "blocking": false
         }
       ],

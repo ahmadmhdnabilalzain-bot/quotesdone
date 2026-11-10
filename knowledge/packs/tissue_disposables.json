@@ -5,7 +5,7 @@
       "id": "tissue_disposables:spec-checklist",
       "topic": "Tissue and disposables - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For tissue and disposables quotes to be compared like-for-like, every quoted line (goods) must state: (1) product (facial tissue, toilet roll, kitchen towel, napkins, cups, cutlery); (2) ply and sheet count; (3) sheet size and roll length; (4) material (virgin pulp, recycled, paper, PP); (5) pack configuration; (6) dispenser compatibility; (7) food-contact compliance for food items; (8) quantity in cartons; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tissue_disposables trade.\n\nExpert interview (2026-11-10): Blocking: product, ply and sheet count, material, pack configuration and quantity.",
+      "body_en": "For tissue and disposables quotes to be compared like-for-like, every quoted line (goods) must state: (1) product (facial tissue, toilet roll, kitchen towel, napkins, cups, cutlery); (2) ply and sheet count; (3) sheet size and roll length; (4) material (virgin pulp, recycled, paper, PP); (5) pack configuration; (6) dispenser compatibility; (7) food-contact compliance for food items; (8) quantity in cartons; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tissue_disposables trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): product, ply and sheet count, material, pack configuration and quantity.",
       "body_ar": "لكي تُقارن عروض المناديل والمستهلكات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) المنتج (مناديل وجه، أو ورق حمام، أو مناشف مطبخ، أو محارم، أو أكواب، أو أدوات مائدة)؛ (2) عدد الطبقات والأوراق؛ (3) مقاس الورقة وطول اللفة؛ (4) المادة (لب بكر، أو معاد التدوير، أو ورق، أو PP)؛ (5) ترتيب العبوة؛ (6) التوافق مع الموزعات؛ (7) المطابقة لملامسة الغذاء لأصناف الطعام؛ (8) الكمية بالكراتين؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tissue_disposables فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المنتج، وعدد الطبقات والأوراق، والمادة، وتكوين العبوة، والكمية.",
       "required_specs": [
         "product (facial tissue, toilet roll, kitchen towel, napkins, cups, cutlery)",
@@ -49,6 +49,13 @@
           "blocking": true
         },
         {
+          "spec": "sheet size and roll length",
+          "why_needed_to_price": "Sheet size and roll length decide value per pack.",
+          "uae_options": "Sheet size; roll length.",
+          "follow_up_if": "If quotes differ, compare per sheet or per metre.",
+          "blocking": false
+        },
+        {
           "spec": "material (virgin pulp, recycled, paper, PP)",
           "why_needed_to_price": "Virgin pulp costs more than recycled.",
           "uae_options": "virgin; recycled; paper; bagasse",
@@ -63,6 +70,20 @@
           "blocking": true
         },
         {
+          "spec": "dispenser compatibility",
+          "why_needed_to_price": "Rolls must fit the installed dispensers.",
+          "uae_options": "dispenser model",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "food-contact compliance for food items",
+          "why_needed_to_price": "Food-contact compliance is required for food items.",
+          "uae_options": "Food-contact certificates.",
+          "follow_up_if": "If a quote does not include it, ask for it before the quote is compared.",
+          "blocking": false
+        },
+        {
           "spec": "quantity in cartons",
           "why_needed_to_price": "Volume sets the price tier.",
           "uae_options": "cartons per month",
@@ -70,14 +91,36 @@
           "blocking": true
         },
         {
-          "spec": "dispenser compatibility",
-          "why_needed_to_price": "Rolls must fit the installed dispensers.",
-          "uae_options": "dispenser model",
-          "follow_up_if": "",
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Freight, unloading and the distance to site are part of the price; a delivered price to Dubai is not the same as one to Al Dhafra.",
+          "uae_options": "Ex-works or ex-warehouse; delivered to site within an emirate; delivered and offloaded; Incoterms for imports.",
+          "follow_up_if": "If the site is remote or has access limits (time windows, small vehicles only), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "The length and scope of the warranty change the supplier's risk and price; parts-only and parts-and-labour are not the same offer.",
+          "uae_options": "Manufacturer warranty 1-2 years; extended by agreement; workmanship warranty from the installer.",
+          "follow_up_if": "If the period is shorter than the buyer needs or excludes labour, ask for the extended option as a separate price.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "tissue_disposables:uae-standards-and-approvals",

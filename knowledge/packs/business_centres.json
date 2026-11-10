@@ -5,7 +5,7 @@
       "id": "business_centres:spec-checklist",
       "topic": "Business centres and serviced offices - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for business centres and serviced offices must state: space type; number of workstations or area; location; Ejari or tenancy registration; included services; meeting room allowance; access hours; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: space type, seats or area, location, tenancy registration and term. A viewing is advisable but not required to price.",
+      "body_en": "Each quoted service line for business centres and serviced offices must state: space type; number of workstations or area; location; Ejari or tenancy registration; included services; meeting room allowance; access hours; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): space type, seats or area, location, tenancy registration and term. A viewing is advisable but not required to price.",
       "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مراكز الأعمال والمكاتب المخدومة: نوع المساحة؛ عدد محطات العمل أو المساحة؛ الموقع؛ تسجيل إيجاري أو عقد الإيجار؛ الخدمات المشمولة؛ حصة غرف الاجتماعات؛ ساعات الدخول؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع المساحة، وعدد المقاعد أو المساحة، والموقع، وتسجيل الإيجار، والمدة. ويُستحسن المعاينة لكنها غير لازمة للتسعير.",
       "required_specs": [
         "space type",
@@ -63,6 +63,41 @@
           "blocking": true
         },
         {
+          "spec": "included services",
+          "why_needed_to_price": "Utilities, internet, reception and cleaning may be extra.",
+          "uae_options": "all-inclusive; base plus extras",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "meeting room allowance",
+          "why_needed_to_price": "Included meeting-room hours differ by package and extra hours are charged.",
+          "uae_options": "Hours per month included; extra hourly rates.",
+          "follow_up_if": "If the buyer needs regular meetings, ask for the included hours.",
+          "blocking": false
+        },
+        {
+          "spec": "access hours",
+          "why_needed_to_price": "24/7 access costs more than business hours.",
+          "uae_options": "Business hours; extended hours; 24/7 access card.",
+          "follow_up_if": "If the buyer works outside office hours, ask for 24/7 access.",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and unlicensed offers are often cheaper for that reason.",
+          "uae_options": "Trade licence for the activity in the emirate or free zone; authority approvals or registrations where the trade requires them.",
+          "follow_up_if": "If the licence does not name the activity or the emirate of the site, the offer cannot be accepted until it does.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels set the staffing, frequency and standby the provider must carry, and so most of the price.",
+          "uae_options": "Defined frequency, response time, attendance hours and measurable KPIs; penalties or service credits by agreement.",
+          "follow_up_if": "If no level is stated, ask the buyer for frequency and response expectations before comparing quotes.",
+          "blocking": false
+        },
+        {
           "spec": "contract duration",
           "why_needed_to_price": "Monthly, annual and multi-year rates differ.",
           "uae_options": "monthly; 6 months; annual",
@@ -70,14 +105,22 @@
           "blocking": true
         },
         {
-          "spec": "included services",
-          "why_needed_to_price": "Utilities, internet, reception and cleaning may be extra.",
-          "uae_options": "all-inclusive; base plus extras",
-          "follow_up_if": "",
+          "spec": "pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A visit is advisable before signing, to see the space, but a firm price can be given from the package and term."
     },
     {
       "id": "business_centres:uae-standards-and-approvals",

@@ -121,7 +121,7 @@
       "id": "painting:floor-coating-spec",
       "topic": "Floor coating (epoxy/PU) specification checklist",
       "kind": "spec_checklist",
-      "body_en": "To get exact, comparable quotes for a resin floor, the buyer must give the supplier enough to design the system. The area and layout drive mobilisation and joint detailing. The use and loads determine the system class. Slab age and moisture matter because resin over a damp slab blisters and debonds; a moisture test and, if needed, a moisture-tolerant primer or barrier must be allowed for. Preparation (diamond grinding or shot blasting) is essential for adhesion; acid etching is generally inferior. Specify coves and upstands for hygienic areas, drains and falls, expansion and saw-cut joints treatment, colour (RAL or supplier chart), anti-slip requirement and whether line marking is included. Ask the supplier to state total dry film thickness per layer and the manufacturer's system reference.\n\nExpert interview (2026-11-10): Blocking: area, use, system type, and slab condition. Old slabs need a site moisture and adhesion check.",
+      "body_en": "To get exact, comparable quotes for a resin floor, the buyer must give the supplier enough to design the system. The area and layout drive mobilisation and joint detailing. The use and loads determine the system class. Slab age and moisture matter because resin over a damp slab blisters and debonds; a moisture test and, if needed, a moisture-tolerant primer or barrier must be allowed for. Preparation (diamond grinding or shot blasting) is essential for adhesion; acid etching is generally inferior. Specify coves and upstands for hygienic areas, drains and falls, expansion and saw-cut joints treatment, colour (RAL or supplier chart), anti-slip requirement and whether line marking is included. Ask the supplier to state total dry film thickness per layer and the manufacturer's system reference.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): area, use, system type, and slab condition. Old slabs need a site moisture and adhesion check.",
       "body_ar": "للحصول على عروض دقيقة وقابلة للمقارنة لأرضيات الراتنج، يجب تزويد المورد بما يكفي لتصميم النظام. المساحة والمخطط يحددان التجهيز ومعالجة الفواصل، والاستخدام والأحمال يحددان فئة النظام. عمر البلاطة ورطوبتها مهمان لأن الراتنج فوق بلاطة رطبة ينتفخ وينفصل، فيجب احتساب فحص الرطوبة وبرايمر متحمل للرطوبة أو حاجز عند الحاجة. التحضير بالجلخ الماسي أو السفع بالخردق أساسي للالتصاق، والحفر بالحمض أضعف عموماً. يُحدد الكورنر المقعر والنعلات للمناطق الصحية، والمصارف والميول، ومعالجة فواصل التمدد والقطع، واللون حسب RAL أو كتالوج المورد، ومقاومة الانزلاق، وشمول تخطيط الخطوط. ويُطلب من المورد ذكر سماكة الطبقة الجافة لكل طبقة ومرجع النظام لدى المصنّع.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المساحة، والاستخدام، ونوع النظام، وحالة البلاطة. وتحتاج البلاطات القديمة إلى فحص رطوبة والتصاق في الموقع.",
       "required_specs": [
         "floor area (m2) and layout drawing",
@@ -169,11 +169,46 @@
           "blocking": true
         },
         {
+          "spec": "chemical exposure and cleaning regime (hot water, steam)",
+          "why_needed_to_price": "Chemical exposure and hot-water or steam cleaning decide whether epoxy, PU or PU-cement is needed.",
+          "uae_options": "Epoxy for general use; PU-cement for food plants with hot washdown.",
+          "follow_up_if": "If the floor is washed with hot water or steam, ask for a PU-cement system.",
+          "blocking": false
+        },
+        {
+          "spec": "service temperature range, cold store or hot areas",
+          "why_needed_to_price": "Cold stores and hot areas need flexible, temperature-rated systems.",
+          "uae_options": "Service temperature range of the system.",
+          "follow_up_if": "If below zero or above 60 degrees C, ask for a rated system.",
+          "blocking": false
+        },
+        {
+          "spec": "indoor or UV-exposed",
+          "why_needed_to_price": "Epoxy yellows in sunlight; UV-exposed floors need an aliphatic topcoat.",
+          "uae_options": "Indoor epoxy; aliphatic PU topcoat for UV exposure.",
+          "follow_up_if": "If the floor gets sunlight, ask for a UV-stable topcoat.",
+          "blocking": false
+        },
+        {
           "spec": "system type: epoxy roller coat, self-levelling, mortar, PU, PU-cement",
           "why_needed_to_price": "System type is the main price difference.",
           "uae_options": "roller coat; self-levelling; mortar; PU-cement",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "total thickness (microns or mm)",
+          "why_needed_to_price": "Total thickness is the main material quantity.",
+          "uae_options": "Roller coat 200-500 microns; self-levelling 2-3 mm; screed 4-9 mm.",
+          "follow_up_if": "If loads are heavy, ask for a screed system.",
+          "blocking": false
+        },
+        {
+          "spec": "anti-slip requirement / R-value if specified",
+          "why_needed_to_price": "Anti-slip aggregate adds material and changes cleaning.",
+          "uae_options": "R10-R13 slip rating.",
+          "follow_up_if": "If wet processes exist, ask for R11 or above.",
+          "blocking": false
         },
         {
           "spec": "slab age, moisture test result, existing coating",
@@ -187,6 +222,48 @@
           "why_needed_to_price": "Preparation is a separate labour cost.",
           "uae_options": "grinding; shot blasting",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "coving height, upstands, drains, falls",
+          "why_needed_to_price": "Coving, upstands, drains and falls add labour.",
+          "uae_options": "Coving height; drains; falls.",
+          "follow_up_if": "If falls must be created, ask whether screed to falls is included.",
+          "blocking": false
+        },
+        {
+          "spec": "joint treatment",
+          "why_needed_to_price": "Joints need treatment to avoid cracking.",
+          "uae_options": "Joint filling; saw-cut repair.",
+          "follow_up_if": "If many joints exist, ask for the method.",
+          "blocking": false
+        },
+        {
+          "spec": "colour (RAL or chart) and finish sheen",
+          "why_needed_to_price": "Colour and sheen choices can change product.",
+          "uae_options": "RAL colour; gloss or matt.",
+          "follow_up_if": "If special colours, ask for availability.",
+          "blocking": false
+        },
+        {
+          "spec": "line marking or logos",
+          "why_needed_to_price": "Line marking and logos are extra.",
+          "uae_options": "Line marking; logos.",
+          "follow_up_if": "If warehouse, ask for marking.",
+          "blocking": false
+        },
+        {
+          "spec": "allowed downtime and working hours",
+          "why_needed_to_price": "Short downtime needs fast-curing systems at higher cost.",
+          "uae_options": "Allowed downtime and hours.",
+          "follow_up_if": "If downtime is under 48 hours, ask for a fast-cure system.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period requested",
+          "why_needed_to_price": "Warranty periods change price.",
+          "uae_options": "1-5 years.",
+          "follow_up_if": "If longer needed, ask the supplier to confirm its offer allows for it and at what cost.",
           "blocking": false
         }
       ],
@@ -211,7 +288,7 @@
       "id": "painting:intumescent-spec",
       "topic": "Intumescent coating specification checklist",
       "kind": "spec_checklist",
-      "body_en": "An intumescent quote cannot be priced accurately from a floor area; it needs the steel. Without member sizes and fire rating, a supplier will guess a DFT, and guessing either wastes money or leaves the building non-compliant. The buyer should supply the structural steel drawings or a member schedule, the required fire resistance period per element (from the fire strategy or Civil Defence approved drawings), whether members are beams, columns or bracing and whether exposed on three or four sides, the environment (interior dry, interior humid, exterior, coastal), the primer already applied and its compatibility, and the topcoat colour if one is needed. Ask for the manufacturer's DFT loading calculation, the Civil Defence approval reference for the product, and the inspection and test plan (DFT readings, adhesion, final certificate).\n\nExpert interview (2026-11-10): Blocking: member schedule, rating per member and fire type.",
+      "body_en": "An intumescent quote cannot be priced accurately from a floor area; it needs the steel. Without member sizes and fire rating, a supplier will guess a DFT, and guessing either wastes money or leaves the building non-compliant. The buyer should supply the structural steel drawings or a member schedule, the required fire resistance period per element (from the fire strategy or Civil Defence approved drawings), whether members are beams, columns or bracing and whether exposed on three or four sides, the environment (interior dry, interior humid, exterior, coastal), the primer already applied and its compatibility, and the topcoat colour if one is needed. Ask for the manufacturer's DFT loading calculation, the Civil Defence approval reference for the product, and the inspection and test plan (DFT readings, adhesion, final certificate).\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): member schedule, rating per member and fire type.",
       "body_ar": "لا يمكن تسعير الدهان الإنتفاخي بدقة من المساحة، بل يحتاج بيانات الحديد. فبدون مقاسات العناصر ودرجة مقاومة الحريق سيخمّن المورد السماكة، والتخمين إما يهدر المال أو يترك المبنى غير مطابق. على المشتري تقديم مخططات الحديد الإنشائي أو جدول العناصر، وفترة مقاومة الحريق المطلوبة لكل عنصر من استراتيجية الحريق أو المخططات المعتمدة من الدفاع المدني، ونوع العنصر من جسور وأعمدة وتدعيم وهل هو معرض من ثلاث جهات أو أربع، والبيئة داخلية جافة أو رطبة أو خارجية أو ساحلية، والبرايمر المطبق ومدى توافقه، ولون الطبقة النهائية إن لزمت. ويُطلب من المورد حساب السماكات من المصنّع، ورقم اعتماد الدفاع المدني للمنتج، وخطة الفحص والاختبار من قراءات سماكة والتصاق وشهادة نهائية.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: جدول العناصر، ومدة المقاومة لكل عنصر، ونوع الحريق.",
       "required_specs": [
         "steel drawings or member schedule with section sizes",
@@ -252,6 +329,13 @@
           "blocking": true
         },
         {
+          "spec": "member type and number of sides exposed",
+          "why_needed_to_price": "Section type and sides exposed decide dry film thickness.",
+          "uae_options": "Beam or column; 3 or 4 sides exposed.",
+          "follow_up_if": "If the steel schedule is missing, ask for it.",
+          "blocking": false
+        },
+        {
           "spec": "fire type: cellulosic or hydrocarbon",
           "why_needed_to_price": "Hydrocarbon exposure needs a different, costlier product.",
           "uae_options": "cellulosic; hydrocarbon",
@@ -259,14 +343,50 @@
           "blocking": true
         },
         {
+          "spec": "environment: interior dry/humid, exterior, coastal",
+          "why_needed_to_price": "Exterior and coastal exposure needs exterior-rated systems.",
+          "uae_options": "Interior dry, humid, exterior, coastal.",
+          "follow_up_if": "If exterior, ask for an exterior-rated product.",
+          "blocking": false
+        },
+        {
+          "spec": "existing primer type and DFT",
+          "why_needed_to_price": "The existing primer must be compatible.",
+          "uae_options": "Primer type and DFT.",
+          "follow_up_if": "If unknown, ask for a compatibility test.",
+          "blocking": false
+        },
+        {
+          "spec": "topcoat required and colour",
+          "why_needed_to_price": "A topcoat adds cost and is needed outdoors or for colour.",
+          "uae_options": "Topcoat colour.",
+          "follow_up_if": "If exposed, ask for topcoat.",
+          "blocking": false
+        },
+        {
           "spec": "Civil Defence approval reference required",
           "why_needed_to_price": "Only approved products pass inspection.",
           "uae_options": "approved product in the emirate",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "access conditions and working height",
+          "why_needed_to_price": "Height and access decide labour and access equipment.",
+          "uae_options": "Working height; access.",
+          "follow_up_if": "If high, ask who provides access.",
+          "blocking": false
+        },
+        {
+          "spec": "inspection and certification requirements",
+          "why_needed_to_price": "Inspection and certification add cost.",
+          "uae_options": "DFT readings; certificates.",
+          "follow_up_if": "If third-party inspection is required, state it.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for existing steel, to check the existing primer and access."
     },
     {
       "id": "painting:heat-reflective-coatings",
@@ -371,7 +491,7 @@
       "id": "painting:interior-repaint-spec",
       "topic": "Interior repainting specification checklist (villa/apartment/office)",
       "kind": "spec_checklist",
-      "body_en": "Most requests on a marketplace are interior repaints, for example before moving out of a rented villa or refreshing an office. To avoid quotes that cannot be compared, the buyer should state the scope precisely: which rooms and surfaces (walls, ceilings, doors, frames, skirting, grilles), approximate area in square metres or the unit type and number of rooms, current condition (cracks, damp stains, previous oil-based paint, wallpaper), preparation required (spot or full putty, sanding, crack repair), the paint type and sheen per surface, number of coats, colour codes and how many different colours, whether furniture moving and floor protection are included, whether the unit is occupied, working hours allowed by the building (many towers restrict noisy or smelly work), and whether low-VOC or specific brands are required. For move-out repainting, landlords often expect a specific white; confirm the colour code from the tenancy or building management.\n\nExpert interview (2026-11-10): Blocking: surfaces, area or unit type, preparation level, paint type and number of coats. Photos or a site visit are needed when damp, cracks or peeling are present.",
+      "body_en": "Most requests on a marketplace are interior repaints, for example before moving out of a rented villa or refreshing an office. To avoid quotes that cannot be compared, the buyer should state the scope precisely: which rooms and surfaces (walls, ceilings, doors, frames, skirting, grilles), approximate area in square metres or the unit type and number of rooms, current condition (cracks, damp stains, previous oil-based paint, wallpaper), preparation required (spot or full putty, sanding, crack repair), the paint type and sheen per surface, number of coats, colour codes and how many different colours, whether furniture moving and floor protection are included, whether the unit is occupied, working hours allowed by the building (many towers restrict noisy or smelly work), and whether low-VOC or specific brands are required. For move-out repainting, landlords often expect a specific white; confirm the colour code from the tenancy or building management.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): surfaces, area or unit type, preparation level, paint type and number of coats. Photos or a site visit are needed when damp, cracks or peeling are present.",
       "body_ar": "معظم الطلبات في المنصة إعادة دهان داخلية، مثل قبل إخلاء فيلا مستأجرة أو تجديد مكتب. ولتجنب عروض غير قابلة للمقارنة يجب أن يحدد المشتري النطاق بدقة: الغرف والأسطح من جدران وأسقف وأبواب وحلوق ونعلات وشبابيك، والمساحة التقريبية بالمتر المربع أو نوع الوحدة وعدد الغرف، والحالة الحالية من شقوق وبقع رطوبة ودهان زيتي سابق وورق جدران، والتحضير المطلوب من معجنة موضعية أو كاملة وصنفرة وإصلاح شقوق، ونوع الدهان واللمعان لكل سطح، وعدد الطبقات، ورموز الألوان وعددها، وهل يشمل العرض نقل الأثاث وحماية الأرضيات، وهل الوحدة مسكونة، وساعات العمل المسموحة من إدارة المبنى، فكثير من الأبراج تقيد الأعمال المزعجة أو ذات الرائحة، وهل يلزم دهان منخفض المركبات المتطايرة أو علامة محددة. وعند الدهان قبل الإخلاء يتوقع الملاك غالباً لوناً أبيض محدداً، فيُؤكد رمز اللون من عقد الإيجار أو إدارة المبنى.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الأسطح، والمساحة أو نوع الوحدة، ومستوى التحضير، ونوع الدهان، وعدد الطبقات. وتلزم صور أو زيارة للموقع عند وجود رطوبة أو تشققات أو دهان متقشر.",
       "required_specs": [
         "rooms and surfaces to paint (walls, ceilings, doors, frames, skirting, metal)",
@@ -416,6 +536,13 @@
           "blocking": true
         },
         {
+          "spec": "current condition and existing paint type",
+          "why_needed_to_price": "Existing condition decides preparation.",
+          "uae_options": "Sound, peeling, cracked; existing paint type.",
+          "follow_up_if": "If oil paint exists, ask for primer.",
+          "blocking": false
+        },
+        {
           "spec": "preparation level: spot or full putty, sanding, crack repair",
           "why_needed_to_price": "Preparation can cost more than the paint itself.",
           "uae_options": "light sanding; spot putty; full skim coat; crack repair",
@@ -430,11 +557,25 @@
           "blocking": true
         },
         {
+          "spec": "sheen per surface",
+          "why_needed_to_price": "Sheen per surface decides product.",
+          "uae_options": "Matt walls; satin wet areas; gloss woodwork.",
+          "follow_up_if": "If the inquiry is silent on sheen per surface, each supplier prices its own default; ask the buyer so every quote rests on the same sheen per surface.",
+          "blocking": false
+        },
+        {
           "spec": "number of coats (primer + finish)",
           "why_needed_to_price": "Coats drive both material and labour.",
           "uae_options": "primer + 2 finish coats; 1 coat refresh",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "colour codes and number of colours",
+          "why_needed_to_price": "More colours mean more labour and wastage.",
+          "uae_options": "Colour codes and count.",
+          "follow_up_if": "If many colours, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
         },
         {
           "spec": "brand preference or 'approved equivalent'",
@@ -444,10 +585,31 @@
           "blocking": false
         },
         {
+          "spec": "low-VOC requirement",
+          "why_needed_to_price": "Low-VOC paints cost more.",
+          "uae_options": "Low-VOC certified products.",
+          "follow_up_if": "If occupied or green building, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
           "spec": "occupied or vacant; furniture moving and protection",
           "why_needed_to_price": "Occupied homes need protection and moving furniture, which takes time.",
           "uae_options": "vacant; occupied",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "building working-hour or permit restrictions",
+          "why_needed_to_price": "Building rules limit hours.",
+          "uae_options": "Permit; working hours.",
+          "follow_up_if": "If restricted, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "required completion date",
+          "why_needed_to_price": "A short completion needs more painters.",
+          "uae_options": "Completion date.",
+          "follow_up_if": "If tight, ask the supplier to confirm its offer allows for it and at what cost.",
           "blocking": false
         }
       ],
@@ -458,7 +620,7 @@
       "id": "painting:exterior-facade-spec",
       "topic": "Exterior facade painting specification checklist",
       "kind": "spec_checklist",
-      "body_en": "Exterior work is where scope gaps cost the most, because access, weather and preparation dominate the price. The buyer should give elevations or photos, building height and number of floors, the substrate (render, block, concrete, GRC, metal cladding) and its condition, required system (standard acrylic, elastomeric, textured, stone-effect, silicone), colour codes and any community or developer colour approval, and whether crack repair, sealant replacement around windows or water jetting of the facade is included. Access method (scaffold, mast climber, gondola/BMU, rope access) must be defined, with who provides and certifies it. Also state working restrictions such as midday outdoor work ban in summer (the UAE Ministry of Human Resources and Emiratisation applies a summer midday break each year), occupied building constraints and protection of glazing and landscaping.\n\nExpert interview (2026-11-10): Blocking: area, building height, coating system and access method. A site visit is needed to assess substrate and access.",
+      "body_en": "Exterior work is where scope gaps cost the most, because access, weather and preparation dominate the price. The buyer should give elevations or photos, building height and number of floors, the substrate (render, block, concrete, GRC, metal cladding) and its condition, required system (standard acrylic, elastomeric, textured, stone-effect, silicone), colour codes and any community or developer colour approval, and whether crack repair, sealant replacement around windows or water jetting of the facade is included. Access method (scaffold, mast climber, gondola/BMU, rope access) must be defined, with who provides and certifies it. Also state working restrictions such as midday outdoor work ban in summer (the UAE Ministry of Human Resources and Emiratisation applies a summer midday break each year), occupied building constraints and protection of glazing and landscaping.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): area, building height, coating system and access method. A site visit is needed to assess substrate and access.",
       "body_ar": "الأعمال الخارجية هي حيث تكلف ثغرات النطاق أكثر، لأن الوصول والطقس والتحضير تشكل معظم السعر. على المشتري تقديم الواجهات أو الصور، وارتفاع المبنى وعدد الطوابق، ونوع السطح من لياسة أو بلوك أو خرسانة أو GRC أو كسوة معدنية وحالته، والنظام المطلوب من أكريليك عادي أو مرن أو محبب أو حجري أو سيليكون، ورموز الألوان وأي اعتماد ألوان من المجتمع أو المطور، وهل يشمل العرض إصلاح الشقوق واستبدال السيليكون حول النوافذ وغسيل الواجهة بالضغط. ويجب تحديد طريقة الوصول من سقالات أو رافعة سارية أو جندولة أو حبال، ومن يوفرها ويعتمدها. وتذكر قيود العمل مثل حظر العمل وقت الظهيرة صيفاً الذي تطبقه وزارة الموارد البشرية والتوطين سنوياً، وقيود المبنى المسكون، وحماية الزجاج والتنسيق الخارجي.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المساحة، وارتفاع المبنى، ونظام الطلاء، ووسيلة الوصول. وتلزم زيارة الموقع لتقييم السطح ووسائل الوصول.",
       "required_specs": [
         "elevation drawings or photos; facade area in m2",
@@ -502,6 +664,13 @@
           "blocking": true
         },
         {
+          "spec": "substrate type and condition",
+          "why_needed_to_price": "Substrate and condition decide preparation and system.",
+          "uae_options": "Render, concrete, cladding; cracks.",
+          "follow_up_if": "If cracks exist, ask for repair.",
+          "blocking": false
+        },
+        {
           "spec": "coating system (acrylic, elastomeric, textured, stone-effect, silicone)",
           "why_needed_to_price": "Systems differ widely in price and durability.",
           "uae_options": "acrylic; elastomeric; textured; stone-effect; silicone",
@@ -509,11 +678,11 @@
           "blocking": true
         },
         {
-          "spec": "access method and responsibility (scaffold, BMU, rope access)",
-          "why_needed_to_price": "Access can be the biggest cost on tall buildings.",
-          "uae_options": "ladders; scaffold; cradle/BMU; rope access",
+          "spec": "colour codes and developer/community approval",
+          "why_needed_to_price": "Communities require colour approval before work.",
+          "uae_options": "developer palette",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "crack repair and sealant scope",
@@ -523,10 +692,45 @@
           "blocking": false
         },
         {
-          "spec": "colour codes and developer/community approval",
-          "why_needed_to_price": "Communities require colour approval before work.",
-          "uae_options": "developer palette",
+          "spec": "pressure washing / cleaning",
+          "why_needed_to_price": "Pressure washing adds labour.",
+          "uae_options": "Pressure washing; cleaning.",
+          "follow_up_if": "If the inquiry is silent on pressure washing / cleaning, each supplier prices its own default; ask the buyer so every quote rests on the same pressure washing / cleaning.",
+          "blocking": false
+        },
+        {
+          "spec": "access method and responsibility (scaffold, BMU, rope access)",
+          "why_needed_to_price": "Access can be the biggest cost on tall buildings.",
+          "uae_options": "ladders; scaffold; cradle/BMU; rope access",
           "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "permits/NOC responsibility",
+          "why_needed_to_price": "Permits and NOCs take time.",
+          "uae_options": "Building, community, RTA NOC.",
+          "follow_up_if": "If excluded, ask who obtains.",
+          "blocking": false
+        },
+        {
+          "spec": "working hours and summer midday-break constraints",
+          "why_needed_to_price": "Hours and summer break limit work.",
+          "uae_options": "Midday break 15 June to 15 September.",
+          "follow_up_if": "If summer, ask for programme impact.",
+          "blocking": false
+        },
+        {
+          "spec": "protection of glazing, landscaping, vehicles",
+          "why_needed_to_price": "Protection adds labour.",
+          "uae_options": "Glazing, landscaping, vehicles.",
+          "follow_up_if": "If the inquiry is silent on protection of glazing, landscaping, vehicles, each supplier prices its own default; ask the buyer so every quote rests on the same protection of glazing, landscaping, vehicles.",
+          "blocking": false
+        },
+        {
+          "spec": "product and workmanship warranty requested",
+          "why_needed_to_price": "Product and workmanship warranties change price.",
+          "uae_options": "5-10 years product; 1-2 years workmanship.",
+          "follow_up_if": "If longer needed, ask the supplier to confirm its offer allows for it and at what cost.",
           "blocking": false
         }
       ],
@@ -537,7 +741,7 @@
       "id": "painting:protective-steel-spec",
       "topic": "Protective coating for steel specification checklist",
       "kind": "spec_checklist",
-      "body_en": "For steel structures, tanks, pipework, railings and shade structures, buyers often ask simply for 'anti-rust painting'. To quote exactly, the supplier needs the environment and a defined system. The buyer should state whether the steel is new or maintenance repaint, the area in square metres or tonnage with member sizes, the corrosivity category per ISO 12944 or at least the exposure (interior, exterior inland, coastal, industrial, immersion), the target durability, the surface preparation standard (for example Sa 2½ or St 3 for spot repairs), each coat's product type and DFT, the topcoat colour and gloss, whether the work is shop-applied or on site, and the inspection regime (DFT readings, adhesion test per ISO 4624 or ASTM D4541, holiday testing for tank linings). For potable water tanks, the lining must hold a potable-water approval.\n\nExpert interview (2026-11-10): Blocking: area, corrosivity category, preparation grade and shop or site application.",
+      "body_en": "For steel structures, tanks, pipework, railings and shade structures, buyers often ask simply for 'anti-rust painting'. To quote exactly, the supplier needs the environment and a defined system. The buyer should state whether the steel is new or maintenance repaint, the area in square metres or tonnage with member sizes, the corrosivity category per ISO 12944 or at least the exposure (interior, exterior inland, coastal, industrial, immersion), the target durability, the surface preparation standard (for example Sa 2½ or St 3 for spot repairs), each coat's product type and DFT, the topcoat colour and gloss, whether the work is shop-applied or on site, and the inspection regime (DFT readings, adhesion test per ISO 4624 or ASTM D4541, holiday testing for tank linings). For potable water tanks, the lining must hold a potable-water approval.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): area, corrosivity category, preparation grade and shop or site application.",
       "body_ar": "للمنشآت الحديدية والخزانات والأنابيب والدرابزين والمظلات، كثيراً ما يطلب المشتري دهاناً ضد الصدأ فقط. وللتسعير الدقيق يحتاج المورد البيئة ونظاماً محدداً. على المشتري ذكر هل الحديد جديد أم إعادة دهان صيانة، والمساحة بالمتر المربع أو الوزن مع مقاسات العناصر، وفئة التآكل وفق ISO 12944 أو على الأقل ظروف التعرض من داخلي أو خارجي داخلي أو ساحلي أو صناعي أو مغمور، والمتانة المستهدفة، ومعيار تحضير السطح مثل Sa 2½ أو St 3 للإصلاح الموضعي، ونوع المنتج والسماكة لكل طبقة، ولون الطبقة النهائية ولمعانها، وهل التطبيق بالورشة أم بالموقع، ونظام الفحص من قراءات السماكة واختبار الالتصاق وفق ISO 4624 أو ASTM D4541 وفحص الثقوب لبطانات الخزانات. أما خزانات مياه الشرب فيجب أن تحمل البطانة اعتماداً لملامسة مياه الشرب.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المساحة، وفئة التآكل، ودرجة التحضير، والتطبيق في الورشة أو في الموقع.",
       "required_specs": [
         "new steel or maintenance repaint",
@@ -568,6 +772,13 @@
       ],
       "spec_guide": [
         {
+          "spec": "new steel or maintenance repaint",
+          "why_needed_to_price": "New steel and maintenance repaint need different preparation.",
+          "uae_options": "Blast cleaning; spot repair.",
+          "follow_up_if": "If maintenance, ask for a condition survey.",
+          "blocking": false
+        },
+        {
           "spec": "area (m2) or tonnage with member sizes",
           "why_needed_to_price": "Paint quantity follows area.",
           "uae_options": "m2 or tonnage",
@@ -582,6 +793,13 @@
           "blocking": true
         },
         {
+          "spec": "target durability range",
+          "why_needed_to_price": "Durability range decides system thickness.",
+          "uae_options": "ISO 12944 durability low to very high.",
+          "follow_up_if": "If coastal, ask for high durability.",
+          "blocking": false
+        },
+        {
           "spec": "surface preparation standard (ISO 8501-1 grade)",
           "why_needed_to_price": "Blasting to Sa 2.5 costs more than hand-tool cleaning.",
           "uae_options": "St 2/3; Sa 2.5",
@@ -589,14 +807,57 @@
           "blocking": true
         },
         {
+          "spec": "system: primer, intermediate, topcoat product types",
+          "why_needed_to_price": "Primer, intermediate and topcoat types decide cost.",
+          "uae_options": "Zinc-rich epoxy; epoxy MIO; PU topcoat.",
+          "follow_up_if": "If the inquiry is silent on system: primer, intermediate, topcoat product types, each supplier prices its own default; ask the buyer so every quote rests on the same system: primer, intermediate, topcoat product types.",
+          "blocking": false
+        },
+        {
+          "spec": "DFT per coat and total",
+          "why_needed_to_price": "DFT per coat decides material.",
+          "uae_options": "Microns per coat and total.",
+          "follow_up_if": "If the inquiry is silent on dft per coat and total, each supplier prices its own default; ask the buyer so every quote rests on the same dft per coat and total.",
+          "blocking": false
+        },
+        {
+          "spec": "topcoat colour (RAL) and gloss",
+          "why_needed_to_price": "Colour and gloss decide topcoat.",
+          "uae_options": "RAL; gloss.",
+          "follow_up_if": "If the inquiry is silent on topcoat colour (ral) and gloss, each supplier prices its own default; ask the buyer so every quote rests on the same topcoat colour (ral) and gloss.",
+          "blocking": false
+        },
+        {
           "spec": "shop or site application",
           "why_needed_to_price": "Site application costs more and needs access.",
           "uae_options": "shop; site",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "inspection and test plan (DFT, adhesion, holiday test)",
+          "why_needed_to_price": "Inspection and testing add cost.",
+          "uae_options": "DFT, adhesion, holiday tests.",
+          "follow_up_if": "If the project requires it, state it in the inquiry so every supplier prices it.",
+          "blocking": false
+        },
+        {
+          "spec": "potable water or food-contact approval if applicable",
+          "why_needed_to_price": "Potable water or food-contact approval needs certified products.",
+          "uae_options": "WRAS or NSF approved coatings.",
+          "follow_up_if": "If tanks, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "access and containment of blasting debris",
+          "why_needed_to_price": "Access and blasting containment add cost.",
+          "uae_options": "Containment; access.",
+          "follow_up_if": "If occupied, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for maintenance repainting, to assess the existing coating and corrosion."
     },
     {
       "id": "painting:common-defects",

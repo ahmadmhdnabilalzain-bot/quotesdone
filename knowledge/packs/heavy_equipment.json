@@ -81,7 +81,7 @@
       "id": "heavy_equipment:crane-spec-checklist",
       "topic": "What to state when requesting a crane quote",
       "kind": "spec_checklist",
-      "body_en": "To obtain an exact crane quotation the buyer must describe the lift, not the machine. State the heaviest load and its weight including hook block and rigging, the load dimensions and centre of gravity if unusual, the maximum radius from the crane position to the load and to the landing point, the required lift height above ground and any obstructions such as buildings, power lines or trees. Describe the ground: compacted sand, asphalt, slab, backfilled trench or basement below, since outrigger loads are high and mats or a ground bearing check may be needed. State the number of lifts, duration (hours, days or months), working hours, and whether night work is required. Say whether the rigger and signaller, lifting accessories and a lift plan are to be included, and whether third-party certificates for the crane and operator are needed for site entry. Include access route constraints and any authority permits for road closure. With these, suppliers can select the correct crane from load charts and price comparably. Verification note (23 Sep 2026): Thorough-examination and TPI requirements for cranes support the certificate fields.\n\nExpert interview (2026-11-10): Blocking: the load weight with rigging, the working radius, lift height with obstructions, ground conditions under the outriggers, the number of lifts and duration, and the site location. When the crane position, ground or obstructions are unknown, a site survey or a scaled plan with photos is unavoidable before a firm price.",
+      "body_en": "To obtain an exact crane quotation the buyer must describe the lift, not the machine. State the heaviest load and its weight including hook block and rigging, the load dimensions and centre of gravity if unusual, the maximum radius from the crane position to the load and to the landing point, the required lift height above ground and any obstructions such as buildings, power lines or trees. Describe the ground: compacted sand, asphalt, slab, backfilled trench or basement below, since outrigger loads are high and mats or a ground bearing check may be needed. State the number of lifts, duration (hours, days or months), working hours, and whether night work is required. Say whether the rigger and signaller, lifting accessories and a lift plan are to be included, and whether third-party certificates for the crane and operator are needed for site entry. Include access route constraints and any authority permits for road closure. With these, suppliers can select the correct crane from load charts and price comparably. Verification note (23 Sep 2026): Thorough-examination and TPI requirements for cranes support the certificate fields.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): the load weight with rigging, the working radius, lift height with obstructions, ground conditions under the outriggers, the number of lifts and duration, and the site location. When the crane position, ground or obstructions are unknown, a site survey or a scaled plan with photos is unavoidable before a firm price.",
       "body_ar": "للحصول على عرض سعر دقيق للرافعة يجب أن يصف المشتري الرفعة لا الآلة. اذكر أثقل حمل ووزنه شاملاً كتلة الخطاف وأدوات الرفع، وأبعاد الحمل ومركز الثقل إن كان غير اعتيادي، وأقصى نصف قطر من موقع الرافعة إلى الحمل وإلى نقطة الإنزال، وارتفاع الرفع المطلوب وأي عوائق كالمباني أو خطوط الكهرباء أو الأشجار. صف الأرض: رمل مدموك أو إسفلت أو بلاطة أو خندق مردوم أو قبو أسفلها، لأن أحمال الأرجل عالية وقد تلزم حصائر أو فحص تحمل. اذكر عدد الرفعات والمدة بالساعات أو الأيام أو الأشهر وساعات العمل والحاجة للعمل الليلي. حدد هل يُشمل عامل الربط ومساعد الإشارة وأدوات الرفع وخطة الرفع، وهل تلزم شهادات طرف ثالث للرافعة والمشغل لدخول الموقع. أضف قيود طريق الوصول وأي تصاريح لإغلاق الطرق. بهذه المعلومات يستطيع الموردون اختيار الرافعة الصحيحة من جداول الأحمال وتقديم أسعار قابلة للمقارنة. ملاحظة تحقق (23 سبتمبر 2026): متطلبات الفحص الشامل وفحص الطرف الثالث للرافعات تؤيد حقول الشهادات.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: وزن الحمولة مع معدات الرفع، ونصف قطر العمل، وارتفاع الرفع والعوائق، وحالة الأرض تحت الأرجل الداعمة، وعدد الرفعات ومدتها، وموقع العمل. وإذا كان موقع الرافعة أو حالة الأرض أو العوائق غير معروفة فلا بد من معاينة الموقع أو مخطط بمقياس رسم مع صور قبل تقديم سعر نهائي.",
       "required_specs": [
         "heaviest load weight incl. rigging",
@@ -120,6 +120,13 @@
           "blocking": true
         },
         {
+          "spec": "load dimensions",
+          "why_needed_to_price": "Load size decides crane radius, rigging and whether a tandem lift is needed.",
+          "uae_options": "Length, width, height and centre of gravity of the heaviest load.",
+          "follow_up_if": "If the load is long or awkward, ask for a lift plan with a spreader beam option.",
+          "blocking": false
+        },
+        {
           "spec": "max working radius",
           "why_needed_to_price": "Capacity falls sharply with radius; radius often decides the crane more than the weight.",
           "uae_options": "measured from crane position to the load's final position",
@@ -148,11 +155,18 @@
           "blocking": true
         },
         {
-          "spec": "site location",
-          "why_needed_to_price": "Mobilisation distance and road permits for mobile cranes depend on the emirate and route.",
-          "uae_options": "emirate, area, access road",
-          "follow_up_if": "",
-          "blocking": true
+          "spec": "working hours / night work",
+          "why_needed_to_price": "Night and extended hours add operator overtime and may need permits.",
+          "uae_options": "Day shift; night lift; 24-hour hire.",
+          "follow_up_if": "If the lift is in a busy area, ask whether RTA or the community requires night work.",
+          "blocking": false
+        },
+        {
+          "spec": "rigger, signaller, lifting gear included",
+          "why_needed_to_price": "Riggers, signallers and lifting gear are often excluded from bare-hire rates.",
+          "uae_options": "Crane with operator only; with rigger, signaller and certified gear.",
+          "follow_up_if": "If the buyer has no riggers, ask for a fully crewed lift.",
+          "blocking": false
         },
         {
           "spec": "lift plan required",
@@ -167,6 +181,20 @@
           "uae_options": "valid TPI for crane and accessories; operator certificate",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "access route and road permits",
+          "why_needed_to_price": "Mobilisation over public roads and outrigger set-up on the road need permits and traffic plans.",
+          "uae_options": "RTA right-of-way permit with a traffic plan; municipality approvals in other emirates.",
+          "follow_up_if": "If the crane must stand on the road, ask who applies for the permit and its cost.",
+          "blocking": false
+        },
+        {
+          "spec": "site location",
+          "why_needed_to_price": "Mobilisation distance and road permits for mobile cranes depend on the emirate and route.",
+          "uae_options": "emirate, area, access road",
+          "follow_up_if": "",
+          "blocking": true
         }
       ],
       "site_visit_required_when": "A site survey (or a scaled site plan with photos) is unavoidable before a firm price when the crane position, ground bearing or overhead obstructions are not known, and for any critical or tandem lift.",
@@ -390,7 +418,7 @@
       "id": "heavy_equipment:spec-checklist-earthmoving",
       "topic": "What to state when requesting earthmoving equipment",
       "kind": "spec_checklist",
-      "body_en": "For excavation, loading, grading and compaction plant, the supplier needs to understand the task and site. State the work type (bulk excavation, trenching, rock breaking, loading, grading, compaction), approximate volume or area and depth, soil or rock type (dune sand, compacted fill, sabkha, limestone, caprock), the required machine class or bucket size if known, and attachments needed. Give the site location, access width and height, working hours, and any restrictions such as noise, night work or proximity to buildings and utilities. Specify wet or dry hire, fuel inclusion, the duration and whether hourly, daily or monthly rates are wanted, and the number of hours per day. Ask for machine make, model and year, TPI certificate, operator licence and competency cards, insurance and breakdown replacement terms, and transport and permits. For haulage, add haul distance and disposal site. For compaction, add layer thickness and the density test specification. This allows accurate comparison between suppliers. Verification note (23 Sep 2026): Earth-moving machinery is within the approved TPI scope, supporting the certificate field.\n\nExpert interview (2026-11-10): Blocking: work type, machine class, wet or dry hire, fuel inclusion, duration and rate basis, and site location with access. Time-based hire needs no site visit; a per-m3 output price on unknown ground needs a soil report, trial pit or visit.",
+      "body_en": "For excavation, loading, grading and compaction plant, the supplier needs to understand the task and site. State the work type (bulk excavation, trenching, rock breaking, loading, grading, compaction), approximate volume or area and depth, soil or rock type (dune sand, compacted fill, sabkha, limestone, caprock), the required machine class or bucket size if known, and attachments needed. Give the site location, access width and height, working hours, and any restrictions such as noise, night work or proximity to buildings and utilities. Specify wet or dry hire, fuel inclusion, the duration and whether hourly, daily or monthly rates are wanted, and the number of hours per day. Ask for machine make, model and year, TPI certificate, operator licence and competency cards, insurance and breakdown replacement terms, and transport and permits. For haulage, add haul distance and disposal site. For compaction, add layer thickness and the density test specification. This allows accurate comparison between suppliers. Verification note (23 Sep 2026): Earth-moving machinery is within the approved TPI scope, supporting the certificate field.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): work type, machine class, wet or dry hire, fuel inclusion, duration and rate basis, and site location with access. Time-based hire needs no site visit; a per-m3 output price on unknown ground needs a soil report, trial pit or visit.",
       "body_ar": "لمعدات الحفر والتحميل والتسوية والدمك يحتاج المورّد لفهم المهمة والموقع. اذكر نوع العمل: حفر واسع أو خنادق أو تكسير صخور أو تحميل أو تسوية أو دمك، والكمية أو المساحة والعمق تقريباً، ونوع التربة أو الصخر: رمل كثبان أو ردم مدموك أو سبخة أو حجر جيري أو طبقة صخرية صلبة، وفئة الآلة أو حجم الدلو المطلوب إن كان معروفاً والملحقات. حدد موقع المشروع وعرض المدخل وارتفاعه وساعات العمل وأي قيود كالضجيج أو العمل الليلي أو القرب من المباني والخدمات. حدد إيجاراً رطباً أو جافاً وشمول الوقود والمدة وهل تريد سعراً بالساعة أو اليوم أو الشهر وعدد الساعات يومياً. اطلب نوع الآلة وموديلها وسنة صنعها وشهادة الطرف الثالث ورخصة المشغل وبطاقة كفاءته والتأمين وشروط استبدال الآلة المعطلة والنقل والتصاريح. للنقل أضف مسافة النقل وموقع التخلص. وللدمك أضف سماكة الطبقة ومواصفة اختبار الكثافة. هذا يتيح مقارنة دقيقة بين الموردين. ملاحظة تحقق (23 سبتمبر 2026): آليات الحفر ضمن نطاق فحص الطرف الثالث المعتمد، وهذا يؤيد حقل الشهادة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع العمل، وفئة المعدة، والاستئجار مع المشغّل أو بدونه، وشمول الوقود، والمدة وأساس التسعير، وموقع العمل وإمكانية الوصول. الاستئجار بالوقت لا يحتاج إلى زيارة الموقع، أما التسعير بالمتر المكعب في أرض غير معروفة فيحتاج إلى تقرير تربة أو حفرة اختبار أو زيارة.",
       "required_specs": [
         "work type",
@@ -433,11 +461,46 @@
           "blocking": true
         },
         {
+          "spec": "volume/area/depth",
+          "why_needed_to_price": "Volume, area and depth decide machine size, hours and trucks.",
+          "uae_options": "Cubic metres of cut and fill; area; depth.",
+          "follow_up_if": "If quantities are unknown, ask for the survey or drawings.",
+          "blocking": false
+        },
+        {
+          "spec": "soil or rock type",
+          "why_needed_to_price": "Rock needs a breaker or a heavier machine and slows output.",
+          "uae_options": "sand; compacted fill; rock; mixed",
+          "follow_up_if": "Rock or unknown ground: a soil report or a trial pit is needed for an output-based price.",
+          "blocking": false
+        },
+        {
           "spec": "machine class or bucket size",
           "why_needed_to_price": "Hire rates are set per machine class (operating weight or bucket size).",
           "uae_options": "mini (under 6 t); 20-30 t excavator; wheel loader by bucket m3; motor grader; roller by drum weight",
           "follow_up_if": "If unsure, give the volume and depth and ask the supplier to propose the class.",
           "blocking": true
+        },
+        {
+          "spec": "attachments",
+          "why_needed_to_price": "Attachments are hired separately.",
+          "uae_options": "Breaker, bucket sizes, grab, auger, compactor plate.",
+          "follow_up_if": "If rock is expected, ask for a breaker.",
+          "blocking": false
+        },
+        {
+          "spec": "site location and access limits",
+          "why_needed_to_price": "Mobilisation cost and low-bed permits depend on the route and site access.",
+          "uae_options": "emirate and area; road access; gate width",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "working hours and restrictions",
+          "why_needed_to_price": "Restricted hours lengthen the job and raise cost.",
+          "uae_options": "Day only; night allowed; summer midday break.",
+          "follow_up_if": "If the site is near homes, ask for permitted noise hours.",
+          "blocking": false
         },
         {
           "spec": "wet or dry hire",
@@ -461,17 +524,38 @@
           "blocking": true
         },
         {
-          "spec": "site location and access limits",
-          "why_needed_to_price": "Mobilisation cost and low-bed permits depend on the route and site access.",
-          "uae_options": "emirate and area; road access; gate width",
-          "follow_up_if": "",
-          "blocking": true
+          "spec": "make/model/year",
+          "why_needed_to_price": "Newer machines cost more per hour but break down less.",
+          "uae_options": "Make, model and year of manufacture.",
+          "follow_up_if": "If machines are over ten years old, ask about breakdown cover.",
+          "blocking": false
         },
         {
-          "spec": "soil or rock type",
-          "why_needed_to_price": "Rock needs a breaker or a heavier machine and slows output.",
-          "uae_options": "sand; compacted fill; rock; mixed",
-          "follow_up_if": "Rock or unknown ground: a soil report or a trial pit is needed for an output-based price.",
+          "spec": "TPI certificate",
+          "why_needed_to_price": "A current third-party inspection certificate is needed on most sites.",
+          "uae_options": "TPI certificate from an accredited inspector.",
+          "follow_up_if": "If the certificate is expired, the machine cannot work on site.",
+          "blocking": false
+        },
+        {
+          "spec": "operator licence and competency",
+          "why_needed_to_price": "Licensed and competent operators are required and cost more.",
+          "uae_options": "UAE heavy-vehicle licence; competency card.",
+          "follow_up_if": "If the operator is not provided, ask the buyer to confirm its own operator holds the licence.",
+          "blocking": false
+        },
+        {
+          "spec": "breakdown replacement time",
+          "why_needed_to_price": "A quick replacement on breakdown protects the programme.",
+          "uae_options": "Replacement within 24-48 hours.",
+          "follow_up_if": "If no replacement is offered, ask what happens to the hire charge.",
+          "blocking": false
+        },
+        {
+          "spec": "transport and permits",
+          "why_needed_to_price": "Transport of machines to site and permits are extra.",
+          "uae_options": "Low-bed transport; road permits.",
+          "follow_up_if": "If the site is remote, ask for the transport cost both ways.",
           "blocking": false
         },
         {

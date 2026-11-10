@@ -5,7 +5,7 @@
       "id": "waste_management:spec-checklist",
       "topic": "Waste management - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For waste management quotes to be compared like-for-like, every quoted line (services) must state: (1) waste streams (general, recyclable, construction, hazardous, medical); (2) estimated volume per week; (3) bin or skip sizes and number; (4) collection frequency; (5) disposal site and tipping fees; (6) licensed waste transporter; (7) manifests and disposal certificates; (8) recycling reporting; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the waste_management trade.\n\nExpert interview (2026-11-10): Blocking: waste streams, volume, container sizes and collection frequency.",
+      "body_en": "For waste management quotes to be compared like-for-like, every quoted line (services) must state: (1) waste streams (general, recyclable, construction, hazardous, medical); (2) estimated volume per week; (3) bin or skip sizes and number; (4) collection frequency; (5) disposal site and tipping fees; (6) licensed waste transporter; (7) manifests and disposal certificates; (8) recycling reporting; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the waste_management trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): waste streams, volume, container sizes and collection frequency.",
       "body_ar": "لكي تُقارن عروض إدارة النفايات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) أنواع النفايات (عامة، أو قابلة للتدوير، أو إنشائية، أو خطرة، أو طبية)؛ (2) الحجم التقديري أسبوعياً؛ (3) أحجام الحاويات وعددها؛ (4) تكرار الجمع؛ (5) موقع التخلص ورسوم الإلقاء؛ (6) ناقل نفايات مرخص؛ (7) بيانات الشحن وشهادات التخلص؛ (8) تقارير إعادة التدوير؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة waste_management فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: أنواع النفايات، والكمية، وأحجام الحاويات، وتكرار الجمع.",
       "required_specs": [
         "waste streams (general, recyclable, construction, hazardous, medical)",
@@ -68,14 +68,50 @@
           "blocking": false
         },
         {
+          "spec": "licensed waste transporter",
+          "why_needed_to_price": "Only licensed transporters may carry waste.",
+          "uae_options": "Licensed waste transporter.",
+          "follow_up_if": "If not shown, the offer cannot be accepted.",
+          "blocking": false
+        },
+        {
           "spec": "manifests and disposal certificates",
           "why_needed_to_price": "Sites and auditors require proof of legal disposal.",
           "uae_options": "per load",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "recycling reporting",
+          "why_needed_to_price": "Recycling reports add admin.",
+          "uae_options": "Monthly reports.",
+          "follow_up_if": "If green-building reporting is needed, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "A one-off job, a monthly fee and a multi-year contract carry different overheads and discounts; the unit of price must match to compare.",
+          "uae_options": "One-off lump sum; monthly or annual fee; per visit, per hour, per unit or per square metre; 1-3 year terms with renewal.",
+          "follow_up_if": "If the buyer is unsure of the term, ask for prices for one year and for a longer term, with any escalation stated.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Response and fix times decide how many staff, vehicles and spares the provider must keep ready, which is most of a service price.",
+          "uae_options": "Emergency response 2-4 hours in the same city; urgent next day; routine within agreed days; 24/7 or business hours.",
+          "follow_up_if": "If the buyer needs 24/7 cover or penalties for missed response, say so: it is priced differently.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "waste_management:uae-standards-and-approvals",

@@ -5,7 +5,7 @@
       "id": "thermal_insulation:spec-checklist",
       "topic": "Thermal insulation - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For thermal insulation quotes to be compared like-for-like, every quoted line (goods) must state: (1) insulation material (XPS, EPS, PIR, rock wool, glass wool); (2) thickness and density; (3) thermal conductivity lambda value; (4) application (roof, wall, duct, pipe); (5) fire classification and test report; (6) Civil Defence material approval; (7) facing or cladding; (8) area or quantity with unit; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the thermal_insulation trade.\n\nExpert interview (2026-11-10): Blocking: material, application, thickness and density, and quantity. Fire class and civil defence approval decide what may be offered for facades.",
+      "body_en": "For thermal insulation quotes to be compared like-for-like, every quoted line (goods) must state: (1) insulation material (XPS, EPS, PIR, rock wool, glass wool); (2) thickness and density; (3) thermal conductivity lambda value; (4) application (roof, wall, duct, pipe); (5) fire classification and test report; (6) Civil Defence material approval; (7) facing or cladding; (8) area or quantity with unit; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the thermal_insulation trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): material, application, thickness and density, and quantity. Fire class and civil defence approval decide what may be offered for facades.",
       "body_ar": "لكي تُقارن عروض العزل الحراري على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) مادة العزل (XPS، أو EPS، أو PIR، أو صوف صخري، أو صوف زجاجي)؛ (2) السماكة والكثافة؛ (3) قيمة الموصلية الحرارية (لامدا)؛ (4) الاستخدام (سقف، أو جدار، أو مجرى هواء، أو أنبوب)؛ (5) تصنيف الحريق وتقرير الاختبار؛ (6) اعتماد المادة من الدفاع المدني؛ (7) الوجه أو الكسوة؛ (8) المساحة أو الكمية مع الوحدة؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة thermal_insulation فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المادة، ومجال الاستخدام، والسماكة والكثافة، والكمية. ويحدد تصنيف الحريق واعتماد الدفاع المدني ما يمكن عرضه للواجهات.",
       "required_specs": [
         "insulation material (XPS, EPS, PIR, rock wool, glass wool)",
@@ -43,13 +43,6 @@
           "blocking": true
         },
         {
-          "spec": "application (roof, wall, duct, pipe)",
-          "why_needed_to_price": "Application decides the product form and density.",
-          "uae_options": "roof; wall; facade; duct; pipe; tank",
-          "follow_up_if": "Facade: ask the fire class required by the building height.",
-          "blocking": true
-        },
-        {
           "spec": "thickness and density",
           "why_needed_to_price": "Thickness drives quantity; density drives price per m3.",
           "uae_options": "mm; kg/m3",
@@ -57,10 +50,17 @@
           "blocking": true
         },
         {
-          "spec": "area or quantity with unit",
-          "why_needed_to_price": "Price is per m2 at a thickness, per m3, or per metre for pipes by diameter.",
-          "uae_options": "m2; m3; metres by pipe size",
-          "follow_up_if": "",
+          "spec": "thermal conductivity lambda value",
+          "why_needed_to_price": "Lambda value decides thickness and price.",
+          "uae_options": "W/m.K at stated mean temperature.",
+          "follow_up_if": "If not stated, ask for the U-value target.",
+          "blocking": false
+        },
+        {
+          "spec": "application (roof, wall, duct, pipe)",
+          "why_needed_to_price": "Application decides the product form and density.",
+          "uae_options": "roof; wall; facade; duct; pipe; tank",
+          "follow_up_if": "Facade: ask the fire class required by the building height.",
           "blocking": true
         },
         {
@@ -76,9 +76,52 @@
           "uae_options": "approved product in the emirate",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "facing or cladding",
+          "why_needed_to_price": "Facing or cladding adds cost.",
+          "uae_options": "Foil; aluminium cladding.",
+          "follow_up_if": "If outdoor, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "area or quantity with unit",
+          "why_needed_to_price": "Price is per m2 at a thickness, per m3, or per metre for pipes by diameter.",
+          "uae_options": "m2; m3; metres by pipe size",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Freight, unloading and the distance to site are part of the price; a delivered price to Dubai is not the same as one to Al Dhafra.",
+          "uae_options": "Ex-works or ex-warehouse; delivered to site within an emirate; delivered and offloaded; Incoterms for imports.",
+          "follow_up_if": "If the site is remote or has access limits (time windows, small vehicles only), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "The length and scope of the warranty change the supplier's risk and price; parts-only and parts-and-labour are not the same offer.",
+          "uae_options": "Manufacturer warranty 1-2 years; extended by agreement; workmanship warranty from the installer.",
+          "follow_up_if": "If the period is shorter than the buyer needs or excludes labour, ask for the extended option as a separate price.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "thermal_insulation:uae-standards-and-approvals",

@@ -344,7 +344,7 @@
       "id": "elevators:spec-passenger-lift",
       "topic": "Spec checklist: passenger lift RFQ",
       "kind": "spec_checklist",
-      "body_en": "To quote a passenger lift exactly, a supplier needs a complete specification; without it quotes differ in hidden ways and the platform should hold the request. The buyer must state the building type and use, and ideally attach or reference the traffic analysis. For each lift or group: number of lifts in the group; rated load in kg and persons; rated speed in m/s; number of stops and entrances, and whether any are through-car (front and rear) or adjacent; total travel in metres and floor-to-floor heights; drive family accepted (MRL, machine-room traction or hydraulic); shaft width and depth, pit depth and headroom, with drawings, and machine room size if applicable; required car internal dimensions after finishes and the EN 81-70 accessibility type; door type (centre or side opening), clear width and height, and fire rating for landing doors; car finish for walls, ceiling, floor recess, handrail and mirror, and landing door and frame finishes on main and typical floors; fixtures and signalling; applicable standards (EN 81-20/50 and any EN 81-70, 72 or 73 duties); control features such as group control, destination dispatch or access control integration; ARD and generator operation; fire alarm, BMS and emergency telephone interfaces; power supply available; site location in the UAE and emirate for approvals; required delivery or handover date; warranty and free maintenance expectations; and whether the first third-party inspection certificate is to be included.\n\nExpert interview (2026-11-10): Blocking: load, speed, stops and entrances, travel and shaft dimensions.",
+      "body_en": "To quote a passenger lift exactly, a supplier needs a complete specification; without it quotes differ in hidden ways and the platform should hold the request. The buyer must state the building type and use, and ideally attach or reference the traffic analysis. For each lift or group: number of lifts in the group; rated load in kg and persons; rated speed in m/s; number of stops and entrances, and whether any are through-car (front and rear) or adjacent; total travel in metres and floor-to-floor heights; drive family accepted (MRL, machine-room traction or hydraulic); shaft width and depth, pit depth and headroom, with drawings, and machine room size if applicable; required car internal dimensions after finishes and the EN 81-70 accessibility type; door type (centre or side opening), clear width and height, and fire rating for landing doors; car finish for walls, ceiling, floor recess, handrail and mirror, and landing door and frame finishes on main and typical floors; fixtures and signalling; applicable standards (EN 81-20/50 and any EN 81-70, 72 or 73 duties); control features such as group control, destination dispatch or access control integration; ARD and generator operation; fire alarm, BMS and emergency telephone interfaces; power supply available; site location in the UAE and emirate for approvals; required delivery or handover date; warranty and free maintenance expectations; and whether the first third-party inspection certificate is to be included.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): load, speed, stops and entrances, travel and shaft dimensions.",
       "body_ar": "لكي يقدم المورد عرضاً دقيقاً لمصعد ركاب يحتاج مواصفات كاملة، وبدونها تختلف العروض بطرق خفية ويجب على المنصة تعليق الطلب. على المشتري تحديد نوع المبنى واستخدامه، ويُفضل إرفاق تحليل الحركة أو الإشارة إليه. ولكل مصعد أو مجموعة: عدد المصاعد في المجموعة، والحمولة بالكيلوغرام وعدد الأشخاص، والسرعة بالمتر في الثانية، وعدد الوقفات والمداخل وهل بعضها أمامي وخلفي أو متجاور، والمسافة الكلية بالمتر وارتفاعات الطوابق، وعائلة التشغيل المقبولة MRL أو جر بغرفة ماكينة أو هيدروليكي، وعرض البئر وعمقه وعمق الحفرة والارتفاع العلوي مع المخططات، ومقاس غرفة الماكينة إن وُجدت، والأبعاد الداخلية المطلوبة للكابينة بعد التشطيب ونوع إمكانية الوصول وفق EN 81-70، ونوع الأبواب مركزية أو جانبية والعرض والارتفاع الصافيان ومقاومة أبواب الطوابق للحريق، وتشطيب الجدران والسقف وتجويف الأرضية والمقبض والمرآة، وتشطيب أبواب الطوابق وإطاراتها في الطابق الرئيسي والطوابق النموذجية، والتجهيزات والإشارات، والمعايير المطبقة EN 81-20/50 وأي متطلبات EN 81-70 أو 72 أو 73، وميزات التحكم كالتحكم الجماعي أو توجيه الوجهة أو التكامل مع أنظمة الدخول، وجهاز الإنقاذ والتشغيل على المولد، والربط مع إنذار الحريق ونظام إدارة المبنى وهاتف الطوارئ، والتغذية الكهربائية المتاحة، وموقع المشروع والإمارة للموافقات، وتاريخ التسليم المطلوب، وتوقعات الضمان والصيانة المجانية، وهل يُشمل أول شهادة فحص من طرف ثالث.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الحمولة، والسرعة، وعدد الوقفات والمداخل، ومسافة الحركة، وأبعاد البئر.",
       "required_specs": [
         "building type and use",
@@ -389,6 +389,27 @@
       ],
       "spec_guide": [
         {
+          "spec": "building type and use",
+          "why_needed_to_price": "Building use decides traffic and lift size.",
+          "uae_options": "Residential, office, hotel, hospital.",
+          "follow_up_if": "If mixed use, ask for each use.",
+          "blocking": false
+        },
+        {
+          "spec": "traffic analysis or population per floor",
+          "why_needed_to_price": "Traffic analysis decides number and speed.",
+          "uae_options": "Population per floor; traffic study.",
+          "follow_up_if": "If unknown, ask for floor areas.",
+          "blocking": false
+        },
+        {
+          "spec": "number of lifts per group",
+          "why_needed_to_price": "Number of lifts per group decides control and price.",
+          "uae_options": "Single, duplex, group.",
+          "follow_up_if": "If not stated, ask the traffic study.",
+          "blocking": false
+        },
+        {
           "spec": "rated load (kg) and persons",
           "why_needed_to_price": "Car size, machine and price follow the load.",
           "uae_options": "450 to 2,000 kg and above",
@@ -417,11 +438,130 @@
           "blocking": true
         },
         {
+          "spec": "drive type accepted (MRL / machine-room traction / hydraulic)",
+          "why_needed_to_price": "Drive types differ in price and space.",
+          "uae_options": "MRL, traction, hydraulic.",
+          "follow_up_if": "If space is limited, ask for MRL.",
+          "blocking": false
+        },
+        {
           "spec": "shaft width x depth, pit depth, headroom (with drawings)",
           "why_needed_to_price": "A lift must fit the shaft; small shafts or pits limit the products.",
           "uae_options": "drawings",
           "follow_up_if": "Existing shaft: a survey is unavoidable.",
           "blocking": true
+        },
+        {
+          "spec": "machine room size if applicable",
+          "why_needed_to_price": "Machine room size affects layout.",
+          "uae_options": "Machine room dimensions.",
+          "follow_up_if": "If not known, ask for drawings.",
+          "blocking": false
+        },
+        {
+          "spec": "car internal dimensions after finishes",
+          "why_needed_to_price": "Car size after finishes decides capacity.",
+          "uae_options": "Internal dimensions.",
+          "follow_up_if": "If not stated, ask for capacity.",
+          "blocking": false
+        },
+        {
+          "spec": "EN 81-70 accessibility type",
+          "why_needed_to_price": "Accessibility type decides car size.",
+          "uae_options": "EN 81-70 type 1-3.",
+          "follow_up_if": "If public building, ask for type.",
+          "blocking": false
+        },
+        {
+          "spec": "door type, clear width x height, landing door fire rating",
+          "why_needed_to_price": "Door type and size decide cost.",
+          "uae_options": "Centre or side opening; fire-rated landing doors.",
+          "follow_up_if": "If not stated, ask for doors.",
+          "blocking": false
+        },
+        {
+          "spec": "car finishes (walls, ceiling, floor recess, handrail, mirror)",
+          "why_needed_to_price": "Car finishes vary widely in price.",
+          "uae_options": "Stainless, glass, stone, mirrors.",
+          "follow_up_if": "If not stated, ask for finish level.",
+          "blocking": false
+        },
+        {
+          "spec": "landing door and frame finishes per floor type",
+          "why_needed_to_price": "Landing finishes add cost per floor.",
+          "uae_options": "Stainless or painted frames.",
+          "follow_up_if": "If different per floor, ask schedule.",
+          "blocking": false
+        },
+        {
+          "spec": "fixtures and signalling",
+          "why_needed_to_price": "Fixtures and signalling add cost.",
+          "uae_options": "Displays, buttons, voice.",
+          "follow_up_if": "If the inquiry is silent on fixtures and signalling, each supplier prices its own default; ask the buyer so every quote rests on the same fixtures and signalling.",
+          "blocking": false
+        },
+        {
+          "spec": "applicable standards (EN 81-20/50, 70, 72, 73)",
+          "why_needed_to_price": "Standards decide design.",
+          "uae_options": "EN 81-20/50/70/72/73.",
+          "follow_up_if": "If the inquiry is silent on applicable standards (en 81-20/50, 70, 72, 73), each supplier prices its own default; ask the buyer so every quote rests on the same applicable standards (en 81-20/50, 70, 72, 73).",
+          "blocking": false
+        },
+        {
+          "spec": "control features (group, destination dispatch, access control)",
+          "why_needed_to_price": "Control features add cost.",
+          "uae_options": "Group control, destination dispatch, access control.",
+          "follow_up_if": "If the buyer wants it, state it in the inquiry so every supplier prices it.",
+          "blocking": false
+        },
+        {
+          "spec": "ARD and generator operation",
+          "why_needed_to_price": "ARD and generator operation add cost.",
+          "uae_options": "Automatic rescue device; generator mode.",
+          "follow_up_if": "If generator exists, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "fire alarm, BMS and emergency phone interfaces",
+          "why_needed_to_price": "Interfaces need coordination.",
+          "uae_options": "Fire alarm, BMS, emergency phone.",
+          "follow_up_if": "If the inquiry is silent on fire alarm, bms and emergency phone interfaces, each supplier prices its own default; ask the buyer so every quote rests on the same fire alarm, bms and emergency phone interfaces.",
+          "blocking": false
+        },
+        {
+          "spec": "power supply available",
+          "why_needed_to_price": "Power supply decides motor and cabling.",
+          "uae_options": "400 V 3-phase.",
+          "follow_up_if": "If the buyer does not know, ask for drawings or a site check before a firm price.",
+          "blocking": false
+        },
+        {
+          "spec": "emirate and site location",
+          "why_needed_to_price": "Location decides freight and approvals.",
+          "uae_options": "Emirate and site.",
+          "follow_up_if": "If remote, state.",
+          "blocking": false
+        },
+        {
+          "spec": "required handover date",
+          "why_needed_to_price": "Handover date decides programme.",
+          "uae_options": "Required date.",
+          "follow_up_if": "If tight, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty and free maintenance period",
+          "why_needed_to_price": "Free maintenance period adds cost.",
+          "uae_options": "Warranty and free maintenance.",
+          "follow_up_if": "If the buyer wants it, ask each supplier to price it as a separate line.",
+          "blocking": false
+        },
+        {
+          "spec": "third-party inspection certificate included (yes/no)",
+          "why_needed_to_price": "Third-party inspection adds cost.",
+          "uae_options": "TPI certificate.",
+          "follow_up_if": "If the project requires it, ask each supplier to include it and show its cost.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "An existing shaft must be surveyed before a firm price; new buildings can be priced from drawings.",
@@ -431,7 +571,7 @@
       "id": "elevators:spec-goods-bed-car-lift",
       "topic": "Spec checklist: goods, bed and car lift RFQ",
       "kind": "spec_checklist",
-      "body_en": "Goods, bed and car lifts fail most often on under-specified loads and doors. A supplier needs: the lift category (goods only with no passengers, goods-passenger with attendant, hospital bed or stretcher lift, vehicle lift, or dumbwaiter); the heaviest single item to be carried and how it is loaded (hand trolley, pallet truck, forklift, bed with equipment, or vehicle driven in), because loading by forklift or with concentrated loads changes the car structure, sill strength and loading class; rated load with margin; required clear car dimensions (for beds, the bed length plus attendants and equipment; for vehicles, the longest and widest vehicle plus clearance); door type and clear opening (side-opening or vertical bi-parting for goods, automatic doors for bed lifts) and whether doors are front and rear or adjacent; speed and travel, stops and floor heights; drive family (hydraulic is common for short-rise heavy or car lifts, traction for taller or busier duty); shaft, pit and headroom dimensions or drawings, and whether a machine room is available; car finish suited to abuse (chequer plate floor, stainless or painted walls, bumper rails, protective panels); operation mode (attendant, automatic, key switch, hospital priority service, car park signalling with traffic lights for vehicle lifts); indoor or outdoor exposure and ventilation, since heat and dust matter in the UAE; interfaces for fire alarm, BMS and access control; power supply; standards required; the emirate; and delivery date. For hospital bed lifts, also state infection-control and smooth-ride expectations and any health-authority requirements from the consultant.\n\nExpert interview (2026-11-10): Blocking: category, load and car dimensions.",
+      "body_en": "Goods, bed and car lifts fail most often on under-specified loads and doors. A supplier needs: the lift category (goods only with no passengers, goods-passenger with attendant, hospital bed or stretcher lift, vehicle lift, or dumbwaiter); the heaviest single item to be carried and how it is loaded (hand trolley, pallet truck, forklift, bed with equipment, or vehicle driven in), because loading by forklift or with concentrated loads changes the car structure, sill strength and loading class; rated load with margin; required clear car dimensions (for beds, the bed length plus attendants and equipment; for vehicles, the longest and widest vehicle plus clearance); door type and clear opening (side-opening or vertical bi-parting for goods, automatic doors for bed lifts) and whether doors are front and rear or adjacent; speed and travel, stops and floor heights; drive family (hydraulic is common for short-rise heavy or car lifts, traction for taller or busier duty); shaft, pit and headroom dimensions or drawings, and whether a machine room is available; car finish suited to abuse (chequer plate floor, stainless or painted walls, bumper rails, protective panels); operation mode (attendant, automatic, key switch, hospital priority service, car park signalling with traffic lights for vehicle lifts); indoor or outdoor exposure and ventilation, since heat and dust matter in the UAE; interfaces for fire alarm, BMS and access control; power supply; standards required; the emirate; and delivery date. For hospital bed lifts, also state infection-control and smooth-ride expectations and any health-authority requirements from the consultant.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): category, load and car dimensions.",
       "body_ar": "تفشل مصاعد البضائع والأسرّة والسيارات غالباً بسبب نقص تحديد الأحمال والأبواب. يحتاج المورد إلى: فئة المصعد، بضائع فقط دون ركاب، أو بضائع مع مرافق، أو مصعد أسرّة ونقالات للمستشفى، أو مصعد مركبات، أو مصعد خدمة صغير، وأثقل قطعة منفردة وطريقة تحميلها بعربة يدوية أو رافعة طبليات أو رافعة شوكية أو سرير مع أجهزة أو مركبة تدخل بقيادتها، لأن التحميل بالرافعة الشوكية أو الأحمال المركزة يغير هيكل الكابينة ومتانة العتبة وفئة التحميل، والحمولة الاسمية مع هامش، والأبعاد الصافية المطلوبة للكابينة، فللأسرّة طول السرير مع المرافقين والأجهزة، وللمركبات أطول وأعرض مركبة مع خلوص، ونوع الأبواب والفتحة الصافية، جانبية أو عمودية منفصلة للبضائع وأوتوماتيكية لمصاعد الأسرّة، وهل هي أمامية وخلفية أو متجاورة، والسرعة والمسافة والوقفات وارتفاعات الطوابق، وعائلة التشغيل، فالهيدروليكي شائع للأحمال الثقيلة والسيارات على ارتفاع قصير والجر للارتفاعات أو الاستخدام الأكثف، وأبعاد البئر والحفرة والارتفاع العلوي أو مخططاتها وتوفر غرفة ماكينة، وتشطيب يتحمل الاستخدام الشاق كأرضية ألواح مضلعة وجدران ستانلس أو مدهونة ومصدات وألواح حماية، ونمط التشغيل بمرافق أو أوتوماتيكي أو بمفتاح أو خدمة أولوية للمستشفى أو إشارات مرورية لمصاعد السيارات، والتعرض الداخلي أو الخارجي والتهوية لأهمية الحرارة والغبار في الإمارات، والربط مع إنذار الحريق وإدارة المبنى والتحكم بالدخول، والكهرباء، والمعايير المطلوبة، والإمارة، وتاريخ التسليم. ولمصاعد أسرّة المستشفيات تُذكر أيضاً توقعات مكافحة العدوى وسلاسة الركوب وأي اشتراطات صحية يحددها الاستشاري.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الفئة، والحمولة، وأبعاد الكابينة.",
       "required_specs": [
         "lift category (goods / goods-passenger / bed / vehicle / dumbwaiter)",
@@ -473,6 +613,13 @@
           "blocking": true
         },
         {
+          "spec": "heaviest single item and loading method",
+          "why_needed_to_price": "Heaviest item decides capacity.",
+          "uae_options": "Item weight and loading method.",
+          "follow_up_if": "If forklift loading, state it.",
+          "blocking": false
+        },
+        {
           "spec": "rated load with margin",
           "why_needed_to_price": "Load sets machine and car.",
           "uae_options": "kg",
@@ -485,15 +632,114 @@
           "uae_options": "mm",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "door type and clear opening",
+          "why_needed_to_price": "Door type and opening decide cost.",
+          "uae_options": "Clear opening size.",
+          "follow_up_if": "If large items, ask for size.",
+          "blocking": false
+        },
+        {
+          "spec": "door arrangement (front/rear/adjacent)",
+          "why_needed_to_price": "Door arrangement changes car.",
+          "uae_options": "Front, rear, adjacent.",
+          "follow_up_if": "If the inquiry is silent on door arrangement (front/rear/adjacent), each supplier prices its own default; ask the buyer so every quote rests on the same door arrangement (front/rear/adjacent).",
+          "blocking": false
+        },
+        {
+          "spec": "speed, travel, stops, floor heights",
+          "why_needed_to_price": "Speed, travel and stops decide machine.",
+          "uae_options": "Speed, travel, stops.",
+          "follow_up_if": "If the buyer does not know, ask for the drawings before a firm price.",
+          "blocking": false
+        },
+        {
+          "spec": "drive type accepted",
+          "why_needed_to_price": "Drive type changes price.",
+          "uae_options": "Traction or hydraulic.",
+          "follow_up_if": "If low rise, ask hydraulic.",
+          "blocking": false
+        },
+        {
+          "spec": "shaft, pit, headroom dimensions or drawings",
+          "why_needed_to_price": "Shaft dimensions decide fit.",
+          "uae_options": "Shaft, pit, headroom.",
+          "follow_up_if": "If the buyer does not know, ask for the drawings before a firm price.",
+          "blocking": false
+        },
+        {
+          "spec": "machine room availability",
+          "why_needed_to_price": "Machine room availability changes design.",
+          "uae_options": "Machine room or MRL.",
+          "follow_up_if": "If none, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "car finish and protection",
+          "why_needed_to_price": "Car finish and protection change cost.",
+          "uae_options": "Stainless, chequer plate, bumpers.",
+          "follow_up_if": "If heavy use, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "operation mode (attendant, automatic, key, hospital priority, traffic lights)",
+          "why_needed_to_price": "Operation mode changes controls.",
+          "uae_options": "Attendant, automatic, key.",
+          "follow_up_if": "If hospital, ask priority.",
+          "blocking": false
+        },
+        {
+          "spec": "indoor/outdoor exposure and ventilation",
+          "why_needed_to_price": "Outdoor exposure needs protection.",
+          "uae_options": "Indoor or outdoor.",
+          "follow_up_if": "If outdoor, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "fire alarm, BMS, access control interfaces",
+          "why_needed_to_price": "Interfaces add coordination.",
+          "uae_options": "Fire alarm, BMS, access control.",
+          "follow_up_if": "If the inquiry is silent on fire alarm, bms, access control interfaces, each supplier prices its own default; ask the buyer so every quote rests on the same fire alarm, bms, access control interfaces.",
+          "blocking": false
+        },
+        {
+          "spec": "power supply",
+          "why_needed_to_price": "Power supply decides motor.",
+          "uae_options": "Voltage and capacity.",
+          "follow_up_if": "If the buyer does not know, ask for drawings or a site check before a firm price.",
+          "blocking": false
+        },
+        {
+          "spec": "standards required",
+          "why_needed_to_price": "Standards decide design.",
+          "uae_options": "EN 81-20/50.",
+          "follow_up_if": "If the inquiry is silent on standards required, each supplier prices its own default; ask the buyer so every quote rests on the same standards required.",
+          "blocking": false
+        },
+        {
+          "spec": "emirate",
+          "why_needed_to_price": "Emirate decides approvals.",
+          "uae_options": "Emirate.",
+          "follow_up_if": "If the buyer does not know, ask for drawings or a site check before a firm price.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery date",
+          "why_needed_to_price": "Delivery date decides programme.",
+          "uae_options": "Required date.",
+          "follow_up_if": "If tight, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for existing shafts, to measure and check pit and headroom."
     },
     {
       "id": "elevators:spec-escalator",
       "topic": "Spec checklist: escalator and moving walk RFQ",
       "kind": "spec_checklist",
-      "body_en": "An escalator or moving walk quote is only comparable when the following are stated. Type: escalator or moving walk (horizontal or inclined). Duty class: commercial (malls, offices, hotels) or heavy-duty public transport (metro, airport), with daily operating hours and expected loading, because transit duty needs stronger trusses, chains and drives. Rise (floor-to-floor height) for escalators, or length and inclination for moving walks. Inclination for escalators (30 or 35 degrees) and confirmation that the combination with rise and speed is allowed under EN 115-1 (35 degrees is not permitted above 6 m rise; above 30 degrees speed is limited to 0.5 m/s). Nominal speed. Step or pallet width (for example 600, 800 or 1000 mm nominal). Number of flat steps at upper and lower landings. Indoor, semi-outdoor or outdoor location, with protection needed against sun, rain, sand and heat, and IP ratings for outdoor units. Balustrade type (glass or metal), height and handrail colour. Truss cladding and soffit finish. Arrangement (single, parallel, crisscross or continuous). Energy-saving operation (standby slow speed, stop-and-go with sensors, direction indication). Safety extras (step lighting, comb lighting, skirt deflectors, anti-climb and anti-slide devices). Intermediate supports, the available pit and support dimensions, and access for delivery of the truss into the building (often a major logistics constraint). Fire alarm and BMS interfaces, power supply, standards, emirate, and required handover date.\n\nExpert interview (2026-11-10): Blocking: rise, duty class and step width.",
+      "body_en": "An escalator or moving walk quote is only comparable when the following are stated. Type: escalator or moving walk (horizontal or inclined). Duty class: commercial (malls, offices, hotels) or heavy-duty public transport (metro, airport), with daily operating hours and expected loading, because transit duty needs stronger trusses, chains and drives. Rise (floor-to-floor height) for escalators, or length and inclination for moving walks. Inclination for escalators (30 or 35 degrees) and confirmation that the combination with rise and speed is allowed under EN 115-1 (35 degrees is not permitted above 6 m rise; above 30 degrees speed is limited to 0.5 m/s). Nominal speed. Step or pallet width (for example 600, 800 or 1000 mm nominal). Number of flat steps at upper and lower landings. Indoor, semi-outdoor or outdoor location, with protection needed against sun, rain, sand and heat, and IP ratings for outdoor units. Balustrade type (glass or metal), height and handrail colour. Truss cladding and soffit finish. Arrangement (single, parallel, crisscross or continuous). Energy-saving operation (standby slow speed, stop-and-go with sensors, direction indication). Safety extras (step lighting, comb lighting, skirt deflectors, anti-climb and anti-slide devices). Intermediate supports, the available pit and support dimensions, and access for delivery of the truss into the building (often a major logistics constraint). Fire alarm and BMS interfaces, power supply, standards, emirate, and required handover date.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): rise, duty class and step width.",
       "body_ar": "لا يُقارن عرض السلم أو الممر المتحرك إلا إذا ذُكر ما يلي. النوع: سلم متحرك أو ممر متحرك أفقي أو مائل. فئة الاستخدام: تجاري للمراكز التجارية والمكاتب والفنادق، أو نقل عام ثقيل للمترو والمطار، مع ساعات التشغيل اليومية والحمل المتوقع، لأن النقل العام يحتاج هياكل وسلاسل ومحركات أقوى. والارتفاع بين الطابقين للسلم، أو الطول والميل للممر. وزاوية الميل للسلم 30 أو 35 درجة، مع التأكد من أن تركيبها مع الارتفاع والسرعة مسموح وفق EN 115-1، فزاوية 35 درجة غير مسموحة فوق ارتفاع 6 أمتار، وفوق 30 درجة تُحدد السرعة بـ0.5 م/ث. والسرعة الاسمية. وعرض الدرجة أو اللوح مثل 600 أو 800 أو 1000 مم. وعدد الدرجات المستوية عند المدخلين العلوي والسفلي. والموقع داخلي أو شبه خارجي أو خارجي، مع الحماية المطلوبة من الشمس والمطر والرمال والحرارة ودرجات الحماية IP للوحدات الخارجية. ونوع الدرابزين زجاجي أو معدني وارتفاعه ولون المقبض المتحرك. وكسوة الهيكل والسطح السفلي. والترتيب مفرد أو متوازٍ أو متقاطع أو متصل. وتشغيل توفير الطاقة كالسرعة البطيئة في الانتظار أو التوقف والتشغيل بالحساسات ومؤشر الاتجاه. وإضافات السلامة كإضاءة الدرجات والأمشاط وعاكسات الحواف وأجهزة منع التسلق والانزلاق. والدعامات الوسيطة وأبعاد الحفرة والارتكاز المتاحة، ومسار إدخال الهيكل إلى المبنى وهو قيد لوجستي كبير غالباً. والربط مع إنذار الحريق وإدارة المبنى، والكهرباء، والمعايير، والإمارة، وتاريخ التسليم المطلوب.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الارتفاع، وفئة التشغيل، وعرض الدرجة.",
       "required_specs": [
         "type (escalator / moving walk)",
@@ -530,11 +776,11 @@
       ],
       "spec_guide": [
         {
-          "spec": "rise (m) or length (m)",
-          "why_needed_to_price": "Truss length and price follow the rise.",
-          "uae_options": "m",
-          "follow_up_if": "",
-          "blocking": true
+          "spec": "type (escalator / moving walk)",
+          "why_needed_to_price": "Escalators and walks are different products.",
+          "uae_options": "Escalator or moving walk.",
+          "follow_up_if": "If the buyer does not know, ask for drawings or a site check before a firm price.",
+          "blocking": false
         },
         {
           "spec": "duty class (commercial / public transport) and daily operating hours",
@@ -544,20 +790,140 @@
           "blocking": true
         },
         {
+          "spec": "rise (m) or length (m)",
+          "why_needed_to_price": "Truss length and price follow the rise.",
+          "uae_options": "m",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "inclination (30 / 35 degrees or walk angle)",
+          "why_needed_to_price": "Inclination decides truss.",
+          "uae_options": "30 or 35 degrees.",
+          "follow_up_if": "If the inquiry is silent on inclination (30 / 35 degrees or walk angle), each supplier prices its own default; ask the buyer so every quote rests on the same inclination (30 / 35 degrees or walk angle).",
+          "blocking": false
+        },
+        {
+          "spec": "nominal speed (m/s)",
+          "why_needed_to_price": "Speed decides capacity.",
+          "uae_options": "0.5 or 0.65 m/s.",
+          "follow_up_if": "If high traffic, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
           "spec": "step or pallet width (mm)",
           "why_needed_to_price": "Width changes the unit.",
           "uae_options": "600; 800; 1,000 mm",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "flat steps at landings",
+          "why_needed_to_price": "Flat steps add length.",
+          "uae_options": "2 or 3 flat steps.",
+          "follow_up_if": "If the inquiry is silent on flat steps at landings, each supplier prices its own default; ask the buyer so every quote rests on the same flat steps at landings.",
+          "blocking": false
+        },
+        {
+          "spec": "indoor / semi-outdoor / outdoor and protection required",
+          "why_needed_to_price": "Outdoor units need protection.",
+          "uae_options": "Indoor or outdoor.",
+          "follow_up_if": "If outdoor, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "balustrade type and height",
+          "why_needed_to_price": "Balustrade type changes cost.",
+          "uae_options": "Glass or metal.",
+          "follow_up_if": "If the inquiry is silent on balustrade type and height, each supplier prices its own default; ask the buyer so every quote rests on the same balustrade type and height.",
+          "blocking": false
+        },
+        {
+          "spec": "cladding and soffit finish",
+          "why_needed_to_price": "Cladding finish adds cost.",
+          "uae_options": "Stainless or panels.",
+          "follow_up_if": "If the inquiry is silent on cladding and soffit finish, each supplier prices its own default; ask the buyer so every quote rests on the same cladding and soffit finish.",
+          "blocking": false
+        },
+        {
+          "spec": "arrangement (single / parallel / crisscross)",
+          "why_needed_to_price": "Arrangement changes layout.",
+          "uae_options": "Single, parallel, crisscross.",
+          "follow_up_if": "If the inquiry is silent on arrangement (single / parallel / crisscross), each supplier prices its own default; ask the buyer so every quote rests on the same arrangement (single / parallel / crisscross).",
+          "blocking": false
+        },
+        {
+          "spec": "energy-saving operation",
+          "why_needed_to_price": "Energy-saving features add cost.",
+          "uae_options": "VVVF, standby mode.",
+          "follow_up_if": "If the buyer wants it, ask each supplier to price it as a separate line.",
+          "blocking": false
+        },
+        {
+          "spec": "safety extras",
+          "why_needed_to_price": "Safety extras add cost.",
+          "uae_options": "Extra sensors, brushes.",
+          "follow_up_if": "If the inquiry is silent on safety extras, each supplier prices its own default; ask the buyer so every quote rests on the same safety extras.",
+          "blocking": false
+        },
+        {
+          "spec": "intermediate supports and pit/support dimensions",
+          "why_needed_to_price": "Supports and pits change structure.",
+          "uae_options": "Intermediate supports.",
+          "follow_up_if": "If not known, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery access route for truss",
+          "why_needed_to_price": "Delivery route affects installation.",
+          "uae_options": "Access route for truss.",
+          "follow_up_if": "If tight, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "fire alarm and BMS interfaces",
+          "why_needed_to_price": "Interfaces need coordination.",
+          "uae_options": "Fire alarm, BMS.",
+          "follow_up_if": "If the inquiry is silent on fire alarm and bms interfaces, each supplier prices its own default; ask the buyer so every quote rests on the same fire alarm and bms interfaces.",
+          "blocking": false
+        },
+        {
+          "spec": "power supply",
+          "why_needed_to_price": "Power supply decides motor.",
+          "uae_options": "Voltage and capacity.",
+          "follow_up_if": "If the buyer does not know, ask for drawings or a site check before a firm price.",
+          "blocking": false
+        },
+        {
+          "spec": "standards (EN 115-1)",
+          "why_needed_to_price": "Standards decide design.",
+          "uae_options": "EN 115-1.",
+          "follow_up_if": "If the inquiry is silent on standards (en 115-1), each supplier prices its own default; ask the buyer so every quote rests on the same standards (en 115-1).",
+          "blocking": false
+        },
+        {
+          "spec": "emirate",
+          "why_needed_to_price": "Emirate decides approvals.",
+          "uae_options": "Emirate.",
+          "follow_up_if": "If the buyer does not know, ask for drawings or a site check before a firm price.",
+          "blocking": false
+        },
+        {
+          "spec": "handover date",
+          "why_needed_to_price": "Handover date decides programme.",
+          "uae_options": "Required date.",
+          "follow_up_if": "If tight, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for replacement of existing escalators, to check the truss, pit and delivery route."
     },
     {
       "id": "elevators:spec-amc",
       "topic": "Spec checklist: lift maintenance (AMC) RFQ",
       "kind": "spec_checklist",
-      "body_en": "Maintenance quotes are meaningless unless the supplier knows exactly what equipment it is taking over and what level of cover is wanted. The buyer should list every unit: lift or escalator, manufacturer, model, year of installation, controller and drive make, load, speed, number of stops, drive type, and whether the lift is under an existing warranty or contract. State the building type and location (emirate), operating hours, and whether any units are firefighting lifts needing periodic verification of firefighter operation. Choose the cover type: non-comprehensive (labour and preventive maintenance, parts charged) or comprehensive (labour plus parts), and list the parts you expect to be included or excluded (machine, controller boards, drive, ropes, door operators, batteries, finishes). Specify preventive visit frequency, 24/7 callout, maximum response time for passenger entrapment and for breakdowns, and any uptime target with penalties. State whether the annual third-party inspection and certificate are included, and who arranges it. Require reporting (visit logs, breakdown history, recommendations), remote monitoring if wanted, and the contractor's licence with the municipality and technician qualifications. Ask for contract length, price escalation terms, handover condition survey at contract start, and termination conditions. Finally, ask the bidder to state whether it has service tool and software access for each existing brand, because a contractor unable to service a proprietary controller cannot deliver the contract.\n\nExpert interview (2026-11-10): Blocking: equipment list and cover type.",
+      "body_en": "Maintenance quotes are meaningless unless the supplier knows exactly what equipment it is taking over and what level of cover is wanted. The buyer should list every unit: lift or escalator, manufacturer, model, year of installation, controller and drive make, load, speed, number of stops, drive type, and whether the lift is under an existing warranty or contract. State the building type and location (emirate), operating hours, and whether any units are firefighting lifts needing periodic verification of firefighter operation. Choose the cover type: non-comprehensive (labour and preventive maintenance, parts charged) or comprehensive (labour plus parts), and list the parts you expect to be included or excluded (machine, controller boards, drive, ropes, door operators, batteries, finishes). Specify preventive visit frequency, 24/7 callout, maximum response time for passenger entrapment and for breakdowns, and any uptime target with penalties. State whether the annual third-party inspection and certificate are included, and who arranges it. Require reporting (visit logs, breakdown history, recommendations), remote monitoring if wanted, and the contractor's licence with the municipality and technician qualifications. Ask for contract length, price escalation terms, handover condition survey at contract start, and termination conditions. Finally, ask the bidder to state whether it has service tool and software access for each existing brand, because a contractor unable to service a proprietary controller cannot deliver the contract.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): equipment list and cover type.",
       "body_ar": "عروض الصيانة بلا قيمة ما لم يعرف المورد تماماً المعدات التي سيتسلمها ومستوى التغطية المطلوب. على المشتري أن يسرد كل وحدة: مصعد أو سلم متحرك، والصانع، والطراز، وسنة التركيب، وصانع لوحة التحكم والمحول، والحمولة، والسرعة، وعدد الوقفات، ونوع التشغيل، وهل الوحدة تحت ضمان أو عقد قائم. ويحدد نوع المبنى وموقعه والإمارة وساعات التشغيل، وهل توجد مصاعد إطفاء تحتاج تحققاً دورياً من وضع تشغيل الإطفاء. ثم يختار نوع التغطية: غير شاملة أي عمالة وصيانة وقائية مع احتساب القطع، أو شاملة أي عمالة مع القطع، ويسرد القطع المتوقع شمولها أو استثناؤها كالماكينة ولوحات التحكم والمحول والحبال ومشغلات الأبواب والبطاريات والتشطيبات. ويحدد عدد الزيارات الوقائية، والاستجابة على مدار الساعة، وأقصى زمن استجابة لاحتجاز الركاب وللأعطال، وأي هدف لنسبة التشغيل مع غرامات. ويذكر هل الفحص السنوي من طرف ثالث وشهادته مشمولان ومن يرتبهما. ويطلب التقارير كسجلات الزيارات وتاريخ الأعطال والتوصيات، والمراقبة عن بعد إن رغب، وترخيص المقاول لدى البلدية ومؤهلات الفنيين. ويسأل عن مدة العقد وشروط زيادة السعر ومسح الحالة عند بدء العقد وشروط الإنهاء. وأخيراً يطلب من المتقدم بيان امتلاكه أداة الخدمة وصلاحيات البرنامج لكل علامة قائمة، لأن المقاول العاجز عن صيانة لوحة تحكم مغلقة لا يستطيع تنفيذ العقد.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: قائمة المعدات، ونوع التغطية.",
       "required_specs": [
         "equipment list (type, make, model, year, controller/drive make, load, speed, stops)",
@@ -597,20 +963,119 @@
           "blocking": true
         },
         {
+          "spec": "existing warranty or contract status",
+          "why_needed_to_price": "A lift still under the installer's warranty or another contract changes what the new contractor takes on.",
+          "uae_options": "Under warranty; under an expiring AMC; no contract.",
+          "follow_up_if": "If another contractor's contract is running, ask for its end date and any handover condition.",
+          "blocking": false
+        },
+        {
+          "spec": "building type, emirate, operating hours",
+          "why_needed_to_price": "Building type, emirate and operating hours set visit frequency and call-out exposure.",
+          "uae_options": "Residential, commercial, hotel, hospital; 24/7 or business hours.",
+          "follow_up_if": "If the building is a hospital or hotel, ask for a 24/7 resident or standby technician option.",
+          "blocking": false
+        },
+        {
+          "spec": "firefighting lifts present",
+          "why_needed_to_price": "Firefighting lifts need extra monthly tests and stricter readiness.",
+          "uae_options": "Firefighting and evacuation lifts to EN 81-72.",
+          "follow_up_if": "If firefighting lifts exist, ask the contractor to list the extra tests it includes.",
+          "blocking": false
+        },
+        {
           "spec": "cover type (comprehensive / non-comprehensive)",
           "why_needed_to_price": "Comprehensive includes parts.",
           "uae_options": "comprehensive; non-comprehensive",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "parts included and excluded",
+          "why_needed_to_price": "Comprehensive and non-comprehensive contracts differ by what parts are free, which is most of the price gap.",
+          "uae_options": "Comprehensive (parts and labour); semi-comprehensive (listed parts); labour only.",
+          "follow_up_if": "If the buyer wants comprehensive cover, ask for the list of excluded parts (ropes, motors, car finishes, vandalism).",
+          "blocking": false
+        },
+        {
+          "spec": "preventive visit frequency",
+          "why_needed_to_price": "Monthly visits are the norm; fewer visits are cheaper but carry more breakdown risk.",
+          "uae_options": "Monthly preventive visit; quarterly for low-use lifts.",
+          "follow_up_if": "If fewer than monthly visits are offered, ask how that meets the authority's maintenance rules.",
+          "blocking": false
+        },
+        {
+          "spec": "24/7 callout and entrapment/breakdown response times",
+          "why_needed_to_price": "Short entrapment and breakdown response times need technicians on standby nearby.",
+          "uae_options": "Entrapment within 30-60 minutes; breakdown within 2-4 hours; 24/7 call centre.",
+          "follow_up_if": "If the response time is longer than one hour for entrapment, ask for a faster option.",
+          "blocking": false
+        },
+        {
+          "spec": "uptime target and penalties",
+          "why_needed_to_price": "An uptime target with penalties shifts risk to the contractor, which prices it.",
+          "uae_options": "Uptime 97-99%; penalties or service credits per breach.",
+          "follow_up_if": "If penalties are wanted, state them so all bidders price the same risk.",
+          "blocking": false
+        },
+        {
+          "spec": "annual third-party inspection included (yes/no)",
+          "why_needed_to_price": "The annual third-party inspection is a separate fee if excluded.",
+          "uae_options": "Annual TPI by an accredited inspector with certificate.",
+          "follow_up_if": "If excluded, ask who books and pays for it.",
+          "blocking": false
+        },
+        {
+          "spec": "reporting and remote monitoring",
+          "why_needed_to_price": "Remote monitoring and digital reports add hardware and subscription cost.",
+          "uae_options": "Monthly service reports; remote monitoring of faults.",
+          "follow_up_if": "If remote monitoring is wanted, ask for the device and annual fee.",
+          "blocking": false
+        },
+        {
+          "spec": "contractor licence and technician qualifications",
+          "why_needed_to_price": "Only a licensed lift contractor with trained technicians may maintain lifts.",
+          "uae_options": "Trade licence for lift maintenance; technicians trained on the brand.",
+          "follow_up_if": "If the contractor is not the original maker, ask how it gets parts and training for the brand.",
+          "blocking": false
+        },
+        {
+          "spec": "contract length and escalation terms",
+          "why_needed_to_price": "Longer contracts carry discounts but need fixed escalation terms.",
+          "uae_options": "1-3 years; annual escalation 0-5%.",
+          "follow_up_if": "If a multi-year term is wanted, ask for each year's price.",
+          "blocking": false
+        },
+        {
+          "spec": "start-of-contract condition survey",
+          "why_needed_to_price": "A condition survey records defects so the contractor is not blamed or paying for existing faults.",
+          "uae_options": "Joint survey at start with a defects list and repair quote.",
+          "follow_up_if": "If defects are found, ask for their repair price separately from the AMC.",
+          "blocking": false
+        },
+        {
+          "spec": "termination conditions",
+          "why_needed_to_price": "Termination terms decide the contractor's risk of losing the contract early.",
+          "uae_options": "Notice period 30-90 days; termination for poor performance.",
+          "follow_up_if": "If the buyer wants exit rights, state them.",
+          "blocking": false
+        },
+        {
+          "spec": "service tool / software access per brand",
+          "why_needed_to_price": "Many controllers need the maker's service tool; without it a third-party contractor cannot fault-find.",
+          "uae_options": "Service tool or software access per brand; maker support agreement.",
+          "follow_up_if": "If the contractor lacks the tool for the brand, ask how it will diagnose faults.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A start-of-contract condition survey of each lift is needed before a firm comprehensive AMC price; a non-comprehensive (labour-only) AMC can be priced from the lift list."
     },
     {
       "id": "elevators:spec-modernisation",
       "topic": "Spec checklist: lift modernisation RFQ",
       "kind": "spec_checklist",
-      "body_en": "A modernisation RFQ must describe the existing lift as precisely as a new-lift RFQ describes the building. The buyer should provide: existing make, model and year; drive type (geared or gearless traction, machine room or MRL, or hydraulic); rated load, speed, stops, entrances and travel; current controller, drive and door operator makes; shaft, pit, headroom and machine room dimensions as surveyed, with photos; and known problems (breakdown history, levelling, noise, obsolete parts). Then define the target scope: controller and drive only; controller, drive, door operators and fixtures; cabin refurbishment; or full replacement within the existing shaft, and for each option list which components are retained (rails, car frame, counterweight, buffers, landing doors, machine, ropes). State required outcomes: target code (EN 81-20 where possible, or improvements measured against EN 81-80 for existing lifts), EN 81-70 accessibility improvements, ARD, destination dispatch or access control integration, energy-saving drive, fire recall interface and remote monitoring. Describe constraints: which lifts must stay in service during works, working hours allowed in an occupied building, noise limits, and maximum out-of-service duration per lift. Ask the bidder to include removal and disposal of old equipment and hydraulic oil, the third-party re-examination certificate after modification, updated drawings and manuals, the warranty on new and retained components, and the AMC price after completion.\n\nExpert interview (2026-11-10): Blocking: existing equipment, the survey and the scope option. A survey is unavoidable.",
+      "body_en": "A modernisation RFQ must describe the existing lift as precisely as a new-lift RFQ describes the building. The buyer should provide: existing make, model and year; drive type (geared or gearless traction, machine room or MRL, or hydraulic); rated load, speed, stops, entrances and travel; current controller, drive and door operator makes; shaft, pit, headroom and machine room dimensions as surveyed, with photos; and known problems (breakdown history, levelling, noise, obsolete parts). Then define the target scope: controller and drive only; controller, drive, door operators and fixtures; cabin refurbishment; or full replacement within the existing shaft, and for each option list which components are retained (rails, car frame, counterweight, buffers, landing doors, machine, ropes). State required outcomes: target code (EN 81-20 where possible, or improvements measured against EN 81-80 for existing lifts), EN 81-70 accessibility improvements, ARD, destination dispatch or access control integration, energy-saving drive, fire recall interface and remote monitoring. Describe constraints: which lifts must stay in service during works, working hours allowed in an occupied building, noise limits, and maximum out-of-service duration per lift. Ask the bidder to include removal and disposal of old equipment and hydraulic oil, the third-party re-examination certificate after modification, updated drawings and manuals, the warranty on new and retained components, and the AMC price after completion.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): existing equipment, the survey and the scope option. A survey is unavoidable.",
       "body_ar": "يجب أن يصف طلب عرض التحديث المصعد القائم بدقة لا تقل عن وصف المبنى في طلب مصعد جديد. يقدم المشتري: الصانع والطراز وسنة التركيب، ونوع التشغيل جر بتروس أو بدون تروس، بغرفة ماكينة أو MRL، أو هيدروليكي، والحمولة والسرعة والوقفات والمداخل والمسافة، وصانعي لوحة التحكم والمحول ومشغل الأبواب الحاليين، وأبعاد البئر والحفرة والارتفاع العلوي وغرفة الماكينة كما مُسحت مع صور، والمشكلات المعروفة كتاريخ الأعطال ودقة الوقوف والضجيج والقطع المتقادمة. ثم يحدد النطاق المستهدف: لوحة التحكم والمحول فقط، أو مع مشغلات الأبواب والتجهيزات، أو تجديد الكابينة، أو الاستبدال الكامل داخل البئر القائم، ولكل خيار يسرد المكونات المُبقاة كالسكك وإطار الكابينة والثقل الموازن والمصدات وأبواب الطوابق والماكينة والحبال. ويذكر النتائج المطلوبة: الكود المستهدف، أي EN 81-20 حيث أمكن أو تحسينات مقاسة وفق EN 81-80 للمصاعد القائمة، وتحسينات إمكانية الوصول وفق EN 81-70، وجهاز الإنقاذ، وتوجيه الوجهة أو التكامل مع التحكم بالدخول، ومحولاً موفراً للطاقة، وربط الاستدعاء بإنذار الحريق، والمراقبة عن بعد. ويصف القيود: المصاعد التي يجب أن تبقى في الخدمة أثناء العمل، وساعات العمل المسموحة في مبنى مشغول، وحدود الضجيج، وأقصى مدة توقف لكل مصعد. ويطلب من المتقدم شمول إزالة المعدات القديمة والزيت الهيدروليكي والتخلص منهما، وشهادة إعادة الفحص من طرف ثالث بعد التعديل، والمخططات والأدلة المحدثة، والضمان على المكونات الجديدة والمُبقاة، وسعر عقد الصيانة بعد الإنجاز.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المعدات القائمة، والمسح، وخيار النطاق. والمسح ضروري.",
       "required_specs": [
         "existing make, model, year",
@@ -652,6 +1117,27 @@
           "blocking": true
         },
         {
+          "spec": "existing drive type",
+          "why_needed_to_price": "Traction, hydraulic and old geared drives need different modernisation packages.",
+          "uae_options": "Geared or gearless traction; hydraulic.",
+          "follow_up_if": "If the drive is old geared, ask whether the machine is replaced or retained.",
+          "blocking": false
+        },
+        {
+          "spec": "load, speed, stops, entrances, travel",
+          "why_needed_to_price": "Load, speed, stops and travel decide the new controller, drive and motor.",
+          "uae_options": "Rated load, speed, number of stops and entrances, travel height.",
+          "follow_up_if": "If these are unknown, ask for the lift's register or a survey.",
+          "blocking": false
+        },
+        {
+          "spec": "existing controller, drive, door operator makes",
+          "why_needed_to_price": "The makes of existing controller, drive and door operator decide whether parts can be kept.",
+          "uae_options": "Maker and model of each component.",
+          "follow_up_if": "If the makes are obsolete, ask for full replacement prices.",
+          "blocking": false
+        },
+        {
           "spec": "surveyed shaft, pit, headroom, machine room dimensions with photos",
           "why_needed_to_price": "A modernisation cannot be priced without a survey.",
           "uae_options": "survey",
@@ -659,11 +1145,88 @@
           "blocking": true
         },
         {
+          "spec": "known problems and breakdown history",
+          "why_needed_to_price": "Known faults and breakdown history show what must change.",
+          "uae_options": "Breakdown log; recurring faults.",
+          "follow_up_if": "If doors fail most, ask for a new door operator in scope.",
+          "blocking": false
+        },
+        {
           "spec": "target scope option",
           "why_needed_to_price": "Partial and full replacement differ hugely.",
           "uae_options": "controller only; machine and controller; full replacement",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "retained components list",
+          "why_needed_to_price": "Every retained component is a risk the contractor prices or excludes.",
+          "uae_options": "Retained rails, car, guide shoes, buffers.",
+          "follow_up_if": "If many parts are retained, ask what warranty covers them.",
+          "blocking": false
+        },
+        {
+          "spec": "target code / EN 81-80 improvements",
+          "why_needed_to_price": "Code upgrades to EN 81-80 add safety items and cost.",
+          "uae_options": "Safety gear, door locks, pit ladder, car lighting.",
+          "follow_up_if": "If the authority requires full upgrade, ask for the list.",
+          "blocking": false
+        },
+        {
+          "spec": "accessibility, ARD, dispatch, access control, energy, fire recall, monitoring requirements",
+          "why_needed_to_price": "Accessibility, ARD, dispatch, access control and energy features each add cost.",
+          "uae_options": "Automatic rescue device; destination dispatch; regenerative drive.",
+          "follow_up_if": "If any are wanted, list them so all bidders price them.",
+          "blocking": false
+        },
+        {
+          "spec": "lifts to stay in service and working hours",
+          "why_needed_to_price": "Keeping lifts in service and limiting hours slows work and raises cost.",
+          "uae_options": "One lift at a time; night or weekend work.",
+          "follow_up_if": "If the building is occupied, ask for the phasing plan.",
+          "blocking": false
+        },
+        {
+          "spec": "maximum out-of-service duration per lift",
+          "why_needed_to_price": "A short out-of-service window needs more crew and pre-assembly.",
+          "uae_options": "2-6 weeks per lift typical.",
+          "follow_up_if": "If the window is under four weeks, ask whether it is feasible.",
+          "blocking": false
+        },
+        {
+          "spec": "removal and disposal of old equipment and oil",
+          "why_needed_to_price": "Removing old equipment and oil is a disposal cost.",
+          "uae_options": "Removal and certified disposal of old parts and hydraulic oil.",
+          "follow_up_if": "If excluded, ask who disposes.",
+          "blocking": false
+        },
+        {
+          "spec": "third-party re-examination certificate included",
+          "why_needed_to_price": "Re-examination by a third party is needed before reuse.",
+          "uae_options": "TPI re-examination certificate.",
+          "follow_up_if": "If excluded, ask who pays for it.",
+          "blocking": false
+        },
+        {
+          "spec": "updated drawings and manuals",
+          "why_needed_to_price": "Updated drawings and manuals are needed for future maintenance.",
+          "uae_options": "As-built drawings; O&M manuals.",
+          "follow_up_if": "If excluded, ask for them.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty on new and retained components",
+          "why_needed_to_price": "New and retained parts carry different warranties.",
+          "uae_options": "12-24 months on new parts.",
+          "follow_up_if": "If retained parts are excluded, ask for that in writing.",
+          "blocking": false
+        },
+        {
+          "spec": "AMC price after completion",
+          "why_needed_to_price": "The AMC price after completion is part of the total cost.",
+          "uae_options": "Comprehensive or non-comprehensive AMC.",
+          "follow_up_if": "If not offered, ask for it.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "A site survey is unavoidable before any modernisation price.",

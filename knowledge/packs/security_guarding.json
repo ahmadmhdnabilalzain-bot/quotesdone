@@ -5,7 +5,7 @@
       "id": "security_guarding:spec-checklist",
       "topic": "Security guarding - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For security guarding quotes to be compared like-for-like, every quoted line (services) must state: (1) number of guards and posts; (2) shift pattern and hours per day; (3) guard grade and licence; (4) supervisor and patrol arrangement; (5) duties (access control, CCTV monitoring, patrols); (6) uniform and equipment; (7) company licence from the security regulator; (8) relief and replacement; (9) incident reporting; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the security_guarding trade.\n\nExpert interview (2026-11-10): Blocking: posts and guards, shift hours, guard grade and contract term. A site survey is needed without a post schedule.",
+      "body_en": "For security guarding quotes to be compared like-for-like, every quoted line (services) must state: (1) number of guards and posts; (2) shift pattern and hours per day; (3) guard grade and licence; (4) supervisor and patrol arrangement; (5) duties (access control, CCTV monitoring, patrols); (6) uniform and equipment; (7) company licence from the security regulator; (8) relief and replacement; (9) incident reporting; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the security_guarding trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): posts and guards, shift hours, guard grade and contract term. A site survey is needed without a post schedule.",
       "body_ar": "لكي تُقارن عروض خدمات الحراسة الأمنية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) عدد الحراس ونقاط الحراسة؛ (2) نظام المناوبات وعدد الساعات يومياً؛ (3) درجة الحارس وترخيصه؛ (4) ترتيبات المشرف والدوريات؛ (5) المهام (التحكم في الدخول، ومراقبة الكاميرات، والدوريات)؛ (6) الزي والمعدات؛ (7) ترخيص الشركة من جهة تنظيم الأمن؛ (8) البدلاء والاستبدال؛ (9) الإبلاغ عن الحوادث؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة security_guarding فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: النقاط وعدد الحراس، وساعات النوبات، ودرجة الحارس، ومدة العقد. ويلزم مسح للموقع في غياب جدول النقاط.",
       "required_specs": [
         "number of guards and posts",
@@ -55,10 +55,45 @@
           "blocking": true
         },
         {
+          "spec": "supervisor and patrol arrangement",
+          "why_needed_to_price": "Supervisors and patrols add staff.",
+          "uae_options": "Supervisor; patrols.",
+          "follow_up_if": "If the inquiry is silent on supervisor and patrol arrangement, each supplier prices its own default; ask the buyer so every quote rests on the same supervisor and patrol arrangement.",
+          "blocking": false
+        },
+        {
           "spec": "duties (access control, CCTV monitoring, patrols)",
           "why_needed_to_price": "Duties decide grade and training.",
           "uae_options": "access; CCTV; patrol; reception",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "uniform and equipment",
+          "why_needed_to_price": "Uniforms and equipment add cost.",
+          "uae_options": "Uniforms; radios; torches.",
+          "follow_up_if": "If the inquiry is silent on uniform and equipment, each supplier prices its own default; ask the buyer so every quote rests on the same uniform and equipment.",
+          "blocking": false
+        },
+        {
+          "spec": "company licence from the security regulator",
+          "why_needed_to_price": "A licence from the regulator is required.",
+          "uae_options": "SIRA in Dubai; police elsewhere.",
+          "follow_up_if": "If not shown, the offer cannot be accepted.",
+          "blocking": false
+        },
+        {
+          "spec": "relief and replacement",
+          "why_needed_to_price": "Relief and replacement add cost.",
+          "uae_options": "Relief guards; replacement time.",
+          "follow_up_if": "If the inquiry is silent on relief and replacement, each supplier prices its own default; ask the buyer so every quote rests on the same relief and replacement.",
+          "blocking": false
+        },
+        {
+          "spec": "incident reporting",
+          "why_needed_to_price": "Incident reporting adds admin.",
+          "uae_options": "Reports; logs.",
+          "follow_up_if": "If the inquiry is silent on incident reporting, each supplier prices its own default; ask the buyer so every quote rests on the same incident reporting.",
           "blocking": false
         },
         {
@@ -67,6 +102,20 @@
           "uae_options": "monthly; annual",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Response and fix times decide how many staff, vehicles and spares the provider must keep ready, which is most of a service price.",
+          "uae_options": "Emergency response 2-4 hours in the same city; urgent next day; routine within agreed days; 24/7 or business hours.",
+          "follow_up_if": "If the buyer needs 24/7 cover or penalties for missed response, say so: it is priced differently.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "A site risk survey is genuinely needed before a firm guarding price unless the post schedule is already defined.",
