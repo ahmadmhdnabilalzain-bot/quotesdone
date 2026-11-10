@@ -1072,7 +1072,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_closes_unreached_requests(p_
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; v_ar boolean; v_ref text; v_closed int := 0;
+declare r record; v_ar boolean; v_ref text; v_closed int := 0; v_ours boolean;
 begin
   for r in select i.id, i.lang, c.email from public.inquiries i join public.customers c on c.id = i.customer_id
             where i.parent_inquiry_id is null and coalesce(i.status, '') not in ('revealed', 'closed', 'cancelled', 'completed', 'expired', 'lost')
@@ -1081,19 +1081,29 @@ begin
               and not exists (select 1 from public.quotes q where q.inquiry_id = i.id)
               -- Held for its own missing specs: the customer owes us an answer, and "no supplier" would be a false reason.
               and not public.fn_inquiry_awaits_specs(i.id)
+              -- 10 Nov 2026: the matcher did not answer, and its re-match is still running (customer_api lib/rematch.ts).
+              -- "No supplier in 14 days" would be a verdict on a trade nobody searched; it waits until the schedule is spent.
+              and not exists (select 1 from public.inquiries w where (w.id = i.id or w.parent_inquiry_id = i.id)
+                                 and coalesce((w.routing->>'matcher_unavailable')::boolean, false)
+                                 and not coalesce((w.routing#>>'{rematch,exhausted}')::boolean, false))
             order by i.created_at limit 100 loop
     update public.inquiries set status = 'expired' where id = r.id or parent_inquiry_id = r.id;
     update public.stalled_inquiry_rescue set cleared_at = p_at, cleared_why = 'request closed' where inquiry_id = r.id and cleared_at is null;
     v_ar := coalesce(r.lang, '') like 'ar%'; v_ref := 'QD-' || public.fn_job_no(r.id);
+    -- reached nobody because the matcher never answered, every re-match spent: that is our fault, said as ours
+    v_ours := exists (select 1 from public.inquiries w where (w.id = r.id or w.parent_inquiry_id = r.id)
+                         and coalesce((w.routing->>'matcher_unavailable')::boolean, false));
     perform public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
       'type', 'request_closed_no_supplier', 'requested_by', 'sales_engineer', 'channel', 'email', 'to_email', lower(btrim(r.email)), 'to_role', 'customer',
       'inquiry_id', r.id, 'lang', case when v_ar then 'ar' else 'en' end, 'dedupe_key', 'request_closed_no_supplier:' || r.id,
       'subject', case when v_ar then 'أغلقنا طلبكم ' || v_ref else 'We have closed your request ' || v_ref end,
-      'body', case when v_ar then 'شكرًا لتواصلكم معنا. لم يصل طلبكم ' || v_ref || ' إلى أي مورّد خلال 14 يومًا، لأننا ما زلنا نسجّل الموردين في هذا التخصص، ولذلك أغلقناه. نعتذر عن ذلك، ولا يلزمكم أي مبلغ. ويسعدنا أن ترسلوا طلبًا جديدًا في أي وقت.'
+      'body', case when v_ours and v_ar then 'شكرًا لتواصلكم معنا. لم يصل طلبكم ' || v_ref || ' إلى أي مورّد خلال 14 يومًا، إذ حال عطل لدينا دون مطابقته مع الموردين المختصين فيه، ولذلك أغلقناه. نعتذر عن ذلك، ولا يلزمكم أي مبلغ. ويسعدنا أن ترسلوا طلبًا جديدًا في أي وقت.'
+                   when v_ours then 'Thank you for coming to us. Your request ' || v_ref || ' did not reach a supplier in 14 days: a fault on our side stopped us matching it to the suppliers who cover it, so we have closed it. We are sorry, and there is nothing to pay. You are welcome to send a new request at any time.'
+                   when v_ar then 'شكرًا لتواصلكم معنا. لم يصل طلبكم ' || v_ref || ' إلى أي مورّد خلال 14 يومًا، لأننا ما زلنا نسجّل الموردين في هذا التخصص، ولذلك أغلقناه. نعتذر عن ذلك، ولا يلزمكم أي مبلغ. ويسعدنا أن ترسلوا طلبًا جديدًا في أي وقت.'
                    else 'Thank you for coming to us. Your request ' || v_ref || ' did not reach a supplier in 14 days, because we are still registering suppliers for this trade, so we have closed it. We are sorry, and there is nothing to pay. You are welcome to send a new request at any time.' end)));
     insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
     values ('sales_engineer', 'request_closed_no_supplier', 'auto_done', 'low', 'Request closed: no supplier in 14 days — ' || v_ref, 'No action required. The customer was told.',
-            jsonb_build_object('inquiry_id', r.id), 'inquiries', r.id::text);
+            jsonb_build_object('inquiry_id', r.id, 'matcher_never_answered', v_ours), 'inquiries', r.id::text);
     v_closed := v_closed + 1;
   end loop;
   return jsonb_build_object('closed', v_closed);
@@ -1410,6 +1420,33 @@ AS $function$
        limit greatest(coalesce(p_limit, 0), 0)
     ) x
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_expires_abandoned_intakes(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_days int := public.fn_seat_clock_policy('intake_abandoned_days', 30)::int;
+  v_ids uuid[];
+begin
+  with x as (
+    update public.inquiry_intake t set status = 'expired'
+      from (select it.id from public.inquiry_intake it
+              left join public.customers c on c.id = it.customer_id
+             where it.status in ('needs_info', 'ready')
+               and coalesce(it.updated_at, it.created_at) <= p_at - make_interval(days => v_days)
+               -- a fixture is expired only by a probe that asked for fixtures, a real intake only by the real duty
+               and (coalesce(c.is_demo, false) or public.fn_is_demo_email(coalesce(c.email, it.email))) = v_fx
+             order by coalesce(it.updated_at, it.created_at) limit 500 for update of it skip locked) d
+     where t.id = d.id
+    returning t.id)
+  select array_agg(id) into v_ids from x;
+  return jsonb_build_object('expired', coalesce(cardinality(v_ids), 0), 'days', v_days, 'fixtures', v_fx, 'ids', to_jsonb(coalesce(v_ids, '{}'::uuid[])));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_follows_up_supplier_replies()
@@ -2117,6 +2154,44 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_rematch_told(p_inquiry uuid, p_matches integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare u public.inquiries; t public.inquiries; c public.customers; v_lang text; v_ar boolean; v_ref text; v_name text;
+        v_trade text; v_link text; v_n int := greatest(coalesce(p_matches, 0), 0);
+begin
+  select * into u from public.inquiries where id = p_inquiry;
+  if not found then return jsonb_build_object('sent', false, 'reason', 'no such request'); end if;
+  -- "Nobody covers it" is the rescue's notice (fn_sales_engineer_stalled_inquiry_rescue), sent once the flag is raised.
+  if v_n = 0 then return jsonb_build_object('sent', false, 'reason', 'reached nobody: the stalled-inquiry rescue tells the customer'); end if;
+  select * into t from public.inquiries where id = coalesce(u.parent_inquiry_id, u.id);
+  select * into c from public.customers where id = t.customer_id;
+  if not found or coalesce(c.banned, false) then return jsonb_build_object('sent', false, 'reason', 'no customer to write to'); end if;
+  v_lang := public.fn_customer_message_lang(t.id, c.locale);
+  v_ar := v_lang = 'ar';
+  v_ref := 'QD-' || public.fn_job_no(t.id);
+  v_name := coalesce(nullif(btrim(c.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
+  v_trade := coalesce(public.fn_trade_label(u.category, v_lang), case when v_ar then 'هذا التخصص' else 'this trade' end);
+  v_link := case when v_ar then 'https://quotesdone.com/ar/me' else 'https://quotesdone.com/me' end;
+  return public.fn_customer_support_duty_send('rematch.matched', t.id::text, 'customer', c.email, v_lang,
+    case when v_ar then 'وصل طلبكم ' || v_ref || ' إلى الموردين' else 'Your request ' || v_ref || ' has reached suppliers' end,
+    case when v_ar then
+      'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+      || 'وصل طلبكم ' || v_ref || ' إلى ' || v_n || ' من الموردين المختصين في ' || v_trade || '، ويقدّمون عروضهم دون أن يعرفوا هويتكم، وسنُعلمكم فور وصول أول عرض سعر.' || chr(10) || chr(10)
+      || 'ويمكنكم متابعة طلبكم من حسابكم: ' || v_link || chr(10) || chr(10)
+      || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+    else
+      'Dear ' || v_name || ',' || chr(10) || chr(10)
+      || 'Your request ' || v_ref || ' has now reached ' || v_n || case when v_n = 1 then ' supplier' else ' suppliers' end || ' who cover ' || v_trade
+      || '. They quote without knowing who you are, and we will let you know as soon as the first quotation arrives.' || chr(10) || chr(10)
+      || 'You can follow your request from your account: ' || v_link end,
+    c.id, null, t.id) || jsonb_build_object('stage', 'rematch.matched', 'inquiry_id', t.id);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_remediates(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2160,6 +2235,185 @@ begin
                         and a.target_id = 'delivery.remediate:' || r.id and a.status <> 'done');
   get diagnostics n = row_count;
   return jsonb_build_object('completed_after_receipt', n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_request_outcomes(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_expiry int := public.fn_seat_clock_policy('request_no_quote_expiry_days', 21)::int;
+  v_remind int := public.fn_seat_clock_policy('request_quoted_reminder_days', 14)::int;
+  v_lost int := public.fn_seat_clock_policy('request_quoted_lost_days', 30)::int;
+  v_close int := public.fn_seat_clock_policy('request_revealed_close_days', 60)::int;
+  v_grace int := public.fn_seat_clock_policy('request_revealed_not_yet_grace_days', 30)::int;
+  r record; v_lang text; v_ar boolean; v_name text; v_ref text; v_trade text; v_link text; v_kind text; v_subj text; v_body text;
+  v_why text; v_cust jsonb; v_sup jsonb; v_held boolean;
+  n_exp int := 0; n_rem int := 0; n_lost int := 0; n_done int := 0; n_parents int := 0; v_out jsonb := '[]'::jsonb;
+begin
+  for r in
+    with units as (
+      select u.id, u.parent_inquiry_id, u.category, u.emirate, u.rfq_no, u.status, u.rfq_ready, u.customer_id,
+             c.full_name, c.email, c.locale,
+             (select min(m.sent_at) from public.inquiry_matches m where m.inquiry_id = u.id) as first_sent,
+             (select count(distinct m.supplier_id) from public.inquiry_matches m where m.inquiry_id = u.id) as matched,
+             (select max(q.created_at) from public.quotes q where q.inquiry_id = u.id
+                and coalesce(q.status, '') not in ('draft', 'withdrawn', 'cancelled', 'rejected')) as last_quote,
+             (select max(t.revealed_at) from public.transactions t where t.inquiry_id = u.id and t.revealed_at is not null
+                and coalesce(t.refund_status, '') not in ('refunded', 'succeeded')) as last_reveal
+        from public.inquiries u
+        join public.customers c on c.id = u.customer_id
+       where coalesce(u.status, '') not in ('split', 'closed', 'cancelled', 'completed', 'expired', 'lost')
+         and u.hired_supplier_id is null
+         and not exists (select 1 from public.inquiries k where k.parent_inquiry_id = u.id)
+         and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
+         and not coalesce(c.banned, false))
+    select x.*,
+           case when x.last_reveal is not null then
+                  case when x.last_reveal <= p_at - make_interval(days => v_close)
+                         and not exists (select 1 from public.customer_followup f join public.transactions t on t.id = f.transaction_id
+                                          where t.inquiry_id = x.id and f.hired = 'not_yet' and f.answered_at > p_at - make_interval(days => v_grace))
+                       then 'no_award' end
+                when x.last_quote is not null then
+                  case when x.last_quote <= p_at - make_interval(days => v_lost) then 'lost'
+                       when x.last_quote <= p_at - make_interval(days => v_remind) then 'remind' end
+                when x.matched > 0 and x.first_sent <= p_at - make_interval(days => v_expiry) then 'expired'
+           end as kind
+      from units x
+     order by coalesce(x.last_reveal, x.last_quote, x.first_sent)
+     limit 200
+  loop
+    continue when r.kind is null;
+    v_lang := public.fn_customer_message_lang(r.id, r.locale);
+    v_ar := v_lang = 'ar';
+    v_ref := 'QD-' || coalesce(r.rfq_no::text, '-');
+    v_name := coalesce(nullif(btrim(r.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
+    v_trade := coalesce(public.fn_trade_label(r.category, v_lang), case when v_ar then 'هذا التخصص' else 'this trade' end);
+    v_link := case when v_ar then 'https://quotesdone.com/ar/me' else 'https://quotesdone.com/me' end;
+    v_held := not coalesce(r.rfq_ready, false);
+
+    if r.kind = 'remind' then
+      -- ONE reminder per part, keyed on the part: a later quote moves the lost clock, never sends a second one
+      v_subj := case when v_ar then 'عروضكم على طلب ' || v_ref || ' ما زالت بانتظاركم' else 'Your quotes on ' || v_ref || ' are still waiting' end;
+      v_body := case when v_ar then
+          'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+          || 'مضى ' || public.fn_ar_days(v_remind) || ' على آخر عرض سعر وصلكم على طلبكم ' || v_ref || ' (' || v_trade || ')، ولم تكشفوا بعدُ بيانات أي مورّد. '
+          || 'وإذا لم تختاروا أحد العروض خلال ' || public.fn_ar_days(v_lost - v_remind) || ' أخرى أغلقنا الطلب وأبلغنا الموردين، ولا يلزمكم أي مبلغ. '
+          || 'وإن كنتم لا تحتاجون إلى الطلب بعد الآن، فبإمكانكم إلغاؤه من حسابكم.' || chr(10) || chr(10)
+          || 'افتحوا عروضكم من هنا: ' || v_link || chr(10) || chr(10)
+          || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+        else
+          'Dear ' || v_name || ',' || chr(10) || chr(10)
+          || 'It has been ' || v_remind || ' days since the last quote on your request ' || v_ref || ' (' || v_trade || '), and you have not revealed a supplier yet. '
+          || 'If you have not chosen one within ' || (v_lost - v_remind) || ' more days, we will close the request and tell the suppliers; there is nothing to pay. '
+          || 'If you no longer need it, you can cancel it from your account.' || chr(10) || chr(10)
+          || 'Open your quotes here: ' || v_link end;
+      v_why := public.fn_seat_clock_refusal(v_fx, r.email, 'duty_request_quoted_reminder');
+      v_cust := case when v_why is null then public.fn_customer_support_duty_send('request.quoted_reminder', r.id::text, 'customer', r.email, v_lang, v_subj, v_body, r.customer_id, null, r.id)
+                     else jsonb_build_object('sent', false, 'reason', v_why) end;
+      if coalesce((v_cust->>'sent')::boolean, false) then n_rem := n_rem + 1; end if;
+      v_out := v_out || jsonb_build_array(jsonb_build_object('inquiry_id', r.id, 'kind', 'remind', 'customer', v_cust));
+      continue;
+    end if;
+
+    -- the end of the part: the status first (the request is closed whether or not a message can be sent)
+    update public.inquiries
+       set status = case r.kind when 'expired' then 'expired' when 'lost' then 'lost' else 'completed' end,
+           outcome = case r.kind when 'expired' then 'expired' when 'lost' then 'lost' else 'completed_without_award' end,
+           lost_reason = case r.kind when 'expired' then 'no matched supplier quoted in time'
+                                     when 'lost' then 'no decision ' || v_lost || ' days after the last quote'
+                                     else 'no hire recorded ' || v_close || ' days after the reveal' end,
+           completed_at = p_at, stage_changed_at = p_at
+     where id = r.id and hired_supplier_id is null
+       and coalesce(status, '') not in ('closed', 'cancelled', 'completed', 'expired', 'lost');
+    if not found then continue; end if;
+    update public.stalled_inquiry_rescue set cleared_at = p_at, cleared_why = 'request closed: ' || r.kind where inquiry_id = r.id and cleared_at is null;
+
+    if r.kind = 'expired' then
+      n_exp := n_exp + 1;
+      v_kind := 'request.expired_no_quote';
+      v_subj := case when v_ar then 'أغلقنا طلبكم ' || v_ref else 'We have closed your request ' || v_ref end;
+      v_body := case when v_ar then
+          'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+          || 'وصل طلبكم ' || v_ref || ' إلى ' || r.matched || ' من الموردين المختصين في ' || v_trade
+          || case when v_held then '، وكان ما زال ينتظر منكم التفاصيل التي يحتاجون إليها لتسعيره' else '' end
+          || '، ولم يرسل أيٌّ منهم عرض سعر خلال ' || public.fn_ar_days(v_expiry) || '، ولذلك أغلقناه. '
+          || 'نعتذر عن ذلك، ولا يلزمكم أي مبلغ، ويسعدنا أن ترسلوا الطلب من جديد في أي وقت.' || chr(10) || chr(10)
+          || 'ويمكنكم الاطلاع عليه في حسابكم: ' || v_link || chr(10) || chr(10)
+          || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+        else
+          'Dear ' || v_name || ',' || chr(10) || chr(10)
+          || 'Your request ' || v_ref || ' reached ' || r.matched || case when r.matched = 1 then ' supplier' else ' suppliers' end || ' who cover ' || v_trade
+          || case when v_held then ', while it was still waiting for the details they need from you to price it' else '' end
+          || ', but none of them sent a quotation within ' || v_expiry || ' days, so we have closed it. '
+          || 'We are sorry. There is nothing to pay, and you are welcome to send the request again at any time.' || chr(10) || chr(10)
+          || 'You can see it in your account: ' || v_link end;
+      -- the sales engineer's coverage finding for its trades: matched suppliers exist and none of them quoted
+      insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+      values ('sales_engineer', 'coverage_gap', 'pending', 'medium',
+              left('A request reached suppliers and none quoted in ' || v_expiry || ' days: ' || coalesce(r.category, 'uncategorised') || ' / ' || coalesce(r.emirate, 'UAE'), 300),
+              'The ' || r.matched || ' matched supplier(s) for ' || coalesce(r.category, 'this trade') || ' in ' || coalesce(r.emirate, 'the UAE')
+                || ' did not quote within ' || v_expiry || ' days, so the request was closed as expired. Ask the matched suppliers why (capacity, scope, price), and recruit suppliers who quote this trade and emirate.',
+              jsonb_build_object('signal', 'coverage_gap:no_quote:' || r.id, 'inquiry_id', r.id, 'category', r.category, 'emirate', r.emirate,
+                                 'trades', to_jsonb(public.fn_taxonomy_trades_for(array[coalesce(r.category, '')])), 'matched', r.matched,
+                                 'first_sent', r.first_sent, 'held_for_specs', v_held, 'path', 'fn_sales_engineer_request_outcomes', 'demo', v_fx),
+              'inquiries', r.id::text);
+    elsif r.kind = 'lost' then
+      n_lost := n_lost + 1;
+      v_kind := 'request.lost';
+      v_subj := case when v_ar then 'أغلقنا طلبكم ' || v_ref else 'We have closed your request ' || v_ref end;
+      v_body := case when v_ar then
+          'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+          || 'مضى ' || public.fn_ar_days(v_lost) || ' على آخر عرض سعر وصلكم على طلبكم ' || v_ref || ' (' || v_trade || ') دون أن تختاروا أحدها، ولذلك أغلقنا الطلب وأبلغنا الموردين. '
+          || 'لا يلزمكم أي مبلغ، ويسعدنا أن ترسلوا طلبًا جديدًا في أي وقت.' || chr(10) || chr(10)
+          || 'ويمكنكم الاطلاع عليه في حسابكم: ' || v_link || chr(10) || chr(10)
+          || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+        else
+          'Dear ' || v_name || ',' || chr(10) || chr(10)
+          || 'It has been ' || v_lost || ' days since the last quote on your request ' || v_ref || ' (' || v_trade || ') and none was chosen, so we have closed the request and told the suppliers. '
+          || 'There is nothing to pay, and you are welcome to send a new request at any time.' || chr(10) || chr(10)
+          || 'You can see it in your account: ' || v_link end;
+    else
+      n_done := n_done + 1;
+      v_kind := 'request.completed_without_award';
+      v_subj := case when v_ar then 'أغلقنا طلبكم ' || v_ref else 'We have closed your request ' || v_ref end;
+      v_body := case when v_ar then
+          'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+          || 'مضى ' || public.fn_ar_days(v_close) || ' على كشفكم بيانات المورّد في طلبكم ' || v_ref || ' (' || v_trade || ')، ولم يُسجَّل لدينا أنكم تعاقدتم معه، ولذلك أغلقنا الطلب. '
+          || 'وإن كنتم قد تعاقدتم معه، فاضغطوا "تعاقدتُ مع هذا المورّد" على عرضه في حسابكم أو ردّوا على هذه الرسالة، لنسجّل ذلك.' || chr(10) || chr(10)
+          || 'حسابكم: ' || v_link || chr(10) || chr(10)
+          || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+        else
+          'Dear ' || v_name || ',' || chr(10) || chr(10)
+          || 'It has been ' || v_close || ' days since you revealed a supplier on your request ' || v_ref || ' (' || v_trade || '), and no hire has been recorded, so we have closed the request. '
+          || 'If you did hire them, press "I hired this supplier" on their quote in your account, or reply to this e-mail, and we will record it.' || chr(10) || chr(10)
+          || 'Your account: ' || v_link end;
+    end if;
+    v_why := public.fn_seat_clock_refusal(v_fx, r.email, 'duty_' || replace(v_kind, '.', '_'));
+    v_cust := case when v_why is null then public.fn_customer_support_duty_send(v_kind, r.id::text, 'customer', r.email, v_lang, v_subj, v_body, r.customer_id, null, r.id)
+                   else jsonb_build_object('sent', false, 'reason', v_why) end;
+    v_sup := public.fn_sales_engineer_tells_matched_suppliers(r.id, r.kind, v_fx, v_lost);
+    v_out := v_out || jsonb_build_array(jsonb_build_object('inquiry_id', r.id, 'kind', r.kind, 'customer', v_cust, 'suppliers', v_sup));
+  end loop;
+
+  -- a split's parent ends when every part has ended
+  with p as (
+    select pr.id from public.inquiries pr
+      join public.customers c on c.id = pr.customer_id
+     where pr.status = 'split' and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
+       and exists (select 1 from public.inquiries k where k.parent_inquiry_id = pr.id)
+       and not exists (select 1 from public.inquiries k where k.parent_inquiry_id = pr.id
+                        and coalesce(k.status, '') not in ('closed', 'cancelled', 'completed', 'expired', 'lost')))
+  update public.inquiries i set status = 'closed', outcome = coalesce(i.outcome, 'all parts closed'), completed_at = coalesce(i.completed_at, p_at), stage_changed_at = p_at
+    from p where i.id = p.id;
+  get diagnostics n_parents = row_count;
+
+  return jsonb_build_object('expired', n_exp, 'reminded', n_rem, 'lost', n_lost, 'completed_without_award', n_done,
+                            'split_parents_closed', n_parents, 'fixtures', v_fx, 'acted', v_out);
 end $function$
 
 
@@ -3349,6 +3603,72 @@ begin
   return new;
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_tells_losing_suppliers(p_inquiry uuid, p_winner bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.inquiries; c public.customers; v_fx boolean; l record; v_job text; v_why text; v_d jsonb; v_told int := 0; v_not int := 0;
+begin
+  select * into i from public.inquiries where id = p_inquiry;
+  if not found then return jsonb_build_object('told', 0, 'reason', 'no such request'); end if;
+  select * into c from public.customers where id = i.customer_id;
+  v_fx := coalesce(public.fn_seat_clock_customer_is_fixture(c), false);
+  v_job := 'the ' || coalesce(public.fn_trade_label(i.category, 'en'), 'job') || coalesce(' job in ' || nullif(btrim(i.emirate), ''), ' job')
+           || ' (request ' || coalesce(i.rfq_no::text, '-') || ')';
+  for l in select le.id, lower(btrim(coalesce(le.email, ''))) as to_email
+             from (select distinct q.supplier_id from public.quotes q where q.inquiry_id = p_inquiry and q.supplier_id is distinct from p_winner) x
+             join public.leads le on le.id = x.supplier_id
+            where not coalesce(le.banned, false) and not public.fn_is_sanctioned_lead(le.id) loop
+    v_why := public.fn_seat_clock_refusal(v_fx, l.to_email, 'job_awarded_other');
+    if v_why is not null then v_not := v_not + 1; continue; end if;
+    v_d := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', 'job_awarded_other', 'requested_by', 'sales_engineer', 'channel', 'email', 'to_email', l.to_email, 'to_role', 'supplier',
+      'lead_id', l.id, 'inquiry_id', p_inquiry, 'lang', 'en', 'subject', 'Update on a job you quoted — QuotesDone',
+      'body', 'Thank you for taking the time to quote on ' || v_job || '. On this occasion the customer has chosen to proceed with another supplier. We genuinely appreciate the effort you put into your quote, and it was great having you compete for the work. New matching opportunities come through QuotesDone regularly — please keep an eye on your supplier inbox, and we wish you the very best of luck on the next one.',
+      'dedupe_key', 'job_awarded_other:' || p_inquiry || ':' || l.id)));
+    if coalesce(v_d->0->>'status', '') in ('done', 'demo_captured', 'pending', 'claimed') then v_told := v_told + 1; else v_not := v_not + 1; end if;
+  end loop;
+  return jsonb_build_object('told', v_told, 'not_told', v_not);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_tells_matched_suppliers(p_unit uuid, p_kind text, p_fixture boolean, p_days integer DEFAULT NULL::integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare u public.inquiries; l record; v_job text; v_body text; v_why text; v_d jsonb; v_told int := 0; v_not int := 0;
+begin
+  if p_kind not in ('expired', 'lost', 'no_award') then raise exception 'a closed part is expired, lost or no_award, not %', p_kind; end if;
+  select * into u from public.inquiries where id = p_unit;
+  if not found then return jsonb_build_object('told', 0, 'reason', 'no such request'); end if;
+  v_job := 'the ' || coalesce(public.fn_trade_label(u.category, 'en'), 'job') || coalesce(' job in ' || nullif(btrim(u.emirate), ''), ' job')
+           || ' (request ' || coalesce(u.rfq_no::text, '-') || ')';
+  v_body := case p_kind
+    when 'expired' then 'The customer''s request for ' || v_job || ', which you were invited to quote, is now closed: no quotation reached the customer in time. No quote is needed for it any more. Thank you for your time.'
+    when 'lost' then 'The customer''s request for ' || v_job || ', which you were invited to quote, is now closed: the customer did not go ahead with any quote within ' || coalesce(p_days, 30) || ' days of the last one. A quote you sent will not be used. Thank you for taking the time to quote.'
+    else 'The customer''s request for ' || v_job || ', which you were invited to quote, is now closed on QuotesDone without an award to your company. A quote you sent will not be used. Thank you for taking the time to quote.' end;
+  for l in select le.id, lower(btrim(coalesce(nullif(btrim(le.claimed_by), ''), le.email, ''))) as to_email
+             from (select distinct x.supplier_id from public.inquiry_matches x where x.inquiry_id = p_unit) x
+             join public.leads le on le.id = x.supplier_id
+            where not coalesce(le.banned, false) and not public.fn_is_sanctioned_lead(le.id)
+              -- the supplier the customer revealed is not told "no award": they hold the customer's contact
+              and not (p_kind = 'no_award' and exists (select 1 from public.transactions t where t.inquiry_id = p_unit and t.supplier_id = le.id and t.revealed_at is not null)) loop
+    v_why := public.fn_seat_clock_refusal(p_fixture, l.to_email, 'rfq_closed');
+    if v_why is not null then v_not := v_not + 1; continue; end if;
+    v_d := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', 'rfq_closed', 'requested_by', 'sales_engineer', 'channel', 'email', 'to_email', l.to_email, 'to_role', 'supplier',
+      'lead_id', l.id, 'inquiry_id', p_unit, 'lang', 'en', 'subject', 'A request you were invited to quote is closed', 'body', v_body,
+      'dedupe_key', 'rfq_closed:' || p_unit || ':' || l.id)));
+    if coalesce(v_d->0->>'status', '') in ('done', 'demo_captured', 'pending', 'claimed') then v_told := v_told + 1; else v_not := v_not + 1; end if;
+  end loop;
+  return jsonb_build_object('told', v_told, 'not_told', v_not);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_tells_the_supplier_he_is_approved()
@@ -7475,6 +7795,17 @@ begin
                               'why', case when v_quotes > 0 then 'quoted' else 'not open' end);
   end if;
 
+  -- 10 Nov 2026 (sales_engineer): the MATCHER did not answer for this request, so nobody was searched, and "none of
+  -- the suppliers registered for it can take it on" (the rescue's notice) would be false. It waits for the re-match
+  -- (customer_api lib/rematch.ts); once the matcher has answered, routing no longer says matcher_unavailable.
+  if coalesce((i.routing->>'matcher_unavailable')::boolean, false) then
+    if v_open then
+      update public.stalled_inquiry_rescue set cleared_at = now(), cleared_why = 'the matcher did not answer: waiting for the re-match'
+       where inquiry_id = i.id and cleared_at is null and reason = 'no_reachable_supplier';
+    end if;
+    return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', false, 'cleared', v_open, 'why', 'waiting for the re-match');
+  end if;
+
   select count(*)::int,
          count(*) filter (where public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)
                             and public.fn_supplier_available(av.state, av.busy_until))::int,
@@ -7856,7 +8187,8 @@ begin
      and (p_quote_id is null or q.id = p_quote_id)
      and q.committed_at is null
      and coalesce(q.status,'') not in ('accepted','withdrawn','expired')
-     and coalesce(i.status,'') not in ('concluded','closed','cancelled','awarded')
+     -- 10 Nov 2026: the ends of a request, one list with _shared/request_closed.ts (two of the old four were statuses nothing writes)
+     and coalesce(i.status,'') not in ('completed','closed','cancelled','expired','lost')
      and not exists (select 1 from public.transactions t
                       where t.inquiry_id = q.inquiry_id and t.supplier_id = q.supplier_id
                         and t.revealed_at is not null);
@@ -7900,7 +8232,8 @@ begin
      and (p_quote_id is null or q.id = p_quote_id)
      and q.committed_at is null
      and coalesce(q.status,'') not in ('accepted','withdrawn','expired')
-     and coalesce(i.status,'') not in ('concluded','closed','cancelled','awarded')
+     -- 10 Nov 2026: the ends of a request, one list with _shared/request_closed.ts (two of the old four were statuses nothing writes)
+     and coalesce(i.status,'') not in ('completed','closed','cancelled','expired','lost')
      and not exists (select 1 from public.transactions t
                       where t.inquiry_id = q.inquiry_id and t.supplier_id = q.supplier_id
                         and t.revealed_at is not null);

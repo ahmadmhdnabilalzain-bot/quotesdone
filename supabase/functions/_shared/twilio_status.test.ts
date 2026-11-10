@@ -4,7 +4,7 @@
 // Run: deno test supabase/functions/_shared/twilio_status.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { createHmac } from 'node:crypto';
-import { twilioSignature, verifyTwilioSignature } from './twilio_status.ts';
+import { statusCallbackUrls, twilioSignature, verifyTwilioSignature, verifyTwilioSignatureAny } from './twilio_status.ts';
 
 const TOKEN = '12345';
 const URL_ = 'https://project-ref.supabase.co/functions/v1/wa_status';
@@ -39,4 +39,24 @@ Deno.test('missing signature or missing token fails closed', async () => {
   assert(!(await verifyTwilioSignature(TOKEN, URL_, PARAMS, '')).valid);
   assert(!(await verifyTwilioSignature('', URL_, PARAMS, oracle(TOKEN, URL_, PARAMS))).valid);
   assert(!(await verifyTwilioSignature(undefined, URL_, PARAMS, oracle(TOKEN, URL_, PARAMS))).valid);
+});
+
+// R6 (it_engineer, 10 Nov 2026): a send names the region-pinned URL; a message sent before the pin is signed over the old one,
+// and its later callbacks (delivered, read) must still verify. Red before: wa_status checked one URL.
+Deno.test('a callback verifies over the pinned URL and over the old one; a forgery over neither is refused', async () => {
+  const urls = ['https://project-ref.supabase.co/functions/v1/wa_status?forceFunctionRegion=ap-southeast-1', URL_];
+  for (const u of urls) {
+    const r = await verifyTwilioSignatureAny(TOKEN, urls, PARAMS, oracle(TOKEN, u, PARAMS));
+    assert(r.valid && r.url === u, JSON.stringify(r));
+  }
+  assert(!(await verifyTwilioSignatureAny(TOKEN, urls, PARAMS, oracle(TOKEN, URL_ + '?x=1', PARAMS))).valid);
+  assert(!(await verifyTwilioSignatureAny(TOKEN, urls, { ...PARAMS, MessageStatus: 'read' }, oracle(TOKEN, urls[0], PARAMS))).valid);
+});
+
+Deno.test('the callback URLs are the pinned one first, then the old one', () => {
+  const env = Deno.env.get;
+  (Deno.env as unknown as { get: (k: string) => string | undefined }).get = (k) => (k === 'SUPABASE_URL' ? 'https://project-ref.supabase.co' : undefined);
+  try {
+    assertEquals(statusCallbackUrls(), ['https://project-ref.supabase.co/functions/v1/wa_status?forceFunctionRegion=ap-southeast-1', URL_]);
+  } finally { (Deno.env as unknown as { get: typeof env }).get = env; }
 });

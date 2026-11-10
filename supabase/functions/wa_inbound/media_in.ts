@@ -1,4 +1,4 @@
-// media_in.ts - A DOCUMENT ARRIVED (v16): a supplier's licence is stored, read and applied; a number with no account gets its file
+// media_in.ts - A DOCUMENT ARRIVED (v16): a supplier's file is stored and read, and applied to the licence only when read as one; a number with no account gets its file
 // read under a daily cap; a voice note is not a document. Moved out of index.ts's handleInbound unchanged (9 Nov 2026,
 // customer_support). A Response means the message carried media (the work continues under waitUntil); undefined means it did not.
 import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
@@ -9,6 +9,7 @@ import { voiceReplyProblems } from './model_says.ts';
 import { mediaItems, waRow } from './wa_row.ts';
 import { admin, sec, TW } from './shared.ts';
 import { fetchTwilioMedia, handleSupplierDoc } from './media.ts';
+import { customerFile, customerOf, targetOf } from './customer_files.ts';
 import { sendWa, toContact } from './replies.ts';
 import type { WaTurn } from './turn.ts';
 
@@ -32,23 +33,50 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
       catch (_e) { return null; }
     })();
 
+    // the customer behind the number, for a file that is not a voice note from a number with no supplier lead (R2)
+    const cust = !leadId && audience === 'customer' && !media.every((m) => /^audio\//i.test(m.mime)) ? await customerOf(From) : null;
     const docWork = (async () => {
       const enabled = (await sec('wa_autoreply_enabled')) === 'true';
       let reply = ''; const results: string[] = []; let readText = '';
 
       // A VOICE NOTE IS NOT A DOCUMENT (2 Nov 2026). It reached the document intake, which accepts only a PDF or an
       // image, so a supplier who spoke a question was told to "send the trade licence as a PDF or a clear photo".
-      // Nothing here transcribes WhatsApp audio (the format Gemini takes from a Twilio ogg is not established, see
-      // fn_wa_route.transcription_gap), so the honest answer is that it was not heard and a typed message will be.
-      // Prevented by: the_whole_exchange.test.ts.
+      // Since 10 Nov 2026 a voice note is heard first (hear.ts, _shared/speech_to_text.ts) when a provider is configured;
+      // one that was not heard lands here and gets the honest answer. Prevented by: the_whole_exchange.test.ts.
       const audioOnly = media.every((m) => /^audio\//i.test(m.mime));
       if (audioOnly) {
-        results.push('voice note: not heard, no transcription on WhatsApp yet');
+        // HEARD OR NOT (10 Nov 2026, hear.ts): a voice note that WAS heard never reaches here (its transcript became the turn's
+        // Body). What reaches here was not heard, and the reply says why in plain words, never more than happened.
+        const why = t.voiceNotHeard ?? 'off';
+        results.push('voice note: not heard (' + why + ')');
+        const what = why === 'off'
+          ? 'Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed.'
+          : why === 'too_long'
+            ? 'Their voice note was too long to listen to here (the limit is about two minutes), so nothing they said was heard and nothing was filed.'
+            : why === 'silent'
+              ? 'Their voice note was listened to, but no words could be made out in it, so nothing was filed.'
+              : 'Their voice note could not be listened to this time, so nothing they said was heard and nothing was filed.';
         // AS WHO SENT IT, IN THEIR CONVERSATION'S LANGUAGE (it_engineer, 10 Nov 2026): this was 'visitor' for every number with no
         // supplier lead, and always English, so a signed-in customer writing in Arabic was answered as a stranger, in English. The
         // language is left to askModel (the conversation's, turnLang); a supplier is still answered in English by aiReply.
         // prevented by: the_whole_exchange.test.ts (a known customer's voice note is answered as that customer).
-        reply = await sayFor(leadId ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor')('They sent a voice note. Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed. Tell them so plainly, apologise briefly, and ask them to type the message here; a typed message is answered at once. Whatever was said earlier in this chat, this reply is about the voice note only: do not ask for, offer or mention any document, licence, PDF, photo or upload.', undefined, undefined, voiceReplyProblems);
+        reply = await sayFor(leadId ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor')('They sent a voice note. ' + what + ' Tell them so plainly, apologise briefly, and ask them to type the message here' + (why === 'too_long' ? ' or send a shorter voice note' : '') + '; a typed message is answered at once. Whatever was said earlier in this chat, this reply is about the voice note only: do not ask for, offer or mention any document, licence, PDF, photo or upload.', undefined, undefined, voiceReplyProblems);
+      } else if (cust) {
+        // A REGISTERED CUSTOMER'S FILE REACHES THEIR REQUEST (R2, it_engineer 10 Nov 2026; customer_files.ts): attached to their
+        // newest open request or intake (a new intake when there is none), a drawing read and redacted the portal's way, a DWG or
+        // DXF accepted. Never the "number with no account" branch below, never its stranger's cap.
+        const target = await targetOf(cust, Body);
+        const notes: string[] = [];
+        if (!target) results.push('not attached: no request or intake could be found or started');
+        else for (const [i, m] of media.slice(0, 3).entries()) {
+          const r = await customerFile(cust, target, m, i + 1, internalCaller);
+          results.push((r.ok ? 'attached: ' : 'not attached: ') + r.note);
+          notes.push((r.ok ? 'received: ' : 'not received: ') + r.note);
+        }
+        const ar = /[؀-ۿ]/.test(Body);
+        reply = await sayFor('customer')(target && results.some((r) => r.startsWith('attached'))
+          ? 'They sent ' + (media.length > 1 ? media.length + ' files' : 'a file') + ' on WhatsApp and it is with their request: ' + notes.join('; ') + '. Tell them plainly what was received and where it went, and that they can see it on their request page at https://quotesdone.com/me . Do not promise any quote or time.'
+          : 'They sent a file on WhatsApp and it could not be added to their request (' + (notes.join('; ') || results.join('; ')) + '). Tell them plainly, and that it can be uploaded on their request page at https://quotesdone.com/me .', ar ? 'ar' : undefined);
       } else if (!leadId) {
         // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
         // model, one more asking). It is never filed against a company — there is none — but its words are kept on this
@@ -93,38 +121,50 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
             ? 'They sent a file and it could not be read clearly. Ask for a clearer copy, in these terms: ' + clearerCopyAsk(ar ? 'customer' : 'supplier', ar ? 'ar' : 'en', 'the file')
             : 'They sent a file but it could not be opened (' + results.join('; ') + '). Ask them to send it again as a PDF or a clear photo.'), ar ? 'ar' : 'en');
       } else {
+        // A SUPPLIER'S FILE IS A LICENCE ONLY WHEN IT READS AS ONE (R1, it_engineer, 10 Nov 2026; media.ts handleSupplierDoc).
+        // The reply says what was received and what changed: a licence applied, or a file kept for our team with the
+        // record untouched. Suppliers are always answered in English (the model applies it).
+        const pending: string[] = [];
         for (const m of media.slice(0, 3)) {
-          const r = await handleSupplierDoc(leadId, m.url, m.mime, From, internalCaller);
-          results.push(r.ok ? (r.applied.length ? ('updated: ' + r.applied.join(', ')) : r.note) : ('not stored — ' + r.note));
+          const r = await handleSupplierDoc(leadId, m.url, m.mime, From, internalCaller, Body);
+          if (r.ok && r.filed === 'pending') {
+            const k = r.intake?.attached && r.intake.classified_as && r.intake.classified_as !== 'unknown' ? r.intake.classified_as.replace('_', ' ') : '';
+            pending.push(k ? ('filed as their ' + k + ' (as their message named it)') : ('kept for our team: ' + (r.seen || 'not read as a trade licence')));
+            results.push('pending: ' + (k ? 'attached as ' + k : r.seen || 'not a licence reading'));
+          } else results.push(r.ok ? (r.applied.length ? ('updated: ' + r.applied.join(', ')) : r.note) : ('not stored — ' + r.note));
         }
-        const anyOk = results.some((r) => !r.startsWith('not stored'));
         const anyApplied = results.some((r) => r.startsWith('updated:'));
-        // Suppliers are always answered in English (the model applies it); the facts are what the intake did.
+        const anyPending = results.some((r) => r.startsWith('pending:'));
+        const anyOk = results.some((r) => !r.startsWith('not stored'));
         reply = await sayFor('supplier')(anyApplied
-          ? 'Their document was received; their trade licence is on file and their record was updated (' + results.filter((r) => r.startsWith('updated:')).map((r) => r.replace('updated: ', '')).join('; ') + '). They can check it any time at https://quotesdone.com/suppliers.'
-          : anyOk
-            ? 'Their document is saved against their account, but its details could not be read confidently, so nothing on their record was changed. Ask for a clearer copy in these terms: ' + clearerCopyAsk('supplier', 'en', 'the document')
-            : 'The file could not be accepted (' + results[0].replace('not stored — ', '') + '). Ask them to send the trade licence as a PDF or a clear photo, or upload it at https://quotesdone.com/suppliers.', 'en');
+          ? 'Their document was received and read as their trade licence; it is on file and their record was updated (' + results.filter((r) => r.startsWith('updated:')).map((r) => r.replace('updated: ', '')).join('; ') + ').'
+            + (anyPending ? ' Another file they sent did not read as a licence and was kept for our team without changing anything.' : '') + ' They can check it any time at https://quotesdone.com/suppliers.'
+          : anyPending
+            ? 'They sent ' + (media.length > 1 ? media.length + ' files' : 'a file') + ' and it was received and saved against their account: ' + pending.join('; ') + '. It did NOT read as a trade licence, so their trade licence and the licence details on their record were NOT changed. Tell them exactly that, plainly. If they meant to send their trade licence, ask for the full licence as a PDF or a sharp photo of the whole page; otherwise our team will look at the file.'
+            : anyOk
+              ? 'Their document is saved against their account, but its details could not be read confidently, so nothing on their record was changed. Ask for a clearer copy in these terms: ' + clearerCopyAsk('supplier', 'en', 'the document')
+              : 'The file could not be accepted (' + results[0].replace('not stored — ', '') + '). Ask them to send the trade licence as a PDF or a clear photo, or upload it at https://quotesdone.com/suppliers.', 'en');
       }
 
       reply = reply ? toContact(reply.slice(0, 1200)) : '';
       let sent = false; let sendErr: string | undefined = reply ? undefined : 'no_model_reply';
       if (enabled && reply) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
-      if (!reply) { const h = await heldTurn(leadId ? 'supplier' : 'visitor', /[؀-ۿ]/.test(Body) ? 'ar' : 'en', 'They sent a file. What the intake did: ' + results.join(' | '), 'media_in'); reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; }
+      if (!reply) { const h = await heldTurn(leadId ? 'supplier' : cust ? 'customer' : 'visitor', /[؀-ۿ]/.test(Body) ? 'ar' : 'en', 'They sent a file. What the intake did: ' + results.join(' | '), 'media_in'); reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; }
       try {
         await waInsert(receivedAt, {
           wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
           // The read text is kept in its OWN field, marked as untrusted data, never mixed into what the sender typed.
           inbound: (Body || '(no caption)').slice(0, 2000), reply, lang: 'en', escalated: false, sent,
-          meta: { enabled, audience, route: 'media_in', media_count: media.length, media_items: mediaItems(media), lead_id: leadId,
+          meta: { enabled, audience, route: 'media_in', media_count: media.length, media_items: mediaItems(media), lead_id: leadId, customer_id: cust?.id ?? null,
                   ...(readText ? { attachment_text_untrusted: readText.slice(0, 4000) } : {}),   // the read was counted by its claim row
                   results, send_error: sendErr || null, provenance_verified: true,
                   message_sid: MessageSid || null },
         });
       } catch (_e) { /* the reply already went out */ }
       await logRun(leadId && results.every((r) => r.startsWith('not stored')) ? 'error' : 'ok',
-        { audience, route: 'media_in', media: media.length, lead_id: leadId, sent },
+        { audience, route: 'media_in', media: media.length, lead_id: leadId, customer_id: cust?.id ?? null, sent },
         leadId ? ('WhatsApp document from lead ' + leadId + ': ' + results.join(' | '))
+               : cust ? ('WhatsApp file from customer ' + cust.id + ': ' + results.join(' | '))
                : ('WhatsApp file from a number with no account: ' + results.join(' | ') + '; nothing was filed against a company'));
     })();
 

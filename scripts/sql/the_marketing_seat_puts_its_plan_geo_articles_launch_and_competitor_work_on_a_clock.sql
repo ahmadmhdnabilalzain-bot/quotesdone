@@ -24,7 +24,7 @@
 --   2. Five seat duties, each a no-argument routine run by fn_seat_duties_tick and checked by fn_seat_duty_health:
 --        marketing.month_plan         daily   next month's plan drafted and sent for his one-shot approval
 --        marketing.geo_check          daily   this month's answer-engine checks progress; a stall is a failure
---        marketing.article_release    daily   one draft a Dubai week goes to him for "approve"; release checked
+--        marketing.article_release    daily   one draft a Dubai week, reviewed by the CEO (ledger 1058); release checked
 --        marketing.launch_plan        daily   the January 2027 launch plan kept current; sent for approval from 1 Dec
 --        marketing.competitor_refresh 7 days  the week's competitor intelligence brief, stale profiles re-fetched
 --   3. marketing_plan_doc: the launch plan and the weekly competitor brief (one row per kind and period).
@@ -345,7 +345,7 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'The month''s answer-engine (GEO) checks progress; from the 10th, web checks owed with none in two days is a failure.',
    'scripts/sql/the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql'),
   ('marketing.article_release', 'marketing', interval '1 day', 'fn_marketing_article_release_duty',
-   'One article draft a Dubai week is sent to the founder for "approve"; only his approval releases it, on a UAE working day.',
+   'One article draft a Dubai week is reviewed by the CEO seat until it is useful (ledger 1058); the CEO''s approval releases it on a UAE working day and the founder is only told once it is live.',
    'scripts/sql/the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql'),
   ('marketing.launch_plan', 'marketing', interval '1 day', 'fn_marketing_launch_plan_duty',
    'The January 2027 launch plan redrawn daily from category readiness (organic only until every category is open) and sent for approval from 1 December.',

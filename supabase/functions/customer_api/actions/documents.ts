@@ -18,7 +18,7 @@ import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../../_shared/drawing_format.ts';
 import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
-import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, redactFile, scheduleTables, startCadWorker, storeOriginal } from '../lib/drawings.ts';
+import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, redactFile, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
 export async function documentActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, action, email, cust } = c;
@@ -35,10 +35,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       const { data: job } = await admin.from('cad_read_jobs').select('status, result, boq_in, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!job) return J({ ok: false, error: 'not_found' }, 404);
       const redo = cadJobNeedsRedispatch(job as any);
-      if (redo && await claimCadDispatch(admin, id)) {
-        if (redo === 'dispatch') await startCadWorker(id, 'still_queued_when_polled');
-        else await cadReadHeld(id, 'not_started_within_an_hour_of_dispatches');
-      }
+      if (redo === 'held' && await claimCadDispatch(admin, id)) await cadReadHeld(id, 'not_taken_by_the_cad_read_routine_within_its_interval');
       // 24 Sep 2026: the worker also DRAWS a CAD file the edge could not, for suppliers (cad_read_worker.ts
       // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
       const res = job.status === 'done' ? (job.result as any) : null;
@@ -308,7 +305,9 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           if (pagePaths.length === images.length) scanJob = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64 || '').length, why: 'scan_needs_ocr', boqIn: { scan_pages: pagePaths } });
         }
         const scanNote = scanJob ? { note: 'scan_queued', cad_job_id: scanJob } : {};
-        if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand }, 200);
+        // pdf_words (10 Nov 2026): the composer reads a PDF in the browser by OCR ONLY when this says it has no text layer (0).
+        // It used to OCR any PDF that came back without lines - including one whose read it had itself cut off at 30 s.
+        if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords, ...redMeta, ...hand }, 200);
         const jd = await boqRes.value.json().catch(() => null);
         // A CAD original the edge could not read (past its ceiling, or its worker died) is read off the
         // request path; the pictured sheets above still went through redaction for suppliers.
@@ -319,7 +318,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         }
         // A REFUSAL IS A REFUSAL, WITH A STATUS (audit CP-03 / CP-10). This answered HTTP 200 with
         // ok:false and an English code, so every log, probe and proxy read it as a success.
-        if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', code: 'analysis_failed', message: 'We could not read that drawing. Your file is saved — please describe the job in your own words and we will carry on.', message_ar: 'تعذّر علينا قراءة هذا المخطط. ملفك محفوظ — يُرجى وصف العمل بكلماتك ونكمل معك.', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand }, 502);
+        if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', code: 'analysis_failed', message: 'We could not read that drawing. Your file is saved — please describe the job in your own words and we will carry on.', message_ar: 'تعذّر علينا قراءة هذا المخطط. ملفك محفوظ — يُرجى وصف العمل بكلماتك ونكمل معك.', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords, ...redMeta, ...hand }, 502);
         // THE CONFIRM STEP RUNS ONLY NOW, after redaction has finished and every page came back
         // (review of #642: it used to run in parallel and could see the original page). drawing_boq
         // re-reads the run by id and uses its recorded redacted page, or marks the lines unconfirmed.
@@ -360,7 +359,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
           } catch (_e) { /* the coded result stands */ }
         }
-        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...fileHeldNote(fileHeld), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
+        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...fileHeldNote(fileHeld), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false }, 200); }
     }
 }

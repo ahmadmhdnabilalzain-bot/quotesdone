@@ -1019,7 +1019,7 @@ on conflict (type, from_seat, to_seat) do update set meaning = excluded.meaning,
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
   ('ceo.daily_run', 'ceo', interval '1 day', 'fn_ceo_daily_run_now',
-   'The morning read against the year-one path, the day''s priorities per seat, stuck handoffs re-run, the signals, and a founder note only when something matters.',
+   'The morning read against the year-one path, the day''s priorities per seat, stuck handoffs re-run and the signals; what matters is kept on the day, never mailed to the founder (ledger 1609: the daily brief is his one daily message).',
    'scripts/sql/the_ceo_runs_the_company_on_the_founders_year_one_targets.sql'),
   ('ceo.month_plan', 'ceo', interval '1 day', 'fn_ceo_month_plan_now',
    'Once a month: last month closed per seat, the monthly review to the founder, and each seat''s directive for the new month from the plan table.',

@@ -58,7 +58,8 @@ Deno.test('drawing_boq merges the coded set into the model reading instead of an
   assert(/idTerms = setIdentityTerms\(pages\)/.test(src), 'the merged take-off is gated on every page and the title strip, not on the model\'s 12k copy');
   assert(/if \(g\.boq\) return J\([^\n]*\n\s*\/\/[^\n]*\n\s*console\.warn\([^\n]*g\.found\.map\(\(f\) => \(f\.startsWith\('seed:'\) \? 'seed' : f\)\)[^\n]*\n\s*return codeAnswer\(\);/.test(src),
     'a reading not merged is said (never a seed by value: it is the party\'s name), and the coded set answers');
-  assert(/if \(set\) \{ idTerms = setIdentityTerms\(pages\); codeSet = set; \}/.test(src), 'a coded set is never kept without its identity terms');
+  // 10 Nov 2026: the terms are read for every PDF (the model's reading alone is gated with them too), still before the set is kept.
+  assert(/idTerms = setIdentityTerms\(pages\);\n\s*if \(set\) codeSet = set;/.test(src), 'a coded set is never kept without its identity terms');
   assert(/if \(codeSet && !key\) return codeAnswer\(\);/.test(src) && /ok === false\) \{ if \(codeSet\) return codeAnswer\(\);/.test(src), 'without the model the coded set still answers');
 });
 

@@ -8,7 +8,7 @@ function fakeAdmin(existing: any = null) {
   const writes: any[] = [];
   const chain = (table: string): any => {
     const c: any = {
-      select: () => c, eq: () => c, is: () => c,
+      select: () => c, eq: () => c, is: () => c, neq: () => c, not: () => c,
       maybeSingle: async () => ({ data: table === 'transactions' ? existing
         : table === 'quotes' ? { id: 'q1', inquiry_id: 'i1', supplier_id: 7, quote_amount: 118500 }
         : table === 'inquiries' ? { customer_id: 'c1' } : { refund_window_working_days: 3 } }),
@@ -33,7 +33,8 @@ Deno.test('an existing sale without a reference gets it; one with a reference ke
   assertEquals(a.writes.filter((w) => w.table === 'transactions').map((w) => w.v), [{ stripe_invoice_id: 'in_1ABC' }]);
   const b = fakeAdmin({ id: 'tx1', stripe_invoice_id: 'in_OTHER' });
   await recordRevealSale(b, args);
-  assertEquals(b.writes.length, 0);
+  // the sale itself is never rewritten (the statuses a repeat delivery heals are the test below)
+  assertEquals(b.writes.filter((w) => w.table === 'transactions').length, 0);
 });
 
 // 3 Nov 2026 (gap #7): two tabs, two succeeded PaymentIntents, one quote. The second came back "already recorded"
@@ -88,4 +89,44 @@ Deno.test('an invoice-id fallback and the real PaymentIntent of the same invoice
   const callsB: string[] = []; b.rpc = async (fn: string) => { callsB.push(fn); return { data: null }; };
   const rb: any = await recordRevealSale(b, { ...args, paymentRef: 'pi_x', invoiceId: '' });
   assertEquals([rb.other_payment, callsB], [undefined, []]);
+});
+
+// Customer-journey follow-up, 10 Nov 2026: the quote and the request were marked revealed BEFORE the sale was inserted, so
+// a failed insert left a "revealed" quote with no sale behind it. Fails on origin/main (the two updates come first).
+Deno.test('a sale that could not be written leaves the quote and the request as they were', async () => {
+  const a: any = fakeAdmin();
+  const base = a.from;
+  a.from = (t: string) => {
+    const c = base(t);
+    if (t === 'transactions') c.insert = (v: any) => { a.writes.push({ table: t, op: 'insert', v }); return { select: () => ({ single: async () => ({ data: null, error: { message: 'connection reset' } }) }) }; };
+    return c;
+  };
+  const r: any = await recordRevealSale(a, args);
+  assertEquals(r.error, 'insert failed: connection reset');
+  assertEquals(a.writes.filter((w: any) => w.op === 'update'), []);
+});
+
+Deno.test('the sale is written first, then the quote and the request read revealed', async () => {
+  const a = fakeAdmin();
+  await recordRevealSale(a, args);
+  assertEquals(a.writes.map((w) => w.table + ':' + w.op), ['transactions:insert', 'quotes:update', 'inquiries:update']);
+});
+
+// pricing_config.refund_window_working_days is 5 on production; this path sent a deadline computed with `?? 3`, and
+// trg_reveal_window computes it from the row when none is sent. Fails on origin/main (refund_deadline was sent).
+Deno.test('the refund deadline is left to the database, which reads pricing_config', async () => {
+  const a: any = fakeAdmin();
+  const rpcs: string[] = []; a.rpc = async (fn: string) => { rpcs.push(fn); return { data: null }; };
+  await recordRevealSale(a, args);
+  const ins = a.writes.find((w: any) => w.op === 'insert').v;
+  assertEquals(['refund_deadline' in ins, rpcs], [false, []]);
+  const src = await Deno.readTextFile(new URL('./reveal_sale.ts', import.meta.url));
+  assertEquals(/refund_window_working_days \?\? \d/.test(src), false, 'no hard-coded refund window');
+});
+
+Deno.test('the same sale delivered again writes the statuses its first delivery may not have', async () => {
+  const a = fakeAdmin({ id: 'tx1', stripe_invoice_id: 'in_1ABC', payment_ref: 'pi_x' });
+  const r: any = await recordRevealSale(a, args);
+  assertEquals([r.id, r.created], ['tx1', false]);
+  assertEquals(a.writes.map((w) => w.table + ':' + w.op), ['quotes:update', 'inquiries:update']);
 });

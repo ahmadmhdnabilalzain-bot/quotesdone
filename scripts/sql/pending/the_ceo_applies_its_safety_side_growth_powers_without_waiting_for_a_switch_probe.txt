@@ -1,0 +1,4 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run after
+the_ceo_applies_its_safety_side_growth_powers_without_waiting_for_a_switch.sql (or with it in the same rolled-back
+transaction while that file is pending, as scripts/checks/the_ceo_applies_its_safety_side_growth_powers_without_waiting_for_a_switch.test.mjs
+does with a token), and must print PROBE OK. This note therefore stays for the life of the file. Seat: ceo.

@@ -1,0 +1,4 @@
+Committed, not applied (it_engineer, 10 Nov 2026, branch it_engineer-whatsapp-followup): the brief for this branch was NO apply.
+Rehearsed rolled back with scripts/ci/rehearse_sql.mjs. Apply it with wa_inbound's deploy (customer_files.ts reads
+cred_fn_wa_drawings); until then a customer's WhatsApp drawing is stored and attached to their request and stays held for
+suppliers, unread. Moves when: the branch merges; then apply --ddl, delete this note and append the file to MANIFEST.txt.

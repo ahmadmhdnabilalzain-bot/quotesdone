@@ -3,6 +3,7 @@
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,516-line index.ts split into modules, a pure move).
 import { safeFilename, SAFE_UPLOAD, SAFE_CAD } from '../../_shared/attachment.ts';
 import { heldRun } from '../drawing_hold.ts';
+import { pdfIdentityTerms } from '../../_shared/drawing_identity_gate.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../../_shared/malware.ts';
@@ -66,33 +67,24 @@ export async function queueCadRead(o: { customerId: string; email: string; path:
   await startCadWorker(String(data.id), o.why);
   return String(data.id);
 }
-// THE QUEUE STARTS ITS OWN WORKER AGAIN (3 Nov 2026, sales_engineer). 27 Oct (#1605) this dispatch was removed because
-// GitHub Actions was off; 28 Oct the founder switched Actions back on (ledger 1410) and nothing restored it, so every
-// queued drawing waited for a hand run: the nightly journey's 2.1 MB DWG sat 'queued' for 248 s on 2 Nov and 253 s on
-// 3 Nov (runs 41410340385, 41598217377), where the same job was read in 66-67 s on 20-21 Oct while this dispatch lived
-// (runs 39349907536, 39520102356). A job is dispatched the moment it is queued, and while the customer's screen polls
-// one that has not started it is dispatched again AT MOST ONCE A MINUTE, for its first hour (cad_dispatch.ts: the poll
-// claims cad_read_jobs.last_dispatch_at in one UPDATE); past the hour the poll raises the held finding instead. A
-// refused or failed dispatch raises the hour's sales_engineer finding (cadReadHeld). NOT SEEN: a dispatch answered 204
-// whose run never starts after the customer closed the page - no poll comes, and nothing sweeps cad_read_jobs (the
-// worker's 6-hourly schedule is off). Prevented by cad_dispatch.test.ts and scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
+// THE QUEUE IS READ BY THE CAD READ ROUTINE, NOT BY GITHUB ACTIONS (it_engineer, 10 Nov 2026; channels audit R3).
+// History: 3 Nov this dispatched .github/workflows/cad-read-worker.yml the moment a job was queued (Actions on, ledger 1410).
+// Actions is OFF again (ledger 1564, budget spent), so every dispatch reached nothing: the channels audit's 2.1 MB DWG was
+// still queued after 264 s, 6 dispatches each failing in 2 s. The worker now runs as the Claude routine the founder switched
+// on that day ("QuotesDone — CAD read worker (every 2 h)", ledger: "Yes switch cad reader"): it runs scripts/cad_read_worker.ts,
+// which claims every queued job itself (fn_cad_read_claim, SKIP LOCKED) with the same LibreDWG reader the edge uses. Chosen
+// over the alternatives because it costs nothing extra (the subscription, no Actions minutes) and needs no new account or
+// token: pg_cron cannot run it (no Deno, no LibreDWG), the edge cannot (2 s CPU), a Hugging Face Space would need a
+// founder-held token and a Space kept awake. The price is the wait: a job is read at the routine's next run, at most
+// CAD_READER_EVERY_MS + its run time. So nothing is dispatched here, nothing reaches api.github.com, and a job the routine has
+// not taken by then raises the sales_engineer's held finding (cad_dispatch.ts). Prevented by cad_dispatch.test.ts and
+// scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
+export const CAD_READER_ROUTINE = 'QuotesDone — CAD read worker (every 2 h)';
 export async function startCadWorker(jobId: string, why: string): Promise<void> {
-  let answer = 'no_github_token';
-  try {
-    const gh = await getSecret('github_token');
-    if (gh) {
-      const r = await fetch('https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone/actions/workflows/cad-read-worker.yml/dispatches', {
-        method: 'POST', headers: { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'User-Agent': 'quotesdone-customer-api' },
-        body: JSON.stringify({ ref: 'main' }), signal: AbortSignal.timeout(5000) });
-      if (r.status === 204) return;
-      answer = `HTTP ${r.status}`;
-    }
-  } catch (_e) { answer = 'network'; }
-  console.error(`[cad] the CAD worker was not dispatched for job ${jobId} (${answer}); held for the sales_engineer`);
-  await cadReadHeld(jobId, `${why}; dispatch ${answer}`);
+  console.log(`[cad] job ${jobId} (${why}) is queued for the ${CAD_READER_ROUTINE} routine; it is read at its next run`);
 }
-// THE FALLBACK WHEN THE DISPATCH IS REFUSED (27 Oct 2026, it_engineer; since 3 Nov it runs when startCadWorker's
-// dispatch answers anything but 204, and when a polled job has not started within its first hour). Written when this used to dispatch .github/workflows/cad-read-worker.yml
+// THE HELD FINDING (27 Oct 2026, it_engineer; since 10 Nov 2026 it runs when a polled job was not taken by the CAD read
+// routine within its interval and run time, cad_dispatch.ts). Written when this used to dispatch .github/workflows/cad-read-worker.yml
 // and re-dispatch it while the customer's screen polled. GitHub Actions is off, so every dispatch reached nothing and a
 // queued drawing waited for a runner that never came while the customer was told "a few minutes". The reader cannot run
 // on the edge (2 s CPU cap; a scanned drawing is OCR'd for up to 30 minutes) nor in pg_cron (no Deno, no LibreDWG), so a
@@ -164,6 +156,46 @@ export async function recordHeld(row: ReturnType<typeof heldRun>): Promise<void>
     const { error } = await admin.from('drawing_redaction_runs').insert(row);
     if (error) console.error(`[drawing] the hold of ${row.source_path} was not recorded: ${error.message}`);
   } catch (e) { console.error(`[drawing] the hold of ${row.source_path} was not recorded: ${String((e as Error)?.message || e)}`); }
+  await drawingIdentityFinding('drawing_held', { source_path: row.source_path, reason: (row.verify_detail as { reason?: string })?.reason ?? null, pages_in: row.pages_in, pages_out: row.pages_out });
+}
+
+// A DRAWING, OR WHAT WAS READ FROM IT, HELD FROM SUPPLIERS IS THE SALES ENGINEER'S FINDING (10 Nov 2026, evidence run
+// ea40c830, ruling 1608 audit). The hold was a row on drawing_redaction_runs that no seat reads, and the request went to
+// suppliers without its drawing while nobody was told but the customer. One finding per kind per hour (the cadReadHeld
+// pattern above: a run of uploads must not flood the queue), naming the latest case. The evidence carries ids, paths and
+// counts only - never a term the gate matched, which is the customer's own identity.
+const FINDING_TITLE = {
+  drawing_held: 'A customer drawing is held from suppliers: not every page could be redacted and verified, so the request goes without it',
+  boq_identity_dropped: 'Lines read from a customer drawing still named a party (title block) and were dropped before suppliers saw the request',
+  boq_held: 'The take-off read from a customer drawing could not be proved free of identity and was held from suppliers',
+  sent_without_drawing: 'A request went to suppliers without its drawing: the drawing was not redacted and verified at Send',
+} as const;
+export async function drawingIdentityFinding(kind: keyof typeof FINDING_TITLE, evidence: Record<string, unknown>): Promise<void> {
+  try {
+    const { error } = await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: `sales_engineer:${kind}:` + new Date().toISOString().slice(0, 13),
+      p_title: FINDING_TITLE[kind],
+      p_where: 'customer_api analyze_drawing / create_inquiry -> drawing_redaction_runs, inquiries.boq', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { ...evidence, at: new Date().toISOString() },
+      p_raised_by: 'sales_engineer',
+    });
+    if (error) console.error(`[drawing] the ${kind} finding was not written: ${error.message}`);
+  } catch (e) { console.error(`[drawing] the ${kind} finding was not written: ${String((e as Error)?.message || e)}`); }
+}
+
+/**
+ * The identity terms of a request's stored drawing, read again AT SEND from the file itself (never from the browser).
+ * Not a PDF -> { pdf: false, terms: [] }; a file that cannot be read back, or a PDF whose text layer cannot be read ->
+ * terms null (the caller holds what was read from it).
+ */
+export async function storedDrawingTerms(path: string | null): Promise<{ pdf: boolean; words: number; terms: string[] | null }> {
+  if (!path) return { pdf: false, words: -1, terms: [] };
+  try {
+    const { data } = await admin.storage.from('drawing-files').download(path);
+    // A file that cannot be read back is unknown, not clean: terms null, and the caller holds what was read from it.
+    if (!data) return { pdf: false, words: -1, terms: null };
+    return await pdfIdentityTerms(new Uint8Array(await data.arrayBuffer()));
+  } catch (_e) { return { pdf: false, words: -1, terms: null }; }
 }
 
 // AUDIT 9.1 (3 Aug 2026). This is the least trusted input in the system: the customer drawing

@@ -5,20 +5,23 @@ import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { queueWhatsAppMeaning, whatsappReadings, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { defaultDeps, type Phase } from '../_shared/think.ts';
-import { type Content, type MenuDeps, menuTurn, type Turn } from './menu_flow.ts';
+import { type Content, type MenuDeps, menuTurn, type Turn, welcomeWrite } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
-import { type Audience, humanAlert, type Lang, MENU_IDS, menuItems } from './menu.ts';
+import { type Audience, humanAlert, type Lang, langOf, MENU_IDS, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { embedQuestion, FAQ_MIN_SIMILARITY } from './faq.ts';
 import { admin, itFinding, sec, TW } from './shared.ts';
 import { bidiSafe, sendWa, toContact } from './replies.ts';
 import type { WaTurn } from './turn.ts';
 
+/** One key for a write's inputs: the welcome drafted beside the classification is used only for the same inputs. */
+const writeKey = (r: { lang: string; audience: string; message: string; situation: string }) => JSON.stringify([r.lang, r.audience, r.message, r.situation]);
+
 /** The wall clock one classification call may take before it counts as unreasoned (see classifyDeps). */
 const CLASSIFY_MS = 20_000;
 
 export async function startClassification(t: WaTurn): Promise<void> {
-  const { From, Body, Profile, MessageSid, ListId, ButtonPayload, media, audience, known, receivedAt, waInsert, sayFor, heldTurn } = t;
+  const { From, Body, Profile, MessageSid, ListId, ButtonPayload, media, audience, known, receivedAt, waInsert, sayFor, heldTurn, askModel, adopt } = t;
   // ---- THE WELCOME AND THE MENU (22 Sep 2026, founder_instruction 759) ---------------------------
   // "said hi, got no response. Even without the LLM there should be automatic replies: a professional
   // welcome message and options." menu_flow.ts decides; this block only wires it to the database and
@@ -179,7 +182,15 @@ export async function startClassification(t: WaTurn): Promise<void> {
     },
     // A customer or supplier reply passes support_reply_guard.ts (FAQ rows can carry the licence number);
     // the founder's own command channel is not a customer surface and is left as it is.
-    write: (r) => sayFor(r.audience === 'unknown' ? 'visitor' : r.audience)(r.situation, r.lang, r.must),
+    write: async (r) => {
+      // the welcome line drafted beside the classification (below) is this line only when it was asked with exactly these inputs
+      if (welcomeDraft && !r.must?.length && (await welcomeDraft.key) === writeKey(r)) {
+        const said = await welcomeDraft.said;
+        if (said?.text) { t.timings.welcome_drafted = 1; return adopt(said); }
+      }
+      t.welcomeAbort.abort();
+      return await sayFor(r.audience === 'unknown' ? 'visitor' : r.audience)(r.situation, r.lang, r.must);
+    },
     outage: () => t.sayOutage,
     held: (r) => heldTurn(r.audience === 'unknown' ? 'visitor' : r.audience, r.lang, r.situation, r.route),
     send: (to: string, text: string, content?: Content) => {
@@ -221,13 +232,31 @@ export async function startClassification(t: WaTurn): Promise<void> {
   }).then((x) => x.value, () => null /* unreasoned is not "no": the route records it as held */)));
   // Held or failed, the person check falls back to its own think(): under the hold that files it for replay (no model).
   if (typedQuestion) readings();
-  Object.assign(t, { menuDeps, menuIn, typedQuestion, needsPersonP });
+  // THE WELCOME LINE IS DRAFTED BESIDE THE CLASSIFICATION FOR A SHORT MESSAGE (it_engineer, 10 Nov 2026, latency R4/R5). A plain
+  // "hi" measured p50 31 s: the classification (is it a greeting?) and THEN the model's opening line, two calls in series.
+  // Whether it is a greeting stays reasoned (decision point wa_inbound.greeting_state: no word list decides it, and rulings
+  // 1195-1197/1339 keep the line the model's), so the line is asked NOW, beside the classification, for a message short enough
+  // to be one (a FORMAT bound: at most 4 words and 30 characters, never its words). It is used only when the welcome is then
+  // asked with exactly these inputs (welcomeWrite in menu_flow.ts) and aborted otherwise; it runs in the speculative rate
+  // bucket and writes nothing the turn keeps until adopted. Prevented by: whatsapp_reply_latency.test.ts.
+  const short = Body.trim().length <= 30 && Body.trim().split(/\s+/).length <= 4;
+  const welcomeAbort = new AbortController();
+  let welcomeDraft: { key: Promise<string | null>; said: Promise<Awaited<ReturnType<typeof askModel>> | null> } | null = null;
+  if (typedQuestion && short && audience !== 'founder') {
+    const w = Promise.all([menuDeps.recentTurns(From), menuDeps.context(From)])
+      .then(([recent, ctx]) => welcomeWrite({ body: Body }, langOf(Body.trim(), recent[0]?.lang || 'en'), ctx)).catch(() => null);
+    const said = w.then((x) => x && (sec('wa_autoreply_enabled').then((on) => on === 'true'
+      ? askModel(x.audience === 'unknown' ? 'visitor' : x.audience, x.situation, x.lang, undefined, welcomeAbort.signal) : null))).catch(() => null);
+    welcomeDraft = { key: w.then((x) => (x ? writeKey(x) : null)), said };
+  }
+  Object.assign(t, { menuDeps, menuIn, typedQuestion, needsPersonP, welcomeAbort });
 }
 
 // A MENU ANSWER ENDS THE TURN (and stops the speculative draft, which would otherwise keep paying for a reply nobody sends).
 export async function answerFromTheMenu(t: WaTurn): Promise<Response | undefined> {
   const { audience, menuDeps, menuIn, specAbort, logRun } = t;
   const m = await menuTurn(menuDeps, menuIn);
+  if (!m.handled || m.route !== 'menu_welcome') t.welcomeAbort.abort();   // the welcome line drafted beside the classification was not this turn's
   if (m.handled) {
     specAbort.abort();
     await logRun('ok', { audience, route: m.route, cost_aed: 0 }, 'answered from the WhatsApp menu: ' + m.route);

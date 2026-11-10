@@ -141,16 +141,24 @@ async function answerOf(d: MenuDeps, text: string): Promise<string | null> {
   return cov ?? d.faq(text);
 }
 
+/** What the welcome's opening line is asked to say. Exported so the line can be drafted BESIDE the classification for a short
+ *  first message (classification.ts, it_engineer 10 Nov 2026, latency R4/R5): the draft is used only when the welcome is asked
+ *  with exactly these inputs, and a salam and a hello are asked the same way (the model sees which it was), so one draft
+ *  serves both readings. */
+export function welcomeWrite(inp: Pick<MenuInput, 'body'>, lang: Lang, ctx: Pick<MenuContext, 'audience' | 'name'>, lead: string | null = null, _salam = false) {
+  return { lang, audience: ctx.audience, message: String(inp.body || '').trim(),
+    situation: (lead ?? ('Greet them' + (ctx.name ? ' by name (' + ctx.name + ')' : '') + ', returning the salam if their message is one,'
+      + ' and if they asked something, start answering it.'))
+      + '\nOne or two short sentences only. Our standing introduction and an interactive list of options (new request, follow a request, suppliers, a question, report a problem, talk to a person) are sent right after your words, so do not introduce the company or list the options.' };
+}
+
 async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContext, route: string, lead: string | null,
                         more: Record<string, unknown> = {}, salam = false) {
   const key = contentKey(lang, ctx.audience);
   const sid = await d.contentSid(key);
   // Content body = {{1}} + WELCOME_TAIL, so the text we record is exactly what the list shows.
   // The interactive list is UI and stays; its opening line ({{1}}) is the model's, written from what this turn is.
-  let line = await d.write({ lang, audience: ctx.audience, message: String(inp.body || '').trim(),
-    situation: (lead ?? ('Greet them' + (ctx.name ? ' by name (' + ctx.name + ')' : '') + (salam ? ', returning the salam,' : '')
-      + ', and if they asked something, start answering it.'))
-      + '\nOne or two short sentences only. Our standing introduction and an interactive list of options (new request, follow a request, suppliers, a question, report a problem, talk to a person) are sent right after your words, so do not introduce the company or list the options.' });
+  let line = await d.write(welcomeWrite(inp, lang, ctx, lead, salam));
   if (!line) {
     const h = await d.held({ situation: lead ?? 'They greeted us or asked for the menu.', lang, audience: ctx.audience, route });
     await d.record({ inbound: String(inp.body || '').trim(), reply: h.notice, lang, sent: h.sent, route, await: null,
