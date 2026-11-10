@@ -5,8 +5,8 @@
       "id": "demolition_works:spec-checklist",
       "topic": "Demolition works - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for demolition works must state: structure description; demolition method; municipality demolition permit; utility disconnection; hazardous materials survey; waste disposal and recycling; site safety plan; programme; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): structure description, extent (strip-out, partial, full), hazardous-materials status and adjacent buildings. A site visit is unavoidable.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة أعمال الهدم: وصف المنشأة؛ طريقة الهدم؛ تصريح الهدم من البلدية؛ فصل الخدمات؛ مسح المواد الخطرة؛ التخلص من المخلفات وإعادة تدويرها؛ خطة السلامة في الموقع؛ البرنامج الزمني؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: وصف المنشأ، ونطاق الهدم (تفريغ داخلي أو جزئي أو كامل)، ووضع المواد الخطرة، والمباني المجاورة. وزيارة الموقع ضرورية.",
+      "body_en": "Each quoted service line for demolition works must state: structure description; demolition method; municipality demolition permit; utility disconnection; hazardous materials survey; waste disposal and recycling; site safety plan; programme; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; structure description, extent (strip-out, partial, full), hazardous-materials status and adjacent buildings. A site visit is unavoidable. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; salvage and scrap ownership; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة أعمال الهدم: وصف المنشأة؛ طريقة الهدم؛ تصريح الهدم من البلدية؛ فصل الخدمات؛ مسح المواد الخطرة؛ التخلص من المخلفات وإعادة تدويرها؛ خطة السلامة في الموقع؛ البرنامج الزمني؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، ووصف المنشأ، ونطاق الهدم (تفريغ داخلي أو جزئي أو كامل)، ووضع المواد الخطرة، والمباني المجاورة. وزيارة الموقع ضرورية. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وملكية المواد المستردة والخردة، وشروط الدفع.",
       "required_specs": [
         "structure description",
         "demolition method",
@@ -22,7 +22,10 @@
         "pricing basis",
         "exclusions",
         "full or partial demolition, or internal strip-out",
-        "adjacent buildings and distance to them"
+        "adjacent buildings and distance to them",
+        "site location and emirate",
+        "salvage and scrap ownership",
+        "payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/municipality-business/",
@@ -34,7 +37,8 @@
         "structure description",
         "full or partial demolition, or internal strip-out",
         "hazardous materials survey",
-        "adjacent buildings and distance to them"
+        "adjacent buildings and distance to them",
+        "site location and emirate"
       ],
       "spec_guide": [
         {
@@ -141,10 +145,32 @@
           "uae_options": "free-standing; adjoining",
           "follow_up_if": "Adjoining: ask for a method statement and monitoring.",
           "blocking": true
+        },
+        {
+          "spec": "site location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "salvage and scrap ownership",
+          "blocking": false,
+          "why_needed_to_price": "Steel, copper and reusable items the contractor keeps are credited against the price; items the owner keeps must be removed with care.",
+          "uae_options": "Contractor keeps all scrap; owner keeps listed items; scrap value credited in the price.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "A site visit is unavoidable before a firm demolition price, to see the structure, neighbours, access and hazardous materials.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "demolition_works:uae-standards-and-approvals",

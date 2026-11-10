@@ -229,8 +229,8 @@
       "id": "it_services:spec-structured-cabling",
       "topic": "What to state when requesting a structured cabling quote",
       "kind": "spec_checklist",
-      "body_en": "A cabling quote can only be compared when every supplier prices the same system. The buyer must state outlet count and density, the category and screening, jacket type, realistic link lengths (floor plans with rack positions are best), number of racks/telecom rooms, and whether containment (tray, basket, conduit, floor boxes) is by the cabling contractor or others. Patch cords are often left out of quotes and can be a significant sum - state quantity and lengths. For backbones, state fibre type, core count, connector and whether pre-terminated trunks or fusion splicing are wanted. Require 100% certification test reports in native format, labelling and as-built drawings, and the OEM system warranty if needed. Mention site constraints: occupied building, night work, mall or free-zone access permits, and ceiling access. Missing any of these means the quote should be held for clarification rather than guessed. Also state the expected handover date, the phasing (floor by floor or all at once), and whether existing cabling must be removed and disposed of. Removal of redundant cable in ceilings is often required by landlords and is rarely priced unless asked. Verification note (23 Sep 2026): checklist follows the verified cabling entries.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Number of data outlets and ports per outlet (single/double); Category (Cat6 / Cat6A) and screening (U/UTP, F/UTP, S/FTP); Average and maximum link length or floor plans with rack location; Number and location of telecom rooms/racks; Containment: cable tray/basket/conduit - by whom. Follow-up questions the answers trigger: Average and maximum link length or floor plans with rack location: No plans: site survey needed. Before a firm price: a firm price needs outlet count, category, floor plans with rack locations and the containment scope; an existing building needs a site survey.",
-      "body_ar": "لا يمكن مقارنة عروض الكابلات إلا إذا سعّر جميع الموردين النظام نفسه. على المشتري أن يحدد عدد المخارج وكثافتها، والفئة والتدريع، ونوع الغلاف، وأطوال الوصلات الواقعية (والأفضل تقديم مخططات الطوابق مع مواقع الخزائن)، وعدد الخزائن وغرف الاتصالات، وهل مسارات الكابلات (الحوامل والسلال والأنابيب وصناديق الأرضية) على مقاول الكابلات أم على غيره. وكثيراً ما تُستثنى أسلاك التوصيل من العروض رغم أن قيمتها قد تكون كبيرة، فحدّد الكمية والأطوال. وللعمود الفقري حدّد نوع الألياف وعدد الشعيرات والموصل وهل المطلوب كوابل مجهزة مسبقاً أو لحام بالانصهار. واشترط تقارير فحص اعتماد لـ100% من الوصلات بصيغتها الأصلية، والترقيم ومخططات التنفيذ الفعلي، وضمان النظام من المصنّع عند الحاجة. واذكر قيود الموقع: مبنى مشغول، عمل ليلي، تصاريح دخول المراكز التجارية أو المناطق الحرة، والوصول إلى السقف. وغياب أيٍّ من هذه البنود يعني تعليق العرض للاستيضاح لا التخمين. واذكر أيضاً موعد التسليم المتوقع، ومراحل التنفيذ (طابقاً بطابق أو دفعة واحدة)، وهل يجب إزالة الكابلات القائمة والتخلص منها. فإزالة الكابلات غير المستخدمة في الأسقف كثيراً ما يشترطها المالك، ونادراً ما تُسعّر ما لم تُطلب. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات الكابلات المتحقق منها.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: عدد المخارج، والفئة والتدريع، وأطوال الوصلات أو المخططات، وغرف الاتصالات والخزائن، ونطاق المجاري. المبنى القائم يحتاج مسحاً للموقع.",
+      "body_en": "A cabling quote can only be compared when every supplier prices the same system. The buyer must state outlet count and density, the category and screening, jacket type, realistic link lengths (floor plans with rack positions are best), number of racks/telecom rooms, and whether containment (tray, basket, conduit, floor boxes) is by the cabling contractor or others. Patch cords are often left out of quotes and can be a significant sum - state quantity and lengths. For backbones, state fibre type, core count, connector and whether pre-terminated trunks or fusion splicing are wanted. Require 100% certification test reports in native format, labelling and as-built drawings, and the OEM system warranty if needed. Mention site constraints: occupied building, night work, mall or free-zone access permits, and ceiling access. Missing any of these means the quote should be held for clarification rather than guessed. Also state the expected handover date, the phasing (floor by floor or all at once), and whether existing cabling must be removed and disposed of. Removal of redundant cable in ceilings is often required by landlords and is rarely priced unless asked. Verification note (23 Sep 2026): checklist follows the verified cabling entries.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; Number of data outlets and ports per outlet (single/double); Category (Cat6 / Cat6A) and screening (U/UTP, F/UTP, S/FTP); Average and maximum link length or floor plans with rack location; Number and location of telecom rooms/racks; Containment: cable tray/basket/conduit - by whom. Follow-up questions the answers trigger: Average and maximum link length or floor plans with rack location: No plans: site survey needed. Before a firm price: a firm price needs outlet count, category, floor plans with rack locations and the containment scope; an existing building needs a site survey. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; payment terms.",
+      "body_ar": "لا يمكن مقارنة عروض الكابلات إلا إذا سعّر جميع الموردين النظام نفسه. على المشتري أن يحدد عدد المخارج وكثافتها، والفئة والتدريع، ونوع الغلاف، وأطوال الوصلات الواقعية (والأفضل تقديم مخططات الطوابق مع مواقع الخزائن)، وعدد الخزائن وغرف الاتصالات، وهل مسارات الكابلات (الحوامل والسلال والأنابيب وصناديق الأرضية) على مقاول الكابلات أم على غيره. وكثيراً ما تُستثنى أسلاك التوصيل من العروض رغم أن قيمتها قد تكون كبيرة، فحدّد الكمية والأطوال. وللعمود الفقري حدّد نوع الألياف وعدد الشعيرات والموصل وهل المطلوب كوابل مجهزة مسبقاً أو لحام بالانصهار. واشترط تقارير فحص اعتماد لـ100% من الوصلات بصيغتها الأصلية، والترقيم ومخططات التنفيذ الفعلي، وضمان النظام من المصنّع عند الحاجة. واذكر قيود الموقع: مبنى مشغول، عمل ليلي، تصاريح دخول المراكز التجارية أو المناطق الحرة، والوصول إلى السقف. وغياب أيٍّ من هذه البنود يعني تعليق العرض للاستيضاح لا التخمين. واذكر أيضاً موعد التسليم المتوقع، ومراحل التنفيذ (طابقاً بطابق أو دفعة واحدة)، وهل يجب إزالة الكابلات القائمة والتخلص منها. فإزالة الكابلات غير المستخدمة في الأسقف كثيراً ما يشترطها المالك، ونادراً ما تُسعّر ما لم تُطلب. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات الكابلات المتحقق منها.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: موقع العمل والإمارة، وعدد المخارج، والفئة والتدريع، وأطوال الوصلات أو المخططات، وغرف الاتصالات والخزائن، ونطاق المجاري. المبنى القائم يحتاج مسحاً للموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وشروط الدفع.",
       "required_specs": [
         "Number of data outlets and ports per outlet (single/double)",
         "Category (Cat6 / Cat6A) and screening (U/UTP, F/UTP, S/FTP)",
@@ -244,7 +244,9 @@
         "Testing: 100% certification, permanent link, tester level, report format",
         "Manufacturer system warranty required (e.g. 25-year) and in whose name",
         "Labelling standard (TIA-606) and as-built drawings",
-        "Site conditions: occupied/after-hours work, ceiling type, building access permits"
+        "Site conditions: occupied/after-hours work, ceiling type, building access permits",
+        "site location and emirate",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/ANSI/TIA-568",
@@ -258,7 +260,8 @@
         "Category (Cat6 / Cat6A) and screening (U/UTP, F/UTP, S/FTP)",
         "Average and maximum link length or floor plans with rack location",
         "Number and location of telecom rooms/racks",
-        "Containment: cable tray/basket/conduit - by whom"
+        "Containment: cable tray/basket/conduit - by whom",
+        "site location and emirate"
       ],
       "spec_guide": [
         {
@@ -351,17 +354,32 @@
           "uae_options": "occupied; after hours; permits",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "site location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "a firm price needs outlet count, category, floor plans with rack locations and the containment scope; an existing building needs a site survey.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "it_services:spec-wifi-network",
       "topic": "What to state when requesting a Wi-Fi / LAN network quote",
       "kind": "spec_checklist",
-      "body_en": "Wireless and LAN projects are priced from capacity and coverage, not just floor area. State the building size and construction (concrete, glass, metal partitions all affect access point count), the number of users and devices, and any high-density zones. Say which Wi-Fi generation is required and whether a survey is included - a predictive survey is cheap, an on-site validation survey after installation proves coverage. Give the PoE device list so switches are sized correctly, and state uplink and redundancy expectations. Management licences are recurring; ask every supplier to price the same term. For the internet edge, state the number of users, VPN needs and whether a high-availability firewall pair is required. Require TDRA type approval evidence for all radio equipment and include configuration, documentation (IP plan, VLANs, credentials handover) and training. Also state acceptance criteria that can be measured, such as minimum signal strength (for example -67 dBm for voice-grade coverage), minimum throughput per client in key rooms, and roaming behaviour. Without measurable criteria, a supplier can claim success once access points power on, even if coverage is poor. Verification note (23 Sep 2026): Cisco's VoWLAN guidance confirms -67 dBm as the recommended voice cell edge.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Floor area, number of floors, wall/ceiling construction; Expected users and devices per area, high-density zones (meeting rooms, halls); Site survey required: predictive, on-site pre/post; Number of wired ports and PoE devices by class. Follow-up questions the answers trigger: Site survey required: predictive, on-site pre/post: Large or complex sites: on-site survey needed. Before a firm price: a firm price needs area, floors, users and wired port counts; anything beyond a small office needs a predictive or on-site wireless survey before a firm design and price.",
-      "body_ar": "تُسعّر مشاريع الشبكات اللاسلكية والمحلية وفق السعة والتغطية لا وفق المساحة وحدها. حدّد حجم المبنى ومواد إنشائه (فالخرسانة والزجاج والفواصل المعدنية كلها تؤثر على عدد نقاط الوصول)، وعدد المستخدمين والأجهزة، وأي مناطق عالية الكثافة. واذكر جيل Wi-Fi المطلوب وهل المسح مشمول؛ فالمسح التنبؤي رخيص، ومسح التحقق الميداني بعد التركيب هو ما يثبت التغطية. وقدّم قائمة أجهزة PoE ليُحسب حجم المبدّلات صحيحاً، وحدّد توقعات روابط الصعود والاحتياط. وتراخيص الإدارة متكررة، فاطلب من كل مورد تسعير المدة نفسها. ولحافة الإنترنت حدّد عدد المستخدمين واحتياجات VPN وهل المطلوب زوج جدران نارية بتوافر عالٍ. واشترط إثبات اعتماد الطراز من هيئة تنظيم الاتصالات والحكومة الرقمية لجميع الأجهزة الراديوية، وأدرج الإعداد والتوثيق (مخطط العناوين، والشبكات الافتراضية، وتسليم كلمات المرور) والتدريب. واذكر أيضاً معايير قبول قابلة للقياس، مثل الحد الأدنى لقوة الإشارة (مثلاً -67 ديسيبل ملي واط لتغطية مناسبة للمكالمات)، والحد الأدنى للإنتاجية لكل مستخدم في الغرف الرئيسية، وسلوك التنقل بين النقاط. فمن دون معايير قابلة للقياس يمكن للمورد ادعاء النجاح بمجرد تشغيل نقاط الوصول حتى لو كانت التغطية ضعيفة. ملاحظة التحقق (23 سبتمبر 2026): تؤكد إرشادات Cisco أن -67 ديسيبل ملي واط هي حافة الخلية الموصى بها للصوت.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: المساحة والطوابق والبناء، وعدد المستخدمين والأجهزة، والمسح اللاسلكي، والمنافذ السلكية والطاقة عبر الشبكة. ما يتجاوز المكتب الصغير يحتاج مسحاً تنبؤياً أو ميدانياً قبل التصميم والسعر النهائي.",
+      "body_en": "Wireless and LAN projects are priced from capacity and coverage, not just floor area. State the building size and construction (concrete, glass, metal partitions all affect access point count), the number of users and devices, and any high-density zones. Say which Wi-Fi generation is required and whether a survey is included - a predictive survey is cheap, an on-site validation survey after installation proves coverage. Give the PoE device list so switches are sized correctly, and state uplink and redundancy expectations. Management licences are recurring; ask every supplier to price the same term. For the internet edge, state the number of users, VPN needs and whether a high-availability firewall pair is required. Require TDRA type approval evidence for all radio equipment and include configuration, documentation (IP plan, VLANs, credentials handover) and training. Also state acceptance criteria that can be measured, such as minimum signal strength (for example -67 dBm for voice-grade coverage), minimum throughput per client in key rooms, and roaming behaviour. Without measurable criteria, a supplier can claim success once access points power on, even if coverage is poor. Verification note (23 Sep 2026): Cisco's VoWLAN guidance confirms -67 dBm as the recommended voice cell edge.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; Floor area, number of floors, wall/ceiling construction; Expected users and devices per area, high-density zones (meeting rooms, halls); Site survey required: predictive, on-site pre/post; Number of wired ports and PoE devices by class. Follow-up questions the answers trigger: Site survey required: predictive, on-site pre/post: Large or complex sites: on-site survey needed. Before a firm price: a firm price needs area, floors, users and wired port counts; anything beyond a small office needs a predictive or on-site wireless survey before a firm design and price. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; payment terms.",
+      "body_ar": "تُسعّر مشاريع الشبكات اللاسلكية والمحلية وفق السعة والتغطية لا وفق المساحة وحدها. حدّد حجم المبنى ومواد إنشائه (فالخرسانة والزجاج والفواصل المعدنية كلها تؤثر على عدد نقاط الوصول)، وعدد المستخدمين والأجهزة، وأي مناطق عالية الكثافة. واذكر جيل Wi-Fi المطلوب وهل المسح مشمول؛ فالمسح التنبؤي رخيص، ومسح التحقق الميداني بعد التركيب هو ما يثبت التغطية. وقدّم قائمة أجهزة PoE ليُحسب حجم المبدّلات صحيحاً، وحدّد توقعات روابط الصعود والاحتياط. وتراخيص الإدارة متكررة، فاطلب من كل مورد تسعير المدة نفسها. ولحافة الإنترنت حدّد عدد المستخدمين واحتياجات VPN وهل المطلوب زوج جدران نارية بتوافر عالٍ. واشترط إثبات اعتماد الطراز من هيئة تنظيم الاتصالات والحكومة الرقمية لجميع الأجهزة الراديوية، وأدرج الإعداد والتوثيق (مخطط العناوين، والشبكات الافتراضية، وتسليم كلمات المرور) والتدريب. واذكر أيضاً معايير قبول قابلة للقياس، مثل الحد الأدنى لقوة الإشارة (مثلاً -67 ديسيبل ملي واط لتغطية مناسبة للمكالمات)، والحد الأدنى للإنتاجية لكل مستخدم في الغرف الرئيسية، وسلوك التنقل بين النقاط. فمن دون معايير قابلة للقياس يمكن للمورد ادعاء النجاح بمجرد تشغيل نقاط الوصول حتى لو كانت التغطية ضعيفة. ملاحظة التحقق (23 سبتمبر 2026): تؤكد إرشادات Cisco أن -67 ديسيبل ملي واط هي حافة الخلية الموصى بها للصوت.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: موقع العمل والإمارة، والمساحة والطوابق والبناء، وعدد المستخدمين والأجهزة، والمسح اللاسلكي، والمنافذ السلكية والطاقة عبر الشبكة. ما يتجاوز المكتب الصغير يحتاج مسحاً تنبؤياً أو ميدانياً قبل التصميم والسعر النهائي. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وشروط الدفع.",
       "required_specs": [
         "Floor area, number of floors, wall/ceiling construction",
         "Expected users and devices per area, high-density zones (meeting rooms, halls)",
@@ -375,7 +393,9 @@
         "Guest Wi-Fi, captive portal, VLAN segmentation",
         "TDRA type approval for all wireless models",
         "Installation, configuration, documentation and training included",
-        "Warranty and support level (NBD/4-hour, years)"
+        "Warranty and support level (NBD/4-hour, years)",
+        "site location and emirate",
+        "payment terms"
       ],
       "sources": [
         "https://www.cisco.com/c/en/us/td/docs/wireless/technology/vowlan/troubleshooting/vowlan_troubleshoot/8_Site_Survey_RF_Design_Valid.html",
@@ -388,7 +408,8 @@
         "Floor area, number of floors, wall/ceiling construction",
         "Expected users and devices per area, high-density zones (meeting rooms, halls)",
         "Site survey required: predictive, on-site pre/post",
-        "Number of wired ports and PoE devices by class"
+        "Number of wired ports and PoE devices by class",
+        "site location and emirate"
       ],
       "spec_guide": [
         {
@@ -481,17 +502,32 @@
           "uae_options": "NBD; 4-hour; years",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "site location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "a firm price needs area, floors, users and wired port counts; anything beyond a small office needs a predictive or on-site wireless survey before a firm design and price.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "it_services:spec-fibre-backbone",
       "topic": "What to state when requesting a fibre optic backbone quote",
       "kind": "spec_checklist",
-      "body_en": "Fibre prices depend heavily on construction and termination method. State the fibre type and core count (spare cores are cheap to add now and expensive later), the route length, and whether the cable runs indoors, in risers, underground ducts or between buildings (armoured, water-blocked, LSZH as applicable). Termination options differ in cost and loss: fusion-spliced pigtails give the lowest loss; pre-terminated MPO/LC trunks install fast but need exact lengths; field-installable connectors are quick but more variable. Specify connectors and polish (APC is typical for operator/FTTH and some video systems). Require Tier 1 insertion-loss tests at both wavelengths and directions and an OTDR trace for long or spliced links. Between plots or across roads, civil works and authority permits are usually the biggest cost and lead-time item. Finally, ask for a loss budget calculation for each link: the allowed loss per kilometre of fibre, per connector pair and per splice, compared with what the planned optics can tolerate. This shows before installation whether the link will work at the intended speed, and gives an acceptance limit for the test results. Also state the labelling of cores and trays and who keeps the splice records. Verification note (23 Sep 2026): checklist follows the verified fibre entries.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Fibre type (OM3/OM4/OM5/OS2); Core count per link; Route lengths and number of links; Indoor/outdoor, armoured, LSZH, direct burial or duct. Before a firm price: a firm price needs fibre type, cores, route lengths and environment; links between buildings need a route survey.",
-      "body_ar": "تعتمد أسعار الألياف بدرجة كبيرة على نوع الكابل وطريقة التطريف. حدّد نوع الألياف وعدد الشعيرات (فإضافة شعيرات احتياطية الآن رخيصة ولاحقاً مكلفة)، وطول المسار، وهل يمر الكابل داخلياً أو في الصواعد أو في قنوات أرضية أو بين المباني (مدرع، مانع للماء، LSZH حسب الحالة). وتختلف خيارات التطريف في التكلفة والفقد: اللحام بالانصهار مع ألياف التوصيل يعطي أقل فقد، والكوابل المجهزة مسبقاً MPO/LC سريعة التركيب لكنها تتطلب أطوالاً دقيقة، والموصلات الميدانية سريعة لكنها أقل ثباتاً. وحدّد الموصلات ونوع الصقل (APC شائع لدى المشغلين وفي الألياف المنزلية وبعض أنظمة الفيديو). واشترط اختبارات فقد الإدخال من المستوى الأول بالطولين الموجيين والاتجاهين، ومسار OTDR للوصلات الطويلة أو الملحومة. وبين القطع أو عبر الطرق تكون الأعمال المدنية وتصاريح الجهات عادة أكبر بند في التكلفة والمدة. وأخيراً اطلب حساب ميزانية الفقد لكل وصلة: الفقد المسموح لكل كيلومتر من الألياف ولكل زوج موصلات ولكل لحام، مقارنة بما تتحمله الوحدات البصرية المخططة. وهذا يبين قبل التركيب هل ستعمل الوصلة بالسرعة المقصودة، ويعطي حداً للقبول عند نتائج الفحص. وحدّد أيضاً ترقيم الشعيرات والصواني ومن يحتفظ بسجلات اللحام. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات الألياف المتحقق منها.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: نوع الألياف، وعدد الشعيرات، وأطوال المسارات، وبيئة التمديد. الوصلات بين المباني تحتاج مسحاً للمسار.",
+      "body_en": "Fibre prices depend heavily on construction and termination method. State the fibre type and core count (spare cores are cheap to add now and expensive later), the route length, and whether the cable runs indoors, in risers, underground ducts or between buildings (armoured, water-blocked, LSZH as applicable). Termination options differ in cost and loss: fusion-spliced pigtails give the lowest loss; pre-terminated MPO/LC trunks install fast but need exact lengths; field-installable connectors are quick but more variable. Specify connectors and polish (APC is typical for operator/FTTH and some video systems). Require Tier 1 insertion-loss tests at both wavelengths and directions and an OTDR trace for long or spliced links. Between plots or across roads, civil works and authority permits are usually the biggest cost and lead-time item. Finally, ask for a loss budget calculation for each link: the allowed loss per kilometre of fibre, per connector pair and per splice, compared with what the planned optics can tolerate. This shows before installation whether the link will work at the intended speed, and gives an acceptance limit for the test results. Also state the labelling of cores and trays and who keeps the splice records. Verification note (23 Sep 2026): checklist follows the verified fibre entries.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; Fibre type (OM3/OM4/OM5/OS2); Core count per link; Route lengths and number of links; Indoor/outdoor, armoured, LSZH, direct burial or duct. Before a firm price: a firm price needs fibre type, cores, route lengths and environment; links between buildings need a route survey. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; payment terms.",
+      "body_ar": "تعتمد أسعار الألياف بدرجة كبيرة على نوع الكابل وطريقة التطريف. حدّد نوع الألياف وعدد الشعيرات (فإضافة شعيرات احتياطية الآن رخيصة ولاحقاً مكلفة)، وطول المسار، وهل يمر الكابل داخلياً أو في الصواعد أو في قنوات أرضية أو بين المباني (مدرع، مانع للماء، LSZH حسب الحالة). وتختلف خيارات التطريف في التكلفة والفقد: اللحام بالانصهار مع ألياف التوصيل يعطي أقل فقد، والكوابل المجهزة مسبقاً MPO/LC سريعة التركيب لكنها تتطلب أطوالاً دقيقة، والموصلات الميدانية سريعة لكنها أقل ثباتاً. وحدّد الموصلات ونوع الصقل (APC شائع لدى المشغلين وفي الألياف المنزلية وبعض أنظمة الفيديو). واشترط اختبارات فقد الإدخال من المستوى الأول بالطولين الموجيين والاتجاهين، ومسار OTDR للوصلات الطويلة أو الملحومة. وبين القطع أو عبر الطرق تكون الأعمال المدنية وتصاريح الجهات عادة أكبر بند في التكلفة والمدة. وأخيراً اطلب حساب ميزانية الفقد لكل وصلة: الفقد المسموح لكل كيلومتر من الألياف ولكل زوج موصلات ولكل لحام، مقارنة بما تتحمله الوحدات البصرية المخططة. وهذا يبين قبل التركيب هل ستعمل الوصلة بالسرعة المقصودة، ويعطي حداً للقبول عند نتائج الفحص. وحدّد أيضاً ترقيم الشعيرات والصواني ومن يحتفظ بسجلات اللحام. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات الألياف المتحقق منها.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: موقع العمل والإمارة، ونوع الألياف، وعدد الشعيرات، وأطوال المسارات، وبيئة التمديد. الوصلات بين المباني تحتاج مسحاً للمسار. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وشروط الدفع.",
       "required_specs": [
         "Fibre type (OM3/OM4/OM5/OS2)",
         "Core count per link",
@@ -501,7 +537,9 @@
         "Connector type and polish (LC/SC/MPO, UPC/APC)",
         "Fibre enclosures/ODF: rack-mount units, cassettes",
         "Testing: Tier 1 OLTS both directions; OTDR if required",
-        "Civil works/ducts and permits if between buildings"
+        "Civil works/ducts and permits if between buildings",
+        "site location and emirate",
+        "payment terms"
       ],
       "sources": [
         "https://www.flukenetworks.com/knowledge-base/copper-testing/om1-om2-om3-om4-om5-and-os1-os2-fiber",
@@ -514,7 +552,8 @@
         "Fibre type (OM3/OM4/OM5/OS2)",
         "Core count per link",
         "Route lengths and number of links",
-        "Indoor/outdoor, armoured, LSZH, direct burial or duct"
+        "Indoor/outdoor, armoured, LSZH, direct burial or duct",
+        "site location and emirate"
       ],
       "spec_guide": [
         {
@@ -579,10 +618,25 @@
           "uae_options": "ducts; permits",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "site location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "a firm price needs fibre type, cores, route lengths and environment; links between buildings need a route survey.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "it_services:quote-red-flags-it",

@@ -5,8 +5,8 @@
       "id": "hazardous_waste:spec-checklist",
       "topic": "Hazardous waste management - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For hazardous waste management (trade code hazardous_waste only), every quoted line must state: Waste stream and classification; Estimated quantity per collection; Packaging and labelling responsibility; Transport vehicle and permit; Treatment or disposal route; Waste manifest and disposal certificate; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): stream and classification, quantity and packaging responsibility. Unknown waste needs a lab analysis.",
-      "body_ar": "في نشاط إدارة النفايات الخطرة (رمز النشاط hazardous_waste فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع النفايات وتصنيفها؛ الكمية التقديرية لكل عملية جمع؛ مسؤولية التعبئة ووضع البطاقات؛ مركبة النقل وتصريحها؛ مسار المعالجة أو التخلص؛ بيان النفايات وشهادة التخلص؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع النفايات وتصنيفها، والكمية، ومسؤولية التعبئة. والنفايات غير المعروفة تحتاج إلى تحليل مخبري.",
+      "body_en": "For hazardous waste management (trade code hazardous_waste only), every quoted line must state: Waste stream and classification; Estimated quantity per collection; Packaging and labelling responsibility; Transport vehicle and permit; Treatment or disposal route; Waste manifest and disposal certificate; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): collection site and emirate; stream and classification, quantity and packaging responsibility. Unknown waste needs a lab analysis. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states collection site and emirate.",
+      "body_ar": "في نشاط إدارة النفايات الخطرة (رمز النشاط hazardous_waste فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع النفايات وتصنيفها؛ الكمية التقديرية لكل عملية جمع؛ مسؤولية التعبئة ووضع البطاقات؛ مركبة النقل وتصريحها؛ مسار المعالجة أو التخلص؛ بيان النفايات وشهادة التخلص؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، ونوع النفايات وتصنيفها، والكمية، ومسؤولية التعبئة. والنفايات غير المعروفة تحتاج إلى تحليل مخبري. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة.",
       "required_specs": [
         "Waste stream and classification",
         "Estimated quantity per collection",
@@ -19,7 +19,8 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "collection site and emirate"
       ],
       "sources": [
         "https://www.dm.gov.ae/",
@@ -30,7 +31,8 @@
       "blocking": [
         "Waste stream and classification",
         "Estimated quantity per collection",
-        "Packaging and labelling responsibility"
+        "Packaging and labelling responsibility",
+        "collection site and emirate"
       ],
       "spec_guide": [
         {
@@ -116,10 +118,18 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "collection site and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
         }
       ],
       "site_visit_required_when": "A site visit and, where composition is unknown, a lab analysis are unavoidable before a firm price.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "hazardous_waste:uae-standards-and-approvals",

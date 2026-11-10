@@ -5,8 +5,8 @@
       "id": "waste_management:spec-checklist",
       "topic": "Waste management - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For waste management quotes to be compared like-for-like, every quoted line (services) must state: (1) waste streams (general, recyclable, construction, hazardous, medical); (2) estimated volume per week; (3) bin or skip sizes and number; (4) collection frequency; (5) disposal site and tipping fees; (6) licensed waste transporter; (7) manifests and disposal certificates; (8) recycling reporting; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the waste_management trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): waste streams, volume, container sizes and collection frequency.",
-      "body_ar": "لكي تُقارن عروض إدارة النفايات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) أنواع النفايات (عامة، أو قابلة للتدوير، أو إنشائية، أو خطرة، أو طبية)؛ (2) الحجم التقديري أسبوعياً؛ (3) أحجام الحاويات وعددها؛ (4) تكرار الجمع؛ (5) موقع التخلص ورسوم الإلقاء؛ (6) ناقل نفايات مرخص؛ (7) بيانات الشحن وشهادات التخلص؛ (8) تقارير إعادة التدوير؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة waste_management فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: أنواع النفايات، والكمية، وأحجام الحاويات، وتكرار الجمع.",
+      "body_en": "For waste management quotes to be compared like-for-like, every quoted line (services) must state: (1) waste streams (general, recyclable, construction, hazardous, medical); (2) estimated volume per week; (3) bin or skip sizes and number; (4) collection frequency; (5) disposal site and tipping fees; (6) licensed waste transporter; (7) manifests and disposal certificates; (8) recycling reporting; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the waste_management trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): waste streams, volume, container sizes and collection frequency. Supplier ask-back review (2026-11-10): the inquiry now also states Service location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: waste streams (general, recyclable, construction, hazardous, medical); estimated volume per week; bin or skip sizes and number; collection frequency; Service location and emirate.",
+      "body_ar": "لكي تُقارن عروض إدارة النفايات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) أنواع النفايات (عامة، أو قابلة للتدوير، أو إنشائية، أو خطرة، أو طبية)؛ (2) الحجم التقديري أسبوعياً؛ (3) أحجام الحاويات وعددها؛ (4) تكرار الجمع؛ (5) موقع التخلص ورسوم الإلقاء؛ (6) ناقل نفايات مرخص؛ (7) بيانات الشحن وشهادات التخلص؛ (8) تقارير إعادة التدوير؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة waste_management فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: أنواع النفايات، والكمية، وأحجام الحاويات، وتكرار الجمع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع تقديم الخدمة والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "waste streams (general, recyclable, construction, hazardous, medical)",
         "estimated volume per week",
@@ -18,7 +18,9 @@
         "recycling reporting",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Service location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/"
@@ -29,7 +31,8 @@
         "waste streams (general, recyclable, construction, hazardous, medical)",
         "estimated volume per week",
         "bin or skip sizes and number",
-        "collection frequency"
+        "collection frequency",
+        "Service location and emirate"
       ],
       "spec_guide": [
         {
@@ -108,9 +111,23 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "Service location and emirate",
+          "why_needed_to_price": "Collection rounds, the haul distance to the approved disposal site and the municipality whose fees apply all follow the premises and its emirate.",
+          "uae_options": "Dubai, Abu Dhabi, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah or Fujairah; mainland or free zone; one site or several; city, industrial area or remote site.",
+          "follow_up_if": "If there is more than one site, ask the address and the volume or headcount at each.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
       "site_visit_required_when": null
     },
     {

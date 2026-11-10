@@ -5,8 +5,8 @@
       "id": "logistics_moving:spec-checklist",
       "topic": "Logistics and moving - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For logistics and moving (trade code logistics_moving only), every quoted line must state: Goods description and volume; Origin and destination; Vehicle type and number; Packing and crating scope; Transit insurance; Customs clearance scope; Move date and window; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Goods description and volume; Origin and destination; Vehicle type and number; Customs clearance scope; Move date and window; Pricing basis; Incoterm. Follow-up questions the answers trigger: Goods description and volume: Dangerous goods bring UN number and class; project cargo brings dimensions and lifting points. Origin and destination: Cross-border trucking brings border documents and transit time. Vehicle type and number: Oversize loads bring police escort and road permits. Transit insurance: Ask the cargo value. Customs clearance scope: Free-zone to mainland moves bring a customs declaration and duty. Before a firm price: project cargo and oversize loads need a route survey and the cargo drawing; recurring contracts need the volume forecast.",
-      "body_ar": "في نشاط الخدمات اللوجستية والنقل (رمز النشاط logistics_moving فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: وصف البضائع وحجمها؛ نقطة الانطلاق والوجهة؛ نوع المركبات وعددها؛ نطاق التغليف والتصنيد؛ تأمين النقل؛ نطاق التخليص الجمركي؛ تاريخ النقل والفترة الزمنية؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: وصف البضائع وحجمها، والمنشأ والوجهة، ونوع المركبة وعددها، ونطاق التخليص الجمركي، وموعد النقل ونافذته، وأساس التسعير، وشرط التجارة. أسئلة المتابعة: البضائع الخطرة تستلزم رقم الأمم المتحدة والفئة، والشحنات المشروعية تستلزم الأبعاد ونقاط الرفع، والنقل البري عبر الحدود يستلزم وثائق المنافذ، والأحمال الكبيرة تستلزم مرافقة الشرطة وتصاريح الطرق، والنقل من منطقة حرة إلى البر الرئيسي يستلزم بياناً جمركياً ورسوماً، ويُسأل عن قيمة البضاعة. الشحنات المشروعية تحتاج مسحاً للمسار ورسم الحمولة.",
+      "body_en": "For logistics and moving (trade code logistics_moving only), every quoted line must state: Goods description and volume; Origin and destination; Vehicle type and number; Packing and crating scope; Transit insurance; Customs clearance scope; Move date and window; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Goods description and volume; Origin and destination; Vehicle type and number; Customs clearance scope; Move date and window; Pricing basis; Incoterm. Follow-up questions the answers trigger: Goods description and volume: Dangerous goods bring UN number and class; project cargo brings dimensions and lifting points. Origin and destination: Cross-border trucking brings border documents and transit time. Vehicle type and number: Oversize loads bring police escort and road permits. Transit insurance: Ask the cargo value. Customs clearance scope: Free-zone to mainland moves bring a customs declaration and duty. Before a firm price: project cargo and oversize loads need a route survey and the cargo drawing; recurring contracts need the volume forecast. Supplier ask-back review (2026-11-10): the inquiry now also states Loading and delivery access at both ends; Declared cargo value for insurance; Payment terms, so no supplier has to come back to the customer for them. Vehicle type and number is no longer quote-blocking: the provider chooses the vehicle from the goods, weight, volume and access the inquiry already states, so the customer is not asked to name a truck. Quote-blocking after this review: Goods description and volume; Origin and destination; Customs clearance scope; Move date and window; Pricing basis; Incoterm.",
+      "body_ar": "في نشاط الخدمات اللوجستية والنقل (رمز النشاط logistics_moving فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: وصف البضائع وحجمها؛ نقطة الانطلاق والوجهة؛ نوع المركبات وعددها؛ نطاق التغليف والتصنيد؛ تأمين النقل؛ نطاق التخليص الجمركي؛ تاريخ النقل والفترة الزمنية؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: وصف البضائع وحجمها، والمنشأ والوجهة، ونوع المركبة وعددها، ونطاق التخليص الجمركي، وموعد النقل ونافذته، وأساس التسعير، وشرط التجارة. أسئلة المتابعة: البضائع الخطرة تستلزم رقم الأمم المتحدة والفئة، والشحنات المشروعية تستلزم الأبعاد ونقاط الرفع، والنقل البري عبر الحدود يستلزم وثائق المنافذ، والأحمال الكبيرة تستلزم مرافقة الشرطة وتصاريح الطرق، والنقل من منطقة حرة إلى البر الرئيسي يستلزم بياناً جمركياً ورسوماً، ويُسأل عن قيمة البضاعة. الشحنات المشروعية تحتاج مسحاً للمسار ورسم الحمولة. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً الوصول للتحميل والتسليم في الطرفين؛ القيمة المصرّح بها للبضاعة للتأمين؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «نوع المركبة وعددها» مانعاً للتسعير: يختار المورّد المركبة من وصف البضاعة ووزنها وحجمها وظروف الوصول المذكورة في الطلب، فلا يُطلب من العميل تسمية الشاحنة.",
       "required_specs": [
         "Goods description and volume",
         "Origin and destination",
@@ -21,7 +21,10 @@
         "Duration and schedule",
         "Pricing basis",
         "Exclusions",
-        "Incoterm"
+        "Incoterm",
+        "Loading and delivery access at both ends",
+        "Declared cargo value for insurance",
+        "Payment terms"
       ],
       "sources": [
         "https://uaelegislation.gov.ae/en"
@@ -31,7 +34,6 @@
       "blocking": [
         "Goods description and volume",
         "Origin and destination",
-        "Vehicle type and number",
         "Customs clearance scope",
         "Move date and window",
         "Pricing basis",
@@ -54,7 +56,7 @@
         },
         {
           "spec": "Vehicle type and number",
-          "blocking": true,
+          "blocking": false,
           "why_needed_to_price": "Pickup, 3-tonne, 7-tonne, trailer, low-bed and reefer rates differ.",
           "uae_options": "Pickup, 1-3 t, 7-10 t, 40 ft flatbed/curtain trailer, low-bed, reefer.",
           "follow_up_if": "Oversize loads bring police escort and road permits."
@@ -135,6 +137,27 @@
           "why_needed_to_price": "The Incoterm decides which charges the provider quotes.",
           "uae_options": "EXW, FCA, FOB, CFR/CIF, DAP, DDP.",
           "follow_up_if": ""
+        },
+        {
+          "spec": "Loading and delivery access at both ends",
+          "why_needed_to_price": "Loading bay or street kerb, forklift or crane availability, truck-ban hours and gate-pass rules decide the vehicle, the labour and whether a crane or second trip is needed.",
+          "uae_options": "Loading dock with forklift; ground-level kerbside loading; crane or hiab needed; port, free zone or airport gate pass; city truck-ban hours apply.",
+          "follow_up_if": "If either end is in a port, free zone or airside, ask which pass is needed and who obtains it.",
+          "blocking": false
+        },
+        {
+          "spec": "Declared cargo value for insurance",
+          "why_needed_to_price": "All-risk cargo insurance is priced as a percentage of the declared value, so it cannot be included in a firm quote without the value.",
+          "uae_options": "Declared value in AED or the invoice currency; insurance arranged by the provider, by the buyer, or not required.",
+          "follow_up_if": "If the customer arranges its own insurance, state it so suppliers exclude it.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

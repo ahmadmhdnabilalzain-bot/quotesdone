@@ -5,8 +5,8 @@
       "id": "paper_bags:spec-checklist",
       "topic": "Paper bags - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For paper bags (trade code paper_bags only), every quoted line must state: Bag type; Dimensions; Paper grade and weight; Handle type; Printing; Food-contact suitability; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Bag type; Dimensions; Paper grade and weight; Handle type; Printing; Quantity and unit of measure. Follow-up questions the answers trigger: Paper grade and weight: Ask the load the bag carries. Food-contact suitability: Direct food contact brings documents. UAE conformity or authority approval: Retail carrier bags bring the single-use bag rules. Before a firm price: none; a firm price is possible from the specs and the artwork.",
-      "body_ar": "في نشاط الأكياس الورقية (رمز النشاط paper_bags فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الكيس؛ الأبعاد؛ درجة الورق ووزنه؛ نوع المقبض؛ الطباعة؛ الملاءمة لملامسة الأغذية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الكيس، والأبعاد، ودرجة الورق ووزنه، ونوع المقبض، والطباعة، والكمية. أسئلة المتابعة: يُسأل عن الحمل الذي يحمله الكيس، وملامسة الغذاء المباشرة تستلزم وثائق، وأكياس التسوق تستلزم مراجعة قواعد الأكياس أحادية الاستخدام.",
+      "body_en": "For paper bags (trade code paper_bags only), every quoted line must state: Bag type; Dimensions; Paper grade and weight; Handle type; Printing; Food-contact suitability; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Bag type; Dimensions; Paper grade and weight; Handle type; Printing; Quantity and unit of measure. Follow-up questions the answers trigger: Paper grade and weight: Ask the load the bag carries. Food-contact suitability: Direct food contact brings documents. UAE conformity or authority approval: Retail carrier bags bring the single-use bag rules. Before a firm price: none; a firm price is possible from the specs and the artwork. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Bag type; Dimensions; Paper grade and weight; Handle type; Printing; Quantity and unit of measure.",
+      "body_ar": "في نشاط الأكياس الورقية (رمز النشاط paper_bags فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الكيس؛ الأبعاد؛ درجة الورق ووزنه؛ نوع المقبض؛ الطباعة؛ الملاءمة لملامسة الأغذية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الكيس، والأبعاد، ودرجة الورق ووزنه، ونوع المقبض، والطباعة، والكمية. أسئلة المتابعة: يُسأل عن الحمل الذي يحمله الكيس، وملامسة الغذاء المباشرة تستلزم وثائق، وأكياس التسوق تستلزم مراجعة قواعد الأكياس أحادية الاستخدام. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Bag type",
         "Dimensions",
@@ -20,7 +20,8 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/"
@@ -126,6 +127,13 @@
           "why_needed_to_price": "",
           "uae_options": "",
           "follow_up_if": ""
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

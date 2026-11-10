@@ -5,8 +5,8 @@
       "id": "lighting_fixtures:spec-checklist",
       "topic": "Lighting fixtures - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For lighting fixtures (trade code lighting_fixtures only), every quoted line must state: Fixture type and code; Wattage and lumen output; Colour temperature and CRI; Beam angle and optics; IP and IK rating; Driver and dimming protocol; Emergency version; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): type or code, lumen output, IP rating, dimming and quantity. A lighting design may be needed to fix quantities.",
-      "body_ar": "في نشاط وحدات الإنارة (رمز النشاط lighting_fixtures فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الوحدة ورمزها؛ القدرة والتدفق الضوئي؛ درجة حرارة اللون ومؤشر تجسيد اللون؛ زاوية الشعاع والبصريات؛ تصنيف IP و IK؛ المشغّل وبروتوكول التعتيم؛ النسخة الطارئة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: النوع أو الرمز، والتدفق الضوئي، ودرجة الحماية، والتعتيم، والكمية. وقد يلزم تصميم إنارة لتحديد الكميات.",
+      "body_en": "For lighting fixtures (trade code lighting_fixtures only), every quoted line must state: Fixture type and code; Wattage and lumen output; Colour temperature and CRI; Beam angle and optics; IP and IK rating; Driver and dimming protocol; Emergency version; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): type or code, lumen output, IP rating, dimming and quantity. A lighting design may be needed to fix quantities. Supplier ask-back review (2026-11-10): the inquiry now also states Mounting type and ceiling; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Fixture type and code; Wattage and lumen output; IP and IK rating; Driver and dimming protocol; Quantity and unit of measure.",
+      "body_ar": "في نشاط وحدات الإنارة (رمز النشاط lighting_fixtures فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الوحدة ورمزها؛ القدرة والتدفق الضوئي؛ درجة حرارة اللون ومؤشر تجسيد اللون؛ زاوية الشعاع والبصريات؛ تصنيف IP و IK؛ المشغّل وبروتوكول التعتيم؛ النسخة الطارئة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: النوع أو الرمز، والتدفق الضوئي، ودرجة الحماية، والتعتيم، والكمية. وقد يلزم تصميم إنارة لتحديد الكميات. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً طريقة التركيب ونوع السقف؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Fixture type and code",
         "Wattage and lumen output",
@@ -22,7 +22,9 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Mounting type and ceiling",
+        "Payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
@@ -143,9 +145,23 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "Mounting type and ceiling",
+          "why_needed_to_price": "Recessed, surface, suspended and track versions of the same fitting are different products, and the ceiling type (gypsum, grid, open concrete) sets the cut-out, the fixing kit and suspension accessories.",
+          "uae_options": "Recessed in gypsum or grid ceiling (state cut-out if fixed); surface on concrete; suspended at a stated drop; track on a named system; wall, pole or ground mounted outdoors.",
+          "follow_up_if": "If no fixture code is given, ask the mounting height as well, because it decides lumen output and beam angle.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
       "site_visit_required_when": null
     },
     {

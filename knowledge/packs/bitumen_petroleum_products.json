@@ -5,8 +5,8 @@
       "id": "bitumen_petroleum_products:spec-checklist",
       "topic": "Bitumen and petroleum products - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for bitumen and petroleum products must state: product and grade; specification standard; test certificate per batch; quantity in tonnes or litres; packing or bulk delivery; delivery temperature for hot products; safety data sheet; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): product and grade, specification, quantity and packing.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة البيتومين والمنتجات البترولية: المنتج ودرجته؛ المعيار المرجعي للمواصفة؛ شهادة الاختبار لكل تشغيلة؛ الكمية بالطن أو باللتر؛ التعبئة أو التسليم السائب؛ درجة حرارة التسليم للمنتجات الساخنة؛ صحيفة بيانات السلامة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المنتج ودرجته، والمواصفة، والكمية، وطريقة التعبئة.",
+      "body_en": "Each quoted product line for bitumen and petroleum products must state: product and grade; specification standard; test certificate per batch; quantity in tonnes or litres; packing or bulk delivery; delivery temperature for hot products; safety data sheet; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): delivery emirate and site or plant; product and grade, specification, quantity and packing. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate and site or plant; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة البيتومين والمنتجات البترولية: المنتج ودرجته؛ المعيار المرجعي للمواصفة؛ شهادة الاختبار لكل تشغيلة؛ الكمية بالطن أو باللتر؛ التعبئة أو التسليم السائب؛ درجة حرارة التسليم للمنتجات الساخنة؛ صحيفة بيانات السلامة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: إمارة وموقع التسليم، والمنتج ودرجته، والمواصفة، والكمية، وطريقة التعبئة. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "product and grade",
         "specification standard",
@@ -19,7 +19,9 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "delivery emirate and site or plant",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -31,7 +33,8 @@
         "product and grade",
         "specification standard",
         "quantity in tonnes or litres",
-        "packing or bulk delivery"
+        "packing or bulk delivery",
+        "delivery emirate and site or plant"
       ],
       "spec_guide": [
         {
@@ -117,10 +120,25 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "delivery emirate and site or plant",
+          "blocking": true,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": null
+      "site_visit_required_when": null,
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "bitumen_petroleum_products:uae-standards-and-approvals",

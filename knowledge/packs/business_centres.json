@@ -5,8 +5,8 @@
       "id": "business_centres:spec-checklist",
       "topic": "Business centres and serviced offices - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for business centres and serviced offices must state: space type; number of workstations or area; location; Ejari or tenancy registration; included services; meeting room allowance; access hours; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): space type, seats or area, location, tenancy registration and term. A viewing is advisable but not required to price.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مراكز الأعمال والمكاتب المخدومة: نوع المساحة؛ عدد محطات العمل أو المساحة؛ الموقع؛ تسجيل إيجاري أو عقد الإيجار؛ الخدمات المشمولة؛ حصة غرف الاجتماعات؛ ساعات الدخول؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع المساحة، وعدد المقاعد أو المساحة، والموقع، وتسجيل الإيجار، والمدة. ويُستحسن المعاينة لكنها غير لازمة للتسعير.",
+      "body_en": "Each quoted service line for business centres and serviced offices must state: space type; number of workstations or area; location; Ejari or tenancy registration; included services; meeting room allowance; access hours; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): space type, seats or area, location, tenancy registration and term. A viewing is advisable but not required to price. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states start date; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مراكز الأعمال والمكاتب المخدومة: نوع المساحة؛ عدد محطات العمل أو المساحة؛ الموقع؛ تسجيل إيجاري أو عقد الإيجار؛ الخدمات المشمولة؛ حصة غرف الاجتماعات؛ ساعات الدخول؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع المساحة، وعدد المقاعد أو المساحة، والموقع، وتسجيل الإيجار، والمدة. ويُستحسن المعاينة لكنها غير لازمة للتسعير. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً تاريخ البدء، وشروط الدفع.",
       "required_specs": [
         "space type",
         "number of workstations or area",
@@ -19,7 +19,9 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "start date",
+        "payment terms"
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
@@ -117,10 +119,25 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "start date",
+          "blocking": false,
+          "why_needed_to_price": "Availability of the stated space and any rent-free or move-in offer depend on the start date.",
+          "uae_options": "Immediate; a stated month; flexible.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Monthly, quarterly or full-term payment in advance changes the rate offered, and some centres ask for a deposit.",
+          "uae_options": "Monthly; quarterly; annual in advance; post-dated cheques; security deposit.",
+          "follow_up_if": ""
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": "A visit is advisable before signing, to see the space, but a firm price can be given from the package and term."
+      "site_visit_required_when": "A visit is advisable before signing, to see the space, but a firm price can be given from the package and term.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "business_centres:uae-standards-and-approvals",

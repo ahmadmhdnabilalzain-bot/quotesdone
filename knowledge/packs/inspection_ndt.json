@@ -5,8 +5,8 @@
       "id": "inspection_ndt:spec-checklist",
       "topic": "Inspection and NDT - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For inspection and ndt (trade code inspection_ndt only), every quoted line must state: Inspection method; Items and extent of inspection; Acceptance standard; Inspector certification level; Accreditation of the inspection body; Report format and turnaround; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Inspection method; Items and extent of inspection; Acceptance standard; Deliverables and scope of work; Duration and schedule. Before a firm price: a firm price needs method, extent and acceptance code; site work needs access, location and shift details, and shutdown work usually needs a site visit.",
-      "body_ar": "في نشاط الفحص والاختبارات غير الإتلافية (رمز النشاط inspection_ndt فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: طريقة الفحص؛ البنود ونطاق الفحص؛ معيار القبول؛ مستوى شهادة الفاحص؛ اعتماد جهة الفحص؛ صيغة التقرير ومدة إصداره؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: طريقة الفحص، والعناصر ونطاق الفحص، ومعيار القبول، ونطاق العمل، والمدة. العمل الميداني يحتاج الوصول والموقع وتفاصيل المناوبات، وأعمال التوقف تحتاج عادة زيارة موقع.",
+      "body_en": "For inspection and ndt (trade code inspection_ndt only), every quoted line must state: Inspection method; Items and extent of inspection; Acceptance standard; Inspector certification level; Accreditation of the inspection body; Report format and turnaround; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; Inspection method; Items and extent of inspection; Acceptance standard; Duration and schedule. Before a firm price: a firm price needs method, extent and acceptance code; site work needs access, location and shift details, and shutdown work usually needs a site visit. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; site access, shift pattern and permits. Not quote-blocking (the supplier states it, or quotes on its usual basis): Deliverables and scope of work.",
+      "body_ar": "في نشاط الفحص والاختبارات غير الإتلافية (رمز النشاط inspection_ndt فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: طريقة الفحص؛ البنود ونطاق الفحص؛ معيار القبول؛ مستوى شهادة الفاحص؛ اعتماد جهة الفحص؛ صيغة التقرير ومدة إصداره؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: موقع العمل والإمارة، وطريقة الفحص، والعناصر ونطاق الفحص، ومعيار القبول، والمدة. العمل الميداني يحتاج الوصول والموقع وتفاصيل المناوبات، وأعمال التوقف تحتاج عادة زيارة موقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، والوصول إلى الموقع وساعات العمل. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): نطاق العمل.",
       "required_specs": [
         "Inspection method",
         "Items and extent of inspection",
@@ -19,7 +19,9 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "site location and emirate",
+        "site access, shift pattern and permits"
       ],
       "sources": [
         "https://www.eiac.gov.ae/",
@@ -31,8 +33,8 @@
         "Inspection method",
         "Items and extent of inspection",
         "Acceptance standard",
-        "Deliverables and scope of work",
-        "Duration and schedule"
+        "Duration and schedule",
+        "site location and emirate"
       ],
       "spec_guide": [
         {
@@ -82,7 +84,7 @@
           "why_needed_to_price": "Scope of work.",
           "uae_options": "written scope",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Licence and qualifications of the provider",
@@ -118,10 +120,25 @@
           "uae_options": "access; scaffolding; surface preparation",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "site location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "site access, shift pattern and permits",
+          "blocking": false,
+          "why_needed_to_price": "Night or weekend work, occupied premises, restricted delivery hours and gate passes change labour cost and programme.",
+          "uae_options": "Normal day shift; night or weekend only; occupied building; mall, community or free-zone permit hours; loading-bay booking.",
+          "follow_up_if": "Restricted hours bring the landlord or community permission the work needs."
         }
       ],
       "site_visit_required_when": "a firm price needs method, extent and acceptance code; site work needs access, location and shift details, and shutdown work usually needs a site visit.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "inspection_ndt:uae-standards-and-approvals",

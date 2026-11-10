@@ -5,8 +5,8 @@
       "id": "fleet_maintenance:spec-checklist",
       "topic": "Fleet maintenance - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for fleet maintenance must state: fleet size and vehicle types; service schedule; parts policy; labour rate basis; pickup and replacement vehicles; turnaround time; reporting and records; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): fleet size and vehicle types; service schedule; parts policy; labour rate basis; pricing basis. Follow-up questions the answers trigger: service schedule: UAE heat and dust usually justify the severe-duty schedule. parts policy: Vehicles under maker warranty bring genuine parts and dealer service. Before a firm price: a fixed per-vehicle contract needs the fleet list with mileage, and usually an inspection of the vehicles' condition.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة صيانة الأساطيل: حجم الأسطول وأنواع المركبات؛ جدول الخدمة؛ سياسة قطع الغيار؛ أساس أجور العمالة؛ الاستلام والمركبات البديلة؛ مدة الإنجاز؛ التقارير والسجلات؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: حجم الأسطول وأنواع المركبات، وجدول الصيانة، وسياسة القطع، وأساس سعر العمالة، وأساس التسعير. أسئلة المتابعة: حرارة الإمارات وغبارها يبرران عادة جدول الخدمة الشاقة، والمركبات تحت ضمان الصانع تستلزم قطعاً أصلية وصيانة لدى الوكيل. العقد الثابت لكل مركبة يحتاج قائمة الأسطول بالمسافات وغالباً فحصاً لحالة المركبات.",
+      "body_en": "Each quoted service line for fleet maintenance must state: fleet size and vehicle types; service schedule; parts policy; labour rate basis; pickup and replacement vehicles; turnaround time; reporting and records; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): vehicle locations and service point; fleet size and vehicle types; service schedule; parts policy; labour rate basis. Follow-up questions the answers trigger: service schedule: UAE heat and dust usually justify the severe-duty schedule. parts policy: Vehicles under maker warranty bring genuine parts and dealer service. Before a firm price: a fixed per-vehicle contract needs the fleet list with mileage, and usually an inspection of the vehicles' condition. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states vehicle locations and service point. Not quote-blocking (the supplier states it, or quotes on its usual basis): pricing basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة صيانة الأساطيل: حجم الأسطول وأنواع المركبات؛ جدول الخدمة؛ سياسة قطع الغيار؛ أساس أجور العمالة؛ الاستلام والمركبات البديلة؛ مدة الإنجاز؛ التقارير والسجلات؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: مواقع المركبات ونقطة الخدمة، وحجم الأسطول وأنواع المركبات، وجدول الصيانة، وسياسة القطع، وأساس سعر العمالة. أسئلة المتابعة: حرارة الإمارات وغبارها يبرران عادة جدول الخدمة الشاقة، والمركبات تحت ضمان الصانع تستلزم قطعاً أصلية وصيانة لدى الوكيل. العقد الثابت لكل مركبة يحتاج قائمة الأسطول بالمسافات وغالباً فحصاً لحالة المركبات. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً مواقع المركبات ونقطة الخدمة. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): أساس التسعير.",
       "required_specs": [
         "fleet size and vehicle types",
         "service schedule",
@@ -20,7 +20,8 @@
         "contract duration",
         "pricing basis",
         "exclusions",
-        "registration renewal and testing"
+        "registration renewal and testing",
+        "vehicle locations and service point"
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits",
@@ -33,7 +34,7 @@
         "service schedule",
         "parts policy",
         "labour rate basis",
-        "pricing basis"
+        "vehicle locations and service point"
       ],
       "spec_guide": [
         {
@@ -108,7 +109,7 @@
         },
         {
           "spec": "pricing basis",
-          "blocking": true,
+          "blocking": false,
           "why_needed_to_price": "Per-vehicle monthly fee, per-service menu or time and material decide risk sharing.",
           "uae_options": "Fixed monthly per vehicle, menu, T&M.",
           "follow_up_if": ""
@@ -126,9 +127,16 @@
           "why_needed_to_price": "Annual testing and registration handling is often added.",
           "uae_options": "Included or not.",
           "follow_up_if": ""
+        },
+        {
+          "spec": "vehicle locations and service point",
+          "blocking": true,
+          "why_needed_to_price": "Servicing at the customer depot, at the workshop, or with collection from several emirates is priced on travel and downtime.",
+          "uae_options": "Customer depot (emirate); supplier workshop; collection and return; mobile service.",
+          "follow_up_if": ""
         }
       ],
-      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page.",
       "site_visit_required_when": "a fixed per-vehicle contract needs the fleet list with mileage, and usually an inspection of the vehicles' condition."
     },
     {

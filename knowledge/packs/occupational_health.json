@@ -6,8 +6,8 @@
       "topic": "Occupational health & onsite medical services - what the buyer must state",
       "topic_ar": "الصحة المهنية والخدمات الطبية في الموقع: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For occupational health & onsite medical services (trade code occupational_health only), every quoted line must state: Service type; Number of employees or attendees covered; Sites and working hours; Staffing (doctor, nurse, paramedic) and their licences; Equipment and medicines supplied; Tests and examinations included; Reporting and records confidentiality; Response times; Contract duration; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Service type; Number of employees or attendees covered; Sites and working hours; Staffing (doctor, nurse, paramedic) and their licences; Contract duration; Pricing basis. Before a firm price: a firm price needs service type, headcount, sites and hours and staffing level; a remote or industrial site clinic needs a site visit.",
-      "body_ar": "في نشاط الصحة المهنية والخدمات الطبية في الموقع (رمز النشاط occupational_health فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الخدمة؛ عدد الموظفين أو الحضور المشمولين؛ المواقع وساعات العمل؛ الكوادر (طبيب، ممرض، مسعف) وتراخيصهم؛ المعدات والأدوية الموردة؛ الفحوص والاختبارات المشمولة؛ التقارير وسرية السجلات؛ أزمنة الاستجابة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الخدمة، والعدد المشمول، والمواقع والساعات، والكوادر وتراخيصها، ومدة العقد، وأساس التسعير. عيادة موقع صناعي أو نائي تحتاج زيارة موقع.",
+      "body_en": "For occupational health & onsite medical services (trade code occupational_health only), every quoted line must state: Service type; Number of employees or attendees covered; Sites and working hours; Staffing (doctor, nurse, paramedic) and their licences; Equipment and medicines supplied; Tests and examinations included; Reporting and records confidentiality; Response times; Contract duration; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Service type; Number of employees or attendees covered; Sites and working hours; Staffing (doctor, nurse, paramedic) and their licences; Contract duration; Pricing basis. Before a firm price: a firm price needs service type, headcount, sites and hours and staffing level; a remote or industrial site clinic needs a site visit. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Service type; Number of employees or attendees covered; Sites and working hours; Staffing (doctor, nurse, paramedic) and their licences; Contract duration; Pricing basis.",
+      "body_ar": "في نشاط الصحة المهنية والخدمات الطبية في الموقع (رمز النشاط occupational_health فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الخدمة؛ عدد الموظفين أو الحضور المشمولين؛ المواقع وساعات العمل؛ الكوادر (طبيب، ممرض، مسعف) وتراخيصهم؛ المعدات والأدوية الموردة؛ الفحوص والاختبارات المشمولة؛ التقارير وسرية السجلات؛ أزمنة الاستجابة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الخدمة، والعدد المشمول، والمواقع والساعات، والكوادر وتراخيصها، ومدة العقد، وأساس التسعير. عيادة موقع صناعي أو نائي تحتاج زيارة موقع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Service type",
         "Number of employees or attendees covered",
@@ -19,14 +19,15 @@
         "Response times",
         "Contract duration",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Occupational_health_nursing"
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
       "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: occupational health nurses run pre-employment screening, care for ill or injured workers, risk assessment, case management and health promotion.",
       "blocking": [
         "Service type",
@@ -112,6 +113,13 @@
           "why_needed_to_price": "Exclusions.",
           "uae_options": "referrals; medicines",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
           "blocking": false
         }
       ],

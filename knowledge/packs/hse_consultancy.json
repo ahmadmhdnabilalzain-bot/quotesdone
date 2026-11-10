@@ -5,8 +5,8 @@
       "id": "hse_consultancy:spec-checklist",
       "topic": "HSE consultancy - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For hse consultancy (trade code hse_consultancy only), every quoted line must state: Service type; Site and activity covered; Consultant qualifications; Standard or regulation to comply with; Reports and documents delivered; Number of site visits; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Service type; Site and activity covered; Standard or regulation to comply with; Reports and documents delivered; Number of site visits; Deliverables and scope of work; Duration and schedule. Before a firm price: a firm fee needs the service, sites and activities, the regulation and number of visits; an audit or risk assessment of an operating site usually needs a scoping visit or a call.",
-      "body_ar": "في نشاط استشارات الصحة والسلامة والبيئة (رمز النشاط hse_consultancy فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الخدمة؛ الموقع والنشاط المشمول؛ مؤهلات الاستشاري؛ المواصفة أو اللائحة المطلوب الامتثال لها؛ التقارير والمستندات المسلّمة؛ عدد الزيارات الميدانية؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نوع الخدمة، والموقع والنشاط، والمعيار أو التشريع، والتقارير، وعدد الزيارات، ونطاق العمل، والمدة. تدقيق موقع قائم أو تقييم مخاطره يحتاج عادة زيارة تحديد نطاق أو مكالمة.",
+      "body_en": "For hse consultancy (trade code hse_consultancy only), every quoted line must state: Service type; Site and activity covered; Consultant qualifications; Standard or regulation to comply with; Reports and documents delivered; Number of site visits; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Service type; Site and activity covered; Standard or regulation to comply with; Reports and documents delivered; Number of site visits. Before a firm price: a firm fee needs the service, sites and activities, the regulation and number of visits; an audit or risk assessment of an operating site usually needs a scoping visit or a call. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site locations and emirates. Not quote-blocking (the supplier states it, or quotes on its usual basis): Deliverables and scope of work; Duration and schedule.",
+      "body_ar": "في نشاط استشارات الصحة والسلامة والبيئة (رمز النشاط hse_consultancy فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الخدمة؛ الموقع والنشاط المشمول؛ مؤهلات الاستشاري؛ المواصفة أو اللائحة المطلوب الامتثال لها؛ التقارير والمستندات المسلّمة؛ عدد الزيارات الميدانية؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نوع الخدمة، والموقع والنشاط، والمعيار أو التشريع، والتقارير، وعدد الزيارات. تدقيق موقع قائم أو تقييم مخاطره يحتاج عادة زيارة تحديد نطاق أو مكالمة. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): نطاق العمل، والمدة.",
       "required_specs": [
         "Service type",
         "Site and activity covered",
@@ -19,7 +19,8 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "site locations and emirates"
       ],
       "sources": [
         "https://www.dcd.gov.ae/",
@@ -33,9 +34,7 @@
         "Site and activity covered",
         "Standard or regulation to comply with",
         "Reports and documents delivered",
-        "Number of site visits",
-        "Deliverables and scope of work",
-        "Duration and schedule"
+        "Number of site visits"
       ],
       "spec_guide": [
         {
@@ -85,7 +84,7 @@
           "why_needed_to_price": "Scope of work.",
           "uae_options": "written scope",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Licence and qualifications of the provider",
@@ -106,7 +105,7 @@
           "why_needed_to_price": "Duration.",
           "uae_options": "weeks; months",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Pricing basis",
@@ -121,10 +120,18 @@
           "uae_options": "testing; equipment",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "site locations and emirates",
+          "blocking": false,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
         }
       ],
       "site_visit_required_when": "a firm fee needs the service, sites and activities, the regulation and number of visits; an audit or risk assessment of an operating site usually needs a scoping visit or a call.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added, 2 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "hse_consultancy:uae-standards-and-approvals",

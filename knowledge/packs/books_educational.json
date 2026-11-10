@@ -5,8 +5,8 @@
       "id": "books_educational:spec-checklist",
       "topic": "Books and educational materials - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for books and educational materials must state: title and ISBN; edition and year; language; format; curriculum alignment; content approval by the UAE authority; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): title and ISBN; edition and year; format; quantity; delivery and installation scope. Follow-up questions the answers trigger: title and ISBN: Ask for the school book list; format: Digital: ask number of users and years. Before a firm price: a firm price needs the ISBN list with editions, formats and quantities; titles not stocked in the UAE are quoted subject to availability and import time.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الكتب والمواد التعليمية: العنوان ورقم ISBN؛ الطبعة والسنة؛ اللغة؛ الشكل؛ التوافق مع المنهج؛ موافقة الجهة الإماراتية على المحتوى؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: العنوان ورقم ISBN، والطبعة والسنة، والشكل (ورقي أو رقمي)، والكمية لكل عنوان، والتسليم. أسئلة المتابعة: يُطلب كشف كتب المدرسة، والتراخيص الرقمية تستلزم عدد المستخدمين والسنوات. العناوين غير المتوفرة في الدولة تُسعّر رهناً بالتوفر ومدة الاستيراد.",
+      "body_en": "Each quoted product line for books and educational materials must state: title and ISBN; edition and year; language; format; curriculum alignment; content approval by the UAE authority; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): title and ISBN; edition and year; format; quantity; delivery and installation scope. Follow-up questions the answers trigger: title and ISBN: Ask for the school book list; format: Digital: ask number of users and years. Before a firm price: a firm price needs the ISBN list with editions, formats and quantities; titles not stocked in the UAE are quoted subject to availability and import time. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery addresses and emirate; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الكتب والمواد التعليمية: العنوان ورقم ISBN؛ الطبعة والسنة؛ اللغة؛ الشكل؛ التوافق مع المنهج؛ موافقة الجهة الإماراتية على المحتوى؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: العنوان ورقم ISBN، والطبعة والسنة، والشكل (ورقي أو رقمي)، والكمية لكل عنوان، والتسليم. أسئلة المتابعة: يُطلب كشف كتب المدرسة، والتراخيص الرقمية تستلزم عدد المستخدمين والسنوات. العناوين غير المتوفرة في الدولة تُسعّر رهناً بالتوفر ومدة الاستيراد. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "title and ISBN",
         "edition and year",
@@ -19,7 +19,9 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "delivery addresses and emirate",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -118,10 +120,25 @@
           "uae_options": "returns of unsold copies",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "delivery addresses and emirate",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "a firm price needs the ISBN list with editions, formats and quantities; titles not stocked in the UAE are quoted subject to availability and import time.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "books_educational:uae-standards-and-approvals",

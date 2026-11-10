@@ -5,8 +5,8 @@
       "id": "agri_inputs:spec-checklist",
       "topic": "Agricultural inputs - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for agricultural inputs must state: product name and active ingredient; concentration or nutrient analysis; formulation type; pack size and quantity; UAE registration number; target crop and application rate; shelf life and batch date; safety data sheet; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): product and active ingredient, analysis, pack size and quantity, and the UAE registration.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مدخلات الزراعة: اسم المنتج والمادة الفعالة؛ التركيز أو التحليل الغذائي؛ نوع التركيبة؛ حجم العبوة والكمية؛ رقم التسجيل في الإمارات؛ المحصول المستهدف ومعدل الاستخدام؛ مدة الصلاحية وتاريخ التشغيلة؛ صحيفة بيانات السلامة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المنتج والمادة الفعالة، والتحليل، وحجم العبوة والكمية، والتسجيل في الدولة.",
+      "body_en": "Each quoted product line for agricultural inputs must state: product name and active ingredient; concentration or nutrient analysis; formulation type; pack size and quantity; UAE registration number; target crop and application rate; shelf life and batch date; safety data sheet; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): delivery emirate and farm or store location; product and active ingredient, analysis and pack size and quantity. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate and farm or store location; original brand or generic equivalent; payment terms. Not quote-blocking (the supplier states it, or quotes on its usual basis): UAE registration number.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مدخلات الزراعة: اسم المنتج والمادة الفعالة؛ التركيز أو التحليل الغذائي؛ نوع التركيبة؛ حجم العبوة والكمية؛ رقم التسجيل في الإمارات؛ المحصول المستهدف ومعدل الاستخدام؛ مدة الصلاحية وتاريخ التشغيلة؛ صحيفة بيانات السلامة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: إمارة وموقع التسليم، والمنتج والمادة الفعالة، والتحليل، وحجم العبوة والكمية. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، والعلامة المفضلة أو الفئة المكافئة، وشروط الدفع. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): التسجيل في الدولة.",
       "required_specs": [
         "product name and active ingredient",
         "concentration or nutrient analysis",
@@ -20,7 +20,10 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "delivery emirate and farm or store location",
+        "original brand or generic equivalent",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -33,7 +36,7 @@
         "product name and active ingredient",
         "concentration or nutrient analysis",
         "pack size and quantity",
-        "UAE registration number"
+        "delivery emirate and farm or store location"
       ],
       "spec_guide": [
         {
@@ -69,7 +72,7 @@
           "why_needed_to_price": "Unregistered fertilisers and pesticides cannot be traded.",
           "uae_options": "registration certificate",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "target crop and application rate",
@@ -126,10 +129,32 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "delivery emirate and farm or store location",
+          "blocking": true,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "original brand or generic equivalent",
+          "blocking": false,
+          "why_needed_to_price": "Premium, mid-range and economy makes of the same item differ widely in price, so quotes compare only at the same tier.",
+          "uae_options": "A named brand or equivalent; premium; mid-range; economy; no preference.",
+          "follow_up_if": "A named brand brings the 'or equivalent' rule and who approves an alternative."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": null
+      "site_visit_required_when": null,
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "agri_inputs:uae-standards-and-approvals",

@@ -5,8 +5,8 @@
       "id": "pharma_wholesale:spec-checklist",
       "topic": "Pharmaceutical wholesale - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For pharmaceutical wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, strength and dosage form; (2) manufacturer and country of origin; (3) UAE registration number; (4) pack size; (5) quantity in packs; (6) minimum remaining shelf life; (7) storage and cold-chain requirements; (8) licensed distributor or warehouse; (9) batch and certificate of analysis; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pharma_wholesale trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product name, strength and dosage form; manufacturer and country of origin; UAE registration number; pack size; quantity in packs; minimum remaining shelf life; delivery terms and location. Before a firm price: a firm price needs product, strength, form, registration, pack size, quantity and minimum shelf life; prices of registered medicines follow the approved price where one is set.",
-      "body_ar": "لكي تُقارن عروض تجارة الأدوية بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وتركيزه وشكله الصيدلاني؛ (2) الشركة المصنعة وبلد المنشأ؛ (3) رقم التسجيل في الإمارات؛ (4) حجم العبوة؛ (5) الكمية بالعبوات؛ (6) الحد الأدنى للصلاحية المتبقية؛ (7) متطلبات التخزين وسلسلة التبريد؛ (8) الموزع أو المستودع المرخص؛ (9) الدفعة وشهادة التحليل؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pharma_wholesale فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج وتركيزه وشكله، والمصنّع والمنشأ، ورقم التسجيل، وحجم العبوة، والكمية، والصلاحية المتبقية، والتسليم. تتبع أسعار الأدوية المسجلة السعر المعتمد حيث يوجد.",
+      "body_en": "For pharmaceutical wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, strength and dosage form; (2) manufacturer and country of origin; (3) UAE registration number; (4) pack size; (5) quantity in packs; (6) minimum remaining shelf life; (7) storage and cold-chain requirements; (8) licensed distributor or warehouse; (9) batch and certificate of analysis; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pharma_wholesale trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product name, strength and dosage form; manufacturer and country of origin; UAE registration number; pack size; quantity in packs; minimum remaining shelf life; delivery terms and location. Before a firm price: a firm price needs product, strength, form, registration, pack size, quantity and minimum shelf life; prices of registered medicines follow the approved price where one is set. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: product name, strength and dosage form; manufacturer and country of origin; UAE registration number; pack size; quantity in packs; minimum remaining shelf life; delivery terms and location.",
+      "body_ar": "لكي تُقارن عروض تجارة الأدوية بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وتركيزه وشكله الصيدلاني؛ (2) الشركة المصنعة وبلد المنشأ؛ (3) رقم التسجيل في الإمارات؛ (4) حجم العبوة؛ (5) الكمية بالعبوات؛ (6) الحد الأدنى للصلاحية المتبقية؛ (7) متطلبات التخزين وسلسلة التبريد؛ (8) الموزع أو المستودع المرخص؛ (9) الدفعة وشهادة التحليل؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pharma_wholesale فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج وتركيزه وشكله، والمصنّع والمنشأ، ورقم التسجيل، وحجم العبوة، والكمية، والصلاحية المتبقية، والتسليم. تتبع أسعار الأدوية المسجلة السعر المعتمد حيث يوجد. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "product name, strength and dosage form",
         "manufacturer and country of origin",
@@ -20,7 +20,8 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://www.mohap.gov.ae/en/services"
@@ -127,10 +128,17 @@
           "uae_options": "cold-chain surcharge",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "a firm price needs product, strength, form, registration, pack size, quantity and minimum shelf life; prices of registered medicines follow the approved price where one is set.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "pharma_wholesale:uae-standards-and-approvals",

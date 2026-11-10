@@ -5,8 +5,8 @@
       "id": "real_estate_services:spec-checklist",
       "topic": "Real estate services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For real estate services quotes to be compared like-for-like, every quoted line (services) must state: (1) service (brokerage, leasing, property management, valuation); (2) property type, location and size; (3) commission or fee basis; (4) RERA/DLD broker licence number; (5) scope of marketing and viewings; (6) tenancy registration (Ejari) handling; (7) reporting frequency; (8) exclusivity and term; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the real_estate_services trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): service, property and emirate, fee basis and exclusivity. A valuation needs a site inspection by the valuer.",
-      "body_ar": "لكي تُقارن عروض خدمات العقارات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الخدمة (وساطة، أو تأجير، أو إدارة عقارات، أو تقييم)؛ (2) نوع العقار وموقعه ومساحته؛ (3) أساس العمولة أو الأتعاب؛ (4) رقم ترخيص الوسيط لدى مؤسسة التنظيم العقاري أو دائرة الأراضي والأملاك؛ (5) نطاق التسويق والمعاينات؛ (6) التعامل مع تسجيل عقد الإيجار (إيجاري)؛ (7) تكرار التقارير؛ (8) الحصرية والمدة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة real_estate_services فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الخدمة، والعقار والإمارة، وأساس الأتعاب، والحصرية. ويحتاج التقييم إلى معاينة المقيّم للعقار.",
+      "body_en": "For real estate services quotes to be compared like-for-like, every quoted line (services) must state: (1) service (brokerage, leasing, property management, valuation); (2) property type, location and size; (3) commission or fee basis; (4) RERA/DLD broker licence number; (5) scope of marketing and viewings; (6) tenancy registration (Ejari) handling; (7) reporting frequency; (8) exclusivity and term; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the real_estate_services trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): service, property and emirate, fee basis and exclusivity. A valuation needs a site inspection by the valuer. Supplier ask-back review (2026-11-10): the inquiry now also states Valuation purpose and reliance, so no supplier has to come back to the customer for them. Quote-blocking after this review: service (brokerage, leasing, property management, valuation); property type, location and size; commission or fee basis; exclusivity and term.",
+      "body_ar": "لكي تُقارن عروض خدمات العقارات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الخدمة (وساطة، أو تأجير، أو إدارة عقارات، أو تقييم)؛ (2) نوع العقار وموقعه ومساحته؛ (3) أساس العمولة أو الأتعاب؛ (4) رقم ترخيص الوسيط لدى مؤسسة التنظيم العقاري أو دائرة الأراضي والأملاك؛ (5) نطاق التسويق والمعاينات؛ (6) التعامل مع تسجيل عقد الإيجار (إيجاري)؛ (7) تكرار التقارير؛ (8) الحصرية والمدة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة real_estate_services فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الخدمة، والعقار والإمارة، وأساس الأتعاب، والحصرية. ويحتاج التقييم إلى معاينة المقيّم للعقار. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً غرض التقييم والجهة المعتمِدة عليه، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "service (brokerage, leasing, property management, valuation)",
         "property type, location and size",
@@ -18,7 +18,8 @@
         "exclusivity and term",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Valuation purpose and reliance"
       ],
       "sources": [
         "https://dubailand.gov.ae/en/"
@@ -108,10 +109,17 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "Valuation purpose and reliance",
+          "why_needed_to_price": "A valuation for a bank loan, for financial statements, for a dispute or for internal use follows a different standard and carries different liability, so the fee differs.",
+          "uae_options": "Bank or mortgage; financial reporting; sale or purchase decision; dispute or court; internal use; name of the party relying on the report.",
+          "follow_up_if": "Ask only when the service is a valuation.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "A valuation or property-management proposal needs an inspection of the property; brokerage fees can be quoted without one.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "real_estate_services:uae-standards-and-approvals",

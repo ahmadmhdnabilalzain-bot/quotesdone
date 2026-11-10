@@ -5,8 +5,8 @@
       "id": "flexible_packaging:spec-checklist",
       "topic": "Flexible packaging - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for flexible packaging must state: pack format; dimensions; laminate structure and thickness; barrier properties; printing colours; food-contact compliance; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): pack format; dimensions; laminate structure and thickness; printing colours; quantity; artwork status. Follow-up questions the answers trigger: pack format: Pouches bring zipper, spout, tear notch and window options. laminate structure and thickness: Ask the filling machine and seal requirements. printing colours: Gravure brings cylinder cost per colour and higher MOQ. food-contact compliance: Food brings the food type (fatty, acidic, frozen, hot-fill). Before a firm price: printed flexible packaging needs the artwork and the laminate structure; a new structure benefits from a filling-machine trial.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة العبوات المرنة: شكل العبوة؛ الأبعاد؛ تركيب الطبقات وسماكتها؛ خواص الحاجز؛ ألوان الطباعة؛ الامتثال لملامسة الغذاء؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: شكل العبوة، والأبعاد، وتركيبة الطبقات وسماكتها، وألوان الطباعة، والكمية، وحالة التصميم. أسئلة المتابعة: الأكياس القائمة تستلزم خيارات السحاب والصنبور وشق التمزيق والنافذة، ويُسأل عن آلة التعبئة ومتطلبات اللحام الحراري، والطباعة بالروتوغرافور تستلزم كلفة أسطوانة لكل لون وحداً أدنى أعلى، والغذاء يستلزم نوعه (دهني أو حمضي أو مجمد أو تعبئة ساخنة).",
+      "body_en": "Each quoted product line for flexible packaging must state: pack format; dimensions; laminate structure and thickness; barrier properties; printing colours; food-contact compliance; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): pack format; dimensions; laminate structure and thickness; printing colours; quantity; artwork status. Follow-up questions the answers trigger: pack format: Pouches bring zipper, spout, tear notch and window options. laminate structure and thickness: Ask the filling machine and seal requirements. printing colours: Gravure brings cylinder cost per colour and higher MOQ. food-contact compliance: Food brings the food type (fatty, acidic, frozen, hot-fill). Before a firm price: printed flexible packaging needs the artwork and the laminate structure; a new structure benefits from a filling-machine trial. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate and site; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة العبوات المرنة: شكل العبوة؛ الأبعاد؛ تركيب الطبقات وسماكتها؛ خواص الحاجز؛ ألوان الطباعة؛ الامتثال لملامسة الغذاء؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: شكل العبوة، والأبعاد، وتركيبة الطبقات وسماكتها، وألوان الطباعة، والكمية، وحالة التصميم. أسئلة المتابعة: الأكياس القائمة تستلزم خيارات السحاب والصنبور وشق التمزيق والنافذة، ويُسأل عن آلة التعبئة ومتطلبات اللحام الحراري، والطباعة بالروتوغرافور تستلزم كلفة أسطوانة لكل لون وحداً أدنى أعلى، والغذاء يستلزم نوعه (دهني أو حمضي أو مجمد أو تعبئة ساخنة). مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "pack format",
         "dimensions",
@@ -20,7 +20,9 @@
         "lead time",
         "warranty",
         "exclusions",
-        "artwork status"
+        "artwork status",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -129,9 +131,23 @@
           "why_needed_to_price": "Artwork readiness decides repro and design costs.",
           "uae_options": "Print-ready, needs repro, needs design.",
           "follow_up_if": ""
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
-      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
       "site_visit_required_when": "printed flexible packaging needs the artwork and the laminate structure; a new structure benefits from a filling-machine trial."
     },
     {

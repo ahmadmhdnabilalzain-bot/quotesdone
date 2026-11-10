@@ -82,8 +82,8 @@
       "id": "electrical:cable-spec-checklist",
       "topic": "Cable order specification checklist",
       "kind": "spec_checklist",
-      "body_en": "A cable enquiry that only says '4 core 95 mm2 cable' cannot be quoted exactly. Suppliers in the UAE (local manufacturers and importers) price by the full construction, and small differences change the cost substantially: conductor metal and class, insulation (PVC, XLPE, LSZH compound), armour (none, SWA, AWA), outer sheath (PVC, LSZH, flame-retardant), voltage grade (300/500 V, 450/750 V, 0.6/1 kV, MV), standard of manufacture, and any fire-resistance class. Quantity is quoted in metres and drum lengths matter: cut lengths cost extra, and short drums create waste and joints. State colour/core identification (brown, black, grey, blue, green-yellow per harmonised codes) and whether an earth core is included. For projects under consultant supervision, ask for the approved make list and require test certificates and a certificate of conformity. The procurement checklist below is the minimum set of fields. Construction details also decide the rating: XLPE insulation runs at 90 C continuous and 250 C short-circuit, PVC at 70 C and 160 C, so the insulation type must be named, not just the size. For fire performance state separately whether the sheath must be LSZH and whether the cable must be fire resistant (PH30/60/120, BS 8434-2). Ask for the drum schedule, manufacturer, country of origin, routine test certificates and delivery programme so partial deliveries match site progress.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): conductor, size and cores, insulation, armour and lengths.",
-      "body_ar": "استفسار الكابل الذي يذكر فقط «كابل 4 أقطاب 95 مم²» لا يمكن تسعيره بدقة. يسعّر الموردون في الإمارات (المصنّعون المحليون والمستوردون) على أساس التركيب الكامل، والفروق الصغيرة تغيّر التكلفة كثيراً: معدن الموصل وفئته، والعازل (PVC أو XLPE أو مركّب LSZH)، والتدريع (بدون، SWA، AWA)، والغلاف الخارجي (PVC أو LSZH أو مثبط للهب)، ودرجة الجهد (300/500 ف، 450/750 ف، 0.6/1 ك.ف، جهد متوسط)، ومواصفة التصنيع، وأي فئة مقاومة للحريق. تُسعّر الكمية بالمتر، ويهمّ طول البكرة: فالقطع حسب الطلب له تكلفة إضافية، والبكرات القصيرة تسبب هدراً ووصلات. حدّد ألوان تمييز الأقطاب (بني، أسود، رمادي، أزرق، أخضر-أصفر وفق الترميز الموحد) وهل يوجد قطب أرضي. في المشاريع تحت إشراف استشاري اطلب قائمة الماركات المعتمدة، واشترط شهادات الاختبار وشهادة المطابقة. القائمة أدناه هي الحد الأدنى من البيانات. تفاصيل التركيب تحدد أيضاً قدرة الكابل: عزل XLPE يعمل عند 90 درجة مستمرة و250 درجة عند القصر، وعزل PVC عند 70 و160 درجة، لذا يجب تسمية نوع العزل لا المقاس فقط. ولأداء الحريق حدّد بشكل منفصل هل يجب أن يكون الغلاف LSZH وهل يجب أن يكون الكابل مقاوماً للحريق (PH30/60/120 وBS 8434-2). واطلب جدول البكرات والمصنّع وبلد المنشأ وشهادات الاختبار الروتيني وبرنامج التوريد حتى تتوافق الدفعات الجزئية مع تقدم الموقع.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الموصل، والمقاس وعدد القلوب، والعزل، والتسليح، والأطوال.",
+      "body_en": "A cable enquiry that only says '4 core 95 mm2 cable' cannot be quoted exactly. Suppliers in the UAE (local manufacturers and importers) price by the full construction, and small differences change the cost substantially: conductor metal and class, insulation (PVC, XLPE, LSZH compound), armour (none, SWA, AWA), outer sheath (PVC, LSZH, flame-retardant), voltage grade (300/500 V, 450/750 V, 0.6/1 kV, MV), standard of manufacture, and any fire-resistance class. Quantity is quoted in metres and drum lengths matter: cut lengths cost extra, and short drums create waste and joints. State colour/core identification (brown, black, grey, blue, green-yellow per harmonised codes) and whether an earth core is included. For projects under consultant supervision, ask for the approved make list and require test certificates and a certificate of conformity. The procurement checklist below is the minimum set of fields. Construction details also decide the rating: XLPE insulation runs at 90 C continuous and 250 C short-circuit, PVC at 70 C and 160 C, so the insulation type must be named, not just the size. For fire performance state separately whether the sheath must be LSZH and whether the cable must be fire resistant (PH30/60/120, BS 8434-2). Ask for the drum schedule, manufacturer, country of origin, routine test certificates and delivery programme so partial deliveries match site progress.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): conductor, size and cores, insulation, armour and lengths. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states payment terms.",
+      "body_ar": "استفسار الكابل الذي يذكر فقط «كابل 4 أقطاب 95 مم²» لا يمكن تسعيره بدقة. يسعّر الموردون في الإمارات (المصنّعون المحليون والمستوردون) على أساس التركيب الكامل، والفروق الصغيرة تغيّر التكلفة كثيراً: معدن الموصل وفئته، والعازل (PVC أو XLPE أو مركّب LSZH)، والتدريع (بدون، SWA، AWA)، والغلاف الخارجي (PVC أو LSZH أو مثبط للهب)، ودرجة الجهد (300/500 ف، 450/750 ف، 0.6/1 ك.ف، جهد متوسط)، ومواصفة التصنيع، وأي فئة مقاومة للحريق. تُسعّر الكمية بالمتر، ويهمّ طول البكرة: فالقطع حسب الطلب له تكلفة إضافية، والبكرات القصيرة تسبب هدراً ووصلات. حدّد ألوان تمييز الأقطاب (بني، أسود، رمادي، أزرق، أخضر-أصفر وفق الترميز الموحد) وهل يوجد قطب أرضي. في المشاريع تحت إشراف استشاري اطلب قائمة الماركات المعتمدة، واشترط شهادات الاختبار وشهادة المطابقة. القائمة أدناه هي الحد الأدنى من البيانات. تفاصيل التركيب تحدد أيضاً قدرة الكابل: عزل XLPE يعمل عند 90 درجة مستمرة و250 درجة عند القصر، وعزل PVC عند 70 و160 درجة، لذا يجب تسمية نوع العزل لا المقاس فقط. ولأداء الحريق حدّد بشكل منفصل هل يجب أن يكون الغلاف LSZH وهل يجب أن يكون الكابل مقاوماً للحريق (PH30/60/120 وBS 8434-2). واطلب جدول البكرات والمصنّع وبلد المنشأ وشهادات الاختبار الروتيني وبرنامج التوريد حتى تتوافق الدفعات الجزئية مع تقدم الموقع.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الموصل، والمقاس وعدد القلوب، والعزل، والتسليح، والأطوال. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً شروط الدفع.",
       "sources": [
         "https://uk.prysmian.com/media/news/pvc-vs-xlpe",
         "https://en.wikipedia.org/wiki/Low_smoke_zero_halogen",
@@ -103,7 +103,8 @@
         "length per circuit and drum lengths",
         "core colours",
         "approved make list / origin",
-        "test certificates and delivery location"
+        "test certificates and delivery location",
+        "payment terms"
       ],
       "blocking": [
         "conductor metal (Cu/Al) and class",
@@ -196,10 +197,18 @@
           "uae_options": "Routine test certificates; delivery to site.",
           "follow_up_if": "If certificates are missing, ask for them.",
           "blocking": false
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": null
+      "site_visit_required_when": null,
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "electrical:switchgear-hierarchy-mdb-smdb-db",
@@ -305,8 +314,8 @@
       "id": "electrical:led-lighting-specs",
       "topic": "LED luminaire specification: lumens, efficacy, CRI, CCT, driver, L70",
       "kind": "spec_checklist",
-      "body_en": "LED luminaires are compared on measured performance, not wattage. Key parameters: luminous flux of the whole luminaire (lm), efficacy (lm/W), correlated colour temperature (CCT, e.g. 3000 K warm, 4000 K neutral, 6500 K cool), colour rendering index (CRI/Ra, commonly 80 minimum indoors, 90 for retail/hospitality), unified glare rating (UGR, often <19 for offices), beam angle, IP rating for wet or outdoor areas and IK for impact, lifetime stated as LxBy at hours (for example L70B50 at 50,000 h), driver quality (power factor, total harmonic distortion, flicker, surge withstand) and dimming protocol (non-dim, phase-cut, 0-10 V, DALI). In the UAE, high ambient temperature shortens driver and LED life, so ask for the rated ambient (Ta) and thermal design. Lighting products sold in the UAE are subject to MoIAT/ECAS conformity schemes and energy-efficiency labelling for some lamp categories. Demand photometric files (IES/LDT), LM-79 test reports and LM-80/TM-21 data for the LED source.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): type and mounting, lumen output, IP rating and dimming.",
-      "body_ar": "تُقارن وحدات إنارة LED بالأداء المقاس لا بالواط. المعاملات الأساسية: التدفق الضوئي للوحدة كاملة (لومن)، والكفاءة (لومن/واط)، ودرجة حرارة اللون (CCT مثل 3000 كلفن دافئ و4000 محايد و6500 بارد)، ومؤشر تجسيد الألوان (CRI/Ra، وعادةً 80 كحد أدنى داخلياً و90 للتجزئة والضيافة)، ومعامل الوهج الموحد (UGR، غالباً أقل من 19 للمكاتب)، وزاوية الشعاع، ودرجة IP للأماكن الرطبة والخارجية وIK لمقاومة الصدمات، والعمر بصيغة LxBy عند عدد ساعات (مثل L70B50 عند 50,000 ساعة)، وجودة المشغل (معامل القدرة، التشوه التوافقي، الوميض، تحمّل الارتفاعات) وبروتوكول التعتيم (بدون، قطع الطور، 0-10 فولت، DALI). في الإمارات تقصّر الحرارة المرتفعة عمر المشغل والـLED، فاطلب درجة الحرارة المحيطة المقننة (Ta) والتصميم الحراري. تخضع منتجات الإنارة المبيعة في الدولة لبرامج مطابقة وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وملصقات كفاءة الطاقة لبعض فئات المصابيح. اطلب ملفات القياس الضوئي (IES/LDT) وتقارير LM-79 وبيانات LM-80/TM-21 لمصدر الضوء.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: النوع وطريقة التركيب، والتدفق الضوئي، ودرجة الحماية، والتعتيم.",
+      "body_en": "LED luminaires are compared on measured performance, not wattage. Key parameters: luminous flux of the whole luminaire (lm), efficacy (lm/W), correlated colour temperature (CCT, e.g. 3000 K warm, 4000 K neutral, 6500 K cool), colour rendering index (CRI/Ra, commonly 80 minimum indoors, 90 for retail/hospitality), unified glare rating (UGR, often <19 for offices), beam angle, IP rating for wet or outdoor areas and IK for impact, lifetime stated as LxBy at hours (for example L70B50 at 50,000 h), driver quality (power factor, total harmonic distortion, flicker, surge withstand) and dimming protocol (non-dim, phase-cut, 0-10 V, DALI). In the UAE, high ambient temperature shortens driver and LED life, so ask for the rated ambient (Ta) and thermal design. Lighting products sold in the UAE are subject to MoIAT/ECAS conformity schemes and energy-efficiency labelling for some lamp categories. Demand photometric files (IES/LDT), LM-79 test reports and LM-80/TM-21 data for the LED source.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): quantity per luminaire type; type and mounting, lumen output, IP rating and dimming. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states quantity per luminaire type; approved makes or equivalent tier; delivery emirate and site; payment terms.",
+      "body_ar": "تُقارن وحدات إنارة LED بالأداء المقاس لا بالواط. المعاملات الأساسية: التدفق الضوئي للوحدة كاملة (لومن)، والكفاءة (لومن/واط)، ودرجة حرارة اللون (CCT مثل 3000 كلفن دافئ و4000 محايد و6500 بارد)، ومؤشر تجسيد الألوان (CRI/Ra، وعادةً 80 كحد أدنى داخلياً و90 للتجزئة والضيافة)، ومعامل الوهج الموحد (UGR، غالباً أقل من 19 للمكاتب)، وزاوية الشعاع، ودرجة IP للأماكن الرطبة والخارجية وIK لمقاومة الصدمات، والعمر بصيغة LxBy عند عدد ساعات (مثل L70B50 عند 50,000 ساعة)، وجودة المشغل (معامل القدرة، التشوه التوافقي، الوميض، تحمّل الارتفاعات) وبروتوكول التعتيم (بدون، قطع الطور، 0-10 فولت، DALI). في الإمارات تقصّر الحرارة المرتفعة عمر المشغل والـLED، فاطلب درجة الحرارة المحيطة المقننة (Ta) والتصميم الحراري. تخضع منتجات الإنارة المبيعة في الدولة لبرامج مطابقة وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وملصقات كفاءة الطاقة لبعض فئات المصابيح. اطلب ملفات القياس الضوئي (IES/LDT) وتقارير LM-79 وبيانات LM-80/TM-21 لمصدر الضوء.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الكمية لكل نوع وحدة إنارة، والنوع وطريقة التركيب، والتدفق الضوئي، ودرجة الحماية، والتعتيم. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً الكمية لكل نوع وحدة إنارة، والعلامة المفضلة أو الفئة المكافئة، وإمارة وموقع التسليم، وشروط الدفع.",
       "sources": [
         "https://www.intertek.com/government/product-conformity/ecas/",
         "https://en.wikipedia.org/wiki/Digital_Addressable_Lighting_Interface"
@@ -328,13 +337,18 @@
         "dimming protocol",
         "finish/colour and dimensions",
         "warranty years",
-        "photometric files and test reports"
+        "photometric files and test reports",
+        "quantity per luminaire type",
+        "approved makes or equivalent tier",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "blocking": [
         "luminaire type and mounting",
         "luminaire lumen output",
         "IP and IK rating",
-        "dimming protocol"
+        "dimming protocol",
+        "quantity per luminaire type"
       ],
       "spec_guide": [
         {
@@ -441,10 +455,39 @@
           "uae_options": "IES or LDT files; test reports.",
           "follow_up_if": "If a quote does not include them, ask for them before the quote is compared.",
           "blocking": false
+        },
+        {
+          "spec": "quantity per luminaire type",
+          "blocking": true,
+          "why_needed_to_price": "A firm price is per luminaire type and the total; the specification alone does not say how many.",
+          "uae_options": "Number per type from the lighting schedule.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "approved makes or equivalent tier",
+          "blocking": false,
+          "why_needed_to_price": "Premium, mid-range and economy makes of the same item differ widely in price, so quotes compare only at the same tier.",
+          "uae_options": "A named brand or equivalent; premium; mid-range; economy; no preference.",
+          "follow_up_if": "A named brand brings the 'or equivalent' rule and who approves an alternative."
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": null
+      "site_visit_required_when": null,
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "electrical:emergency-lighting",
@@ -591,8 +634,8 @@
       "id": "electrical:panel-spec-checklist",
       "topic": "Distribution board / switchboard enquiry checklist",
       "kind": "spec_checklist",
-      "body_en": "Panel quotes vary widely because the builder chooses components unless told otherwise. To quote exactly, a supplier needs the single-line diagram (SLD) and panel schedule, and the buyer must state: system voltage and earthing, incomer type and rating (ACB/MCCB/switch-disconnector), breaking capacity required at the panel (from fault level study), busbar rating and material (copper, tinned or bare), short-time withstand Icw, form of separation, IP rating, indoor/outdoor, floor-standing or wall-mounted, cable entry (top/bottom), outgoing breakers with ratings, poles, curves and RCD requirements, metering (multifunction meters, CTs class), ATS/generator interface, capacitor bank or active harmonic filter if any, SPD, BMS interface, approved component brand list, and the IEC 61439 verification documents required. Delivery, testing at factory (FAT), and site testing and commissioning should be included or explicitly excluded. Be explicit about the form of separation including the sub-form (for example 3b or 4b) and, on British-referenced projects, the BS EN 61439-2 type, because a 4a and a 4b board differ in where outgoing terminals sit and in price. State the breaker family for each way (MCB to IEC 60898-1 or IEC 60947-2, MCCB, ACB) and whether trip units are thermal-magnetic or electronic. Include spare ways and spare space percentage, labelling language (English/Arabic), paint finish and colour, and who supplies the as-built drawings and test certificates.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): SLD, incomer, fault level and component brands.",
-      "body_ar": "تتفاوت عروض اللوحات كثيراً لأن المصنّع يختار المكونات ما لم يُحدَّد له. ليتمكن المورد من التسعير الدقيق يحتاج المخطط الأحادي وجدول اللوحة، ويجب أن يحدد المشتري: جهد النظام ونظام التأريض، ونوع قاطع الدخل وقيمته (ACB/MCCB/مفتاح فصل)، وسعة القطع المطلوبة عند اللوحة (من دراسة مستوى القصر)، وتيار القضبان ومادتها (نحاس مقصدر أو عاري)، وتحمل القصر قصير الزمن Icw، وشكل الفصل، ودرجة IP، وداخلي أم خارجي، وأرضي أم جداري، ومدخل الكابلات (علوي/سفلي)، وقواطع المخارج بقيمها وأقطابها ومنحنياتها ومتطلبات RCD، والقياس (عدادات متعددة الوظائف وفئة محولات التيار)، وربط ATS والمولد، ومكثفات أو مرشح توافقيات نشط إن وجد، وSPD، وربط نظام إدارة المبنى، وقائمة الماركات المعتمدة للمكونات، ووثائق التحقق وفق IEC 61439 المطلوبة. يجب تضمين أو استثناء صريح للتوريد والاختبار في المصنع (FAT) والاختبار والتشغيل في الموقع. كن صريحاً في شكل الفصل الداخلي بما فيه الشكل الفرعي (مثل 3b أو 4b)، وفي المشاريع ذات المرجعية البريطانية حدّد نوع BS EN 61439-2، لأن اللوحة 4a تختلف عن 4b في موضع أطراف المخارج وفي السعر. حدّد عائلة القاطع لكل مخرج (MCB وفق IEC 60898-1 أو IEC 60947-2، أو MCCB، أو ACB) وهل وحدات الفصل حرارية مغناطيسية أم إلكترونية. وأدرج المخارج الاحتياطية ونسبة المساحة الاحتياطية ولغة الملصقات (إنجليزي/عربي) والطلاء واللون، ومن يسلّم مخططات التنفيذ الفعلي وشهادات الاختبار.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المخطط الأحادي، والقاطع الرئيسي، ومستوى تيار القصر، وعلامات المكونات.",
+      "body_en": "Panel quotes vary widely because the builder chooses components unless told otherwise. To quote exactly, a supplier needs the single-line diagram (SLD) and panel schedule, and the buyer must state: system voltage and earthing, incomer type and rating (ACB/MCCB/switch-disconnector), breaking capacity required at the panel (from fault level study), busbar rating and material (copper, tinned or bare), short-time withstand Icw, form of separation, IP rating, indoor/outdoor, floor-standing or wall-mounted, cable entry (top/bottom), outgoing breakers with ratings, poles, curves and RCD requirements, metering (multifunction meters, CTs class), ATS/generator interface, capacitor bank or active harmonic filter if any, SPD, BMS interface, approved component brand list, and the IEC 61439 verification documents required. Delivery, testing at factory (FAT), and site testing and commissioning should be included or explicitly excluded. Be explicit about the form of separation including the sub-form (for example 3b or 4b) and, on British-referenced projects, the BS EN 61439-2 type, because a 4a and a 4b board differ in where outgoing terminals sit and in price. State the breaker family for each way (MCB to IEC 60898-1 or IEC 60947-2, MCCB, ACB) and whether trip units are thermal-magnetic or electronic. Include spare ways and spare space percentage, labelling language (English/Arabic), paint finish and colour, and who supplies the as-built drawings and test certificates.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): SLD, incomer, fault level and component brands. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states supply only or supply, install and test; delivery emirate and site; payment terms.",
+      "body_ar": "تتفاوت عروض اللوحات كثيراً لأن المصنّع يختار المكونات ما لم يُحدَّد له. ليتمكن المورد من التسعير الدقيق يحتاج المخطط الأحادي وجدول اللوحة، ويجب أن يحدد المشتري: جهد النظام ونظام التأريض، ونوع قاطع الدخل وقيمته (ACB/MCCB/مفتاح فصل)، وسعة القطع المطلوبة عند اللوحة (من دراسة مستوى القصر)، وتيار القضبان ومادتها (نحاس مقصدر أو عاري)، وتحمل القصر قصير الزمن Icw، وشكل الفصل، ودرجة IP، وداخلي أم خارجي، وأرضي أم جداري، ومدخل الكابلات (علوي/سفلي)، وقواطع المخارج بقيمها وأقطابها ومنحنياتها ومتطلبات RCD، والقياس (عدادات متعددة الوظائف وفئة محولات التيار)، وربط ATS والمولد، ومكثفات أو مرشح توافقيات نشط إن وجد، وSPD، وربط نظام إدارة المبنى، وقائمة الماركات المعتمدة للمكونات، ووثائق التحقق وفق IEC 61439 المطلوبة. يجب تضمين أو استثناء صريح للتوريد والاختبار في المصنع (FAT) والاختبار والتشغيل في الموقع. كن صريحاً في شكل الفصل الداخلي بما فيه الشكل الفرعي (مثل 3b أو 4b)، وفي المشاريع ذات المرجعية البريطانية حدّد نوع BS EN 61439-2، لأن اللوحة 4a تختلف عن 4b في موضع أطراف المخارج وفي السعر. حدّد عائلة القاطع لكل مخرج (MCB وفق IEC 60898-1 أو IEC 60947-2، أو MCCB، أو ACB) وهل وحدات الفصل حرارية مغناطيسية أم إلكترونية. وأدرج المخارج الاحتياطية ونسبة المساحة الاحتياطية ولغة الملصقات (إنجليزي/عربي) والطلاء واللون، ومن يسلّم مخططات التنفيذ الفعلي وشهادات الاختبار.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المخطط الأحادي، والقاطع الرئيسي، ومستوى تيار القصر، وعلامات المكونات. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً توريد فقط أم توريد وتركيب واختبار، وإمارة وموقع التسليم، وشروط الدفع.",
       "sources": [
         "https://myelectrical.com/notes/entryid/120/switchboard-forms-of-internal-separation",
         "https://en.wikipedia.org/wiki/Circuit_breaker"
@@ -616,7 +659,10 @@
         "SPD",
         "BMS interface",
         "approved component brands",
-        "IEC 61439 documents, FAT, site testing"
+        "IEC 61439 documents, FAT, site testing",
+        "supply only or supply, install and test",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "blocking": [
         "SLD and panel schedule",
@@ -743,10 +789,32 @@
           "uae_options": "Type test documents, FAT, site tests.",
           "follow_up_if": "If FAT is required, state it.",
           "blocking": false
+        },
+        {
+          "spec": "supply only or supply, install and test",
+          "blocking": false,
+          "why_needed_to_price": "Installing, terminating and testing the panel on site is priced on top of the factory-built panel.",
+          "uae_options": "Supply only (delivered); supply and install; supply, install, test and commission.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": null
+      "site_visit_required_when": null,
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "electrical:ats-generator-changeover",
@@ -1074,8 +1142,8 @@
       "id": "electrical:electrical-services-scope",
       "topic": "Electrical services and installation scope items",
       "kind": "spec_checklist",
-      "body_en": "Beyond materials, buyers request electrical services: new installation (fit-out of offices, retail, villas), modifications and load upgrades, DB replacement, rewiring, lighting retrofits, EV charger and PV installation, generator and ATS installation, annual maintenance contracts (AMC), thermographic surveys, periodic inspection and testing, earthing and lightning system testing, and emergency call-outs. An exact service quote needs a defined scope: site location and access hours (malls often allow only night work), existing drawings or a survey visit, the list of points (lighting points, sockets, isolators, data if included), who supplies materials (turnkey vs labour only), approvals and fees (utility, Civil Defence, landlord/NOC, free zone authority), testing and certification deliverables, making good of civil/ceiling works, waste removal, and warranty/defects period. For AMCs, state asset list, visit frequency, response times, and whether spare parts are included. Without these, quotes from different contractors are not comparable and scope disputes follow. A services enquiry should also say who holds the authority interfaces: DEWA or ADDC submissions and inspections, Civil Defence witness tests for life-safety circuits, and consultant approvals. State the testing deliverables expected (insulation resistance, loop impedance, RCD trip times, earth electrode results, signed installation certificate), the defects liability period, and whether the contractor provides the as-built drawings and O&M manuals. Without these lines two quotes for the same electrical works can differ widely simply because one has priced the approvals and paperwork and the other has not.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): service type, point schedule and supply basis. Existing installations need a site visit.",
-      "body_ar": "إلى جانب المواد، يطلب المشترون خدمات كهربائية: تمديدات جديدة (تجهيز المكاتب والمحلات والفلل)، والتعديلات ورفع الأحمال، واستبدال اللوحات، وإعادة التمديد، وتحديث الإنارة، وتركيب الشواحن والطاقة الشمسية، وتركيب المولدات وATS، وعقود الصيانة السنوية، والمسح الحراري، والفحص والاختبار الدوري، واختبار أنظمة التأريض والصواعق، والاستدعاء الطارئ. يحتاج عرض الخدمة الدقيق إلى نطاق محدد: موقع العمل وساعات الوصول (المراكز التجارية غالباً تسمح بالعمل ليلاً فقط)، والمخططات القائمة أو زيارة معاينة، وقائمة النقاط (نقاط الإنارة، المقابس، مفاتيح العزل، البيانات إن شملت)، ومن يوفر المواد (تسليم مفتاح أم عمالة فقط)، والاعتمادات والرسوم (المرفق، الدفاع المدني، المالك/عدم ممانعة، سلطة المنطقة الحرة)، ومخرجات الاختبار والشهادات، وإصلاح الأعمال المدنية والأسقف، وإزالة المخلفات، وفترة الضمان والعيوب. أما عقود الصيانة فتتطلب قائمة الأصول وتكرار الزيارات وأزمنة الاستجابة وهل قطع الغيار مشمولة. بدون ذلك لا تكون عروض المقاولين قابلة للمقارنة وتنشأ نزاعات حول النطاق. يجب أن يوضح طلب الخدمات أيضاً من يتولى التعامل مع الجهات: تقديمات وتفتيش ديوا أو أدك، واختبارات الدفاع المدني بحضوره لدوائر السلامة، واعتمادات الاستشاري. وحدّد مخرجات الاختبار المتوقعة (مقاومة العزل، معاوقة الحلقة، أزمنة فصل RCD، نتائج قطب التأريض، شهادة التركيب الموقعة)، وفترة ضمان العيوب، وهل يسلّم المقاول مخططات التنفيذ الفعلي وأدلة التشغيل والصيانة. ومن دون هذه البنود قد يختلف عرضان للأعمال نفسها كثيراً لمجرد أن أحدهما سعّر الاعتمادات والمستندات والآخر لم يفعل.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع الخدمة، وجدول النقاط، وأساس التوريد. والتمديدات القائمة تحتاج إلى زيارة الموقع.",
+      "body_en": "Beyond materials, buyers request electrical services: new installation (fit-out of offices, retail, villas), modifications and load upgrades, DB replacement, rewiring, lighting retrofits, EV charger and PV installation, generator and ATS installation, annual maintenance contracts (AMC), thermographic surveys, periodic inspection and testing, earthing and lightning system testing, and emergency call-outs. An exact service quote needs a defined scope: site location and access hours (malls often allow only night work), existing drawings or a survey visit, the list of points (lighting points, sockets, isolators, data if included), who supplies materials (turnkey vs labour only), approvals and fees (utility, Civil Defence, landlord/NOC, free zone authority), testing and certification deliverables, making good of civil/ceiling works, waste removal, and warranty/defects period. For AMCs, state asset list, visit frequency, response times, and whether spare parts are included. Without these, quotes from different contractors are not comparable and scope disputes follow. A services enquiry should also say who holds the authority interfaces: DEWA or ADDC submissions and inspections, Civil Defence witness tests for life-safety circuits, and consultant approvals. State the testing deliverables expected (insulation resistance, loop impedance, RCD trip times, earth electrode results, signed installation certificate), the defects liability period, and whether the contractor provides the as-built drawings and O&M manuals. Without these lines two quotes for the same electrical works can differ widely simply because one has priced the approvals and paperwork and the other has not.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): service type, point schedule and supply basis. Existing installations need a site visit. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states payment terms; required delivery or completion date.",
+      "body_ar": "إلى جانب المواد، يطلب المشترون خدمات كهربائية: تمديدات جديدة (تجهيز المكاتب والمحلات والفلل)، والتعديلات ورفع الأحمال، واستبدال اللوحات، وإعادة التمديد، وتحديث الإنارة، وتركيب الشواحن والطاقة الشمسية، وتركيب المولدات وATS، وعقود الصيانة السنوية، والمسح الحراري، والفحص والاختبار الدوري، واختبار أنظمة التأريض والصواعق، والاستدعاء الطارئ. يحتاج عرض الخدمة الدقيق إلى نطاق محدد: موقع العمل وساعات الوصول (المراكز التجارية غالباً تسمح بالعمل ليلاً فقط)، والمخططات القائمة أو زيارة معاينة، وقائمة النقاط (نقاط الإنارة، المقابس، مفاتيح العزل، البيانات إن شملت)، ومن يوفر المواد (تسليم مفتاح أم عمالة فقط)، والاعتمادات والرسوم (المرفق، الدفاع المدني، المالك/عدم ممانعة، سلطة المنطقة الحرة)، ومخرجات الاختبار والشهادات، وإصلاح الأعمال المدنية والأسقف، وإزالة المخلفات، وفترة الضمان والعيوب. أما عقود الصيانة فتتطلب قائمة الأصول وتكرار الزيارات وأزمنة الاستجابة وهل قطع الغيار مشمولة. بدون ذلك لا تكون عروض المقاولين قابلة للمقارنة وتنشأ نزاعات حول النطاق. يجب أن يوضح طلب الخدمات أيضاً من يتولى التعامل مع الجهات: تقديمات وتفتيش ديوا أو أدك، واختبارات الدفاع المدني بحضوره لدوائر السلامة، واعتمادات الاستشاري. وحدّد مخرجات الاختبار المتوقعة (مقاومة العزل، معاوقة الحلقة، أزمنة فصل RCD، نتائج قطب التأريض، شهادة التركيب الموقعة)، وفترة ضمان العيوب، وهل يسلّم المقاول مخططات التنفيذ الفعلي وأدلة التشغيل والصيانة. ومن دون هذه البنود قد يختلف عرضان للأعمال نفسها كثيراً لمجرد أن أحدهما سعّر الاعتمادات والمستندات والآخر لم يفعل.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع الخدمة، وجدول النقاط، وأساس التوريد. والتمديدات القائمة تحتاج إلى زيارة الموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً شروط الدفع، وتاريخ التسليم أو الإنجاز المطلوب.",
       "sources": [
         "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0",
         "https://en.wikipedia.org/wiki/Residual-current_device"
@@ -1093,7 +1161,9 @@
         "testing, certification and as-built deliverables",
         "making good and waste removal",
         "warranty / defects liability period",
-        "AMC: asset list, frequency, response time, spares"
+        "AMC: asset list, frequency, response time, spares",
+        "payment terms",
+        "required delivery or completion date"
       ],
       "blocking": [
         "service type",
@@ -1177,10 +1247,25 @@
           "uae_options": "Asset list, frequency, response, spares.",
           "follow_up_if": "If AMC wanted, ask for asset list.",
           "blocking": false
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        },
+        {
+          "spec": "required delivery or completion date",
+          "blocking": false,
+          "why_needed_to_price": "An urgent date can mean air freight, overtime or only in-stock options, which change the price.",
+          "uae_options": "A date or week; urgent; flexible.",
+          "follow_up_if": ""
         }
       ],
       "site_visit_required_when": "A site visit is genuinely needed for modifications and fault-finding in existing installations.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "electrical:dewa-vs-addc-differences",

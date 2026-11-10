@@ -5,8 +5,8 @@
       "id": "pro_government_services:spec-checklist",
       "topic": "PRO and government services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For pro and government services quotes to be compared like-for-like, every quoted line (services) must state: (1) list of transactions (visa, labour card, trade licence, attestation); (2) number of employees or files covered; (3) emirate and free zone or mainland; (4) government fees included or excluded; (5) service fee per transaction or retainer; (6) turnaround time per transaction; (7) document handling and confidentiality; (8) provider trade licence activity; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pro_government_services trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): list of transactions (visa, labour card, trade licence, attestation); number of employees or files covered; emirate and free zone or mainland; government fees included or excluded; service fee per transaction or retainer; contract duration and pricing basis. Follow-up questions the answers trigger: list of transactions (visa, labour card, trade licence, attestation): Ask the list for the next 12 months. Before a firm price: a firm price needs the transaction list with volumes, emirate and zone, and whether government fees are included; a retainer is priced from expected monthly volume.",
-      "body_ar": "لكي تُقارن عروض خدمات المندوب والمعاملات الحكومية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) قائمة المعاملات (تأشيرة، أو بطاقة عمل، أو رخصة تجارية، أو تصديق)؛ (2) عدد الموظفين أو الملفات المشمولة؛ (3) الإمارة، والمنطقة الحرة أو البر الرئيسي؛ (4) الرسوم الحكومية مشمولة أو مستثناة؛ (5) رسوم الخدمة لكل معاملة أو اشتراك شهري؛ (6) مدة إنجاز كل معاملة؛ (7) التعامل مع المستندات وسريتها؛ (8) نشاط الرخصة التجارية لمقدم الخدمة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pro_government_services فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: قائمة المعاملات، وعدد الموظفين أو الملفات، والإمارة والمنطقة الحرة أو البر الرئيسي، وشمول الرسوم الحكومية أو استثناؤها، وأساس التسعير لكل معاملة أو اشتراك شهري، ومدة العقد. يُطلب جدول المعاملات المتوقعة لاثني عشر شهراً.",
+      "body_en": "For pro and government services quotes to be compared like-for-like, every quoted line (services) must state: (1) list of transactions (visa, labour card, trade licence, attestation); (2) number of employees or files covered; (3) emirate and free zone or mainland; (4) government fees included or excluded; (5) service fee per transaction or retainer; (6) turnaround time per transaction; (7) document handling and confidentiality; (8) provider trade licence activity; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pro_government_services trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): list of transactions (visa, labour card, trade licence, attestation); number of employees or files covered; emirate and free zone or mainland; government fees included or excluded; service fee per transaction or retainer; contract duration and pricing basis. Follow-up questions the answers trigger: list of transactions (visa, labour card, trade licence, attestation): Ask the list for the next 12 months. Before a firm price: a firm price needs the transaction list with volumes, emirate and zone, and whether government fees are included; a retainer is priced from expected monthly volume. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. contract duration and pricing basis is no longer quote-blocking: the pricing basis is already asked as the service fee per transaction or retainer, and a per-transaction job has no contract term to give. Quote-blocking after this review: list of transactions (visa, labour card, trade licence, attestation); number of employees or files covered; emirate and free zone or mainland; government fees included or excluded; service fee per transaction or retainer.",
+      "body_ar": "لكي تُقارن عروض خدمات المندوب والمعاملات الحكومية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) قائمة المعاملات (تأشيرة، أو بطاقة عمل، أو رخصة تجارية، أو تصديق)؛ (2) عدد الموظفين أو الملفات المشمولة؛ (3) الإمارة، والمنطقة الحرة أو البر الرئيسي؛ (4) الرسوم الحكومية مشمولة أو مستثناة؛ (5) رسوم الخدمة لكل معاملة أو اشتراك شهري؛ (6) مدة إنجاز كل معاملة؛ (7) التعامل مع المستندات وسريتها؛ (8) نشاط الرخصة التجارية لمقدم الخدمة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pro_government_services فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: قائمة المعاملات، وعدد الموظفين أو الملفات، والإمارة والمنطقة الحرة أو البر الرئيسي، وشمول الرسوم الحكومية أو استثناؤها، وأساس التسعير لكل معاملة أو اشتراك شهري، ومدة العقد. يُطلب جدول المعاملات المتوقعة لاثني عشر شهراً. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «مدة العقد وأساس التسعير» مانعاً للتسعير: أساس التسعير مطلوب أصلاً في بند الرسوم لكل معاملة أو الاشتراك الشهري، والعمل بالمعاملة لا مدة عقد له.",
       "required_specs": [
         "list of transactions (visa, labour card, trade licence, attestation)",
         "number of employees or files covered",
@@ -18,7 +18,8 @@
         "provider trade licence activity",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://www.mohre.gov.ae/en/services.aspx"
@@ -30,8 +31,7 @@
         "number of employees or files covered",
         "emirate and free zone or mainland",
         "government fees included or excluded",
-        "service fee per transaction or retainer",
-        "contract duration and pricing basis"
+        "service fee per transaction or retainer"
       ],
       "spec_guide": [
         {
@@ -95,7 +95,7 @@
           "why_needed_to_price": "Contract duration.",
           "uae_options": "months",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "service levels and response times",
@@ -110,10 +110,17 @@
           "uae_options": "fines; medical test fees; courier",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "a firm price needs the transaction list with volumes, emirate and zone, and whether government fees are included; a retainer is priced from expected monthly volume.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "pro_government_services:uae-standards-and-approvals",

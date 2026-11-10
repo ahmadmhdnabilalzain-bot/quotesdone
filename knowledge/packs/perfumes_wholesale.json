@@ -5,8 +5,8 @@
       "id": "perfumes_wholesale:spec-checklist",
       "topic": "Perfumes wholesale - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For perfumes wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) brand, product name and SKU; (2) concentration type (parfum, EDP, EDT, oil); (3) volume per unit in ml; (4) quantity in units and cartons; (5) genuine or inspired/private label; (6) batch number and production/expiry date; (7) Arabic/English labelling and ingredient list; (8) UAE product registration or conformity certificate; (9) packaging (tester, gift set, retail box); (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the perfumes_wholesale trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): brand, product name and SKU; concentration type (parfum, EDP, EDT, oil); volume per unit in ml; quantity in units and cartons; genuine or inspired/private label; batch number and production/expiry date; UAE product registration or conformity certificate; delivery terms and location. Follow-up questions the answers trigger: genuine or inspired/private label: Inspired: ask that no trademark is copied. Before a firm price: stock SKUs can be priced firm from SKU, volume and quantity; private label perfume needs the fragrance sample approved, the bottle and packaging chosen and a MOQ agreed before a firm price.",
-      "body_ar": "لكي تُقارن عروض تجارة العطور بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) العلامة التجارية واسم المنتج ورمز الصنف؛ (2) نوع التركيز (عطر، أو دو بارفان، أو دو تواليت، أو زيت)؛ (3) الحجم لكل وحدة بالمليلتر؛ (4) الكمية بالوحدات والكراتين؛ (5) أصلي أو مستوحى أو علامة خاصة؛ (6) رقم الدفعة وتاريخ الإنتاج أو الانتهاء؛ (7) الملصق بالعربية والإنجليزية وقائمة المكونات؛ (8) تسجيل المنتج أو شهادة المطابقة في الإمارات؛ (9) التغليف (عينة اختبار، أو طقم هدايا، أو علبة بيع)؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة perfumes_wholesale فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: العلامة واسم المنتج ورمزه، ونوع التركيز، والحجم، والكمية، والأصلي أو المستوحى أو العلامة الخاصة، والتشغيلة والتاريخ، والتسجيل أو شهادة المطابقة، والتسليم. أسئلة المتابعة: العطور المستوحاة تستلزم التأكد من عدم نسخ أي علامة تجارية. العلامة الخاصة تحتاج اعتماد عيّنة العطر واختيار الزجاجة والتغليف والاتفاق على الحد الأدنى للطلب قبل السعر النهائي.",
+      "body_en": "For perfumes wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) brand, product name and SKU; (2) concentration type (parfum, EDP, EDT, oil); (3) volume per unit in ml; (4) quantity in units and cartons; (5) genuine or inspired/private label; (6) batch number and production/expiry date; (7) Arabic/English labelling and ingredient list; (8) UAE product registration or conformity certificate; (9) packaging (tester, gift set, retail box); (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the perfumes_wholesale trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): brand, product name and SKU; concentration type (parfum, EDP, EDT, oil); volume per unit in ml; quantity in units and cartons; genuine or inspired/private label; batch number and production/expiry date; UAE product registration or conformity certificate; delivery terms and location. Follow-up questions the answers trigger: genuine or inspired/private label: Inspired: ask that no trademark is copied. Before a firm price: stock SKUs can be priced firm from SKU, volume and quantity; private label perfume needs the fragrance sample approved, the bottle and packaging chosen and a MOQ agreed before a firm price. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. UAE product registration or conformity certificate is no longer quote-blocking: registration is the supplier's to show for the SKU it offers; the customer only says whether the goods are for UAE retail or re-export, which the delivery terms already state. Quote-blocking after this review: brand, product name and SKU; concentration type (parfum, EDP, EDT, oil); volume per unit in ml; quantity in units and cartons; genuine or inspired/private label; batch number and production/expiry date; delivery terms and location.",
+      "body_ar": "لكي تُقارن عروض تجارة العطور بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) العلامة التجارية واسم المنتج ورمز الصنف؛ (2) نوع التركيز (عطر، أو دو بارفان، أو دو تواليت، أو زيت)؛ (3) الحجم لكل وحدة بالمليلتر؛ (4) الكمية بالوحدات والكراتين؛ (5) أصلي أو مستوحى أو علامة خاصة؛ (6) رقم الدفعة وتاريخ الإنتاج أو الانتهاء؛ (7) الملصق بالعربية والإنجليزية وقائمة المكونات؛ (8) تسجيل المنتج أو شهادة المطابقة في الإمارات؛ (9) التغليف (عينة اختبار، أو طقم هدايا، أو علبة بيع)؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة perfumes_wholesale فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: العلامة واسم المنتج ورمزه، ونوع التركيز، والحجم، والكمية، والأصلي أو المستوحى أو العلامة الخاصة، والتشغيلة والتاريخ، والتسجيل أو شهادة المطابقة، والتسليم. أسئلة المتابعة: العطور المستوحاة تستلزم التأكد من عدم نسخ أي علامة تجارية. العلامة الخاصة تحتاج اعتماد عيّنة العطر واختيار الزجاجة والتغليف والاتفاق على الحد الأدنى للطلب قبل السعر النهائي. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «تسجيل المنتج في الإمارات أو شهادة المطابقة» مانعاً للتسعير: التسجيل يثبته المورّد للصنف الذي يعرضه؛ ويكفي أن يذكر العميل هل البضاعة للبيع في الإمارات أو لإعادة التصدير، وهو ما تذكره شروط التسليم أصلاً.",
       "required_specs": [
         "brand, product name and SKU",
         "concentration type (parfum, EDP, EDT, oil)",
@@ -20,7 +20,8 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
@@ -35,7 +36,6 @@
         "quantity in units and cartons",
         "genuine or inspired/private label",
         "batch number and production/expiry date",
-        "UAE product registration or conformity certificate",
         "delivery terms and location"
       ],
       "spec_guide": [
@@ -93,7 +93,7 @@
           "why_needed_to_price": "Registration or conformity must exist for sale.",
           "uae_options": "Dubai Municipality registration; MoIAT conformity",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "packaging (tester, gift set, retail box)",
@@ -129,10 +129,17 @@
           "uae_options": "testers; displays",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "stock SKUs can be priced firm from SKU, volume and quantity; private label perfume needs the fragrance sample approved, the bottle and packaging chosen and a MOQ agreed before a firm price.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "perfumes_wholesale:uae-standards-and-approvals",

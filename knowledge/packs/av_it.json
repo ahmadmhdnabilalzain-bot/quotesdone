@@ -292,8 +292,8 @@
       "id": "av_it:spec-led-wall",
       "topic": "Spec checklist: LED video wall",
       "kind": "spec_checklist",
-      "body_en": "A supplier cannot quote an LED wall accurately from 'a big screen for the lobby'. The enquiry must fix the active area and aspect ratio, the pixel pitch or the target resolution (and minimum viewing distance to justify it), and whether it is indoor or outdoor. Brightness in nits, refresh rate (camera-facing walls need high refresh), encapsulation (SMD, GOB or COB), and service access (front service is essential when the wall sits against a wall with no rear corridor) change both the product and the structure. The processor or controller and its inputs (HDMI 2.0, 12G-SDI, fibre) determine what content sources can be shown, and whether scaling or multi-window is needed. Structural support (ground stack, wall mount, hanging frame or custom steel) and who designs and certifies it must be stated, as must power supply and heat load for the MEP team. Spares policy: request a percentage of spare modules and power supplies from the same production batch. Warranty years, on-site response time, and expected LED lifetime to half brightness complete the specification. For outdoor walls add IP rating, wind load, municipality permit responsibility and content-control (dimming schedule). Verification note (23 Sep 2026): checklist fields follow the verified pixel-pitch entry.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): indoor or outdoor, size and pixel pitch.",
-      "body_ar": "لا يمكن للمورد تسعير شاشة LED بدقة من عبارة «شاشة كبيرة للردهة». يجب أن يحدد الطلب المساحة الفعلية ونسبة الأبعاد، والمسافة بين البكسلات أو الدقة المستهدفة (وأقل مسافة مشاهدة تبررها)، وهل الشاشة داخلية أم خارجية. والسطوع بالنِت، ومعدل التحديث (الشاشات المواجهة للكاميرات تحتاج معدلاً عالياً)، وتقنية التغليف (SMD أو GOB أو COB)، وطريقة الصيانة (الصيانة الأمامية ضرورية إذا كانت الشاشة ملاصقة لجدار بلا ممر خلفي) تغيّر المنتج والهيكل معاً. ووحدة المعالجة ومداخلها (HDMI 2.0 و12G-SDI والألياف) تحدد مصادر المحتوى الممكن عرضها، وهل يلزم تكبير الصورة أو تعدد النوافذ. ويجب تحديد الهيكل الحامل (قائم على الأرض أو مثبت على الجدار أو معلق أو إطار فولاذي خاص) ومن يصممه ويعتمده، والتغذية الكهربائية والحمل الحراري لفريق الأعمال الكهروميكانيكية. وسياسة قطع الغيار: اطلب نسبة من الوحدات ومزودات الطاقة الاحتياطية من الدفعة الإنتاجية نفسها. ويكتمل الوصف بمدة الضمان، وزمن الاستجابة في الموقع، والعمر المتوقع للثنائيات حتى نصف السطوع. وللشاشات الخارجية أضف درجة الحماية، وحمل الرياح، ومسؤولية تصريح البلدية، وجدول التعتيم. ملاحظة التحقق (23 سبتمبر 2026): حقول القائمة مبنية على مدخل المسافة بين البكسلات بعد التحقق.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: داخلي أو خارجي، والمقاس، ودقة البكسل.",
+      "body_en": "A supplier cannot quote an LED wall accurately from 'a big screen for the lobby'. The enquiry must fix the active area and aspect ratio, the pixel pitch or the target resolution (and minimum viewing distance to justify it), and whether it is indoor or outdoor. Brightness in nits, refresh rate (camera-facing walls need high refresh), encapsulation (SMD, GOB or COB), and service access (front service is essential when the wall sits against a wall with no rear corridor) change both the product and the structure. The processor or controller and its inputs (HDMI 2.0, 12G-SDI, fibre) determine what content sources can be shown, and whether scaling or multi-window is needed. Structural support (ground stack, wall mount, hanging frame or custom steel) and who designs and certifies it must be stated, as must power supply and heat load for the MEP team. Spares policy: request a percentage of spare modules and power supplies from the same production batch. Warranty years, on-site response time, and expected LED lifetime to half brightness complete the specification. For outdoor walls add IP rating, wind load, municipality permit responsibility and content-control (dimming schedule). Verification note (23 Sep 2026): checklist fields follow the verified pixel-pitch entry.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; indoor or outdoor, size and pixel pitch. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; installation access and working hours; payment terms; required handover date.",
+      "body_ar": "لا يمكن للمورد تسعير شاشة LED بدقة من عبارة «شاشة كبيرة للردهة». يجب أن يحدد الطلب المساحة الفعلية ونسبة الأبعاد، والمسافة بين البكسلات أو الدقة المستهدفة (وأقل مسافة مشاهدة تبررها)، وهل الشاشة داخلية أم خارجية. والسطوع بالنِت، ومعدل التحديث (الشاشات المواجهة للكاميرات تحتاج معدلاً عالياً)، وتقنية التغليف (SMD أو GOB أو COB)، وطريقة الصيانة (الصيانة الأمامية ضرورية إذا كانت الشاشة ملاصقة لجدار بلا ممر خلفي) تغيّر المنتج والهيكل معاً. ووحدة المعالجة ومداخلها (HDMI 2.0 و12G-SDI والألياف) تحدد مصادر المحتوى الممكن عرضها، وهل يلزم تكبير الصورة أو تعدد النوافذ. ويجب تحديد الهيكل الحامل (قائم على الأرض أو مثبت على الجدار أو معلق أو إطار فولاذي خاص) ومن يصممه ويعتمده، والتغذية الكهربائية والحمل الحراري لفريق الأعمال الكهروميكانيكية. وسياسة قطع الغيار: اطلب نسبة من الوحدات ومزودات الطاقة الاحتياطية من الدفعة الإنتاجية نفسها. ويكتمل الوصف بمدة الضمان، وزمن الاستجابة في الموقع، والعمر المتوقع للثنائيات حتى نصف السطوع. وللشاشات الخارجية أضف درجة الحماية، وحمل الرياح، ومسؤولية تصريح البلدية، وجدول التعتيم. ملاحظة التحقق (23 سبتمبر 2026): حقول القائمة مبنية على مدخل المسافة بين البكسلات بعد التحقق.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، وداخلي أو خارجي، والمقاس، ودقة البكسل. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، والوصول إلى الموقع وساعات العمل، وشروط الدفع، وتاريخ التسليم أو الإنجاز المطلوب.",
       "required_specs": [
         "indoor_or_outdoor",
         "active_width_mm_x_height_mm",
@@ -309,7 +309,11 @@
         "ip_rating_for_outdoor",
         "spare_modules_percent_same_batch",
         "warranty_years_and_onsite_response",
-        "content_control_or_cms"
+        "content_control_or_cms",
+        "site_location_and_emirate",
+        "installation_access_and_working_hours",
+        "payment_terms",
+        "required_handover_date"
       ],
       "sources": [
         "https://www.daktronics.com/en-us/support/kb/000030569",
@@ -320,7 +324,8 @@
       "blocking": [
         "indoor_or_outdoor",
         "active_width_mm_x_height_mm",
-        "pixel_pitch_mm_or_target_resolution"
+        "pixel_pitch_mm_or_target_resolution",
+        "site_location_and_emirate"
       ],
       "spec_guide": [
         {
@@ -427,17 +432,46 @@
           "uae_options": "Local playback; networked CMS with licence term.",
           "follow_up_if": "If content changes often, ask for the CMS and its annual licence.",
           "blocking": false
+        },
+        {
+          "spec": "site_location_and_emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "installation_access_and_working_hours",
+          "blocking": false,
+          "why_needed_to_price": "Night or weekend work, occupied premises, restricted delivery hours and gate passes change labour cost and programme.",
+          "uae_options": "Normal day shift; night or weekend only; occupied building; mall, community or free-zone permit hours; loading-bay booking.",
+          "follow_up_if": "Restricted hours bring the landlord or community permission the work needs."
+        },
+        {
+          "spec": "payment_terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        },
+        {
+          "spec": "required_handover_date",
+          "blocking": false,
+          "why_needed_to_price": "An urgent date can mean air freight, overtime or only in-stock options, which change the price.",
+          "uae_options": "A date or week; urgent; flexible.",
+          "follow_up_if": ""
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": "A site visit is needed when the wall is retrofitted onto an existing structure or the power and data routes are unknown."
+      "site_visit_required_when": "A site visit is needed when the wall is retrofitted onto an existing structure or the power and data routes are unknown.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "av_it:spec-conference-room",
       "topic": "Spec checklist: meeting / conference room AV",
       "kind": "spec_checklist",
-      "body_en": "For a meeting-room AV quote to be comparable, state the room dimensions and ceiling height, seating count and layout, and wall and ceiling finishes (glass and hard surfaces change the microphone and acoustic design). Name the conferencing platform (Microsoft Teams Rooms, Zoom Rooms, Google Meet, or BYOD only) and whether devices must be on that platform's certified list. State display count and size or ask the supplier to size them to the farthest viewer, whether interactive touch is required, and the camera requirement (fixed, PTZ, speaker tracking, content camera). Define microphone type (ceiling array, table, wireless handheld for presenters), speaker type, and any need for voice lift or hearing-assistance. List the sources (laptops HDMI/USB-C, wireless presentation, PCs), control (touch panel, scheduling panel outside the room), and integrations (room booking, lighting, blinds). Clarify who provides the network ports, power, containment and furniture cut-outs, and whether platform licences, warranty extensions and a support contract are included and for how long. Finally, require commissioning documentation, as-built drawings, user training and a defined acceptance test. Verification note (23 Sep 2026): checklist fields follow the verified conference-room entry.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): room size, seat count and conferencing platform.",
-      "body_ar": "لكي تكون عروض أسعار أنظمة غرف الاجتماعات قابلة للمقارنة، حدد أبعاد الغرفة وارتفاع السقف، وعدد المقاعد وتوزيعها، وتشطيبات الجدران والسقف (فالزجاج والأسطح الصلبة تغير تصميم الميكروفونات والصوتيات). اذكر منصة المؤتمرات (Microsoft Teams Rooms أو Zoom Rooms أو Google Meet أو التوصيل بالجهاز الشخصي فقط) وهل يجب أن تكون الأجهزة ضمن قائمة الاعتماد لتلك المنصة. حدد عدد الشاشات ومقاسها أو اطلب من المورد تحديدها حسب أبعد مشاهد، وهل يلزم اللمس التفاعلي، ومتطلبات الكاميرا (ثابتة أو PTZ أو تتبع المتحدث أو كاميرا للمحتوى). وحدد نوع الميكروفونات (مصفوفة سقفية أو مكتبية أو لاسلكية يدوية للمقدم)، ونوع السماعات، وأي حاجة لتقوية الصوت أو أنظمة مساعدة السمع. واذكر المصادر (حواسيب عبر HDMI أو USB-C، والعرض اللاسلكي، والحواسيب الثابتة)، والتحكم (لوحة لمس، ولوحة حجز خارج الغرفة)، والربط (حجز الغرف والإضاءة والستائر). ووضح من يوفر منافذ الشبكة والكهرباء والمسارات وفتحات الأثاث، وهل تشمل الأسعار تراخيص المنصة وتمديد الضمان وعقد الدعم ولأي مدة. وأخيراً اشترط وثائق التشغيل والمخططات النهائية وتدريب المستخدمين واختبار قبول محدداً. ملاحظة التحقق (23 سبتمبر 2026): حقول القائمة مبنية على مدخل غرف الاجتماعات بعد التحقق.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مقاس الغرفة، وعدد المقاعد، ومنصة المؤتمرات.",
+      "body_en": "For a meeting-room AV quote to be comparable, state the room dimensions and ceiling height, seating count and layout, and wall and ceiling finishes (glass and hard surfaces change the microphone and acoustic design). Name the conferencing platform (Microsoft Teams Rooms, Zoom Rooms, Google Meet, or BYOD only) and whether devices must be on that platform's certified list. State display count and size or ask the supplier to size them to the farthest viewer, whether interactive touch is required, and the camera requirement (fixed, PTZ, speaker tracking, content camera). Define microphone type (ceiling array, table, wireless handheld for presenters), speaker type, and any need for voice lift or hearing-assistance. List the sources (laptops HDMI/USB-C, wireless presentation, PCs), control (touch panel, scheduling panel outside the room), and integrations (room booking, lighting, blinds). Clarify who provides the network ports, power, containment and furniture cut-outs, and whether platform licences, warranty extensions and a support contract are included and for how long. Finally, require commissioning documentation, as-built drawings, user training and a defined acceptance test. Verification note (23 Sep 2026): checklist fields follow the verified conference-room entry.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): number of rooms per room type; room size, seat count and conferencing platform. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states number of rooms per room type; new or existing room; site location and emirate; payment terms; required handover date.",
+      "body_ar": "لكي تكون عروض أسعار أنظمة غرف الاجتماعات قابلة للمقارنة، حدد أبعاد الغرفة وارتفاع السقف، وعدد المقاعد وتوزيعها، وتشطيبات الجدران والسقف (فالزجاج والأسطح الصلبة تغير تصميم الميكروفونات والصوتيات). اذكر منصة المؤتمرات (Microsoft Teams Rooms أو Zoom Rooms أو Google Meet أو التوصيل بالجهاز الشخصي فقط) وهل يجب أن تكون الأجهزة ضمن قائمة الاعتماد لتلك المنصة. حدد عدد الشاشات ومقاسها أو اطلب من المورد تحديدها حسب أبعد مشاهد، وهل يلزم اللمس التفاعلي، ومتطلبات الكاميرا (ثابتة أو PTZ أو تتبع المتحدث أو كاميرا للمحتوى). وحدد نوع الميكروفونات (مصفوفة سقفية أو مكتبية أو لاسلكية يدوية للمقدم)، ونوع السماعات، وأي حاجة لتقوية الصوت أو أنظمة مساعدة السمع. واذكر المصادر (حواسيب عبر HDMI أو USB-C، والعرض اللاسلكي، والحواسيب الثابتة)، والتحكم (لوحة لمس، ولوحة حجز خارج الغرفة)، والربط (حجز الغرف والإضاءة والستائر). ووضح من يوفر منافذ الشبكة والكهرباء والمسارات وفتحات الأثاث، وهل تشمل الأسعار تراخيص المنصة وتمديد الضمان وعقد الدعم ولأي مدة. وأخيراً اشترط وثائق التشغيل والمخططات النهائية وتدريب المستخدمين واختبار قبول محدداً. ملاحظة التحقق (23 سبتمبر 2026): حقول القائمة مبنية على مدخل غرف الاجتماعات بعد التحقق.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: عدد القاعات لكل نوع، ومقاس الغرفة، وعدد المقاعد، ومنصة المؤتمرات. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً عدد القاعات لكل نوع، ومبنى جديد أم قائم، وموقع العمل والإمارة، وشروط الدفع، وتاريخ التسليم أو الإنجاز المطلوب.",
       "required_specs": [
         "room_dimensions_and_ceiling_height",
         "seat_count_and_layout",
@@ -453,7 +487,12 @@
         "integrations_lighting_blinds",
         "network_power_containment_by_whom",
         "licences_and_support_term",
-        "commissioning_and_training"
+        "commissioning_and_training",
+        "number_of_rooms_per_room_type",
+        "new_or_existing_room",
+        "site_location_and_emirate",
+        "payment_terms",
+        "required_handover_date"
       ],
       "sources": [
         "https://learn.microsoft.com/en-us/microsoftteams/rooms/certified-hardware",
@@ -464,7 +503,8 @@
       "blocking": [
         "room_dimensions_and_ceiling_height",
         "seat_count_and_layout",
-        "conferencing_platform_and_certification"
+        "conferencing_platform_and_certification",
+        "number_of_rooms_per_room_type"
       ],
       "spec_guide": [
         {
@@ -571,17 +611,53 @@
           "uae_options": "Configuration, testing, user training, as-built documents.",
           "follow_up_if": "If not stated, ask the supplier to confirm commissioning and training are included.",
           "blocking": false
+        },
+        {
+          "spec": "number_of_rooms_per_room_type",
+          "blocking": true,
+          "why_needed_to_price": "The price is per room; a standard design repeated across rooms is priced differently from one room.",
+          "uae_options": "One room; a stated number of identical rooms; a schedule of rooms by type.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "new_or_existing_room",
+          "blocking": false,
+          "why_needed_to_price": "Work in an existing or occupied building adds survey, protection, making good and restricted hours.",
+          "uae_options": "New build from drawings; existing and occupied; existing and vacant.",
+          "follow_up_if": "An existing building brings the site visit this trade notes."
+        },
+        {
+          "spec": "site_location_and_emirate",
+          "blocking": false,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "payment_terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        },
+        {
+          "spec": "required_handover_date",
+          "blocking": false,
+          "why_needed_to_price": "An urgent date can mean air freight, overtime or only in-stock options, which change the price.",
+          "uae_options": "A date or week; urgent; flexible.",
+          "follow_up_if": ""
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": "A site visit is needed for an existing room, to check ceiling void, wall construction and containment; a new room can be priced from drawings."
+      "site_visit_required_when": "A site visit is needed for an existing room, to check ceiling void, wall construction and containment; a new room can be priced from drawings.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 5 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "av_it:spec-pa-voice-evac",
       "topic": "Spec checklist: PA / background music / voice evacuation",
       "kind": "spec_checklist",
-      "body_en": "State first whether the system is background music and paging only, or a certified voice alarm system; the second must be EN 54-16/EN 54-24 (or UL-listed per NFPA 72 on US-based projects) and Civil Defence approved, which changes everything from amplifiers to cable. Give the number of zones and their use (offices, car park, retail, back of house, outdoor), approximate areas and ceiling heights or drawings, and required sound level and intelligibility target (STI). List loudspeaker types per zone (ceiling, pendant, horn for car parks and plant rooms, wall, IP-rated outdoor) and their tap settings or let the designer calculate them. Specify distribution (100 V line), amplifier redundancy (N+1 or standby), battery standby and alarm durations, and fire-resistant cable category. Define the fire alarm interface and cause-and-effect matrix, paging microphones (all-call and zone selection), music sources, local volume controls (which must be overridden in emergency), and any network or Dante requirement. Add pre-recorded evacuation and alert messages in Arabic and English, testing and STI measurement, Civil Defence approval responsibility, and the maintenance contract term. Verification note (23 Sep 2026): standards named are confirmed; Civil Defence approval rules were not established from a fetched source.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): BGM or certified voice alarm, zones and areas.",
-      "body_ar": "حدد أولاً هل النظام للموسيقى الخلفية والنداء فقط أم نظام إنذار صوتي معتمد؛ فالثاني يجب أن يكون وفق EN 54-16 وEN 54-24 (أو مدرجاً لدى UL وفق NFPA 72 في المشاريع ذات المرجعية الأمريكية) ومعتمداً من الدفاع المدني، وهذا يغير كل شيء من المضخمات إلى الكوابل. اذكر عدد المناطق واستخدامها (مكاتب، مواقف، محلات، مناطق خدمية، خارجية)، والمساحات التقريبية وارتفاعات الأسقف أو المخططات، ومستوى الصوت المطلوب وهدف وضوح الكلام (STI). وحدد أنواع السماعات لكل منطقة (سقفية، معلقة، بوقية للمواقف وغرف المعدات، جدارية، خارجية بدرجة حماية) ونقاط قدرتها أو اترك حسابها للمصمم. وحدد طريقة التوزيع (خط 100 فولت)، واحتياط المضخمات، ومدة البطاريات في الاحتياط والإنذار، وفئة الكابل المقاوم للحريق. وعرّف الربط مع إنذار الحريق ومصفوفة السبب والنتيجة، وميكروفونات النداء (نداء عام واختيار المناطق)، ومصادر الموسيقى، ومتحكمات الصوت المحلية (التي يجب تجاوزها في الطوارئ)، وأي متطلبات شبكية أو Dante. وأضف رسائل الإخلاء والتنبيه المسجلة بالعربية والإنجليزية، والاختبار وقياس وضوح الكلام، ومسؤولية الحصول على اعتماد الدفاع المدني، ومدة عقد الصيانة. ملاحظة التحقق (23 سبتمبر 2026): المعايير المذكورة مؤكدة؛ ولم تثبت قواعد اعتماد الدفاع المدني من مصدر تم فحصه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موسيقى خلفية أو إنذار صوتي معتمد، والمناطق، والمساحات.",
+      "body_en": "State first whether the system is background music and paging only, or a certified voice alarm system; the second must be EN 54-16/EN 54-24 (or UL-listed per NFPA 72 on US-based projects) and Civil Defence approved, which changes everything from amplifiers to cable. Give the number of zones and their use (offices, car park, retail, back of house, outdoor), approximate areas and ceiling heights or drawings, and required sound level and intelligibility target (STI). List loudspeaker types per zone (ceiling, pendant, horn for car parks and plant rooms, wall, IP-rated outdoor) and their tap settings or let the designer calculate them. Specify distribution (100 V line), amplifier redundancy (N+1 or standby), battery standby and alarm durations, and fire-resistant cable category. Define the fire alarm interface and cause-and-effect matrix, paging microphones (all-call and zone selection), music sources, local volume controls (which must be overridden in emergency), and any network or Dante requirement. Add pre-recorded evacuation and alert messages in Arabic and English, testing and STI measurement, Civil Defence approval responsibility, and the maintenance contract term. Verification note (23 Sep 2026): standards named are confirmed; Civil Defence approval rules were not established from a fetched source.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; BGM or certified voice alarm, zones and areas. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; new or existing building; payment terms; required handover date.",
+      "body_ar": "حدد أولاً هل النظام للموسيقى الخلفية والنداء فقط أم نظام إنذار صوتي معتمد؛ فالثاني يجب أن يكون وفق EN 54-16 وEN 54-24 (أو مدرجاً لدى UL وفق NFPA 72 في المشاريع ذات المرجعية الأمريكية) ومعتمداً من الدفاع المدني، وهذا يغير كل شيء من المضخمات إلى الكوابل. اذكر عدد المناطق واستخدامها (مكاتب، مواقف، محلات، مناطق خدمية، خارجية)، والمساحات التقريبية وارتفاعات الأسقف أو المخططات، ومستوى الصوت المطلوب وهدف وضوح الكلام (STI). وحدد أنواع السماعات لكل منطقة (سقفية، معلقة، بوقية للمواقف وغرف المعدات، جدارية، خارجية بدرجة حماية) ونقاط قدرتها أو اترك حسابها للمصمم. وحدد طريقة التوزيع (خط 100 فولت)، واحتياط المضخمات، ومدة البطاريات في الاحتياط والإنذار، وفئة الكابل المقاوم للحريق. وعرّف الربط مع إنذار الحريق ومصفوفة السبب والنتيجة، وميكروفونات النداء (نداء عام واختيار المناطق)، ومصادر الموسيقى، ومتحكمات الصوت المحلية (التي يجب تجاوزها في الطوارئ)، وأي متطلبات شبكية أو Dante. وأضف رسائل الإخلاء والتنبيه المسجلة بالعربية والإنجليزية، والاختبار وقياس وضوح الكلام، ومسؤولية الحصول على اعتماد الدفاع المدني، ومدة عقد الصيانة. ملاحظة التحقق (23 سبتمبر 2026): المعايير المذكورة مؤكدة؛ ولم تثبت قواعد اعتماد الدفاع المدني من مصدر تم فحصه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، وموسيقى خلفية أو إنذار صوتي معتمد، والمناطق، والمساحات. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، ومبنى جديد أم قائم، وشروط الدفع، وتاريخ التسليم أو الإنجاز المطلوب.",
       "required_specs": [
         "bgm_paging_only_or_certified_voice_alarm",
         "standard_en54_or_nfpa72",
@@ -598,7 +674,11 @@
         "music_sources_and_local_volume_controls",
         "arabic_english_messages",
         "civil_defence_approval_by_whom",
-        "maintenance_term"
+        "maintenance_term",
+        "site_location_and_emirate",
+        "new_or_existing_building",
+        "payment_terms",
+        "required_handover_date"
       ],
       "sources": [
         "https://www.zenitel.com/sites/default/files/2024-01/EN%2054%20Integra%20System%20Dersign%20Guide%20T-0667-231_Iss2.5.pdf",
@@ -609,7 +689,8 @@
       "blocking": [
         "bgm_paging_only_or_certified_voice_alarm",
         "zone_count_and_use",
-        "areas_ceiling_heights_or_drawings"
+        "areas_ceiling_heights_or_drawings",
+        "site_location_and_emirate"
       ],
       "spec_guide": [
         {
@@ -723,17 +804,46 @@
           "uae_options": "Quarterly or six-monthly testing; annual contract.",
           "follow_up_if": "If maintenance is required, ask for the annual price.",
           "blocking": false
+        },
+        {
+          "spec": "site_location_and_emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "new_or_existing_building",
+          "blocking": false,
+          "why_needed_to_price": "Work in an existing or occupied building adds survey, protection, making good and restricted hours.",
+          "uae_options": "New build from drawings; existing and occupied; existing and vacant.",
+          "follow_up_if": "An existing building brings the site visit this trade notes."
+        },
+        {
+          "spec": "payment_terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        },
+        {
+          "spec": "required_handover_date",
+          "blocking": false,
+          "why_needed_to_price": "An urgent date can mean air freight, overtime or only in-stock options, which change the price.",
+          "uae_options": "A date or week; urgent; flexible.",
+          "follow_up_if": ""
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": "A site visit is needed for an existing building, to check cable routes, zones and the fire alarm panel."
+      "site_visit_required_when": "A site visit is needed for an existing building, to check cable routes, zones and the fire alarm panel.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "av_it:spec-structured-cabling",
       "topic": "Spec checklist: structured cabling and network",
       "kind": "spec_checklist",
-      "body_en": "A cabling enquiry must give the number of outlets (data, voice, Wi-Fi AP, CCTV, AV points) per floor or by drawing, and the category (Cat6 or Cat6A) with shielding (U/UTP, F/UTP, S/FTP) and jacket (LSZH). State whether a named manufacturer's certified system and extended warranty (typically 20-25 years) is required, because that dictates installer certification and component brand consistency. Define the backbone: fibre type (OM4 or OS2), core count, and copper backbone for voice if any. Give telecom room locations, rack sizes and quantities, patch panels, cable managers and PDUs. Clarify containment responsibility (trays, conduits, floor boxes) and whether the MEP contractor provides it. Specify testing: 100% permanent link certification with a named tester class and submission of native test files, fibre OTDR and loss testing, labelling scheme (per TIA-606) and as-built drawings. For active equipment, list switch port counts, PoE budget, uplink speeds, stacking/redundancy, Wi-Fi AP count or survey scope, firewall throughput, and licensing term. Also confirm service-provider (etisalat/du) requirements for the building entry and main telecom room, and TDRA approval for any wireless equipment. Verification note (23 Sep 2026): TIA-606 labelling and the certifier requirements are confirmed; warranty length is manufacturer-specific.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): outlet counts and cable category.",
-      "body_ar": "يجب أن يتضمن طلب الكابلات عدد المخارج (بيانات، صوت، نقاط واي فاي، كاميرات، نقاط صوت وصورة) لكل طابق أو حسب المخططات، والفئة (Cat6 أو Cat6A) مع نوع التدريع (U/UTP أو F/UTP أو S/FTP) والغلاف (LSZH). وحدد هل يلزم نظام معتمد من مصنع بعينه مع ضمان ممتد (عادةً 20 إلى 25 سنة)، لأن ذلك يفرض اعتماد المركّب وتوحيد علامة المكونات. وعرّف الربط الرئيسي: نوع الألياف (OM4 أو OS2)، وعدد الشعيرات، والكابل النحاسي الرئيسي للصوت إن وجد. واذكر مواقع غرف الاتصالات، ومقاسات الخزائن وعددها، ولوحات التوصيل، ومنظمات الكوابل، ووحدات توزيع الطاقة. ووضح مسؤولية المسارات (الحوامل والأنابيب وصناديق الأرضيات) وهل يوفرها مقاول الأعمال الكهروميكانيكية. وحدد الاختبار: فحص 100% من الوصلات الدائمة بجهاز من فئة محددة وتسليم ملفات الاختبار الأصلية، واختبار OTDR والفقد للألياف، ونظام الترقيم (وفق TIA-606)، والمخططات النهائية. وللأجهزة النشطة اذكر عدد منافذ المحولات، وميزانية PoE، وسرعات الربط، والتكديس أو الاحتياط، وعدد نقاط الواي فاي أو نطاق المسح، وسرعة الجدار الناري، ومدة التراخيص. وتأكد كذلك من اشتراطات مزود الخدمة (اتصالات أو دو) لمدخل المبنى وغرفة الاتصالات الرئيسية، ومن اعتماد الهيئة لأي معدات لاسلكية. ملاحظة التحقق (23 سبتمبر 2026): تأكد معيار الترقيم TIA-606 ومتطلبات جهاز الاعتماد؛ ومدة الضمان تختلف حسب المصنّع.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: أعداد المخارج، وفئة الكابل.",
+      "body_en": "A cabling enquiry must give the number of outlets (data, voice, Wi-Fi AP, CCTV, AV points) per floor or by drawing, and the category (Cat6 or Cat6A) with shielding (U/UTP, F/UTP, S/FTP) and jacket (LSZH). State whether a named manufacturer's certified system and extended warranty (typically 20-25 years) is required, because that dictates installer certification and component brand consistency. Define the backbone: fibre type (OM4 or OS2), core count, and copper backbone for voice if any. Give telecom room locations, rack sizes and quantities, patch panels, cable managers and PDUs. Clarify containment responsibility (trays, conduits, floor boxes) and whether the MEP contractor provides it. Specify testing: 100% permanent link certification with a named tester class and submission of native test files, fibre OTDR and loss testing, labelling scheme (per TIA-606) and as-built drawings. For active equipment, list switch port counts, PoE budget, uplink speeds, stacking/redundancy, Wi-Fi AP count or survey scope, firewall throughput, and licensing term. Also confirm service-provider (etisalat/du) requirements for the building entry and main telecom room, and TDRA approval for any wireless equipment. Verification note (23 Sep 2026): TIA-606 labelling and the certifier requirements are confirmed; warranty length is manufacturer-specific.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; outlet counts and cable category. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; working hours and site access; payment terms; required handover date.",
+      "body_ar": "يجب أن يتضمن طلب الكابلات عدد المخارج (بيانات، صوت، نقاط واي فاي، كاميرات، نقاط صوت وصورة) لكل طابق أو حسب المخططات، والفئة (Cat6 أو Cat6A) مع نوع التدريع (U/UTP أو F/UTP أو S/FTP) والغلاف (LSZH). وحدد هل يلزم نظام معتمد من مصنع بعينه مع ضمان ممتد (عادةً 20 إلى 25 سنة)، لأن ذلك يفرض اعتماد المركّب وتوحيد علامة المكونات. وعرّف الربط الرئيسي: نوع الألياف (OM4 أو OS2)، وعدد الشعيرات، والكابل النحاسي الرئيسي للصوت إن وجد. واذكر مواقع غرف الاتصالات، ومقاسات الخزائن وعددها، ولوحات التوصيل، ومنظمات الكوابل، ووحدات توزيع الطاقة. ووضح مسؤولية المسارات (الحوامل والأنابيب وصناديق الأرضيات) وهل يوفرها مقاول الأعمال الكهروميكانيكية. وحدد الاختبار: فحص 100% من الوصلات الدائمة بجهاز من فئة محددة وتسليم ملفات الاختبار الأصلية، واختبار OTDR والفقد للألياف، ونظام الترقيم (وفق TIA-606)، والمخططات النهائية. وللأجهزة النشطة اذكر عدد منافذ المحولات، وميزانية PoE، وسرعات الربط، والتكديس أو الاحتياط، وعدد نقاط الواي فاي أو نطاق المسح، وسرعة الجدار الناري، ومدة التراخيص. وتأكد كذلك من اشتراطات مزود الخدمة (اتصالات أو دو) لمدخل المبنى وغرفة الاتصالات الرئيسية، ومن اعتماد الهيئة لأي معدات لاسلكية. ملاحظة التحقق (23 سبتمبر 2026): تأكد معيار الترقيم TIA-606 ومتطلبات جهاز الاعتماد؛ ومدة الضمان تختلف حسب المصنّع.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، وأعداد المخارج، وفئة الكابل. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، والوصول إلى الموقع وساعات العمل، وشروط الدفع، وتاريخ التسليم أو الإنجاز المطلوب.",
       "required_specs": [
         "outlet_counts_by_type_and_floor",
         "category_cat6_or_cat6a",
@@ -749,7 +859,11 @@
         "wifi_ap_count_or_survey",
         "licence_term",
         "service_provider_requirements",
-        "tdra_approval_for_wireless"
+        "tdra_approval_for_wireless",
+        "site_location_and_emirate",
+        "working_hours_and_site_access",
+        "payment_terms",
+        "required_handover_date"
       ],
       "sources": [
         "https://www.blackbox.com/insights/blackbox-explains/inner/detail/copper-cable/copper-category-standards/6-things-to-consider-when-choosing-catx-ethernet-cables",
@@ -761,7 +875,8 @@
       "as_of": "2026-09-23",
       "blocking": [
         "outlet_counts_by_type_and_floor",
-        "category_cat6_or_cat6a"
+        "category_cat6_or_cat6a",
+        "site_location_and_emirate"
       ],
       "spec_guide": [
         {
@@ -868,10 +983,39 @@
           "uae_options": "TDRA type-approved access points and radios.",
           "follow_up_if": "If the supplier cannot show TDRA approval, the item cannot be accepted.",
           "blocking": false
+        },
+        {
+          "spec": "site_location_and_emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "working_hours_and_site_access",
+          "blocking": false,
+          "why_needed_to_price": "Night or weekend work, occupied premises, restricted delivery hours and gate passes change labour cost and programme.",
+          "uae_options": "Normal day shift; night or weekend only; occupied building; mall, community or free-zone permit hours; loading-bay booking.",
+          "follow_up_if": "Restricted hours bring the landlord or community permission the work needs."
+        },
+        {
+          "spec": "payment_terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        },
+        {
+          "spec": "required_handover_date",
+          "blocking": false,
+          "why_needed_to_price": "An urgent date can mean air freight, overtime or only in-stock options, which change the price.",
+          "uae_options": "A date or week; urgent; flexible.",
+          "follow_up_if": ""
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": "A site visit is needed for an occupied or existing building, to check containment, telecom rooms and access hours."
+      "site_visit_required_when": "A site visit is needed for an occupied or existing building, to check containment, telecom rooms and access hours.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "av_it:buyer-mistakes",

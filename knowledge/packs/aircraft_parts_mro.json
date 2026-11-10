@@ -5,8 +5,8 @@
       "id": "aircraft_parts_mro:spec-checklist",
       "topic": "Aircraft parts and MRO - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for aircraft parts and mro must state: aircraft or component part number; aircraft type and registration; part condition; release certificate required; maintenance scope and task cards; CAR-145 approval rating; traceability documents; turnaround time; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): aircraft or component part number; aircraft type and registration; part condition; release certificate required; maintenance scope and task cards; CAR-145 approval rating; pricing basis. Follow-up questions the answers trigger: aircraft type and registration: UAE-registered aircraft bring GCAA acceptance of the release document. traceability documents: Life-limited parts bring full back-to-birth records. pricing basis: Exchange brings core return conditions and BER charges. Before a firm price: component repair is quoted as a flat rate or not-to-exceed until teardown; a firm price follows the inspection findings.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة قطع الطائرات والصيانة والإصلاح: رقم القطعة أو المكوّن؛ طراز الطائرة وتسجيلها؛ حالة القطعة؛ شهادة الإفراج المطلوبة؛ نطاق الصيانة وبطاقات المهام؛ تصنيف اعتماد CAR-145؛ وثائق التتبع؛ مدة الإنجاز؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: رقم القطعة للطائرة أو المكون، ونوع الطائرة وتسجيلها، وحالة القطعة، وشهادة الإفراج المطلوبة، ونطاق الصيانة وبطاقات المهام، واعتماد CAR-145 وتصنيفه، وأساس التسعير. أسئلة المتابعة: الطائرات المسجلة في الإمارات تستلزم قبول الهيئة العامة للطيران المدني لوثيقة الإفراج، والقطع محدودة العمر تستلزم سجلات كاملة منذ التصنيع، والاستبدال يستلزم شروط إعادة القطعة القديمة ورسوم عدم الجدوى الاقتصادية للإصلاح. إصلاح المكونات يُسعّر بسعر ثابت أو سقف حتى الفك، والسعر النهائي يتبع نتائج الفحص.",
+      "body_en": "Each quoted service line for aircraft parts and mro must state: aircraft or component part number; aircraft type and registration; part condition; release certificate required; maintenance scope and task cards; CAR-145 approval rating; traceability documents; turnaround time; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): quantity; priority (AOG, critical or routine); outright purchase, exchange or repair; aircraft or component part number; aircraft type and registration; part condition; release certificate required; maintenance scope and task cards. Follow-up questions the answers trigger: aircraft type and registration: UAE-registered aircraft bring GCAA acceptance of the release document. traceability documents: Life-limited parts bring full back-to-birth records. pricing basis: Exchange brings core return conditions and BER charges. Before a firm price: component repair is quoted as a flat rate or not-to-exceed until teardown; a firm price follows the inspection findings. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states quantity; priority (AOG, critical or routine); outright purchase, exchange or repair; delivery point and Incoterm; payment terms. Not quote-blocking (the supplier states it, or quotes on its usual basis): CAR-145 approval rating; pricing basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة قطع الطائرات والصيانة والإصلاح: رقم القطعة أو المكوّن؛ طراز الطائرة وتسجيلها؛ حالة القطعة؛ شهادة الإفراج المطلوبة؛ نطاق الصيانة وبطاقات المهام؛ تصنيف اعتماد CAR-145؛ وثائق التتبع؛ مدة الإنجاز؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الكمية، والأولوية (طائرة متوقفة أو حرجة أو اعتيادية)، وشراء مباشر أم استبدال أم إصلاح، ورقم القطعة للطائرة أو المكون، ونوع الطائرة وتسجيلها، وحالة القطعة، وشهادة الإفراج المطلوبة، ونطاق الصيانة وبطاقات المهام. أسئلة المتابعة: الطائرات المسجلة في الإمارات تستلزم قبول الهيئة العامة للطيران المدني لوثيقة الإفراج، والقطع محدودة العمر تستلزم سجلات كاملة منذ التصنيع، والاستبدال يستلزم شروط إعادة القطعة القديمة ورسوم عدم الجدوى الاقتصادية للإصلاح. إصلاح المكونات يُسعّر بسعر ثابت أو سقف حتى الفك، والسعر النهائي يتبع نتائج الفحص. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً الكمية، والأولوية (طائرة متوقفة أو حرجة أو اعتيادية)، وشراء مباشر أم استبدال أم إصلاح، ونقطة التسليم وشرط التسليم الدولي، وشروط الدفع. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): اعتماد CAR-145 وتصنيفه، وأساس التسعير.",
       "required_specs": [
         "aircraft or component part number",
         "aircraft type and registration",
@@ -20,7 +20,12 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "quantity",
+        "priority (AOG, critical or routine)",
+        "outright purchase, exchange or repair",
+        "delivery point and Incoterm",
+        "payment terms"
       ],
       "sources": [
         "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/CAR%20V%20-%20AIRWORTHINESS%20REGULATIONS/CAR-145%20-%20APPROVED%20MAINTENANCE%20ORGANISATION%20-%20ISSUE%2009.pdf"
@@ -33,8 +38,9 @@
         "part condition",
         "release certificate required",
         "maintenance scope and task cards",
-        "CAR-145 approval rating",
-        "pricing basis"
+        "quantity",
+        "priority (AOG, critical or routine)",
+        "outright purchase, exchange or repair"
       ],
       "spec_guide": [
         {
@@ -74,7 +80,7 @@
         },
         {
           "spec": "CAR-145 approval rating",
-          "blocking": true,
+          "blocking": false,
           "why_needed_to_price": "Only an approved organisation rated for the type can release work.",
           "uae_options": "GCAA CAR-145 or EASA Part-145 rating for the aircraft or component.",
           "follow_up_if": ""
@@ -116,7 +122,7 @@
         },
         {
           "spec": "pricing basis",
-          "blocking": true,
+          "blocking": false,
           "why_needed_to_price": "Fixed price, flat rate plus findings, exchange and outright purchase are not comparable directly.",
           "uae_options": "Outright, exchange with core, flat-rate repair, NTE cap, T&M.",
           "follow_up_if": "Exchange brings core return conditions and BER charges."
@@ -127,9 +133,44 @@
           "why_needed_to_price": "Findings beyond scope, BER and freight are frequent.",
           "uae_options": "",
           "follow_up_if": ""
+        },
+        {
+          "spec": "quantity",
+          "blocking": true,
+          "why_needed_to_price": "A firm unit price and availability depend on how many units are needed.",
+          "uae_options": "Each; set; kit; per aircraft.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "priority (AOG, critical or routine)",
+          "blocking": true,
+          "why_needed_to_price": "An aircraft-on-ground request is sourced and shipped at a premium; a routine stock order is not.",
+          "uae_options": "AOG; critical (within days); routine replenishment.",
+          "follow_up_if": "AOG brings the aircraft location and the receiving contact around the clock."
+        },
+        {
+          "spec": "outright purchase, exchange or repair",
+          "blocking": true,
+          "why_needed_to_price": "Outright sale, exchange against a returned core and repair of the customer unit are priced on different bases.",
+          "uae_options": "Outright; exchange (core return within an agreed period); repair and return; loan.",
+          "follow_up_if": "Exchange brings the core return terms and the condition the core must be in."
+        },
+        {
+          "spec": "delivery point and Incoterm",
+          "blocking": false,
+          "why_needed_to_price": "Ex-works abroad, delivered to the hangar in the UAE, or delivered to a free-zone store changes freight, duty handling and the price.",
+          "uae_options": "EXW origin; FCA; DAP Dubai or Abu Dhabi airport; free-zone store.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
-      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 5 spec(s) added, 2 no longer quote-blocking; from trade expertise, not read from a page.",
       "site_visit_required_when": "component repair is quoted as a flat rate or not-to-exceed until teardown; a firm price follows the inspection findings."
     },
     {

@@ -5,8 +5,8 @@
       "id": "courier_express:spec-checklist",
       "topic": "Courier and express delivery - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for courier and express delivery must state: shipment type and volume; weight and dimensions; origin and destination; service speed; pickup schedule; tracking and proof of delivery; cash on delivery; liability and insurance; customs clearance for international; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): shipment type and volume; weight and dimensions; origin and destination; service speed; pricing basis. Follow-up questions the answers trigger: shipment type and volume: E-commerce brings COD, returns and failed-delivery handling. Before a firm price: none; a firm rate card is possible from the shipment profile (weights, zones, monthly volume).",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة البريد السريع والتوصيل: نوع الشحنات وحجمها؛ الوزن والأبعاد؛ المنشأ والوجهة؛ سرعة الخدمة؛ جدول الاستلام؛ التتبع وإثبات التسليم؛ الدفع عند الاستلام؛ المسؤولية والتأمين؛ التخليص الجمركي للشحنات الدولية؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الشحنات وحجمها، والوزن والأبعاد، والمنشأ والوجهة، وسرعة الخدمة، وأساس التسعير. أسئلة المتابعة: التجارة الإلكترونية تستلزم الدفع عند الاستلام والمرتجعات ومعالجة التسليم الفاشل.",
+      "body_en": "Each quoted service line for courier and express delivery must state: shipment type and volume; weight and dimensions; origin and destination; service speed; pickup schedule; tracking and proof of delivery; cash on delivery; liability and insurance; customs clearance for international; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): shipment type and volume; weight and dimensions; origin and destination; service speed. Follow-up questions the answers trigger: shipment type and volume: E-commerce brings COD, returns and failed-delivery handling. Before a firm price: none; a firm rate card is possible from the shipment profile (weights, zones, monthly volume). Not quote-blocking (the supplier states it, or quotes on its usual basis): pricing basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة البريد السريع والتوصيل: نوع الشحنات وحجمها؛ الوزن والأبعاد؛ المنشأ والوجهة؛ سرعة الخدمة؛ جدول الاستلام؛ التتبع وإثبات التسليم؛ الدفع عند الاستلام؛ المسؤولية والتأمين؛ التخليص الجمركي للشحنات الدولية؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الشحنات وحجمها، والوزن والأبعاد، والمنشأ والوجهة، وسرعة الخدمة. أسئلة المتابعة: التجارة الإلكترونية تستلزم الدفع عند الاستلام والمرتجعات ومعالجة التسليم الفاشل. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): أساس التسعير.",
       "required_specs": [
         "shipment type and volume",
         "weight and dimensions",
@@ -32,8 +32,7 @@
         "shipment type and volume",
         "weight and dimensions",
         "origin and destination",
-        "service speed",
-        "pricing basis"
+        "service speed"
       ],
       "spec_guide": [
         {
@@ -122,7 +121,7 @@
         },
         {
           "spec": "pricing basis",
-          "blocking": true,
+          "blocking": false,
           "why_needed_to_price": "Rate cards by weight band and zone, plus surcharges, must be compared on the buyer's profile.",
           "uae_options": "Rate card per kg band and zone; fuel surcharge.",
           "follow_up_if": ""
@@ -135,7 +134,7 @@
           "follow_up_if": ""
         }
       ],
-      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 0 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page.",
       "site_visit_required_when": "none; a firm rate card is possible from the shipment profile (weights, zones, monthly volume)."
     },
     {

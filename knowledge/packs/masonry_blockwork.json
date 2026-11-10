@@ -6,8 +6,8 @@
       "topic": "Masonry and blockwork - what the buyer must state",
       "topic_ar": "أعمال البناء بالطابوق والبلوك: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For masonry and blockwork (trade code masonry_blockwork only), every quoted line must state: Block type and density; Block size; Compressive strength; Mortar mix; Wall thickness and area; Fire rating of walls; Lintels and reinforcement; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): block type, wall thickness and area, labour-only or supply-and-lay, and the plaster scope.",
-      "body_ar": "عند طلب عروض أسعار لأعمال البناء بالطابوق (البلوك) (رمز النشاط masonry_blockwork فقط)، يجب أن يذكر كل بند: نوع الطابوق وكثافته؛ مقاس الطابوق؛ مقاومة الضغط؛ خلطة المونة؛ سماكة الجدار ومساحته؛ مقاومة الجدران للحريق؛ الأعتاب والتسليح؛ المخرجات ونطاق العمل؛ ترخيص المقاول ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ نطاق التركيب؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد؛ الاستثناءات. بهذه البنود تصبح عروض المقاولين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع البلوك، وسماكة الجدار ومساحته، والعمالة فقط أو التوريد والتنفيذ، ونطاق اللياسة.",
+      "body_en": "For masonry and blockwork (trade code masonry_blockwork only), every quoted line must state: Block type and density; Block size; Compressive strength; Mortar mix; Wall thickness and area; Fire rating of walls; Lintels and reinforcement; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): block type, wall thickness and area, labour-only or supply-and-lay, and the plaster scope. Supplier ask-back review (2026-11-10): the inquiry now also states Site location, floors and hoisting (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Block type and density; Wall thickness and area; Plaster scope (internal, external, thickness); Material supply by contractor or by client; Site location, floors and hoisting.",
+      "body_ar": "عند طلب عروض أسعار لأعمال البناء بالطابوق (البلوك) (رمز النشاط masonry_blockwork فقط)، يجب أن يذكر كل بند: نوع الطابوق وكثافته؛ مقاس الطابوق؛ مقاومة الضغط؛ خلطة المونة؛ سماكة الجدار ومساحته؛ مقاومة الجدران للحريق؛ الأعتاب والتسليح؛ المخرجات ونطاق العمل؛ ترخيص المقاول ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ نطاق التركيب؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد؛ الاستثناءات. بهذه البنود تصبح عروض المقاولين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع البلوك، وسماكة الجدار ومساحته، والعمالة فقط أو التوريد والتنفيذ، ونطاق اللياسة. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع العمل وعدد الطوابق ووسيلة الرفع (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Block type and density",
         "Block size",
@@ -26,7 +26,9 @@
         "Lead time",
         "Exclusions",
         "Plaster scope (internal, external, thickness)",
-        "Material supply by contractor or by client"
+        "Material supply by contractor or by client",
+        "Site location, floors and hoisting",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/",
@@ -38,8 +40,9 @@
       "blocking": [
         "Block type and density",
         "Wall thickness and area",
+        "Plaster scope (internal, external, thickness)",
         "Material supply by contractor or by client",
-        "Plaster scope (internal, external, thickness)"
+        "Site location, floors and hoisting"
       ],
       "spec_guide": [
         {
@@ -167,9 +170,23 @@
           "uae_options": "labour only; supply and lay",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "Site location, floors and hoisting",
+          "why_needed_to_price": "The emirate and the site, the number of floors and whether a hoist or crane is available decide how blocks and mortar reach the work face and so the labour rate.",
+          "uae_options": "Site in a named emirate and area; ground floor only or a stated number of floors; hoist or crane provided by the main contractor or not.",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
       "site_visit_required_when": null
     },
     {

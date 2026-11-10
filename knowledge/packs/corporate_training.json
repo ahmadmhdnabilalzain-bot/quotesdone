@@ -5,8 +5,8 @@
       "id": "corporate_training:spec-checklist",
       "topic": "Corporate training - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for corporate training must state: course title and objectives; number of participants; duration in hours or days; delivery mode; trainer qualifications; language; materials and certificates; accreditation of the course; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): course title and objectives; number of participants; duration in hours or days; delivery mode; pricing basis. Follow-up questions the answers trigger: course title and objectives: Ask a needs analysis if unclear. Before a firm price: a standard course can be priced from title, participants, days and mode; tailored programmes need a needs-analysis call or meeting before a firm fee.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة التدريب المؤسسي: عنوان الدورة وأهدافها؛ عدد المشاركين؛ المدة بالساعات أو الأيام؛ طريقة التقديم؛ مؤهلات المدرب؛ اللغة؛ المواد والشهادات؛ اعتماد الدورة؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: عنوان الدورة وأهدافها، وعدد المشاركين، والمدة، وطريقة التقديم، وأساس التسعير. الدورة القياسية تُسعّر من عنوانها والمشاركين والأيام والطريقة، أما البرامج المصممة خصيصاً فتحتاج مكالمة أو اجتماعاً لتحليل الاحتياجات.",
+      "body_en": "Each quoted service line for corporate training must state: course title and objectives; number of participants; duration in hours or days; delivery mode; trainer qualifications; language; materials and certificates; accreditation of the course; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): training venue and location; course title and objectives; number of participants; duration in hours or days; delivery mode. Follow-up questions the answers trigger: course title and objectives: Ask a needs analysis if unclear. Before a firm price: a standard course can be priced from title, participants, days and mode; tailored programmes need a needs-analysis call or meeting before a firm fee. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states training venue and location; preferred dates or schedule. Not quote-blocking (the supplier states it, or quotes on its usual basis): pricing basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة التدريب المؤسسي: عنوان الدورة وأهدافها؛ عدد المشاركين؛ المدة بالساعات أو الأيام؛ طريقة التقديم؛ مؤهلات المدرب؛ اللغة؛ المواد والشهادات؛ اعتماد الدورة؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: مكان التدريب وموقعه، وعنوان الدورة وأهدافها، وعدد المشاركين، والمدة، وطريقة التقديم. الدورة القياسية تُسعّر من عنوانها والمشاركين والأيام والطريقة، أما البرامج المصممة خصيصاً فتحتاج مكالمة أو اجتماعاً لتحليل الاحتياجات. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً مكان التدريب وموقعه، والتواريخ أو الجدول المفضل. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): أساس التسعير.",
       "required_specs": [
         "course title and objectives",
         "number of participants",
@@ -20,7 +20,9 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "training venue and location",
+        "preferred dates or schedule"
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
@@ -32,7 +34,7 @@
         "number of participants",
         "duration in hours or days",
         "delivery mode",
-        "pricing basis"
+        "training venue and location"
       ],
       "spec_guide": [
         {
@@ -117,7 +119,7 @@
           "why_needed_to_price": "Pricing basis.",
           "uae_options": "per day; per participant",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "exclusions",
@@ -125,10 +127,25 @@
           "uae_options": "venue; catering; exam fees",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "training venue and location",
+          "blocking": true,
+          "why_needed_to_price": "A course at the customer's premises, at the supplier's centre or in a hotel venue with catering is priced differently, and travel depends on the emirate.",
+          "uae_options": "Customer premises (emirate); supplier's training centre; hotel or external venue with catering; online.",
+          "follow_up_if": "An external venue brings the catering and equipment it must include."
+        },
+        {
+          "spec": "preferred dates or schedule",
+          "blocking": false,
+          "why_needed_to_price": "Weekend, evening or split sessions and short-notice dates change trainer cost and availability.",
+          "uae_options": "Weekdays; weekends; evenings; split over weeks; stated dates.",
+          "follow_up_if": ""
         }
       ],
       "site_visit_required_when": "a standard course can be priced from title, participants, days and mode; tailored programmes need a needs-analysis call or meeting before a firm fee.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "corporate_training:uae-standards-and-approvals",

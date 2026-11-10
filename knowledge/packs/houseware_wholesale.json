@@ -6,8 +6,8 @@
       "topic": "Houseware & kitchenware wholesale - what the buyer must state",
       "topic_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For houseware & kitchenware wholesale (trade code houseware_wholesale only), every quoted line must state: Item type and set composition; Material and grade; Coating type (if any); Size or capacity; Compatibility (induction, dishwasher, oven); Brand or private label; Packaging and carton quantity; Food-contact compliance; Quantity; Origin; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item type and set composition; Material and grade; Size or capacity; Brand or private label; Food-contact compliance; Quantity; Delivery terms. Before a firm price: stock items can be priced firm by SKU; private label needs the sample, packaging artwork and MOQ approved before a firm price.",
-      "body_ar": "في نشاط الأدوات المنزلية وأدوات المطبخ بالجملة (رمز النشاط houseware_wholesale فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الصنف ومكونات الطقم؛ المادة ودرجتها؛ نوع الطلاء (إن وجد)؛ المقاس أو السعة؛ التوافق (الحث، غسالة الصحون، الفرن)؛ علامة تجارية أو خاصة؛ التغليف وعدد القطع في الكرتون؛ الامتثال لملامسة الأغذية؛ الكمية؛ المنشأ؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الصنف ومكونات الطقم، والمادة ودرجتها، والمقاس أو السعة، والعلامة أو العلامة الخاصة، والامتثال لمتطلبات ملامسة الغذاء، والكمية، وشروط التسليم. الأصناف الجاهزة تُسعّر برمزها، والعلامة الخاصة تحتاج اعتماد العيّنة وتصميم التغليف والحد الأدنى للطلب.",
+      "body_en": "For houseware & kitchenware wholesale (trade code houseware_wholesale only), every quoted line must state: Item type and set composition; Material and grade; Coating type (if any); Size or capacity; Compatibility (induction, dishwasher, oven); Brand or private label; Packaging and carton quantity; Food-contact compliance; Quantity; Origin; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item type and set composition; Material and grade; Size or capacity; Brand or private label; Quantity; Delivery terms. Before a firm price: stock items can be priced firm by SKU; private label needs the sample, packaging artwork and MOQ approved before a firm price. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate and site; payment terms. Not quote-blocking (the supplier states it, or quotes on its usual basis): Food-contact compliance.",
+      "body_ar": "في نشاط الأدوات المنزلية وأدوات المطبخ بالجملة (رمز النشاط houseware_wholesale فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الصنف ومكونات الطقم؛ المادة ودرجتها؛ نوع الطلاء (إن وجد)؛ المقاس أو السعة؛ التوافق (الحث، غسالة الصحون، الفرن)؛ علامة تجارية أو خاصة؛ التغليف وعدد القطع في الكرتون؛ الامتثال لملامسة الأغذية؛ الكمية؛ المنشأ؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الصنف ومكونات الطقم، والمادة ودرجتها، والمقاس أو السعة، والعلامة أو العلامة الخاصة، والكمية، وشروط التسليم. الأصناف الجاهزة تُسعّر برمزها، والعلامة الخاصة تحتاج اعتماد العيّنة وتصميم التغليف والحد الأدنى للطلب. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): الامتثال لمتطلبات ملامسة الغذاء.",
       "required_specs": [
         "Item type and set composition",
         "Material and grade",
@@ -20,7 +20,9 @@
         "Quantity",
         "Origin",
         "Delivery terms",
-        "Lead time"
+        "Lead time",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Cookware_and_bakeware"
@@ -28,13 +30,12 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: cookware in stainless steel, cast iron, aluminium, PTFE non-stick and ceramic coatings, copper and carbon steel.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: cookware in stainless steel, cast iron, aluminium, PTFE non-stick and ceramic coatings, copper and carbon steel. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page.",
       "blocking": [
         "Item type and set composition",
         "Material and grade",
         "Size or capacity",
         "Brand or private label",
-        "Food-contact compliance",
         "Quantity",
         "Delivery terms"
       ],
@@ -93,7 +94,7 @@
           "why_needed_to_price": "Food-contact compliance is needed for sale.",
           "uae_options": "food-contact test report; Dubai Municipality FCM registration",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Quantity",
@@ -122,6 +123,20 @@
           "uae_options": "stock; production",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "stock items can be priced firm by SKU; private label needs the sample, packaging artwork and MOQ approved before a firm price."

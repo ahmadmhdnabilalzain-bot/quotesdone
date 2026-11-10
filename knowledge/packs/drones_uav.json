@@ -6,8 +6,8 @@
       "topic": "Drones & unmanned aircraft - what the buyer must state",
       "topic_ar": "الطائرات بدون طيار (الدرون): ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For drones & unmanned aircraft (trade code drones_uav only), every quoted line must state: Drone type and use (camera, survey, inspection, spraying); Make and model; Maximum take-off weight; Flight time and range; Payload or camera and sensor specs; Positioning (GNSS, RTK); Batteries and chargers included; Software and data processing; Registration and operating approvals needed; Training; Warranty and repair support; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Drone type and use (camera, survey, inspection, spraying); Make and model; Payload or camera and sensor specs; Registration and operating approvals needed. Before a firm price: a firm price needs use, model or class and payload; a drone service (survey, inspection) also needs the site and the airspace check before the price is firm.",
-      "body_ar": "في نشاط الطائرات بدون طيار (الدرون) (رمز النشاط drones_uav فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الطائرة واستخدامها (تصوير، مسح، فحص، رش)؛ الماركة والموديل؛ أقصى وزن للإقلاع؛ زمن الطيران والمدى؛ الحمولة أو الكاميرا ومواصفات الحساسات؛ تحديد الموقع (GNSS، RTK)؛ البطاريات والشواحن المشمولة؛ البرامج ومعالجة البيانات؛ التسجيل وموافقات التشغيل المطلوبة؛ التدريب؛ الضمان ودعم الإصلاح؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الاستخدام، والعلامة والطراز، والحمولة أو المستشعر، والتسجيل وموافقات التشغيل. خدمة المسيّرات (المسح أو الفحص) تحتاج أيضاً الموقع والتحقق من المجال الجوي قبل السعر النهائي.",
+      "body_en": "For drones & unmanned aircraft (trade code drones_uav only), every quoted line must state: Drone type and use (camera, survey, inspection, spraying); Make and model; Maximum take-off weight; Flight time and range; Payload or camera and sensor specs; Positioning (GNSS, RTK); Batteries and chargers included; Software and data processing; Registration and operating approvals needed; Training; Warranty and repair support; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): quantity; Drone type and use (camera, survey, inspection, spraying); Make and model; Payload or camera and sensor specs; Registration and operating approvals needed. Before a firm price: a firm price needs use, model or class and payload; a drone service (survey, inspection) also needs the site and the airspace check before the price is firm. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states quantity; site and emirate for drone services; payment terms.",
+      "body_ar": "في نشاط الطائرات بدون طيار (الدرون) (رمز النشاط drones_uav فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الطائرة واستخدامها (تصوير، مسح، فحص، رش)؛ الماركة والموديل؛ أقصى وزن للإقلاع؛ زمن الطيران والمدى؛ الحمولة أو الكاميرا ومواصفات الحساسات؛ تحديد الموقع (GNSS، RTK)؛ البطاريات والشواحن المشمولة؛ البرامج ومعالجة البيانات؛ التسجيل وموافقات التشغيل المطلوبة؛ التدريب؛ الضمان ودعم الإصلاح؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الكمية، والاستخدام، والعلامة والطراز، والحمولة أو المستشعر، والتسجيل وموافقات التشغيل. خدمة المسيّرات (المسح أو الفحص) تحتاج أيضاً الموقع والتحقق من المجال الجوي قبل السعر النهائي. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً الكمية، والموقع والإمارة لخدمات الطائرات المسيّرة، وشروط الدفع.",
       "required_specs": [
         "Drone type and use (camera, survey, inspection, spraying)",
         "Make and model",
@@ -20,7 +20,10 @@
         "Registration and operating approvals needed",
         "Training",
         "Warranty and repair support",
-        "Lead time"
+        "Lead time",
+        "quantity",
+        "site and emirate for drone services",
+        "payment terms"
       ],
       "sources": [
         "https://www.gcaa.gov.ae/en/uas-registration"
@@ -28,12 +31,13 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: GCAA: recreational drones registered before flight, up to 5 kg only in approved zones, within line of sight below 400 ft, away from airports; commercial operators need an Unmanned Aircraft Operator Authorisation (UOA, about 3 weeks) and separate operational permission, with security clearance for camera flights. Re-read 19 Oct on the same GCAA page, verbatim: \"UAS/drones shall fly only during day time and in good weather conditions\"; \"All UAS/drones weighing above 5kgs and/or equipped with gas engine shall only operate within the GCAA approved flying clubs\" -> confirmed.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: GCAA: recreational drones registered before flight, up to 5 kg only in approved zones, within line of sight below 400 ft, away from airports; commercial operators need an Unmanned Aircraft Operator Authorisation (UOA, about 3 weeks) and separate operational permission, with security clearance for camera flights. Re-read 19 Oct on the same GCAA page, verbatim: \"UAS/drones shall fly only during day time and in good weather conditions\"; \"All UAS/drones weighing above 5kgs and/or equipped with gas engine shall only operate within the GCAA approved flying clubs\" -> confirmed. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
       "blocking": [
         "Drone type and use (camera, survey, inspection, spraying)",
         "Make and model",
         "Payload or camera and sensor specs",
-        "Registration and operating approvals needed"
+        "Registration and operating approvals needed",
+        "quantity"
       ],
       "spec_guide": [
         {
@@ -119,6 +123,27 @@
           "uae_options": "stock; import",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "quantity",
+          "blocking": true,
+          "why_needed_to_price": "A firm price is per drone or kit and the total; fleet orders are priced differently.",
+          "uae_options": "Number of drones or complete kits.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "site and emirate for drone services",
+          "blocking": false,
+          "why_needed_to_price": "A survey or inspection service is priced on the site, its travel and the airspace and permits that apply there.",
+          "uae_options": "Emirate and area; not applicable (supply only).",
+          "follow_up_if": "A site near an airport or a restricted area brings the airspace approval the flight needs."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "a firm price needs use, model or class and payload; a drone service (survey, inspection) also needs the site and the airspace check before the price is firm."

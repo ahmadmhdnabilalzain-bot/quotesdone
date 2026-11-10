@@ -6,8 +6,8 @@
       "topic": "Baby & nursery products - what the buyer must state",
       "topic_ar": "منتجات الأطفال الرضع وغرف الأطفال: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For baby & nursery products (trade code baby_nursery_products only), every quoted line must state: Product type and age or weight range; Brand and model; Safety standard and certification; Materials; Dimensions or size; Colour; Quantity; Expiry date for consumables; Labelling language and warnings; Warranty; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Product type and age or weight range; Brand and model; Safety standard and certification; Quantity; Delivery terms. Before a firm price: a firm price needs models, quantities and the certification status; uncertified child care products are quoted only subject to certification.",
-      "body_ar": "في نشاط منتجات الأطفال الرضع وغرف الأطفال (رمز النشاط baby_nursery_products فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المنتج والفئة العمرية أو الوزنية؛ العلامة والموديل؛ معيار السلامة والاعتماد؛ المواد؛ الأبعاد أو المقاس؛ اللون؛ الكمية؛ تاريخ الانتهاء للمستهلكات؛ لغة الملصق والتحذيرات؛ الضمان؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المنتج والفئة العمرية أو الوزنية، والعلامة والطراز، ومعيار السلامة والشهادة، والكمية، وشروط التسليم. منتجات رعاية الأطفال غير المعتمدة لا تُسعّر إلا رهناً بالحصول على الشهادة.",
+      "body_en": "For baby & nursery products (trade code baby_nursery_products only), every quoted line must state: Product type and age or weight range; Brand and model; Safety standard and certification; Materials; Dimensions or size; Colour; Quantity; Expiry date for consumables; Labelling language and warnings; Warranty; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Product type and age or weight range; Brand and model; Safety standard and certification; Quantity; Delivery terms. Before a firm price: a firm price needs models, quantities and the certification status; uncertified child care products are quoted only subject to certification. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate and site; payment terms.",
+      "body_ar": "في نشاط منتجات الأطفال الرضع وغرف الأطفال (رمز النشاط baby_nursery_products فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المنتج والفئة العمرية أو الوزنية؛ العلامة والموديل؛ معيار السلامة والاعتماد؛ المواد؛ الأبعاد أو المقاس؛ اللون؛ الكمية؛ تاريخ الانتهاء للمستهلكات؛ لغة الملصق والتحذيرات؛ الضمان؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المنتج والفئة العمرية أو الوزنية، والعلامة والطراز، ومعيار السلامة والشهادة، والكمية، وشروط التسليم. منتجات رعاية الأطفال غير المعتمدة لا تُسعّر إلا رهناً بالحصول على الشهادة. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "Product type and age or weight range",
         "Brand and model",
@@ -20,7 +20,9 @@
         "Labelling language and warnings",
         "Warranty",
         "Delivery terms",
-        "Lead time"
+        "Lead time",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Child_safety_seat"
@@ -28,7 +30,7 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: ECE R44/04 groups 0-3, UNECE R129 (i-Size), ISOFIX fixing.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: ECE R44/04 groups 0-3, UNECE R129 (i-Size), ISOFIX fixing. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
       "blocking": [
         "Product type and age or weight range",
         "Brand and model",
@@ -120,6 +122,20 @@
           "uae_options": "stock; import",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "a firm price needs models, quantities and the certification status; uncertified child care products are quoted only subject to certification."

@@ -6,8 +6,8 @@
       "topic": "Testing laboratories - what the buyer must state",
       "topic_ar": "مختبرات الاختبار: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For testing laboratories quotes to be compared like-for-like, every quoted line (services) must state: (1) sample type and number of samples; (2) tests required and test methods; (3) accreditation to ISO/IEC 17025 for those tests; (4) authority recognition (municipality or MoIAT); (5) sampling by lab or client; (6) turnaround time; (7) report format and language; (8) price per test; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the testing_labs trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): sample type and number of samples; tests required and test methods; accreditation to ISO/IEC 17025 for those tests; authority recognition (municipality or MoIAT); price per test. Follow-up questions the answers trigger: tests required and test methods: Ask the project specification. Before a firm price: a firm price needs the test list with methods and quantities; field work such as boreholes or site sampling needs site location and access before a firm price.",
-      "body_ar": "حتى تُقارن عروض مختبرات الاختبار على أساس واحد، يجب أن يذكر كل بند (خدمات): (1) نوع العينة وعدد العينات؛ (2) الاختبارات المطلوبة وطرق الاختبار؛ (3) اعتماد المختبر وفق ISO/IEC 17025 لهذه الاختبارات؛ (4) اعتراف الجهة المختصة (البلدية أو الوزارة)؛ (5) من يأخذ العينات: المختبر أم العميل؛ (6) مدة صدور النتائج؛ (7) شكل التقرير ولغته؛ (8) السعر لكل اختبار؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأوقات الاستجابة؛ (11) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو تقرير أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة testing_labs فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العينة وعددها، والاختبارات وطرقها، والاعتماد وفق ISO/IEC 17025 لهذه الاختبارات، واعتراف الجهة المختصة، وسعر الاختبار. الأعمال الميدانية كالحفر وأخذ العينات تحتاج الموقع والوصول قبل السعر النهائي.",
+      "body_en": "For testing laboratories quotes to be compared like-for-like, every quoted line (services) must state: (1) sample type and number of samples; (2) tests required and test methods; (3) accreditation to ISO/IEC 17025 for those tests; (4) authority recognition (municipality or MoIAT); (5) sampling by lab or client; (6) turnaround time; (7) report format and language; (8) price per test; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the testing_labs trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): sample type and number of samples; tests required and test methods; accreditation to ISO/IEC 17025 for those tests; authority recognition (municipality or MoIAT); price per test. Follow-up questions the answers trigger: tests required and test methods: Ask the project specification. Before a firm price: a firm price needs the test list with methods and quantities; field work such as boreholes or site sampling needs site location and access before a firm price. Supplier ask-back review (2026-11-10): the inquiry now also states Project or sampling location and emirate; Payment terms, so no supplier has to come back to the customer for them. price per test is no longer quote-blocking: the price per test is what the lab quotes, not a detail the customer can give. accreditation to ISO/IEC 17025 for those tests is no longer quote-blocking: accreditation is the lab's to prove for each test; the customer only states that accredited results are required. Quote-blocking after this review: sample type and number of samples; tests required and test methods; authority recognition (municipality or MoIAT).",
+      "body_ar": "حتى تُقارن عروض مختبرات الاختبار على أساس واحد، يجب أن يذكر كل بند (خدمات): (1) نوع العينة وعدد العينات؛ (2) الاختبارات المطلوبة وطرق الاختبار؛ (3) اعتماد المختبر وفق ISO/IEC 17025 لهذه الاختبارات؛ (4) اعتراف الجهة المختصة (البلدية أو الوزارة)؛ (5) من يأخذ العينات: المختبر أم العميل؛ (6) مدة صدور النتائج؛ (7) شكل التقرير ولغته؛ (8) السعر لكل اختبار؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأوقات الاستجابة؛ (11) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو تقرير أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة testing_labs فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العينة وعددها، والاختبارات وطرقها، والاعتماد وفق ISO/IEC 17025 لهذه الاختبارات، واعتراف الجهة المختصة، وسعر الاختبار. الأعمال الميدانية كالحفر وأخذ العينات تحتاج الموقع والوصول قبل السعر النهائي. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع المشروع أو أخذ العينات والإمارة؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «السعر لكل اختبار» مانعاً للتسعير: السعر لكل اختبار هو ما يسعّره المختبر، وليس معلومة يقدّمها العميل. ولم يعد «اعتماد ISO/IEC 17025 لتلك الاختبارات» مانعاً للتسعير: يثبت المختبر اعتماده لكل اختبار؛ ويكفي أن يذكر العميل أن النتائج المعتمدة مطلوبة.",
       "required_specs": [
         "sample type and number of samples",
         "tests required and test methods",
@@ -19,7 +19,9 @@
         "price per test",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Project or sampling location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
@@ -31,9 +33,7 @@
       "blocking": [
         "sample type and number of samples",
         "tests required and test methods",
-        "accreditation to ISO/IEC 17025 for those tests",
-        "authority recognition (municipality or MoIAT)",
-        "price per test"
+        "authority recognition (municipality or MoIAT)"
       ],
       "spec_guide": [
         {
@@ -55,7 +55,7 @@
           "why_needed_to_price": "Accreditation for each test is needed for acceptance.",
           "uae_options": "ISO/IEC 17025 scope listing the test",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "authority recognition (municipality or MoIAT)",
@@ -90,7 +90,7 @@
           "why_needed_to_price": "Price per test.",
           "uae_options": "rate list",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "contract duration and pricing basis",
@@ -112,10 +112,24 @@
           "uae_options": "sampling travel; retests",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "Project or sampling location and emirate",
+          "why_needed_to_price": "When the lab samples on site or collects samples, the travel and technician time depend on where the site is, and the emirate decides which authority must recognise the lab.",
+          "uae_options": "Samples delivered by the client to the lab; sampling on site in a named emirate and area; remote site.",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "a firm price needs the test list with methods and quantities; field work such as boreholes or site sampling needs site location and access before a firm price.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "testing_labs:uae-standards-and-approvals",

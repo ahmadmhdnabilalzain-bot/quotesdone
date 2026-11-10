@@ -6,8 +6,8 @@
       "topic": "Infrastructure and utilities works - what the buyer must state",
       "topic_ar": "أعمال البنية التحتية والمرافق: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For infrastructure and utilities works (trade code infrastructure_utilities only), every quoted line must state: Utility type and network; Bill of quantities and drawings; Materials specification; Utility authority approvals and NOCs; Contractor registration category; Testing and commissioning; Reinstatement scope; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): utility type, BOQ and drawings, sizes and depths, and the material specification. In developed areas a services survey and site visit are unavoidable.",
-      "body_ar": "عند طلب عروض أسعار لأعمال البنية التحتية وشبكات المرافق (رمز النشاط infrastructure_utilities فقط)، يجب أن يذكر كل بند: نوع المرفق والشبكة؛ جدول الكميات والمخططات؛ مواصفات المواد؛ موافقات جهات المرافق وشهادات عدم الممانعة؛ فئة تصنيف المقاول؛ الفحص والتشغيل؛ نطاق إعادة الوضع إلى ما كان عليه؛ المخرجات ونطاق العمل؛ ترخيص المقاول ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. بهذه البنود تصبح عروض المقاولين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع المرفق، وجدول الكميات والمخططات، والمقاسات والأعماق، ومواصفة المواد. وفي المناطق المأهولة لا بد من مسح للخدمات القائمة وزيارة للموقع.",
+      "body_en": "For infrastructure and utilities works (trade code infrastructure_utilities only), every quoted line must state: Utility type and network; Bill of quantities and drawings; Materials specification; Utility authority approvals and NOCs; Contractor registration category; Testing and commissioning; Reinstatement scope; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): project location and emirate; utility type, BOQ and drawings, sizes and depths, and the material specification. In developed areas a services survey and site visit are unavoidable. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states project location and emirate; road works permits and traffic diversion; payment terms.",
+      "body_ar": "عند طلب عروض أسعار لأعمال البنية التحتية وشبكات المرافق (رمز النشاط infrastructure_utilities فقط)، يجب أن يذكر كل بند: نوع المرفق والشبكة؛ جدول الكميات والمخططات؛ مواصفات المواد؛ موافقات جهات المرافق وشهادات عدم الممانعة؛ فئة تصنيف المقاول؛ الفحص والتشغيل؛ نطاق إعادة الوضع إلى ما كان عليه؛ المخرجات ونطاق العمل؛ ترخيص المقاول ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. بهذه البنود تصبح عروض المقاولين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، ونوع المرفق، وجدول الكميات والمخططات، والمقاسات والأعماق، ومواصفة المواد. وفي المناطق المأهولة لا بد من مسح للخدمات القائمة وزيارة للموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وتصاريح أعمال الطرق وتحويل حركة المرور، وشروط الدفع.",
       "required_specs": [
         "Utility type and network",
         "Bill of quantities and drawings",
@@ -23,7 +23,10 @@
         "Pricing basis",
         "Exclusions",
         "pipe or duct sizes, depths and lengths",
-        "existing services survey"
+        "existing services survey",
+        "project location and emirate",
+        "road works permits and traffic diversion",
+        "payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/",
@@ -36,7 +39,8 @@
         "Utility type and network",
         "Bill of quantities and drawings",
         "pipe or duct sizes, depths and lengths",
-        "Materials specification"
+        "Materials specification",
+        "project location and emirate"
       ],
       "spec_guide": [
         {
@@ -143,10 +147,32 @@
           "uae_options": "GPR survey; trial trenches",
           "follow_up_if": "Live area: trial trenches are needed before a firm price.",
           "blocking": false
+        },
+        {
+          "spec": "project location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "road works permits and traffic diversion",
+          "blocking": false,
+          "why_needed_to_price": "Work in or across roads needs road-authority permits, traffic management and night working, which are priced in.",
+          "uae_options": "Not in a road; road crossing; work along a live road with diversion; by the customer.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "A site visit and an existing-services survey are unavoidable before a firm price in developed areas.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "infrastructure_utilities:uae-standards-and-approvals",
