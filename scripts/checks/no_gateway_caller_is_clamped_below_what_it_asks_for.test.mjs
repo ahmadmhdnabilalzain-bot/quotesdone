@@ -26,6 +26,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -153,7 +154,9 @@ const ceilingsFromOwningSql = () => {
 
 // What each caller asks ai_gateway for. Absent `max` means the caller takes the route's ceiling,
 // which can never be a clamp - drawing_redact_verify deliberately sends none.
+const SELF_CLASSED = new Map();
 const requestedMax = () => {
+  SELF_CLASSED.clear();
   const root = 'supabase/functions';
   const asks = {};
   const files = [];
@@ -161,7 +164,8 @@ const requestedMax = () => {
     if (d === 'ai_gateway' || d.startsWith('_')) continue;
     const p = join(REPO, root, d, 'index.ts');
     try { if (!statSync(p).isFile()) continue; } catch { continue; }
-    const src = readFileSync(p, 'utf8');
+    // Every file of the function: a split moves the gateway call out of index.ts (resend_inbound: lib/runtime.ts).
+    const src = functionSource(d);
     if (!/functions\/v1\/ai_gateway|makeLlmRich|makeLlm\(/.test(src)) continue;
     files.push(d);
     const lines = src.split('\n');
@@ -175,6 +179,14 @@ const requestedMax = () => {
     // Every fn label this file sends, whether or not it names a max.
     const labels = [...src.matchAll(/\bfn:\s*['"]([a-z0-9_]+)['"]/g)].map((m) => m[1]);
     for (const l of labels) asks[l] ??= 0;
+    // A label sent with its own taskClass on the same call is routed by that class: fn_ai_route takes a
+    // caller-supplied task_class before it looks up fn_task_class (production, 10 Nov 2026). The marketing
+    // function's two calls are of this kind (marketing/duties.ts). A label counts as self-classed only if
+    // EVERY call that sends it names a taskClass; one call without it and the label must have its row.
+    for (const m of src.matchAll(/\bfn:\s*['"]([a-z0-9_]+)['"][^\n]*/g)) {
+      const own = /\btaskClass\b|\btask_class:/.test(m[0]);
+      SELF_CLASSED.set(m[1], (SELF_CLASSED.get(m[1]) ?? true) && own);
+    }
     // A caller with no literal `fn:` label sends its directory name. The first draft tested
     // `if (!Object.keys(asks).length)` — the WHOLE accumulator, not this file's labels — so once any
     // earlier caller had contributed a key, every later label-less caller was silently skipped and
@@ -188,7 +200,7 @@ const requestedMax = () => {
 test('every function that calls ai_gateway has a task class decided for it', () => {
   const asks = requestedMax();
   const CC = callerClass();
-  const unrouted = Object.keys(asks).filter((fn) => !(fn in CC));
+  const unrouted = Object.keys(asks).filter((fn) => !(fn in CC) && !SELF_CLASSED.get(fn));
   assert.deepEqual(unrouted, [],
     `these fn labels reach ai_gateway with no task class in this check: ${unrouted.join(', ')}. `
     + 'An unrouted caller falls to general_drafting (haiku, 900 tokens) AND sits outside every '
