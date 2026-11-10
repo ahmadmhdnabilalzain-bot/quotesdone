@@ -217,3 +217,46 @@ Deno.test('a newer save inside the reading window is not overwritten by the defe
   assertEquals(cap.confirmed_version, newer, 'no confirm was written over the newer one');
   assert((cap.services as string[]).includes('gypsum.partitions') && !(cap.services as string[]).includes('gypsum.false_ceiling'), JSON.stringify(cap.services));
 });
+
+// ── HIS OWN WORDS FOR WHAT HE CONFIRMED (10 Nov 2026, sales_engineer; ledger 1573) ─────────────────────────────────────
+Deno.test('the services his profile states are offered UNTICKED (founder 862), with the line and the licence check', async () => {
+  const { admin, cap } = fakeDb({}, null);
+  cap.source_docs = { docs: [], licence_check: { read: true, activities: ['Painting Contracting'], licence_trades: ['painting'], not_covered: ['gypsum.false_ceiling'] },
+    proposed_services: [
+      { key: 'gypsum.false_ceiling', trade: 'gypsum', label_en: 'False ceilings', via: 'exact_name', phrase: 'Gypsum false ceilings', snippet: 'Gypsum false ceilings and partitions', licence: 'not_covered', doc: 'p.pdf' },
+      { key: 'gone.retired', trade: 'gone', label_en: 'Retired', via: 'meaning', phrase: 'x', snippet: 'x', licence: 'unclear', doc: 'p.pdf' },
+    ] };
+  const st = await servicesState(admin, 7);
+  assertEquals(st.proposed_services.map((p) => [p.key, p.licence, p.stated]), [['gypsum.false_ceiling', 'not_covered', false]], 'a retired key was offered, or a proposal arrived ticked');
+  assertEquals(st.selected_services, [], 'first run starts unticked');
+  assertEquals(st.licence_check?.not_covered, ['gypsum.false_ceiling']);
+});
+
+Deno.test('a confirm files his own short phrases for the services he CONFIRMED to the alias queue, and never fails on it', async () => {
+  const { admin, cap } = fakeDb({});
+  cap.source_docs = { proposed_services: [
+    { key: 'gypsum.false_ceiling', trade: 'gypsum', label_en: 'False ceilings', via: 'meaning', phrase: 'Gypsum board ceilings', snippet: 'Gypsum board ceilings for villas', licence: 'supported', doc: 'p.pdf' },
+    { key: 'painting.interior', trade: 'painting', label_en: 'Interior painting', via: 'meaning', phrase: 'Wall colour works', snippet: 'Wall colour works', licence: 'supported', doc: 'p.pdf' },
+  ] };
+  const calls: { fn: string; args: Record<string, unknown> }[] = [];
+  const rpc = admin.rpc;
+  (admin as { rpc: unknown }).rpc = async (fn: string, args: Record<string, unknown>) => {
+    calls.push({ fn, args });
+    return fn === 'fn_service_alias_propose' ? { data: { ok: true, proposed: 1 }, error: null } : rpc(fn, args as { p_text: string });
+  };
+  const [s, out] = await servicesSaveRewrite(admin, 7, { ...base, trades: ['gypsum'], services: ['gypsum.false_ceiling'], own_words: [],
+    phrases: [{ phrase: 'Drop ceilings in gypsum board', key: 'gypsum.false_ceiling' }, { phrase: 'Wall colour works', key: 'painting.interior' }] });
+  assertEquals(s, 200, JSON.stringify(out));
+  const q = calls.find((c) => c.fn === 'fn_service_alias_propose');
+  assert(q, 'nothing was filed to the alias queue');
+  // only services he CONFIRMED (painting.interior was proposed but not ticked), his own words, short names only
+  assertEquals(q.args.p_pairs, [{ phrase: 'Gypsum board ceilings', key: 'gypsum.false_ceiling' }, { phrase: 'Drop ceilings in gypsum board', key: 'gypsum.false_ceiling' }]);
+  assertEquals((out as { aliasing?: { proposed: number } }).aliasing?.proposed, 1);
+
+  // the queue unreachable (the SQL not yet applied): the confirm still succeeds and says why nothing was filed
+  (admin as { rpc: unknown }).rpc = async (fn: string, args: Record<string, unknown>) =>
+    fn === 'fn_service_alias_propose' ? { data: null, error: { message: 'function public.fn_service_alias_propose does not exist' } } : rpc(fn, args as { p_text: string });
+  const [s2, out2] = await servicesSaveRewrite(admin, 7, { ...base, trades: ['gypsum'], services: ['gypsum.false_ceiling'], own_words: [] });
+  assertEquals(s2, 200);
+  assert(String((out2 as { aliasing?: { error?: string } }).aliasing?.error).includes('does not exist'));
+});

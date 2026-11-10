@@ -22,7 +22,7 @@ import { mandatorySixMissing, registrationChecklist } from '../_shared/supplier_
 type Admin = any;
 // deno-lint-ignore no-explicit-any
 type Row = Record<string, any>;
-export type Supplier = { id: number; company_name: string; approval_status: string | null; registration_status: string | null; license_expiry: string | null; name_corrected_from: string | null; licence_gate_reason?: string | null; exception_due_at?: string | null };
+export type Supplier = { id: number; company_name: string; approval_status: string | null; registration_status: string | null; license_expiry: string | null; name_corrected_from: string | null; licence_gate_reason?: string | null; exception_due_at?: string | null; accepted_terms_at?: string | null; signed_terms_at?: string | null };
 
 // Inquiry states in which an unquoted match is still an RFQ waiting for this supplier.
 const OPEN_INQ = ['sent', 'open', 'active', 'collecting', 'live', 'quoted'];
@@ -180,7 +180,16 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
 export const supplierCard = (sup: Supplier) => ({ id: sup.id, company_name: sup.company_name, approval_status: sup.approval_status, registration_status: sup.registration_status, license_expiry: sup.license_expiry || null, name_corrected: !!sup.name_corrected_from,
   // 13 Oct 2026 (ruling 1230 walk): the header renders why a registration is held and how long is left; neither field was sent, so
   // neither line ever showed. Prevented by scripts/checks/a_held_supplier_is_never_told_nothing_is_needed.test.mjs.
-  licence_gate_reason: sup.licence_gate_reason ?? null, exception_due_at: sup.exception_due_at ?? null });
+  licence_gate_reason: sup.licence_gate_reason ?? null, exception_due_at: sup.exception_due_at ?? null,
+  // 10 Nov 2026: the signed Supplier Agreement lands asynchronously (z21_sign_supplier_on_acceptance; re-signed after 5 minutes by
+  // fn_sales_engineer_resigns_unsigned_agreements). Until it lands the gate reads reg_terms, and the header said "Action required:
+  // Signed supplier terms" to a supplier with nothing left to do. Prevented by
+  // scripts/checks/a_supplier_agreement_that_did_not_land_is_signed_again.test.mjs.
+  agreement_signing: agreementSigning(sup) });
+
+/** Accepted, and no certificate for that acceptance yet: the agreement is being signed, nothing is asked of the supplier. */
+export const agreementSigning = (sup: Pick<Supplier, 'accepted_terms_at' | 'signed_terms_at'>): boolean =>
+  !!sup.accepted_terms_at && !(sup.signed_terms_at && Date.parse(sup.signed_terms_at) >= Date.parse(sup.accepted_terms_at));
 
 // THE NOTICES THE ESTATE WROTE TO THIS SUPPLIER, AND THE TAB EACH ONE IS DEALT WITH IN (audit
 // 21 Sep 2026, findings 5 and 6). Every message the company sends a supplier is a public.notifications

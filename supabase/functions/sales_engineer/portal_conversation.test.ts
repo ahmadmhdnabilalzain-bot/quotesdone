@@ -174,10 +174,11 @@ Deno.test('streamed: an answer with nothing left after the drop is rewritten by 
 
 Deno.test('the portal turn wires the held state into the prompt and the filter into the answer', async () => {
   const src = functionSource('sales_engineer');
-  assert(src.includes('const held = heldState(turns, message, extract?.slots ?? null);'), 'the held state is no longer computed from the whole conversation and the extraction');
+  // since 10 Nov 2026 the conversation's stage against its 100-message limit rides too (_shared/inquiry_state.ts capStage)
+  assert(src.includes('const held = heldState(turns, message, extract?.slots ?? null, stage);'), 'the held state is no longer computed from the whole conversation and the extraction');
   assert(/extractSlots\(\{[^]*deadline: t0 \+ EXTRACT_BY_MS/.test(src), 'the extraction call is no longer bounded by the turn clock');
   assert(src.includes("(known_ ? known_ + '\\n\\n' : '')"), 'the model is no longer shown what it must not ask again');
-  assert(src.includes('drop: () => replyFilter(held),'), 'the reply is no longer filtered sentence by sentence');
+  assert(src.includes('drop: () => { const f = replyFilter(held);'), 'the reply is no longer filtered sentence by sentence');
 });
 
 // Run 143372b1 (27 Oct 2026), the first run with the filter: two summaries lost their confirm request (dropped as a

@@ -66,6 +66,11 @@ function Dashboard({ token, lang, onExpired }) {
   // would be a second source of truth for the same state. (docs/CONVENTIONS_LOADING.md)
   const load = async (first = false) => { const n = ++seq.current; const j = await (first ? take(token, DASH_KEY, () => fetchDashboard(token)) : fetchDashboard(token)); if (n !== seq.current) return; if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
   useEffect(() => { load(true); }, [token]);
+  // THE AGREEMENT IS BEING SIGNED (10 Nov 2026): the certificate lands within seconds, or the minute sweep re-signs it after 5
+  // minutes (fn_sales_engineer_resigns_unsigned_agreements). The header says so and reads the dashboard again every 15 s for up
+  // to 10 minutes, so the supplier sees Approved without reloading.
+  const signing = !!(ov && ov.supplier && ov.supplier.agreement_signing);
+  useEffect(() => { if (!signing) return; let n = 0; const id = setInterval(() => { if (++n > 40) clearInterval(id); else load(); }, 15000); return () => clearInterval(id); }, [signing, token]);
   // Once the dashboard has rendered, the Messages, Billing and Settings tabs' first reads start in the
   // background (supplier/tabPrefetch.ts), so pressing a tab takes an answer already on its way.
   const dashReady = !!ov;
@@ -117,9 +122,12 @@ function Dashboard({ token, lang, onExpired }) {
   if (!ov) return <div className={S.center} aria-busy="true">{t(lang, 'loading_dash')}</div>;
   const unread = (ov.notifications && ov.notifications.unread_messages) || 0;
   const TAB = { services: ws(lang, 'tab_services'), rfqs: ws(lang, 'tab_rfqs'), quotes: ws(lang, 'tab_quotes'), messages: ws(lang, 'tab_messages'), documents: ws(lang, 'tab_documents'), insights: ws(lang, 'tab_insights'), profile: ws(lang, 'acct_profile'), billing: ws(lang, 'acct_billing'), settings: ws(lang, 'acct_settings') };
+  const signingOnly = !!ov.supplier.agreement_signing && ov.supplier.licence_gate_reason === 'reg_terms' && ov.supplier.approval_status !== 'approved';
   const stBadge = (() => {
     // AUDIT 6.5(d): action_required is NOT pending — a clock is running that ends in rejection.
     const st = ov.supplier.approval_status;
+    // Only the agreement is outstanding and it is being signed: nothing is asked of the supplier, so no red badge and no clock.
+    if (signingOnly) return <Badge variant="warn">{t(lang, 'agreement_signing')}</Badge>;
     if (st === 'action_required') {
       const due = ov.supplier.exception_due_at ? new Date(ov.supplier.exception_due_at) : null;
       const days = due ? Math.ceil((due.getTime() - Date.now()) / 864e5) : null;
@@ -142,7 +150,7 @@ function Dashboard({ token, lang, onExpired }) {
                 action_required: a held supplier saw 'Pending' and 'Trade licence: on file' and never learned a clearer copy
                 was needed. Prevented by scripts/checks/a_held_supplier_is_never_told_nothing_is_needed.test.mjs. */}
             {/* oxlint-disable-next-line unicorn/prefer-string-starts-ends-with -- this exact shape is pinned by scripts/checks/a_held_supplier_is_never_told_nothing_is_needed.test.mjs */}
-            {(ov.supplier.approval_status === 'action_required' || (ov.supplier.approval_status === 'pending' && /^licence_/.test(String(ov.supplier.licence_gate_reason || ''))) || (ov.supplier.approval_status === 'pending' && ov.supplier.licence_gate_reason === 'services_unconfirmed')) && ov.supplier.licence_gate_reason
+            {!signingOnly && (ov.supplier.approval_status === 'action_required' || (ov.supplier.approval_status === 'pending' && /^licence_/.test(String(ov.supplier.licence_gate_reason || ''))) || (ov.supplier.approval_status === 'pending' && ov.supplier.licence_gate_reason === 'services_unconfirmed')) && ov.supplier.licence_gate_reason
               ? <span className="text-[13px] text-destructive font-medium basis-full">{t(lang, 'ar_why') + ': ' + srvText(lang, ov.supplier.licence_gate_reason, {}, ov.supplier.licence_gate_reason)}</span> : null}
             {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · '}<Ltr>{fmtDate(ov.supplier.license_expiry, lang)}</Ltr></Badge>; })() : null}
           </div>

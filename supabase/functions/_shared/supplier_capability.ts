@@ -73,24 +73,30 @@ export const relevanceFloorApplies = (products: unknown): boolean =>
   Array.isArray(products) && products.some((p) => String(p ?? '').trim() !== '');
 
 /** A supplier the gate holds ONLY because its services were unconfirmed (founder ledger 1469) is decided as soon as it confirms. An rpc
- *  answers {error}, it does not throw, so the error is read: one retry, then the failure is LOGGED and put on the sales engineer's queue
- *  (agent_actions) and returned as gate:'failed', so a supplier cannot stay Pending in silence (the 24-hour clock also re-runs it).
- *  The confirm itself stands whatever this does. Returns 'not_held' | the gate's decision | 'failed'. */
+ *  answers {error}, it does not throw, so the error is read. The supplier is waiting on the page, so the call is
+ *  fn_sales_engineer_verifies_supplier_now: the gate under a 3 s lock_timeout that answers {decision:'queued'} instead of hanging
+ *  (10 Nov 2026: two 8 s statement timeouts back to back, then a 40.4 s confirm, all waiting on another transaction's founding-rank
+ *  lock). 'queued' is decided by fn_sales_engineer_reruns_held_verifications within the minute. A timeout is NOT retried (a retry
+ *  doubled the wait to 16 s and the tick re-runs it anyway); any other error is retried once, then LOGGED and put on the sales
+ *  engineer's queue (agent_actions) and returned as gate:'failed', so a supplier cannot stay Pending in silence.
+ *  The confirm itself stands whatever this does. Returns 'not_held' | the gate's decision | 'queued' | 'failed'. */
 export async function rerunGateAfterConfirm(admin: Admin, supplierId: number): Promise<string> {
   try {
     const { data: held } = await admin.from('leads').select('licence_gate_reason').eq('id', supplierId).maybeSingle();
     if (held?.licence_gate_reason !== 'services_unconfirmed') return 'not_held';
     let last = '';
     for (let attempt = 0; attempt < 2; attempt++) {
-      const { data, error } = await admin.rpc('fn_sales_engineer_verifies_supplier', { p_lead_id: supplierId, p_source: 'services_confirmed' });
+      const { data, error } = await admin.rpc('fn_sales_engineer_verifies_supplier_now', { p_lead_id: supplierId, p_source: 'services_confirmed' });
       if (!error && data?.ok) return String(data.decision || 'unchanged');
       last = error?.message || JSON.stringify(data || {});
+      if (/timeout|canceling statement/i.test(last)) break;
     }
     console.error('capabilityConfirm: the gate failed after the confirm', supplierId, last);
     await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'supplier_verification', status: 'failed', risk: 'medium',
       title: 'Services confirmed but the verification did not re-run — supplier #' + supplierId,
-      detail: { supplier_id: supplierId, source: 'services_confirmed', error: last.slice(0, 500) }, target_table: 'leads', target_id: String(supplierId) });
-    return 'failed';
+      detail: { supplier_id: supplierId, source: 'services_confirmed', error: last.slice(0, 500), rerun_by: 'fn_sales_engineer_reruns_held_verifications' },
+      target_table: 'leads', target_id: String(supplierId) });
+    return /timeout|canceling statement/i.test(last) ? 'queued' : 'failed';
   } catch (e) {
     console.error('capabilityConfirm: the gate was not re-run after the confirm', supplierId, String((e as Error)?.message || e));
     return 'failed';

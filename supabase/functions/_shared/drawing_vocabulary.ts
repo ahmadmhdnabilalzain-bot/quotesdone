@@ -32,6 +32,10 @@ export const VOCAB = new Set(`
   outline outlines boundary plot interior exterior int ext main sub north south east west
   insulation cladding facade curtain partition partitions gypsum board paint finish finishes skirting
   marble granite porcelain ceramic carpet vinyl wood timber aluminium aluminum glass handrail railing balustrade
+  pool pools swim swimming spa jacuzzi lift lifts shaft escal escalator scaf scaff scaffold scaffolding turf lawn grass
+  soft softscape hard hardscape shrub groundcover rack racks racking waterproofing wprf membrane screed purlin purlins
+  bracing rafter rafters girt girts joist joists stl curb edging gutter coping flashing drip irr trunk cndt chw chws chwr
+  hhw spkl hydr hydrant hose kitchen kex kexh tfa fresh space spce ceil clg sign signage totem
 `.split(/\s+/).filter(Boolean));
 
 // The words of a drawing's text beyond layer names: rooms, drawing furniture, devices, finishes, and the small

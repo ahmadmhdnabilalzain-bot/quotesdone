@@ -35,6 +35,7 @@ import { pagesLeft } from './doc_read/pdf.ts';
 import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
 import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, tradesOfText, type ExactState, type MeaningState, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
+import { proposedServicesOf, servicesOfText, type ServiceHit } from './profile_services.ts';
 
 export type { TradeHit, TradeResolveDeps };
 
@@ -86,6 +87,11 @@ export type DocEvidence = {
   pages?: { read: number; of: number };
   /** the read stopped at its budget or text cap and the rest is read by the next sweep run, from pages.read + 1 (stuckOf) */
   resume?: boolean;
+  /** a profile or catalogue: the SERVICES it states, each with the supplier's own words (profile_services.ts, 10 Nov 2026,
+   *  ledger 1573). Proposed to the supplier on the Services tab; his tick is what makes one his. */
+  services?: ServiceHit[];
+  /** a licence: its activities exactly as printed, the licence side of the licence-vs-profile check */
+  activities?: string[];
 };
 export const PHOTO_TEXT_MAX = 60_000;
 
@@ -162,6 +168,21 @@ export function offerText(text: string): string | null {
   return out.length ? out.join('\n') : null;
 }
 
+/** The services a profile or catalogue's offer text states (profile_services.servicesOfText). `fromMeaning`: what tradesOfText's
+ *  meaning step already read on this text, added without embedding it again. Never throws: a failure proposes no service. */
+async function offerServices(text: string, deps: TradeResolveDeps, supplyOnly?: boolean,
+  fromMeaning?: { key: string; trade: string; label_en: string; clause: string; line: string; similarity: number }[]): Promise<ServiceHit[]> {
+  try {
+    const r = await servicesOfText(text, fromMeaning ? { ...deps, budget: { left: 0 } } : deps, { supplyOnly });
+    const out = new Map(r.services.map((s) => [s.key, s]));
+    for (const m of fromMeaning ?? []) if (!out.has(m.key)) out.set(m.key, { key: m.key, trade: m.trade, label_en: m.label_en, via: 'meaning', phrase: m.clause, snippet: m.line, similarity: m.similarity });
+    return [...out.values()].sort((a, b) => a.key.localeCompare(b.key));
+  } catch (e) {
+    console.error(JSON.stringify({ at: 'supplier_doc_trades.offerServices', error: String((e as Error)?.message || e).slice(0, 200) }));
+    return [];
+  }
+}
+
 /** One document -> what it says about trades, or the honest reason it could not be read. */
 export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Promise<DocEvidence> {
   const base = { path: doc.path, name: doc.name, kind: doc.kind, read_at: new Date().toISOString() };
@@ -217,10 +238,15 @@ ${whole}`;
       // here is checked only against the vision model's own transcription, which is why the model is given only the lines the page PRINTS
       // (license_extract profile.lines, verbatim: H01 proved a summary phrase is refused). The proposal is the supplier's to confirm on the
       // Services tab, with the printed line beside it, so a line the model invented is struck out by the one person who has the file.
-      return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}), trades: hits };
+      // The model chose the TRADES; the services are read by code (exact names, then meaning within the budget): ledger 1573.
+      const sv = await offerServices(c ? c.text : text, deps, c?.supply_only);
+      return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}), trades: hits, services: sv };
     }
     const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
-    return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, ...(c ? { supply_only: c.supply_only } : {}) };
+    if (doc.kind === 'licence') return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, activities: F.activities ?? [] };
+    // THE SERVICES (ledger 1573): exact names here, and the services meaning already read for the trades (no second embedding)
+    const sv = await offerServices(c ? c.text : text, deps, c?.supply_only, r.services);
+    return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, services: sv, ...(c ? { supply_only: c.supply_only } : {}) };
   };
   if (doc.refused) return { ...base, status: 'refused', reason: doc.refused.slice(0, 200), trades: [] };
   const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes, fromPage: doc.from_page }) : null);
@@ -296,6 +322,26 @@ export async function docPartiallyRead(admin: Admin, supplierId: number, d: DocE
   } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.docPartiallyRead', supplier: supplierId, error: String((e as Error)?.message || e) })); }
 }
 
+/** A profile states services the trade licence's activities do not cover: one pending agent_actions item (kind
+ *  licence_scope_check) per supplier for the sales engineer, refreshed with the latest reading. NEVER a rejection (founder
+ *  ledger 1573: "checks the licence activities against the profile"): the supplier still sees and may confirm each service,
+ *  told it is not on his licence; the sales engineer decides with the activities and the profile lines side by side. */
+export async function licenceScopeCheck(admin: Admin, supplierId: number,
+  check: { activities: string[]; licence_trades: string[]; not_covered: string[] }, proposed: { key: string; phrase: string; snippet: string; licence: string }[]): Promise<void> {
+  const target = String(supplierId);
+  const detail = { supplier_id: supplierId, licence_activities: check.activities, licence_trades: check.licence_trades,
+    not_covered: proposed.filter((p) => p.licence === 'not_covered').map((p) => ({ key: p.key, phrase: p.phrase, line: p.snippet })),
+    waiting_for: 'sales_engineer to compare the licence activities with the profile and confirm or question the services the licence does not list' };
+  try {
+    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'licence_scope_check').eq('status', 'pending').eq('target_id', target).limit(1);
+    if (open?.length) { await admin.from('agent_actions').update({ detail }).eq('id', open[0].id); return; }
+    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'licence_scope_check', status: 'pending', risk: 'low',
+      title: `Profile services not on the trade licence: ${check.not_covered.slice(0, 4).join(', ')}`.slice(0, 200),
+      detail, target_table: 'supplier_capabilities', target_id: target });
+    if (error) console.error(JSON.stringify({ at: 'supplier_doc_trades.licenceScopeCheck', supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.licenceScopeCheck', supplier: supplierId, error: String((e as Error)?.message || e) })); }
+}
+
 export const proposedFrom = (docs: DocEvidence[]): string[] =>
   [...new Set(docs.flatMap((d) => (d.trades || []).map((t) => t.code)))].sort();
 
@@ -352,11 +398,15 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     for (const d of fresh) if (d.choice === 'held') await docTradesHeld(admin, supplierId, d);
     // a read the next sweep run continues (resume) is not filed; a scan cut for the model is, since nothing will read the rest
     for (const d of fresh) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
+    // THE SERVICES THE DOCUMENTS STATE AND THE LICENCE CHECK (10 Nov 2026, ledger 1573): stored beside the documents, shown
+    // on the Services tab for the supplier to tick, and a service the licence does not cover goes to the sales engineer.
+    const { proposed: proposedServices, licence_check } = proposedServicesOf(merged);
     const { error } = await admin.from('supplier_capabilities').upsert({
       supplier_id: supplierId, proposed_trades: proposed,
-      source_docs: { ...prevSrc, reader: READER, docs: merged }, extracted_at: new Date().toISOString(),
+      source_docs: { ...prevSrc, reader: READER, docs: merged, proposed_services: proposedServices, licence_check }, extracted_at: new Date().toISOString(),
     }, { onConflict: 'supplier_id' });
     if (error) return { ok: false, error: `store: ${error.message}` };
+    if (licence_check.not_covered.length) await licenceScopeCheck(admin, supplierId, licence_check, proposedServices);
     return { ok: true, proposed_trades: proposed, docs: fresh };
   } catch (e) {
     return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) };

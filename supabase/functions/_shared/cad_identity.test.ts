@@ -59,7 +59,10 @@ Deno.test('the consultant title block: no name reaches the supplier, every quant
   assertEquals(qty(b, /FCU/), [24]);
   assertEquals(qty(b, /DIFFUSERS/), [12]);
   assertEquals(qty(b, /EXHAUST FANS/), [6]);
-  assertEquals(qty(b, /linework on layer M-DUCT$/), [24]);
+  // 10 Nov 2026 (drawing_boq/linear_services.ts): the two walls of one duct, 12 m long and 500 apart, are ONE 12 m duct
+  // along its centreline, no longer 24 m of "linework on layer M-DUCT"; its layer name is still served neutralised.
+  assertEquals(qty(b, /^Duct 500 mm wide \(size not labelled\)$/), [12]);
+  assert(!b.boq.some((l: any) => /linework on layer M-DUCT/.test(l.description)), 'the duct layer is not listed again as raw linework');
   assert(b.boq.some((l: any) => /smoke/i.test(l.description) && l.qty === 2), 'the smoke detectors stay counted');
   assert(!b.boq.some((l: any) => /LOGO|TITLE/i.test(JSON.stringify(l))), 'a logo or title-block insert is not a priced line');
 });

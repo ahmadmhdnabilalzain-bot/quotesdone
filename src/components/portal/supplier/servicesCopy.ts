@@ -83,6 +83,10 @@ export const SERVICES_COPY = {
     update: 'Update my services',
     saving: 'Saving…',
     saved: 'Saved. Your services are confirmed.',
+    // What the confirm's verification answered (j.gate, supplier_capability.ts rerunGateAfterConfirm). 10 Nov 2026: a confirm
+    // that waited on the gate showed nothing, and the supplier stayed Pending with no word on screen.
+    gate_approved: 'Your registration is approved. Matching inquiries now reach you in the Inquiries tab.',
+    gate_finishing: 'We are finishing your verification. Your status updates within a minute; you do not need to do anything.',
     save_failed: 'Could not save your services.',
     review_sent: 'Services we could not match to a trade were sent to our sales engineer. The outcome will show here.',
     proposals_title: 'Trades under review',
@@ -164,6 +168,8 @@ export const SERVICES_COPY = {
     update: 'تحديث خدماتي',
     saving: 'جارٍ الحفظ…',
     saved: 'تم الحفظ، وخدماتكم مؤكَّدة.',
+    gate_approved: 'اعتُمد تسجيلكم، وتصلكم الاستفسارات المطابقة الآن في تبويب الاستفسارات.',
+    gate_finishing: 'نُكمل الآن التحقق من تسجيلكم، وتتحدّث حالتكم خلال دقيقة دون أن يلزمكم أي إجراء.',
     save_failed: 'تعذّر حفظ خدماتكم.',
     review_sent: 'أحلنا الخدمات التي لم نطابقها مع أي تخصص إلى مهندس المبيعات، وستظهر النتيجة هنا.',
     proposals_title: 'تخصصات قيد المراجعة',
@@ -202,6 +208,20 @@ export const VERIFY_COPY = {
   profile_damaged: 'Your company profile file is damaged, so we could not open it. Upload it again in Documents, or tick what you do below, or describe it in your own words.',
   profile_missing: 'No company profile has been read yet. Upload it in Documents, or describe your services below.',
   doc_read_none: 'read, no service matched',
+} as const;
+
+// THE SERVICES READ OFF THE SUPPLIER'S OWN DOCUMENTS, AND HIS LICENCE (10 Nov 2026, sales_engineer; founder ledger 1573). English only to a
+// supplier (ruling 1008), like VERIFY_COPY. Offered, not ticked (founder 862): the button ticks them for him to review before he confirms.
+export const PROPOSED_COPY = {
+  title: 'Services we found in your company profile',
+  help: 'Our sales engineer read these from your own documents. Tick each one you do, then press Confirm my services. Your words become the names customers find you by.',
+  tick_all: 'Tick all proposed services',
+  untick_all: 'Untick all proposed services',
+  from_line: 'From your profile:',
+  not_on_licence: 'Not on your trade licence',
+  not_on_licence_help: 'Your trade licence does not list this activity. You can still confirm it; our sales engineer will check it with your licence. If your licence covers it under another name, upload the licence page that shows it in Documents.',
+  licence_lists: 'Your trade licence lists:',
+  licence_unread: 'We could not read the activities on your trade licence yet, so these services are not checked against it.',
 } as const;
 
 // WHAT THE SERVICES TAB MAY SAY ABOUT THE COMPANY PROFILE (ledger 1469, browser walk scripts/e2e/supplier_profile_read_walk.mjs, 2 Nov 2026).

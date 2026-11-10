@@ -7,6 +7,7 @@
 // founder's FIGURES report) are not conversation and do not come through here.
 // prevented by: wa_inbound/model_says.test.ts, wa_inbound/menu_flow_model_written.test.ts,
 //               wa_inbound/no_unwritten_send.test.ts
+import { arabicRegister, type Dialect } from '../_shared/inquiry_state.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import type { ThinkDeps, Turn } from '../_shared/think.ts';
 
@@ -25,10 +26,13 @@ export interface SayRequest {
   signal?: AbortSignal;         // a speculative draft that was discarded: abort it
   extraCheck?: (text: string) => string[];   // the turn's own rule: a draft it names a problem in is rewritten, never sent
   situationAnswers?: boolean;   // the facts alone say what to tell them (a person is needed): the brief-less last chance may run
-  // THE STATUS LANE (status_lane.ts, ruling 1571): its own class (status_reply), no company brief, and its own rules after WA_RULES
+  dialect?: Dialect | null;     // the customer's register (_shared/inquiry_state.ts dialectOf; never for a supplier, ruling 1008)
+  // THE STATUS LANE (status_lane.ts, ruling 1571): its own class (status_reply), no company brief, and its own rules after WA_RULES.
+  // THE EXPERT INTERVIEW (say.ts, ledger 1572/1586): a customer's job answers on inquiry_qualification_conversation with its block.
   taskClass?: string;
   briefInPrompt?: boolean;
   laneRules?: string;
+  expert?: string;              // the expert interview's block for a customer's job (say.ts; _shared/solution_catalogue.ts ADVISE_RULE)
 }
 // A VOICE NOTE REPLY NEVER ASKS FOR A DOCUMENT (customer_support, 3 Nov 2026). Measured on the real exchange on main
 // (run 41528725657, after f6dcbe7d): the voice turn came after four licence/file turns in the same chat, the model saw them
@@ -67,9 +71,11 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       seat: 'customer_support', channel: 'whatsapp', audience: r.audience, lang: r.lang,
       message: r.message || '(no text — they pressed a menu option or sent a file)',
       conversation: r.conversation,
-      facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation,
+      facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation
+        + (r.expert && r.audience !== 'supplier' ? '\n\n' + r.expert : ''),
       rules: r.laneRules ? WA_RULES + ' ' + r.laneRules : WA_RULES, subject: r.subject,
       ...(r.taskClass ? { taskClass: r.taskClass } : {}), ...(r.briefInPrompt === false ? { briefInPrompt: false } : {}), rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must, ...(r.signal ? { signal: r.signal } : {}), ...(r.extraCheck ? { extraCheck: r.extraCheck } : {}),
+      ...(r.dialect && r.audience !== 'supplier' ? { dialect: r.dialect } : {}),
       deadline, ...o,
     });
     let out = await ask(t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS));
@@ -138,7 +144,7 @@ export async function holdUnwritten(io: HoldIO): Promise<{ notice: string; sent:
     const { data } = await io.rpc('fn_reason_hold', {
       p_seat: 'customer_support', p_surface: UNWRITTEN_SURFACE, p_question: question,
       p_request: { seat: 'customer_support', surface: UNWRITTEN_SURFACE, subject,
-        question: `Reply on WhatsApp to this ${io.audience} message, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}${io.audience === 'supplier' ? ' (suppliers are always answered in English)' : ''}. ${notice ? 'They were told we received it and will reply shortly.' : 'They have not had a reply yet.'}\n\nWHAT HAPPENED ON THAT TURN (facts):\n${io.situation.slice(0, 3000)}\n\nMESSAGE:\n${question}`,
+        question: `Reply on WhatsApp to this ${io.audience} message, in ${lang === 'ar' ? arabicRegister(null) : 'UAE English'}${io.audience === 'supplier' ? ' (suppliers are always answered in English)' : ''}. ${notice ? 'They were told we received it and will reply shortly.' : 'They have not had a reply yet.'}\n\nWHAT HAPPENED ON THAT TURN (facts):\n${io.situation.slice(0, 3000)}\n\nMESSAGE:\n${question}`,
         context: { audience: io.audience === 'founder' ? 'founder' : io.audience, language: lang, turn_id: 'wa:' + (io.messageSid || io.from + ':' + question.slice(0, 40)) }, research: false,
         reask: { message: question, facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + io.situation.slice(0, 3000),
           audience: io.audience, lang, channel: 'WhatsApp', problems: (io.problems ?? []).slice(0, 12) } },

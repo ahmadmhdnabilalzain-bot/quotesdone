@@ -33,7 +33,7 @@ import { blobToWav } from '@/lib/wavEncode';
 import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel } from './serverCopy';
-import { countServices, profileStateOf, sc, scCount, VERIFY_COPY } from './servicesCopy';
+import { countServices, profileStateOf, PROPOSED_COPY, sc, scCount, VERIFY_COPY } from './servicesCopy';
 import { docStateLine, englishLines, isEnglishLine, reloadRoles, reloadSet, reloadText } from './servicesRead';
 
 type Service = { key: string; label_en: string; label_ar: string };
@@ -44,6 +44,9 @@ type Proposal = { code: string; label_en?: string | null; label_ar?: string | nu
 type DocHit = { code: string; snippet?: string };
 type Doc = { path: string; name: string; kind?: string; status?: string; source?: string; choice?: string; reason?: string; vision_held?: DocHit[]; trades?: DocHit[] };
 type Voice = { enabled: boolean; max_seconds: number; max_bytes: number };
+// Read off the supplier's own documents (supplier_services.servicesState, ledger 1573): offered, never pre-ticked (founder 862).
+type ProposedSvc = { key: string; trade: string; label_en: string; label_ar: string; phrase: string; snippet: string; via: string; licence: 'supported' | 'not_covered' | 'unclear'; doc: string; stated: boolean };
+type LicenceCheck = { read: boolean; activities: string[]; licence_trades: string[]; not_covered: string[] };
 type State = {
   ok: boolean; confirmed: boolean; first_run: boolean;
   checklist: ChecklistTrade[]; services_by_trade: Record<string, Service[]>;
@@ -52,6 +55,7 @@ type State = {
   vocabulary: { trades: Trade[]; roles: Role[] };
   capability: { roles?: string[]; source_docs?: { docs?: Doc[] } } | null;
   trade_proposals: Proposal[]; voice: Voice;
+  proposed_services?: ProposedSvc[]; licence_check?: LicenceCheck | null;
 };
 // What the sales engineer made of the supplier's words. `items` carries the per-phrase reading; the
 // three lists below are what the supplier actually edits.
@@ -87,6 +91,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // removed_trades and the server drops it from the confirmed trades.
   const [removedTrades, setRemovedTrades] = useState<Set<string>>(new Set());
   const [ticked, setTicked] = useState<Set<string>>(new Set());
+  // The services the documents proposed that the supplier ticked here (they may sit outside the prepared trades).
+  const [propTicked, setPropTicked] = useState<Set<string>>(new Set());
   const [roles, setRoles] = useState<string[]>([]);
   const [rawText, setRawText] = useState('');
   const [rw, setRw] = useState<Rewrite | null>(null);
@@ -120,6 +126,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       const keep = !!o.keepText;
       setRemovedTrades((cur) => reloadSet(cur, [], keep));
       setTicked((cur) => reloadSet(cur, d.selected_services, keep));
+      setPropTicked((cur) => reloadSet(cur, (d.proposed_services || []).filter((p) => p.stated).map((p) => p.key), keep));
       setRoles((cur) => reloadRoles(cur, (d.capability && d.capability.roles) || [], keep));
       // A refresh because the profile finished reading must not take away what the supplier has typed meanwhile.
       setRawText((cur) => reloadText(cur, d.raw_text || '', keep));
@@ -248,6 +255,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const toggleRole = (c: string) => setRoles((rs) => (rs.includes(c) ? rs.filter((x) => x !== c) : [...rs, c]));
   const toggleDrop = (k: string) => setDropped((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const toggleKeep = (k: string) => setKept((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const toggleProp = (k: string) => setPropTicked((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   // THE REWRITE. Nothing is saved here — the supplier is shown what we made of its words and either
   // confirms it below or edits the text and asks again.
@@ -298,7 +306,14 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // word rules and the curated implications keep their default, because those are the supplier's
   // own words and a rule the sales engineer wrote; a nearest-meaning reading is neither.
   const rwMeaning = (rw?.meaning?.proposals || []).map((p) => p.key).filter((k) => kept.has(k) && !dropped.has(k));
-  const statedKeys = [...new Set([...liveTicks, ...rwStated, ...rwMeaning])].filter((k) => !dropped.has(k));
+  const proposedSvcs = d.proposed_services || [];
+  const propKeys = proposedSvcs.map((p) => p.key).filter((k) => propTicked.has(k));
+  const statedKeys = [...new Set([...liveTicks, ...rwStated, ...rwMeaning, ...propKeys])].filter((k) => !dropped.has(k));
+  // His own words for what he confirmed: the alias queue cites them (supplier_services.recordOwnPhrases).
+  const phrases = [
+    ...proposedSvcs.filter((p) => propTicked.has(p.key)).map((p) => ({ phrase: p.phrase, key: p.key })),
+    ...(rw?.meaning?.proposals || []).filter((p) => kept.has(p.key) && !dropped.has(p.key)).map((p) => ({ phrase: p.lines[0] || '', key: p.key })),
+  ];
   // Removals travel with the save so matching can subtract them: what was already stored, plus
   // whatever was struck out in this preview, minus anything now stated or kept.
   const rwRemoved = [...new Set([...(d.removed_services || []), ...(rw ? rw.implied.map((i) => i.key) : d.implied_services).filter((k) => dropped.has(k))])]
@@ -311,14 +326,17 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       // in it: it is never saved because it was shown (founder instructions 895/899/900).
       action: 'services_save_rewrite', trades: activeTrades.filter((c) => sourceOf(c) !== 'refine' || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
       services: statedKeys, implied: rwImplied, removed: rwRemoved,
-      own_words: rwOwnWords, raw_text: rawText.trim(),
+      own_words: rwOwnWords, raw_text: rawText.trim(), phrases,
     // The save reasons over each own word (~37 s measured, 27 Oct): see REASONING_TIMEOUT_MS in ./api.
     }, token, { timeoutMs: REASONING_TIMEOUT_MS }).catch(() => null);
     if (!mounted.current) return;
     setBusy(false);
     if (j && j.ok) {
       const review = (j.proposed_trades || []).length > 0 || (j.new_trades_under_review || []).length > 0;
-      setNote({ kind: 'ok', text: sc(lang, 'saved'), review });
+      // The verification the confirm ran (or queued) is said, not left to a badge that does not refresh.
+      const gate = String(j.gate || '');
+      const after = gate === 'approved' ? ' ' + sc(lang, 'gate_approved') : gate === 'queued' || gate === 'failed' ? ' ' + sc(lang, 'gate_finishing') : '';
+      setNote({ kind: 'ok', text: sc(lang, 'saved') + after, review });
       load();
     } else setNote({ kind: 'err', text: srvMsg(lang, j, sc(lang, 'save_failed')) });
   };
@@ -360,6 +378,38 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           </>
         ) : <p className={cn(sub, 'mt-1')}>{VERIFY_COPY[('profile_' + profileState) as 'profile_none']}</p>}
       </section>
+
+      {/* THE SERVICES HIS OWN DOCUMENTS STATE (ledger 1573), each with the line it came from and whether his licence covers it.
+          Offered, never pre-ticked (founder 862); one button ticks them all for him to review before Confirm. */}
+      {proposedSvcs.length > 0 && (() => {
+        const allProp = proposedSvcs.every((p) => propTicked.has(p.key));
+        const lic = d.licence_check;
+        return (
+          <section className="mt-4 rounded-md border border-border p-3" aria-labelledby={uid + '-proposed'} data-testid="proposed-services">
+            <h3 id={uid + '-proposed'} className={h3}>{PROPOSED_COPY.title}</h3>
+            <p className={cn(sub, 'mt-0.5')}>{PROPOSED_COPY.help}</p>
+            {lic && lic.read && lic.activities.length > 0 ? <p className={cn(sub, 'mt-1')}>{PROPOSED_COPY.licence_lists} <span dir="auto">{englishLines(lic.activities).join('; ') || lic.licence_trades.map(tradeName).join(', ')}</span></p>
+              : lic && !lic.read ? <p className={cn(sub, 'mt-1')}>{PROPOSED_COPY.licence_unread}</p> : null}
+            <ul className="mt-2 space-y-1">
+              {proposedSvcs.map((p) => (
+                <li key={p.key}>
+                  <label className={row} htmlFor={uid + '-p-' + p.key}>
+                    <input id={uid + '-p-' + p.key} type="checkbox" className={box} checked={propTicked.has(p.key)} onChange={() => toggleProp(p.key)} />
+                    <span className="flex flex-col gap-0.5">
+                      <span className="font-medium">{p.label_en}{p.licence === 'not_covered' ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.not_on_licence}</Badge> : null}</span>
+                      {isEnglishLine(p.snippet) ? <span className="text-[12.5px] text-muted-foreground">{PROPOSED_COPY.from_line} <q dir="auto">{p.snippet}</q></span> : null}
+                      {p.licence === 'not_covered' ? <span className="text-[12.5px] text-muted-foreground">{PROPOSED_COPY.not_on_licence_help}</span> : null}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <Button type="button" variant="link" className="min-h-11 px-2" onClick={() => setPropTicked(allProp ? new Set() : new Set(proposedSvcs.map((p) => p.key)))}>
+              {allProp ? PROPOSED_COPY.untick_all : PROPOSED_COPY.tick_all}
+            </Button>
+          </section>
+        );
+      })()}
 
       {docs.length === 0 && allDocs.length > 0 && (
         <ul className="mt-2 space-y-1">
