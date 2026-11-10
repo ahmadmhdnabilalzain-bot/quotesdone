@@ -12,7 +12,7 @@ import { tradeSlugsOf, matchEmirate } from '../../_shared/match_criteria.ts';
 import { admin, J, type ActionCtx } from '../context.ts';
 import { embed } from '../lib/embed.ts';
 import { run } from '../lib/run.ts';
-import { matchWithNeedFallback } from '../lib/need_fallback.ts';
+import { matchTurnkeyOrAsk } from '../lib/turnkey_miss.ts';
 
 export async function operatorActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, caller, action } = c;
@@ -304,10 +304,11 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
 
       // Every gated candidate, not a top N (fn_match_capability applies `limit greatest(1, p_limit)`).
       const headroom = MATCH_ALL;
-      // A TURNKEY REQUEST NO TURNKEY CONTRACTOR MATCHES IS ASKED AGAIN PER TRADE, AND SAYS SO (finding c of 10 Nov 2026,
-      // ../lib/need_fallback.ts): recorded as need_fallback on this answer, on the inquiry's routing (customer_api) and on
-      // this seat's run, and the customer is told it went to specialists, not to one contractor (NewRequest).
-      const m = await matchWithNeedFallback((args) => admin.rpc('fn_match_capability', args), {
+      // A TURNKEY REQUEST NO TURNKEY CONTRACTOR MATCHES IS NEVER SPLIT HERE (finding c of 10 Nov 2026; rulings 1021, 1025;
+      // ../lib/turnkey_miss.ts). Only the request's own need invites anyone; on a whole_scope miss the trades' specialists
+      // are COUNTED, the count goes back as separate_offer, and the customer is asked whether they want separate quotes
+      // per trade. Only their recorded 'multi' re-posts it per trade.
+      const m = await matchTurnkeyOrAsk((args) => admin.rpc('fn_match_capability', args), {
         p_trades: trades, p_need: need, p_products: products, p_brands: brands,
         p_project_type: projectType, p_value: value, p_emirate: emirate, p_limit: headroom,
         p_services: serviceKeys,
@@ -317,8 +318,7 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
         return J({ ok: false, error: 'match_failed', detail: m.error.message }, 503);
       }
       const rows = m.rows;
-      const needFallback = m.fallback;
-      if (needFallback) askedFor.need = m.need;
+      const separateOffer = m.separate_offer;
 
       // THREE DIFFERENT EMPTIES, AND THEY MUST NOT PRINT AS THE SAME 0. `candidates` is what
       // cleared the hard gates; `above_floor` is what then cleared the relevance floor. A gap after
@@ -388,8 +388,8 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       // agent_actions coverage_gap row, the founder_alerts line and the owner notification.
       const gap = matched.length ? null : {
         reason: rows.length === 0 ? 'no_capable_supplier' : 'below_relevance_floor',
-        // A turnkey request was also tried per trade before it was called a gap.
-        ...(need === 'whole_scope' ? { tried_needs: ['whole_scope', 'executes'] } : {}),
+        // A turnkey miss: how many specialists could quote it as separate packages, if the customer chooses that.
+        ...(separateOffer ? { separate_quotes_available: separateOffer.specialists } : {}),
         candidates_before_floor: rows.length,
         best_score: rows.length ? Number(rows[0].score) : null,
         relevance_floor: floor,
@@ -402,7 +402,7 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       await run('match', 'ok', {
         inquiry_id: inquiryId || null, trades: trades.length, candidates: rows.length,
         above_floor: aboveFloor.length, matched: matched.length, persisted, gap: gap?.reason ?? null,
-        ...(needFallback ? { need_fallback: `${needFallback.from}->${needFallback.to}` } : {}),
+        ...(separateOffer ? { separate_offer: separateOffer.specialists } : {}),
       });
 
       return J({
@@ -410,7 +410,7 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
         inquiry_id: inquiryId || null,
         asked_for: askedFor, criteria_from: criteriaFrom, policy,
         candidates: rows.length, above_floor: aboveFloor.length,
-        matched, persisted, gap, need_fallback: needFallback,
+        matched, persisted, gap, separate_offer: separateOffer,
         grant: { grant: may.grant, limit: may.limit },
         basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor; every supplier left is invited, with no count cap. No model was called and no supplier was added to reach a count.',
       });

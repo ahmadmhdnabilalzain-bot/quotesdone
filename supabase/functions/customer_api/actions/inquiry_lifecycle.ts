@@ -284,6 +284,9 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
         // §8: the stage the LIFECYCLE recorded, not one the browser guessed from quotes.length.
         pipeline_stage: i.pipeline_stage ?? null, stage_changed_at: i.stage_changed_at ?? null,
         applied_filters: appliedFilters(i.routing),
+        // A turnkey request no single contractor matched: how many specialists could quote it per trade, so the card asks
+        // the customer whether they want separate quotes (finding c of 10 Nov 2026). A number only, never a name.
+        separate_quotes: i.scope_type === 'turnkey' && Number(i.routing?.separate_offer?.specialists) > 0 ? { specialists: Number(i.routing.separate_offer.specialists) } : null,
         // §6/§7: the floor this RFQ is scoped to, and the delivery window the assistant extracted.
         floor: i.floor ?? null, required_by: i.required_by ?? null, delivery_window: i.delivery_window ?? null,
         project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null,

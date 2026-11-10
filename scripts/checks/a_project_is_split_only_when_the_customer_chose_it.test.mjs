@@ -1,16 +1,16 @@
 // A PROJECT IS SPLIT INTO TRADE PACKAGES ONLY WHEN THE CUSTOMER CHOSE IT (30 Sep 2026, sales_engineer; ruling 1021:
 // never split without asking the customer first).
-// THE DEFAULT CHANGED 10 Nov 2026 (evidence run, ledger 1604, finding c): one contractor was preselected for every brief
-// naming two trades and sent whether the customer looked or not, so a PVC wall-panel job went out as 'turnkey', matched
-// only turnkey fit-out contractors and reached nobody. Both choices are now always shown with a plain explanation;
-// separate quotes per trade is preselected unless the brief is a whole fit-out (brief.whole_scope), and what is sent is
-// what the customer was shown. The split itself is still only ever the customer's recorded 'multi'.
+// NEVER SILENT, 10 Nov 2026 (evidence run, ledger 1604, finding c): the composer sent 'turnkey' for every brief naming two
+// trades without the customer seeing the choice, and a turnkey request no single contractor matched reached nobody. Both
+// choices are now always shown with a plain explanation; one contractor stays preselected (ruling 1025) and what is sent
+// is exactly what was shown. A turnkey miss is never split by the matcher (sales_engineer lib/turnkey_miss.ts): the
+// customer is asked, and only their recorded 'multi' (repeat_inquiry edits.sourcing) re-posts it per trade.
 //
 // WHAT FAILS IF THE CAUSE RETURNS
-//   * static: the portal preselects one contractor for every multi-trade brief again, or sends a mode the customer was
-//     not shown, or calls the split recommended; create_inquiry splits without the customer's explicit 'multi'; the
-//     guard loses its revoke or its pinned search_path; the file carries both (or neither of) a pending note and a
-//     MANIFEST line;
+//   * static: the portal hides the choice, preselects the split, sends a mode the customer was not shown, or calls the
+//     split recommended; a turnkey miss invites per trade without the customer's 'multi'; create_inquiry splits without
+//     the customer's explicit 'multi'; the guard loses its revoke or its pinned search_path; the file carries both (or
+//     neither of) a pending note and a MANIFEST line;
 //   * production, in ONE aborted transaction (the file replayed first while pending; nothing commits), on a ZZ DEMO
 //     customer (@example.invalid): a per-trade part under a 'single' or 'turnkey' parent is refused; under a 'multi'
 //     parent it is accepted; a split parent's choice cannot be rewritten while its parts exist.
@@ -35,9 +35,14 @@ test('static: the customer is shown both choices, and what is sent is what they 
   assert.match(ui, /const \[combineMode, setCombineMode\] = useState\(null\);/, 'the portal preselects a mode before the brief is read again');
   assert.match(ui, /scope_type: \(brief && Array\.isArray\(brief\.trades\) && brief\.trades\.length > 1\) \? \(combineMode \|\| combineDefaultOf\(brief\)\) : 'single'/, 'the mode sent is not the one shown');
   assert.match(ui, /checked=\{\(combineMode \|\| combineDefaultOf\(brief\)\) === v\}/, 'the radio shown is not the mode sent');
-  assert.match(ui, /\[\['multi', 'nr_multi_sep_h', 'nr_multi_sep_b'\], \['turnkey', 'nr_multi_tk_h', 'nr_multi_tk_b'\]\]/, 'both choices are no longer offered');
+  assert.match(ui, /\[\['turnkey', 'nr_multi_tk_h', 'nr_multi_tk_b'\], \['multi', 'nr_multi_sep_h', 'nr_multi_sep_b'\]\]/, 'both choices are no longer offered, one contractor first');
   const helpers = read('src/components/me/newRequest/helpers.ts');
-  assert.match(helpers, /export const combineDefaultOf = \(brief\) => \(brief && brief\.whole_scope === true \? 'turnkey' : 'multi'\);/, 'one contractor is preselected for more than a whole fit-out');
+  assert.match(helpers, /export const combineDefaultOf = \(_brief\) => 'turnkey';/, 'one contractor is no longer the preselected answer (ruling 1025)');
+  const miss = read('supabase/functions/sales_engineer/lib/turnkey_miss.ts');
+  assert.match(miss, /return \{ rows, error: null, separate_offer:/, 'a turnkey miss returns other rows than the whole_scope answer');
+  assert.doesNotMatch(miss, /rows: per\b/, 'a turnkey miss invites the per-trade suppliers it only counts');
+  const repeat = read('supabase/functions/customer_api/repeat.ts');
+  assert.match(repeat, /const choseSeparate = e\.sourcing === 'multi' && o\.scope_type === 'turnkey' && trades\.length > 1;/, 'a turnkey request is re-posted per trade without the customer\'s multi');
   const txt = read('src/components/me/portalText.ts');
   assert.doesNotMatch(txt, /nr_multi_sep_h: '[^']*(recommended|موصى به)/, 'the split is labelled recommended again');
   const api = functionSource('customer_api');

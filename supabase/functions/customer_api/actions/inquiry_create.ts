@@ -368,7 +368,8 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
         const { matches, routing } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, summary, budget, extra: extra + supplierLine(reqStored) });
         // The routing goes back with the answer (finding c of 10 Nov 2026): a turnkey request no turnkey contractor matched
-        // was sent to its trades' specialists (routing.need_fallback), and the portal tells the customer so.
+        // carries routing.separate_offer (how many specialists could quote it per trade), and the portal asks the customer
+        // whether they want separate quotes. Nothing is split until they answer 'multi' (rulings 1021, 1025).
         return J({ ...postedSingle(String(inq!.id), 'turnkey', matches, routing), concierge: await confirmRequest(String(inq!.id)) });
       }
 

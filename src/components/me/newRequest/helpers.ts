@@ -49,7 +49,8 @@ export const readinessPct = (r) => {
 };
 export { DICT_NAME };
 
-// ONE CONTRACTOR OR SEPARATE QUOTES (evidence run of 10 Nov 2026, ledger 1604, finding c). The preselected way to source a
-// brief naming two or more trades: one contractor only for a whole fit-out (the intake's placement says so:
-// brief.whole_scope, inquiry_intake handle.ts), otherwise separate quotes per trade. Both are always shown.
-export const combineDefaultOf = (brief) => (brief && brief.whole_scope === true ? 'turnkey' : 'multi');
+// ONE CONTRACTOR OR SEPARATE QUOTES, ASKED AND NEVER SILENT (evidence run of 10 Nov 2026, ledger 1604, finding c). With two
+// or more trades both choices are shown with a plain explanation and the customer may change it; the preselected answer is
+// one contractor, as the standing rulings say (1021: "ask the customer first"; 1025: "the default is one contractor").
+// What is sent is exactly the option shown.
+export const combineDefaultOf = (_brief) => 'turnkey';
