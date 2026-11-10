@@ -66,33 +66,24 @@ export async function queueCadRead(o: { customerId: string; email: string; path:
   await startCadWorker(String(data.id), o.why);
   return String(data.id);
 }
-// THE QUEUE STARTS ITS OWN WORKER AGAIN (3 Nov 2026, sales_engineer). 27 Oct (#1605) this dispatch was removed because
-// GitHub Actions was off; 28 Oct the founder switched Actions back on (ledger 1410) and nothing restored it, so every
-// queued drawing waited for a hand run: the nightly journey's 2.1 MB DWG sat 'queued' for 248 s on 2 Nov and 253 s on
-// 3 Nov (runs 41410340385, 41598217377), where the same job was read in 66-67 s on 20-21 Oct while this dispatch lived
-// (runs 39349907536, 39520102356). A job is dispatched the moment it is queued, and while the customer's screen polls
-// one that has not started it is dispatched again AT MOST ONCE A MINUTE, for its first hour (cad_dispatch.ts: the poll
-// claims cad_read_jobs.last_dispatch_at in one UPDATE); past the hour the poll raises the held finding instead. A
-// refused or failed dispatch raises the hour's sales_engineer finding (cadReadHeld). NOT SEEN: a dispatch answered 204
-// whose run never starts after the customer closed the page - no poll comes, and nothing sweeps cad_read_jobs (the
-// worker's 6-hourly schedule is off). Prevented by cad_dispatch.test.ts and scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
+// THE QUEUE IS READ BY THE CAD READ ROUTINE, NOT BY GITHUB ACTIONS (it_engineer, 10 Nov 2026; channels audit R3).
+// History: 3 Nov this dispatched .github/workflows/cad-read-worker.yml the moment a job was queued (Actions on, ledger 1410).
+// Actions is OFF again (ledger 1564, budget spent), so every dispatch reached nothing: the channels audit's 2.1 MB DWG was
+// still queued after 264 s, 6 dispatches each failing in 2 s. The worker now runs as the Claude routine the founder switched
+// on that day ("QuotesDone — CAD read worker (every 2 h)", ledger: "Yes switch cad reader"): it runs scripts/cad_read_worker.ts,
+// which claims every queued job itself (fn_cad_read_claim, SKIP LOCKED) with the same LibreDWG reader the edge uses. Chosen
+// over the alternatives because it costs nothing extra (the subscription, no Actions minutes) and needs no new account or
+// token: pg_cron cannot run it (no Deno, no LibreDWG), the edge cannot (2 s CPU), a Hugging Face Space would need a
+// founder-held token and a Space kept awake. The price is the wait: a job is read at the routine's next run, at most
+// CAD_READER_EVERY_MS + its run time. So nothing is dispatched here, nothing reaches api.github.com, and a job the routine has
+// not taken by then raises the sales_engineer's held finding (cad_dispatch.ts). Prevented by cad_dispatch.test.ts and
+// scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
+export const CAD_READER_ROUTINE = 'QuotesDone — CAD read worker (every 2 h)';
 export async function startCadWorker(jobId: string, why: string): Promise<void> {
-  let answer = 'no_github_token';
-  try {
-    const gh = await getSecret('github_token');
-    if (gh) {
-      const r = await fetch('https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone/actions/workflows/cad-read-worker.yml/dispatches', {
-        method: 'POST', headers: { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'User-Agent': 'quotesdone-customer-api' },
-        body: JSON.stringify({ ref: 'main' }), signal: AbortSignal.timeout(5000) });
-      if (r.status === 204) return;
-      answer = `HTTP ${r.status}`;
-    }
-  } catch (_e) { answer = 'network'; }
-  console.error(`[cad] the CAD worker was not dispatched for job ${jobId} (${answer}); held for the sales_engineer`);
-  await cadReadHeld(jobId, `${why}; dispatch ${answer}`);
+  console.log(`[cad] job ${jobId} (${why}) is queued for the ${CAD_READER_ROUTINE} routine; it is read at its next run`);
 }
-// THE FALLBACK WHEN THE DISPATCH IS REFUSED (27 Oct 2026, it_engineer; since 3 Nov it runs when startCadWorker's
-// dispatch answers anything but 204, and when a polled job has not started within its first hour). Written when this used to dispatch .github/workflows/cad-read-worker.yml
+// THE HELD FINDING (27 Oct 2026, it_engineer; since 10 Nov 2026 it runs when a polled job was not taken by the CAD read
+// routine within its interval and run time, cad_dispatch.ts). Written when this used to dispatch .github/workflows/cad-read-worker.yml
 // and re-dispatch it while the customer's screen polled. GitHub Actions is off, so every dispatch reached nothing and a
 // queued drawing waited for a runner that never came while the customer was told "a few minutes". The reader cannot run
 // on the edge (2 s CPU cap; a scanned drawing is OCR'd for up to 30 minutes) nor in pg_cron (no Deno, no LibreDWG), so a

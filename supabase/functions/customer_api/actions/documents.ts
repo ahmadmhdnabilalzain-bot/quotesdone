@@ -18,7 +18,7 @@ import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../../_shared/drawing_format.ts';
 import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
-import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, redactFile, scheduleTables, startCadWorker, storeOriginal } from '../lib/drawings.ts';
+import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, redactFile, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
 export async function documentActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, action, email, cust } = c;
@@ -35,10 +35,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       const { data: job } = await admin.from('cad_read_jobs').select('status, result, boq_in, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!job) return J({ ok: false, error: 'not_found' }, 404);
       const redo = cadJobNeedsRedispatch(job as any);
-      if (redo && await claimCadDispatch(admin, id)) {
-        if (redo === 'dispatch') await startCadWorker(id, 'still_queued_when_polled');
-        else await cadReadHeld(id, 'not_started_within_an_hour_of_dispatches');
-      }
+      if (redo === 'held' && await claimCadDispatch(admin, id)) await cadReadHeld(id, 'not_taken_by_the_cad_read_routine_within_its_interval');
       // 24 Sep 2026: the worker also DRAWS a CAD file the edge could not, for suppliers (cad_read_worker.ts
       // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
       const res = job.status === 'done' ? (job.result as any) : null;
