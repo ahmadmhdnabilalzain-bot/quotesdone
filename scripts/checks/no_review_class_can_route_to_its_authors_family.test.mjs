@@ -244,6 +244,14 @@ begin
   perform set_config('app.change_reason', 'probe:no_review_class_can_route_to_its_authors_family', true);  -- the founder-hold guard admits an aborted probe by name
   update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '1 hour'
    where model_id in ('google/gemini-3.8-flash', 'openai/gpt-6-luna');
+  -- 10 Nov 2026 (it_engineer): founder ruling 1571 ("pick the right model per task yourself") put Qwen 3.8 Flash in the
+  -- active review_pool at rank 4 (simple_tasks_leave_sonnet_and_every_reply_runs_on_the_model_its_task_needs.sql,
+  -- MANIFEST 2259), so an author on Sol and Opus has a fourth family again and its review lands there. Proved first;
+  -- then Qwen is tripped too, and with no family left outside the authors' the review must still be HELD.
+  o := o || jsonb_build_object(
+    'text_review_fourth_family', public.fn_ai_route_review('ceo_judgement', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5')->>'reviewer_family');
+  update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '1 hour'
+   where model_id like 'qwen/%';
   o := o || jsonb_build_object(
     'text_review_held', coalesce(public.fn_ai_route_review('ceo_judgement', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5')->>'model', 'held'),
     'vision_review', coalesce(public.fn_ai_route_review_for('identity_redaction_verify', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5',
@@ -270,6 +278,7 @@ test('production, one aborted transaction: #880 review follow-ups hold', { skip:
   assert.equal(out.unknown_flag, 'true');
   assert.equal(out.unknown_why, 'AUTHOR UNKNOWN:');
   assert.equal(out.unknown_item, 'it_engineer', 'an unknown author is an it_engineer data-defect finding');
+  assert.equal(out.text_review_fourth_family, 'qwen', 'ruling 1571: with Gemini and luna down, a Sol+Opus author is reviewed by Qwen');
   assert.equal(out.text_review_held, 'held', 'no retired model is a last-resort family: with every other family down the review is held');
   assert.equal(out.vision_review, 'held', 'a vision review never lands on a text-only reviewer');
   assert.equal(out.ceo_authors, 'deterministic', 'no plan => no authors');
