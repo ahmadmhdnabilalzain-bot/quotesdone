@@ -5,8 +5,8 @@
       "id": "material_handling:spec-checklist",
       "topic": "Material handling equipment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For material handling equipment (trade code material_handling only), every quoted line must state: Equipment type; Rated load capacity; Lift height; Power source; Load test and inspection certificate; Operator training; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط معدات مناولة المواد (رمز النشاط material_handling فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المعدة؛ الحمولة المقننة؛ ارتفاع الرفع؛ مصدر الطاقة؛ شهادة اختبار الحمولة والفحص؛ تدريب المشغلين؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For material handling equipment (trade code material_handling only), every quoted line must state: Equipment type; Rated load capacity; Lift height; Power source; Load test and inspection certificate; Operator training; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Equipment type; Rated load capacity; Lift height; Power source; Quantity and unit of measure; Installation or commissioning scope. Follow-up questions the answers trigger: Equipment type: Cranes bring span, runway and hook approach; forklifts bring aisle width. Rated load capacity: Long or wide loads bring a larger load centre and derating. Lift height: Ask the top beam height of the racking and the door height. Power source: Indoor use brings electric; electric brings charger, battery and charging area. Quantity and unit of measure: Rental brings the duration, hours per day and whether the operator and maintenance are included. Installation or commissioning scope: Cranes bring the building's structural capacity for the runway. Before a firm price: an overhead crane or hoist installation needs a site visit or building drawings; forklifts and stackers can be priced from the specs.",
+      "body_ar": "في نشاط معدات مناولة المواد (رمز النشاط material_handling فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المعدة؛ الحمولة المقننة؛ ارتفاع الرفع؛ مصدر الطاقة؛ شهادة اختبار الحمولة والفحص؛ تدريب المشغلين؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المعدة، والحمولة المقننة، وارتفاع الرفع، ومصدر الطاقة، والكمية، ونطاق التركيب والتشغيل. أسئلة المتابعة: الرافعات العلوية تستلزم البحر ومسار الحركة وقدرة المبنى الإنشائية، والرافعات الشوكية تستلزم عرض الممرات وارتفاع آخر عارضة في الرفوف وارتفاع الباب، والحمولات الطويلة تستلزم مركز حمل أكبر وتخفيضاً للقدرة، والاستئجار يستلزم المدة وساعات العمل اليومية وهل يشمل المشغل والصيانة. تركيب الرافعة العلوية يحتاج زيارة موقع أو مخططات المبنى.",
       "required_specs": [
         "Equipment type",
         "Rated load capacity",
@@ -21,14 +21,132 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Attachments"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Equipment type",
+        "Rated load capacity",
+        "Lift height",
+        "Power source",
+        "Quantity and unit of measure",
+        "Installation or commissioning scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Equipment type",
+          "blocking": true,
+          "why_needed_to_price": "Counterbalance forklift, reach truck, pallet stacker, crane and hoist are different machines.",
+          "uae_options": "Diesel/LPG/electric counterbalance, reach truck, VNA, stacker, pallet truck, EOT crane, hoist.",
+          "follow_up_if": "Cranes bring span, runway and hook approach; forklifts bring aisle width."
+        },
+        {
+          "spec": "Rated load capacity",
+          "blocking": true,
+          "why_needed_to_price": "Capacity at the stated load centre sizes the machine.",
+          "uae_options": "1.5-10 t forklifts at 500 mm load centre; crane SWL.",
+          "follow_up_if": "Long or wide loads bring a larger load centre and derating."
+        },
+        {
+          "spec": "Lift height",
+          "blocking": true,
+          "why_needed_to_price": "Mast height and residual capacity at height change the build.",
+          "uae_options": "Duplex, triplex mast; free lift; lift height in mm.",
+          "follow_up_if": "Ask the top beam height of the racking and the door height."
+        },
+        {
+          "spec": "Power source",
+          "blocking": true,
+          "why_needed_to_price": "Diesel, LPG and electric (lead-acid or lithium) trucks differ in price and running cost.",
+          "uae_options": "Diesel, LPG, electric 48/80 V, lead-acid or lithium-ion.",
+          "follow_up_if": "Indoor use brings electric; electric brings charger, battery and charging area."
+        },
+        {
+          "spec": "Load test and inspection certificate",
+          "blocking": false,
+          "why_needed_to_price": "Third-party certification is required before use and costs money.",
+          "uae_options": "EIAC-accredited third-party load test and certificate.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Operator training",
+          "blocking": false,
+          "why_needed_to_price": "Operators need licences; training is often bundled.",
+          "uae_options": "RTA forklift licence training in Dubai; supplier familiarisation.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "Fleet size changes pricing.",
+          "uae_options": "Units; purchase or rental.",
+          "follow_up_if": "Rental brings the duration, hours per day and whether the operator and maintenance are included."
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "ISO 3691, EN 1726, FEM classes for cranes.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_needed_to_price": "Inspection and operator licence rules apply.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "blocking": true,
+          "why_needed_to_price": "Cranes need runway rails, electrification and commissioning.",
+          "uae_options": "Supply only, install and commission, runway steel included.",
+          "follow_up_if": "Cranes bring the building's structural capacity for the runway."
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Months or hours, whichever first.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Batteries, chargers, attachments and forks are sometimes extras.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Attachments",
+          "blocking": false,
+          "why_needed_to_price": "Side shifters, fork positioners and clamps add cost.",
+          "uae_options": "Side shift, fork positioner, rotator, clamp.",
+          "follow_up_if": ""
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "an overhead crane or hoist installation needs a site visit or building drawings; forklifts and stackers can be priced from the specs."
     },
     {
       "id": "material_handling:uae-standards-and-approvals",
@@ -87,6 +205,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "material_handling:authority-approvals",
+      "topic": "Material handling: inspection certificates and operator licences by emirate",
+      "topic_ar": "مناولة المواد: شهادات الفحص ورخص المشغلين حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "In Dubai, Dubai Municipality's technical guideline for cranes, hoists, lifts and other lifting equipment requires examination and certification by a third party accredited by the Emirates International Accreditation Centre (EIAC) once every 12 months, with the certificate kept on site; whether forklifts are inside that guideline was reported by a secondary source only. Forklift operators in Dubai need an RTA licence: the RTA forklift handbook sets an age and eye-test requirement and distinguishes light (up to 7.5 t empty weight) from heavy equipment. Abu Dhabi applies the OSHAD framework and Trakhees covers Dubai's PCFC zones. The owner arranges inspection; the operator holds the licence; the supplier provides the manufacturer's test certificate.",
+      "body_ar": "في دبي يشترط الدليل الفني لبلدية دبي للرافعات والروافع والمصاعد ومعدات الرفع الأخرى فحصها واعتمادها من جهة ثالثة معتمدة من مركز الإمارات الدولي للاعتماد مرة كل 12 شهراً، مع حفظ الشهادة في الموقع، أما شمول الرافعات الشوكية بهذا الدليل فقد ورد في مصدر ثانوي فقط. ويحتاج مشغلو الرافعات الشوكية في دبي رخصة من هيئة الطرق والمواصلات: إذ يحدد دليل الهيئة شرط العمر وفحص النظر ويميز بين المعدات الخفيفة (حتى 7.5 طن وزناً فارغاً) والثقيلة. وتطبق أبوظبي إطار أوشاد، وتغطي تراخيص مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة في دبي. ويرتب المالك الفحص، ويحمل المشغل الرخصة، ويقدم المورد شهادة اختبار المصنّع.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
+        "https://www.rta.ae/wpsv5/eservices/PDF_Catalog/Forklift_Handbook_EN.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses; www.rta.ae: allowed but drops the connection."
+    },
+    {
+      "id": "material_handling:quote-red-flags",
+      "topic": "Red flags in material handling quotations",
+      "topic_ar": "علامات التحذير في عروض معدات المناولة",
+      "kind": "quote_red_flag",
+      "body_en": "Check rated capacity at the stated load centre and the residual capacity at full lift height: a truck \"rated 3 t\" may lift far less at 6 m. Watch for a different mast type or lower free lift, lead-acid batteries offered where lithium was asked (or the battery and charger excluded), used or rebuilt trucks without hours, cranes quoted without runway, electrification or load test, missing third-party certificate, warranty limited by hours not stated, and attachments that derate capacity without a revised load chart.",
+      "body_ar": "تحقق من الحمولة المقننة عند مركز الحمل المذكور والقدرة المتبقية عند أقصى ارتفاع: فالرافعة \"المقننة لثلاثة أطنان\" قد ترفع أقل بكثير على ارتفاع 6 أمتار. وانتبه إلى: نوع صاري مختلف أو رفع حر أقل، وبطاريات رصاص حمضية بدل الليثيوم المطلوبة (أو استثناء البطارية والشاحن)، ورافعات مستعملة أو مجددة دون ساعات التشغيل، ورافعات علوية مسعّرة دون مسار أو تغذية كهربائية أو اختبار حمل، وغياب شهادة الطرف الثالث، وضمان محدود بساعات غير مذكورة، وملحقات تخفض القدرة دون جدول حمل معدّل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "material_handling:buyer-mistakes",
+      "topic": "Common buyer mistakes in material handling",
+      "topic_ar": "أخطاء شائعة لدى المشترين في معدات المناولة",
+      "kind": "buyer_mistake",
+      "body_en": "Choosing capacity from the heaviest pallet without the load centre or lift height; buying a counterbalance truck for narrow aisles; buying diesel for indoor food or pharma stores; forgetting the charging area for electric trucks; buying a crane before checking that the building can carry the runway; and comparing purchase with rental without counting maintenance and downtime. Ask the heaviest load, its size, the highest level, the aisle width and the floor.",
+      "body_ar": "اختيار الحمولة بناء على أثقل منصة دون مركز الحمل أو ارتفاع الرفع؛ وشراء رافعة موازنة لممرات ضيقة؛ وشراء رافعة ديزل لمستودعات داخلية للأغذية أو الأدوية؛ ونسيان منطقة الشحن للرافعات الكهربائية؛ وشراء رافعة علوية قبل التحقق من قدرة المبنى على حمل المسار؛ ومقارنة الشراء بالاستئجار دون احتساب الصيانة والتوقف. لذا يُسأل عن أثقل حمولة ومقاسها وأعلى مستوى وعرض الممر والأرضية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "material_handling:price-drivers",
+      "topic": "What legitimately moves material handling prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار معدات المناولة",
+      "kind": "price_driver",
+      "body_en": "Capacity, lift height and mast type; power source and battery technology; brand and country of build; attachments; cab, cooling and tyre options for UAE outdoor use; new, used or rental; maintenance contract; and for cranes span, height of lift, duty class, runway steel and installation.",
+      "body_ar": "الحمولة وارتفاع الرفع ونوع الصاري؛ ومصدر الطاقة وتقنية البطارية؛ والعلامة وبلد التصنيع؛ والملحقات؛ وخيارات المقصورة والتبريد والإطارات للاستخدام الخارجي في الإمارات؛ وجديدة أم مستعملة أم مستأجرة؛ وعقد الصيانة؛ وفي الرافعات العلوية البحر وارتفاع الرفع وفئة التشغيل وفولاذ المسار والتركيب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "material_handling:compare-quotes",
+      "topic": "Comparing material handling quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض معدات المناولة من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare capacity at the same load centre and height, the same power source and battery, and the same scope (charger, attachments, certification, training). Then compare life cost per operating hour: energy or fuel, maintenance contract, tyres and batteries, and resale. Rental offers are compared on all-in monthly cost with the same hours and inclusions. Recommend the three that meet the duty fully.",
+      "body_ar": "قارن الحمولة عند مركز الحمل والارتفاع نفسيهما، ومصدر الطاقة والبطارية نفسيهما، والنطاق نفسه (الشاحن والملحقات والاعتماد والتدريب). ثم قارن تكلفة دورة الحياة لكل ساعة تشغيل: الطاقة أو الوقود وعقد الصيانة والإطارات والبطاريات وقيمة إعادة البيع. وعروض الاستئجار تقارن بالتكلفة الشهرية الشاملة لنفس الساعات والمشمولات. ويوصى بأفضل ثلاثة عروض تستوفي المهمة بالكامل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -129,7 +316,8 @@
     "removed": [],
     "still_unverified": [
       "material_handling:spec-checklist",
-      "material_handling:uae-standards-and-approvals"
+      "material_handling:uae-standards-and-approvals",
+      "material_handling:authority-approvals"
     ],
     "added": [
       "material_handling:spec-checklist",
@@ -160,6 +348,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "material_handling:quote-red-flags",
+      "material_handling:buyer-mistakes",
+      "material_handling:price-drivers",
+      "material_handling:compare-quotes"
+    ]
   }
 }

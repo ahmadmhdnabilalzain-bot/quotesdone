@@ -25,8 +25,8 @@
       "topic": "Woven sacks & bulk bags (FIBC): makes, brands, distributors and origins in the UAE",
       "topic_ar": "الأكياس المنسوجة والأكياس الكبيرة للمواد السائبة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry describes who supplies sacks and bulk bags in the UAE: local producers in several emirates, resin from Borouge and SABIC, and imports mainly from India. Local producers in Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain and Abu Dhabi (ICAD, KEZAD) make woven sacks and FIBCs; they were not checked by name. Resin comes from Borouge, SABIC. Imports come mainly from India, a major FIBC exporter, and from Turkey, China, Vietnam and Pakistan. Cement and fertiliser producers buy sacks on annual contracts.",
-      "body_ar": "يأتي توريد الأكياس المنسوجة والأكياس الكبيرة (جامبو) في الإمارات من منتجين محليين في عدة إمارات، بخامات Borouge وSABIC، ومن الاستيراد وأغلبه من الهند. ينتج مصنّعون محليون في الشارقة وعجمان ورأس الخيمة وأم القيوين وأبوظبي (ICAD وكيزاد) الأكياس المنسوجة وأكياس FIBC، ولم يُتحقق منهم بالاسم. والخامة من Borouge، SABIC. وتأتي الواردات أساساً من الهند (مصدر رئيسي لـFIBC) وتركيا والصين وفيتنام وباكستان. ويشتري منتجو الإسمنت والأسمدة الأكياس بعقود سنوية.",
+      "body_en": "This entry describes who supplies sacks and bulk bags in the UAE: local producers in several emirates, resin from Borouge and SABIC, and imports mainly from India. Local producers in Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain and Abu Dhabi (ICAD, KEZAD) make woven sacks and FIBCs; they were not checked by name. Resin comes from Borouge, SABIC. Imports come mainly from India, a major FIBC exporter, and from Turkey, China, Vietnam and Pakistan. Cement and fertiliser producers buy sacks on annual contracts.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Borouge = a premium UAE brand; SABIC = a premium Saudi brand.",
+      "body_ar": "يأتي توريد الأكياس المنسوجة والأكياس الكبيرة (جامبو) في الإمارات من منتجين محليين في عدة إمارات، بخامات Borouge وSABIC، ومن الاستيراد وأغلبه من الهند. ينتج مصنّعون محليون في الشارقة وعجمان ورأس الخيمة وأم القيوين وأبوظبي (ICAD وكيزاد) الأكياس المنسوجة وأكياس FIBC، ولم يُتحقق منهم بالاسم. والخامة من Borouge، SABIC. وتأتي الواردات أساساً من الهند (مصدر رئيسي لـFIBC) وتركيا والصين وفيتنام وباكستان. ويشتري منتجو الإسمنت والأسمدة الأكياس بعقود سنوية.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Borouge = علامة إماراتية من الفئة الممتازة؛ SABIC = علامة سعودية من الفئة الممتازة.",
       "sources": [
         "https://www.borouge.com",
         "https://www.iso.org",
@@ -34,7 +34,23 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: PP resin produced locally by Borouge -> confirmed. Not checked: Names and capacities of local FIBC factories were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: PP resin produced locally by Borouge -> confirmed. Not checked: Names and capacities of local FIBC factories were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Borouge",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "SABIC",
+          "origin": "Saudi Arabia",
+          "tier": "premium",
+          "generic_en": "a premium Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "bulk_bags_sacks:uae-market-sizes",

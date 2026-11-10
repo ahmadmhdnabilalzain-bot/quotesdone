@@ -27,8 +27,8 @@
       "topic": "Forklifts & material handling: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الرافعات الشوكية ومعدات المناولة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names forklift and crane brands in the UAE market, such as Toyota, Linde, Jungheinrich, Kalmar and Konecranes, and where distributors are located. Brands in the market: Toyota, Linde, Still, Jungheinrich, Crown, Hyster-Yale, Komatsu, Mitsubishi Logisnext, Bobcat, Heli, Hangcha, EP, Kalmar, Konecranes, Demag, GH Cranes. Which UAE distributor carries each brand was not checked. Distributors and integrators are in Dubai (JAFZA, Al Quoz, Dubai Investments Park), Sharjah and Abu Dhabi (Musaffah, ICAD).",
-      "body_ar": "من أشهر ماركات الرافعات الشوكية والرافعات في سوق الإمارات Toyota وLinde وJungheinrich وKalmar وKonecranes، مع بيان أماكن الموزعين. العلامات في السوق: Toyota، Linde، Still، Jungheinrich، Crown، Hyster-Yale، Komatsu، Mitsubishi Logisnext، Bobcat، Heli، Hangcha، EP، Kalmar، Konecranes، Demag، GH Cranes. ولم يُتحقق من الموزع الإماراتي لكل علامة. والموزعون والمكاملون في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة وأبوظبي (مصفح وICAD).",
+      "body_en": "This names forklift and crane brands in the UAE market, such as Toyota, Linde, Jungheinrich, Kalmar and Konecranes, and where distributors are located. Brands in the market: Toyota, Linde, Still, Jungheinrich, Crown, Hyster-Yale, Komatsu, Mitsubishi Logisnext, Bobcat, Heli, Hangcha, EP, Kalmar, Konecranes, Demag, GH Cranes. Which UAE distributor carries each brand was not checked. Distributors and integrators are in Dubai (JAFZA, Al Quoz, Dubai Investments Park), Sharjah and Abu Dhabi (Musaffah, ICAD).\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Toyota = a premium Japanese brand; Linde = a premium German brand; Still = a premium German brand; Jungheinrich = a premium German brand; Crown = a premium American brand; Hyster-Yale = a premium American brand; Komatsu = a premium Japanese brand; Mitsubishi Logisnext = a mid-tier Japanese brand; Bobcat = a mid-tier American brand; Heli = a economy Chinese brand; Hangcha = a economy Chinese brand; EP = a economy Chinese brand; Kalmar = a premium Finnish brand; Konecranes = a premium Finnish brand; Demag = a premium German brand; GH Cranes = a mid-tier Spanish brand.",
+      "body_ar": "من أشهر ماركات الرافعات الشوكية والرافعات في سوق الإمارات Toyota وLinde وJungheinrich وKalmar وKonecranes، مع بيان أماكن الموزعين. العلامات في السوق: Toyota، Linde، Still، Jungheinrich، Crown، Hyster-Yale، Komatsu، Mitsubishi Logisnext، Bobcat، Heli، Hangcha، EP، Kalmar، Konecranes، Demag، GH Cranes. ولم يُتحقق من الموزع الإماراتي لكل علامة. والموزعون والمكاملون في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة وأبوظبي (مصفح وICAD).\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Toyota = علامة يابانية من الفئة الممتازة؛ Linde = علامة ألمانية من الفئة الممتازة؛ Still = علامة ألمانية من الفئة الممتازة؛ Jungheinrich = علامة ألمانية من الفئة الممتازة؛ Crown = علامة أمريكية من الفئة الممتازة؛ Hyster-Yale = علامة أمريكية من الفئة الممتازة؛ Komatsu = علامة يابانية من الفئة الممتازة؛ Mitsubishi Logisnext = علامة يابانية من الفئة المتوسطة؛ Bobcat = علامة أمريكية من الفئة المتوسطة؛ Heli = علامة صينية من الفئة الاقتصادية؛ Hangcha = علامة صينية من الفئة الاقتصادية؛ EP = علامة صينية من الفئة الاقتصادية؛ Kalmar = علامة فنلندية من الفئة الممتازة؛ Konecranes = علامة فنلندية من الفئة الممتازة؛ Demag = علامة ألمانية من الفئة الممتازة؛ GH Cranes = علامة إسبانية من الفئة المتوسطة.",
       "sources": [
         "https://www.iso.org",
         "https://www.alfuttaim.com/en/",
@@ -38,7 +38,121 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: forklift capacity at load centre, ISO 3691 safety -> standard named; not read | Al-Futtaim as Toyota Material Handling dealer -> not confirmed on the page opened; dealer removed, brand kept | Jungheinrich has a Dubai location -> confirmed. Not checked: Current dealer appointments and inspection intervals per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: forklift capacity at load centre, ISO 3691 safety -> standard named; not read | Al-Futtaim as Toyota Material Handling dealer -> not confirmed on the page opened; dealer removed, brand kept | Jungheinrich has a Dubai location -> confirmed. Not checked: Current dealer appointments and inspection intervals per emirate were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Toyota",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Linde",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Still",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Jungheinrich",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Crown",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hyster-Yale",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Komatsu",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mitsubishi Logisnext",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Bobcat",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Heli",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Hangcha",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "EP",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Kalmar",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Konecranes",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Demag",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "GH Cranes",
+          "origin": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid-tier Spanish brand",
+          "generic_ar": "علامة إسبانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "material_handling:uae-market-sizes",

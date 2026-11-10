@@ -5,8 +5,8 @@
       "id": "industrial_pumps:spec-checklist",
       "topic": "Industrial pumps - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For industrial pumps (trade code industrial_pumps only), every quoted line must state: Pump type and application; Flow and head duty point; Pumped fluid and temperature; Materials of casing and impeller; Motor power, voltage and enclosure; Seal type; Performance curve and test certificate; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط المضخات الصناعية (رمز النشاط industrial_pumps فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المضخة وتطبيقها؛ نقطة التشغيل من التدفق والارتفاع؛ السائل المضخوخ ودرجة حرارته؛ مواد الغلاف والمروحة؛ قدرة المحرك وجهده ودرجة حمايته؛ نوع مانع التسرب؛ منحنى الأداء وشهادة الاختبار؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For industrial pumps (trade code industrial_pumps only), every quoted line must state: Pump type and application; Flow and head duty point; Pumped fluid and temperature; Materials of casing and impeller; Motor power, voltage and enclosure; Seal type; Performance curve and test certificate; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Pump type and application; Flow and head duty point; Pumped fluid and temperature; Materials of casing and impeller; Motor power, voltage and enclosure; Quantity and unit of measure; Delivery terms and location; Installation or commissioning scope. Follow-up questions the answers trigger: Pump type and application: Ask the application: water transfer, booster, fire, chemical, sewage, cooling tower. Flow and head duty point: If the buyer does not know, ask the system: tank levels, building height, pipe length, or the existing pump nameplate. Pumped fluid and temperature: Chemicals bring concentration and SDS; solids bring particle size. Materials of casing and impeller: Seawater or TSE brings duplex or bronze. Motor power, voltage and enclosure: Hazardous area brings the zone and gas group. Applicable standard and test report: Fire pumps bring civil defence approval and listed packages. Installation or commissioning scope: Booster sets bring the control panel, VFDs and pressure vessel. Before a firm price: replacing an existing pump without a known duty needs the old nameplate or a site visit; a new system needs the duty point.",
+      "body_ar": "في نشاط المضخات الصناعية (رمز النشاط industrial_pumps فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المضخة وتطبيقها؛ نقطة التشغيل من التدفق والارتفاع؛ السائل المضخوخ ودرجة حرارته؛ مواد الغلاف والمروحة؛ قدرة المحرك وجهده ودرجة حمايته؛ نوع مانع التسرب؛ منحنى الأداء وشهادة الاختبار؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المضخة واستخدامها، ونقطة التشغيل (التدفق والارتفاع)، والسائل المضخوخ ودرجة حرارته، ومادة الغلاف والدافعة، وقدرة المحرك وجهده ودرجة حمايته، والكمية، وشروط التسليم، ونطاق التركيب والتشغيل. أسئلة المتابعة: إذا لم يعرف المشتري نقطة التشغيل يُسأل عن مستويات الخزانات وارتفاع المبنى وطول الأنابيب أو لوحة بيانات المضخة القديمة، والمواد الكيميائية تستلزم التركيز وصحيفة بيانات السلامة، ومضخات الحريق تستلزم موافقة الدفاع المدني ومجموعة مضخات مدرجة. استبدال مضخة قائمة بلا بيانات تشغيل يحتاج لوحة البيانات القديمة أو زيارة موقع.",
       "required_specs": [
         "Pump type and application",
         "Flow and head duty point",
@@ -22,7 +22,9 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "NPSH available and suction conditions",
+        "Control panel and drives"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
@@ -30,7 +32,140 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Pump type and application",
+        "Flow and head duty point",
+        "Pumped fluid and temperature",
+        "Materials of casing and impeller",
+        "Motor power, voltage and enclosure",
+        "Quantity and unit of measure",
+        "Delivery terms and location",
+        "Installation or commissioning scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Pump type and application",
+          "blocking": true,
+          "why_needed_to_price": "End-suction, split-case, multistage, submersible and PD pumps are different machines.",
+          "uae_options": "End-suction, vertical inline, split-case, multistage booster, submersible, API 610, diaphragm, progressive cavity, dosing.",
+          "follow_up_if": "Ask the application: water transfer, booster, fire, chemical, sewage, cooling tower."
+        },
+        {
+          "spec": "Flow and head duty point",
+          "blocking": true,
+          "why_needed_to_price": "Flow and head select the model and motor; without them there is no pump to price.",
+          "uae_options": "m3/h and m head (or bar), duty and standby.",
+          "follow_up_if": "If the buyer does not know, ask the system: tank levels, building height, pipe length, or the existing pump nameplate."
+        },
+        {
+          "spec": "Pumped fluid and temperature",
+          "blocking": true,
+          "why_needed_to_price": "Fluid sets materials, seal and motor size (density, viscosity).",
+          "uae_options": "Potable water, seawater, TSE, sewage, chemicals, oil, hot water.",
+          "follow_up_if": "Chemicals bring concentration and SDS; solids bring particle size."
+        },
+        {
+          "spec": "Materials of casing and impeller",
+          "blocking": true,
+          "why_needed_to_price": "Cast iron vs stainless vs duplex vs bronze changes price a lot.",
+          "uae_options": "Cast iron/bronze, SS304/316, duplex, plastic for chemicals.",
+          "follow_up_if": "Seawater or TSE brings duplex or bronze."
+        },
+        {
+          "spec": "Motor power, voltage and enclosure",
+          "blocking": true,
+          "why_needed_to_price": "Motor kW, efficiency class and IP rating are part of the price.",
+          "uae_options": "400 V/3 ph/50 Hz; IE2/IE3/IE4; IP55; Ex-proof where hazardous.",
+          "follow_up_if": "Hazardous area brings the zone and gas group."
+        },
+        {
+          "spec": "Seal type",
+          "blocking": false,
+          "why_needed_to_price": "Mechanical seal grade or packing changes price and life.",
+          "uae_options": "Gland packing, single mechanical seal, cartridge, double seal with plan.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Performance curve and test certificate",
+          "blocking": false,
+          "why_needed_to_price": "A witnessed performance test is extra.",
+          "uae_options": "Catalogue curve, works test certificate, witnessed test to ISO 9906.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "Duty/standby sets and quantity change the build and discount.",
+          "uae_options": "Units, sets (duty/standby).",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_needed_to_price": "API 610 or fire-pump listings multiply the price.",
+          "uae_options": "ISO 5199, API 610, NFPA 20 with UL/FM listing.",
+          "follow_up_if": "Fire pumps bring civil defence approval and listed packages."
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_needed_to_price": "Fire pumps and potable-water pumps carry approvals.",
+          "uae_options": "Civil defence approval for fire pump sets; water authority approval where required.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_needed_to_price": "Delivered-site and ex-store prices differ by freight and offloading.",
+          "uae_options": "Ex-stock Dubai, delivered site.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "blocking": true,
+          "why_needed_to_price": "Installation, alignment and commissioning are often excluded.",
+          "uae_options": "Supply only, supervision, installation and commissioning.",
+          "follow_up_if": "Booster sets bring the control panel, VFDs and pressure vessel."
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Maker's period from commissioning or supply.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Stock to weeks; API and fire sets months.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Baseplate, coupling guard, valves, panel and civil work are frequent exclusions.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "NPSH available and suction conditions",
+          "blocking": false,
+          "why_needed_to_price": "A pump that cavitates fails early; suction lift changes the model.",
+          "uae_options": "Flooded suction, suction lift, tank levels.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Control panel and drives",
+          "blocking": false,
+          "why_needed_to_price": "VFDs and panels can cost as much as the pump.",
+          "uae_options": "DOL, star-delta, soft starter, VFD; panel IP rating.",
+          "follow_up_if": ""
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "replacing an existing pump without a known duty needs the old nameplate or a site visit; a new system needs the duty point."
     },
     {
       "id": "industrial_pumps:uae-standards-and-approvals",
@@ -76,6 +211,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "industrial_pumps:authority-approvals",
+      "topic": "Industrial pumps: approvals by use and emirate",
+      "topic_ar": "المضخات الصناعية: الموافقات حسب الاستخدام والإمارة",
+      "kind": "authority_approval",
+      "body_en": "A general-purpose pump needs no UAE type approval. Approvals follow the use. Fire pump sets fall under the UAE Fire and Life Safety Code enforced by each emirate's civil defence; the code requires listed or approved fire-protection equipment, and the contractor, not the buyer, submits it for approval. Electrical motors and panels are electrical equipment within the GCC low-voltage regulation adopted in 2019, and regulated electrical products need an ECAS certificate obtained by the importer. Pumps touching drinking water may need the water utility's approval (DEWA, EtihadWE or the Abu Dhabi regulator) when connected to its network. Hazardous-area motors carry IECEx or ATEX certificates from the maker.",
+      "body_ar": "المضخة العامة الغرض لا تحتاج موافقة نوعية في الإمارات، وتتبع الموافقات طبيعة الاستخدام. فمجموعات مضخات الحريق تخضع لكود الإمارات للحماية من الحرائق وسلامة الأرواح الذي يطبقه الدفاع المدني في كل إمارة، ويشترط الكود معدات حماية مدرجة أو معتمدة، ويقدمها المقاول لا المشتري للاعتماد. والمحركات واللوحات الكهربائية معدات كهربائية ضمن اللائحة الخليجية للجهد المنخفض المعتمدة عام 2019، والمنتجات الكهربائية الخاضعة للتنظيم تحتاج شهادة ECAS يحصل عليها المستورد. والمضخات الملامسة لمياه الشرب قد تحتاج موافقة جهة المياه (هيئة كهرباء ومياه دبي أو الاتحاد للماء والكهرباء أو الجهة المنظمة في أبوظبي) عند ربطها بشبكتها. ومحركات المناطق الخطرة تحمل شهادات IECEx أو ATEX من الصانع.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://uaelegislation.gov.ae/en/legislations/2957",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.dcd.gov.ae: allowed but drops the connection; uaelegislation.gov.ae: not in the allowed network; moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www)."
+    },
+    {
+      "id": "industrial_pumps:quote-red-flags",
+      "topic": "Red flags in pump quotations",
+      "topic_ar": "علامات التحذير في عروض المضخات",
+      "kind": "quote_red_flag",
+      "body_en": "Check that the quote shows the duty point on the curve: a pump quoted at a different flow or head, or far from its best efficiency point, will run badly. Watch for a smaller impeller or motor than the duty needs, IE2 motors where IE3 was asked, cast iron offered for seawater or TSE, a single seal where a cartridge or double seal was asked, \"equivalent brand\" without a model, no NPSHr figure, fire pumps without the listing, booster sets quoted without panel, VFD or vessel, and baseplate, coupling and alignment excluded. Origin of the pump (a European brand built in China or India) should be stated when the buyer asked for an origin.",
+      "body_ar": "تحقق من أن العرض يبين نقطة التشغيل على منحنى المضخة: فالمضخة المعروضة بتدفق أو ارتفاع مختلف أو بعيدة عن نقطة كفاءتها القصوى ستعمل بشكل سيئ. وانتبه إلى: دافعة أو محرك أصغر مما تتطلبه نقطة التشغيل، ومحركات IE2 بدل IE3 المطلوبة، وحديد زهر معروض لمياه البحر أو المياه المعالجة، وحشوة ميكانيكية مفردة بدل الحشوة الخرطوشية أو المزدوجة المطلوبة، و\"علامة مكافئة\" دون طراز، وغياب قيمة NPSHr، ومضخات حريق دون إدراج معتمد، ومجموعات تعزيز ضغط دون لوحة أو مغير سرعة أو خزان، واستثناء القاعدة والوصلة والمحاذاة. ويجب ذكر بلد تصنيع المضخة (علامة أوروبية مصنعة في الصين أو الهند مثلاً) إذا طلب المشتري منشأً محدداً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_pumps:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying pumps",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء المضخات",
+      "kind": "buyer_mistake",
+      "body_en": "Asking for \"a 5 HP pump\" without flow and head, so every supplier sizes differently; oversizing for safety, which wastes energy and damages seals; forgetting suction conditions; choosing materials for water when the fluid is TSE, seawater or chemical; buying the pump without the panel, valves and vibration mounts; and comparing purchase price while the energy bill over the pump's life is far larger. Ask what the pump moves, from where to where, and how many hours a day.",
+      "body_ar": "طلب \"مضخة 5 أحصنة\" دون التدفق والارتفاع فيحسب كل مورد بطريقته؛ وزيادة الحجم احتياطاً مما يهدر الطاقة ويتلف الحشوات؛ ونسيان ظروف السحب؛ واختيار مواد للمياه العادية بينما السائل مياه معالجة أو مياه بحر أو مادة كيميائية؛ وشراء المضخة دون اللوحة والصمامات وقواعد امتصاص الاهتزاز؛ ومقارنة سعر الشراء بينما فاتورة الطاقة على مدى عمر المضخة أكبر بكثير. لذا يُسأل المشتري عما تنقله المضخة ومن أين إلى أين وكم ساعة يومياً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_pumps:price-drivers",
+      "topic": "What legitimately moves pump prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار المضخات",
+      "kind": "price_driver",
+      "body_en": "Pump type and size; materials (stainless, duplex and bronze cost more than cast iron); motor size, efficiency class and hazardous-area rating; seal arrangement; standards and listings (API 610 and listed fire pumps cost several times a commercial pump); controls and VFDs; testing and witness; brand and country of manufacture; and whether installation and commissioning are included.",
+      "body_ar": "نوع المضخة وحجمها؛ والمواد (الفولاذ المقاوم للصدأ والدوبلكس والبرونز أغلى من الحديد الزهر)؛ وحجم المحرك وفئة كفاءته وتصنيفه للمناطق الخطرة؛ وترتيب الحشوات؛ والمواصفات والإدراجات (مضخات API 610 ومضخات الحريق المدرجة أغلى بعدة أضعاف من المضخات التجارية)؛ وأنظمة التحكم ومغيرات السرعة؛ والاختبار والمعاينة؛ والعلامة التجارية وبلد التصنيع؛ وشمول التركيب والتشغيل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_pumps:compare-quotes",
+      "topic": "Comparing pump quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض المضخات من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Check every offer meets the duty point, then compare efficiency at that point and motor efficiency class: the running energy over years usually outweighs the price difference. Put all offers on the same scope (pump only vs pump with panel, VFD, valves and installation), same materials and seal, and delivered site. Weigh local stock of spares and service response. Recommend the three that meet duty and materials in full, with life cost shown beside price.",
+      "body_ar": "تحقق من أن كل عرض يحقق نقطة التشغيل، ثم قارن الكفاءة عند تلك النقطة وفئة كفاءة المحرك: فطاقة التشغيل على مدى سنوات تفوق عادة فرق السعر. ووحّد نطاق العروض (المضخة وحدها أم مع اللوحة ومغير السرعة والصمامات والتركيب)، والمواد والحشوات نفسها، والتسليم في الموقع. وزن توفر قطع الغيار محلياً وسرعة الاستجابة للصيانة. ويوصى بأفضل ثلاثة عروض تستوفي نقطة التشغيل والمواد بالكامل، مع عرض تكلفة دورة الحياة بجانب السعر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -118,7 +323,8 @@
     "removed": [],
     "still_unverified": [
       "industrial_pumps:spec-checklist",
-      "industrial_pumps:uae-standards-and-approvals"
+      "industrial_pumps:uae-standards-and-approvals",
+      "industrial_pumps:authority-approvals"
     ],
     "added": [
       "industrial_pumps:spec-checklist",
@@ -146,6 +352,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "industrial_pumps:quote-red-flags",
+      "industrial_pumps:buyer-mistakes",
+      "industrial_pumps:price-drivers",
+      "industrial_pumps:compare-quotes"
+    ]
   }
 }

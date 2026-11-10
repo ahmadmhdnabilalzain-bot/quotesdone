@@ -27,8 +27,8 @@
       "topic": "Paper & paperboard: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الورق والكرتون الخام: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the paper mills and brands supplying the UAE, such as MEPCO, Stora Enso, UPM and Double A, where paper merchants are, and the main countries of origin. Mills and brands: MEPCO, Stora Enso, UPM, Sappi, Mondi, APP, Double A, PaperOne, Navigator, Chenming, Sun Paper, Nine Dragons. MEPCO is a Saudi mill, and the rest are imported; their UAE merchants were not checked. Paper merchants are concentrated in Deira, Al Quoz, Sharjah and Jebel Ali. Origins: Indonesia, Thailand, China, Finland, Sweden, Portugal, Saudi Arabia.",
-      "body_ar": "من مصانع وماركات الورق التي تورّد للإمارات MEPCO وStora Enso وUPM وDouble A، مع بيان أماكن تجار الورق وأهم دول المنشأ. المصانع والعلامات: MEPCO، Stora Enso، UPM، Sappi، Mondi، APP، Double A، PaperOne، Navigator، Chenming، Sun Paper، Nine Dragons. وMEPCO مصنع سعودي، والبقية مستوردة ولم يُتحقق من تجارها في الإمارات. ويتركز تجار الورق في ديرة والقوز والشارقة وجبل علي. المنشأ: إندونيسيا، تايلاند، الصين، فنلندا، السويد، البرتغال، السعودية.",
+      "body_en": "This lists the paper mills and brands supplying the UAE, such as MEPCO, Stora Enso, UPM and Double A, where paper merchants are, and the main countries of origin. Mills and brands: MEPCO, Stora Enso, UPM, Sappi, Mondi, APP, Double A, PaperOne, Navigator, Chenming, Sun Paper, Nine Dragons. MEPCO is a Saudi mill, and the rest are imported; their UAE merchants were not checked. Paper merchants are concentrated in Deira, Al Quoz, Sharjah and Jebel Ali. Origins: Indonesia, Thailand, China, Finland, Sweden, Portugal, Saudi Arabia.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): MEPCO = a mid-tier Saudi brand; Stora Enso = a premium Finnish brand; UPM = a premium Finnish brand; Sappi = a premium South African brand; Mondi = a premium British brand; APP = a mid-tier Indonesian brand; Double A = a mid-tier Thai brand; PaperOne = a mid-tier Indonesian brand; Navigator = a premium Portuguese brand; Chenming = a economy Chinese brand; Sun Paper = a economy Chinese brand; Nine Dragons = a economy Chinese brand.",
+      "body_ar": "من مصانع وماركات الورق التي تورّد للإمارات MEPCO وStora Enso وUPM وDouble A، مع بيان أماكن تجار الورق وأهم دول المنشأ. المصانع والعلامات: MEPCO، Stora Enso، UPM، Sappi، Mondi، APP، Double A، PaperOne، Navigator، Chenming، Sun Paper، Nine Dragons. وMEPCO مصنع سعودي، والبقية مستوردة ولم يُتحقق من تجارها في الإمارات. ويتركز تجار الورق في ديرة والقوز والشارقة وجبل علي. المنشأ: إندونيسيا، تايلاند، الصين، فنلندا، السويد، البرتغال، السعودية.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): MEPCO = علامة سعودية من الفئة المتوسطة؛ Stora Enso = علامة فنلندية من الفئة الممتازة؛ UPM = علامة فنلندية من الفئة الممتازة؛ Sappi = علامة جنوب أفريقية من الفئة الممتازة؛ Mondi = علامة بريطانية من الفئة الممتازة؛ APP = علامة إندونيسية من الفئة المتوسطة؛ Double A = علامة تايلاندية من الفئة المتوسطة؛ PaperOne = علامة إندونيسية من الفئة المتوسطة؛ Navigator = علامة برتغالية من الفئة الممتازة؛ Chenming = علامة صينية من الفئة الاقتصادية؛ Sun Paper = علامة صينية من الفئة الاقتصادية؛ Nine Dragons = علامة صينية من الفئة الاقتصادية.",
       "sources": [
         "https://www.mep.co/Website/En/",
         "https://www.unionpapermills.com",
@@ -38,7 +38,93 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO is a Saudi paper maker -> confirmed | Union Paper Mills -> removed: site did not answer. Not checked: Union Paper Mills' current product range and regional mill capacities were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO is a Saudi paper maker -> confirmed | Union Paper Mills -> removed: site did not answer. Not checked: Union Paper Mills' current product range and regional mill capacities were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "MEPCO",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Stora Enso",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "UPM",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sappi",
+          "origin": "South Africa",
+          "tier": "premium",
+          "generic_en": "a premium South African brand",
+          "generic_ar": "علامة جنوب أفريقية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mondi",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "APP",
+          "origin": "Indonesia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indonesian brand",
+          "generic_ar": "علامة إندونيسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Double A",
+          "origin": "Thailand",
+          "tier": "mid",
+          "generic_en": "a mid-tier Thai brand",
+          "generic_ar": "علامة تايلاندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "PaperOne",
+          "origin": "Indonesia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indonesian brand",
+          "generic_ar": "علامة إندونيسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Navigator",
+          "origin": "Portugal",
+          "tier": "premium",
+          "generic_en": "a premium Portuguese brand",
+          "generic_ar": "علامة برتغالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Chenming",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Sun Paper",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Nine Dragons",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        }
+      ]
     },
     {
       "id": "paper_board:uae-market-sizes",

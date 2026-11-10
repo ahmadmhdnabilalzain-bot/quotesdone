@@ -5,8 +5,8 @@
       "id": "paper_bags:spec-checklist",
       "topic": "Paper bags - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For paper bags (trade code paper_bags only), every quoted line must state: Bag type; Dimensions; Paper grade and weight; Handle type; Printing; Food-contact suitability; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الأكياس الورقية (رمز النشاط paper_bags فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الكيس؛ الأبعاد؛ درجة الورق ووزنه؛ نوع المقبض؛ الطباعة؛ الملاءمة لملامسة الأغذية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For paper bags (trade code paper_bags only), every quoted line must state: Bag type; Dimensions; Paper grade and weight; Handle type; Printing; Food-contact suitability; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Bag type; Dimensions; Paper grade and weight; Handle type; Printing; Quantity and unit of measure. Follow-up questions the answers trigger: Paper grade and weight: Ask the load the bag carries. Food-contact suitability: Direct food contact brings documents. UAE conformity or authority approval: Retail carrier bags bring the single-use bag rules. Before a firm price: none; a firm price is possible from the specs and the artwork.",
+      "body_ar": "في نشاط الأكياس الورقية (رمز النشاط paper_bags فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الكيس؛ الأبعاد؛ درجة الورق ووزنه؛ نوع المقبض؛ الطباعة؛ الملاءمة لملامسة الأغذية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الكيس، والأبعاد، ودرجة الورق ووزنه، ونوع المقبض، والطباعة، والكمية. أسئلة المتابعة: يُسأل عن الحمل الذي يحمله الكيس، وملامسة الغذاء المباشرة تستلزم وثائق، وأكياس التسوق تستلزم مراجعة قواعد الأكياس أحادية الاستخدام.",
       "required_specs": [
         "Bag type",
         "Dimensions",
@@ -26,7 +26,110 @@
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Bag type",
+        "Dimensions",
+        "Paper grade and weight",
+        "Handle type",
+        "Printing",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Bag type",
+          "blocking": true,
+          "why_needed_to_price": "SOS, satchel, flat-handle, twisted-handle and multiwall sacks differ in machine and price.",
+          "uae_options": "SOS grocery, flat or twisted handle carrier, satchel, multiwall valve sack, food bag.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Dimensions",
+          "blocking": true,
+          "why_needed_to_price": "Size sets paper area per bag.",
+          "uae_options": "Width x gusset x height.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Paper grade and weight",
+          "blocking": true,
+          "why_needed_to_price": "Kraft gsm sets cost and load capacity.",
+          "uae_options": "Brown or white kraft, 60-120 gsm; recycled or virgin.",
+          "follow_up_if": "Ask the load the bag carries."
+        },
+        {
+          "spec": "Handle type",
+          "blocking": true,
+          "why_needed_to_price": "Twisted paper, flat paper, rope and ribbon handles differ.",
+          "uae_options": "None, flat, twisted, rope, ribbon, die-cut.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Printing",
+          "blocking": true,
+          "why_needed_to_price": "Colours and process add plates and set-up.",
+          "uae_options": "Unprinted, 1-4 colour flexo, offset for premium bags.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Food-contact suitability",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Food-grade paper and inks for direct contact.",
+          "follow_up_if": "Direct food contact brings documents."
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "Machine-made bags have high MOQs; hand-made premium bags cost more each.",
+          "uae_options": "Pieces per design.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_needed_to_price": "Single-use bag rules may apply.",
+          "uae_options": "",
+          "follow_up_if": "Retail carrier bags bring the single-use bag rules."
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": null
     },
     {
       "id": "paper_bags:uae-standards-and-approvals",
@@ -83,6 +186,78 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "paper_bags:authority-approvals",
+      "topic": "Paper bags: single-use bag rules and food-contact",
+      "topic_ar": "الأكياس الورقية: قواعد الأكياس أحادية الاستخدام وملامسة الغذاء",
+      "kind": "authority_approval",
+      "body_en": "Food-contact packaging is the regulated case. Search results report that food-contact materials are certified under MoIAT's conformity scheme (ECAS) against Cabinet Resolution No. 20 of 2015, for plastic, glass, ceramic, silicone, paper, metal and wood materials, through a MoIAT-notified body, with the certificate obtained by the manufacturer or importer, not the buyer; a 2023 MoIAT workshop on recycled plastic food packaging described quality-system documentation and migration tests at an accredited UAE laboratory. Dubai Municipality and ADAFSA in Abu Dhabi inspect food businesses, including their packaging. Single-use products are restricted by federal Ministerial Resolution No. 380 of 2022 (single-use plastic shopping bags from 1 January 2024; cups and lids, cutlery, plates, straws, stirrers and polystyrene food containers from 1 January 2026, as reported) and in Dubai by Executive Council Resolution No. 124 of 2023, with exemptions reported for some recycled and exported products. Coverage of the federal second phase (from 1 January 2026) reports a ban on single-use bags of any material, including paper below a minimum thickness reported as 50 microns, and exemptions for some uses; retail carrier bags must therefore be checked against the current rule before ordering. ",
+      "body_ar": "التغليف الملامس للغذاء هو الحالة الخاضعة للتنظيم. إذ تفيد نتائج البحث بأن المواد الملامسة للغذاء تُعتمد ضمن نظام المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وفق قرار مجلس الوزراء رقم 20 لسنة 2015، للمواد البلاستيكية والزجاجية والخزفية والسيليكونية والورقية والمعدنية والخشبية، عبر جهة مخطرة لدى الوزارة، ويحصل على الشهادة المصنع أو المستورد لا المشتري؛ وتناولت ورشة عمل للوزارة عام 2023 حول تغليف الأغذية من البلاستيك المعاد تدويره توثيق نظام الجودة واختبارات الانتقال في مختبر إماراتي معتمد. وتفتش بلدية دبي وهيئة أبوظبي للزراعة والسلامة الغذائية منشآت الأغذية بما في ذلك تغليفها. وتقيّد المنتجات أحادية الاستخدام بالقرار الوزاري الاتحادي رقم 380 لسنة 2022 (أكياس التسوق البلاستيكية أحادية الاستخدام من 1 يناير 2024، والأكواب وأغطيتها وأدوات المائدة والأطباق والمصاصات وأعواد التحريك وعلب الطعام من البوليسترين من 1 يناير 2026 وفق ما نُشر)، وفي دبي بقرار المجلس التنفيذي رقم 124 لسنة 2023، مع استثناءات منشورة لبعض المنتجات المعاد تدويرها والمعدة للتصدير. وتفيد التغطية الإعلامية للمرحلة الاتحادية الثانية (من 1 يناير 2026) بحظر الأكياس أحادية الاستخدام من أي مادة، ومنها الورق دون حد أدنى للسماكة ذُكر أنه 50 ميكروناً، مع استثناءات لبعض الاستخدامات؛ لذا يجب التحقق من أكياس التسوق مقابل القاعدة الحالية قبل الطلب.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
+        "https://leap.unep.org/en/countries/ae/national-legislation/ministerial-resolution-no-380-2022-regarding-regulating-use",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2023/Executive%20Council%20Resolution%20No.%20(124)%20of%202023%20Regulating%20the%20Use%20of%20Single-use%20Products.html",
+        "https://www.wam.ae/en/article/bn8qxpm-second-phase-nationwide-ban-import-trade"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www); leap.unep.org: not in the allowed network; dlp.dubai.gov.ae: not in the allowed network; www.wam.ae: not in the allowed network."
+    },
+    {
+      "id": "paper_bags:quote-red-flags",
+      "topic": "Red flags in paper bag quotations",
+      "topic_ar": "علامات التحذير في عروض الأكياس الورقية",
+      "kind": "quote_red_flag",
+      "body_en": "Check gsm and handle: lighter kraft, recycled paper offered for virgin, or flat handles where twisted were asked are substitutions. Watch for printing colours fewer than the artwork, plates charged later, MOQ above the order, glued handles that fail under load, and non-food-grade paper for bakery or food use.",
+      "body_ar": "افحص الوزن والمقبض: فالكرافت الأخف، أو الورق المعاد تدويره بدل البكر، أو المقابض المسطحة بدل المجدولة المطلوبة، كلها استبدالات. وانتبه إلى: ألوان طباعة أقل من التصميم، واحتساب الألواح لاحقاً، وحد أدنى يتجاوز الطلب، ومقابض ملصقة تنفصل تحت الحمل، وورق غير غذائي لاستخدامات المخابز والأغذية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "paper_bags:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying paper bags",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الأكياس الورقية",
+      "kind": "buyer_mistake",
+      "body_en": "Assuming any paper bag is exempt from single-use rules; choosing gsm by price without the load; ordering hand-made premium bags in machine-made quantities and timelines; and forgetting food-grade paper for food. Ask the use, the load and the rules applying to the store.",
+      "body_ar": "افتراض أن أي كيس ورقي معفى من قواعد الاستخدام الواحد؛ واختيار الوزن حسب السعر دون الحمل؛ وطلب أكياس فاخرة مصنوعة يدوياً بكميات ومواعيد الإنتاج الآلي؛ ونسيان الورق الغذائي للأغذية. لذا يُسأل عن الاستخدام والحمل والقواعد المطبقة على المتجر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "paper_bags:price-drivers",
+      "topic": "What legitimately moves paper bag prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الأكياس الورقية",
+      "kind": "price_driver",
+      "body_en": "Kraft paper price and gsm, bag type and size, handle type, printing process and colours, machine-made vs hand-made, quantity, and import vs local production.",
+      "body_ar": "سعر ورق الكرافت ووزنه، ونوع الكيس ومقاسه، ونوع المقبض، وطريقة الطباعة وألوانها، والإنتاج الآلي مقابل اليدوي، والكمية، والاستيراد مقابل الإنتاج المحلي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "paper_bags:compare-quotes",
+      "topic": "Comparing paper bag quotes like-for-like",
+      "topic_ar": "مقارنة عروض الأكياس الورقية على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare price per 1,000 bags at the same size, gsm, handle and print, with plates over the expected volume, delivered. Recommend the three compliant offers with the lowest cost per 1,000.",
+      "body_ar": "قارن السعر لكل 1000 كيس بالمقاس والوزن والمقبض والطباعة نفسها، مع الألواح موزعة على الحجم المتوقع، مسلّمة. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة لكل 1000.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -124,7 +299,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "paper_bags:spec-checklist"
+      "paper_bags:spec-checklist",
+      "paper_bags:authority-approvals"
     ],
     "added": [
       "paper_bags:spec-checklist",
@@ -155,6 +331,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "paper_bags:quote-red-flags",
+      "paper_bags:buyer-mistakes",
+      "paper_bags:price-drivers",
+      "paper_bags:compare-quotes"
+    ]
   }
 }

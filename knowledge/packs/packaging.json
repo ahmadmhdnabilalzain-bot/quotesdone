@@ -216,8 +216,8 @@
       "id": "packaging:spec-checklist",
       "topic": "What a buyer must state for an exact packaging quote",
       "kind": "spec_checklist",
-      "body_en": "A packaging RFQ is quotable exactly only when the pack is fully defined. State the product being packed (type, weight, dimensions, fragility, whether food, pharmaceutical, cosmetic, chemical or hazardous), and the pack type (shipping carton, folding carton, rigid box, label, pouch, bag, bottle, film, pallet). For corrugated boxes give internal dimensions, FEFCO style, flute and wall, paper grades or performance targets (ECT/BCT or burst), printing colours and coverage, and closure. For folding cartons give board type and grammage, dimensions and style, print process expectations, colours including Pantone references, finishes, and window or inserts. For flexible packaging give structure or barrier and shelf life needs, format, dimensions, reel or pouch, and machine details. For plastics give resin, grade, weight or thickness, colour and closure. For all: quantity per order, annual volume and number of designs, artwork status (dielines supplied or to be developed), food-contact or regulatory compliance documents required, recyclability or recycled-content requirements, delivery location and packing (palletised, wrapped), required delivery date, sample and proof approval steps, overs/unders tolerance, tooling ownership and payment terms.",
-      "body_ar": "لا يمكن تسعير طلب التغليف بدقة إلا إذا عُرّفت العبوة بالكامل. حدّد المنتج المراد تغليفه (النوع، الوزن، الأبعاد، الهشاشة، وهل هو غذاء أو دواء أو مستحضر تجميل أو كيماوي أو خطر)، ونوع العبوة (كرتون شحن، علبة مطوية، علبة صلبة، ملصق، كيس واقف، كيس، زجاجة، فيلم، منصة). للصناديق المموجة: الأبعاد الداخلية، وشكل FEFCO، والتموج والجدار، ودرجات الورق أو أهداف الأداء (ECT/BCT أو الانفجار)، وألوان الطباعة ونسبة التغطية، والإغلاق. للعلب المطوية: نوع الكرتون ووزنه، والأبعاد والشكل، وتوقعات عملية الطباعة، والألوان مع مراجع بانتون، والتشطيبات، والنوافذ أو الحشوات. للتغليف المرن: الهيكل أو الحاجز ومدة الصلاحية، والشكل، والأبعاد، ولفات أم أكياس، وتفاصيل الآلة. للبلاستيك: الراتنج والدرجة والوزن أو السماكة واللون والغطاء. ولكل الأنواع: الكمية لكل طلب، والحجم السنوي وعدد التصاميم، وحالة التصميم (خطوط القص متوفرة أم ستُطور)، ووثائق الامتثال للتلامس مع الغذاء أو المتطلبات التنظيمية، ومتطلبات قابلية التدوير أو المحتوى المعاد تدويره، وموقع التسليم وطريقة التعبئة (على منصات، مغلفة)، وتاريخ التسليم المطلوب، وخطوات اعتماد العينات والبروفات، وتفاوت الزيادة والنقص، وملكية الأدوات، وشروط الدفع.",
+      "body_en": "A packaging RFQ is quotable exactly only when the pack is fully defined. State the product being packed (type, weight, dimensions, fragility, whether food, pharmaceutical, cosmetic, chemical or hazardous), and the pack type (shipping carton, folding carton, rigid box, label, pouch, bag, bottle, film, pallet). For corrugated boxes give internal dimensions, FEFCO style, flute and wall, paper grades or performance targets (ECT/BCT or burst), printing colours and coverage, and closure. For folding cartons give board type and grammage, dimensions and style, print process expectations, colours including Pantone references, finishes, and window or inserts. For flexible packaging give structure or barrier and shelf life needs, format, dimensions, reel or pouch, and machine details. For plastics give resin, grade, weight or thickness, colour and closure. For all: quantity per order, annual volume and number of designs, artwork status (dielines supplied or to be developed), food-contact or regulatory compliance documents required, recyclability or recycled-content requirements, delivery location and packing (palletised, wrapped), required delivery date, sample and proof approval steps, overs/unders tolerance, tooling ownership and payment terms.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product packed: type, weight, dimensions, fragility, category (food/pharma/cosmetic/chemical/hazardous); pack type; internal dimensions and style (FEFCO code for boxes); material: flute/wall and paper grades, or board type and gsm, or resin/film structure; print process expectations, colours (CMYK + Pantone refs), coverage; quantity per order, annual volume, number of designs; artwork/dieline status. Follow-up questions the answers trigger: product packed: type, weight, dimensions, fragility, category (food/pharma/cosmetic/chemical/hazardous): Food or pharma brings food-contact or pharma compliance; hazardous goods bring UN-rated packaging. performance target (ECT/BCT/burst; barrier/shelf life): Export or humid storage brings a higher strength target. print process expectations, colours (CMYK + Pantone refs), coverage: Ask for the brand's Pantone references and colour tolerance. quantity per order, annual volume, number of designs: Several designs bring plate and set-up per design. Before a firm price: printed or custom packaging needs the artwork or dieline (and often a structural sample) before a firm price; stock items can be priced from the specs.",
+      "body_ar": "لا يمكن تسعير طلب التغليف بدقة إلا إذا عُرّفت العبوة بالكامل. حدّد المنتج المراد تغليفه (النوع، الوزن، الأبعاد، الهشاشة، وهل هو غذاء أو دواء أو مستحضر تجميل أو كيماوي أو خطر)، ونوع العبوة (كرتون شحن، علبة مطوية، علبة صلبة، ملصق، كيس واقف، كيس، زجاجة، فيلم، منصة). للصناديق المموجة: الأبعاد الداخلية، وشكل FEFCO، والتموج والجدار، ودرجات الورق أو أهداف الأداء (ECT/BCT أو الانفجار)، وألوان الطباعة ونسبة التغطية، والإغلاق. للعلب المطوية: نوع الكرتون ووزنه، والأبعاد والشكل، وتوقعات عملية الطباعة، والألوان مع مراجع بانتون، والتشطيبات، والنوافذ أو الحشوات. للتغليف المرن: الهيكل أو الحاجز ومدة الصلاحية، والشكل، والأبعاد، ولفات أم أكياس، وتفاصيل الآلة. للبلاستيك: الراتنج والدرجة والوزن أو السماكة واللون والغطاء. ولكل الأنواع: الكمية لكل طلب، والحجم السنوي وعدد التصاميم، وحالة التصميم (خطوط القص متوفرة أم ستُطور)، ووثائق الامتثال للتلامس مع الغذاء أو المتطلبات التنظيمية، ومتطلبات قابلية التدوير أو المحتوى المعاد تدويره، وموقع التسليم وطريقة التعبئة (على منصات، مغلفة)، وتاريخ التسليم المطلوب، وخطوات اعتماد العينات والبروفات، وتفاوت الزيادة والنقص، وملكية الأدوات، وشروط الدفع.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج المعبأ، ونوع العبوة، والأبعاد الداخلية والشكل، والمادة، وتوقعات الطباعة وعدد الألوان، والكمية لكل طلب والحجم السنوي وعدد التصاميم، وحالة التصميم وخط القص. أسئلة المتابعة: الغذاء والدواء يستلزمان امتثالاً لملامسة الغذاء أو للمتطلبات الدوائية، والبضائع الخطرة تستلزم عبوات معتمدة من الأمم المتحدة، ويُطلب مرجع ألوان بانتون للعلامة، وتعدد التصاميم يعني ألواحاً وتجهيزاً لكل تصميم. التغليف المطبوع أو الخاص يحتاج التصميم أو خط القص وغالباً عينة إنشائية قبل السعر النهائي.",
       "required_specs": [
         "product packed: type, weight, dimensions, fragility, category (food/pharma/cosmetic/chemical/hazardous)",
         "pack type",
@@ -240,7 +240,118 @@
         "https://en.wikipedia.org/wiki/Folding_boxboard"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "product packed: type, weight, dimensions, fragility, category (food/pharma/cosmetic/chemical/hazardous)",
+        "pack type",
+        "internal dimensions and style (FEFCO code for boxes)",
+        "material: flute/wall and paper grades, or board type and gsm, or resin/film structure",
+        "print process expectations, colours (CMYK + Pantone refs), coverage",
+        "quantity per order, annual volume, number of designs",
+        "artwork/dieline status"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product packed: type, weight, dimensions, fragility, category (food/pharma/cosmetic/chemical/hazardous)",
+          "blocking": true,
+          "why_needed_to_price": "The product's weight, fragility and category decide the construction and the compliance needed.",
+          "uae_options": "Food, pharma, cosmetic, chemical, hazardous, industrial; weight and dimensions.",
+          "follow_up_if": "Food or pharma brings food-contact or pharma compliance; hazardous goods bring UN-rated packaging."
+        },
+        {
+          "spec": "pack type",
+          "blocking": true,
+          "why_needed_to_price": "Carton, pouch, bottle, label and tray are different converters.",
+          "uae_options": "Corrugated box, folding carton, rigid box, pouch, bag, bottle, jar, label, film.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "internal dimensions and style (FEFCO code for boxes)",
+          "blocking": true,
+          "why_needed_to_price": "Size and style set material area and tooling.",
+          "uae_options": "L x W x H internal; FEFCO code; dieline.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "material: flute/wall and paper grades, or board type and gsm, or resin/film structure",
+          "blocking": true,
+          "why_needed_to_price": "Board grade, flute, gsm or film structure is the main cost.",
+          "uae_options": "Flute and paper grades; SBS/FBB gsm; laminate structure in microns.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "performance target (ECT/BCT/burst; barrier/shelf life)",
+          "blocking": false,
+          "why_needed_to_price": "Strength and barrier targets decide the material.",
+          "uae_options": "ECT/BCT/burst; OTR/WVTR; shelf life.",
+          "follow_up_if": "Export or humid storage brings a higher strength target."
+        },
+        {
+          "spec": "print process expectations, colours (CMYK + Pantone refs), coverage",
+          "blocking": true,
+          "why_needed_to_price": "Number of colours and process decide plates and press.",
+          "uae_options": "Offset, flexo, digital, gravure; CMYK plus Pantone; coverage.",
+          "follow_up_if": "Ask for the brand's Pantone references and colour tolerance."
+        },
+        {
+          "spec": "finishes (lamination, varnish, spot UV, foil, emboss, window)",
+          "blocking": false,
+          "why_needed_to_price": "Each finish is an extra process.",
+          "uae_options": "Lamination, varnish, spot UV, foil, emboss, window.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "quantity per order, annual volume, number of designs",
+          "blocking": true,
+          "why_needed_to_price": "MOQ and set-up per design dominate small runs.",
+          "uae_options": "Order quantity, annual volume, SKUs.",
+          "follow_up_if": "Several designs bring plate and set-up per design."
+        },
+        {
+          "spec": "artwork/dieline status",
+          "blocking": true,
+          "why_needed_to_price": "Artwork readiness decides whether design and repro costs apply.",
+          "uae_options": "Print-ready files, dieline to be developed, design needed.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "food-contact / regulatory compliance documents",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Declaration of compliance, migration test report, ECAS certificate.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "recyclability or recycled-content requirement",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Mono-material, recycled content %, FSC.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery location, palletising and date",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "sample/proof approval steps",
+          "blocking": false,
+          "why_needed_to_price": "Structural samples and press proofs add time and cost.",
+          "uae_options": "Digital proof, physical sample, press pass.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "overs/unders tolerance and tooling ownership",
+          "blocking": false,
+          "why_needed_to_price": "Overs and unders of a few percent are normal and invoiced; tooling may be charged once.",
+          "uae_options": "",
+          "follow_up_if": ""
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "printed or custom packaging needs the artwork or dieline (and often a structural sample) before a firm price; stock items can be priced from the specs."
     },
     {
       "id": "packaging:red-flags",
@@ -338,6 +449,19 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "packaging:compare-quotes",
+      "topic": "Comparing packaging quotes like-for-like on cost-to-value",
+      "topic_ar": "مقارنة عروض التغليف على أساس متكافئ من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Bring every offer to the same specification (material, gsm or flute, print colours, finishes) and the same quantity; then add one-off costs (plates, cutting dies, cylinders, design) and spread them over the expected annual volume. Compare delivered price per unit at that volume, MOQ, overs and unders, and lead time. Weigh compliance documents and quality consistency (a reject in a filling line costs more than the box). Recommend the three compliant offers with the lowest total cost per unit and show any material downgrade as a deviation.",
+      "body_ar": "وحّد كل عرض على المواصفة نفسها (المادة والوزن أو التموج وألوان الطباعة والتشطيبات) والكمية نفسها؛ ثم أضف التكاليف لمرة واحدة (الألواح وقوالب القص والأسطوانات والتصميم) ووزعها على الحجم السنوي المتوقع. وقارن سعر الوحدة المسلّمة عند ذلك الحجم، والحد الأدنى للطلب، والزيادة والنقص المسموح بهما، ومدة التوريد. وزن وثائق الامتثال وثبات الجودة (فرفض عبوة في خط التعبئة يكلف أكثر من العبوة). ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة إجمالية للوحدة، مع إدراج أي تخفيض للمادة انحرافاً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -445,6 +569,9 @@
     ],
     "added_2026_10_06": [
       "packaging:warehouse-consumables-single-source"
+    ],
+    "expert_authored_unsourced": [
+      "packaging:compare-quotes"
     ]
   }
 }

@@ -28,8 +28,8 @@
       "topic": "Railway Equipment & Services: makes, brands, distributors and origins in the UAE",
       "topic_ar": "معدات وخدمات السكك الحديدية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the national rail operator Etihad Rail and the main rolling stock and systems makers: Alstom, Siemens Mobility, Hitachi Rail, CRRC and Progress Rail. Confirmed national rail operator and major rolling stock and systems makers: Etihad Rail, Alstom, Siemens Mobility, Hitachi Rail, CRRC, Progress Rail. The makers' current UAE contracts were not checked.",
-      "body_ar": "المشغل الوطني للسكك الحديدية في الإمارات هو قطارات الاتحاد، ومن أبرز مصنعي القطارات والأنظمة Alstom وSiemens Mobility وHitachi Rail وCRRC وProgress Rail. مشغل السكك الحديدية الوطني المؤكد وكبار مصنعي العربات والأنظمة: Etihad Rail، Alstom، Siemens Mobility، Hitachi Rail، CRRC، Progress Rail. ولم يُتحقق من عقود المصنعين الحالية في الإمارات.",
+      "body_en": "This entry names the national rail operator Etihad Rail and the main rolling stock and systems makers: Alstom, Siemens Mobility, Hitachi Rail, CRRC and Progress Rail. Confirmed national rail operator and major rolling stock and systems makers: Etihad Rail, Alstom, Siemens Mobility, Hitachi Rail, CRRC, Progress Rail. The makers' current UAE contracts were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Etihad Rail = a premium UAE operator; Alstom = a premium French brand; Siemens Mobility = a premium German brand; Hitachi Rail = a premium Japanese brand; CRRC = a mid-tier Chinese brand; Progress Rail = a premium American brand.",
+      "body_ar": "المشغل الوطني للسكك الحديدية في الإمارات هو قطارات الاتحاد، ومن أبرز مصنعي القطارات والأنظمة Alstom وSiemens Mobility وHitachi Rail وCRRC وProgress Rail. مشغل السكك الحديدية الوطني المؤكد وكبار مصنعي العربات والأنظمة: Etihad Rail، Alstom، Siemens Mobility، Hitachi Rail، CRRC، Progress Rail. ولم يُتحقق من عقود المصنعين الحالية في الإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Etihad Rail = جهة تشغيل إماراتية من الفئة الممتازة؛ Alstom = علامة فرنسية من الفئة الممتازة؛ Siemens Mobility = علامة ألمانية من الفئة الممتازة؛ Hitachi Rail = علامة يابانية من الفئة الممتازة؛ CRRC = علامة صينية من الفئة المتوسطة؛ Progress Rail = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://dwfgroup.com/en/news-and-insights/insights/2021/4/railway-regulation-and-projects-in-the-united-arab-emirates",
         "https://www.etihadrail.ae/",
@@ -40,7 +40,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: MEI is the Federal Railway Regulator under Federal Law 8 of 2020; RTA regulates Dubai rail -> corrected | Etihad Rail runs freight and passenger services -> confirmed. Not checked: The exact federal rail regulator name, current Dubai Metro operator contract, and supplier roles on current Etihad Rail phases were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEI is the Federal Railway Regulator under Federal Law 8 of 2020; RTA regulates Dubai rail -> corrected | Etihad Rail runs freight and passenger services -> confirmed. Not checked: The exact federal rail regulator name, current Dubai Metro operator contract, and supplier roles on current Etihad Rail phases were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Etihad Rail",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a premium UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Alstom",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Siemens Mobility",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hitachi Rail",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "CRRC",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Progress Rail",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "railway_equipment:uae-market-sizes",

@@ -5,8 +5,8 @@
       "id": "machinery_repair:spec-checklist",
       "topic": "Machinery repair - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For machinery repair (trade code machinery_repair only), every quoted line must state: Machine make, model and serial; Fault description; Inspection and diagnosis fee; Parts to be replaced; On-site or workshop repair; Test after repair; Repair warranty; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط إصلاح الآلات (رمز النشاط machinery_repair فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: صانع الآلة وطرازها ورقمها التسلسلي؛ وصف العطل؛ رسوم الفحص والتشخيص؛ القطع المراد استبدالها؛ الإصلاح في الموقع أو الورشة؛ الاختبار بعد الإصلاح؛ ضمان الإصلاح؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For machinery repair (trade code machinery_repair only), every quoted line must state: Machine make, model and serial; Fault description; Inspection and diagnosis fee; Parts to be replaced; On-site or workshop repair; Test after repair; Repair warranty; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Machine make, model and serial; Fault description; Inspection and diagnosis fee; On-site or workshop repair; Pricing basis. Follow-up questions the answers trigger: Fault description: An unknown fault brings an inspection-first quote. Inspection and diagnosis fee: Ask whether the fee is credited against the repair. On-site or workshop repair: On-site brings site access, permits and working hours. Before a firm price: most repairs cannot be priced firm before inspection; a firm price follows the diagnosis, so the first quote is the diagnosis fee plus labour rates.",
+      "body_ar": "في نشاط إصلاح الآلات (رمز النشاط machinery_repair فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: صانع الآلة وطرازها ورقمها التسلسلي؛ وصف العطل؛ رسوم الفحص والتشخيص؛ القطع المراد استبدالها؛ الإصلاح في الموقع أو الورشة؛ الاختبار بعد الإصلاح؛ ضمان الإصلاح؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: ماركة الآلة وطرازها ورقمها التسلسلي، ووصف العطل، ورسوم الفحص والتشخيص، والإصلاح في الموقع أم في الورشة، وأساس التسعير. أسئلة المتابعة: العطل المجهول يستلزم عرضاً يبدأ بالفحص، ويُسأل هل تُخصم رسوم الفحص من الإصلاح، والإصلاح في الموقع يستلزم الوصول والتصاريح وساعات العمل. معظم الإصلاحات لا تُسعّر نهائياً قبل الفحص.",
       "required_specs": [
         "Machine make, model and serial",
         "Fault description",
@@ -26,7 +26,109 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Machine make, model and serial",
+        "Fault description",
+        "Inspection and diagnosis fee",
+        "On-site or workshop repair",
+        "Pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Machine make, model and serial",
+          "blocking": true,
+          "why_needed_to_price": "Parts and procedures depend on the exact machine.",
+          "uae_options": "Make, model, serial, year.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Fault description",
+          "blocking": true,
+          "why_needed_to_price": "The fault decides whether a price can be given before inspection.",
+          "uae_options": "Symptoms, alarms, when it started, photos or video.",
+          "follow_up_if": "An unknown fault brings an inspection-first quote."
+        },
+        {
+          "spec": "Inspection and diagnosis fee",
+          "blocking": true,
+          "why_needed_to_price": "Most workshops charge to strip and diagnose.",
+          "uae_options": "Fixed fee, hourly, deducted if repair proceeds.",
+          "follow_up_if": "Ask whether the fee is credited against the repair."
+        },
+        {
+          "spec": "Parts to be replaced",
+          "blocking": false,
+          "why_needed_to_price": "Genuine vs aftermarket parts change the price.",
+          "uae_options": "Genuine, OEM, aftermarket, reconditioned.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "On-site or workshop repair",
+          "blocking": true,
+          "why_needed_to_price": "On-site work adds travel and access; workshop work adds transport.",
+          "uae_options": "On-site, workshop, pick-up and delivery.",
+          "follow_up_if": "On-site brings site access, permits and working hours."
+        },
+        {
+          "spec": "Test after repair",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "No-load run, load test, vibration report.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Repair warranty",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Inspection report, repair report, test certificate.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Maker-authorised service, independent workshop.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Service level and response time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Duration and schedule",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Pricing basis",
+          "blocking": true,
+          "why_needed_to_price": "Fixed price vs time and materials are not comparable.",
+          "uae_options": "Fixed price after diagnosis, labour rate plus parts, contract.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "most repairs cannot be priced firm before inspection; a firm price follows the diagnosis, so the first quote is the diagnosis fee plus labour rates."
     },
     {
       "id": "machinery_repair:uae-standards-and-approvals",
@@ -83,6 +185,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "machinery_repair:authority-approvals",
+      "topic": "Machinery repair: approvals that apply",
+      "topic_ar": "إصلاح الآلات: الموافقات المطبقة",
+      "kind": "authority_approval",
+      "body_en": "Repair work itself needs only the provider's trade licence for the activity. Where the repaired item is regulated, its rule applies after repair: lifting equipment and pressure vessels must be re-examined and certified by an EIAC-accredited third party in Dubai under Dubai Municipality guidelines (and under OSHAD or Trakhees elsewhere) before returning to service; refrigerant work on cooling plant follows the federal rules on controlled refrigerants; and work in a live plant requires the owner's permit-to-work. The owner arranges re-certification.",
+      "body_ar": "أعمال الإصلاح نفسها لا تحتاج إلا الرخصة التجارية للنشاط لدى مقدم الخدمة. وإذا كانت المعدة المصلحة خاضعة للتنظيم ينطبق نظامها بعد الإصلاح: فمعدات الرفع وأوعية الضغط يجب إعادة فحصها واعتمادها من جهة ثالثة معتمدة من مركز الإمارات للاعتماد في دبي وفق أدلة بلدية دبي (ووفق أوشاد أو تراخيص في غيرها) قبل عودتها للخدمة، وأعمال غازات التبريد في معدات التبريد تتبع القواعد الاتحادية لغازات التبريد الخاضعة للرقابة، والعمل في منشأة عاملة يتطلب تصريح عمل من المالك. ويرتب المالك إعادة الاعتماد.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU47-ECBPV2_Examination-and-Certification-of-Boilers-and-Pressure-Vessels_V4.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses."
+    },
+    {
+      "id": "machinery_repair:quote-red-flags",
+      "topic": "Red flags in repair quotations",
+      "topic_ar": "علامات التحذير في عروض الإصلاح",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a low headline price with \"parts extra at cost\", open-ended labour hours, aftermarket or reconditioned parts used where genuine was expected, no list of parts replaced, no test after repair, warranty limited to labour only, a diagnosis fee not credited, transport and rigging excluded, and a fixed price that is conditional on \"no hidden damage\".",
+      "body_ar": "انتبه إلى: سعر رئيسي منخفض مع عبارة \"القطع إضافية بالتكلفة\"، وساعات عمل مفتوحة، واستخدام قطع بديلة أو مجددة حيث يُتوقع الأصلي، وغياب قائمة القطع المستبدلة، وعدم الاختبار بعد الإصلاح، وضمان يقتصر على العمالة، ورسوم تشخيص لا تُخصم، واستثناء النقل والرفع، وسعر ثابت مشروط بـ\"عدم وجود تلف خفي\".",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "machinery_repair:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying repairs",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند طلب الإصلاح",
+      "kind": "buyer_mistake",
+      "body_en": "Asking for a fixed price before anyone has seen the machine; comparing a diagnosis fee with a full repair price; not asking for the old parts back; and skipping the post-repair test or re-certification. Ask for the fault history and whether the machine is down.",
+      "body_ar": "طلب سعر ثابت قبل أن يعاين أحد الآلة؛ ومقارنة رسوم التشخيص بسعر إصلاح كامل؛ وعدم طلب إعادة القطع القديمة؛ والاستغناء عن الاختبار بعد الإصلاح أو إعادة الاعتماد. لذا يُسأل عن تاريخ العطل وهل الآلة متوقفة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "machinery_repair:price-drivers",
+      "topic": "What legitimately moves repair prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الإصلاح",
+      "kind": "price_driver",
+      "body_en": "Extent of damage found on inspection, parts (genuine vs aftermarket) and their availability, labour hours and skill (maker-authorised technicians cost more), on-site vs workshop, urgency and overtime, testing and certification, and transport.",
+      "body_ar": "مدى التلف الذي يكشفه الفحص، والقطع (أصلية أم بديلة) وتوفرها، وساعات العمل والمهارة (فنيو الوكيل المعتمد أغلى)، والإصلاح في الموقع أم في الورشة، والاستعجال والعمل الإضافي، والاختبار والاعتماد، والنقل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "machinery_repair:compare-quotes",
+      "topic": "Comparing repair quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض الإصلاح من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare diagnosis fees and labour rates first, then compare the post-diagnosis fixed prices on the same parts list, test and warranty. Weigh turnaround time against the cost of downtime. Recommend the three most complete offers.",
+      "body_ar": "قارن أولاً رسوم التشخيص وأسعار العمالة، ثم قارن الأسعار الثابتة بعد التشخيص على قائمة القطع والاختبار والضمان نفسها. وزن مدة الإنجاز مقابل تكلفة التوقف. ويوصى بأفضل ثلاثة عروض اكتمالاً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -124,7 +295,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "machinery_repair:spec-checklist"
+      "machinery_repair:spec-checklist",
+      "machinery_repair:authority-approvals"
     ],
     "added": [
       "machinery_repair:spec-checklist",
@@ -155,6 +327,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "machinery_repair:quote-red-flags",
+      "machinery_repair:buyer-mistakes",
+      "machinery_repair:price-drivers",
+      "machinery_repair:compare-quotes"
+    ]
   }
 }

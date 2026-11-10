@@ -5,8 +5,8 @@
       "id": "industrial_textiles:spec-checklist",
       "topic": "Industrial textiles - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For industrial textiles (trade code industrial_textiles only), every quoted line must state: Fabric type and construction; Fibre composition; Weight per square metre; Width and roll length; Coating or treatment; Tensile and tear strength; Fire performance where required; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط المنسوجات الصناعية (رمز النشاط industrial_textiles فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع القماش وبنيته؛ تركيب الألياف؛ الوزن للمتر المربع؛ العرض وطول اللفة؛ الطلاء أو المعالجة؛ قوة الشد والتمزق؛ الأداء عند الحريق عند الطلب؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For industrial textiles (trade code industrial_textiles only), every quoted line must state: Fabric type and construction; Fibre composition; Weight per square metre; Width and roll length; Coating or treatment; Tensile and tear strength; Fire performance where required; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Fabric type and construction; Fibre composition; Weight per square metre; Width and roll length; Quantity and unit of measure. Follow-up questions the answers trigger: Fabric type and construction: Geosynthetics bring the application (separation, drainage, lining). Fire performance where required: Tents and building fabrics bring civil defence approval. Before a firm price: a lined pond or landfill cell needs the area drawing and site conditions; a shade structure needs a site visit; fabric supply can be priced from the specs.",
+      "body_ar": "في نشاط المنسوجات الصناعية (رمز النشاط industrial_textiles فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع القماش وبنيته؛ تركيب الألياف؛ الوزن للمتر المربع؛ العرض وطول اللفة؛ الطلاء أو المعالجة؛ قوة الشد والتمزق؛ الأداء عند الحريق عند الطلب؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع القماش وتركيبه، والتركيب الليفي، والوزن للمتر المربع، والعرض وطول اللفة، والكمية ووحدة القياس. أسئلة المتابعة: المواد الجيوتقنية تستلزم الاستخدام (الفصل أو التصريف أو التبطين)، والخيام وأقمشة المباني تستلزم موافقة الدفاع المدني. تبطين البرك أو خلايا المكبات يحتاج مخطط المساحة وظروف الموقع، ومظلات التظليل تحتاج زيارة موقع.",
       "required_specs": [
         "Fabric type and construction",
         "Fibre composition",
@@ -21,7 +21,8 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Installation scope"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
@@ -29,7 +30,123 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Fabric type and construction",
+        "Fibre composition",
+        "Weight per square metre",
+        "Width and roll length",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Fabric type and construction",
+          "blocking": true,
+          "why_needed_to_price": "Woven, non-woven, knitted, geomembrane and coated fabrics are different products.",
+          "uae_options": "Woven PP, non-woven geotextile, HDPE geomembrane, PVC-coated polyester, shade net, filter cloth.",
+          "follow_up_if": "Geosynthetics bring the application (separation, drainage, lining)."
+        },
+        {
+          "spec": "Fibre composition",
+          "blocking": true,
+          "why_needed_to_price": "Fibre type sets cost, strength and UV resistance.",
+          "uae_options": "PP, PET, HDPE, glass, aramid, cotton.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Weight per square metre",
+          "blocking": true,
+          "why_needed_to_price": "gsm (or membrane thickness) is the main price axis.",
+          "uae_options": "gsm; geomembrane 1.0-2.5 mm.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Width and roll length",
+          "blocking": true,
+          "why_needed_to_price": "Roll format sets production set-up and the number of seams.",
+          "uae_options": "Roll width and length.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Coating or treatment",
+          "blocking": false,
+          "why_needed_to_price": "UV, flame-retardant and PVC coatings add cost.",
+          "uae_options": "UV-stabilised, FR, PVC, PU, PTFE.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Tensile and tear strength",
+          "blocking": false,
+          "why_needed_to_price": "Strength values to a test standard decide equivalence.",
+          "uae_options": "kN/m to ISO 10319, CBR puncture to ISO 12236.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Fire performance where required",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "NFPA 701, EN 13501, civil defence approval for tents and building fabrics.",
+          "follow_up_if": "Tents and building fabrics bring civil defence approval."
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "m2 vs rolls vs kg.",
+          "uae_options": "m2, rolls, kg.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Installation, welding of geomembranes and testing are services.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Installation scope",
+          "blocking": false,
+          "why_needed_to_price": "Geomembrane welding and testing need specialist installers.",
+          "uae_options": "Supply only, supply and install with QA testing.",
+          "follow_up_if": ""
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "a lined pond or landfill cell needs the area drawing and site conditions; a shade structure needs a site visit; fabric supply can be priced from the specs."
     },
     {
       "id": "industrial_textiles:uae-standards-and-approvals",
@@ -88,6 +205,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "industrial_textiles:authority-approvals",
+      "topic": "Industrial textiles: fire performance and project approvals",
+      "topic_ar": "المنسوجات الصناعية: الأداء في الحريق وموافقات المشاريع",
+      "kind": "authority_approval",
+      "body_en": "Fabrics used in buildings, tents and shade structures are fire-performance matters under the UAE Fire and Life Safety Code enforced by each emirate's civil defence, which approves materials by their fire test results; the contractor or supplier obtains approval. Geosynthetics for landfills and ponds follow the consultant's and environment authority's project specifications (for example environmental agencies for landfill liners). No product licence was found for general industrial fabrics.",
+      "body_ar": "الأقمشة المستخدمة في المباني والخيام ومظلات التظليل مسألة أداء في الحريق وفق كود الإمارات للحماية من الحرائق وسلامة الأرواح الذي يطبقه الدفاع المدني في كل إمارة، ويعتمد المواد حسب نتائج اختبارات الحريق، ويحصل المقاول أو المورد على الاعتماد. والمواد الجيوتقنية للمكبات والبرك تتبع مواصفات المشروع لدى الاستشاري والجهة البيئية (مثل الجهات البيئية لبطانات المكبات). ولم يُعثر على ترخيص منتج للأقمشة الصناعية العامة.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.dcd.gov.ae: allowed but drops the connection."
+    },
+    {
+      "id": "industrial_textiles:quote-red-flags",
+      "topic": "Red flags in industrial textile quotations",
+      "topic_ar": "علامات التحذير في عروض المنسوجات الصناعية",
+      "kind": "quote_red_flag",
+      "body_en": "Check gsm and strength: a lighter fabric, recycled resin geomembrane, thinner membrane within a wide tolerance, or no UV stabiliser for outdoor use are substitutions. Watch for FR claims without a test report, roll widths that increase seams, welding and QA testing excluded, and prices per kg vs per m2.",
+      "body_ar": "افحص الوزن والمتانة: فالقماش الأخف، أو الغشاء من راتنج معاد تدويره، أو الغشاء الأرق ضمن تفاوت واسع، أو غياب مثبت الأشعة للاستخدام الخارجي، كلها استبدالات. وانتبه إلى: ادعاءات مقاومة اللهب دون تقرير اختبار، وعروض لفات تزيد عدد الوصلات، واستثناء اللحام واختبارات الجودة، والسعر بالكيلوغرام مقابل المتر المربع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_textiles:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying industrial textiles",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء المنسوجات الصناعية",
+      "kind": "buyer_mistake",
+      "body_en": "Choosing by gsm alone without strength and UV rating for UAE sun; buying shade fabric without fire approval for a public area; and ordering geomembrane without installation by qualified welders. Ask the use, exposure and whether a consultant spec exists.",
+      "body_ar": "الاختيار بالوزن وحده دون المتانة وتصنيف مقاومة الأشعة لشمس الإمارات؛ وشراء قماش تظليل دون اعتماد الحريق لمكان عام؛ وطلب غشاء جيوتقني دون تركيب بلحامين مؤهلين. لذا يُسأل عن الاستخدام والتعرض وهل توجد مواصفة استشاري.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_textiles:price-drivers",
+      "topic": "What legitimately moves industrial textile prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار المنسوجات الصناعية",
+      "kind": "price_driver",
+      "body_en": "Polymer and fibre type, gsm or thickness, coatings and FR treatment, UV stabilisation, roll size, brand and origin, quantity, and installation and testing.",
+      "body_ar": "نوع البوليمر والألياف، والوزن أو السماكة، والطلاءات ومعالجة مقاومة اللهب، ومثبتات الأشعة، ومقاس اللفة، والعلامة والمنشأ، والكمية، والتركيب والاختبار.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_textiles:compare-quotes",
+      "topic": "Comparing industrial textile quotes like-for-like",
+      "topic_ar": "مقارنة عروض المنسوجات الصناعية على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare price per m2 at the same gsm, strength values and treatments, with test reports; for installed geomembranes compare per m2 installed and tested. Recommend the three compliant offers with the lowest delivered or installed cost.",
+      "body_ar": "قارن السعر للمتر المربع عند الوزن وقيم المتانة والمعالجات نفسها مع تقارير الاختبار؛ وفي الأغشية المركبة قارن السعر للمتر المربع مركّباً ومختبراً. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة تسليم أو تركيب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -130,7 +315,8 @@
     "removed": [],
     "still_unverified": [
       "industrial_textiles:spec-checklist",
-      "industrial_textiles:uae-standards-and-approvals"
+      "industrial_textiles:uae-standards-and-approvals",
+      "industrial_textiles:authority-approvals"
     ],
     "added": [
       "industrial_textiles:spec-checklist",
@@ -161,6 +347,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "industrial_textiles:quote-red-flags",
+      "industrial_textiles:buyer-mistakes",
+      "industrial_textiles:price-drivers",
+      "industrial_textiles:compare-quotes"
+    ]
   }
 }

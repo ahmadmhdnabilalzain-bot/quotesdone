@@ -5,8 +5,8 @@
       "id": "bearings_power_transmission:spec-checklist",
       "topic": "Bearings and power transmission - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for bearings and power transmission must state: bearing or component designation; brand; bore and outside dimensions; load rating; clearance and precision class; seal or shield type; lubrication; operating speed and temperature; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المحامل ونقل الحركة: رمز المحمل أو المكوّن؛ العلامة التجارية؛ القطر الداخلي والأبعاد الخارجية؛ تصنيف الحمل؛ الخلوص وفئة الدقة؛ نوع مانع التسرب أو الغطاء؛ التزييت؛ سرعة ودرجة حرارة التشغيل؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for bearings and power transmission must state: bearing or component designation; brand; bore and outside dimensions; load rating; clearance and precision class; seal or shield type; lubrication; operating speed and temperature; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): bearing or component designation; brand; clearance and precision class; seal or shield type; quantity. Follow-up questions the answers trigger: bearing or component designation: If the buyer only has the old part, ask for a photo of the markings and the dimensions. brand: If open, ask whether economy brands are acceptable; counterfeits are common in premium brands. operating speed and temperature: High temperature brings heat-stabilised versions. genuine-brand evidence: For premium brands ask for the authorised-distributor status. Before a firm price: a part with worn or missing markings needs the old part as a sample to measure.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المحامل ونقل الحركة: رمز المحمل أو المكوّن؛ العلامة التجارية؛ القطر الداخلي والأبعاد الخارجية؛ تصنيف الحمل؛ الخلوص وفئة الدقة؛ نوع مانع التسرب أو الغطاء؛ التزييت؛ سرعة ودرجة حرارة التشغيل؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: رمز المحمل أو المكون كاملاً بلواحقه، والعلامة التجارية أو قائمة العلامات المقبولة، وفئة الخلوص والدقة، ونوع الإحكام أو الغطاء، والكمية. أسئلة المتابعة: إذا لم يتوفر إلا القطعة القديمة تُطلب صورة للعلامات المحفورة والأبعاد، وإذا ترك المشتري العلامة مفتوحة يُسأل هل يقبل العلامات الاقتصادية، ولعلامات الفئة الممتازة يُسأل عن صفة الموزع المعتمد لتجنب التقليد. القطعة ذات العلامات الممسوحة تحتاج القطعة القديمة عينةً للقياس.",
       "required_specs": [
         "bearing or component designation",
         "brand",
@@ -21,14 +21,131 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "genuine-brand evidence"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "bearing or component designation",
+        "brand",
+        "clearance and precision class",
+        "seal or shield type",
+        "quantity"
+      ],
+      "spec_guide": [
+        {
+          "spec": "bearing or component designation",
+          "blocking": true,
+          "why_needed_to_price": "The full designation (with suffixes) is the product; without it there is nothing to price.",
+          "uae_options": "ISO designation such as 6205-2RS C3; belt section and length; chain pitch and strands; gearbox ratio and torque.",
+          "follow_up_if": "If the buyer only has the old part, ask for a photo of the markings and the dimensions."
+        },
+        {
+          "spec": "brand",
+          "blocking": true,
+          "why_needed_to_price": "Premium and economy brands of the same designation differ several-fold in price and life.",
+          "uae_options": "Named brand, a list of acceptable brands, or open.",
+          "follow_up_if": "If open, ask whether economy brands are acceptable; counterfeits are common in premium brands."
+        },
+        {
+          "spec": "bore and outside dimensions",
+          "blocking": false,
+          "why_needed_to_price": "Confirms the designation and catches errors.",
+          "uae_options": "d x D x B in mm.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "load rating",
+          "blocking": false,
+          "why_needed_to_price": "Heavy-duty variants cost more.",
+          "uae_options": "Dynamic and static ratings per catalogue.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "clearance and precision class",
+          "blocking": true,
+          "why_needed_to_price": "C3 vs CN or P5 vs P0 is a different product.",
+          "uae_options": "CN, C3, C4; P0, P6, P5, P4.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "seal or shield type",
+          "blocking": true,
+          "why_needed_to_price": "Open, shielded and sealed versions are different part numbers.",
+          "uae_options": "Open, ZZ/2Z, 2RS/2RSH, contact or non-contact seals.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lubrication",
+          "blocking": false,
+          "why_needed_to_price": "Special greases cost more.",
+          "uae_options": "Standard grease, high-temperature, food-grade, oil.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "operating speed and temperature",
+          "blocking": false,
+          "why_needed_to_price": "High temperature or speed changes cage and grease.",
+          "uae_options": "",
+          "follow_up_if": "High temperature brings heat-stabilised versions."
+        },
+        {
+          "spec": "quantity",
+          "blocking": true,
+          "why_needed_to_price": "Box quantities and volume change unit price.",
+          "uae_options": "Pieces, boxes.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "blocking": false,
+          "why_needed_to_price": "Normally none; a brand authenticity letter matters.",
+          "uae_options": "Authorised distributor certificate.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery and installation scope",
+          "blocking": false,
+          "why_needed_to_price": "Fitting, alignment and gearbox installation are services.",
+          "uae_options": "Supply only, fitting, laser alignment.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Stock in Dubai vs import.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "warranty",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "genuine-brand evidence",
+          "blocking": false,
+          "why_needed_to_price": "Counterfeit bearings are a known risk; authenticity is part of value.",
+          "uae_options": "Supply from the brand's authorised distributor, with traceable packaging.",
+          "follow_up_if": "For premium brands ask for the authorised-distributor status."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "a part with worn or missing markings needs the old part as a sample to measure."
     },
     {
       "id": "bearings_power_transmission:uae-standards-and-approvals",
@@ -86,6 +203,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "bearings_power_transmission:authority-approvals",
+      "topic": "Bearings and power transmission: approvals that apply",
+      "topic_ar": "المحامل ونقل الحركة: الموافقات المطبقة",
+      "kind": "authority_approval",
+      "body_en": "No UAE licence, permit or conformity scheme is generally required for bearings, belts, chains, couplings or mechanical gearboxes: they are industrial components outside the regulated consumer and electrical categories. Geared motors and drives with an electric motor fall within the GCC low-voltage electrical regulation adopted by Cabinet Resolution No. 6 of 2019 where they are designed for 50-1,000 V AC. The practical control is authenticity: premium brands publish authorised distributor lists and run anti-counterfeit verification, and the buyer should ask for supply through an authorised channel.",
+      "body_ar": "لا يلزم عموماً ترخيص أو تصريح أو نظام مطابقة في الإمارات للمحامل والسيور والجنازير والوصلات وعلب التروس الميكانيكية، فهي مكونات صناعية خارج الفئات الاستهلاكية والكهربائية الخاضعة للتنظيم. أما المحركات المزودة بعلب تروس والمحركات الكهربائية فتدخل ضمن اللائحة الخليجية للمعدات الكهربائية منخفضة الجهد المعتمدة بقرار مجلس الوزراء رقم 6 لسنة 2019 إذا صممت للعمل بين 50 و1000 فولت تيار متردد. والضبط العملي هو الأصالة: تنشر العلامات الممتازة قوائم موزعيها المعتمدين وتتيح التحقق من الأصالة، وعلى المشتري طلب التوريد عبر قناة معتمدة.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2957"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — uaelegislation.gov.ae: not in the allowed network."
+    },
+    {
+      "id": "bearings_power_transmission:quote-red-flags",
+      "topic": "Red flags in bearing and power transmission quotations",
+      "topic_ar": "علامات التحذير في عروض المحامل ونقل الحركة",
+      "kind": "quote_red_flag",
+      "body_en": "Check every suffix: a quote for 6205-2Z against a request for 6205-2RS C3, or CN clearance instead of C3, is a different bearing. Watch for an economy brand quoted against a premium request, premium-brand prices far below the market (a counterfeit warning), \"equivalent\" chains or belts without the section, length or pitch, gearboxes with a different service factor or ratio, origin not stated where the buyer asked for one, and genuine-brand claims without authorised-distributor supply.",
+      "body_ar": "افحص كل لاحقة: فعرض 6205-2Z مقابل طلب 6205-2RS C3، أو خلوص CN بدل C3، محمل مختلف. وانتبه إلى: علامة اقتصادية مسعّرة مقابل طلب علامة ممتازة، وأسعار لعلامة ممتازة أقل كثيراً من السوق (تحذير من التقليد)، وجنازير أو سيور \"مكافئة\" دون المقطع أو الطول أو الخطوة، وعلب تروس بعامل خدمة أو نسبة تخفيض مختلفة، وعدم ذكر المنشأ حيث طلبه المشتري، وادعاء الأصالة دون توريد من موزع معتمد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "bearings_power_transmission:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying bearings and drives",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء المحامل ونقل الحركة",
+      "kind": "buyer_mistake",
+      "body_en": "Ordering by the base number only (\"6205\") drops the seal, clearance and cage suffixes that matter for the application. Buying the cheapest premium-brand offer from an unknown trader invites counterfeits. Replacing one belt in a matched set, or a chain without its sprockets, shortens life. Ask for the full designation from the old part and the application (speed, temperature, contamination).",
+      "body_ar": "الطلب بالرقم الأساسي فقط (\"6205\") يُسقط لواحق الإحكام والخلوص والقفص المهمة للتطبيق. وشراء أرخص عرض لعلامة ممتازة من تاجر غير معروف يفتح الباب للتقليد. وتبديل سير واحد من طقم متطابق، أو جنزير دون تروسه، يقصّر العمر. لذا يُطلب الرمز الكامل من القطعة القديمة وبيان التطبيق (السرعة والحرارة والتلوث).",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "bearings_power_transmission:price-drivers",
+      "topic": "What legitimately moves bearing and drive prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار المحامل ونقل الحركة",
+      "kind": "price_driver",
+      "body_en": "Brand tier (premium European, Japanese and American brands above Chinese and Indian ones), precision and clearance class, seals and special greases, size, quantity, stock location, and the supply channel (authorised distributor vs parallel trader). Gearboxes price on torque, ratio, service factor and mounting.",
+      "body_ar": "فئة العلامة (العلامات الأوروبية واليابانية والأمريكية الممتازة أعلى من الصينية والهندية)، وفئة الدقة والخلوص، والإحكام والشحوم الخاصة، والمقاس، والكمية، ومكان المخزون، وقناة التوريد (موزع معتمد أم تاجر موازٍ). وتُسعّر علب التروس حسب العزم ونسبة التخفيض وعامل الخدمة وطريقة التركيب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "bearings_power_transmission:compare-quotes",
+      "topic": "Comparing bearing and drive quotes like-for-like",
+      "topic_ar": "مقارنة عروض المحامل ونقل الحركة على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare only identical full designations and the same brand tier; group premium and economy offers separately. Weigh authenticity and supply channel, then delivered price and stock availability. For critical machines the cost of a failed bearing is the downtime, so a genuine premium bearing from an authorised source usually wins on value. Recommend the three best compliant offers within the brand tier requested.",
+      "body_ar": "قارن فقط الرموز الكاملة المتطابقة وفئة العلامة نفسها، وافصل عروض الفئة الممتازة عن الاقتصادية. وزن الأصالة وقناة التوريد، ثم سعر التسليم والتوفر في المخزون. وفي الآلات الحرجة تكون تكلفة تعطل المحمل هي توقف الإنتاج، لذا يفوز عادة المحمل الأصلي الممتاز من مصدر معتمد من حيث القيمة. ويوصى بأفضل ثلاثة عروض مطابقة ضمن فئة العلامة المطلوبة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +312,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "bearings_power_transmission:spec-checklist"
+      "bearings_power_transmission:spec-checklist",
+      "bearings_power_transmission:authority-approvals"
     ],
     "added": [
       "bearings_power_transmission:spec-checklist",
@@ -158,6 +344,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "bearings_power_transmission:quote-red-flags",
+      "bearings_power_transmission:buyer-mistakes",
+      "bearings_power_transmission:price-drivers",
+      "bearings_power_transmission:compare-quotes"
+    ]
   }
 }

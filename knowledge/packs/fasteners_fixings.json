@@ -5,8 +5,8 @@
       "id": "fasteners_fixings:spec-checklist",
       "topic": "Fasteners and fixings - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for fasteners and fixings must state: fastener type; size and length; material and property class; product standard such as ISO 4014; coating; anchor approval or assessment; quantity and pack unit; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المثبتات والتثبيتات: نوع المثبت؛ المقاس والطول؛ المادة وفئة الخواص؛ معيار المنتج مثل ISO 4014؛ الطلاء؛ اعتماد أو تقييم المرساة؛ الكمية ووحدة التعبئة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for fasteners and fixings must state: fastener type; size and length; material and property class; product standard such as ISO 4014; coating; anchor approval or assessment; quantity and pack unit; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): fastener type; size and length; material and property class; coating; anchor approval or assessment; quantity and pack unit. Follow-up questions the answers trigger: fastener type: Anchors bring the base material (cracked/uncracked concrete, block, steel). material and property class: Coastal or chemical exposure brings A4 or duplex. coating: HDG bolts need oversize-tapped nuts. anchor approval or assessment: Ask the load and edge distances; a safety-critical anchor needs a design calculation. origin: If the buyer named an origin, any other is a deviation. Before a firm price: a non-standard or special fastener needs a drawing or a sample; a structural anchor needs the design load or the engineer's calculation.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المثبتات والتثبيتات: نوع المثبت؛ المقاس والطول؛ المادة وفئة الخواص؛ معيار المنتج مثل ISO 4014؛ الطلاء؛ اعتماد أو تقييم المرساة؛ الكمية ووحدة التعبئة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المثبت، والمقاس والطول، والمادة وفئة الخواص، والطلاء، وتقييم أو اعتماد المرساة، والكمية ووحدة التعبئة. أسئلة المتابعة: المراسي تستلزم مادة القاعدة (خرسانة متشققة أو غير متشققة أو بلوك أو فولاذ) والحمل والمسافة من الحافة، والتعرض الساحلي أو الكيميائي يستلزم فولاذ A4 أو دوبلكس، والمسامير المجلفنة بالغمس الساخن تحتاج صواميل بقلاووظ أوسع. المثبت الخاص يحتاج رسماً أو عينة، والمرساة الإنشائية تحتاج الحمل التصميمي أو حسابات المهندس.",
       "required_specs": [
         "fastener type",
         "size and length",
@@ -19,14 +19,118 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "origin"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "fastener type",
+        "size and length",
+        "material and property class",
+        "coating",
+        "anchor approval or assessment",
+        "quantity and pack unit"
+      ],
+      "spec_guide": [
+        {
+          "spec": "fastener type",
+          "blocking": true,
+          "why_needed_to_price": "Bolt, stud, screw, anchor and rivet are different products and processes.",
+          "uae_options": "Hex bolt, socket cap screw, stud, nut, washer, chemical or mechanical anchor, self-drilling screw.",
+          "follow_up_if": "Anchors bring the base material (cracked/uncracked concrete, block, steel)."
+        },
+        {
+          "spec": "size and length",
+          "blocking": true,
+          "why_needed_to_price": "Diameter and length set weight and price.",
+          "uae_options": "M6-M64; imperial UNC/UNF; length in mm.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "material and property class",
+          "blocking": true,
+          "why_needed_to_price": "Class 8.8 vs 10.9, A2 vs A4 stainless and alloy grades price very differently.",
+          "uae_options": "4.6, 8.8, 10.9, 12.9; A2-70, A4-80; B7/2H; duplex.",
+          "follow_up_if": "Coastal or chemical exposure brings A4 or duplex."
+        },
+        {
+          "spec": "product standard such as ISO 4014",
+          "blocking": false,
+          "why_needed_to_price": "The standard fixes thread length, head and tolerances.",
+          "uae_options": "ISO 4014/4017, DIN 931/933, ASME B18.2.1, EN 14399 for structural sets.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "coating",
+          "blocking": true,
+          "why_needed_to_price": "Hot-dip galvanising, zinc flake and PTFE coatings add cost and change thread fit.",
+          "uae_options": "Plain, zinc plated, HDG, zinc flake (Geomet/Delta), PTFE (Xylan).",
+          "follow_up_if": "HDG bolts need oversize-tapped nuts."
+        },
+        {
+          "spec": "anchor approval or assessment",
+          "blocking": true,
+          "why_needed_to_price": "An anchor with a European Technical Assessment for the use is a different product from an unassessed one.",
+          "uae_options": "ETA to EAD 330232/330499 options, seismic C1/C2, fire rating.",
+          "follow_up_if": "Ask the load and edge distances; a safety-critical anchor needs a design calculation."
+        },
+        {
+          "spec": "quantity and pack unit",
+          "blocking": true,
+          "why_needed_to_price": "Fasteners are sold per piece, per box or per kg; mixing them breaks comparison.",
+          "uae_options": "Pieces, boxes of 100, kg.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "blocking": false,
+          "why_needed_to_price": "Mill certificates (EN 10204 3.1) for structural and pressure bolting.",
+          "uae_options": "3.1 certificates, consultant approval of anchors.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery and installation scope",
+          "blocking": false,
+          "why_needed_to_price": "Anchor installation and pull testing are services.",
+          "uae_options": "Supply only, install, pull-out test.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Stock vs import for special grades.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "warranty",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Nuts and washers are often priced separately.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "origin",
+          "blocking": false,
+          "why_needed_to_price": "Taiwanese, Chinese, Indian and European fasteners differ in price; projects may restrict origin.",
+          "uae_options": "As specified.",
+          "follow_up_if": "If the buyer named an origin, any other is a deviation."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "a non-standard or special fastener needs a drawing or a sample; a structural anchor needs the design load or the engineer's calculation."
     },
     {
       "id": "fasteners_fixings:uae-standards-and-approvals",
@@ -84,6 +188,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "fasteners_fixings:authority-approvals",
+      "topic": "Fasteners and fixings: approvals that apply",
+      "topic_ar": "المثبتات والمسامير: الموافقات المطبقة",
+      "kind": "authority_approval",
+      "body_en": "No UAE licence or conformity scheme is generally required for bolts, nuts, screws or anchors. The approvals that matter are project ones: the consultant or the authority engineer approves anchors for structural and facade use, usually on the basis of a European Technical Assessment and a design calculation, and the contractor submits it. Fire-stopping and fire-rated anchors used in life-safety systems fall under the civil defence's acceptance of the system, not of the bolt. This is the state as far as could be established; no fastener-specific UAE technical regulation was found by search.",
+      "body_ar": "لا يلزم عموماً ترخيص أو نظام مطابقة في الإمارات للمسامير والصواميل والبراغي والمراسي. والموافقات المهمة هي موافقات المشروع: فالاستشاري أو مهندس الجهة المختصة يعتمد المراسي للاستخدامات الإنشائية والواجهات، عادة على أساس تقييم فني أوروبي وحسابات تصميم، ويقدمها المقاول. أما المراسي المقاومة للحريق المستخدمة في أنظمة السلامة فتخضع لاعتماد الدفاع المدني للنظام لا للمسمار. هذا ما أمكن التثبت منه، ولم يُعثر بالبحث على لائحة فنية إماراتية خاصة بالمثبتات.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.dcd.gov.ae: allowed but drops the connection."
+    },
+    {
+      "id": "fasteners_fixings:quote-red-flags",
+      "topic": "Red flags in fastener and anchor quotations",
+      "topic_ar": "علامات التحذير في عروض المثبتات والمراسي",
+      "kind": "quote_red_flag",
+      "body_en": "Check the property class and head marking: 8.8 offered for 10.9, A2 for A4, or \"stainless\" with no grade are substitutions. Watch for zinc plating where hot-dip galvanising was asked, anchors without an ETA or with an ETA for a different base material, an unknown anchor brand offered as \"equal\" to an assessed one, prices per kg beside prices per piece, nuts and washers not included, no 3.1 certificate for structural or pressure bolting, and origin changed silently.",
+      "body_ar": "افحص فئة الخواص وعلامة الرأس: فعرض 8.8 بدل 10.9، أو A2 بدل A4، أو \"ستانلس\" دون درجة، كلها استبدالات. وانتبه إلى: طلاء زنك كهربائي حيث طُلب الجلفنة بالغمس الساخن، ومراسٍ دون تقييم فني أوروبي أو بتقييم لمادة قاعدة مختلفة، وعلامة مراسٍ مجهولة معروضة \"مكافئة\" لمرساة مقيّمة، وأسعار بالكيلوغرام بجانب أسعار بالقطعة، وعدم شمول الصواميل والوردات، وغياب شهادة 3.1 للمسامير الإنشائية أو مسامير الضغط، وتغيير المنشأ دون إفصاح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "fasteners_fixings:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying fasteners",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء المثبتات",
+      "kind": "buyer_mistake",
+      "body_en": "Asking for \"M12 bolts\" without class, length, coating and standard; mixing galvanised bolts with standard nuts; choosing A2 stainless for a coastal site; replacing an assessed anchor brand on site with a cheaper one without re-approval; and buying by kg without knowing the count. Ask what is fixed to what, the environment, and whether an engineer specified the anchor.",
+      "body_ar": "طلب \"مسامير M12\" دون الفئة والطول والطلاء والمواصفة؛ وخلط مسامير مجلفنة بصواميل عادية؛ واختيار ستانلس A2 لموقع ساحلي؛ واستبدال علامة مراسٍ مقيّمة في الموقع بأرخص منها دون إعادة اعتماد؛ والشراء بالكيلوغرام دون معرفة العدد. لذا يُسأل المشتري عما يُثبت بماذا، وعن البيئة، وهل حدد مهندس نوع المرساة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "fasteners_fixings:price-drivers",
+      "topic": "What legitimately moves fastener prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار المثبتات",
+      "kind": "price_driver",
+      "body_en": "Material and class (alloy and stainless grades, duplex), coating, standard and certification, size and length, quantity and packing, origin and mill, and for anchors the assessment, the brand and whether chemical resin is included. Special lengths and non-stock grades carry minimum order quantities.",
+      "body_ar": "المادة والفئة (درجات السبائك والستانلس والدوبلكس)، والطلاء، والمواصفة والشهادات، والمقاس والطول، والكمية والتعبئة، والمنشأ والمصنع، وفي المراسي التقييم الفني والعلامة وشمول الراتنج الكيميائي. والأطوال الخاصة والدرجات غير المخزنة لها حد أدنى للطلب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "fasteners_fixings:compare-quotes",
+      "topic": "Comparing fastener quotes like-for-like",
+      "topic_ar": "مقارنة عروض المثبتات على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Convert all prices to the same unit (per piece including nut and washer where asked), then check class, coating, standard, certificate and origin match. Anchors are compared only within the same assessed performance for the same base material. Recommend the three best compliant offers by delivered cost; any change of class, coating or anchor brand goes to deviations.",
+      "body_ar": "حوّل جميع الأسعار إلى الوحدة نفسها (بالقطعة شاملة الصامولة والوردة حيث طُلبت)، ثم تحقق من تطابق الفئة والطلاء والمواصفة والشهادة والمنشأ. ولا تقارن المراسي إلا ضمن الأداء المقيّم نفسه ولمادة القاعدة نفسها. ويوصى بأفضل ثلاثة عروض مطابقة حسب تكلفة التسليم، وأي تغيير في الفئة أو الطلاء أو علامة المرساة يُدرج انحرافاً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +297,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "fasteners_fixings:spec-checklist"
+      "fasteners_fixings:spec-checklist",
+      "fasteners_fixings:authority-approvals"
     ],
     "added": [
       "fasteners_fixings:spec-checklist",
@@ -156,6 +329,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "fasteners_fixings:quote-red-flags",
+      "fasteners_fixings:buyer-mistakes",
+      "fasteners_fixings:price-drivers",
+      "fasteners_fixings:compare-quotes"
+    ]
   }
 }

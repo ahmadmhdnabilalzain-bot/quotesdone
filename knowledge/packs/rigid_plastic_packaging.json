@@ -5,8 +5,8 @@
       "id": "rigid_plastic_packaging:spec-checklist",
       "topic": "Rigid plastic packaging - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For rigid plastic packaging quotes to be compared like-for-like, every quoted line (goods) must state: (1) container type (bottle, jar, tub, crate, preform); (2) material (PET, HDPE, PP); (3) capacity in ml and weight in grams; (4) neck finish and closure type; (5) colour and transparency; (6) food-contact compliance; (7) printing or labelling; (8) quantity and pallet configuration; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the rigid_plastic_packaging trade.",
-      "body_ar": "لكي تُقارن عروض عبوات البلاستيك الصلبة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع العبوة (زجاجة، أو برطمان، أو علبة، أو صندوق، أو قالب أولي)؛ (2) المادة (PET أو HDPE أو PP)؛ (3) السعة بالمليلتر والوزن بالغرام؛ (4) مقاس العنق ونوع الغطاء؛ (5) اللون والشفافية؛ (6) المطابقة لملامسة الغذاء؛ (7) الطباعة أو الملصقات؛ (8) الكمية وترتيب المنصات؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة rigid_plastic_packaging فقط.",
+      "body_en": "For rigid plastic packaging quotes to be compared like-for-like, every quoted line (goods) must state: (1) container type (bottle, jar, tub, crate, preform); (2) material (PET, HDPE, PP); (3) capacity in ml and weight in grams; (4) neck finish and closure type; (5) colour and transparency; (6) food-contact compliance; (7) printing or labelling; (8) quantity and pallet configuration; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the rigid_plastic_packaging trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): container type (bottle, jar, tub, crate, preform); material (PET, HDPE, PP); capacity in ml and weight in grams; neck finish and closure type; quantity and pallet configuration. Follow-up questions the answers trigger: material (PET, HDPE, PP): Recycled content brings food-contact restrictions. colour and transparency: Custom colours bring a colour MOQ. UN rating for dangerous goods: Chemicals bring the UN rating and the product's compatibility. Before a firm price: a custom shape needs a drawing or sample and a mould quotation; stock containers can be priced from the specs.",
+      "body_ar": "لكي تُقارن عروض عبوات البلاستيك الصلبة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع العبوة (زجاجة، أو برطمان، أو علبة، أو صندوق، أو قالب أولي)؛ (2) المادة (PET أو HDPE أو PP)؛ (3) السعة بالمليلتر والوزن بالغرام؛ (4) مقاس العنق ونوع الغطاء؛ (5) اللون والشفافية؛ (6) المطابقة لملامسة الغذاء؛ (7) الطباعة أو الملصقات؛ (8) الكمية وترتيب المنصات؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة rigid_plastic_packaging فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العبوة، والمادة، والسعة بالمليلتر والوزن بالغرام، وتشطيب العنق ونوع الغطاء، والكمية وترتيب المنصة. أسئلة المتابعة: المحتوى المعاد تدويره يقيد ملامسة الغذاء، والألوان الخاصة تستلزم حداً أدنى للون، والمواد الكيميائية تستلزم تصنيف الأمم المتحدة وتوافق المنتج. الشكل الخاص يحتاج رسماً أو عينة وعرض سعر للقالب.",
       "required_specs": [
         "container type (bottle, jar, tub, crate, preform)",
         "material (PET, HDPE, PP)",
@@ -19,14 +19,125 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "mould ownership",
+        "UN rating for dangerous goods"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.gso.org.sa/en/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "container type (bottle, jar, tub, crate, preform)",
+        "material (PET, HDPE, PP)",
+        "capacity in ml and weight in grams",
+        "neck finish and closure type",
+        "quantity and pallet configuration"
+      ],
+      "spec_guide": [
+        {
+          "spec": "container type (bottle, jar, tub, crate, preform)",
+          "blocking": true,
+          "why_needed_to_price": "Bottles, jars, tubs, jerry cans and crates use different moulds and machines.",
+          "uae_options": "Blow-moulded bottle, injection tub, jar, jerry can, crate, preform.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "material (PET, HDPE, PP)",
+          "blocking": true,
+          "why_needed_to_price": "Resin type and grade set the cost.",
+          "uae_options": "PET, HDPE, PP, LDPE; virgin or recycled content.",
+          "follow_up_if": "Recycled content brings food-contact restrictions."
+        },
+        {
+          "spec": "capacity in ml and weight in grams",
+          "blocking": true,
+          "why_needed_to_price": "Gram weight is the main price driver.",
+          "uae_options": "Brimful and nominal capacity; target weight.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "neck finish and closure type",
+          "blocking": true,
+          "why_needed_to_price": "Neck standard must match the closure and capping machine.",
+          "uae_options": "PCO 1881, 28/410, 38 mm, 63 mm; screw, flip-top, tamper-evident, child-resistant.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "colour and transparency",
+          "blocking": false,
+          "why_needed_to_price": "Masterbatch colours and UV blockers add cost and MOQ.",
+          "uae_options": "Natural, transparent, opaque, custom colour.",
+          "follow_up_if": "Custom colours bring a colour MOQ."
+        },
+        {
+          "spec": "food-contact compliance",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Declaration, migration tests, ECAS certificate where required.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "printing or labelling",
+          "blocking": false,
+          "why_needed_to_price": "Screen printing or in-mould labelling add cost.",
+          "uae_options": "None, screen print, IML, label by buyer.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "quantity and pallet configuration",
+          "blocking": true,
+          "why_needed_to_price": "MOQ per colour and mould utilisation set price.",
+          "uae_options": "Pieces per order; pallet pattern.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Closures and moulds are often quoted separately.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "mould ownership",
+          "blocking": false,
+          "why_needed_to_price": "A custom shape needs a new mould; who pays and owns it matters.",
+          "uae_options": "Stock mould, custom mould paid by buyer, amortised.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UN rating for dangerous goods",
+          "blocking": false,
+          "why_needed_to_price": "Containers for hazardous products need UN-tested designs.",
+          "uae_options": "UN 3H1 jerry can, 1H1 drum.",
+          "follow_up_if": "Chemicals bring the UN rating and the product's compatibility."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "a custom shape needs a drawing or sample and a mould quotation; stock containers can be priced from the specs."
     },
     {
       "id": "rigid_plastic_packaging:uae-standards-and-approvals",
@@ -86,6 +197,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "rigid_plastic_packaging:authority-approvals",
+      "topic": "Rigid plastic packaging: food-contact, single-use rules and UN containers",
+      "topic_ar": "العبوات البلاستيكية الصلبة: ملامسة الغذاء وقواعد الاستخدام الواحد وعبوات الأمم المتحدة",
+      "kind": "authority_approval",
+      "body_en": "Food-contact packaging is the regulated case. Search results report that food-contact materials are certified under MoIAT's conformity scheme (ECAS) against Cabinet Resolution No. 20 of 2015, for plastic, glass, ceramic, silicone, paper, metal and wood materials, through a MoIAT-notified body, with the certificate obtained by the manufacturer or importer, not the buyer; a 2023 MoIAT workshop on recycled plastic food packaging described quality-system documentation and migration tests at an accredited UAE laboratory. Dubai Municipality and ADAFSA in Abu Dhabi inspect food businesses, including their packaging. Single-use products are restricted by federal Ministerial Resolution No. 380 of 2022 (single-use plastic shopping bags from 1 January 2024; cups and lids, cutlery, plates, straws, stirrers and polystyrene food containers from 1 January 2026, as reported) and in Dubai by Executive Council Resolution No. 124 of 2023, with exemptions reported for some recycled and exported products. Containers for dangerous goods must be UN-specification packaging, tested and marked by the manufacturer for the product and packing group. ",
+      "body_ar": "التغليف الملامس للغذاء هو الحالة الخاضعة للتنظيم. إذ تفيد نتائج البحث بأن المواد الملامسة للغذاء تُعتمد ضمن نظام المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وفق قرار مجلس الوزراء رقم 20 لسنة 2015، للمواد البلاستيكية والزجاجية والخزفية والسيليكونية والورقية والمعدنية والخشبية، عبر جهة مخطرة لدى الوزارة، ويحصل على الشهادة المصنع أو المستورد لا المشتري؛ وتناولت ورشة عمل للوزارة عام 2023 حول تغليف الأغذية من البلاستيك المعاد تدويره توثيق نظام الجودة واختبارات الانتقال في مختبر إماراتي معتمد. وتفتش بلدية دبي وهيئة أبوظبي للزراعة والسلامة الغذائية منشآت الأغذية بما في ذلك تغليفها. وتقيّد المنتجات أحادية الاستخدام بالقرار الوزاري الاتحادي رقم 380 لسنة 2022 (أكياس التسوق البلاستيكية أحادية الاستخدام من 1 يناير 2024، والأكواب وأغطيتها وأدوات المائدة والأطباق والمصاصات وأعواد التحريك وعلب الطعام من البوليسترين من 1 يناير 2026 وفق ما نُشر)، وفي دبي بقرار المجلس التنفيذي رقم 124 لسنة 2023، مع استثناءات منشورة لبعض المنتجات المعاد تدويرها والمعدة للتصدير. وعبوات البضائع الخطرة يجب أن تكون بمواصفة الأمم المتحدة، مختبرة ومعلّمة من المصنع للمنتج ومجموعة التعبئة.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
+        "https://leap.unep.org/en/countries/ae/national-legislation/ministerial-resolution-no-380-2022-regarding-regulating-use",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2023/Executive%20Council%20Resolution%20No.%20(124)%20of%202023%20Regulating%20the%20Use%20of%20Single-use%20Products.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www); leap.unep.org: not in the allowed network; dlp.dubai.gov.ae: not in the allowed network."
+    },
+    {
+      "id": "rigid_plastic_packaging:quote-red-flags",
+      "topic": "Red flags in rigid plastic packaging quotations",
+      "topic_ar": "علامات التحذير في عروض العبوات البلاستيكية الصلبة",
+      "kind": "quote_red_flag",
+      "body_en": "Check gram weight: a lighter bottle at a lower price may fail drop or top-load tests. Watch for recycled resin where virgin was asked, a different neck finish that does not fit the buyer's closures, closures not included, colour MOQ hidden, mould cost presented later, UN-rated claims without the mark, and capacity stated brimful vs nominal.",
+      "body_ar": "افحص الوزن بالغرام: فالعبوة الأخف بسعر أقل قد تفشل في اختبارات السقوط أو الحمل العلوي. وانتبه إلى: راتنج معاد تدويره حيث طُلب البكر، وتشطيب عنق مختلف لا يناسب أغطية المشتري، وعدم شمول الأغطية، وإخفاء الحد الأدنى للون، وتقديم كلفة القالب لاحقاً، وادعاء تصنيف الأمم المتحدة دون العلامة، والخلط بين السعة الممتلئة والسعة الاسمية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "rigid_plastic_packaging:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying rigid plastic packaging",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء العبوات البلاستيكية الصلبة",
+      "kind": "buyer_mistake",
+      "body_en": "Choosing a bottle without checking it runs on the filling and capping line; ordering a custom colour for a small run; buying containers and closures from different makers without a fit test; and using non-UN containers for chemicals. Ask for a sample on the line before a large order.",
+      "body_ar": "اختيار عبوة دون التحقق من عملها على خط التعبئة والإغلاق؛ وطلب لون خاص لكمية صغيرة؛ وشراء العبوات والأغطية من صانعين مختلفين دون اختبار ملاءمة؛ واستخدام عبوات غير معتمدة من الأمم المتحدة للمواد الكيميائية. لذا تُطلب عينة على الخط قبل الطلب الكبير.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "rigid_plastic_packaging:price-drivers",
+      "topic": "What legitimately moves rigid plastic packaging prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار العبوات البلاستيكية الصلبة",
+      "kind": "price_driver",
+      "body_en": "Resin price and gram weight, virgin vs recycled resin, colour, mould (stock vs custom), decoration, closures, UN testing, quantity and machine utilisation, and freight for bulky empty containers.",
+      "body_ar": "سعر الراتنج والوزن بالغرام، والراتنج البكر أو المعاد تدويره، واللون، والقالب (مخزون أو خاص)، والزخرفة، والأغطية، واختبارات الأمم المتحدة، والكمية واستغلال الآلة، وشحن العبوات الفارغة كبيرة الحجم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "rigid_plastic_packaging:compare-quotes",
+      "topic": "Comparing rigid plastic packaging quotes like-for-like",
+      "topic_ar": "مقارنة عروض العبوات البلاستيكية الصلبة على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare the same capacity, resin, gram weight, neck and closure, delivered; add mould cost over the expected volume. Check compliance documents and line trial results. Recommend the three compliant offers with the lowest cost per filled-ready unit.",
+      "body_ar": "قارن السعة والراتنج والوزن والعنق والغطاء نفسها، مسلّمة، وأضف كلفة القالب على الحجم المتوقع. وتحقق من وثائق الامتثال ونتائج تجربة الخط. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة للوحدة الجاهزة للتعبئة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -128,7 +310,8 @@
     "removed": [],
     "still_unverified": [
       "rigid_plastic_packaging:spec-checklist",
-      "rigid_plastic_packaging:uae-standards-and-approvals"
+      "rigid_plastic_packaging:uae-standards-and-approvals",
+      "rigid_plastic_packaging:authority-approvals"
     ],
     "added": [
       "rigid_plastic_packaging:spec-checklist",
@@ -159,6 +342,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "rigid_plastic_packaging:quote-red-flags",
+      "rigid_plastic_packaging:buyer-mistakes",
+      "rigid_plastic_packaging:price-drivers",
+      "rigid_plastic_packaging:compare-quotes"
+    ]
   }
 }

@@ -5,8 +5,8 @@
       "id": "vehicle_leasing:spec-checklist",
       "topic": "Vehicle leasing - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For vehicle leasing quotes to be compared like-for-like, every quoted line (services) must state: (1) vehicle make, model and year; (2) number of vehicles; (3) lease term in months; (4) annual mileage allowance and excess rate; (5) maintenance, registration and insurance included; (6) replacement vehicle; (7) Salik and fines handling; (8) early termination terms; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the vehicle_leasing trade.",
-      "body_ar": "لكي تُقارن عروض تأجير المركبات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) ماركة المركبة وطرازها وسنة الصنع؛ (2) عدد المركبات؛ (3) مدة الإيجار بالأشهر؛ (4) الحد السنوي للمسافة وسعر الزيادة؛ (5) الصيانة والتسجيل والتأمين مشمولة؛ (6) المركبة البديلة؛ (7) التعامل مع سالك والمخالفات؛ (8) شروط الإنهاء المبكر؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة vehicle_leasing فقط.",
+      "body_en": "For vehicle leasing quotes to be compared like-for-like, every quoted line (services) must state: (1) vehicle make, model and year; (2) number of vehicles; (3) lease term in months; (4) annual mileage allowance and excess rate; (5) maintenance, registration and insurance included; (6) replacement vehicle; (7) Salik and fines handling; (8) early termination terms; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the vehicle_leasing trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): vehicle make, model and year; number of vehicles; lease term in months; annual mileage allowance and excess rate; maintenance, registration and insurance included; Salik and fines handling. Follow-up questions the answers trigger: maintenance, registration and insurance included: Ask the insurance excess and who pays it. Salik and fines handling: Ask whether Salik and Darb (Abu Dhabi tolls) and parking are recharged and with what admin fee. driver included: With driver brings the driver's permit and hours. Before a firm price: none; a firm monthly rate is possible from the specs.",
+      "body_ar": "لكي تُقارن عروض تأجير المركبات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) ماركة المركبة وطرازها وسنة الصنع؛ (2) عدد المركبات؛ (3) مدة الإيجار بالأشهر؛ (4) الحد السنوي للمسافة وسعر الزيادة؛ (5) الصيانة والتسجيل والتأمين مشمولة؛ (6) المركبة البديلة؛ (7) التعامل مع سالك والمخالفات؛ (8) شروط الإنهاء المبكر؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة vehicle_leasing فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: ماركة المركبة وطرازها وسنتها، وعدد المركبات، ومدة التأجير بالأشهر، والمسافة السنوية المسموحة وسعر الكيلومتر الزائد، وشمول الصيانة والتسجيل والتأمين، ومعالجة سالك والمخالفات. أسئلة المتابعة: يُسأل عن قيمة التحمل في التأمين ومن يدفعها، وهل تُعاد فوترة رسوم سالك ودرب والمواقف وبأي رسوم إدارية، والتأجير مع سائق يستلزم تصريح السائق وساعات العمل.",
       "required_specs": [
         "vehicle make, model and year",
         "number of vehicles",
@@ -18,13 +18,110 @@
         "early termination terms",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "driver included"
       ],
       "sources": [
         "https://www.rta.ae/wps/portal/rta/ae/home"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "vehicle make, model and year",
+        "number of vehicles",
+        "lease term in months",
+        "annual mileage allowance and excess rate",
+        "maintenance, registration and insurance included",
+        "Salik and fines handling"
+      ],
+      "spec_guide": [
+        {
+          "spec": "vehicle make, model and year",
+          "blocking": true,
+          "why_needed_to_price": "Vehicle class sets the monthly rate.",
+          "uae_options": "Named model or class; new or used; model year.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "number of vehicles",
+          "blocking": true,
+          "why_needed_to_price": "Fleet size changes rate.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lease term in months",
+          "blocking": true,
+          "why_needed_to_price": "Term sets depreciation per month.",
+          "uae_options": "12, 24, 36, 48 months.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "annual mileage allowance and excess rate",
+          "blocking": true,
+          "why_needed_to_price": "Mileage drives depreciation and maintenance.",
+          "uae_options": "km per year; rate per excess km.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "maintenance, registration and insurance included",
+          "blocking": true,
+          "why_needed_to_price": "Full-service vs dry lease differ greatly.",
+          "uae_options": "Full maintenance, registration, comprehensive insurance, tyres, replacement.",
+          "follow_up_if": "Ask the insurance excess and who pays it."
+        },
+        {
+          "spec": "replacement vehicle",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Like-for-like within hours; class down.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Salik and fines handling",
+          "blocking": true,
+          "why_needed_to_price": "Salik tolls and traffic fines must be recharged with admin fees or included.",
+          "uae_options": "Recharged at cost plus fee, included cap, buyer's account.",
+          "follow_up_if": "Ask whether Salik and Darb (Abu Dhabi tolls) and parking are recharged and with what admin fee."
+        },
+        {
+          "spec": "early termination terms",
+          "blocking": false,
+          "why_needed_to_price": "Early termination penalties can be large.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "service levels and response times",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "driver included",
+          "blocking": false,
+          "why_needed_to_price": "Chauffeur service turns a lease into a transport service with different rules.",
+          "uae_options": "Self-drive or with driver.",
+          "follow_up_if": "With driver brings the driver's permit and hours."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": null
     },
     {
       "id": "vehicle_leasing:uae-standards-and-approvals",
@@ -81,6 +178,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "vehicle_leasing:authority-approvals",
+      "topic": "Vehicle leasing: rental licensing, tolls and fines by emirate",
+      "topic_ar": "تأجير المركبات: ترخيص التأجير والرسوم والمخالفات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "In Dubai, road transport and vehicle rental activities are regulated by Executive Council Resolution No. 47 of 2017 (as amended in 2022) and RTA administrative resolutions (Administrative Resolution No. 706 of 2019 is on the Dubai legislation portal); a rental or leasing company needs the RTA activity permit besides its trade licence, vehicles must be registered to the licensed company, and search results report the company may not keep customers' passports or ID cards. Salik (Dubai) and Darb (Abu Dhabi) tolls and traffic fines accrue to the registered vehicle and are recharged under the contract. Abu Dhabi's rules for leasing companies (ITC) were not established by search. The leasing company holds the permits.",
+      "body_ar": "في دبي تنظم أنشطة النقل البري وتأجير المركبات بقرار المجلس التنفيذي رقم 47 لسنة 2017 (المعدل عام 2022) والقرارات الإدارية لهيئة الطرق والمواصلات (والقرار الإداري رقم 706 لسنة 2019 منشور على بوابة تشريعات دبي)؛ وتحتاج شركة التأجير تصريح النشاط من الهيئة إلى جانب رخصتها التجارية، ويجب تسجيل المركبات باسم الشركة المرخصة، وتفيد نتائج البحث بأن الشركة لا يجوز لها الاحتفاظ بجوازات العملاء أو هوياتهم. وتُستحق رسوم سالك (دبي) ودرب (أبوظبي) والمخالفات المرورية على المركبة المسجلة وتُعاد فوترتها وفق العقد. ولم تثبت بالبحث قواعد مركز النقل المتكامل في أبوظبي لشركات التأجير. وتحمل شركة التأجير التصاريح.",
+      "sources": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2019/Administrative%20Resolution%20No.%20(706)%20of%202019.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — dlp.dubai.gov.ae: not in the allowed network."
+    },
+    {
+      "id": "vehicle_leasing:quote-red-flags",
+      "topic": "Red flags in vehicle leasing quotations",
+      "topic_ar": "علامات التحذير في عروض تأجير المركبات",
+      "kind": "quote_red_flag",
+      "body_en": "Check what the monthly rate includes: insurance with a high excess, maintenance excluding tyres or batteries, registration renewal charged separately, a low mileage cap with a high excess rate, Salik and fines recharged with large admin fees, replacement vehicles only after days, older model years than requested, early-termination penalties of several months' rent, and damage charges at return without a clear inspection standard.",
+      "body_ar": "تحقق مما يشمله السعر الشهري: تأمين بقيمة تحمل مرتفعة، وصيانة تستثني الإطارات أو البطاريات، وتجديد التسجيل مسعّر منفصلاً، وسقف مسافة منخفض بسعر مرتفع للكيلومتر الزائد، وإعادة فوترة سالك والمخالفات برسوم إدارية كبيرة، ومركبات بديلة بعد أيام فقط، وسنوات طرازات أقدم من المطلوبة، وغرامات إنهاء مبكر تعادل إيجار عدة أشهر، ورسوم أضرار عند الإرجاع دون معيار فحص واضح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "vehicle_leasing:buyer-mistakes",
+      "topic": "Common buyer mistakes when leasing vehicles",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند استئجار المركبات",
+      "kind": "buyer_mistake",
+      "body_en": "Comparing monthly rates without the same mileage, insurance and maintenance scope; underestimating mileage; ignoring early-termination terms when headcount may change; and not agreeing the return-condition standard. Ask how many km per year, who drives, where, and for how long.",
+      "body_ar": "مقارنة الأسعار الشهرية دون توحيد المسافة والتأمين ونطاق الصيانة؛ والتقليل من تقدير المسافة؛ وتجاهل شروط الإنهاء المبكر حين قد يتغير عدد الموظفين؛ وعدم الاتفاق على معيار حالة الإرجاع. لذا يُسأل عن الكيلومترات السنوية ومن يقود وأين ولكم من الوقت.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "vehicle_leasing:price-drivers",
+      "topic": "What legitimately moves leasing prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار التأجير",
+      "kind": "price_driver",
+      "body_en": "Vehicle price and depreciation, lease term, mileage, maintenance and insurance scope, residual value, interest rates, fleet size, replacement-vehicle commitment, and the lessor's admin fees.",
+      "body_ar": "سعر المركبة واستهلاكها، ومدة التأجير، والمسافة، ونطاق الصيانة والتأمين، والقيمة المتبقية، وأسعار الفائدة، وحجم الأسطول، والالتزام بالمركبة البديلة، والرسوم الإدارية لدى المؤجر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "vehicle_leasing:compare-quotes",
+      "topic": "Comparing leasing quotes on total contract cost",
+      "topic_ar": "مقارنة عروض التأجير على أساس التكلفة الإجمالية للعقد",
+      "kind": "comparison",
+      "body_en": "Compute total contract cost: monthly rate times term, plus expected excess mileage, insurance excess exposure, recharged Salik and fines admin fees, and likely end-of-lease charges. Compare like-for-like vehicles and service scope. Recommend the three with the lowest total contract cost and the strongest replacement commitment.",
+      "body_ar": "احسب التكلفة الإجمالية للعقد: السعر الشهري مضروباً في المدة، مضافاً إليه المسافة الزائدة المتوقعة، والتعرض لقيمة التحمل في التأمين، والرسوم الإدارية لإعادة فوترة سالك والمخالفات، ورسوم نهاية العقد المحتملة. وقارن مركبات ونطاق خدمة متكافئة. ويوصى بأفضل ثلاثة عروض بأقل تكلفة إجمالية وأقوى التزام بالمركبة البديلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -123,7 +288,8 @@
     "removed": [],
     "still_unverified": [
       "vehicle_leasing:spec-checklist",
-      "vehicle_leasing:uae-standards-and-approvals"
+      "vehicle_leasing:uae-standards-and-approvals",
+      "vehicle_leasing:authority-approvals"
     ],
     "added": [
       "vehicle_leasing:spec-checklist",
@@ -154,6 +320,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "vehicle_leasing:quote-red-flags",
+      "vehicle_leasing:buyer-mistakes",
+      "vehicle_leasing:price-drivers",
+      "vehicle_leasing:compare-quotes"
+    ]
   }
 }

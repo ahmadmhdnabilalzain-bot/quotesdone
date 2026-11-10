@@ -26,8 +26,8 @@
       "topic": "Paper bags & carrier bags: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الأكياس الورقية وأكياس التسوق: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This explains who makes paper bags for UAE buyers: local converters and sack plants across the emirates, paper from mills such as Mondi and Billerud, and imports from China, India and Turkey. Local converters in Sharjah, Ajman, UAQ, RAK, Dubai (Al Quoz, DIP) and Abu Dhabi make paper bags, and multiwall sack plants serve cement producers; none was checked by name. Paper sources: Mondi, Billerud, Smurfit Westrock, Segezha, plus Asian mills. Finished bags are also imported from China, India and Turkey.",
-      "body_ar": "تُصنع الأكياس الورقية لمشتري الإمارات لدى محولين محليين ومصانع أكياس في مختلف الإمارات، من ورق مصانع مثل Mondi وBillerud، إلى جانب الواردات من الصين والهند وتركيا. يصنع محولون محليون في الشارقة وعجمان وأم القيوين ورأس الخيمة ودبي (القوز ومجمع دبي للاستثمار) وأبوظبي الأكياس الورقية، وتخدم مصانع الأكياس متعددة الطبقات منتجي الإسمنت، ولم يُتحقق من أي منهم بالاسم. مصادر الورق: Mondi، Billerud، Smurfit Westrock، Segezha، إضافة إلى مصانع آسيوية. وتُستورد أكياس جاهزة من الصين والهند وتركيا.",
+      "body_en": "This explains who makes paper bags for UAE buyers: local converters and sack plants across the emirates, paper from mills such as Mondi and Billerud, and imports from China, India and Turkey. Local converters in Sharjah, Ajman, UAQ, RAK, Dubai (Al Quoz, DIP) and Abu Dhabi make paper bags, and multiwall sack plants serve cement producers; none was checked by name. Paper sources: Mondi, Billerud, Smurfit Westrock, Segezha, plus Asian mills. Finished bags are also imported from China, India and Turkey.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Mondi = a premium British brand; Billerud = a premium Swedish brand; Smurfit Westrock = a premium Irish brand; Segezha = a mid-tier Russian brand.",
+      "body_ar": "تُصنع الأكياس الورقية لمشتري الإمارات لدى محولين محليين ومصانع أكياس في مختلف الإمارات، من ورق مصانع مثل Mondi وBillerud، إلى جانب الواردات من الصين والهند وتركيا. يصنع محولون محليون في الشارقة وعجمان وأم القيوين ورأس الخيمة ودبي (القوز ومجمع دبي للاستثمار) وأبوظبي الأكياس الورقية، وتخدم مصانع الأكياس متعددة الطبقات منتجي الإسمنت، ولم يُتحقق من أي منهم بالاسم. مصادر الورق: Mondi، Billerud، Smurfit Westrock، Segezha، إضافة إلى مصانع آسيوية. وتُستورد أكياس جاهزة من الصين والهند وتركيا.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Mondi = علامة بريطانية من الفئة الممتازة؛ Billerud = علامة سويدية من الفئة الممتازة؛ Smurfit Westrock = علامة أيرلندية من الفئة الممتازة؛ Segezha = علامة روسية من الفئة المتوسطة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
         "https://www.mondigroup.com",
@@ -36,7 +36,37 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: UAE ban on single-use plastic bags since 1 January 2024 -> confirmed (secondary source); emirate-level dates and later phases not checked | Mondi sack and kraft papers -> confirmed. Not checked: Exact effective dates of each emirate's bag rules and local converter names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE ban on single-use plastic bags since 1 January 2024 -> confirmed (secondary source); emirate-level dates and later phases not checked | Mondi sack and kraft papers -> confirmed. Not checked: Exact effective dates of each emirate's bag rules and local converter names were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Mondi",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Billerud",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Smurfit Westrock",
+          "origin": "Ireland",
+          "tier": "premium",
+          "generic_en": "a premium Irish brand",
+          "generic_ar": "علامة أيرلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Segezha",
+          "origin": "Russia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Russian brand",
+          "generic_ar": "علامة روسية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "paper_bags:uae-market-sizes",

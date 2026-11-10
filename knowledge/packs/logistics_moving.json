@@ -5,8 +5,8 @@
       "id": "logistics_moving:spec-checklist",
       "topic": "Logistics and moving - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For logistics and moving (trade code logistics_moving only), every quoted line must state: Goods description and volume; Origin and destination; Vehicle type and number; Packing and crating scope; Transit insurance; Customs clearance scope; Move date and window; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الخدمات اللوجستية والنقل (رمز النشاط logistics_moving فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: وصف البضائع وحجمها؛ نقطة الانطلاق والوجهة؛ نوع المركبات وعددها؛ نطاق التغليف والتصنيد؛ تأمين النقل؛ نطاق التخليص الجمركي؛ تاريخ النقل والفترة الزمنية؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For logistics and moving (trade code logistics_moving only), every quoted line must state: Goods description and volume; Origin and destination; Vehicle type and number; Packing and crating scope; Transit insurance; Customs clearance scope; Move date and window; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Goods description and volume; Origin and destination; Vehicle type and number; Customs clearance scope; Move date and window; Pricing basis; Incoterm. Follow-up questions the answers trigger: Goods description and volume: Dangerous goods bring UN number and class; project cargo brings dimensions and lifting points. Origin and destination: Cross-border trucking brings border documents and transit time. Vehicle type and number: Oversize loads bring police escort and road permits. Transit insurance: Ask the cargo value. Customs clearance scope: Free-zone to mainland moves bring a customs declaration and duty. Before a firm price: project cargo and oversize loads need a route survey and the cargo drawing; recurring contracts need the volume forecast.",
+      "body_ar": "في نشاط الخدمات اللوجستية والنقل (رمز النشاط logistics_moving فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: وصف البضائع وحجمها؛ نقطة الانطلاق والوجهة؛ نوع المركبات وعددها؛ نطاق التغليف والتصنيد؛ تأمين النقل؛ نطاق التخليص الجمركي؛ تاريخ النقل والفترة الزمنية؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: وصف البضائع وحجمها، والمنشأ والوجهة، ونوع المركبة وعددها، ونطاق التخليص الجمركي، وموعد النقل ونافذته، وأساس التسعير، وشرط التجارة. أسئلة المتابعة: البضائع الخطرة تستلزم رقم الأمم المتحدة والفئة، والشحنات المشروعية تستلزم الأبعاد ونقاط الرفع، والنقل البري عبر الحدود يستلزم وثائق المنافذ، والأحمال الكبيرة تستلزم مرافقة الشرطة وتصاريح الطرق، والنقل من منطقة حرة إلى البر الرئيسي يستلزم بياناً جمركياً ورسوماً، ويُسأل عن قيمة البضاعة. الشحنات المشروعية تحتاج مسحاً للمسار ورسم الحمولة.",
       "required_specs": [
         "Goods description and volume",
         "Origin and destination",
@@ -20,13 +20,125 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "Incoterm"
       ],
       "sources": [
         "https://uaelegislation.gov.ae/en"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Goods description and volume",
+        "Origin and destination",
+        "Vehicle type and number",
+        "Customs clearance scope",
+        "Move date and window",
+        "Pricing basis",
+        "Incoterm"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Goods description and volume",
+          "blocking": true,
+          "why_needed_to_price": "Volume, weight and nature decide vehicle, container and handling.",
+          "uae_options": "General cargo, palletised, project cargo, dangerous goods, temperature-controlled; CBM and kg.",
+          "follow_up_if": "Dangerous goods bring UN number and class; project cargo brings dimensions and lifting points."
+        },
+        {
+          "spec": "Origin and destination",
+          "blocking": true,
+          "why_needed_to_price": "Lanes, distance and borders set the rate.",
+          "uae_options": "Within an emirate, inter-emirate, GCC cross-border, sea or air international.",
+          "follow_up_if": "Cross-border trucking brings border documents and transit time."
+        },
+        {
+          "spec": "Vehicle type and number",
+          "blocking": true,
+          "why_needed_to_price": "Pickup, 3-tonne, 7-tonne, trailer, low-bed and reefer rates differ.",
+          "uae_options": "Pickup, 1-3 t, 7-10 t, 40 ft flatbed/curtain trailer, low-bed, reefer.",
+          "follow_up_if": "Oversize loads bring police escort and road permits."
+        },
+        {
+          "spec": "Packing and crating scope",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "None, palletising, crating, export packing.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Transit insurance",
+          "blocking": false,
+          "why_needed_to_price": "Insurance on cargo value is a separate cost.",
+          "uae_options": "Carrier's limited liability, all-risk cargo insurance.",
+          "follow_up_if": "Ask the cargo value."
+        },
+        {
+          "spec": "Customs clearance scope",
+          "blocking": true,
+          "why_needed_to_price": "Clearance, duty, deposits and documentation are often outside the freight rate.",
+          "uae_options": "Not needed, clearance by provider, by buyer's broker; duty paid by whom.",
+          "follow_up_if": "Free-zone to mainland moves bring a customs declaration and duty."
+        },
+        {
+          "spec": "Move date and window",
+          "blocking": true,
+          "why_needed_to_price": "Urgency and loading windows change availability and price.",
+          "uae_options": "Date, time window, night loading.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Loading, offloading, tail-lift, labour.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Freight forwarder licence, customs broker code, DG transport licence.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Service level and response time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Tracking, POD, damage claims process.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Duration and schedule",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "One-off, recurring, contract.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Pricing basis",
+          "blocking": true,
+          "why_needed_to_price": "Per trip, per CBM, per kg, per pallet and per container are not comparable without conversion.",
+          "uae_options": "Per trip, per CBM/kg (chargeable weight for air), per pallet, per container.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Waiting time, port charges, THC, demurrage and detention are frequent exclusions.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Incoterm",
+          "blocking": true,
+          "why_needed_to_price": "The Incoterm decides which charges the provider quotes.",
+          "uae_options": "EXW, FCA, FOB, CFR/CIF, DAP, DDP.",
+          "follow_up_if": ""
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "project cargo and oversize loads need a route survey and the cargo drawing; recurring contracts need the volume forecast."
     },
     {
       "id": "logistics_moving:uae-standards-and-approvals",
@@ -84,6 +196,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "logistics_moving:authority-approvals",
+      "topic": "Logistics: customs, dangerous goods and road permits by emirate",
+      "topic_ar": "الخدمات اللوجستية: الجمارك والبضائع الخطرة وتصاريح الطرق حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Customs clearance is done through each emirate's customs (Dubai Customs, Abu Dhabi Customs, Sharjah and others) by licensed clearing agents; goods moving from a free zone to the mainland are declared and pay duty at that point, and restricted goods need the competent authority's prior approval (Abu Dhabi Customs publishes the restricted list). Vehicles carrying dangerous goods on Dubai roads are licensed through the RTA, which has an agreement with Dubai Civil Defence; hazardous-waste vehicles need a Dubai Municipality permit and RASID tracking. Heavy and oversize vehicles must respect federal weight and dimension limits (the Ministry of Energy and Infrastructure published the table for federal roads in 2024) and need special permits when exceeding them. The provider holds the licences; the buyer supplies accurate cargo data.",
+      "body_ar": "يتم التخليص الجمركي عبر جمارك كل إمارة (جمارك دبي وجمارك أبوظبي والشارقة وغيرها) بواسطة وكلاء تخليص مرخصين؛ والبضائع المنقولة من منطقة حرة إلى البر الرئيسي يُصرح عنها وتدفع رسومها عند ذلك، والبضائع المقيدة تحتاج موافقة مسبقة من الجهة المختصة (وتنشر جمارك أبوظبي قائمة المقيدات). وتُرخص المركبات الناقلة للبضائع الخطرة على طرق دبي عبر هيئة الطرق والمواصلات التي أبرمت اتفاقية مع الدفاع المدني بدبي، وتحتاج مركبات النفايات الخطرة تصريحاً من بلدية دبي وتتبعاً بنظام راصد. ويجب أن تلتزم المركبات الثقيلة والأحمال الكبيرة بحدود الأوزان والأبعاد الاتحادية (نشرت وزارة الطاقة والبنية التحتية جدولها للطرق الاتحادية عام 2024) وتحتاج تصاريح خاصة عند تجاوزها. ويحمل مقدم الخدمة الرخص، ويقدم المشتري بيانات دقيقة عن البضاعة.",
+      "sources": [
+        "https://www.adcustoms.gov.ae/Policies-and-Regulations/Restricted-Banned-Commodities",
+        "https://www.dm.gov.ae/wp-content/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf",
+        "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.adcustoms.gov.ae: not in the allowed network; www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses; www.moei.gov.ae: not in the allowed network."
+    },
+    {
+      "id": "logistics_moving:quote-red-flags",
+      "topic": "Red flags in logistics quotations",
+      "topic_ar": "علامات التحذير في عروض الخدمات اللوجستية",
+      "kind": "quote_red_flag",
+      "body_en": "Check what the rate includes: a low trucking rate with loading, offloading, waiting time, tolls and gate passes excluded; sea freight without THC, documentation, port storage, demurrage and detention; air rates on actual instead of chargeable weight; customs duty and deposits \"at actuals\" without estimate; carrier liability only (no cargo insurance); a smaller vehicle than the volume needs; and validity tied to fuel surcharges.",
+      "body_ar": "تحقق مما يشمله السعر: سعر نقل بري منخفض مع استثناء التحميل والتنزيل ووقت الانتظار والرسوم وتصاريح البوابات؛ وشحن بحري دون رسوم المناولة والوثائق والتخزين في الميناء ورسوم التأخير؛ وأسعار شحن جوي على الوزن الفعلي بدل الوزن المحتسب؛ ورسوم جمركية وتأمينات \"حسب الفعلي\" دون تقدير؛ ومسؤولية الناقل المحدودة فقط دون تأمين البضاعة؛ ومركبة أصغر مما يحتاجه الحجم؛ وصلاحية مرتبطة برسوم الوقود الإضافية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "logistics_moving:buyer-mistakes",
+      "topic": "Common buyer mistakes in logistics",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الخدمات اللوجستية",
+      "kind": "buyer_mistake",
+      "body_en": "Giving weight without dimensions (so volume pricing surprises later); not declaring dangerous goods; forgetting that free-zone to mainland moves need customs; comparing EXW and DDP offers; and not insuring cargo. Ask what moves, its size and weight, from where to where, by when, and who clears customs.",
+      "body_ar": "إعطاء الوزن دون الأبعاد (فتظهر مفاجآت التسعير بالحجم لاحقاً)؛ وعدم التصريح بالبضائع الخطرة؛ ونسيان أن النقل من المنطقة الحرة إلى البر الرئيسي يحتاج تخليصاً جمركياً؛ ومقارنة عروض التسليم من المصنع بعروض التسليم شاملة الرسوم؛ وعدم تأمين البضاعة. لذا يُسأل عما يُنقل ومقاسه ووزنه ومن أين إلى أين ومتى ومن يتولى التخليص.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "logistics_moving:price-drivers",
+      "topic": "What legitimately moves logistics prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الخدمات اللوجستية",
+      "kind": "price_driver",
+      "body_en": "Distance and lane, vehicle or container type, chargeable weight or volume, fuel prices, special handling (DG, reefer, oversize), customs and port charges, waiting and night work, insurance, seasonality and space availability, and contract volume.",
+      "body_ar": "المسافة والمسار، ونوع المركبة أو الحاوية، والوزن أو الحجم المحتسب، وأسعار الوقود، والمناولة الخاصة (البضائع الخطرة والتبريد والأحمال الكبيرة)، ورسوم الجمارك والموانئ، والانتظار والعمل الليلي، والتأمين، والموسمية وتوفر المساحة، وحجم العقد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "logistics_moving:compare-quotes",
+      "topic": "Comparing logistics quotes on door-to-door cost",
+      "topic_ar": "مقارنة عروض الخدمات اللوجستية على أساس التكلفة من الباب إلى الباب",
+      "kind": "comparison",
+      "body_en": "Rebuild every offer as a door-to-door total under the same Incoterm: freight, origin and destination charges, customs and duty, insurance, and likely waiting or storage. Compare transit time and reliability, tracking and claims handling. Recommend the three with the lowest total landed cost that meet the date.",
+      "body_ar": "أعد بناء كل عرض بوصفه تكلفة إجمالية من الباب إلى الباب وفق شرط التجارة نفسه: الشحن ورسوم المنشأ والوجهة والجمارك والرسوم والتأمين والانتظار أو التخزين المحتمل. وقارن مدة العبور والموثوقية والتتبع ومعالجة المطالبات. ويوصى بأفضل ثلاثة عروض بأقل تكلفة إجمالية واصلة تلتزم بالموعد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +308,8 @@
     "removed": [],
     "still_unverified": [
       "logistics_moving:spec-checklist",
-      "logistics_moving:uae-standards-and-approvals"
+      "logistics_moving:uae-standards-and-approvals",
+      "logistics_moving:authority-approvals"
     ],
     "added": [
       "logistics_moving:spec-checklist",
@@ -157,6 +340,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "logistics_moving:quote-red-flags",
+      "logistics_moving:buyer-mistakes",
+      "logistics_moving:price-drivers",
+      "logistics_moving:compare-quotes"
+    ]
   }
 }

@@ -28,8 +28,8 @@
       "topic": "Industrial gases: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الغازات الصناعية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists industrial gas suppliers in the UAE, such as Gulf Cryo, Emirates Industrial Gases and Linde, plus refrigerant brands and on-site generator makers. Suppliers and brands: Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, Air Products, Linde, ADNOC Gas, Brothers Gas, Honeywell, Chemours, Daikin, Arkema, Atlas Copco, Parker, Inmatec. The first seven supply gases in the UAE, and Gulf Cryo is headquartered in Dubai. Honeywell, Chemours, Daikin and Arkema are refrigerant brands, and Atlas Copco, Parker and Inmatec make on-site generators. HFC refrigerant imports need MOCCAE registration, a licence and annual reporting.",
-      "body_ar": "من موردي الغازات الصناعية في الإمارات Gulf Cryo وEmirates Industrial Gases وLinde، إضافة إلى علامات غازات التبريد ومصنعي مولدات الغاز في الموقع. الموردون والعلامات: Gulf Cryo، Emirates Industrial Gases، Dubai Industrial Gases، Air Products، Linde، ADNOC Gas، Brothers Gas، Honeywell، Chemours، Daikin، Arkema، Atlas Copco، Parker، Inmatec. والسبعة الأوائل موردو غازات في الإمارات، ومقر Gulf Cryo في دبي؛ وHoneywell وChemours وDaikin وArkema علامات غازات تبريد؛ وAtlas Copco وParker وInmatec لمولدات الموقع. ويحتاج استيراد غازات التبريد HFC تسجيلاً لدى وزارة التغير المناخي والبيئة وترخيصاً وتقارير سنوية.",
+      "body_en": "This entry lists industrial gas suppliers in the UAE, such as Gulf Cryo, Emirates Industrial Gases and Linde, plus refrigerant brands and on-site generator makers. Suppliers and brands: Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, Air Products, Linde, ADNOC Gas, Brothers Gas, Honeywell, Chemours, Daikin, Arkema, Atlas Copco, Parker, Inmatec. The first seven supply gases in the UAE, and Gulf Cryo is headquartered in Dubai. Honeywell, Chemours, Daikin and Arkema are refrigerant brands, and Atlas Copco, Parker and Inmatec make on-site generators. HFC refrigerant imports need MOCCAE registration, a licence and annual reporting.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Gulf Cryo = a mid-tier Kuwaiti supplier; Emirates Industrial Gases = a mid-tier UAE supplier; Dubai Industrial Gases = a mid-tier UAE supplier; Air Products = a premium American supplier; Linde = a premium German supplier; ADNOC Gas = a premium UAE supplier; Brothers Gas = a mid-tier UAE supplier; Honeywell = a premium American brand; Chemours = a premium American brand; Daikin = a premium Japanese brand; Arkema = a premium French brand; Atlas Copco = a premium Swedish brand; Parker = a premium American brand; Inmatec = a mid-tier German brand.",
+      "body_ar": "من موردي الغازات الصناعية في الإمارات Gulf Cryo وEmirates Industrial Gases وLinde، إضافة إلى علامات غازات التبريد ومصنعي مولدات الغاز في الموقع. الموردون والعلامات: Gulf Cryo، Emirates Industrial Gases، Dubai Industrial Gases، Air Products، Linde، ADNOC Gas، Brothers Gas، Honeywell، Chemours، Daikin، Arkema، Atlas Copco، Parker، Inmatec. والسبعة الأوائل موردو غازات في الإمارات، ومقر Gulf Cryo في دبي؛ وHoneywell وChemours وDaikin وArkema علامات غازات تبريد؛ وAtlas Copco وParker وInmatec لمولدات الموقع. ويحتاج استيراد غازات التبريد HFC تسجيلاً لدى وزارة التغير المناخي والبيئة وترخيصاً وتقارير سنوية.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Gulf Cryo = شركة توريد كويتية من الفئة المتوسطة؛ Emirates Industrial Gases = شركة توريد إماراتية من الفئة المتوسطة؛ Dubai Industrial Gases = شركة توريد إماراتية من الفئة المتوسطة؛ Air Products = شركة توريد أمريكية من الفئة الممتازة؛ Linde = شركة توريد ألمانية من الفئة الممتازة؛ ADNOC Gas = شركة توريد إماراتية من الفئة الممتازة؛ Brothers Gas = شركة توريد إماراتية من الفئة المتوسطة؛ Honeywell = علامة أمريكية من الفئة الممتازة؛ Chemours = علامة أمريكية من الفئة الممتازة؛ Daikin = علامة يابانية من الفئة الممتازة؛ Arkema = علامة فرنسية من الفئة الممتازة؛ Atlas Copco = علامة سويدية من الفئة الممتازة؛ Parker = علامة أمريكية من الفئة الممتازة؛ Inmatec = علامة ألمانية من الفئة المتوسطة.",
       "sources": [
         "https://www.gulfcryo.com/",
         "https://www.marknteladvisors.com/research-library/uae-industrial-gases-market.html",
@@ -40,7 +40,107 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Gulf Cryo is headquartered in Dubai -> corrected: Dubai-headquartered (not Kuwait-based) | UAE gas suppliers -> confirmed Air Products, Linde, Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, ADNOC Gas, Brothers Gas; Abu Dhabi Industrial Gases removed | HFC imports regulated by MOCCAE ministerial decree -> confirmed (registration, licence, reporting). Not checked: Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Gulf Cryo is headquartered in Dubai -> corrected: Dubai-headquartered (not Kuwait-based) | UAE gas suppliers -> confirmed Air Products, Linde, Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, ADNOC Gas, Brothers Gas; Abu Dhabi Industrial Gases removed | HFC imports regulated by MOCCAE ministerial decree -> confirmed (registration, licence, reporting). Not checked: Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Gulf Cryo",
+          "origin": "Kuwait",
+          "tier": "supplier",
+          "generic_en": "a mid-tier Kuwaiti supplier",
+          "generic_ar": "شركة توريد كويتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Emirates Industrial Gases",
+          "origin": "UAE",
+          "tier": "supplier",
+          "generic_en": "a mid-tier UAE supplier",
+          "generic_ar": "شركة توريد إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Dubai Industrial Gases",
+          "origin": "UAE",
+          "tier": "supplier",
+          "generic_en": "a mid-tier UAE supplier",
+          "generic_ar": "شركة توريد إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Air Products",
+          "origin": "USA",
+          "tier": "supplier",
+          "generic_en": "a premium American supplier",
+          "generic_ar": "شركة توريد أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Linde",
+          "origin": "Germany",
+          "tier": "supplier",
+          "generic_en": "a premium German supplier",
+          "generic_ar": "شركة توريد ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "ADNOC Gas",
+          "origin": "UAE",
+          "tier": "supplier",
+          "generic_en": "a premium UAE supplier",
+          "generic_ar": "شركة توريد إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Brothers Gas",
+          "origin": "UAE",
+          "tier": "supplier",
+          "generic_en": "a mid-tier UAE supplier",
+          "generic_ar": "شركة توريد إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Honeywell",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Chemours",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Daikin",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Arkema",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Atlas Copco",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Parker",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Inmatec",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "industrial_gases:uae-market-sizes",
