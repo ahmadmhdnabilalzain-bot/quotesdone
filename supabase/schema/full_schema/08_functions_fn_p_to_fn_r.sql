@@ -1972,6 +1972,31 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_quote_review_notes_are_valid(p_notes jsonb)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_note jsonb;
+begin
+  if p_notes is null then return true; end if;
+  if jsonb_typeof(p_notes) <> 'array' then return false; end if;
+  for v_note in select value from jsonb_array_elements(p_notes) loop
+    if jsonb_typeof(v_note) <> 'object' then return false; end if;
+    if coalesce(v_note->>'code', '') not in ('scope_missing', 'scope_excluded', 'origin_deviation', 'origin_not_stated', 'brand_match',
+        'brand_alternative', 'brand_tier_lower', 'grade_lower', 'quantity_mismatch', 'lead_time_late', 'warranty_short') then return false; end if;
+    if coalesce(v_note->>'severity', '') not in ('high', 'medium', 'info') then return false; end if;
+    if length(btrim(coalesce(v_note->>'en', ''))) < 10 then return false; end if;
+    -- the Arabic sentence is written in Arabic letters, not left in English
+    if coalesce(v_note->>'ar', '') !~ '[ء-ي]' then return false; end if;
+  end loop;
+  return true;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_quote_reviews_follow_owner()
  RETURNS trigger
  LANGUAGE plpgsql

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-10T14:27:18.821Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-10T15:02:10.494Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -8118,7 +8118,9 @@ CREATE TABLE IF NOT EXISTS public.quotes (
   extracted_by_model text,
   gross_amount numeric,
   discount_amount numeric,
-  discount_label text
+  discount_label text,
+  review_notes jsonb,
+  review_notes_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
@@ -12701,6 +12703,7 @@ ALTER TABLE public.quotes ADD CONSTRAINT quotes_option_no_range CHECK (((option_
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_price_ex_vat_positive CHECK (((price_ex_vat IS NULL) OR (price_ex_vat > (0)::numeric)));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_check CHECK ((quote_amount > (0)::numeric));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_scale_ck CHECK ((quote_amount = round(quote_amount, 2)));
+ALTER TABLE public.quotes ADD CONSTRAINT quotes_review_notes_shape CHECK (fn_quote_review_notes_are_valid(review_notes));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_supplier_trn_shape CHECK (((supplier_trn IS NULL) OR (supplier_trn ~ '^100[0-9]{12}$'::text)));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_vat_amount_money_ck CHECK (((vat_amount >= (0)::numeric) AND (vat_amount = round(vat_amount, 2))));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_vat_treatment_known CHECK (((vat_treatment IS NULL) OR (vat_treatment = ANY (ARRAY['exclusive'::text, 'inclusive'::text, 'not_registered'::text, 'not_stated'::text, 'confirmed_on_portal'::text]))));
