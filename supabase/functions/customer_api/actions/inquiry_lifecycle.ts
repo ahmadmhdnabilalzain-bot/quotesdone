@@ -399,8 +399,11 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       // A hire the day-3/day-14 follow-up recorded (hired_supplier_id only) is completed by this press, not
       // answered "already completed" over a request left 'revealed' with its losing suppliers never told (lib/hire.ts).
       const step = hireStep(inq, q.supplier_id);
-      if (step.kind === 'already_hired') return J({ ok: false, error: 'already_hired', code: 'already_hired', message: 'You have already hired a supplier for this request.', message_ar: 'لقد اخترت مورّدًا لهذا الطلب بالفعل.' }, 409);
-      if (step.kind === 'already_completed') return J({ ok: true, already_completed: true });
+      if (step.kind !== 'award') {
+        return step.kind === 'already_completed'
+          ? J({ ok: true, already_completed: true })
+          : J({ ok: false, error: 'already_hired', code: 'already_hired', message: 'You have already hired a supplier for this request.', message_ar: 'لقد اخترت مورّدًا لهذا الطلب بالفعل.' }, 409);
+      }
       // The award itself is the lock: only the press that changes the row wins it, so two presses that arrive
       // together still send one round of notices.
       const award = admin.from('inquiries').update({ status: 'completed', hired_supplier_id: q.supplier_id, completed_at: new Date().toISOString(), outcome: 'hired' }).eq('id', inq.id);
