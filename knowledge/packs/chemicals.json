@@ -5,8 +5,8 @@
       "id": "chemicals:spec-checklist",
       "topic": "Industrial chemicals - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for industrial chemicals must state: chemical name and CAS number; grade and purity; specification or certificate of analysis; quantity and unit; packaging; safety data sheet; hazard classification and transport; import permit for controlled chemicals; shelf life; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الكيماويات الصناعية: اسم المادة الكيميائية ورقم CAS؛ الدرجة والنقاوة؛ المواصفة أو شهادة التحليل؛ الكمية والوحدة؛ التعبئة؛ صحيفة بيانات السلامة؛ تصنيف الخطورة والنقل؛ تصريح الاستيراد للمواد المقيدة؛ مدة الصلاحية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for industrial chemicals must state: chemical name and CAS number; grade and purity; specification or certificate of analysis; quantity and unit; packaging; safety data sheet; hazard classification and transport; import permit for controlled chemicals; shelf life; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): chemical name and CAS number; grade and purity; quantity and unit; packaging; hazard classification and transport; import permit for controlled chemicals. Follow-up questions the answers trigger: chemical name and CAS number: Formulated products bring the technical data sheet. grade and purity: Food or pharma use brings the grade certificate and the regulator's requirements. hazard classification and transport: Dangerous goods bring DG vehicle, driver and storage approvals. import permit for controlled chemicals: If controlled, ask the end use and whether the buyer holds an end-user approval. shelf life: UAE heat may shorten shelf life; ask storage conditions. origin and manufacturer: If the buyer named an origin or maker, any other is a deviation. Before a firm price: none for listed grades; a custom blend or formulation needs a sample or a specification and a trial before a firm price.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الكيماويات الصناعية: اسم المادة الكيميائية ورقم CAS؛ الدرجة والنقاوة؛ المواصفة أو شهادة التحليل؛ الكمية والوحدة؛ التعبئة؛ صحيفة بيانات السلامة؛ تصنيف الخطورة والنقل؛ تصريح الاستيراد للمواد المقيدة؛ مدة الصلاحية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: اسم المادة الكيميائية ورقم CAS، والدرجة والنقاوة، والكمية والوحدة، والتعبئة، وتصنيف الخطورة والنقل، وتصريح الاستيراد للمواد الخاضعة للرقابة. أسئلة المتابعة: الاستخدام الغذائي أو الدوائي يستلزم شهادة الدرجة ومتطلبات الجهة المنظمة، والبضائع الخطرة تستلزم مركبة وسائقاً ومخزناً معتمدين، والمواد الخاضعة للرقابة تستلزم بيان الاستخدام النهائي وهل لدى المشتري موافقة مستخدم نهائي، وحرارة الإمارات قد تقصر مدة الصلاحية. الخلطات الخاصة تحتاج عينة أو مواصفة وتجربة قبل السعر النهائي.",
       "required_specs": [
         "chemical name and CAS number",
         "grade and purity",
@@ -21,7 +21,8 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "origin and manufacturer"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -29,7 +30,124 @@
         "https://www.moccae.gov.ae/en/services.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "chemical name and CAS number",
+        "grade and purity",
+        "quantity and unit",
+        "packaging",
+        "hazard classification and transport",
+        "import permit for controlled chemicals"
+      ],
+      "spec_guide": [
+        {
+          "spec": "chemical name and CAS number",
+          "blocking": true,
+          "why_it_prices": "The CAS number identifies the exact substance; trade names do not.",
+          "uae_options": "IUPAC/common name plus CAS; product name for formulated products.",
+          "follow_up": "Formulated products bring the technical data sheet."
+        },
+        {
+          "spec": "grade and purity",
+          "blocking": true,
+          "why_it_prices": "Technical, industrial, food, pharma (USP/BP/EP) and reagent grades differ widely.",
+          "uae_options": "Technical, industrial, food grade, USP/BP/EP, AR/ACS reagent; concentration %.",
+          "follow_up": "Food or pharma use brings the grade certificate and the regulator's requirements."
+        },
+        {
+          "spec": "specification or certificate of analysis",
+          "blocking": false,
+          "why_it_prices": "A CoA against a stated specification is the quality evidence.",
+          "uae_options": "Supplier spec, buyer spec, CoA per batch.",
+          "follow_up": ""
+        },
+        {
+          "spec": "quantity and unit",
+          "blocking": true,
+          "why_it_prices": "Chemicals are sold per kg, litre, drum, IBC or tonne; density converts between them.",
+          "uae_options": "kg, L, drums, IBCs, tonnes, bulk tanker.",
+          "follow_up": ""
+        },
+        {
+          "spec": "packaging",
+          "blocking": true,
+          "why_it_prices": "Pack size and UN-rated packaging change price.",
+          "uae_options": "25 kg bags, 200 L drums, 1,000 L IBC, bulk; UN-rated for dangerous goods.",
+          "follow_up": ""
+        },
+        {
+          "spec": "safety data sheet",
+          "blocking": false,
+          "why_it_prices": "An SDS in GHS format is required to handle and store.",
+          "uae_options": "SDS in English and Arabic where required.",
+          "follow_up": ""
+        },
+        {
+          "spec": "hazard classification and transport",
+          "blocking": true,
+          "why_it_prices": "Dangerous goods need UN packaging, DG transport and storage, which add cost.",
+          "uae_options": "UN number, class, packing group; non-hazardous.",
+          "follow_up": "Dangerous goods bring DG vehicle, driver and storage approvals."
+        },
+        {
+          "spec": "import permit for controlled chemicals",
+          "blocking": true,
+          "why_it_prices": "Controlled substances cannot be supplied without the permit; lead time and cost change.",
+          "uae_options": "Not controlled; controlled with permit held by the supplier; precursor.",
+          "follow_up": "If controlled, ask the end use and whether the buyer holds an end-user approval."
+        },
+        {
+          "spec": "shelf life",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Months from manufacture; storage temperature.",
+          "follow_up": "UAE heat may shorten shelf life; ask storage conditions."
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "delivery and installation scope",
+          "blocking": false,
+          "why_it_prices": "DG delivery and tank offloading are services.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Returnable containers, deposits and DG surcharges are often extra.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "origin and manufacturer",
+          "blocking": false,
+          "why_it_prices": "Origin and maker matter for quality consistency and for specified sources.",
+          "uae_options": "Named manufacturer or origin, or open.",
+          "follow_up": "If the buyer named an origin or maker, any other is a deviation."
+        }
+      ],
+      "firm_price_condition": "none for listed grades; a custom blend or formulation needs a sample or a specification and a trial before a firm price.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "chemicals:uae-standards-and-approvals",
@@ -122,6 +240,76 @@
       "as_of": "2026-10-27",
       "verified": false,
       "source_note": "Checked 2026-10-27 against search-result excerpts: silicone UV/temperature resistance, highest movement (Class 50-100), longer life, not paintable; PU paintable, adhesion, Class 12.5/25/50, less UV-stable, priming, stiffer, not for structural glass; hybrids silyl-modified combining strengths; polysulphide named as high-performance -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "chemicals:authority-approvals",
+      "topic": "Chemicals: import permits, storage and dangerous-goods transport by emirate",
+      "topic_ar": "المواد الكيميائية: تصاريح الاستيراد والتخزين ونقل البضائع الخطرة حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Controlled and hazardous chemicals need prior approval before import: customs authorities list restricted goods that need the competent authority's approval (Abu Dhabi Customs publishes a restricted and banned commodities page), but search results disagree on which federal body approves each chemical class (MOCCAE for environmentally controlled substances such as ozone-depleting refrigerants, MoIAT under the chemicals control framework, and the Ministry of Interior for precursors and explosives-related substances); this is not established here and must be confirmed per CAS number. Storage of hazardous materials needs civil defence approval in each emirate. In Dubai, Dubai Municipality publishes technical guidelines on transport of chemical and hazardous wastes (permit, RTA registration, RASID tracking for waste vehicles), and dangerous goods on Dubai roads are licensed through the RTA with Dubai Civil Defence. The supplier holds the import approval and DG transport licences; the buyer holds storage approval.",
+      "body_ar": "تحتاج المواد الكيميائية الخاضعة للرقابة والخطرة موافقة مسبقة قبل الاستيراد: إذ تدرج السلطات الجمركية البضائع المقيدة التي تحتاج موافقة الجهة المختصة (وتنشر جمارك أبوظبي صفحة للسلع المقيدة والممنوعة)، غير أن نتائج البحث تختلف في تحديد الجهة الاتحادية التي تعتمد كل فئة (وزارة التغير المناخي والبيئة للمواد المنظمة بيئياً مثل غازات التبريد المستنفدة للأوزون، ووزارة الصناعة والتكنولوجيا المتقدمة ضمن إطار الرقابة على المواد الكيميائية، ووزارة الداخلية للسلائف والمواد المرتبطة بالمتفجرات)، وهذا لم يثبت هنا ويجب التأكد منه لكل رقم CAS. ويحتاج تخزين المواد الخطرة موافقة الدفاع المدني في كل إمارة. وفي دبي تنشر بلدية دبي أدلة فنية لنقل النفايات الكيميائية والخطرة (تصريح وتسجيل لدى هيئة الطرق والمواصلات وتتبع بنظام راصد لمركبات النفايات)، وتُرخص البضائع الخطرة على طرق دبي عبر الهيئة مع الدفاع المدني. ويحمل المورد موافقة الاستيراد ورخص نقل البضائع الخطرة، ويحمل المشتري موافقة التخزين.",
+      "sources": [
+        "https://www.adcustoms.gov.ae/Policies-and-Regulations/Restricted-Banned-Commodities",
+        "https://www.moccae.gov.ae/en/services.aspx",
+        "https://www.dm.gov.ae/wp-content/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "chemicals:quote-red-flags",
+      "topic": "Red flags in chemical quotations",
+      "topic_ar": "علامات التحذير في عروض المواد الكيميائية",
+      "kind": "quote_red_flag",
+      "body_en": "Check grade and concentration on each line: technical grade offered against food or pharma grade, a lower concentration priced per litre, or a different CAS number \"equivalent\" are substitutions. Watch for prices per litre vs per kg without density, drum sizes that differ, no CoA or SDS, origin or manufacturer changed silently, DG surcharges and container deposits added later, controlled chemicals quoted without saying who holds the import permit, short remaining shelf life, and Incoterms ex-free-zone where duty applies on mainland delivery.",
+      "body_ar": "افحص الدرجة والتركيز في كل بند: فعرض الدرجة الفنية مقابل الدرجة الغذائية أو الدوائية، أو تركيز أقل مسعّر باللتر، أو رقم CAS مختلف \"مكافئ\"، كلها استبدالات. وانتبه إلى: أسعار باللتر مقابل الكيلوغرام دون ذكر الكثافة، واختلاف أحجام البراميل، وغياب شهادة التحليل أو صحيفة بيانات السلامة، وتغيير المنشأ أو المصنع دون إفصاح، وإضافة رسوم البضائع الخطرة وتأمين العبوات لاحقاً، وتسعير مواد خاضعة للرقابة دون بيان من يحمل تصريح الاستيراد، وقصر مدة الصلاحية المتبقية، وشروط تسليم من المنطقة الحرة حيث تُستحق الرسوم الجمركية عند التسليم إلى البر الرئيسي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "chemicals:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying chemicals",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء المواد الكيميائية",
+      "kind": "buyer_mistake",
+      "body_en": "Asking by trade name without the CAS number and grade; comparing prices at different concentrations; forgetting that dangerous goods need an approved store before delivery; buying more than the shelf life allows; and assuming the supplier holds the import permit for a controlled chemical. Ask the use, the concentration needed and the storage available.",
+      "body_ar": "الطلب بالاسم التجاري دون رقم CAS والدرجة؛ ومقارنة أسعار بتركيزات مختلفة؛ ونسيان أن البضائع الخطرة تحتاج مخزناً معتمداً قبل التسليم؛ وشراء كمية تتجاوز مدة الصلاحية؛ وافتراض أن المورد يحمل تصريح استيراد المادة الخاضعة للرقابة. لذا يُسأل عن الاستخدام والتركيز المطلوب والتخزين المتاح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "chemicals:price-drivers",
+      "topic": "What legitimately moves chemical prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار المواد الكيميائية",
+      "kind": "price_driver",
+      "body_en": "Grade and purity, concentration, pack size (bulk is cheapest per kg), dangerous-goods handling, import permits, origin and manufacturer, feedstock and energy markets (petrochemicals move with oil and gas), freight, quantity and contract length, and storage conditions (temperature-controlled).",
+      "body_ar": "الدرجة والنقاوة، والتركيز، وحجم العبوة (السائب أرخص للكيلوغرام)، ومناولة البضائع الخطرة، وتصاريح الاستيراد، والمنشأ والمصنع، وأسواق المواد الأولية والطاقة (البتروكيماويات تتحرك مع النفط والغاز)، والشحن، والكمية ومدة العقد، وظروف التخزين (المبرد).",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "chemicals:compare-quotes",
+      "topic": "Comparing chemical quotes like-for-like",
+      "topic_ar": "مقارنة عروض المواد الكيميائية على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Convert every offer to price per kg of active substance at the same grade, delivered, including packaging deposits, DG charges and duty. Check CoA, SDS, shelf life and manufacturer. Recommend the three compliant offers with the lowest delivered cost per kg of active content.",
+      "body_ar": "حوّل كل عرض إلى السعر لكل كيلوغرام من المادة الفعالة بالدرجة نفسها، مسلّماً، شاملاً تأمين العبوات ورسوم البضائع الخطرة والرسوم الجمركية. وتحقق من شهادة التحليل وصحيفة بيانات السلامة ومدة الصلاحية والمصنع. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة تسليم لكل كيلوغرام من المحتوى الفعال.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -164,7 +352,8 @@
     "removed": [],
     "still_unverified": [
       "chemicals:spec-checklist",
-      "chemicals:uae-standards-and-approvals"
+      "chemicals:uae-standards-and-approvals",
+      "chemicals:authority-approvals"
     ],
     "added": [
       "chemicals:spec-checklist",
@@ -227,6 +416,12 @@
           ]
         }
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "chemicals:quote-red-flags",
+      "chemicals:buyer-mistakes",
+      "chemicals:price-drivers",
+      "chemicals:compare-quotes"
+    ]
   }
 }

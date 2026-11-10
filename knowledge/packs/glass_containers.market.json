@@ -26,8 +26,8 @@
       "topic": "Glass bottles & jars: makes, brands, distributors and origins in the UAE",
       "topic_ar": "القوارير والمرطبانات الزجاجية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Glass container makers such as Verescence, Pochet du Courval, Estal, Stoelzle, Bormioli Luigi, Schott, Gerresheimer and SGD Pharma, plus UAE decoration and filling houses serving perfume and oud brands like Ajmal. Glass brands: Verescence, Pochet du Courval, Estal, Stoelzle, Bormioli Luigi, Vitro, Schott, Gerresheimer, Stevanato, SGD Pharma, Piramal Glass, Ajmal. Ajmal is a UAE perfume house that buys decorated bottles; the others are glass makers whose UAE agents were not checked. Decoration and filling houses in Sharjah, Ajman and Dubai serve the perfume and oud brands, and many bottles are decorated in China and India. Origins: France, Italy, Germany, Spain, China, India.",
-      "body_ar": "من مصنعي العبوات الزجاجية Verescence وPochet du Courval وEstal وStoelzle وBormioli Luigi وSchott وGerresheimer وSGD Pharma، إضافة إلى ورش الزخرفة والتعبئة في الإمارات التي تخدم علامات العطور والعود مثل أجمل. علامات الزجاج: Verescence، Pochet du Courval، Estal، Stoelzle، Bormioli Luigi، Vitro، Schott، Gerresheimer، Stevanato، SGD Pharma، Piramal Glass، Ajmal. وAjmal دار عطور إماراتية تشتري الزجاجات المزخرفة، والبقية مصنّعو زجاج لم يُتحقق من وكلائهم في الإمارات. وتخدم دور الزخرفة والتعبئة في الشارقة وعجمان ودبي علامات العطور والعود، وتُزخرف زجاجات كثيرة في الصين والهند. المنشأ: فرنسا، إيطاليا، ألمانيا، إسبانيا، الصين، الهند.",
+      "body_en": "Glass container makers such as Verescence, Pochet du Courval, Estal, Stoelzle, Bormioli Luigi, Schott, Gerresheimer and SGD Pharma, plus UAE decoration and filling houses serving perfume and oud brands like Ajmal. Glass brands: Verescence, Pochet du Courval, Estal, Stoelzle, Bormioli Luigi, Vitro, Schott, Gerresheimer, Stevanato, SGD Pharma, Piramal Glass, Ajmal. Ajmal is a UAE perfume house that buys decorated bottles; the others are glass makers whose UAE agents were not checked. Decoration and filling houses in Sharjah, Ajman and Dubai serve the perfume and oud brands, and many bottles are decorated in China and India. Origins: France, Italy, Germany, Spain, China, India.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Verescence = a luxury French brand; Pochet du Courval = a luxury French brand; Estal = a premium Spanish brand; Stoelzle = a premium Austrian brand; Bormioli Luigi = a premium Italian brand; Vitro = a mid-tier Mexican brand; Schott = a premium German brand; Gerresheimer = a premium German brand; Stevanato = a premium Italian brand; SGD Pharma = a premium French brand; Piramal Glass = a mid-tier Indian brand; Ajmal = a premium UAE brand.",
+      "body_ar": "من مصنعي العبوات الزجاجية Verescence وPochet du Courval وEstal وStoelzle وBormioli Luigi وSchott وGerresheimer وSGD Pharma، إضافة إلى ورش الزخرفة والتعبئة في الإمارات التي تخدم علامات العطور والعود مثل أجمل. علامات الزجاج: Verescence، Pochet du Courval، Estal، Stoelzle، Bormioli Luigi، Vitro، Schott، Gerresheimer، Stevanato، SGD Pharma، Piramal Glass، Ajmal. وAjmal دار عطور إماراتية تشتري الزجاجات المزخرفة، والبقية مصنّعو زجاج لم يُتحقق من وكلائهم في الإمارات. وتخدم دور الزخرفة والتعبئة في الشارقة وعجمان ودبي علامات العطور والعود، وتُزخرف زجاجات كثيرة في الصين والهند. المنشأ: فرنسا، إيطاليا، ألمانيا، إسبانيا، الصين، الهند.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Verescence = علامة فرنسية من الفئة الفاخرة؛ Pochet du Courval = علامة فرنسية من الفئة الفاخرة؛ Estal = علامة إسبانية من الفئة الممتازة؛ Stoelzle = علامة نمساوية من الفئة الممتازة؛ Bormioli Luigi = علامة إيطالية من الفئة الممتازة؛ Vitro = علامة مكسيكية من الفئة المتوسطة؛ Schott = علامة ألمانية من الفئة الممتازة؛ Gerresheimer = علامة ألمانية من الفئة الممتازة؛ Stevanato = علامة إيطالية من الفئة الممتازة؛ SGD Pharma = علامة فرنسية من الفئة الممتازة؛ Piramal Glass = علامة هندية من الفئة المتوسطة؛ Ajmal = علامة إماراتية من الفئة الممتازة.",
       "sources": [
         "https://www.schott.com",
         "https://www.ajmal.com",
@@ -36,7 +36,93 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Schott supplies pharma glass -> confirmed | Ajmal is a UAE perfume house (bottle buyer) -> confirmed; other perfume houses not checked. Not checked: Whether any container glass furnace currently operates in the UAE, and which perfume houses source which bottle makers, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Schott supplies pharma glass -> confirmed | Ajmal is a UAE perfume house (bottle buyer) -> confirmed; other perfume houses not checked. Not checked: Whether any container glass furnace currently operates in the UAE, and which perfume houses source which bottle makers, were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Verescence",
+          "origin_country": "France",
+          "tier": "luxury",
+          "generic_en": "a luxury French brand",
+          "generic_ar": "علامة فرنسية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Pochet du Courval",
+          "origin_country": "France",
+          "tier": "luxury",
+          "generic_en": "a luxury French brand",
+          "generic_ar": "علامة فرنسية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Estal",
+          "origin_country": "Spain",
+          "tier": "premium",
+          "generic_en": "a premium Spanish brand",
+          "generic_ar": "علامة إسبانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Stoelzle",
+          "origin_country": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium Austrian brand",
+          "generic_ar": "علامة نمساوية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bormioli Luigi",
+          "origin_country": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Vitro",
+          "origin_country": "Mexico",
+          "tier": "mid",
+          "generic_en": "a mid-tier Mexican brand",
+          "generic_ar": "علامة مكسيكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Schott",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Gerresheimer",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Stevanato",
+          "origin_country": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "SGD Pharma",
+          "origin_country": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Piramal Glass",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Ajmal",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "glass_containers:uae-market-sizes",

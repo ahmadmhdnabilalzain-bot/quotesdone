@@ -28,8 +28,8 @@
       "topic": "Industrial & Construction Chemicals: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الكيماويات الصناعية والإنشائية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the construction-chemical brands, regional producers and distributors in the UAE, such as Sika, Fosroc, Borouge and Brenntag, and where industrial chemicals are traded. Construction-chemical brands, regional producers and distributors: Sika, Master Builders Solutions, Fosroc, Mapei, Henkel, Pidilite, Borouge, Fertiglobe, SABIC, Brenntag, Univar. Fosroc is based in Dubai, and Borouge and Fertiglobe produce at Ruwais. Industrial chemicals are traded through distributors and traders in Sharjah (Hamriyah), Jebel Ali and Abu Dhabi. Except for Fosroc, which distributors hold each line locally was not checked. Origins: GCC, Europe, India, China.",
-      "body_ar": "من أبرز ماركات كيماويات البناء والمنتجين الإقليميين والموزعين في الإمارات Sika وFosroc وBorouge وBrenntag، مع بيان أماكن تداول الكيماويات الصناعية. علامات كيماويات البناء والمنتجون الإقليميون والموزعون: Sika، Master Builders Solutions، Fosroc، Mapei، Henkel، Pidilite، Borouge، Fertiglobe، SABIC، Brenntag، Univar. ومقر Fosroc في دبي، وتنتج Borouge وFertiglobe في الرويس. وتُتداول الكيماويات الصناعية عبر موزعين وتجار في الشارقة (الحمرية) وجبل علي وأبوظبي، ولم يُتحقق من الموزع المحلي لكل خط عدا Fosroc. المنشأ: الخليج، أوروبا، الهند، الصين.",
+      "body_en": "This entry names the construction-chemical brands, regional producers and distributors in the UAE, such as Sika, Fosroc, Borouge and Brenntag, and where industrial chemicals are traded. Construction-chemical brands, regional producers and distributors: Sika, Master Builders Solutions, Fosroc, Mapei, Henkel, Pidilite, Borouge, Fertiglobe, SABIC, Brenntag, Univar. Fosroc is based in Dubai, and Borouge and Fertiglobe produce at Ruwais. Industrial chemicals are traded through distributors and traders in Sharjah (Hamriyah), Jebel Ali and Abu Dhabi. Except for Fosroc, which distributors hold each line locally was not checked. Origins: GCC, Europe, India, China.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Sika = a premium Swiss brand; Master Builders Solutions = a premium German brand; Fosroc = a mid-tier British brand; Mapei = a premium Italian brand; Henkel = a premium German brand; Pidilite = a mid-tier Indian brand; Borouge = a premium UAE brand; Fertiglobe = a mid-tier UAE brand; SABIC = a premium Saudi brand; Brenntag = a premium German supplier; Univar = a premium American supplier.",
+      "body_ar": "من أبرز ماركات كيماويات البناء والمنتجين الإقليميين والموزعين في الإمارات Sika وFosroc وBorouge وBrenntag، مع بيان أماكن تداول الكيماويات الصناعية. علامات كيماويات البناء والمنتجون الإقليميون والموزعون: Sika، Master Builders Solutions، Fosroc، Mapei، Henkel، Pidilite، Borouge، Fertiglobe، SABIC، Brenntag، Univar. ومقر Fosroc في دبي، وتنتج Borouge وFertiglobe في الرويس. وتُتداول الكيماويات الصناعية عبر موزعين وتجار في الشارقة (الحمرية) وجبل علي وأبوظبي، ولم يُتحقق من الموزع المحلي لكل خط عدا Fosroc. المنشأ: الخليج، أوروبا، الهند، الصين.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Sika = علامة سويسرية من الفئة الممتازة؛ Master Builders Solutions = علامة ألمانية من الفئة الممتازة؛ Fosroc = علامة بريطانية من الفئة المتوسطة؛ Mapei = علامة إيطالية من الفئة الممتازة؛ Henkel = علامة ألمانية من الفئة الممتازة؛ Pidilite = علامة هندية من الفئة المتوسطة؛ Borouge = علامة إماراتية من الفئة الممتازة؛ Fertiglobe = علامة إماراتية من الفئة المتوسطة؛ SABIC = علامة سعودية من الفئة الممتازة؛ Brenntag = شركة توريد ألمانية من الفئة الممتازة؛ Univar = شركة توريد أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.fepy.com/blog/best-waterproofing-products-for-roofs-in-uae",
         "https://www.sika.com",
@@ -40,7 +40,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Fosroc is based in Dubai -> confirmed (search result) | Sika is a construction chemicals group -> confirmed | Borouge and Fertiglobe produce in Ruwais -> confirmed. Not checked: Current import-permit steps per chemical class and named distributors' UAE operations were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Fosroc is based in Dubai -> confirmed (search result) | Sika is a construction chemicals group -> confirmed | Borouge and Fertiglobe produce in Ruwais -> confirmed. Not checked: Current import-permit steps per chemical class and named distributors' UAE operations were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Sika",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Master Builders Solutions",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Fosroc",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Mapei",
+          "origin_country": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Henkel",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Pidilite",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Borouge",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Fertiglobe",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "SABIC",
+          "origin_country": "Saudi Arabia",
+          "tier": "premium",
+          "generic_en": "a premium Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة الممتازة"
+        },
+        {
+          "brand": "Brenntag",
+          "origin_country": "Germany",
+          "tier": "supplier",
+          "generic_en": "a premium German supplier",
+          "generic_ar": "شركة توريد ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Univar",
+          "origin_country": "USA",
+          "tier": "supplier",
+          "generic_en": "a premium American supplier",
+          "generic_ar": "شركة توريد أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "chemicals:uae-market-sizes",

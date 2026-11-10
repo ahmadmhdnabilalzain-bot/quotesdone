@@ -5,8 +5,8 @@
       "id": "flexible_packaging:spec-checklist",
       "topic": "Flexible packaging - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for flexible packaging must state: pack format; dimensions; laminate structure and thickness; barrier properties; printing colours; food-contact compliance; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة العبوات المرنة: شكل العبوة؛ الأبعاد؛ تركيب الطبقات وسماكتها؛ خواص الحاجز؛ ألوان الطباعة؛ الامتثال لملامسة الغذاء؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for flexible packaging must state: pack format; dimensions; laminate structure and thickness; barrier properties; printing colours; food-contact compliance; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): pack format; dimensions; laminate structure and thickness; printing colours; quantity; artwork status. Follow-up questions the answers trigger: pack format: Pouches bring zipper, spout, tear notch and window options. laminate structure and thickness: Ask the filling machine and seal requirements. printing colours: Gravure brings cylinder cost per colour and higher MOQ. food-contact compliance: Food brings the food type (fatty, acidic, frozen, hot-fill). Before a firm price: printed flexible packaging needs the artwork and the laminate structure; a new structure benefits from a filling-machine trial.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة العبوات المرنة: شكل العبوة؛ الأبعاد؛ تركيب الطبقات وسماكتها؛ خواص الحاجز؛ ألوان الطباعة؛ الامتثال لملامسة الغذاء؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: شكل العبوة، والأبعاد، وتركيبة الطبقات وسماكتها، وألوان الطباعة، والكمية، وحالة التصميم. أسئلة المتابعة: الأكياس القائمة تستلزم خيارات السحاب والصنبور وشق التمزيق والنافذة، ويُسأل عن آلة التعبئة ومتطلبات اللحام الحراري، والطباعة بالروتوغرافور تستلزم كلفة أسطوانة لكل لون وحداً أدنى أعلى، والغذاء يستلزم نوعه (دهني أو حمضي أو مجمد أو تعبئة ساخنة).",
       "required_specs": [
         "pack format",
         "dimensions",
@@ -19,7 +19,8 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "artwork status"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -28,7 +29,110 @@
         "https://www.dm.gov.ae/wp-content/uploads/2024/10/Food-Code-2013-English.pdf"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "pack format",
+        "dimensions",
+        "laminate structure and thickness",
+        "printing colours",
+        "quantity",
+        "artwork status"
+      ],
+      "spec_guide": [
+        {
+          "spec": "pack format",
+          "blocking": true,
+          "why_it_prices": "Roll stock, pouches, bags and sachets are different converting.",
+          "uae_options": "Roll stock, 3-side seal, stand-up pouch, zipper, spout, flat-bottom, sachet, shrink/stretch film.",
+          "follow_up": "Pouches bring zipper, spout, tear notch and window options."
+        },
+        {
+          "spec": "dimensions",
+          "blocking": true,
+          "why_it_prices": "Area per pack sets material use.",
+          "uae_options": "W x H x gusset; reel width and core.",
+          "follow_up": ""
+        },
+        {
+          "spec": "laminate structure and thickness",
+          "blocking": true,
+          "why_it_prices": "The layer structure is the main cost.",
+          "uae_options": "PET/PE, BOPP/CPP, PET/ALU/PE, kraft/PE; microns per layer.",
+          "follow_up": "Ask the filling machine and seal requirements."
+        },
+        {
+          "spec": "barrier properties",
+          "blocking": false,
+          "why_it_prices": "Barrier needs aluminium, metallised or EVOH layers.",
+          "uae_options": "OTR, WVTR targets; shelf life.",
+          "follow_up": ""
+        },
+        {
+          "spec": "printing colours",
+          "blocking": true,
+          "why_it_prices": "Gravure cylinders or flexo plates per colour drive set-up cost.",
+          "uae_options": "Number of colours; gravure, flexo, digital; Pantone references.",
+          "follow_up": "Gravure brings cylinder cost per colour and higher MOQ."
+        },
+        {
+          "spec": "food-contact compliance",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Declaration of compliance, migration tests, ECAS certificate where required.",
+          "follow_up": "Food brings the food type (fatty, acidic, frozen, hot-fill)."
+        },
+        {
+          "spec": "quantity",
+          "blocking": true,
+          "why_it_prices": "MOQ in kg or pieces and run length dominate price.",
+          "uae_options": "kg, metres, pieces; per design.",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "delivery and installation scope",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Cylinders, plates and design are often extra.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "artwork status",
+          "blocking": true,
+          "why_it_prices": "Artwork readiness decides repro and design costs.",
+          "uae_options": "Print-ready, needs repro, needs design.",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "printed flexible packaging needs the artwork and the laminate structure; a new structure benefits from a filling-machine trial.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "flexible_packaging:uae-standards-and-approvals",
@@ -89,6 +193,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "flexible_packaging:authority-approvals",
+      "topic": "Flexible packaging: food-contact, single-use plastic rules and labelling",
+      "topic_ar": "التغليف المرن: ملامسة الغذاء وقواعد البلاستيك أحادي الاستخدام والوسم",
+      "kind": "authority_approval",
+      "body_en": "Food-contact packaging is the regulated case. Search results report that food-contact materials are certified under MoIAT's conformity scheme (ECAS) against Cabinet Resolution No. 20 of 2015, for plastic, glass, ceramic, silicone, paper, metal and wood materials, through a MoIAT-notified body, with the certificate obtained by the manufacturer or importer, not the buyer; a 2023 MoIAT workshop on recycled plastic food packaging described quality-system documentation and migration tests at an accredited UAE laboratory. Dubai Municipality and ADAFSA in Abu Dhabi inspect food businesses, including their packaging. Single-use products are restricted by federal Ministerial Resolution No. 380 of 2022 (single-use plastic shopping bags from 1 January 2024; cups and lids, cutlery, plates, straws, stirrers and polystyrene food containers from 1 January 2026, as reported) and in Dubai by Executive Council Resolution No. 124 of 2023, with exemptions reported for some recycled and exported products. An older UAE scheme required certain disposable plastic products to be oxo-biodegradable under UAE Standard 5009:2009; its current status alongside the single-use plastic bans was not established. ",
+      "body_ar": "التغليف الملامس للغذاء هو الحالة الخاضعة للتنظيم. إذ تفيد نتائج البحث بأن المواد الملامسة للغذاء تُعتمد ضمن نظام المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وفق قرار مجلس الوزراء رقم 20 لسنة 2015، للمواد البلاستيكية والزجاجية والخزفية والسيليكونية والورقية والمعدنية والخشبية، عبر جهة مخطرة لدى الوزارة، ويحصل على الشهادة المصنع أو المستورد لا المشتري؛ وتناولت ورشة عمل للوزارة عام 2023 حول تغليف الأغذية من البلاستيك المعاد تدويره توثيق نظام الجودة واختبارات الانتقال في مختبر إماراتي معتمد. وتفتش بلدية دبي وهيئة أبوظبي للزراعة والسلامة الغذائية منشآت الأغذية بما في ذلك تغليفها. وتقيّد المنتجات أحادية الاستخدام بالقرار الوزاري الاتحادي رقم 380 لسنة 2022 (أكياس التسوق البلاستيكية أحادية الاستخدام من 1 يناير 2024، والأكواب وأغطيتها وأدوات المائدة والأطباق والمصاصات وأعواد التحريك وعلب الطعام من البوليسترين من 1 يناير 2026 وفق ما نُشر)، وفي دبي بقرار المجلس التنفيذي رقم 124 لسنة 2023، مع استثناءات منشورة لبعض المنتجات المعاد تدويرها والمعدة للتصدير. وكان نظام إماراتي سابق يشترط أن تكون بعض المنتجات البلاستيكية أحادية الاستخدام قابلة للتحلل بالأكسدة وفق المواصفة الإماراتية 5009:2009، ولم يثبت وضعه الحالي إلى جانب حظر البلاستيك أحادي الاستخدام.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
+        "https://leap.unep.org/en/countries/ae/national-legislation/ministerial-resolution-no-380-2022-regarding-regulating-use",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2023/Executive%20Council%20Resolution%20No.%20(124)%20of%202023%20Regulating%20the%20Use%20of%20Single-use%20Products.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "flexible_packaging:quote-red-flags",
+      "topic": "Red flags in flexible packaging quotations",
+      "topic_ar": "علامات التحذير في عروض التغليف المرن",
+      "kind": "quote_red_flag",
+      "body_en": "Check the laminate layer by layer: thinner microns, metallised PET for aluminium foil, or a missing barrier layer change shelf life. Watch for price per kg vs per 1,000 pieces without yield, cylinder or plate costs added later, MOQ in kg far above the order, overs invoiced, no migration test for food, \"recyclable\" claims without the structure being mono-material, and zipper or spout costs excluded.",
+      "body_ar": "افحص الطبقات طبقة طبقة: فالسماكة الأقل بالميكرون، أو PET ممعدن بدل رقائق الألمنيوم، أو غياب طبقة الحاجز، تغير مدة الصلاحية. وانتبه إلى: السعر بالكيلوغرام مقابل السعر لكل 1000 قطعة دون بيان المردود، وإضافة كلفة الأسطوانات أو الألواح لاحقاً، وحد أدنى بالكيلوغرام يتجاوز الطلب كثيراً، وفوترة الزيادة، وغياب اختبار الانتقال للغذاء، وادعاء \"قابل للتدوير\" وتركيبته ليست أحادية المادة، واستثناء كلفة السحاب أو الصنبور.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "flexible_packaging:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying flexible packaging",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء التغليف المرن",
+      "kind": "buyer_mistake",
+      "body_en": "Ordering a laminate without knowing the filling machine and seal settings; choosing gravure for small runs; comparing price per kg across structures with different yields; skipping a shelf-life or filling trial; and assuming a \"green\" claim is accepted in the UAE. Ask the product, its shelf life, the machine and the annual volume.",
+      "body_ar": "طلب تركيبة طبقات دون معرفة آلة التعبئة وإعدادات اللحام؛ واختيار الروتوغرافور لكميات صغيرة؛ ومقارنة السعر بالكيلوغرام بين تركيبات مختلفة المردود؛ والاستغناء عن تجربة مدة الصلاحية أو التعبئة؛ وافتراض قبول ادعاء \"صديق للبيئة\" في الإمارات. لذا يُسأل عن المنتج ومدة صلاحيته والآلة والحجم السنوي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "flexible_packaging:price-drivers",
+      "topic": "What legitimately moves flexible packaging prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار التغليف المرن",
+      "kind": "price_driver",
+      "body_en": "Film structure and thickness, barrier layers (aluminium, EVOH, metallised), resin prices, print process and number of colours, cylinders or plates, pouch features (zipper, spout), quantity and run length, and compliance testing.",
+      "body_ar": "تركيبة الفيلم وسماكته، وطبقات الحاجز (الألمنيوم أو EVOH أو الممعدن)، وأسعار الراتنج، وطريقة الطباعة وعدد الألوان، والأسطوانات أو الألواح، ومزايا الأكياس (السحاب والصنبور)، والكمية وطول التشغيل، واختبارات الامتثال.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "flexible_packaging:compare-quotes",
+      "topic": "Comparing flexible packaging quotes like-for-like",
+      "topic_ar": "مقارنة عروض التغليف المرن على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Convert every offer to price per 1,000 packs (or per square metre) for the same structure and print, add one-off cylinder or plate costs over the annual volume, and check MOQ and overs. Weigh barrier performance and line efficiency on the filling machine. Recommend the three compliant offers with the lowest total cost per pack.",
+      "body_ar": "حوّل كل عرض إلى السعر لكل 1000 عبوة (أو للمتر المربع) للتركيبة والطباعة نفسيهما، وأضف كلفة الأسطوانات أو الألواح لمرة واحدة على الحجم السنوي، وتحقق من الحد الأدنى والزيادة. وزن أداء الحاجز وكفاءة الخط على آلة التعبئة. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة إجمالية للعبوة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -130,7 +304,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "flexible_packaging:spec-checklist"
+      "flexible_packaging:spec-checklist",
+      "flexible_packaging:authority-approvals"
     ],
     "added": [
       "flexible_packaging:spec-checklist",
@@ -161,6 +336,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "flexible_packaging:quote-red-flags",
+      "flexible_packaging:buyer-mistakes",
+      "flexible_packaging:price-drivers",
+      "flexible_packaging:compare-quotes"
+    ]
   }
 }

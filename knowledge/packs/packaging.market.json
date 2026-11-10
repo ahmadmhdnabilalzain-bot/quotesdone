@@ -26,8 +26,8 @@
       "topic": "Packaging & Printing Supplies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "مستلزمات التغليف والطباعة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the packaging converters, distributors and board sources in the UAE, such as Taghleef, Falcon Pack, Cosmoplast and Interplast, plus IBC and board brands and where traders cluster. Converters, distributors and board sources: Taghleef Industries, Falcon Pack, Cosmoplast, Interplast, Schütz, Mauser, Stora Enso, Iggesund, Metsä. The first four are UAE-based, and the others are IBC and board brands whose local channels were not checked. Many trading companies in Sharjah, Ajman, Al Quoz, DIP and JAFZA supply mixed packaging baskets.",
-      "body_ar": "من شركات تحويل التغليف وموزعيه ومصادر الكرتون في الإمارات Taghleef وFalcon Pack وCosmoplast وInterplast، إضافة إلى علامات حاويات IBC والكرتون وأماكن تجمع التجار. المحولون والموزعون ومصادر الكرتون: Taghleef Industries، Falcon Pack، Cosmoplast، Interplast، Schütz، Mauser، Stora Enso، Iggesund، Metsä. والأربعة الأوائل مقرها الإمارات، والبقية علامات حاويات وسيطة وكرتون لم يُتحقق من قنواتها المحلية. وتورد شركات تجارة كثيرة في الشارقة وعجمان والقوز ومجمع دبي للاستثمار والمنطقة الحرة لجبل علي سلال تغليف مختلطة.",
+      "body_en": "This lists the packaging converters, distributors and board sources in the UAE, such as Taghleef, Falcon Pack, Cosmoplast and Interplast, plus IBC and board brands and where traders cluster. Converters, distributors and board sources: Taghleef Industries, Falcon Pack, Cosmoplast, Interplast, Schütz, Mauser, Stora Enso, Iggesund, Metsä. The first four are UAE-based, and the others are IBC and board brands whose local channels were not checked. Many trading companies in Sharjah, Ajman, Al Quoz, DIP and JAFZA supply mixed packaging baskets.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Taghleef Industries = a premium UAE brand; Falcon Pack = a mid-tier UAE brand; Cosmoplast = a mid-tier UAE brand; Interplast = a mid-tier UAE brand; Schütz = a premium German brand; Mauser = a premium American brand; Stora Enso = a premium Finnish brand; Iggesund = a premium Swedish brand; Metsä = a premium Finnish brand.",
+      "body_ar": "من شركات تحويل التغليف وموزعيه ومصادر الكرتون في الإمارات Taghleef وFalcon Pack وCosmoplast وInterplast، إضافة إلى علامات حاويات IBC والكرتون وأماكن تجمع التجار. المحولون والموزعون ومصادر الكرتون: Taghleef Industries، Falcon Pack، Cosmoplast، Interplast، Schütz، Mauser، Stora Enso، Iggesund، Metsä. والأربعة الأوائل مقرها الإمارات، والبقية علامات حاويات وسيطة وكرتون لم يُتحقق من قنواتها المحلية. وتورد شركات تجارة كثيرة في الشارقة وعجمان والقوز ومجمع دبي للاستثمار والمنطقة الحرة لجبل علي سلال تغليف مختلطة.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Taghleef Industries = علامة إماراتية من الفئة الممتازة؛ Falcon Pack = علامة إماراتية من الفئة المتوسطة؛ Cosmoplast = علامة إماراتية من الفئة المتوسطة؛ Interplast = علامة إماراتية من الفئة المتوسطة؛ Schütz = علامة ألمانية من الفئة الممتازة؛ Mauser = علامة أمريكية من الفئة الممتازة؛ Stora Enso = علامة فنلندية من الفئة الممتازة؛ Iggesund = علامة سويدية من الفئة الممتازة؛ Metsä = علامة فنلندية من الفئة الممتازة.",
       "sources": [
         "https://harwal.net/our-companies/",
         "https://www.moccae.gov.ae",
@@ -36,7 +36,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Taghleef films; Falcon Pack; Cosmoplast (Harwal) -> confirmed; Napco, Hotpack, Emirates Printing Press and Rotopak removed (not confirmed). Not checked: Named converters' current product lines were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Taghleef films; Falcon Pack; Cosmoplast (Harwal) -> confirmed; Napco, Hotpack, Emirates Printing Press and Rotopak removed (not confirmed). Not checked: Named converters' current product lines were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Taghleef Industries",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Falcon Pack",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Cosmoplast",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Interplast",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Schütz",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mauser",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Stora Enso",
+          "origin_country": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Iggesund",
+          "origin_country": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Metsä",
+          "origin_country": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "packaging:uae-market-sizes",

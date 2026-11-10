@@ -26,8 +26,8 @@
       "topic": "Metal cans, drums & cylinders: makes, brands, distributors and origins in the UAE",
       "topic_ar": "العلب والبراميل المعدنية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names metal packaging brands such as Greif, Mauser and Crown, tinplate mills, aerosol valve makers, and local drum makers and reconditioners. Brands: Greif, Mauser Packaging Solutions, Crown, Tata Steel, JFE, Baosteel, ArcelorMittal, Aptar, Precision, Coster, Lindal. The UAE plants and agents of these makers were not checked. Local drum makers and reconditioners work in Sharjah, Hamriyah, Jebel Ali and Abu Dhabi and were not checked by name. Tinplate comes from the listed mills, and aerosol valves from the last four brands. Origins: UAE, Saudi Arabia, India, China, Europe.",
-      "body_ar": "من ماركات العبوات المعدنية Greif وMauser وCrown، إضافة إلى مصانع الصفيح ومصنعي صمامات علب الرذاذ (الإيروسول) ومصنعي البراميل المحليين ومجددي البراميل. العلامات: Greif، Mauser Packaging Solutions، Crown، Tata Steel، JFE، Baosteel، ArcelorMittal، Aptar، Precision، Coster، Lindal، ولم يُتحقق من مصانع هذه الشركات أو وكلائها في الإمارات. ويعمل مصنّعو ومجددو براميل محليون في الشارقة والحمرية وجبل علي وأبوظبي، ولم يُتحقق منهم بالاسم. والصفيح من المصانع المذكورة، وصمامات الأيروسول من العلامات الأربع الأخيرة. المنشأ: الإمارات، السعودية، الهند، الصين، أوروبا.",
+      "body_en": "This names metal packaging brands such as Greif, Mauser and Crown, tinplate mills, aerosol valve makers, and local drum makers and reconditioners. Brands: Greif, Mauser Packaging Solutions, Crown, Tata Steel, JFE, Baosteel, ArcelorMittal, Aptar, Precision, Coster, Lindal. The UAE plants and agents of these makers were not checked. Local drum makers and reconditioners work in Sharjah, Hamriyah, Jebel Ali and Abu Dhabi and were not checked by name. Tinplate comes from the listed mills, and aerosol valves from the last four brands. Origins: UAE, Saudi Arabia, India, China, Europe.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Greif = a premium American brand; Mauser Packaging Solutions = a premium American brand; Crown = a premium American brand; Tata Steel = a mid-tier Indian brand; JFE = a premium Japanese brand; Baosteel = a mid-tier Chinese brand; ArcelorMittal = a mid-tier Luxembourg-based brand; Aptar = a premium American brand; Precision = a mid-tier American brand; Coster = a mid-tier Italian brand; Lindal = a mid-tier German brand.",
+      "body_ar": "من ماركات العبوات المعدنية Greif وMauser وCrown، إضافة إلى مصانع الصفيح ومصنعي صمامات علب الرذاذ (الإيروسول) ومصنعي البراميل المحليين ومجددي البراميل. العلامات: Greif، Mauser Packaging Solutions، Crown، Tata Steel، JFE، Baosteel، ArcelorMittal، Aptar، Precision، Coster، Lindal، ولم يُتحقق من مصانع هذه الشركات أو وكلائها في الإمارات. ويعمل مصنّعو ومجددو براميل محليون في الشارقة والحمرية وجبل علي وأبوظبي، ولم يُتحقق منهم بالاسم. والصفيح من المصانع المذكورة، وصمامات الأيروسول من العلامات الأربع الأخيرة. المنشأ: الإمارات، السعودية، الهند، الصين، أوروبا.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Greif = علامة أمريكية من الفئة الممتازة؛ Mauser Packaging Solutions = علامة أمريكية من الفئة الممتازة؛ Crown = علامة أمريكية من الفئة الممتازة؛ Tata Steel = علامة هندية من الفئة المتوسطة؛ JFE = علامة يابانية من الفئة الممتازة؛ Baosteel = علامة صينية من الفئة المتوسطة؛ ArcelorMittal = علامة لوكسمبورغية من الفئة المتوسطة؛ Aptar = علامة أمريكية من الفئة الممتازة؛ Precision = علامة أمريكية من الفئة المتوسطة؛ Coster = علامة إيطالية من الفئة المتوسطة؛ Lindal = علامة ألمانية من الفئة المتوسطة.",
       "sources": [
         "https://www.greif.com",
         "https://www.hiraindustries.com",
@@ -36,7 +36,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Greif makes industrial drums and packaging -> confirmed | Hira Industries (Dubai) -> removed: site did not answer | Crown UAE plant -> not confirmed; kept only as an international brand. Not checked: Current UAE plants of Crown and Mauser and Hira's current product range were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Greif makes industrial drums and packaging -> confirmed | Hira Industries (Dubai) -> removed: site did not answer | Crown UAE plant -> not confirmed; kept only as an international brand. Not checked: Current UAE plants of Crown and Mauser and Hira's current product range were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Greif",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mauser Packaging Solutions",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Crown",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Tata Steel",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "JFE",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Baosteel",
+          "origin_country": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "ArcelorMittal",
+          "origin_country": "Luxembourg",
+          "tier": "mid",
+          "generic_en": "a mid-tier Luxembourg-based brand",
+          "generic_ar": "علامة لوكسمبورغية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Aptar",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Precision",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Coster",
+          "origin_country": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Lindal",
+          "origin_country": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "metal_packaging:uae-market-sizes",

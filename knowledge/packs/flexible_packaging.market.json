@@ -26,8 +26,8 @@
       "topic": "Flexible packaging & films: makes, brands, distributors and origins in the UAE",
       "topic_ar": "التغليف المرن والأغشية البلاستيكية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Flexible packaging producers and resin sources in the UAE, such as Taghleef Industries, Cosmoplast, Falcon Pack, Borouge and SABIC, plus PE film extruders in Sharjah, Ajman and Umm Al Quwain. Producers and resin sources: Taghleef Industries, Cosmoplast, Falcon Pack, Borouge, SABIC. Taghleef, based in Dubai, makes BOPP and CPP films, and there are many PE film extruders in Sharjah, Ajman and Umm Al Quwain that were not checked by name. Origins: UAE, Saudi Arabia, Oman, India, China.",
-      "body_ar": "من أبرز منتجي التغليف المرن ومصادر الخامات في الإمارات Taghleef Industries وCosmoplast وFalcon Pack وBorouge وSABIC، إضافة إلى مصانع بثق أغشية PE في الشارقة وعجمان وأم القيوين. المنتجون ومصادر الراتنج: Taghleef Industries، Cosmoplast، Falcon Pack، Borouge، SABIC. وتصنع Taghleef، ومقرها دبي، أفلام BOPP وCPP، وتوجد مصانع بثق أفلام بولي إيثيلين كثيرة في الشارقة وعجمان وأم القيوين لم يُتحقق منها بالاسم. المنشأ: الإمارات، السعودية، عُمان، الهند، الصين.",
+      "body_en": "Flexible packaging producers and resin sources in the UAE, such as Taghleef Industries, Cosmoplast, Falcon Pack, Borouge and SABIC, plus PE film extruders in Sharjah, Ajman and Umm Al Quwain. Producers and resin sources: Taghleef Industries, Cosmoplast, Falcon Pack, Borouge, SABIC. Taghleef, based in Dubai, makes BOPP and CPP films, and there are many PE film extruders in Sharjah, Ajman and Umm Al Quwain that were not checked by name. Origins: UAE, Saudi Arabia, Oman, India, China.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Taghleef Industries = a premium UAE brand; Cosmoplast = a mid-tier UAE brand; Falcon Pack = a mid-tier UAE brand; Borouge = a premium UAE brand; SABIC = a premium Saudi brand.",
+      "body_ar": "من أبرز منتجي التغليف المرن ومصادر الخامات في الإمارات Taghleef Industries وCosmoplast وFalcon Pack وBorouge وSABIC، إضافة إلى مصانع بثق أغشية PE في الشارقة وعجمان وأم القيوين. المنتجون ومصادر الراتنج: Taghleef Industries، Cosmoplast، Falcon Pack، Borouge، SABIC. وتصنع Taghleef، ومقرها دبي، أفلام BOPP وCPP، وتوجد مصانع بثق أفلام بولي إيثيلين كثيرة في الشارقة وعجمان وأم القيوين لم يُتحقق منها بالاسم. المنشأ: الإمارات، السعودية، عُمان، الهند، الصين.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Taghleef Industries = علامة إماراتية من الفئة الممتازة؛ Cosmoplast = علامة إماراتية من الفئة المتوسطة؛ Falcon Pack = علامة إماراتية من الفئة المتوسطة؛ Borouge = علامة إماراتية من الفئة الممتازة؛ SABIC = علامة سعودية من الفئة الممتازة.",
       "sources": [
         "https://www.ti-films.com",
         "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
@@ -36,7 +36,44 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Taghleef Industries makes BOPP/CPP films, Dubai-based -> confirmed | UAE ban on single-use plastic bags since 1 January 2024 -> confirmed (secondary source); emirate-level dates and later phases not checked. Not checked: Exact dates and item lists of the federal single-use plastic phase-out, and the current names of local converters, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Taghleef Industries makes BOPP/CPP films, Dubai-based -> confirmed | UAE ban on single-use plastic bags since 1 January 2024 -> confirmed (secondary source); emirate-level dates and later phases not checked. Not checked: Exact dates and item lists of the federal single-use plastic phase-out, and the current names of local converters, were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Taghleef Industries",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Cosmoplast",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Falcon Pack",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Borouge",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "SABIC",
+          "origin_country": "Saudi Arabia",
+          "tier": "premium",
+          "generic_en": "a premium Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "flexible_packaging:uae-market-sizes",

@@ -25,8 +25,8 @@
       "topic": "Rigid plastic containers: makes, brands, distributors and origins in the UAE",
       "topic_ar": "العبوات البلاستيكية الصلبة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names rigid plastic packaging makers and brands, including the UAE makers Interplast and Cosmoplast, and Aptar, Silgan, Berry, Schütz, Mauser, Greif, Borouge and SABIC. Makers and brands: Interplast, Cosmoplast, Aptar, Silgan, Berry, Schütz, Mauser, Greif, Borouge, SABIC. Interplast and Cosmoplast (Harwal Group) are UAE makers. The others are closure, IBC and resin brands whose UAE channels were not checked. Many blow-moulders in Sharjah, Ajman, UAQ, RAK and Jebel Ali were not checked by name. Origins: UAE, GCC, India, China.",
-      "body_ar": "من مصنعي العبوات البلاستيكية الصلبة وعلاماتها المصنعان الإماراتيان Interplast وCosmoplast، إلى جانب Aptar وSilgan وBerry وSchütz وMauser وGreif وBorouge وSABIC. المصنّعون والعلامات: Interplast، Cosmoplast، Aptar، Silgan، Berry، Schütz، Mauser، Greif، Borouge، SABIC. وInterplast وCosmoplast (مجموعة هروال) مصنّعون إماراتيون، والبقية علامات أغطية وحاويات وسيطة وراتنج لم يُتحقق من قنواتها في الإمارات. ولم يُتحقق بالاسم من مصانع القولبة بالنفخ الكثيرة في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي. المنشأ: الإمارات، الخليج، الهند، الصين.",
+      "body_en": "This entry names rigid plastic packaging makers and brands, including the UAE makers Interplast and Cosmoplast, and Aptar, Silgan, Berry, Schütz, Mauser, Greif, Borouge and SABIC. Makers and brands: Interplast, Cosmoplast, Aptar, Silgan, Berry, Schütz, Mauser, Greif, Borouge, SABIC. Interplast and Cosmoplast (Harwal Group) are UAE makers. The others are closure, IBC and resin brands whose UAE channels were not checked. Many blow-moulders in Sharjah, Ajman, UAQ, RAK and Jebel Ali were not checked by name. Origins: UAE, GCC, India, China.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Interplast = a mid-tier UAE brand; Cosmoplast = a mid-tier UAE brand; Aptar = a premium American brand; Silgan = a premium American brand; Berry = a mid-tier American brand; Schütz = a premium German brand; Mauser = a premium American brand; Greif = a premium American brand; Borouge = a premium UAE brand; SABIC = a premium Saudi brand.",
+      "body_ar": "من مصنعي العبوات البلاستيكية الصلبة وعلاماتها المصنعان الإماراتيان Interplast وCosmoplast، إلى جانب Aptar وSilgan وBerry وSchütz وMauser وGreif وBorouge وSABIC. المصنّعون والعلامات: Interplast، Cosmoplast، Aptar، Silgan، Berry، Schütz، Mauser، Greif، Borouge، SABIC. وInterplast وCosmoplast (مجموعة هروال) مصنّعون إماراتيون، والبقية علامات أغطية وحاويات وسيطة وراتنج لم يُتحقق من قنواتها في الإمارات. ولم يُتحقق بالاسم من مصانع القولبة بالنفخ الكثيرة في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي. المنشأ: الإمارات، الخليج، الهند، الصين.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Interplast = علامة إماراتية من الفئة المتوسطة؛ Cosmoplast = علامة إماراتية من الفئة المتوسطة؛ Aptar = علامة أمريكية من الفئة الممتازة؛ Silgan = علامة أمريكية من الفئة الممتازة؛ Berry = علامة أمريكية من الفئة المتوسطة؛ Schütz = علامة ألمانية من الفئة الممتازة؛ Mauser = علامة أمريكية من الفئة الممتازة؛ Greif = علامة أمريكية من الفئة الممتازة؛ Borouge = علامة إماراتية من الفئة الممتازة؛ SABIC = علامة سعودية من الفئة الممتازة.",
       "sources": [
         "https://harwal.net/our-companies/",
         "https://unece.org",
@@ -34,7 +34,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Harwal group companies Interplast and Cosmoplast -> confirmed; Napco, Al Bayader and Precision Plastic Products removed (not checked). Not checked: Names of several local blow-moulders were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Harwal group companies Interplast and Cosmoplast -> confirmed; Napco, Al Bayader and Precision Plastic Products removed (not checked). Not checked: Names of several local blow-moulders were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Interplast",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Cosmoplast",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Aptar",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Silgan",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Berry",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Schütz",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mauser",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Greif",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Borouge",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "SABIC",
+          "origin_country": "Saudi Arabia",
+          "tier": "premium",
+          "generic_en": "a premium Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "rigid_plastic_packaging:uae-market-sizes",
