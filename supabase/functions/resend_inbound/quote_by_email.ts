@@ -126,7 +126,8 @@ export function replyFor(lead: Lead, o: Outcome): { subject: string; body: strin
   if (!r.ok) {
     const head = hello(lead) + 'We received your quotation "' + o.file + '" for request ' + job + ' by e-mail, but it has not been sent to the customer. ';
     const why = r.stage === 'extract'
-      ? (r.code === 'quote_total_ambiguous' ? 'We read it but could not be sure of its total' + (r.review_reason ? ' (' + String(r.review_reason).replace(/_/g, ' ') + ')' : '') + '. Please open the request in the supplier portal and type the total.'
+      ? (r.code === 'quote_total_ambiguous' && r.review_reason === 'foreign_currency' ? 'It is priced in a currency other than AED, and customers compare quotations in AED. Please open the request in the supplier portal and type your AED total.'
+        : r.code === 'quote_total_ambiguous' ? 'We read it but could not be sure of its total' + (r.review_reason ? ' (' + String(r.review_reason).replace(/_/g, ' ') + ')' : '') + '. Please open the request in the supplier portal and type the total.'
         : (r.message || 'We could not read it.') + ' You can also upload it on the request in the supplier portal.')
       : r.stage === 'job' ? 'This request is no longer open to your company.'
       : (r.message || 'It could not be submitted just now.');
