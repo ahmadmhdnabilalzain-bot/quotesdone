@@ -7,7 +7,6 @@
 import { assertEquals } from 'jsr:@std/assert@1';
 import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 import { langOf, turnLang } from './chat_answers.ts';
-import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const mixed = 'ZZ DEMO sorry, الزجاج 8 مم مو 6mm. And the villa is in Sharjah, Al Rahmaniya, not Dubai like I told you before?';
 const enStart = [{ role: 'user', content: 'ZZ DEMO Hi, I need aluminium windows for my villa in Sharjah: 12 windows.' }, { role: 'assistant', content: 'Thanks.' }];

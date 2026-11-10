@@ -176,12 +176,6 @@ CREATE TRIGGER z90_kb_chunks_export_change_upd AFTER UPDATE ON public.kb_chunks 
 CREATE TRIGGER z_ml_vectors_stale AFTER UPDATE OF title, content ON public.kb_chunks FOR EACH ROW WHEN (((old.title IS DISTINCT FROM new.title) OR (old.content IS DISTINCT FROM new.content))) EXECUTE FUNCTION fn_ml_vectors_stale('kb_chunks', 'id');
 CREATE TRIGGER z_ml_vectors_stale_del AFTER DELETE ON public.kb_chunks FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('kb_chunks', 'id');
 CREATE TRIGGER zz_knowledge_library_mirror AFTER INSERT OR DELETE OR UPDATE OF id, title, content, citation, category_norm, source_kind, embedding_gte ON public.kb_chunks FOR EACH ROW EXECUTE FUNCTION fn_knowledge_library_mirror();
-CREATE TRIGGER z90_kb_chunks_export_change_del AFTER DELETE ON public.kb_chunks_old REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
-CREATE TRIGGER z90_kb_chunks_export_change_ins AFTER INSERT ON public.kb_chunks_old REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
-CREATE TRIGGER z90_kb_chunks_export_change_trunc AFTER TRUNCATE ON public.kb_chunks_old FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
-CREATE TRIGGER z90_kb_chunks_export_change_upd AFTER UPDATE ON public.kb_chunks_old REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
-CREATE TRIGGER z_ml_vectors_stale AFTER UPDATE OF title, content ON public.kb_chunks_old FOR EACH ROW WHEN (((old.title IS DISTINCT FROM new.title) OR (old.content IS DISTINCT FROM new.content))) EXECUTE FUNCTION fn_ml_vectors_stale('kb_chunks', 'id');
-CREATE TRIGGER z_ml_vectors_stale_del AFTER DELETE ON public.kb_chunks_old FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('kb_chunks', 'id');
 CREATE TRIGGER zz_knowledge_library_mirror_ml AFTER INSERT OR UPDATE OF src, row_id, embedding ON public.knowledge_vector_ml FOR EACH ROW WHEN ((new.src = ANY (ARRAY['kb_chunks'::text, 'ops_knowledge'::text, 'agent_knowledge'::text, 'sales_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'ceo_knowledge'::text, 'support_knowledge'::text]))) EXECUTE FUNCTION fn_knowledge_library_mirror_ml();
 CREATE TRIGGER zz_knowledge_library_mirror_ml_delete AFTER DELETE ON public.knowledge_vector_ml FOR EACH ROW WHEN ((old.src = ANY (ARRAY['kb_chunks'::text, 'ops_knowledge'::text, 'agent_knowledge'::text, 'sales_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'ceo_knowledge'::text, 'support_knowledge'::text]))) EXECUTE FUNCTION fn_knowledge_library_mirror_ml();
 CREATE TRIGGER a00_leads_sanctioned_row_is_never_deleted BEFORE DELETE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_row_is_permanent();
@@ -778,7 +772,6 @@ ALTER TABLE public.kb_category_aliases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_category_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_chunk_quarantine ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_chunks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.kb_chunks_old ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_chunks_swap_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_citation_jurisdiction ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_embed_inflight ENABLE ROW LEVEL SECURITY;
@@ -1075,6 +1068,7 @@ ALTER TABLE public.signup_purge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.signup_purge_dropbox ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.signup_purge_object ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.simulations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_uptime_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills_matrix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sms_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_connect_link ENABLE ROW LEVEL SECURITY;
@@ -1336,7 +1330,6 @@ CREATE POLICY it_table_size_daily_service_role_only ON public.it_table_size_dail
 CREATE POLICY it_threshold_service_role_only ON public.it_threshold AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_chunk_quarantine_service_role_only ON public.kb_chunk_quarantine AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.kb_chunks AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
-CREATE POLICY os_owner_admin_read ON public.kb_chunks_old AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY kb_chunks_swap_log_service_role_only ON public.kb_chunks_swap_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_citation_jurisdiction_service_role_only ON public.kb_citation_jurisdiction AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_embed_inflight_service_role_only ON public.kb_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1482,6 +1475,7 @@ CREATE POLICY service_implication_service_role_only ON public.service_implicatio
 CREATE POLICY signup_purge_service_role_only ON public.signup_purge AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY signup_purge_dropbox_service_role_only ON public.signup_purge_dropbox AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY signup_purge_object_service_role_only ON public.signup_purge_object AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY site_uptime_check_service_role_only ON public.site_uptime_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY sms_messages_service_role_only ON public.sms_messages AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_connect_link_service_role_only ON public.social_connect_link AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_conversation_service_role_only ON public.social_conversation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1635,6 +1629,8 @@ select cron.schedule('seat_duty:it_engineer.postmortem','*/5 * * * *',$CRON$set 
 select cron.schedule('seat_duty:customer_support.status_chase_close','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.status_chase_close');$CRON$);
 select cron.schedule('seat_duty:customer_support.person_followup_email','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.person_followup_email');$CRON$);
 select cron.schedule('seat_duty:accountant.reveal_reconcile','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.reveal_reconcile');$CRON$);
+select cron.schedule('cron_history_purge_hourly','37 * * * *',$CRON$select public.fn_cron_history_purge();$CRON$);
+select cron.schedule('site_uptime_5min','2-59/5 * * * *',$CRON$set statement_timeout = '30s'; select public.fn_site_uptime_tick();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

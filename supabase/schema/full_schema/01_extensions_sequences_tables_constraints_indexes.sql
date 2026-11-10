@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-04T08:26:04.534Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-10T00:44:56.713Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -5086,22 +5086,6 @@ CREATE TABLE IF NOT EXISTS public.kb_chunks (
   embed_claimed_at timestamp with time zone
 );
 
-CREATE TABLE IF NOT EXISTS public.kb_chunks_old (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  source_kind text NOT NULL,
-  source_id text,
-  category text,
-  title text,
-  content text NOT NULL,
-  citation text,
-  effective_date date,
-  fts tsvector GENERATED ALWAYS AS (to_tsvector('english'::regconfig, ((COALESCE(title, ''::text) || ' '::text) || COALESCE(content, ''::text)))) STORED,
-  created_at timestamp with time zone DEFAULT now(),
-  embedding_gte vector(384),
-  category_norm text GENERATED ALWAYS AS (NULLIF(regexp_replace(lower(COALESCE(category, ''::text)), '^cat:'::text, ''::text), ''::text)) STORED,
-  embed_claimed_at timestamp with time zone
-);
-
 CREATE TABLE IF NOT EXISTS public.kb_chunks_swap_log (
   seq bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   id bigint NOT NULL,
@@ -9230,6 +9214,18 @@ CREATE TABLE IF NOT EXISTS public.simulations (
   created_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.site_uptime_check (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  checked_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+  url text NOT NULL,
+  request_id bigint,
+  status_code integer,
+  ms integer,
+  ok boolean,
+  error text,
+  answered_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.skills_matrix (
   agent_key text NOT NULL,
   skill text NOT NULL,
@@ -11184,7 +11180,6 @@ ALTER TABLE public.kb_category_aliases ADD CONSTRAINT kb_category_aliases_pkey P
 ALTER TABLE public.kb_category_stats ADD CONSTRAINT kb_category_stats_pkey PRIMARY KEY (category, source_kind);
 ALTER TABLE public.kb_chunk_quarantine ADD CONSTRAINT kb_chunk_quarantine_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_chunks ADD CONSTRAINT kb_chunks_pkey PRIMARY KEY (id);
-ALTER TABLE public.kb_chunks_old ADD CONSTRAINT kb_chunks_old_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_chunks_swap_log ADD CONSTRAINT kb_chunks_swap_log_pkey PRIMARY KEY (seq);
 ALTER TABLE public.kb_citation_jurisdiction ADD CONSTRAINT kb_citation_jurisdiction_pkey PRIMARY KEY (citation_md5);
 ALTER TABLE public.kb_embed_inflight ADD CONSTRAINT kb_embed_inflight_pkey PRIMARY KEY (request_id);
@@ -11481,6 +11476,7 @@ ALTER TABLE public.signup_purge ADD CONSTRAINT signup_purge_pkey PRIMARY KEY (id
 ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_pkey PRIMARY KEY (id);
 ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_pkey PRIMARY KEY (id);
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
+ALTER TABLE public.site_uptime_check ADD CONSTRAINT site_uptime_check_pkey PRIMARY KEY (id);
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
 ALTER TABLE public.sms_messages ADD CONSTRAINT sms_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_pkey PRIMARY KEY (id);
@@ -13512,29 +13508,17 @@ CREATE INDEX ix_sec_audit_tbl ON public.security_audit_log USING btree (table_na
 CREATE INDEX ix_workflow_run_correlation ON public.workflow_run USING btree (correlation_id);
 CREATE INDEX ix_workflow_run_status ON public.workflow_run USING btree (status, next_attempt_at);
 CREATE INDEX kb_chunks_cat_id_idx ON public.kb_chunks USING btree (category) INCLUDE (id);
-CREATE INDEX kb_chunks_cat_id_idx_old ON public.kb_chunks_old USING btree (category) INCLUDE (id);
 CREATE INDEX kb_chunks_category_norm_idx ON public.kb_chunks USING btree (category_norm);
-CREATE INDEX kb_chunks_category_norm_idx_old ON public.kb_chunks_old USING btree (category_norm);
 CREATE UNIQUE INDEX kb_chunks_company_faq_source_id ON public.kb_chunks USING btree (source_id) WHERE (source_kind = 'company_faq'::text);
-CREATE UNIQUE INDEX kb_chunks_company_faq_source_id_old ON public.kb_chunks_old USING btree (source_id) WHERE (source_kind = 'company_faq'::text);
 CREATE INDEX kb_chunks_created_at_desc_idx ON public.kb_chunks USING btree (created_at DESC);
-CREATE INDEX kb_chunks_created_at_desc_idx_old ON public.kb_chunks_old USING btree (created_at DESC);
 CREATE INDEX kb_chunks_emb_hnsw ON public.kb_chunks USING hnsw (embedding_gte vector_cosine_ops);
-CREATE INDEX kb_chunks_emb_hnsw_old ON public.kb_chunks_old USING hnsw (embedding_gte vector_cosine_ops);
 CREATE INDEX kb_chunks_fts ON public.kb_chunks USING gin (fts);
-CREATE INDEX kb_chunks_fts_old ON public.kb_chunks_old USING gin (fts);
 CREATE UNIQUE INDEX kb_chunks_qdkb_source_uidx ON public.kb_chunks USING btree (source_id) WHERE (source_kind = 'qd_kb_pack'::text);
-CREATE UNIQUE INDEX kb_chunks_qdkb_source_uidx_old ON public.kb_chunks_old USING btree (source_id) WHERE (source_kind = 'qd_kb_pack'::text);
 CREATE INDEX kb_chunks_source_id_idx ON public.kb_chunks USING btree (source_id);
-CREATE INDEX kb_chunks_source_id_idx_old ON public.kb_chunks_old USING btree (source_id);
 CREATE INDEX kb_chunks_source_kind_idx ON public.kb_chunks USING btree (source_kind);
-CREATE INDEX kb_chunks_source_kind_idx_old ON public.kb_chunks_old USING btree (source_kind);
 CREATE INDEX kb_chunks_unembedded_cat_created_idx ON public.kb_chunks USING btree (category, created_at) WHERE (embedding_gte IS NULL);
-CREATE INDEX kb_chunks_unembedded_cat_created_idx_old ON public.kb_chunks_old USING btree (category, created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_chunks_unembedded_created_idx ON public.kb_chunks USING btree (created_at) WHERE (embedding_gte IS NULL);
-CREATE INDEX kb_chunks_unembedded_created_idx_old ON public.kb_chunks_old USING btree (created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_chunks_unembedded_kind_created_idx ON public.kb_chunks USING btree (source_kind, created_at) WHERE (embedding_gte IS NULL);
-CREATE INDEX kb_chunks_unembedded_kind_created_idx_old ON public.kb_chunks_old USING btree (source_kind, created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_embed_inflight_chunk_idx ON public.kb_embed_inflight USING btree (chunk_id);
 CREATE INDEX kb_op_alias_lang_idx ON public.kb_operational_alias USING btree (language, negative);
 CREATE INDEX kb_op_alias_norm_idx ON public.kb_operational_alias USING btree (alias_norm);
@@ -13743,6 +13727,8 @@ CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseli
 CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX site_uptime_check_pending ON public.site_uptime_check USING btree (request_id) WHERE ((answered_at IS NULL) AND (error IS NULL));
+CREATE INDEX site_uptime_check_url_checked_at ON public.site_uptime_check USING btree (url, checked_at DESC);
 CREATE INDEX sms_messages_from_created_idx ON public.sms_messages USING btree (sms_from, created_at DESC);
 CREATE UNIQUE INDEX sms_messages_message_sid_uk ON public.sms_messages USING btree (message_sid) WHERE (message_sid IS NOT NULL);
 CREATE INDEX social_message_conversation_idx ON public.social_message USING btree (conversation_id, created_at DESC);

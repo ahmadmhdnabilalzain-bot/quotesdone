@@ -11074,6 +11074,28 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_cron_history_purge(p_keep interval DEFAULT '7 days'::interval, p_batch integer DEFAULT 20000)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  v_n integer;
+begin
+  -- Walk the primary key from the oldest run and stop at the batch size: no full scan of the table each hour.
+  delete from cron.job_run_details
+   where runid in (select runid from cron.job_run_details
+                    where start_time < now() - p_keep
+                      and status in ('succeeded', 'failed')
+                    order by runid
+                    limit greatest(p_batch, 1));
+  get diagnostics v_n = row_count;
+  return v_n;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_cron_liveness()
  RETURNS jsonb
  LANGUAGE plpgsql
