@@ -95,7 +95,8 @@ test('the callback URL is the one wa_status verifies against', () => {
 
 test('wa_status checks the signature before recording, fails closed, and is reachable by Twilio', () => {
   const t = src('supabase/functions/wa_status/index.ts');
-  const check = t.indexOf('verifyTwilioSignature(token, statusCallbackUrl()');
+  // 10 Nov 2026 (R6): the pinned URL a send names, or the old one a message in flight was signed over
+  const check = t.indexOf('verifyTwilioSignatureAny(token, statusCallbackUrls()');
   const refuse = t.indexOf('if (!check.valid)');
   const rec = t.indexOf("record(sid, status, params.ErrorCode");
   assert.ok(check > 0 && refuse > check && rec > refuse, 'wa_status records a callback without checking X-Twilio-Signature first');

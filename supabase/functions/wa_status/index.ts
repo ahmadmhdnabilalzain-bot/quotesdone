@@ -19,7 +19,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
-import { statusCallbackUrl, verifyTwilioSignature } from '../_shared/twilio_status.ts';
+import { statusCallbackUrls, verifyTwilioSignatureAny } from '../_shared/twilio_status.ts';
 import { J } from '../_shared/json_response.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -106,7 +106,8 @@ Deno.serve(observe('wa_status', async (req) => {
   const params: Record<string, string> = {};
   for (const [k, v] of new URLSearchParams(await req.text())) params[k] = v;
   const token = await sec('twilio_auth_token');
-  const check = await verifyTwilioSignature(token, statusCallbackUrl(), params, req.headers.get('x-twilio-signature'));
+  // the region-pinned URL a send names since 10 Nov 2026, or the old one for a message still in flight (_shared/twilio_status.ts)
+  const check = await verifyTwilioSignatureAny(token, statusCallbackUrls(), params, req.headers.get('x-twilio-signature'));
   if (!check.valid) {
     await logRun(token ? 'warn' : 'error', { refused: true }, 'status callback refused: ' + check.reason);
     // 503 without a token: that is our configuration, not the caller's fault. 403 otherwise.
