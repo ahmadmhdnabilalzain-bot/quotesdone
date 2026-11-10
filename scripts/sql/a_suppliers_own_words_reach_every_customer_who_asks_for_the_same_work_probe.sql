@@ -97,9 +97,17 @@ begin
      where l.company_name ~* '^\s*zz\s*demo' and l.email like '%@example.invalid'
        and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)
      order by l.id limit 2) l;
-  if coalesce(cardinality(v_ids), 0) < 2 then
-    raise exception 'CHK<<{"verdict":"PROBE FAILED: fewer than two matchable ZZ DEMO suppliers at @example.invalid to stand in for the matrix"}>>';
-  end if;
+  -- A PROBE BRINGS ITS OWN SUBJECTS (10 Nov 2026). At the #1880 apply only ONE such supplier was left (126512): teardowns and
+  -- the demo purge had removed the rest since the rehearsal, and the probe stopped the apply on a fixture, not on matching.
+  -- Missing stand-ins are created here, inside this aborted transaction (triggers are off, every row rolls back), as matchable
+  -- ZZ DEMO suppliers at @example.invalid, so they can never reach a person; the lead count is taken after them.
+  while coalesce(cardinality(v_ids), 0) < 2 loop
+    insert into public.leads (company_name, email, verified, approval_status, banned, matching_blocked, permanently_closed, chat_strikes)
+    values ('ZZ DEMO matching probe', 'qd-matching-probe-' || gen_random_uuid() || '@example.invalid', true, 'approved', false, false, false, 0)
+    returning id into v_id;
+    v_ids := coalesce(v_ids, '{}') || v_id;
+  end loop;
+  select count(*) into v_leads_before from public.leads;
   v_a := v_ids[1]; v_b := v_ids[2];
   select count(*) into v_caps_before from public.supplier_capabilities where supplier_id not in (v_a, v_b);
   delete from public.supplier_availability where supplier_id in (v_a, v_b);   -- "no row" = available (rolled back)
