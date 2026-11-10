@@ -2033,6 +2033,9 @@
     border: 1px solid var(--line);
     padding: 10px 12px;
     text-align: start;
+    /* the blog's 50 price tables ("120–300", AED per unit): digits line up down a column
+       (website audit 10 Nov 2026, measured font-variant-numeric: normal) */
+    font-variant-numeric: tabular-nums;
   }
   .qd-prose th {
     background: rgba(110, 231, 212, 0.05);

@@ -95,6 +95,8 @@ export function PrivacyControls({ token, lang = 'en', rpc: rpcIn }: { token?: st
       <div>
         <h3 id={ids + 'h'} className="text-[15px] font-semibold text-foreground">{pt(lang, 'h')}</h3>
         <p className="text-[12.5px] text-muted-foreground">{pt(lang, 'sub')}</p>
+        {/* Inside the portals the only legal link was the terms at sign-up (website audit 10 Nov 2026). */}
+        <a href={lang === 'ar' ? '/ar/privacy' : '/privacy'} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center text-[12.5px] font-semibold text-primary underline underline-offset-2">{pt(lang, 'policy')}</a>
       </div>
 
       <Card className="flex flex-col gap-2 p-4">

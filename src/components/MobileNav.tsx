@@ -58,7 +58,8 @@ export function MobileNav({ items, services, servicesLabel, cta, login, loginLab
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={open ? closeLabel : menuLabel}
-        className="grid h-9 w-9 place-items-center rounded-btn border border-line2 bg-surf/60 text-paper shadow-key transition-colors duration-base hover:border-line3 sm:h-10 sm:w-10"
+        // 44x44 on a phone, the tap minimum (website audit 10 Nov 2026: measured 36x36 at 390 px).
+        className="grid h-11 w-11 place-items-center rounded-btn border border-line2 bg-surf/60 text-paper shadow-key transition-colors duration-base hover:border-line3 sm:h-10 sm:w-10"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
           {open ? <><path d="M18 6 6 18" /><path d="m6 6 12 12" /></> : <><path d="M4 8h16" /><path d="M4 16h10" /></>}
