@@ -5,8 +5,8 @@
       "id": "cleaning_chemicals:spec-checklist",
       "topic": "Cleaning chemicals - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for cleaning chemicals must state: product and intended use; active ingredient and concentration; dilution ratio; pack size and quantity; Dubai Municipality product registration; food-contact suitability; safety data sheet; label language; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة كيماويات التنظيف: المنتج والاستخدام المقصود؛ المادة الفعالة وتركيزها؛ نسبة التخفيف؛ حجم العبوة والكمية؛ تسجيل المنتج لدى بلدية دبي؛ الملاءمة للأسطح الملامسة للغذاء؛ صحيفة بيانات السلامة؛ لغة الملصق؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for cleaning chemicals must state: product and intended use; active ingredient and concentration; dilution ratio; pack size and quantity; Dubai Municipality product registration; food-contact suitability; safety data sheet; label language; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: product and use, concentration, dilution ratio and pack size with quantity.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة كيماويات التنظيف: المنتج والاستخدام المقصود؛ المادة الفعالة وتركيزها؛ نسبة التخفيف؛ حجم العبوة والكمية؛ تسجيل المنتج لدى بلدية دبي؛ الملاءمة للأسطح الملامسة للغذاء؛ صحيفة بيانات السلامة؛ لغة الملصق؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المنتج والاستخدام، والتركيز، ونسبة التخفيف، وحجم العبوة مع الكمية.",
       "required_specs": [
         "product and intended use",
         "active ingredient and concentration",
@@ -28,7 +28,58 @@
         "https://www.dm.gov.ae/municipality-business/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "product and intended use",
+        "active ingredient and concentration",
+        "dilution ratio",
+        "pack size and quantity"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product and intended use",
+          "why_needed_to_price": "Floor, kitchen, sanitiser, glass and laundry products are different.",
+          "uae_options": "floor; kitchen degreaser; sanitiser; glass; laundry; dishwash",
+          "follow_up_if": "Food areas: ask whether food-contact approval is needed.",
+          "blocking": true
+        },
+        {
+          "spec": "active ingredient and concentration",
+          "why_needed_to_price": "Concentration decides how far a litre goes.",
+          "uae_options": "concentrate; ready to use",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "dilution ratio",
+          "why_needed_to_price": "Price per litre means nothing without the dilution ratio.",
+          "uae_options": "e.g. 1:100",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pack size and quantity",
+          "why_needed_to_price": "Pack size sets unit price.",
+          "uae_options": "1 L; 5 L; 20 L; drums",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Dubai Municipality product registration",
+          "why_needed_to_price": "Unregistered products cannot be sold or used on many sites.",
+          "uae_options": "registered; not",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "safety data sheet",
+          "why_needed_to_price": "Sites require SDS in English and Arabic.",
+          "uae_options": "SDS",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "cleaning_chemicals:uae-standards-and-approvals",
@@ -74,6 +125,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "cleaning_chemicals:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Cleaning chemicals: registration per emirate",
+      "topic_ar": "مواد التنظيف الكيميائية: التسجيل في كل إمارة",
+      "body_en": "Dubai: Dubai Municipality registers consumer and cleaning products before sale, and its approval is commonly required by Dubai sites. Abu Dhabi, Sharjah and the northern emirates: product registration rules for cleaning chemicals were not confirmed in this session; federal MoIAT conformity applies where a product is on the regulated list. Disinfectants and pesticidal products may need registration as pesticides, which moved from MOCCAE to the Emirates Drug Establishment (EDE). Who obtains: the manufacturer or importer.",
+      "body_ar": "في دبي: تسجل بلدية دبي المنتجات الاستهلاكية ومنتجات التنظيف قبل بيعها، وكثيراً ما تشترط مواقع دبي اعتمادها. في أبوظبي والشارقة والإمارات الشمالية: لم يُتحقق في هذه الجلسة من قواعد تسجيل مواد التنظيف الكيميائية، وتنطبق مطابقة وزارة الصناعة والتكنولوجيا المتقدمة الاتحادية حيث يكون المنتج مدرجاً في القائمة. وقد تحتاج المطهرات والمنتجات ذات الأثر المبيد إلى تسجيل كمبيدات، وقد انتقل ذلك من وزارة التغير المناخي والبيئة إلى مؤسسة الإمارات للدواء. من يحصل عليها: الصانع أو المستورد.",
+      "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://www.ede.gov.ae"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "cleaning_chemicals:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in cleaning chemical quotes",
+      "topic_ar": "علامات التحذير في عروض مواد التنظيف",
+      "body_en": "Watch for: a lower price per litre that hides a weaker concentration or a higher dilution need, no registration certificate, SDS missing or not matching the product, unbranded relabelled drums, and dispensing equipment \"free\" with a lock-in contract.",
+      "body_ar": "انتبه إلى: سعر أقل لكل لتر يخفي تركيزاً أضعف أو حاجة إلى تخفيف أقل، وغياب شهادة التسجيل، وغياب نشرة بيانات السلامة أو عدم تطابقها مع المنتج، وبراميل بلا علامة أعيد تعبئتها، ومعدات تعبئة «مجانية» مع عقد ملزم.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "cleaning_chemicals:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in cleaning chemical",
+      "topic_ar": "أخطاء شائعة لدى المشترين في مواد التنظيف",
+      "body_en": "Buyers compare price per litre and not cost per use, and mix incompatible chemicals.",
+      "body_ar": "يقارن المشترون السعر لكل لتر لا التكلفة لكل استخدام، ويخلطون مواد غير متوافقة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "cleaning_chemicals:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves cleaning chemical prices",
+      "topic_ar": "ما الذي يغيّر أسعار مواد التنظيف بشكل مشروع",
+      "body_en": "Prices differ by concentration, brand, registration and certifications (food-safe, eco-labels), pack size and dispensing systems.",
+      "body_ar": "تختلف الأسعار حسب التركيز، والعلامة، والتسجيل والشهادات (الآمنة للأغذية والبيئية)، وحجم العبوة، وأنظمة التعبئة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "cleaning_chemicals:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing cleaning chemical quotes like for like",
+      "topic_ar": "مقارنة عروض مواد التنظيف على أساس متكافئ",
+      "body_en": "Compare on cost per litre of ready-to-use solution (price divided by dilution) for the same use, with registration and SDS. Value beyond price: dosing equipment, staff training and consistent supply.",
+      "body_ar": "قارن على التكلفة لكل لتر من المحلول الجاهز (السعر مقسوماً على التخفيف) للاستخدام نفسه، مع التسجيل ونشرة السلامة. القيمة إلى جانب السعر: معدات تعبئة بالجرعات، وتدريب العمال، وتوريد منتظم.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -115,11 +235,17 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "cleaning_chemicals:spec-checklist"
+      "cleaning_chemicals:spec-checklist",
+      "cleaning_chemicals:approvals-per-emirate"
     ],
     "added": [
       "cleaning_chemicals:spec-checklist",
-      "cleaning_chemicals:uae-standards-and-approvals"
+      "cleaning_chemicals:uae-standards-and-approvals",
+      "cleaning_chemicals:approvals-per-emirate",
+      "cleaning_chemicals:quote-red-flags",
+      "cleaning_chemicals:buyer-mistakes",
+      "cleaning_chemicals:price-drivers",
+      "cleaning_chemicals:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
@@ -143,6 +269,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

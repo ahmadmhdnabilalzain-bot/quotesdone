@@ -28,8 +28,8 @@
       "topic": "Cleaning & facility services: makes, brands, distributors and origins in the UAE",
       "topic_ar": "التنظيف وخدمات المرافق: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names large cleaning providers in the UAE, such as Emrill, Farnek and Imdaad, common cleaning equipment brands such as Kärcher, and where smaller firms operate. Large providers and common equipment brands: Emrill, Farnek, Imdaad, Transguard, EFS Facilities Services, Khidmah, Kärcher, Nilfisk, Numatic, Taski (Diversey), Tennant. The FM companies are confirmed operators in the UAE; the equipment brands are sold through local dealers whose appointments were not checked. Many smaller cleaning firms operate from Al Quoz, Al Qusais, Deira, Sharjah and Musaffah, and water tank cleaning in Dubai must be done by a company holding a Dubai Municipality operator permit.",
-      "body_ar": "من كبرى شركات التنظيف في الإمارات Emrill وFarnek وImdaad، ومن ماركات معدات التنظيف الشائعة Kärcher، مع بيان أماكن عمل الشركات الأصغر. كبار مقدمي الخدمة وعلامات المعدات الشائعة: Emrill، Farnek، Imdaad، Transguard، EFS Facilities Services، Khidmah، Kärcher، Nilfisk، Numatic، Taski (Diversey)، Tennant. وشركات إدارة المرافق مؤكد عملها في الإمارات؛ أما علامات المعدات فتُباع عبر وكلاء محليين لم يُتحقق من تعييناتهم. وتعمل شركات تنظيف أصغر كثيرة من القوز والقصيص وديرة والشارقة ومصفح، ويجب أن يتولى تنظيف خزانات المياه في دبي شركة تحمل تصريح مشغل من بلدية دبي.",
+      "body_en": "This entry names large cleaning providers in the UAE, such as Emrill, Farnek and Imdaad, common cleaning equipment brands such as Kärcher, and where smaller firms operate. Large providers and common equipment brands: Emrill, Farnek, Imdaad, Transguard, EFS Facilities Services, Khidmah, Kärcher, Nilfisk, Numatic, Taski (Diversey), Tennant. The FM companies are confirmed operators in the UAE; the equipment brands are sold through local dealers whose appointments were not checked. Many smaller cleaning firms operate from Al Quoz, Al Qusais, Deira, Sharjah and Musaffah, and water tank cleaning in Dubai must be done by a company holding a Dubai Municipality operator permit.\n\nOrigin and tier, for describing a quoted brand without naming it: Kärcher - premium, Germany; Nilfisk - premium, Denmark; Numatic - mid, UK; Taski (Diversey) - premium, USA; Tennant - premium, USA.",
+      "body_ar": "من كبرى شركات التنظيف في الإمارات Emrill وFarnek وImdaad، ومن ماركات معدات التنظيف الشائعة Kärcher، مع بيان أماكن عمل الشركات الأصغر. كبار مقدمي الخدمة وعلامات المعدات الشائعة: Emrill، Farnek، Imdaad، Transguard، EFS Facilities Services، Khidmah، Kärcher، Nilfisk، Numatic، Taski (Diversey)، Tennant. وشركات إدارة المرافق مؤكد عملها في الإمارات؛ أما علامات المعدات فتُباع عبر وكلاء محليين لم يُتحقق من تعييناتهم. وتعمل شركات تنظيف أصغر كثيرة من القوز والقصيص وديرة والشارقة ومصفح، ويجب أن يتولى تنظيف خزانات المياه في دبي شركة تحمل تصريح مشغل من بلدية دبي.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Kärcher: فئة ممتازة، ألمانيا؛ Nilfisk: فئة ممتازة، الدنمارك؛ Numatic: فئة متوسطة، المملكة المتحدة؛ Taski (Diversey): فئة ممتازة، الولايات المتحدة؛ Tennant: فئة ممتازة، الولايات المتحدة.",
       "sources": [
         "https://greenhorizondubai.com/dubai-municipality-water-tank-cleaning-complete-procedure-approved-companies/",
         "https://www.bayut.com/mybayut/best-facility-management-companies-dubai/",
@@ -40,7 +40,44 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Water tank cleaning in Dubai needs a Dubai Municipality operator permit and tanks must be cleaned and disinfected every 6 months -> confirmed | Emrill, Farnek, Imdaad, Transguard and EFS are large FM and cleaning operators in Dubai -> confirmed | Khidmah provides cleaning among integrated FM services (Abu Dhabi, Aldar-owned) -> confirmed | Justlife and Urban Company home cleaning apps -> removed: apps not checked. Not checked: Which specific companies currently hold DM approval for water tank or kitchen exhaust cleaning, and current market hourly rates, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Water tank cleaning in Dubai needs a Dubai Municipality operator permit and tanks must be cleaned and disinfected every 6 months -> confirmed | Emrill, Farnek, Imdaad, Transguard and EFS are large FM and cleaning operators in Dubai -> confirmed | Khidmah provides cleaning among integrated FM services (Abu Dhabi, Aldar-owned) -> confirmed | Justlife and Urban Company home cleaning apps -> removed: apps not checked. Not checked: Which specific companies currently hold DM approval for water tank or kitchen exhaust cleaning, and current market hourly rates, were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Kärcher",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Nilfisk",
+          "origin": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium brand from Denmark",
+          "generic_ar": "علامة ممتازة من الدنمارك"
+        },
+        {
+          "brand": "Numatic",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Taski (Diversey)",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Tennant",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        }
+      ]
     },
     {
       "id": "cleaning:uae-market-sizes",

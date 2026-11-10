@@ -28,8 +28,8 @@
       "topic": "Pest control: makes, brands, distributors and origins in the UAE",
       "topic_ar": "مكافحة الحشرات والقوارض: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the pest control operators in the UAE, such as Rentokil Boecker and National Pest Control, the common product makers, and how to check a company's Dubai Municipality approval. Confirmed UAE operators and common product makers: Rentokil Boecker (Rentokil Initial), National Pest Control, Envu, BASF, Syngenta, Bell Laboratories. The product makers' local distributors were not checked. Around a hundred companies hold Dubai Municipality approval, and each company's approval list should be checked for fumigation or termite permits.",
-      "body_ar": "من شركات مكافحة الحشرات في الإمارات Rentokil Boecker وNational Pest Control، إضافة إلى مصنعي المبيدات الشائعين وطريقة التحقق من اعتماد الشركة لدى بلدية دبي. المشغلون المؤكدون في الإمارات ومصنعو المنتجات الشائعة: Rentokil Boecker (Rentokil Initial)، National Pest Control، Envu، BASF، Syngenta، Bell Laboratories. ولم يُتحقق من الموزعين المحليين لمصنعي المنتجات. ويحمل نحو مئة شركة موافقة بلدية دبي، وينبغي التحقق من قائمة موافقات كل شركة بشأن تصاريح التبخير أو مكافحة النمل الأبيض.",
+      "body_en": "This lists the pest control operators in the UAE, such as Rentokil Boecker and National Pest Control, the common product makers, and how to check a company's Dubai Municipality approval. Confirmed UAE operators and common product makers: Rentokil Boecker (Rentokil Initial), National Pest Control, Envu, BASF, Syngenta, Bell Laboratories. The product makers' local distributors were not checked. Around a hundred companies hold Dubai Municipality approval, and each company's approval list should be checked for fumigation or termite permits.\n\nOrigin and tier, for describing a quoted brand without naming it: Envu - premium, Germany; BASF - premium, Germany; Syngenta - premium, Switzerland; Bell Laboratories - premium, USA.",
+      "body_ar": "من شركات مكافحة الحشرات في الإمارات Rentokil Boecker وNational Pest Control، إضافة إلى مصنعي المبيدات الشائعين وطريقة التحقق من اعتماد الشركة لدى بلدية دبي. المشغلون المؤكدون في الإمارات ومصنعو المنتجات الشائعة: Rentokil Boecker (Rentokil Initial)، National Pest Control، Envu، BASF، Syngenta، Bell Laboratories. ولم يُتحقق من الموزعين المحليين لمصنعي المنتجات. ويحمل نحو مئة شركة موافقة بلدية دبي، وينبغي التحقق من قائمة موافقات كل شركة بشأن تصاريح التبخير أو مكافحة النمل الأبيض.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Envu: فئة ممتازة، ألمانيا؛ BASF: فئة ممتازة، ألمانيا؛ Syngenta: فئة ممتازة، سويسرا؛ Bell Laboratories: فئة ممتازة، الولايات المتحدة.",
       "sources": [
         "https://servicemarket.com/en/blog/using-a-dubai-municipality-approved-pest-control-company",
         "https://www.rentokil-boecker.com/ae/about/locations/dubai",
@@ -40,7 +40,37 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Municipality Public Health Pest Control Section approves pest control companies, issues technician ID cards and publishes the approved list; fumigation and termite work need specific permits -> confirmed | National Pest Control (UAE since 1992) is owned by Rentokil Initial; Rentokil Boecker operates in Dubai -> confirmed | Anticimex in the UAE -> removed: not found. Not checked: Current approval status of named companies, exact UAE rules on methyl bromide exemptions, and the current name of each manufacturer's local distributor were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Municipality Public Health Pest Control Section approves pest control companies, issues technician ID cards and publishes the approved list; fumigation and termite work need specific permits -> confirmed | National Pest Control (UAE since 1992) is owned by Rentokil Initial; Rentokil Boecker operates in Dubai -> confirmed | Anticimex in the UAE -> removed: not found. Not checked: Current approval status of named companies, exact UAE rules on methyl bromide exemptions, and the current name of each manufacturer's local distributor were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Envu",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "BASF",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Syngenta",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Switzerland",
+          "generic_ar": "علامة ممتازة من سويسرا"
+        },
+        {
+          "brand": "Bell Laboratories",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        }
+      ]
     },
     {
       "id": "pest_control:uae-market-sizes",

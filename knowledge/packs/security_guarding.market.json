@@ -28,8 +28,8 @@
       "topic": "Security guarding & cash services: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الحراسة الأمنية ونقل الأموال: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the large guarding companies Transguard Group and G4S and the common radio brands Motorola Solutions, Hytera and Kenwood. Confirmed large guarding companies and common radio brands: Transguard Group, G4S, Motorola Solutions, Hytera, Kenwood. The radio brands' local distributors were not checked. Many mid-size SIRA-licensed guarding companies also operate in Dubai.",
-      "body_ar": "من كبرى شركات الحراسة Transguard Group وG4S، ومن ماركات أجهزة اللاسلكي الشائعة Motorola Solutions وHytera وKenwood. شركات الحراسة الكبيرة المؤكدة وعلامات اللاسلكي الشائعة: Transguard Group، G4S، Motorola Solutions، Hytera، Kenwood. ولم يُتحقق من الموزعين المحليين لعلامات اللاسلكي. كما تعمل في دبي شركات حراسة متوسطة كثيرة مرخصة من سيرا.",
+      "body_en": "This entry names the large guarding companies Transguard Group and G4S and the common radio brands Motorola Solutions, Hytera and Kenwood. Confirmed large guarding companies and common radio brands: Transguard Group, G4S, Motorola Solutions, Hytera, Kenwood. The radio brands' local distributors were not checked. Many mid-size SIRA-licensed guarding companies also operate in Dubai.\n\nOrigin and tier, for describing a quoted brand without naming it: Motorola Solutions - premium, USA; Hytera - mid, China; Kenwood - mid, Japan.",
+      "body_ar": "من كبرى شركات الحراسة Transguard Group وG4S، ومن ماركات أجهزة اللاسلكي الشائعة Motorola Solutions وHytera وKenwood. شركات الحراسة الكبيرة المؤكدة وعلامات اللاسلكي الشائعة: Transguard Group، G4S، Motorola Solutions، Hytera، Kenwood. ولم يُتحقق من الموزعين المحليين لعلامات اللاسلكي. كما تعمل في دبي شركات حراسة متوسطة كثيرة مرخصة من سيرا.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Motorola Solutions: فئة ممتازة، الولايات المتحدة؛ Hytera: فئة متوسطة، الصين؛ Kenwood: فئة متوسطة، اليابان.",
       "sources": [
         "https://www.mebsfacility.com/blog/sira-certification-dubai-complete-guide-documents-how-to-apply",
         "https://transguardgroup.com/services/security-solutions/",
@@ -40,7 +40,30 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: SIRA (under Dubai Police) licenses security companies and issues individual cadre cards in Dubai; other emirates use separate authorities -> confirmed | Transguard is the UAE's largest manpower and security provider; G4S operates in the UAE -> confirmed | Dulsco security, Emirates Security, Securitas, Al Mahran, Safe Guard -> removed: not checked. Not checked: The exact name of the Abu Dhabi licensing department and current licensing status of named companies were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: SIRA (under Dubai Police) licenses security companies and issues individual cadre cards in Dubai; other emirates use separate authorities -> confirmed | Transguard is the UAE's largest manpower and security provider; G4S operates in the UAE -> confirmed | Dulsco security, Emirates Security, Securitas, Al Mahran, Safe Guard -> removed: not checked. Not checked: The exact name of the Abu Dhabi licensing department and current licensing status of named companies were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Motorola Solutions",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Hytera",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "Kenwood",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid brand from Japan",
+          "generic_ar": "علامة متوسطة من اليابان"
+        }
+      ]
     },
     {
       "id": "security_guarding:uae-market-sizes",

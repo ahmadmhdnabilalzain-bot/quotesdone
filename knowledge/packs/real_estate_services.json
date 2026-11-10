@@ -5,8 +5,8 @@
       "id": "real_estate_services:spec-checklist",
       "topic": "Real estate services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For real estate services quotes to be compared like-for-like, every quoted line (services) must state: (1) service (brokerage, leasing, property management, valuation); (2) property type, location and size; (3) commission or fee basis; (4) RERA/DLD broker licence number; (5) scope of marketing and viewings; (6) tenancy registration (Ejari) handling; (7) reporting frequency; (8) exclusivity and term; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the real_estate_services trade.",
-      "body_ar": "لكي تُقارن عروض خدمات العقارات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الخدمة (وساطة، أو تأجير، أو إدارة عقارات، أو تقييم)؛ (2) نوع العقار وموقعه ومساحته؛ (3) أساس العمولة أو الأتعاب؛ (4) رقم ترخيص الوسيط لدى مؤسسة التنظيم العقاري أو دائرة الأراضي والأملاك؛ (5) نطاق التسويق والمعاينات؛ (6) التعامل مع تسجيل عقد الإيجار (إيجاري)؛ (7) تكرار التقارير؛ (8) الحصرية والمدة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة real_estate_services فقط.",
+      "body_en": "For real estate services quotes to be compared like-for-like, every quoted line (services) must state: (1) service (brokerage, leasing, property management, valuation); (2) property type, location and size; (3) commission or fee basis; (4) RERA/DLD broker licence number; (5) scope of marketing and viewings; (6) tenancy registration (Ejari) handling; (7) reporting frequency; (8) exclusivity and term; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the real_estate_services trade.\n\nExpert interview (2026-11-10): Blocking: service, property and emirate, fee basis and exclusivity. A valuation needs a site inspection by the valuer.",
+      "body_ar": "لكي تُقارن عروض خدمات العقارات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الخدمة (وساطة، أو تأجير، أو إدارة عقارات، أو تقييم)؛ (2) نوع العقار وموقعه ومساحته؛ (3) أساس العمولة أو الأتعاب؛ (4) رقم ترخيص الوسيط لدى مؤسسة التنظيم العقاري أو دائرة الأراضي والأملاك؛ (5) نطاق التسويق والمعاينات؛ (6) التعامل مع تسجيل عقد الإيجار (إيجاري)؛ (7) تكرار التقارير؛ (8) الحصرية والمدة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة real_estate_services فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الخدمة، والعقار والإمارة، وأساس الأتعاب، والحصرية. ويحتاج التقييم إلى معاينة المقيّم للعقار.",
       "required_specs": [
         "service (brokerage, leasing, property management, valuation)",
         "property type, location and size",
@@ -24,7 +24,59 @@
         "https://dubailand.gov.ae/en/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "service (brokerage, leasing, property management, valuation)",
+        "property type, location and size",
+        "commission or fee basis",
+        "exclusivity and term"
+      ],
+      "spec_guide": [
+        {
+          "spec": "service (brokerage, leasing, property management, valuation)",
+          "why_needed_to_price": "Each service has its own fee basis.",
+          "uae_options": "sale brokerage; leasing; property management; valuation; snagging",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "property type, location and size",
+          "why_needed_to_price": "Fees and the provider's licence follow the emirate and property.",
+          "uae_options": "villa; apartment; office; warehouse; land; emirate",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "commission or fee basis",
+          "why_needed_to_price": "Commission percentage, fixed fee or management fee percentage must be stated to compare.",
+          "uae_options": "% of price or rent; fixed fee; % of collected rent",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "RERA/DLD broker licence number",
+          "why_needed_to_price": "Only licensed brokers may act; in Dubai the broker has a BRN.",
+          "uae_options": "BRN (Dubai); BLN (Abu Dhabi)",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusivity and term",
+          "why_needed_to_price": "Exclusive mandates change the fee and the marketing effort.",
+          "uae_options": "exclusive; non-exclusive; term in months",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "tenancy registration (Ejari) handling",
+          "why_needed_to_price": "Registration fees and handling are often extra.",
+          "uae_options": "Ejari (Dubai); Tawtheeq (Abu Dhabi)",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A valuation or property-management proposal needs an inspection of the property; brokerage fees can be quoted without one.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "real_estate_services:uae-standards-and-approvals",
@@ -69,6 +121,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "real_estate_services:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Real estate services: licensing per emirate",
+      "topic_ar": "الخدمات العقارية: الترخيص في كل إمارة",
+      "body_en": "Dubai: only brokers licensed by the competent authority and registered with the Real Estate Regulatory Agency (RERA) of the Dubai Land Department may broker property; individual brokers carry a Broker Registration Number after passing the brokerage exam, and tenancy contracts are registered in Ejari. Abu Dhabi: the Abu Dhabi Real Estate Centre (ADREC) regulates the sector, and since September 2024 every broker and agency needs a Broker License Number through the DARI platform; tenancy contracts are registered in Tawtheeq. Sharjah and Ajman have their own real-estate registration authorities whose broker rules were not confirmed in this session. Who obtains: the broker or agency holds the licence; the buyer should check it.",
+      "body_ar": "في دبي: لا يجوز التوسط العقاري إلا للوسطاء المرخّصين من الجهة المختصة والمسجلين لدى مؤسسة التنظيم العقاري التابعة لدائرة الأراضي والأملاك، ويحمل الوسيط الفرد رقم تسجيل وسيط بعد اجتياز اختبار الوساطة، وتُسجّل عقود الإيجار في نظام إيجاري. في أبوظبي: ينظم مركز أبوظبي العقاري القطاع، ومنذ سبتمبر 2024 يحتاج كل وسيط ووكالة إلى رقم ترخيص وسيط عبر منصة داري، وتُسجّل عقود الإيجار في نظام توثيق. ولدى الشارقة وعجمان جهات تسجيل عقاري خاصة بهما لم يُتحقق من قواعد الوساطة فيها في هذه الجلسة. من يحمل الترخيص: الوسيط أو الوكالة، وعلى المشتري التحقق منه.",
+      "sources": [
+        "https://dubailand.gov.ae",
+        "https://dubailand.gov.ae/en/eservices/real-estate-ad-permit/"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "real_estate_services:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in real estate service quotes",
+      "topic_ar": "علامات التحذير في عروض الخدمات العقارية",
+      "body_en": "Watch for: a broker without a visible licence number, commission higher than stated or charged to both sides without disclosure, marketing costs added later, management fees on gross rather than collected rent, maintenance mark-ups not disclosed, and exclusivity clauses that renew automatically.",
+      "body_ar": "انتبه إلى: وسيط دون رقم ترخيص ظاهر، وعمولة أعلى من المعلنة أو مفروضة على الطرفين دون إفصاح، وتكاليف تسويق تضاف لاحقاً، ورسوم إدارة على الإيجار الإجمالي بدلاً من المحصّل، وهوامش صيانة غير معلنة، وبنود حصرية تتجدد تلقائياً.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "real_estate_services:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in real estate service",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الخدمات العقارية",
+      "body_en": "Buyers sign exclusive mandates without a term, skip checking the broker licence, and do not ask who pays tenancy registration fees.",
+      "body_ar": "يوقّع المشترون تفويضات حصرية دون مدة، ولا يتحققون من ترخيص الوسيط، ولا يسألون من يدفع رسوم تسجيل الإيجار.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "real_estate_services:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves real estate service prices",
+      "topic_ar": "ما الذي يغيّر أسعار الخدمات العقارية بشكل مشروع",
+      "body_en": "Fees differ legitimately by service level (marketing, photography, viewings, tenant screening), exclusivity, property value and type, and for management the scope of maintenance and collections.",
+      "body_ar": "تختلف الأتعاب بشكل مشروع حسب مستوى الخدمة (التسويق والتصوير والمعاينات وفحص المستأجرين)، والحصرية، وقيمة العقار ونوعه، وفي الإدارة حسب نطاق الصيانة والتحصيل.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "real_estate_services:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing real estate service quotes like for like",
+      "topic_ar": "مقارنة عروض الخدمات العقارية على أساس متكافئ",
+      "body_en": "Compare the fee as a percentage on the same basis, the services included, the term and exit terms, and the licence. Value beyond price: a licensed agency, a written marketing plan and transparent maintenance pricing.",
+      "body_ar": "قارن الأتعاب كنسبة على الأساس نفسه، والخدمات المشمولة، والمدة وشروط الإنهاء، والترخيص. القيمة إلى جانب السعر: وكالة مرخّصة، وخطة تسويق مكتوبة، وتسعير صيانة شفاف.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -110,11 +230,17 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "real_estate_services:spec-checklist"
+      "real_estate_services:spec-checklist",
+      "real_estate_services:approvals-per-emirate"
     ],
     "added": [
       "real_estate_services:spec-checklist",
-      "real_estate_services:uae-standards-and-approvals"
+      "real_estate_services:uae-standards-and-approvals",
+      "real_estate_services:approvals-per-emirate",
+      "real_estate_services:quote-red-flags",
+      "real_estate_services:buyer-mistakes",
+      "real_estate_services:price-drivers",
+      "real_estate_services:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -138,6 +264,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

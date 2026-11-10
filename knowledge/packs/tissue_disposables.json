@@ -5,8 +5,8 @@
       "id": "tissue_disposables:spec-checklist",
       "topic": "Tissue and disposables - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For tissue and disposables quotes to be compared like-for-like, every quoted line (goods) must state: (1) product (facial tissue, toilet roll, kitchen towel, napkins, cups, cutlery); (2) ply and sheet count; (3) sheet size and roll length; (4) material (virgin pulp, recycled, paper, PP); (5) pack configuration; (6) dispenser compatibility; (7) food-contact compliance for food items; (8) quantity in cartons; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tissue_disposables trade.",
-      "body_ar": "لكي تُقارن عروض المناديل والمستهلكات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) المنتج (مناديل وجه، أو ورق حمام، أو مناشف مطبخ، أو محارم، أو أكواب، أو أدوات مائدة)؛ (2) عدد الطبقات والأوراق؛ (3) مقاس الورقة وطول اللفة؛ (4) المادة (لب بكر، أو معاد التدوير، أو ورق، أو PP)؛ (5) ترتيب العبوة؛ (6) التوافق مع الموزعات؛ (7) المطابقة لملامسة الغذاء لأصناف الطعام؛ (8) الكمية بالكراتين؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tissue_disposables فقط.",
+      "body_en": "For tissue and disposables quotes to be compared like-for-like, every quoted line (goods) must state: (1) product (facial tissue, toilet roll, kitchen towel, napkins, cups, cutlery); (2) ply and sheet count; (3) sheet size and roll length; (4) material (virgin pulp, recycled, paper, PP); (5) pack configuration; (6) dispenser compatibility; (7) food-contact compliance for food items; (8) quantity in cartons; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tissue_disposables trade.\n\nExpert interview (2026-11-10): Blocking: product, ply and sheet count, material, pack configuration and quantity.",
+      "body_ar": "لكي تُقارن عروض المناديل والمستهلكات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) المنتج (مناديل وجه، أو ورق حمام، أو مناشف مطبخ، أو محارم، أو أكواب، أو أدوات مائدة)؛ (2) عدد الطبقات والأوراق؛ (3) مقاس الورقة وطول اللفة؛ (4) المادة (لب بكر، أو معاد التدوير، أو ورق، أو PP)؛ (5) ترتيب العبوة؛ (6) التوافق مع الموزعات؛ (7) المطابقة لملامسة الغذاء لأصناف الطعام؛ (8) الكمية بالكراتين؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tissue_disposables فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المنتج، وعدد الطبقات والأوراق، والمادة، وتكوين العبوة، والكمية.",
       "required_specs": [
         "product (facial tissue, toilet roll, kitchen towel, napkins, cups, cutlery)",
         "ply and sheet count",
@@ -25,7 +25,59 @@
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "product (facial tissue, toilet roll, kitchen towel, napkins, cups, cutlery)",
+        "ply and sheet count",
+        "material (virgin pulp, recycled, paper, PP)",
+        "pack configuration",
+        "quantity in cartons"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product (facial tissue, toilet roll, kitchen towel, napkins, cups, cutlery)",
+          "why_needed_to_price": "Each product has its own unit and price basis.",
+          "uae_options": "tissue; rolls; towels; napkins; cups; cutlery; containers",
+          "follow_up_if": "Plastic cups, cutlery or plates: confirm the material is still allowed under the single-use plastic ban.",
+          "blocking": true
+        },
+        {
+          "spec": "ply and sheet count",
+          "why_needed_to_price": "Ply and sheets per roll set paper content.",
+          "uae_options": "1-3 ply; sheets per roll",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "material (virgin pulp, recycled, paper, PP)",
+          "why_needed_to_price": "Virgin pulp costs more than recycled.",
+          "uae_options": "virgin; recycled; paper; bagasse",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pack configuration",
+          "why_needed_to_price": "Units per carton decide the carton price.",
+          "uae_options": "rolls per pack; packs per carton",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quantity in cartons",
+          "why_needed_to_price": "Volume sets the price tier.",
+          "uae_options": "cartons per month",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "dispenser compatibility",
+          "why_needed_to_price": "Rolls must fit the installed dispensers.",
+          "uae_options": "dispenser model",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "tissue_disposables:uae-standards-and-approvals",
@@ -82,6 +134,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "tissue_disposables:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Disposables: the single-use plastic ban and other rules",
+      "topic_ar": "المنتجات أحادية الاستخدام: حظر البلاستيك والقواعد الأخرى",
+      "body_en": "Federal: Ministerial Resolution No. 380 of 2022 phases out single-use plastics. Its first phase, from 1 January 2024, banned the import, manufacture and trade of single-use plastic shopping bags; its second phase, from 1 January 2026, extends to items including beverage cups and lids, cutlery, plates, straws and stirrers, and Styrofoam food containers, with exemptions this session did not read. Dubai: Executive Council Resolution No. 124 of 2023 reached its final phase on 1 January 2026, aligned with the federal resolution. The other emirates apply the federal ban. Food-contact disposables must also meet the emirate's food-contact rules. Who obtains: the importer or maker is responsible for compliance; the buyer should not order banned items.",
+      "body_ar": "اتحادياً: يقضي القرار الوزاري رقم 380 لسنة 2022 بالتخلص التدريجي من البلاستيك أحادي الاستخدام. فقد حظرت مرحلته الأولى من 1 يناير 2024 استيراد وتصنيع وتداول أكياس التسوق البلاستيكية أحادية الاستخدام، وتمتد مرحلته الثانية من 1 يناير 2026 إلى منتجات منها أكواب المشروبات وأغطيتها، وأدوات المائدة، والأطباق، والمصاصات وأعواد التقليب، وعلب الطعام المصنوعة من الستايروفوم، مع استثناءات لم يُطّلع عليها في هذه الجلسة. وفي دبي بلغ قرار المجلس التنفيذي رقم 124 لسنة 2023 مرحلته الأخيرة في 1 يناير 2026 متوافقاً مع القرار الاتحادي. وتطبق الإمارات الأخرى الحظر الاتحادي. ويجب أن تحقق المنتجات الملامسة للأغذية أيضاً قواعد الإمارة الخاصة بمواد ملامسة الأغذية. من يتحمل المسؤولية: المستورد أو الصانع مسؤول عن الامتثال، ولا ينبغي للمشتري طلب منتجات محظورة.",
+      "sources": [
+        "https://www.wam.ae/en/article/bn8qxpm-second-phase-nationwide-ban-import-trade",
+        "https://www.dm.gov.ae/dubai-to-enforce-final-phase-of-single-use-plastic-ban-from-2026/"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "tissue_disposables:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in tissue and disposables quotes",
+      "topic_ar": "علامات التحذير في عروض المناديل والمستلزمات أحادية الاستخدام",
+      "body_en": "Watch for: lower ply or fewer sheets per roll than asked, recycled pulp offered as virgin, shorter roll lengths, cartons with fewer packs, banned single-use plastic items still offered, and food-contact items without a compliance declaration.",
+      "body_ar": "انتبه إلى: عدد طبقات أو أوراق أقل من المطلوب، وعرض لب معاد التدوير على أنه أصلي، وأطوال لفات أقصر، وكراتين بعدد عبوات أقل، واستمرار عرض منتجات بلاستيكية محظورة، ومنتجات ملامسة للأغذية دون إقرار مطابقة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "tissue_disposables:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in tissue and disposables",
+      "topic_ar": "أخطاء شائعة لدى المشترين في المناديل والمستلزمات أحادية الاستخدام",
+      "body_en": "Buyers compare price per carton without checking sheets per roll, and keep ordering plastic items after the ban.",
+      "body_ar": "يقارن المشترون السعر لكل كرتون دون التحقق من عدد الأوراق في اللفة، ويستمرون في طلب منتجات بلاستيكية بعد الحظر.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "tissue_disposables:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves tissue and disposables prices",
+      "topic_ar": "ما الذي يغيّر أسعار المناديل والمستلزمات أحادية الاستخدام بشكل مشروع",
+      "body_en": "Prices differ by pulp type (virgin or recycled), ply, sheet count and size, brand, pack format, and volume.",
+      "body_ar": "تختلف الأسعار حسب نوع اللب (أصلي أو معاد التدوير)، وعدد الطبقات، وعدد الأوراق ومقاسها، والعلامة، وشكل العبوة، والكمية.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "tissue_disposables:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing tissue and disposables quotes like for like",
+      "topic_ar": "مقارنة عروض المناديل والمستلزمات أحادية الاستخدام على أساس متكافئ",
+      "body_en": "Compare on price per sheet or per metre of paper at the same ply and pulp, and per unit for cups and cutlery of the same material and size. Value beyond price: consistent stock, dispensers supplied, and compliant materials.",
+      "body_ar": "قارن على السعر لكل ورقة أو لكل متر من الورق بعدد الطبقات ونوع اللب نفسيهما، ولكل وحدة في الأكواب وأدوات المائدة من المادة والمقاس نفسيهما. القيمة إلى جانب السعر: توفر منتظم، وتوفير الموزعات، ومواد مطابقة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -115,6 +235,13 @@
         "tissue_disposables:product-distinctions"
       ],
       "written_blind": true
+    },
+    {
+      "q_en": "Can I still order plastic cups and cutlery for my office pantry in 2026?",
+      "q_ar": "هل ما زال بإمكاني طلب أكواب وأدوات مائدة بلاستيكية لمطبخ المكتب في 2026؟",
+      "expected_entry_ids": [
+        "tissue_disposables:approvals-per-emirate"
+      ]
     }
   ],
   "verified": {
@@ -124,11 +251,17 @@
     "removed": [],
     "still_unverified": [
       "tissue_disposables:spec-checklist",
-      "tissue_disposables:uae-standards-and-approvals"
+      "tissue_disposables:uae-standards-and-approvals",
+      "tissue_disposables:approvals-per-emirate"
     ],
     "added": [
       "tissue_disposables:spec-checklist",
-      "tissue_disposables:uae-standards-and-approvals"
+      "tissue_disposables:uae-standards-and-approvals",
+      "tissue_disposables:approvals-per-emirate",
+      "tissue_disposables:quote-red-flags",
+      "tissue_disposables:buyer-mistakes",
+      "tissue_disposables:price-drivers",
+      "tissue_disposables:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -155,6 +288,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

@@ -5,8 +5,8 @@
       "id": "electrical_wholesale:spec-checklist",
       "topic": "Electrical wholesale - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for electrical wholesale must state: item and catalogue number; brand; rating; product standard; ECAS certificate for regulated items; quantity and unit; country of origin; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة تجارة الأدوات الكهربائية بالجملة: الصنف ورقم الكتالوج؛ العلامة التجارية؛ التصنيف الكهربائي؛ معيار المنتج؛ شهادة ECAS للأصناف الخاضعة للوائح؛ الكمية والوحدة؛ بلد المنشأ؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for electrical wholesale must state: item and catalogue number; brand; rating; product standard; ECAS certificate for regulated items; quantity and unit; country of origin; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: catalogue number or full rating, brand, rating and quantity. No site visit is needed.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة تجارة الأدوات الكهربائية بالجملة: الصنف ورقم الكتالوج؛ العلامة التجارية؛ التصنيف الكهربائي؛ معيار المنتج؛ شهادة ECAS للأصناف الخاضعة للوائح؛ الكمية والوحدة؛ بلد المنشأ؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: رقم الكتالوج أو التصنيف الكامل، والعلامة، والتصنيف، والكمية. ولا تلزم زيارة الموقع.",
       "required_specs": [
         "item and catalogue number",
         "brand",
@@ -26,7 +26,58 @@
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "item and catalogue number",
+        "brand",
+        "rating",
+        "quantity and unit"
+      ],
+      "spec_guide": [
+        {
+          "spec": "item and catalogue number",
+          "why_needed_to_price": "A catalogue number fixes the exact product; a description alone invites substitutes.",
+          "uae_options": "maker catalogue reference",
+          "follow_up_if": "No number: ask the rating, poles, curve and standard instead.",
+          "blocking": true
+        },
+        {
+          "spec": "brand",
+          "why_needed_to_price": "Brand tier sets price; equivalents vary in quality.",
+          "uae_options": "named brand or approved equivalent",
+          "follow_up_if": "If the customer named a European brand, ask whether an Asian-made equivalent is acceptable.",
+          "blocking": true
+        },
+        {
+          "spec": "rating",
+          "why_needed_to_price": "Current, voltage, breaking capacity and poles decide the item.",
+          "uae_options": "A; V; kA; poles",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quantity and unit",
+          "why_needed_to_price": "Price breaks follow quantity.",
+          "uae_options": "pieces; boxes; metres",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "ECAS certificate for regulated items",
+          "why_needed_to_price": "Regulated items cannot be sold without MoIAT conformity.",
+          "uae_options": "certificate per item",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "country of origin",
+          "why_needed_to_price": "The same brand may supply from several factories.",
+          "uae_options": "stated per line",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "electrical_wholesale:uae-standards-and-approvals",
@@ -84,6 +135,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "electrical_wholesale:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Electrical supplies: product approvals",
+      "topic_ar": "المستلزمات الكهربائية: اعتمادات المنتجات",
+      "body_en": "Federal: electrical products on MoIAT's regulated list (for example plugs, sockets, switches, many appliances and lighting) need a conformity certificate before they are sold in any emirate; this is the ECAS/EQM scheme formerly run by ESMA. Utility-specific items (meters, some cables and switchgear for connection points) must be on the approved list of the emirate's utility: DEWA (Dubai), ADDC/AADC (Abu Dhabi), SEWA (Sharjah), EtihadWE (northern emirates). No approval is needed to buy for one's own use, but the installer must use conforming products. Who obtains: the importer or brand owner holds the certificate; the wholesaler should provide it.",
+      "body_ar": "اتحادياً: تحتاج المنتجات الكهربائية المدرجة في قائمة المنتجات الخاضعة للرقابة لدى وزارة الصناعة والتكنولوجيا المتقدمة (مثل القوابس والمقابس والمفاتيح وكثير من الأجهزة والإنارة) إلى شهادة مطابقة قبل بيعها في أي إمارة، وهو نظام كانت تديره هيئة الإمارات للمواصفات والمقاييس. ويجب أن تكون البنود الخاصة بالجهات (العدادات وبعض الكابلات والمفاتيح عند نقاط التوصيل) ضمن القائمة المعتمدة لجهة الكهرباء في الإمارة: هيئة كهرباء ومياه دبي، وشركتا التوزيع في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة، والاتحاد للماء والكهرباء. ولا يحتاج الشراء للاستخدام الخاص إلى اعتماد، لكن يجب على المركّب استخدام منتجات مطابقة. من يحصل عليها: المستورد أو مالك العلامة يحمل الشهادة، وعلى تاجر الجملة تقديمها.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/E-Library/ADDC-requirement-for-issuing-NOC-online.pdf",
+        "https://www.etihadwe.ae/en"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "electrical_wholesale:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in electrical supplies quotes",
+      "topic_ar": "علامات التحذير في عروض المستلزمات الكهربائية",
+      "body_en": "Watch for: a different catalogue number than asked (lower kA, different curve); \"equivalent\" brands without the maker's name; no conformity certificate for regulated items; grey-market stock without the local agent's warranty; prices valid for a day only; and part deliveries with back-orders not dated.",
+      "body_ar": "انتبه إلى: رقم كتالوج مختلف عن المطلوب (قدرة قطع أقل أو منحنى مختلف)، وعلامات «مكافئة» دون اسم الصانع، وغياب شهادة المطابقة للمنتجات الخاضعة للرقابة، وبضاعة من السوق الموازية دون ضمان الوكيل المحلي، وأسعار صالحة ليوم واحد فقط، وتسليم جزئي مع طلبات مؤجلة دون تاريخ.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "electrical_wholesale:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in electrical supplies",
+      "topic_ar": "أخطاء شائعة لدى المشترين في المستلزمات الكهربائية",
+      "body_en": "Buyers order by description only and get a lower rating, mix brands in one panel, and forget that the utility only accepts listed items at the connection point.",
+      "body_ar": "يطلب المشترون بالوصف فقط فيحصلون على تصنيف أقل، ويخلطون العلامات في لوحة واحدة، وينسون أن الجهة لا تقبل إلا البنود المدرجة عند نقطة التوصيل.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "electrical_wholesale:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves electrical supplies prices",
+      "topic_ar": "ما الذي يغيّر أسعار المستلزمات الكهربائية بشكل مشروع",
+      "body_en": "Prices differ legitimately by brand and origin, rating and breaking capacity, quantity breaks, stock versus import, copper price for cable, and the local agent's warranty.",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب العلامة والمنشأ، والتصنيف وقدرة القطع، وشرائح الكمية، والمخزون مقابل الاستيراد، وسعر النحاس للكابلات، وضمان الوكيل المحلي.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "electrical_wholesale:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing electrical supplies quotes like for like",
+      "topic_ar": "مقارنة عروض المستلزمات الكهربائية على أساس متكافئ",
+      "body_en": "Compare line by line on the same catalogue number or full rating, the same brand and origin, and the same delivery. Value beyond price: stock on hand, the agent's warranty, and certificates supplied with the goods.",
+      "body_ar": "قارن بنداً بنداً على رقم الكتالوج نفسه أو التصنيف الكامل، والعلامة والمنشأ نفسيهما، والتسليم نفسه. القيمة إلى جانب السعر: مخزون جاهز، وضمان الوكيل، وشهادات مرفقة مع البضاعة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -125,11 +245,17 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "electrical_wholesale:spec-checklist"
+      "electrical_wholesale:spec-checklist",
+      "electrical_wholesale:approvals-per-emirate"
     ],
     "added": [
       "electrical_wholesale:spec-checklist",
-      "electrical_wholesale:uae-standards-and-approvals"
+      "electrical_wholesale:uae-standards-and-approvals",
+      "electrical_wholesale:approvals-per-emirate",
+      "electrical_wholesale:quote-red-flags",
+      "electrical_wholesale:buyer-mistakes",
+      "electrical_wholesale:price-drivers",
+      "electrical_wholesale:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
@@ -156,6 +282,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

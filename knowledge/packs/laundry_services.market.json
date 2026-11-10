@@ -29,8 +29,8 @@
       "topic": "Commercial laundry & linen hire: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المغاسل التجارية وتأجير البياضات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names confirmed UAE laundry operators, Champion Cleaners, Washmen and The Linen Cupboard, common equipment brands, and where large commercial laundries operate. Confirmed UAE laundry operators and common equipment brands: Champion Cleaners, Washmen, The Linen Cupboard, Electrolux Professional, Miele Professional, Girbau, Jensen, Kannegiesser. The equipment brands' UAE dealers were not checked. Large commercial laundries serving hotels and hospitals operate in Dubai Investments Park, Al Quoz, Jebel Ali, Sharjah and Abu Dhabi, alongside hotel central laundries and neighbourhood laundries.",
-      "body_ar": "من مشغلي المغاسل المؤكدين في الإمارات Champion Cleaners وWashmen وThe Linen Cupboard، إضافة إلى ماركات المعدات الشائعة وأماكن عمل المغاسل التجارية الكبيرة. مشغلو المغاسل المؤكدون في الإمارات وعلامات المعدات الشائعة: Champion Cleaners، Washmen، The Linen Cupboard، Electrolux Professional، Miele Professional، Girbau، Jensen، Kannegiesser. ولم يُتحقق من وكلاء علامات المعدات في الإمارات. وتعمل مغاسل تجارية كبيرة تخدم الفنادق والمستشفيات في مجمع دبي للاستثمار والقوز وجبل علي والشارقة وأبوظبي، إلى جانب المغاسل المركزية للفنادق ومغاسل الأحياء.",
+      "body_en": "This entry names confirmed UAE laundry operators, Champion Cleaners, Washmen and The Linen Cupboard, common equipment brands, and where large commercial laundries operate. Confirmed UAE laundry operators and common equipment brands: Champion Cleaners, Washmen, The Linen Cupboard, Electrolux Professional, Miele Professional, Girbau, Jensen, Kannegiesser. The equipment brands' UAE dealers were not checked. Large commercial laundries serving hotels and hospitals operate in Dubai Investments Park, Al Quoz, Jebel Ali, Sharjah and Abu Dhabi, alongside hotel central laundries and neighbourhood laundries.\n\nOrigin and tier, for describing a quoted brand without naming it: Electrolux Professional - premium, Sweden; Miele Professional - premium, Germany; Girbau - mid, Spain; Jensen - premium, Denmark; Kannegiesser - premium, Germany.",
+      "body_ar": "من مشغلي المغاسل المؤكدين في الإمارات Champion Cleaners وWashmen وThe Linen Cupboard، إضافة إلى ماركات المعدات الشائعة وأماكن عمل المغاسل التجارية الكبيرة. مشغلو المغاسل المؤكدون في الإمارات وعلامات المعدات الشائعة: Champion Cleaners، Washmen، The Linen Cupboard، Electrolux Professional، Miele Professional، Girbau، Jensen، Kannegiesser. ولم يُتحقق من وكلاء علامات المعدات في الإمارات. وتعمل مغاسل تجارية كبيرة تخدم الفنادق والمستشفيات في مجمع دبي للاستثمار والقوز وجبل علي والشارقة وأبوظبي، إلى جانب المغاسل المركزية للفنادق ومغاسل الأحياء.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Electrolux Professional: فئة ممتازة، السويد؛ Miele Professional: فئة ممتازة، ألمانيا؛ Girbau: فئة متوسطة، إسبانيا؛ Jensen: فئة ممتازة، الدنمارك؛ Kannegiesser: فئة ممتازة، ألمانيا.",
       "sources": [
         "https://www.mediservglobal.com/the-linen-cupboard-laundry/",
         "https://www.champion-cleaners.com/",
@@ -42,7 +42,44 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN 14065 (RABC) is the textile hygiene standard for healthcare laundry; a UAE hygienic laundry serves the healthcare sector -> confirmed | Champion Cleaners (UAE since 1997, 27+ outlets) and Washmen (Dubai and Abu Dhabi) operate consumer laundry -> confirmed | Butler's, Laundry Lounge named -> removed: not found | DHA/DOH infection control guidelines apply to healthcare laundry -> unconfirmed: kept as general statement. Not checked: Current operators of specific central laundries, hospital laundry approval requirements per emirate, and market per-kg rates were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 14065 (RABC) is the textile hygiene standard for healthcare laundry; a UAE hygienic laundry serves the healthcare sector -> confirmed | Champion Cleaners (UAE since 1997, 27+ outlets) and Washmen (Dubai and Abu Dhabi) operate consumer laundry -> confirmed | Butler's, Laundry Lounge named -> removed: not found | DHA/DOH infection control guidelines apply to healthcare laundry -> unconfirmed: kept as general statement. Not checked: Current operators of specific central laundries, hospital laundry approval requirements per emirate, and market per-kg rates were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Electrolux Professional",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium brand from Sweden",
+          "generic_ar": "علامة ممتازة من السويد"
+        },
+        {
+          "brand": "Miele Professional",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Girbau",
+          "origin": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid brand from Spain",
+          "generic_ar": "علامة متوسطة من إسبانيا"
+        },
+        {
+          "brand": "Jensen",
+          "origin": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium brand from Denmark",
+          "generic_ar": "علامة ممتازة من الدنمارك"
+        },
+        {
+          "brand": "Kannegiesser",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        }
+      ]
     },
     {
       "id": "laundry_services:uae-market-sizes",

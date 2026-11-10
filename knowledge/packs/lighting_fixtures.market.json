@@ -26,8 +26,8 @@
       "topic": "Lighting fixtures & luminaires: makes, brands, distributors and origins in the UAE",
       "topic_ar": "وحدات الإنارة والمصابيح: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists lighting brands such as Signify, Ledvance, Zumtobel, iGuzzini and ERCO, plus Chinese OEM brands, where showrooms and wholesalers are, and where fittings come from. Brands: Signify, Ledvance, Zumtobel, Thorn, iGuzzini, ERCO, Flos, Artemide, Delta Light, Fagerhult, Trilux, LEDS C4, Opple, Havells, Ligman, Linea Light, Beghelli, plus many Chinese OEM brands and local assemblers. Showrooms are along Sheikh Zayed Road and in Al Quoz, with wholesale in Deira (Naif) and Sharjah. The UAE distributors of the brands were not checked. Origins: Europe for premium architectural fittings, China for most volume, India, Turkey, and UAE assembly.",
-      "body_ar": "من علامات الإنارة المتداولة Signify وLedvance وZumtobel وiGuzzini وERCO، إضافة إلى علامات المصنعين الصينيين (OEM)، مع بيان أماكن صالات العرض وتجار الجملة ومنشأ وحدات الإنارة. العلامات: Signify، Ledvance، Zumtobel، Thorn، iGuzzini، ERCO، Flos، Artemide، Delta Light، Fagerhult، Trilux، LEDS C4، Opple، Havells، Ligman، Linea Light، Beghelli، إضافة إلى علامات تصنيع صينية كثيرة ومجمّعين محليين. وتنتشر المعارض على شارع الشيخ زايد والقوز، والجملة في ديرة (نايف) والشارقة، ولم يُتحقق من موزعي العلامات في الإمارات. المنشأ: أوروبا (الإنارة المعمارية الفاخرة)، الصين (معظم الكميات)، الهند، تركيا، تجميع إماراتي.",
+      "body_en": "This entry lists lighting brands such as Signify, Ledvance, Zumtobel, iGuzzini and ERCO, plus Chinese OEM brands, where showrooms and wholesalers are, and where fittings come from. Brands: Signify, Ledvance, Zumtobel, Thorn, iGuzzini, ERCO, Flos, Artemide, Delta Light, Fagerhult, Trilux, LEDS C4, Opple, Havells, Ligman, Linea Light, Beghelli, plus many Chinese OEM brands and local assemblers. Showrooms are along Sheikh Zayed Road and in Al Quoz, with wholesale in Deira (Naif) and Sharjah. The UAE distributors of the brands were not checked. Origins: Europe for premium architectural fittings, China for most volume, India, Turkey, and UAE assembly.\n\nOrigin and tier, for describing a quoted brand without naming it: Signify - premium, Netherlands; Ledvance - mid, Germany; Zumtobel - premium, Austria; Thorn - mid, UK; iGuzzini - premium, Italy; ERCO - luxury, Germany; Flos - luxury, Italy; Artemide - luxury, Italy; Delta Light - premium, Belgium; Fagerhult - premium, Sweden; Trilux - premium, Germany; LEDS C4 - mid, Spain; Opple - economy, China; Havells - economy, India; Ligman - mid, Thailand; Linea Light - premium, Italy; Beghelli - mid, Italy.",
+      "body_ar": "من علامات الإنارة المتداولة Signify وLedvance وZumtobel وiGuzzini وERCO، إضافة إلى علامات المصنعين الصينيين (OEM)، مع بيان أماكن صالات العرض وتجار الجملة ومنشأ وحدات الإنارة. العلامات: Signify، Ledvance، Zumtobel، Thorn، iGuzzini، ERCO، Flos، Artemide، Delta Light، Fagerhult، Trilux، LEDS C4، Opple، Havells، Ligman، Linea Light، Beghelli، إضافة إلى علامات تصنيع صينية كثيرة ومجمّعين محليين. وتنتشر المعارض على شارع الشيخ زايد والقوز، والجملة في ديرة (نايف) والشارقة، ولم يُتحقق من موزعي العلامات في الإمارات. المنشأ: أوروبا (الإنارة المعمارية الفاخرة)، الصين (معظم الكميات)، الهند، تركيا، تجميع إماراتي.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Signify: فئة ممتازة، هولندا؛ Ledvance: فئة متوسطة، ألمانيا؛ Zumtobel: فئة ممتازة، النمسا؛ Thorn: فئة متوسطة، المملكة المتحدة؛ iGuzzini: فئة ممتازة، إيطاليا؛ ERCO: فئة فاخرة، ألمانيا؛ Flos: فئة فاخرة، إيطاليا؛ Artemide: فئة فاخرة، إيطاليا؛ Delta Light: فئة ممتازة، بلجيكا؛ Fagerhult: فئة ممتازة، السويد؛ Trilux: فئة ممتازة، ألمانيا؛ LEDS C4: فئة متوسطة، إسبانيا؛ Opple: فئة اقتصادية، الصين؛ Havells: فئة اقتصادية، الهند؛ Ligman: فئة متوسطة، تايلاند؛ Linea Light: فئة ممتازة، إيطاليا؛ Beghelli: فئة متوسطة، إيطاليا.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae",
@@ -36,7 +36,128 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: lighting products must be registered under ECAS -> confirmed (ECAS/EQM for regulated products, annual renewal). Not checked: Which lighting categories are in mandatory ECAS scope today and local brand distributors were not verified. Lead times are typical ranges, not measured."
+      "source_note": "Checked on 2026-09-28 against pages opened then: lighting products must be registered under ECAS -> confirmed (ECAS/EQM for regulated products, annual renewal). Not checked: Which lighting categories are in mandatory ECAS scope today and local brand distributors were not verified. Lead times are typical ranges, not measured. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Signify",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium brand from Netherlands",
+          "generic_ar": "علامة ممتازة من هولندا"
+        },
+        {
+          "brand": "Ledvance",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Zumtobel",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium brand from Austria",
+          "generic_ar": "علامة ممتازة من النمسا"
+        },
+        {
+          "brand": "Thorn",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "iGuzzini",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        },
+        {
+          "brand": "ERCO",
+          "origin": "Germany",
+          "tier": "luxury",
+          "generic_en": "a luxury brand from Germany",
+          "generic_ar": "علامة فاخرة من ألمانيا"
+        },
+        {
+          "brand": "Flos",
+          "origin": "Italy",
+          "tier": "luxury",
+          "generic_en": "a luxury brand from Italy",
+          "generic_ar": "علامة فاخرة من إيطاليا"
+        },
+        {
+          "brand": "Artemide",
+          "origin": "Italy",
+          "tier": "luxury",
+          "generic_en": "a luxury brand from Italy",
+          "generic_ar": "علامة فاخرة من إيطاليا"
+        },
+        {
+          "brand": "Delta Light",
+          "origin": "Belgium",
+          "tier": "premium",
+          "generic_en": "a premium brand from Belgium",
+          "generic_ar": "علامة ممتازة من بلجيكا"
+        },
+        {
+          "brand": "Fagerhult",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium brand from Sweden",
+          "generic_ar": "علامة ممتازة من السويد"
+        },
+        {
+          "brand": "Trilux",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "LEDS C4",
+          "origin": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid brand from Spain",
+          "generic_ar": "علامة متوسطة من إسبانيا"
+        },
+        {
+          "brand": "Opple",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy brand from China",
+          "generic_ar": "علامة اقتصادية من الصين"
+        },
+        {
+          "brand": "Havells",
+          "origin": "India",
+          "tier": "economy",
+          "generic_en": "a economy brand from India",
+          "generic_ar": "علامة اقتصادية من الهند"
+        },
+        {
+          "brand": "Ligman",
+          "origin": "Thailand",
+          "tier": "mid",
+          "generic_en": "a mid brand from Thailand",
+          "generic_ar": "علامة متوسطة من تايلاند"
+        },
+        {
+          "brand": "Linea Light",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        },
+        {
+          "brand": "Beghelli",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid brand from Italy",
+          "generic_ar": "علامة متوسطة من إيطاليا"
+        }
+      ]
     },
     {
       "id": "lighting_fixtures:uae-market-sizes",

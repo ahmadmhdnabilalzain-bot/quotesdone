@@ -5,8 +5,8 @@
       "id": "pest_control:spec-checklist",
       "topic": "Pest control - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For pest control quotes to be compared like-for-like, every quoted line (services) must state: (1) target pests; (2) premises type and area in m2; (3) treatment method (spray, gel, fumigation, baiting); (4) pesticide products and active ingredients; (5) number of visits and frequency; (6) company licence from the municipality; (7) technician qualifications; (8) re-entry time and safety precautions; (9) service report and certificate; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pest_control trade.",
-      "body_ar": "لكي تُقارن عروض مكافحة الآفات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الآفات المستهدفة؛ (2) نوع المنشأة ومساحتها بالمتر المربع؛ (3) طريقة المعالجة (رش، أو جل، أو تبخير، أو طُعوم)؛ (4) المبيدات المستخدمة ومكوناتها الفعالة؛ (5) عدد الزيارات وتكرارها؛ (6) ترخيص الشركة من البلدية؛ (7) مؤهلات الفنيين؛ (8) مدة العودة إلى المكان واحتياطات السلامة؛ (9) تقرير الخدمة والشهادة؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pest_control فقط.",
+      "body_en": "For pest control quotes to be compared like-for-like, every quoted line (services) must state: (1) target pests; (2) premises type and area in m2; (3) treatment method (spray, gel, fumigation, baiting); (4) pesticide products and active ingredients; (5) number of visits and frequency; (6) company licence from the municipality; (7) technician qualifications; (8) re-entry time and safety precautions; (9) service report and certificate; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pest_control trade.\n\nExpert interview (2026-11-10): Blocking: target pests, premises and area, and visit frequency. Termites, bed bugs, rodents and food premises need an inspection.",
+      "body_ar": "لكي تُقارن عروض مكافحة الآفات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الآفات المستهدفة؛ (2) نوع المنشأة ومساحتها بالمتر المربع؛ (3) طريقة المعالجة (رش، أو جل، أو تبخير، أو طُعوم)؛ (4) المبيدات المستخدمة ومكوناتها الفعالة؛ (5) عدد الزيارات وتكرارها؛ (6) ترخيص الشركة من البلدية؛ (7) مؤهلات الفنيين؛ (8) مدة العودة إلى المكان واحتياطات السلامة؛ (9) تقرير الخدمة والشهادة؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pest_control فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الآفات المستهدفة، ونوع المنشأة ومساحتها، وعدد الزيارات. والنمل الأبيض وبق الفراش والقوارض والمنشآت الغذائية تحتاج إلى معاينة.",
       "required_specs": [
         "target pests",
         "premises type and area in m2",
@@ -26,7 +26,51 @@
         "https://www.moccae.gov.ae/en/services.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "target pests",
+        "premises type and area in m2",
+        "number of visits and frequency"
+      ],
+      "spec_guide": [
+        {
+          "spec": "target pests",
+          "why_needed_to_price": "Cockroaches, bed bugs, termites, rodents and mosquitoes need different treatments.",
+          "uae_options": "cockroaches; bed bugs; termites; rodents; flies; birds",
+          "follow_up_if": "Bed bugs or termites: an inspection is needed to scope the treatment.",
+          "blocking": true
+        },
+        {
+          "spec": "premises type and area in m2",
+          "why_needed_to_price": "Area and use set chemicals and labour.",
+          "uae_options": "villa; apartment; restaurant; warehouse; m2",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "number of visits and frequency",
+          "why_needed_to_price": "One-off and contract prices differ.",
+          "uae_options": "one-off; monthly; quarterly",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "treatment method (spray, gel, fumigation, baiting)",
+          "why_needed_to_price": "Fumigation and heat treatment cost more.",
+          "uae_options": "gel; spray; baiting; fumigation",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "company licence from the municipality",
+          "why_needed_to_price": "Only approved companies may work.",
+          "uae_options": "approved list",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "An inspection is genuinely needed for termites, bed bugs, rodents and commercial food premises before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "pest_control:uae-standards-and-approvals",
@@ -106,6 +150,75 @@
       "as_of": "2026-10-27",
       "verified": false,
       "source_note": "Checked 2026-10-27 against search-result excerpts: pre-construction treated zone, non-repellents, drilling through slab after pour costlier and less uniform, warranties vary; post-construction trenching/rodding; drill-and-inject into voids; bait stations checked about every three months, less insecticide, slower, a year or longer; liquids faster with fewer visits -> confirmed. Dubai termite authorisation from the DM entry's excerpts. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "pest_control:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Pest control: approvals per emirate",
+      "topic_ar": "مكافحة الآفات: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: pest control companies must be approved by Dubai Municipality before working, and the municipality publishes a monthly list of approved companies. Abu Dhabi: secondary sources say companies need a pest-control activity permit from the Abu Dhabi Public Health Centre in addition to the trade licence; this session could not confirm it on an official page. Sharjah and the northern emirates: municipal approval applies; details not confirmed. A Dubai approval does not cover another emirate. Pesticides must be registered; registration and import permits moved from MOCCAE to the Emirates Drug Establishment. Who obtains: the pest control company; the buyer should check the approved list.",
+      "body_ar": "في دبي: يجب اعتماد شركات مكافحة الآفات من بلدية دبي قبل العمل، وتنشر البلدية قائمة شهرية بالشركات المعتمدة. في أبوظبي: تذكر مصادر ثانوية أن الشركات تحتاج إلى تصريح نشاط مكافحة الآفات من مركز أبوظبي للصحة العامة إضافة إلى الرخصة التجارية، ولم يُتحقق من ذلك في صفحة رسمية في هذه الجلسة. في الشارقة والإمارات الشمالية: تنطبق موافقة البلدية، ولم يُتحقق من التفاصيل. واعتماد دبي لا يغطي إمارة أخرى. ويجب أن تكون المبيدات مسجلة، وقد انتقل التسجيل وتصاريح الاستيراد من وزارة التغير المناخي والبيئة إلى مؤسسة الإمارات للدواء. من يحصل عليها: شركة المكافحة، وعلى المشتري التحقق من القائمة المعتمدة.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2025/12/قائمة-شركات-مكافحة-الحشرات-المصرح-لها-بالعمل-نوفمبر2025.pdf",
+        "https://www.moccae.gov.ae/en/services/permit-of-pesticide-import",
+        "https://www.ede.gov.ae"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "pest_control:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in pest control quotes",
+      "topic_ar": "علامات التحذير في عروض مكافحة الآفات",
+      "body_en": "Watch for: a company not on the municipality's approved list, chemicals not named, \"guaranteed\" results without a free re-treatment period, fumigation without a re-entry time, termite treatment without a warranty period, and contracts that count a visit even when nothing was treated.",
+      "body_ar": "انتبه إلى: شركة غير مدرجة في قائمة البلدية المعتمدة، وعدم تسمية المواد، ونتائج «مضمونة» دون فترة إعادة معالجة مجانية، وتبخير دون تحديد زمن العودة، ومعالجة نمل أبيض دون فترة ضمان، وعقود تحتسب الزيارة حتى لو لم تتم معالجة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "pest_control:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in pest control",
+      "topic_ar": "أخطاء شائعة لدى المشترين في مكافحة الآفات",
+      "body_en": "Buyers use the cheapest one-off spray for bed bugs or termites, which needs a programme, and hire unapproved companies.",
+      "body_ar": "يستخدم المشترون أرخص رش لمرة واحدة لبق الفراش أو النمل الأبيض بينما تحتاج إلى برنامج، ويستعينون بشركات غير معتمدة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "pest_control:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves pest control prices",
+      "topic_ar": "ما الذي يغيّر أسعار مكافحة الآفات بشكل مشروع",
+      "body_en": "Prices differ by pest, area, method (gel, spray, fumigation, heat), number of visits, and the warranty or re-treatment terms.",
+      "body_ar": "تختلف الأسعار حسب الآفة، والمساحة، والطريقة (جل، رش، تبخير، حرارة)، وعدد الزيارات، وشروط الضمان أو إعادة المعالجة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "pest_control:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing pest control quotes like for like",
+      "topic_ar": "مقارنة عروض مكافحة الآفات على أساس متكافئ",
+      "body_en": "Compare on the same pests, area, method and visits, with re-treatment and warranty terms. Value beyond price: an approved company, named registered products and a service report per visit.",
+      "body_ar": "قارن على الآفات والمساحة والطريقة وعدد الزيارات نفسها، مع شروط إعادة المعالجة والضمان. القيمة إلى جانب السعر: شركة معتمدة، ومنتجات مسجلة مسماة، وتقرير خدمة لكل زيارة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -148,11 +261,17 @@
     "removed": [],
     "still_unverified": [
       "pest_control:spec-checklist",
-      "pest_control:uae-standards-and-approvals"
+      "pest_control:uae-standards-and-approvals",
+      "pest_control:approvals-per-emirate"
     ],
     "added": [
       "pest_control:spec-checklist",
-      "pest_control:uae-standards-and-approvals"
+      "pest_control:uae-standards-and-approvals",
+      "pest_control:approvals-per-emirate",
+      "pest_control:quote-red-flags",
+      "pest_control:buyer-mistakes",
+      "pest_control:price-drivers",
+      "pest_control:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -208,6 +327,11 @@
           ]
         }
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }
