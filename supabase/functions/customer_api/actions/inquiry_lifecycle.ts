@@ -24,9 +24,12 @@ import { requestOf, reviewNotes, type ReviewNote } from '../../_shared/quote_rev
 import { verifiedBadges } from '../../_shared/verified_badges.ts';
 import { scrubIdentity } from '../../supplier_api/identity_scrub.ts';
 import { type ActionCtx, J, admin } from '../context.ts';
+import { isClosedRequest } from '../../_shared/request_closed.ts';
 import { EDIT_WINDOW_MS, supplierLabel } from '../lib/inquiry_rules.ts';
 import { signedDrawing } from '../lib/storage.ts';
 import { buyerNameOf, matchAndNotify, notifyLosers } from '../lib/matching.ts';
+import { answeredSeparately, separateQuotesOf } from '../lib/separate_quotes.ts';
+import { hireStep } from '../lib/hire.ts';
 import { getCfg, ratingBand, ratingOf, refundRef, revealFee, reviewCountBand, yearsBand } from '../lib/pricing.ts';
 
 export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | undefined> {
@@ -94,7 +97,8 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       if (!iid || raw.length < 2) return J({ error: 'text_required' }, 400);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status').eq('id', iid).maybeSingle();
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'not_your_inquiry' }, 403);
-      if (['cancelled', 'closed', 'completed'].includes(String(inq.status))) return J({ error: 'inquiry_closed' }, 409);
+      // expired and lost too (_shared/request_closed.ts): a note on an expired request was mailed to every matched supplier.
+      if (isClosedRequest(inq.status)) return J({ error: 'inquiry_closed' }, 409);
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
       const { count: recentNotes } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('inquiry_id', iid).eq('kind', 'note').gte('asked_at', hourAgo);
       if ((recentNotes || 0) >= 10) return J({ error: 'too_many_notes' }, 429);
@@ -126,7 +130,7 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       //   routing — the filters the matcher actually applied (job_type, primary_trade, reasoning).
       //     Spec §9 shows them back to the customer; they never left the database.
       //   floor / required_by / delivery_window — added 7 Aug for §6 and §7.
-      const cols = 'id,category,emirate,summary,spec,status,created_at,budget,scope_type,brief_source,drawing_file_path,drawing_file_name,boq,boq_confidence,hired_supplier_id,outcome,parent_inquiry_id,trades,rfq_no,pipeline_stage,stage_changed_at,routing,floor,required_by,delivery_window,project_id,rfq_ready';
+      const cols = 'id,category,emirate,summary,spec,status,created_at,budget,scope_type,brief_source,drawing_file_path,drawing_file_name,boq,boq_confidence,hired_supplier_id,outcome,parent_inquiry_id,trades,rfq_no,pipeline_stage,stage_changed_at,routing,floor,required_by,delivery_window,project_id,rfq_ready,repeat_of';
       // ONE READ AT A TIME WAS THE OVERVIEW'S CRITICAL PATH (15 Sep 2026). Measured with the e2e
       // harness's per-call timing on production (smoke run 34888342875 and a probe of 8 page loads):
       // the six dashboard calls already start together, and my_inquiries answers last (1.40-1.61 s
@@ -181,6 +185,8 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
         allSupIds.length ? Promise.all([admin.from('leads').select('id,company_name,app_rating,app_reviews,emirate,founded_year,rv_response_rate,rv_reveals,verified,licence_gate_reason,license_doc_path,license_expiry,company_profile_doc_path').in('id', allSupIds), admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', allSupIds)]) : null,
       ]);
       const inqById = new Map<string, any>([...(tops || []), ...kids].map((i: any) => [String(i.id), i]));
+      // The requests already re-posted as separate quotes per trade: their question is answered (lib/separate_quotes.ts).
+      const answeredSep = answeredSeparately(tops);
       const heldIds = new Set<string>();
       for (const [iid, row] of inqById) {
         const mine = allQuotes.filter((q) => String(q.inquiry_id) === iid && !paidQuoteIds.has(String(q.id)));
@@ -286,7 +292,8 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
         applied_filters: appliedFilters(i.routing),
         // A turnkey request no single contractor matched: how many specialists could quote it per trade, so the card asks
         // the customer whether they want separate quotes (finding c of 10 Nov 2026). A number only, never a name.
-        separate_quotes: i.scope_type === 'turnkey' && Number(i.routing?.separate_offer?.specialists) > 0 ? { specialists: Number(i.routing.separate_offer.specialists) } : null,
+        // Asked once: not once the per-trade copy exists (lib/separate_quotes.ts, customer-journey audit 10 Nov 2026).
+        separate_quotes: separateQuotesOf(i, answeredSep),
         // §6/§7: the floor this RFQ is scoped to, and the delivery window the assistant extracted.
         floor: i.floor ?? null, required_by: i.required_by ?? null, delivery_window: i.delivery_window ?? null,
         project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null,
@@ -389,15 +396,20 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       // customer chose another supplier" once per press. The second press of the same button on
       // the same supplier now answers ok and sends nothing; a DIFFERENT supplier on a job already
       // awarded is refused rather than silently re-awarded.
-      if (String(inq.status || '') === 'completed' && inq.hired_supplier_id != null) {
-        const same = Number(inq.hired_supplier_id) === Number(q.supplier_id);
-        return same
+      // A hire the day-3/day-14 follow-up recorded (hired_supplier_id only) is completed by this press, not
+      // answered "already completed" over a request left 'revealed' with its losing suppliers never told (lib/hire.ts).
+      const step = hireStep(inq, q.supplier_id);
+      if (step.kind !== 'award') {
+        return step.kind === 'already_completed'
           ? J({ ok: true, already_completed: true })
           : J({ ok: false, error: 'already_hired', code: 'already_hired', message: 'You have already hired a supplier for this request.', message_ar: 'لقد اخترت مورّدًا لهذا الطلب بالفعل.' }, 409);
       }
-      // The award itself is the lock: only the press that finds hired_supplier_id still null wins
-      // it, so two presses that arrive together still send one round of notices.
-      const { data: won } = await admin.from('inquiries').update({ status: 'completed', hired_supplier_id: q.supplier_id, completed_at: new Date().toISOString(), outcome: 'hired' }).eq('id', inq.id).is('hired_supplier_id', null).select('id');
+      // The award itself is the lock: only the press that changes the row wins it, so two presses that arrive
+      // together still send one round of notices.
+      const award = admin.from('inquiries').update({ status: 'completed', hired_supplier_id: q.supplier_id, completed_at: new Date().toISOString(), outcome: 'hired' }).eq('id', inq.id);
+      const { data: won } = step.from === 'unhired'
+        ? await award.is('hired_supplier_id', null).select('id')
+        : await award.eq('hired_supplier_id', q.supplier_id).neq('status', 'completed').select('id');
       if (!won || !won.length) return J({ ok: true, already_completed: true });
       await notifyLosers(String(inq.id), inq.summary ?? null, Number(q.supplier_id));
       return J({ ok: true });

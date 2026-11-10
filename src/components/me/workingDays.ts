@@ -32,6 +32,10 @@ export type GuaranteeFacts = { revealed_at: string | null; supplier_ack_at?: str
 export type GuaranteePhase = 'waiting' | 'chased' | 'final_call' | 'acknowledged' | 'refund';
 export type GuaranteeClock = { day: number; of: number; elapsed: number; phase: GuaranteePhase };
 
+// The refund_status values that mean no refund is in play (sales_engineer, customer-journey audit 10 Nov 2026).
+// prevented by: src/components/me/workingDays.test.mjs
+const NO_REFUND = ['window_open', 'none'];
+
 /** Where the customer's own reveal sits on the ladder, or null when a term was not served. */
 export function guaranteeClock(g: GuaranteeFacts | null | undefined, terms: GuaranteeTerms | null | undefined, nowMs: number = Date.now()): GuaranteeClock | null {
   const of = Number(terms && terms.window_days);
@@ -39,7 +43,10 @@ export function guaranteeClock(g: GuaranteeFacts | null | undefined, terms: Guar
   if (!g || !(of > 0) || !(chase > 0)) return null;
   const elapsed = workingDaysSince(g.revealed_at, nowMs);
   if (elapsed == null) return null;
-  const phase: GuaranteePhase = g.refund_status ? 'refund'
+  // 'window_open' and 'none' are the SQL's "no refund in play" (trg_reveal_window writes 'window_open' on a sale saved
+  // without a deadline; every SQL reader coalesces to 'none'). Only a refund that is actually moving is the refund phase.
+  const refundInPlay = !!g.refund_status && !NO_REFUND.includes(String(g.refund_status));
+  const phase: GuaranteePhase = refundInPlay ? 'refund'
     : g.supplier_ack_at ? 'acknowledged'
     : elapsed >= of ? 'final_call'
     : elapsed >= chase ? 'chased'

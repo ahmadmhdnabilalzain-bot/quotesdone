@@ -16,6 +16,7 @@ import { AnimatePresence, useReducedMotion } from 'motion/react';
 import { MessageCircleQuestion, CornerDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { isClosedRequest } from './requestStatus';
 import { Spinner, useDelayedFlag } from '@/components/ui/busy';
 import { t, tf, errText } from './portalText';
 
@@ -26,7 +27,7 @@ export function Clarifications({ inq, token, lang, call }) {
   const [note, setNote] = useState(''); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
   const [answers, setAnswers] = useState({});
   const ansSpin = useDelayedFlag(!!busy);
-  const closed = ['completed', 'closed', 'cancelled'].includes(String(inq.status));
+  const closed = isClosedRequest(inq.status);
   const load = () => call('messages_api', { action: 'clarify_list', inquiry_id: inq.id }, token)
     .then((j) => { if (j && j.ok) setItems(j.items || []); else { setItems([]); setErr(errText(j, lang)); } })
     .catch(() => { setItems([]); setErr(t(lang, 'err_generic')); });
