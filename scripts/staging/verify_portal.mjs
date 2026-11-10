@@ -19,8 +19,8 @@
 // Zero model calls: every inquiry, quote and reveal is built through the factory's SQL path.
 //
 //     node scripts/staging/verify_portal.mjs
-import { readFileSync } from 'node:fs';
 import { mgmtRead } from '../lib/qd_guard.mjs';
+import { readCustomerPortal } from '../lib/portal_sources.mjs';
 import {
   REF, withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, makeReveal,
   mkAuthUser, call, q,
@@ -211,7 +211,7 @@ await withRun(async (run) => {
   // this repo (npm test is scripts/checks/run.mjs), so this proves the wiring EXISTS, not that it
   // works. It was hand-verified in a browser against a staging-pointed build. Do not report this
   // as proof the portal renders Arabic.
-  const portalSrc = readFileSync('src/components/me/CustomerPortal.tsx', 'utf8');
+  const portalSrc = readCustomerPortal();
   const wired = /onServedLocale/.test(portalSrc)
     && /Dashboard\(\{[^)]*onServedLocale/.test(portalSrc)
     && /j\.locale/.test(portalSrc);

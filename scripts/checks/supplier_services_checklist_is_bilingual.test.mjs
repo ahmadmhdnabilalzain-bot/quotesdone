@@ -14,6 +14,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
@@ -110,11 +112,11 @@ test('service emirates are seven checkboxes and All emirates, with Arabic', () =
   assert.ok(src.includes('type="checkbox"'));
   assert.ok(src.includes('كل الإمارات') && src.includes('All emirates'));
   assert.ok(!src.includes('aria-pressed'));
-  assert.ok(read('src/components/portal/SupplierPortal.tsx').includes('<EmirateCheckboxes '));
+  assert.ok(readSupplierPortal().includes('<EmirateCheckboxes '));
 });
 
 test('supplier_api routes the five documented actions', () => {
-  const api = read('supabase/functions/supplier_api/index.ts');
+  const api = functionSource('supplier_api');
   const doc = read('docs/api/supplier_portal_services.md');
   for (const a of ['services_state', 'services_resolve', 'services_rewrite', 'services_save_rewrite', 'transcribe_service_note']) {
     assert.ok(api.includes(`'${a}'`), `supplier_api does not route ${a}`);

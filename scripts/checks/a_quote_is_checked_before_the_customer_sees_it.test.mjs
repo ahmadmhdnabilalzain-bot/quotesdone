@@ -16,6 +16,8 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { readCustomerPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -54,14 +56,14 @@ test('the supplier gets the exact fixes in English only; the customer is told in
 });
 
 test('supplier_api does not tell the customer of a held quote, and the comparison shows the reason', () => {
-  const api = read('supabase/functions/supplier_api/index.ts');
+  const api = functionSource('supplier_api');
   const al = api.slice(api.indexOf('async function acceptLive('), api.indexOf('async function acceptLive(') + 2500);
   assert.ok(al.indexOf('await qualityHold(qid)') > 0 && al.indexOf('await qualityHold(qid)') < al.indexOf('notifyNewQuote(inquiryId)'),
     'acceptLive notifies the customer before reading the quality hold back');
   const cmp = read('supabase/functions/quote_compare/index.ts');
   assert.match(cmp, /from\('quote_quality_hold'\)/, 'quote_compare does not read the holds');
   assert.match(cmp, /a\.quality_check = qualityCheck/, 'the comparison does not carry the reason');
-  const portal = read('src/components/me/CustomerPortal.tsx');
+  const portal = readCustomerPortal();
   assert.match(portal, /a\.quality_check/, 'the portal comparison does not show the quality check');
   const text = read('src/components/me/portalText.ts');
   for (const k of ['qq_title', 'qq_held', 'qq_missing_spec', 'qq_price_above', 'qq_price_below', 'qq_no_validity', 'qq_no_delivery_time', 'qq_no_vat_treatment', 'qq_uncorrected'])
@@ -75,7 +77,7 @@ test('the wait releases only the version the door accepted; a refused submission
   assert.ok(guard > 0 && guard < t.indexOf("update public.quotes set status = 'submitted'"), 'the duty can release content other than the accepted version');
   assert.match(t, /x\.superseded_at is null/, 'the duty reads superseded holds');
   assert.match(body('fn_quote_quality_gate'), /accepted_md5 = excluded\.accepted_md5/, 'the gate does not record the accepted version');
-  const api = read('supabase/functions/supplier_api/index.ts');
+  const api = functionSource('supplier_api');
   assert.match(api, /if \(g\.held\) \{ await supersedeQualityHold\(qid\);/, 'a spec-held resubmission does not supersede the quality hold');
   assert.match(api, /update\(\{ status: 'draft' \}\)\.eq\('id', qid\); \} catch \(_e\) \{ \/\* the result below already says it was not accepted \*\/ \}\n\s*await supersedeQualityHold\(qid\);/,
     'a review-held resubmission does not supersede the quality hold');

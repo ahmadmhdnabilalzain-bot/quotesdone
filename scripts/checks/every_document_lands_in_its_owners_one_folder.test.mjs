@@ -20,6 +20,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { manifestWithPending } from '../lib/pending_sql.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const FILES = manifestWithPending(ROOT);
@@ -74,7 +75,7 @@ test('a customer\'s quotations, receipts and reports are filed under the request
     assert.match(e, shape, `fn_enqueue_doc_backups no longer files ${what} under the request`);
   }
   assert.match(e, /\/Inquiries\/'[\s\S]*x\.folder/, 'the documents go into a folder of the request');
-  const api = src('supabase/functions/customer_api/index.ts');
+  const api = functionSource('customer_api');
   assert.match(api, /folder: 'compare\/' \+ inq\.id/, 'customer_api writes the comparison report where the enqueue reads it');
   assert.match(api, /folder: 'brief\/' \+ inq\.id/, 'customer_api writes the brief where the enqueue reads it');
 });
@@ -83,7 +84,7 @@ test('the daily check compares the whole Dropbox listing, inside the caller\'s w
   const d = src('supabase/functions/dropbox_backup/index.ts');
   assert.match(d, /await listingCheck\(dbx, await dailyRoots\(dbx\), T0 \+ LISTING_BUDGET_MS, true\)/, 'reconcile must list every root every day');
   const budget = Number(/const LISTING_BUDGET_MS = ([\d_]+)/.exec(d)?.[1].replace(/_/g, ''));
-  const wait = Number(/mode: 'reconcile'[^\n]*AbortSignal\.timeout\((\d+)\)/.exec(src('supabase/functions/resilience_ping/index.ts'))?.[1]);
+  const wait = Number(/mode: 'reconcile'[^\n]*AbortSignal\.timeout\((\d+)\)/.exec(functionSource('resilience_ping'))?.[1]);
   assert.ok(budget > 0 && wait > 0 && budget + 10_000 <= wait, `the listing budget (${budget} ms) plus confirmation must end inside resilience_ping's wait (${wait} ms)`);
   assert.match(d, /fn_it_backup_listing_record/, 'every listing reading is put on the record');
   // public.dropbox_files was last synced 7 Sep 2026 while seven routines read it: the daily walk refreshes it

@@ -14,7 +14,7 @@ type Rpc = (fn: string, args: Record<string, unknown>) => Promise<Record<string,
 
 const store = {
   get: () => { try { return localStorage.getItem(STORE_KEY); } catch { return null; } },
-  set: (p: Pending | null) => { try { p ? localStorage.setItem(STORE_KEY, JSON.stringify(p)) : localStorage.removeItem(STORE_KEY); } catch { /* private window */ } },
+  set: (p: Pending | null) => { try { if (p) localStorage.setItem(STORE_KEY, JSON.stringify(p)); else localStorage.removeItem(STORE_KEY); } catch { /* private window */ } },
 };
 
 function download(data: unknown) {
@@ -52,7 +52,7 @@ export function PrivacyControls({ token, lang = 'en', rpc: rpcIn }: { token?: st
     let live = true;
     rpc('pdpl_status_me', {}).then((j) => { const p = pendingFromStatus(j); if (live && p !== undefined) { store.set(p); setPending(p); } }).catch(() => {});
     return () => { live = false; };
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token]); // oxlint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (req) codeRef.current?.focus(); }, [req]);
 
   const run = async (k: string, f: () => Promise<void>) => {

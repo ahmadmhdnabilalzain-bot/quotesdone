@@ -99,7 +99,7 @@ Nothing is removed until its replacement passes tests behind a feature flag.
 1. **Approve or amend this plan**, in particular Phase 0.5 â it adds work the roadmap does not list, and I would rather argue for it now than discover mid-Phase-3 that nothing can be tested.
 2. **The eight missing hard-gate authority rows** (conflict 5). An authority change is hard-gated, so it is yours.
 3. **Staging.** The package says staging first. There is one Supabase project. Either a second project, or an explicit decision that staging means "schema-additive, disabled by default, in the same project" â which is what both corpus imports did today.
-4. **Screenshots.** The sandbox has no egress to `quotesdone.com`, so none were captured; `scripts/audit-screenshots.mjs` is committed and takes one command on any normal machine. Responsive and mobile quality remain unverified until it runs.
+4. **Screenshots.** The sandbox has no egress to `quotesdone.com`, so none were captured; `scripts/archive/audit-screenshots.mjs` is committed and takes one command on any normal machine. Responsive and mobile quality remain unverified until it runs.
 
 ---
 

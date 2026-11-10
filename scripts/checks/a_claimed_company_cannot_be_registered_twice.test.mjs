@@ -28,13 +28,14 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILE = 'scripts/sql/a_claimed_company_cannot_be_registered_twice_under_another_spelling_or_the_same_licence.sql';
 const API = 'supabase/functions/supplier_api/index.ts';
 const MAP = 'supabase/functions/_shared/duplicate_company.ts';
-const PORTAL = 'src/components/portal/SupplierPortal.tsx';
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 const NAME_IDX = 'leads_claimed_company_name_uidx';
@@ -74,7 +75,7 @@ test('static: registrations get the existing refusal, claim leaks no Postgres te
   assert.match(map, /code: 'company_already_registered'/);
   assert.match(map, /String\(err\.code \?\? ''\) === '23505'/, 'the mapping no longer requires a unique violation');
   assert.doesNotMatch(map, /\.rpc\(/, 'the mapping calls a SQL routine: it must work before the SQL is applied');
-  const api = read(API);
+  const api = functionSource('supplier_api');
   const door = (name) => { const i = api.indexOf(`if (action === '${name}')`); assert.ok(i > 0, `${name} is gone`); return api.slice(i, api.indexOf('\n    if (action === ', i + 10)); };
   // 28 Oct 2026 (ledger 1401 audit S7): create_company's body moved to supplier_api/create_company.ts, which also claims the
   // invited listing its address holds (an_invited_supplier_who_registers_on_the_website_claims_his_invited_listing.test.mjs).
@@ -89,8 +90,8 @@ test('static: registrations get the existing refusal, claim leaks no Postgres te
     assert.match(read(file), new RegExp(`updateLeadSettingAsideClashingLicence\\(admin as unknown as LeadWriter, [\\w.]+, \\w+, '${source.replace('.', '\\.')}'\\)`), `${file}: a clashing licence fails the whole document write again`);
   }
   // No second copy of the sentence: the one server copy lives in _shared/duplicate_company.ts.
-  for (const f of [API, 'supabase/functions/supplier_portal/index.ts']) assert.doesNotMatch(read(f), /A company with this name is already registered/, `the refusal sentence was written again in ${f}`);
-  const portal = read(PORTAL);
+  for (const f of [API, 'supabase/functions/supplier_portal/index.ts']) assert.doesNotMatch(f === API ? functionSource('supplier_api') : read(f), /A company with this name is already registered/, `the refusal sentence was written again in ${f}`);
+  const portal = readSupplierPortal();
   assert.match(portal, /if \(c === 'company_already_registered'\) return c;/, 'the claim screen no longer recognises the code');
   assert.match(portal, /if \(j\.extracted && j\.extracted\.licence_set_aside\) setMsg\(srvText\(lang, 'company_already_registered'\)\)/, 'the licence upload no longer says the number was set aside');
   // The server sentence is the portal's existing English copy, word for word: no second wording.

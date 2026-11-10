@@ -33,7 +33,7 @@ export default function SupplierMailbox({ token, lang, openInquiry = null, onOpe
   const live = useRef(true);
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
   const first = useRef(true);
-  const load = () => { setErr(false); const f = first.current; first.current = false; (f ? firstRead(token, 'sup_tab:mailbox') : call('messages_api', { action: 'mailbox' }, token)).then((j) => { if (live.current) (j && j.ok ? setBox(j) : setErr(true)); }).catch(() => { if (live.current) setErr(true); }); };
+  const load = () => { setErr(false); const f = first.current; first.current = false; (f ? firstRead(token, 'sup_tab:mailbox') : call('messages_api', { action: 'mailbox' }, token)).then((j) => { if (live.current) { if (j && j.ok) setBox(j); else setErr(true); } }).catch(() => { if (live.current) setErr(true); }); };
   useEffect(() => { load(); }, [token]);
   // Opened from a revealed-job card, or from the portal with an inquiry in hand.
   const openChat = (id: string) => { const th = box?.threads.find((x) => x.inquiry_id === id); if (th) setOpen(th); };

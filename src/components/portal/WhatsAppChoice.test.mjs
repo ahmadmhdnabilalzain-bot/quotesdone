@@ -9,6 +9,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { WA_TEXT, WA_ERROR_CODES, waErrorKey, waErrorText, waUnavailable, waSignupSettled, waNeedsPrompt, waSentBySms, waCurrentKey } from './whatsappChoiceText.ts';
+import { readSource } from '../../../scripts/lib/portal_sources.mjs';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const HERE = import.meta.dirname;
 
@@ -87,8 +89,8 @@ test('Settings never presents an unverified number as the WhatsApp number', () =
 test('all six placements render WhatsAppChoice with the right mode', () => {
   const src = (p) => readFileSync(join(HERE, p), 'utf8');
   const modes = (s) => [...s.matchAll(/<WhatsAppChoice\b[^>]*\bmode="(\w+)"/g)].map((m) => m[1]).sort();
-  assert.deepEqual(modes(src('../me/CustomerPortal.tsx')), ['prompt', 'settings', 'signup']);
-  assert.deepEqual(modes(src('SupplierPortal.tsx')), ['prompt', 'signup']);
+  assert.deepEqual(modes(readSource('src/components/me/CustomerPortal.tsx')), ['prompt', 'settings', 'signup']);
+  assert.deepEqual(modes(readSource('src/components/portal/SupplierPortal.tsx')), ['prompt', 'signup']);
   assert.deepEqual(modes(src('supplier/SupplierSettings.tsx')), ['settings']);
 });
 
@@ -116,10 +118,10 @@ test('a different number is never stored without its WhatsApp code (suppliers an
 
   // 15 Sep 2026: registration cannot complete without the answer, for suppliers AND customers — on screen
   // and on the server (supplier_api save_profile reg_whatsapp; kyc accept_terms whatsapp_unanswered).
-  const sup = readFileSync(join(HERE, 'SupplierPortal.tsx'), 'utf8');
+  const sup = readSource('src/components/portal/SupplierPortal.tsx');
   assert.match(sup, /mode="signup"/);
   assert.match(sup, /missing\.push\('reg_whatsapp'\)/, 'the supplier form lists the WhatsApp answer as missing');
-  const api = readFileSync(join(HERE, '..', '..', '..', 'supabase', 'functions', 'supplier_api', 'index.ts'), 'utf8');
+  const api = functionSource('supplier_api');
   assert.match(api, /missing\.push\('reg_whatsapp'\)/, 'save_profile refuses a registration without the answer');
   assert.match(branch('accept_terms'), /whatsapp_unanswered/, 'a customer\'s first acceptance waits for the answer');
   // The code goes WhatsApp first, falls back only through the shared rule, and records the channel.

@@ -14,11 +14,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const SQL = 'scripts/sql/';
 const FIX = 'the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql';
 const NOLINK = 'the_supplier_invitation_carries_no_link_and_a_reply_with_trades_reaches_the_sales_engineer.sql';
-const ping = readFileSync('supabase/functions/resilience_ping/index.ts', 'utf8');
+const ping = functionSource('resilience_ping');
 const manifest = readFileSync(SQL + 'MANIFEST.txt', 'utf8').split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
   .map((l) => l.replace(/^scripts\/sql\//, ''));
 const pending = (f) => existsSync(SQL + 'pending/' + f.replace(/\.sql$/, '.txt'));

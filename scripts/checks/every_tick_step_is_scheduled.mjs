@@ -10,6 +10,7 @@
 // well as on a code change that forgot its row.
 import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const token = supabaseAccessToken();
@@ -33,7 +34,7 @@ async function db(query, attempt = 0) {
 // of the object and read to its closing brace, then the keys taken off the lines that declare a runner —
 // a comment cannot contribute a name, because a name only counts with `{ run:` after it.
 function stepsInSource() {
-  const src = readFileSync('supabase/functions/resilience_ping/index.ts', 'utf8');
+  const src = functionSource('resilience_ping');
   const open = src.indexOf('const STEP_RUN: Record<string, Omit<Step, \'name\'>> = {');
   if (open < 0) throw new Error('STEP_RUN not found in supabase/functions/resilience_ping/index.ts');
   const close = src.indexOf('\n};', open);

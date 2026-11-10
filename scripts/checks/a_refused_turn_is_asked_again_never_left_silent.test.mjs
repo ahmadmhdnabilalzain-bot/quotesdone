@@ -18,6 +18,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { answerRightAfter, pendingDue, waitingOf } from '../../src/lib/portalReply.ts';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const SQL = 'scripts/sql/a_refused_turn_is_asked_again_within_minutes_never_left_silent.sql';
@@ -54,7 +55,7 @@ test('W1: every surface that can refuse files its turn for the re-ask, with the 
   assert.match(ms, /turn_id: 'wa:'/, 'WhatsApp: two people sending the same words must be two turns (qhash reads context)');
   assert.match(ms, /reask: \{ message: question,/, 'WhatsApp: the turn must be filed as data for the re-ask');
   assert.match(code(read('supabase/functions/wa_inbound/index.ts')), /outage: sayOutage, problems: sayProblems,/, 'WhatsApp: the refused drafts\' problems must be filed');
-  const sa = code(read('supabase/functions/supplier_api/index.ts'));
+  const sa = code(functionSource('supplier_api'));
   assert.match(sa, /turn_id: 'qr:'/);
   assert.match(sa, /reask: \{ message: q,[^}]*audience: 'supplier', lang: 'en'/, 'supplier thread: filed in English');
 });

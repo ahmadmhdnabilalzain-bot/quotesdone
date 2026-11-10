@@ -33,6 +33,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
 import { manifestLines, manifestWithPending } from '../lib/pending_sql.mjs';
+import { readCustomerPortal, readSupplierPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const REF = 'htdblwldjkcgjvmqkbeh';
@@ -197,7 +199,7 @@ console.log(`documents: quote_documents.test.ts ${deno.status === 0 ? 'passed' :
 
 // ── 3b. EACH TOUCHPOINT READS THE REGISTERED ROW ─────────────────────────────────────────────────
 const F = 'supabase/functions/';
-const capi = src(F + 'customer_api/index.ts');
+const capi = functionSource('customer_api');
 // 21 Sep 2026 (customer-portal journey audit, finding 4): the "النسخة العربية" button served English,
 // because a document read customers.locale alone and ignored the button that was pressed. The fix went
 // further than the quotation — EVERY customer document (quotation, comparison, CSV, brief) now routes
@@ -234,12 +236,12 @@ for (const fn of ['login_otp', 'kyc', 'mobile_otp', 'inquiry_intake']) {
 // 28 Oct 2026 (#1712, ledger 1401 audit S7): create_company's insert moved to supplier_api/create_company.ts, which takes
 // the language from the door (SUPPLIER_LOCALE, the constant English). Both halves are asserted, so neither can drop it.
 ok(/source: 'self_registered',\s*locale: deps\.locale,/.test(src(F + 'supplier_api/create_company.ts'))
-  && /createCompany\(admin, email, body, \{[^}]*\blocale: SUPPLIER_LOCALE \}\)/.test(src(F + 'supplier_api/index.ts')), 'supplier_api create_company: a supplier is registered without a language');
-const cp = src('src/components/me/CustomerPortal.tsx');
+  && /createCompany\(admin, email, body, \{[^}]*\blocale: SUPPLIER_LOCALE \}\)/.test(functionSource('supplier_api')), 'supplier_api create_company: a supplier is registered without a language');
+const cp = readCustomerPortal();
 ok(!/getItem\('qd-lang'\)\) return/.test(cp), 'CustomerPortal: this device\'s stored language still overrides the registered one');
 ok(/action: 'set_locale', locale: l/.test(cp), 'CustomerPortal: switching language while signed in must save customers.locale');
 ok(/action: 'verify', user_kind: 'customer'[^}]*lang/.test(cp), 'CustomerPortal: sign-up must send the page language it registers');
-const sp = src('src/components/portal/SupplierPortal.tsx');
+const sp = readSupplierPortal();
 // 21 Sep 2026: this assertion had been red on main since 3bb1bf5 (14 Sep), which deliberately replaced
 // the reloading switchLang with adoptLocale (src/lib/documentLocale.ts) — the same path the customer
 // portal uses. The behaviour stayed; the check still named the removed function. It now asserts the

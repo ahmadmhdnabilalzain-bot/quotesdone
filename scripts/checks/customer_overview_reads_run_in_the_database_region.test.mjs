@@ -14,9 +14,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { readCustomerPortal } from '../lib/portal_sources.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const code = (p) => readFileSync(root + p, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+const code = (p, text = readFileSync(root + p, 'utf8')) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
 const SIX = [['kyc', 'state'], ['customer_api', 'my_inquiries'], ['customer_portal', 'overview'], ['project_api', 'dashboard'], ['messages_api', 'threads'], ['customer_portal', 'decision_support']];
 
 test('fnUrl pins every call to the database region (ap-southeast-1)', () => {
@@ -38,7 +39,7 @@ test('the parse-time script issues all six reads, region-pinned', () => {
 });
 
 test("the portal's own reads go through the region-pinned call(), warmed beside kyc, not behind it", () => {
-  const s = code('src/components/me/CustomerPortal.tsx');
+  const s = code(null, readCustomerPortal());
   // The subject here is the REGION PIN, not the shape of the function. This pinned the whole
   // one-line body, so it went red on 22 Sep 2026 when call() grew an AbortController and a JSON
   // parse guard (CP-08) while still fetching fnUrl(path). It now asserts the property: the portal's

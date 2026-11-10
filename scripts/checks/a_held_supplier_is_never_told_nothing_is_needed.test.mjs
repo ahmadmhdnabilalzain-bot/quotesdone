@@ -8,8 +8,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 // raw source: stripping comments would eat the rest of any line holding 'https://'
-const src = readFileSync(new URL('../../supabase/functions/supplier_api/index.ts', import.meta.url), 'utf8');
+const src = functionSource('supplier_api');
 const copy = readFileSync(new URL('../../src/components/portal/supplier/serverCopy.ts', import.meta.url), 'utf8');
 
 test('an unread licence is tested on all three fields', () => {
@@ -41,7 +43,7 @@ test('the portal wording for the three hold reasons asks for a clearer copy and 
 });
 
 test('the portal header says a licence hold to a PENDING supplier too, not only to action_required', () => {
-  const portal = readFileSync(new URL('../../src/components/portal/SupplierPortal.tsx', import.meta.url), 'utf8');
+  const portal = readSupplierPortal();
   assert.match(portal, /approval_status === 'pending' && \/\^licence_\/\.test\(String\(ov\.supplier\.licence_gate_reason/, 'a pending supplier held for the licence must see why (licence_unreadable, _expiry_unread, _number_unread)');
 });
 

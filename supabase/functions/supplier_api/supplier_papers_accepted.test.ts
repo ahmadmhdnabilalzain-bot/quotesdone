@@ -5,6 +5,8 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { sanitizeUpload, SAFE_UPLOAD, SAFE_SUPPLIER_PAPERS } from '../_shared/attachment.ts';
 import { docxFixture, docmFixture, pptxFixture } from '../_shared/doc_read/office.fixtures.ts';
+// The function is index.ts plus its modules (9 Nov 2026 split): read all of it, as the node checks do.
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
@@ -22,7 +24,7 @@ Deno.test('a macro document is still refused on the supplier-papers gate', async
 });
 
 Deno.test('process_docs gates the profile and the catalogues with SAFE_SUPPLIER_PAPERS', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('supplier_api');
   assert(/filename: prof\.filename \|\| 'profile', allow: SAFE_SUPPLIER_PAPERS/.test(src), 'company profile gate');
   assert(/filename: c\.filename \|\| 'catalog', allow: SAFE_SUPPLIER_PAPERS/.test(src), 'catalogue gate');
 });

@@ -81,6 +81,10 @@ e2e-reports/
 # purpose, in the same commit that introduces it.
 /*
 !/.claude/
+!/.devcontainer/
+!/.dockerignore
+!/.editorconfig
+!/.env.example
 !/.github/
 !/.gitignore
 !/.graphifyignore
@@ -88,16 +92,21 @@ e2e-reports/
 !/.squawk.toml
 !/ARCHITECTURE.md
 !/CLAUDE.md
+!/Dockerfile
 !/README.md
 !/ai-organization/
 !/components.json
 !/deno.lock
+!/docker-compose.yml
 !/docs/
+!/eslint.config.mjs
 !/knowledge-import/
 !/knowledge/
 !/messages/
 !/next-env.d.ts
 !/next.config.mjs
+!/.nvmrc
+!/.oxlintrc.json
 !/package-lock.json
 !/package.json
 !/postcss.config.mjs

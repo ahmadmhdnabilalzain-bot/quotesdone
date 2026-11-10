@@ -14,6 +14,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 import {
   launchPathProbes, probeLaunchPath, launchPathAction, launchPathItem, HOLD_MS, PROBE_MOBILE, HOSTS,
 } from '../../supabase/functions/_shared/launch_path.ts';
@@ -121,7 +122,7 @@ test('the finding does not flap: held open two clean hours, then closed', () => 
 });
 
 test('the heartbeat runs it hourly through fn_it_duty_settle and mails nobody itself', () => {
-  const src = R('supabase/functions/resilience_ping/index.ts');
+  const src = functionSource('resilience_ping');
   assert.match(src, /^\s{2}launchpath:\s*\{\s*run:\s*launchPathTick\s*\}/m, 'launchpath is not in STEP_RUN');
   const at = src.indexOf('async function launchPathTick');
   const body = strip(src.slice(at, src.indexOf('\nasync function', at + 10)));

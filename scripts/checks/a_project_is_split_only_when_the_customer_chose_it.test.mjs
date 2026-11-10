@@ -16,6 +16,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -28,7 +29,7 @@ test('static: one contractor is the default everywhere the choice is made', () =
   assert.match(ui, /\[\['turnkey', 'nr_multi_tk_h', 'nr_multi_tk_b'\], \['multi',/, 'the split is offered first again');
   const txt = read('src/components/me/portalText.ts');
   assert.doesNotMatch(txt, /nr_multi_sep_h: '[^']*(recommended|موصى به)/, 'the split is labelled recommended again');
-  const api = read('supabase/functions/customer_api/index.ts');
+  const api = functionSource('customer_api');
   assert.match(api, /const scope_type = \['single','multi','turnkey'\]\.includes\(String\(body\.scope_type\)\) \? String\(body\.scope_type\) : 'single';/, 'create_inquiry no longer defaults to one request');
   assert.match(api, /const wantSplit = scope_type === 'multi' && distinctTrades\.length > 1;/, 'create_inquiry splits without the customer choosing multi');
   const sql = read(FILE);

@@ -3,7 +3,7 @@ import { Link } from '@/i18n/routing';
 import { SectionHeader } from '@/components/SectionHeader';
 import { TradeCount } from '@/components/Counters';
 import { GetQuotesFor } from '@/components/GetQuotesFor';
-import s from '@/components/home/sealed.module.css';
+import '@/components/home/sealed.module.css';
 
 // ONE TAXONOMY. Each row carries the service slug it opens, the intake category "Get quotes for
 // this" pre-fills, and the trade code whose licence-verified supplier count shows only when it is

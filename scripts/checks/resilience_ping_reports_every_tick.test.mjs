@@ -14,8 +14,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
-const src = readFileSync(fileURLToPath(new URL('../../supabase/functions/resilience_ping/index.ts', import.meta.url)), 'utf8');
+const src = functionSource('resilience_ping');
 
 // 18 SEP 2026 — THE ORDER MOVED INTO POSTGRES, SO REACHABILITY GAINED A SECOND HALF.
 // The handler no longer walks a fixed `STEPS` array; it runs the order fn_resilience_tick_plan returns,

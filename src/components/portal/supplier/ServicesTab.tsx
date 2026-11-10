@@ -135,7 +135,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // `lang` is deliberately not a dependency: it is read only for an error string, and re-running the
   // whole load on a language toggle would throw away the supplier's unsaved edits. A retry re-renders
   // the message in the current language.
-  useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [token]); // oxlint-disable-line react-hooks/exhaustive-deps
 
   // "THIS PAGE UPDATES BY ITSELF WHEN THE READ FINISHES" (VERIFY_COPY.profile_reading) was said and never done: this tab loaded once, so a
   // supplier who opened it while the profile was being read stayed on "still reading" until it left and came back. While a profile is
@@ -154,7 +154,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       else setSt((s) => ({ ...s }));   // asks again in 5 seconds
     }, 5000);
     return () => window.clearTimeout(id);
-  }, [readingNow, st, token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [readingNow, st, token]); // oxlint-disable-line react-hooks/exhaustive-deps
 
   // ── voice ──────────────────────────────────────────────────────────────────────────────────────
   const rec = useRef<{ mr: MediaRecorder; chunks: Blob[]; stream: MediaStream; timer: number } | null>(null);

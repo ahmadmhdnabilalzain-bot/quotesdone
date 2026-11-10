@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { takeAuthFragment } from './authFragment.ts';
+import { readSource } from '../../scripts/lib/portal_sources.mjs';
 
 const SRC = join(import.meta.dirname, '..');
 const fakeWin = (path, search, hash) => {
@@ -40,14 +41,14 @@ test('both portals strip the fragment first and sign in from nothing in the URL'
   const client = readFileSync(join(SRC, 'lib', 'supaClient.ts'), 'utf8');
   assert.match(client, /detectSessionInUrl:\s*false/, 'supabase-js must not read a session out of the URL itself');
   for (const f of ['components/me/CustomerPortal.tsx', 'components/portal/SupplierPortal.tsx']) {
-    const src = readFileSync(join(SRC, f), 'utf8');
+    const src = readSource('src/' + f);
     assert.match(src, /takeAuthFragment\(\);/, `${f} must strip a URL session on mount`);
     assert.doesNotMatch(src, /urlSession|takeAuthFragment\([^)]/, `${f} must never adopt a URL session`);
   }
 });
 
 test('supplier sign-out also drops the widget chat id', () => {
-  const src = readFileSync(join(SRC, 'components/portal/SupplierPortal.tsx'), 'utf8');
+  const src = readSource('src/components/portal/SupplierPortal.tsx');
   const so = src.match(/const doSignOut = [^\n]*/)[0];
   assert.match(so, /removeItem\('qd-chat-conv'\)/);
 });

@@ -100,7 +100,7 @@ export function SpecHoldPanel({ quoteId, lang, token, onChanged, onResubmit, tit
     const j = await call('supplier_api', { action: 'spec_approve', quote_id: quoteId, confirm }, token);
     setBusy(false);
     if (!j || !j.ok) { setMsg(srvMsg(String(lang), j, t.err)); return; }
-    setMsg(j.live ? t.released : t.releasedWaiting); onChanged && onChanged();
+    setMsg(j.live ? t.released : t.releasedWaiting); if (onChanged) onChanged();
   };
 
   const input = (f: Field | Missing, value: string, set: (v: string) => void, key: string, placeholder?: string) => {
@@ -142,7 +142,7 @@ export function SpecHoldPanel({ quoteId, lang, token, onChanged, onResubmit, tit
             <legend className="text-[13px] font-semibold text-foreground">{t.line(l.line_no)} · <span className="font-normal text-muted-foreground">{String(l.description).slice(0, 90)}</span></legend>
             <div className="flex flex-wrap gap-2.5">{l.fields.filter((f: Field) => f.missing).map((f: Field) => {
               const key = errKey('line', l.line_no, f.attr);
-              return input(f, lines[l.line_no]?.[f.attr] ?? '', (v) => setLines((s) => ({ ...s, [l.line_no]: { ...(s[l.line_no] || {}), [f.attr]: v } })), key, f.options?.[0] ? `${t.ex} ${f.options[0]}` : undefined);
+              return input(f, lines[l.line_no]?.[f.attr] ?? '', (v) => setLines((s) => ({ ...s, [l.line_no]: { ...s[l.line_no], [f.attr]: v } })), key, f.options?.[0] ? `${t.ex} ${f.options[0]}` : undefined);
             })}</div>
           </fieldset>))}
         {schema.terms.length > 0 && <fieldset className="flex flex-col gap-2">

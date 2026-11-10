@@ -1,0 +1,19 @@
+# Measured 9 Nov 2026: the source is 2-space, LF, UTF-8 throughout. This file states it so every editor keeps it.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.ps1]
+end_of_line = crlf
+
+[Makefile]
+indent_style = tab

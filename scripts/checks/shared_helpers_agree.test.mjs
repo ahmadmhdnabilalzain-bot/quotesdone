@@ -17,6 +17,7 @@
 //   node scripts/checks/shared_helpers_agree.test.mjs
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { functionSource } from '../lib/function_sources.mjs';
 
 // A RATCHET, NOT A CLIFF. There are 8 variants of sec() and 11 of J() TODAY, and failing the build
 // on that would block every merge until 134 files are rewritten — which is a large, risky diff that
@@ -74,10 +75,12 @@ for (const h of HELPERS) {
   for (const d of dirs) {
     const p = join(ROOT, d, 'index.ts');
     if (!existsSync(p)) continue;
-    const src = readFileSync(p, 'utf8');
+    // the whole function, index.ts first: a function split into modules keeps its helpers in them (9 Nov 2026)
+    const src = functionSource(d);
     const m = h.re.exec(src);
     if (!m) continue;
-    const key = tokens(extract(src, m.index));
+    // `export` only says another module of the same function imports it; it is not part of what the helper does
+    const key = tokens(extract(src, m.index).replace(/^export\s+/, ''));
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(d);
   }

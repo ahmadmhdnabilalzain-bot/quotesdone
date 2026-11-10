@@ -29,7 +29,7 @@ export function SpecOffer({ inq, token, lang, call, onDone }) {
     setBusy(null);
     if (j && j.ok) {
       setDone((d) => ({ ...d, [o.id]: j.state === 'accepted' ? tf(lang, 'so_accepted', { v: value }) : t(lang, 'so_declined') }));
-      onDone && onDone();
+      if (onDone) onDone();
     } else setErr((e) => ({ ...e, [o.id]: errText(j, lang) }));
   };
 

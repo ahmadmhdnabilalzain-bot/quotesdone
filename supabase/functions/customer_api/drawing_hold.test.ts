@@ -17,6 +17,8 @@ import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { seedTerms, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
+// The function is index.ts plus its modules (9 Nov 2026 split): read all of it, as the node checks do.
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const SEEDS = seedTerms({ name: 'ZZ DEMO Customer', email: 'zzdemo@example.invalid', phone: '+971 50 000 0001' });
 const ORIGINAL = 'drawings/00000000-0000-0000-0000-000000000000/1_zz_demo_drawing.pdf';
@@ -87,7 +89,7 @@ Deno.test('5. a pictured CAD original that is held says cad_read_not_pictured, o
   assertEquals(cadNote(false, hand), {});
   assertEquals(cadNote(true, drawingHandoff({ redaction_pages_in: 1, redaction_pages_out: 1, redaction_complete: true }, CAD, ['redacted/x/page_p0.jpg'])), {});
   // The pictured path's final answer must carry it (the call site was what was missing).
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('customer_api');
   const finalAnswer = src.split('\n').find((l) => /return J\(\{ ok: true, boq: boqOut, drawing_file_path: path/.test(l)) || '';
   assert(/\.\.\.cadNote\(isCad/.test(finalAnswer), "analyze_drawing's pictured answer does not spread cadNote");
 });
@@ -103,7 +105,7 @@ Deno.test('a held anonymised file is said to the customer, in English and Arabic
   assert((fileHeldNote('title_block_not_confident') as { drawing_file_message: { en: string } }).drawing_file_message.en.includes('not shared'));
   // Second review of #1838: the note was unit-tested and its CALL SITE was not, the same gap test 5 closed for cadNote.
   // analyze_drawing's final answer spreads fileHeldNote(fileHeld), and fileHeld is set from the anonymiser's `held`.
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('customer_api');
   const finalAnswer = src.split('\n').find((l) => /return J\(\{ ok: true, boq: boqOut, drawing_file_path: path/.test(l)) || '';
   assert(/\.\.\.fileHeldNote\(fileHeld\)/.test(finalAnswer), "analyze_drawing's final answer does not spread fileHeldNote(fileHeld)");
   assert(/fileHeld = f\.held/.test(src), 'fileHeld is never set from the anonymised file result');

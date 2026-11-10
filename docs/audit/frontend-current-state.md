@@ -176,11 +176,11 @@ No Executive Home v2, live activity stream, organisation chart, employee workspa
 
 **Not captured, and I will not claim otherwise.** The audit environment is a cloud sandbox whose egress allowlist does not include `quotesdone.com`; every navigation returned `ERR_CONNECTION_RESET`. Route existence and rendering were verified through the Vercel deployment API instead (`/me` â HTTP 200, correct title, locale and headers).
 
-A ready-to-run capture script is committed at `scripts/audit-screenshots.mjs`. Run it from a machine with normal internet access:
+A ready-to-run capture script is committed at `scripts/archive/audit-screenshots.mjs`. Run it from a machine with normal internet access:
 
 ```bash
 npx playwright install chromium
-node scripts/audit-screenshots.mjs           # writes docs/audit/screenshots/
+node scripts/archive/audit-screenshots.mjs           # writes docs/audit/screenshots/
 ```
 
 It captures all 18 major routes at 1440Ã900 and 390Ã844 and writes `route_probe.json` with status and title per route. Until it is run, **no claim is made about visual quality, responsive behaviour or mobile layout** â those are the three things the requirement asked screenshots to prove, and they remain unverified.

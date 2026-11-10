@@ -26,6 +26,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CUSTOMER_PORTAL_FILES, SUPPLIER_PORTAL_FILES } from '../lib/portal_sources.mjs';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -88,8 +89,12 @@ const surface = importClosure(['src/app/[locale]/me/page.tsx', 'src/app/[locale]
 export const PORTAL_FILES = [...surface.keys()].sort();
 /** The concatenated source of all of them — THE customer surface, for any count over "the screen". */
 export const PORTAL_SRC = [...surface.values()].join('\n/*FILE*/\n');
-/** CustomerPortal.tsx alone, for the few evidence strings that genuinely mean that one file. */
-export const ENTRY_SRC = SRC.get(ENTRY) || '';
+// A portal's entry path stands for the portal it was until the 9 Nov 2026 split: the entry and the files
+// split out of it (scripts/lib/portal_sources.mjs), in their original order. Any other path is that file.
+const PORTAL_OF = { 'src/components/me/CustomerPortal.tsx': CUSTOMER_PORTAL_FILES, 'src/components/portal/SupplierPortal.tsx': SUPPLIER_PORTAL_FILES };
+const entrySrc = (p) => (PORTAL_OF[p] || [p]).map((f) => SRC.get(f) || '').join('\n');
+/** CustomerPortal.tsx and the files split out of it, for the evidence strings that mean "the portal file". */
+export const ENTRY_SRC = entrySrc(ENTRY);
 export const srcOf = (p) => SRC.get(p) || '';
 export const allSrcPaths = () => [...SRC.keys()];
 
@@ -120,7 +125,7 @@ export function surfaceFor(entries, entryPath = null) {
   return {
     FILES,
     SRC: SURFACE_SRC,
-    ENTRY_SRC: entryPath ? (SRC.get(entryPath) || '') : '',
+    ENTRY_SRC: entryPath ? entrySrc(entryPath) : '',
     FNS,
     FN_SRC: FNS.map((n) => EDGE.get(n)).join('\n/*FILE*/\n'),
   };

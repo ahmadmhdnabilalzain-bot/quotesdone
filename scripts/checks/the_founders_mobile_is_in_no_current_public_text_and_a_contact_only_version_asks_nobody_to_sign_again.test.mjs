@@ -20,9 +20,12 @@ import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { privacyAt18 } from '../lib/privacy_1_9.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+// supplier_api/index.ts names the whole function (index.ts plus its modules since 9 Nov 2026).
+const whole = (p) => (p === 'supabase/functions/supplier_api/index.ts' ? functionSource('supplier_api') : read(p));
 const legal = JSON.parse(read('src/content/legal.json'));
 // 3 Nov 2026: Privacy 1.9 (one sentence on invitation opens, scripts/lib/privacy_1_9.mjs) replaced 1.8. The comparisons below
 // are about 1.8, so they read 1.8 rebuilt from the current text with exactly the 1.9 edits undone (it throws if any is missing).
@@ -100,7 +103,7 @@ test('the privacy 1.8 and cookie 1.5 Arabic say the same as the English: both nu
 });
 
 test('a supplier who accepted v16 is not asked to accept v17; a v15 supplier is, once', () => {
-  const portal = read('src/components/portal/SupplierPortal.tsx');
+  const portal = readSupplierPortal();
   const src = /export function needsReaccept\(me\) \{([\s\S]*?)\n\}/.exec(portal)?.[1];
   assert.ok(src, 'needsReaccept not found');
   const needs = new Function('me', src);
@@ -112,9 +115,9 @@ test('a supplier who accepted v16 is not asked to accept v17; a v15 supplier is,
   for (const [f, rx] of [['supabase/functions/supplier_api/index.ts', /terms_stands: await supplierAcceptanceStands\(secretVal, data\.accepted_terms_version\)/],
     ['supabase/functions/supplier_api/index.ts', /await supplierAcceptanceStands\(secretVal, sup\.accepted_terms_version\)/],
     ['supabase/functions/kyc/index.ts', /!\(await supplierAcceptanceStands\(sec, \(lead as any\)\?\.accepted_terms_version\)\)/]]) {
-    assert.match(read(f), rx, `${f} still compares versions strictly`);
+    assert.match(whole(f), rx, `${f} still compares versions strictly`);
   }
-  for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/kyc/index.ts']) assert.doesNotMatch(read(f), /accepted_terms_version\s*(?:===|!==)\s*(?:curV|await currentSupplierTermsVersion)/, f + ' compares strictly');
+  for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/kyc/index.ts']) assert.doesNotMatch(whole(f), /accepted_terms_version\s*(?:===|!==)\s*(?:curV|await currentSupplierTermsVersion)/, f + ' compares strictly');
   assert.match(read('supabase/functions/_shared/supplier_terms.ts'), /supplier_terms_carries_from/);
 });
 
@@ -129,6 +132,7 @@ test('superseded versions are served for a signer but not listed in the sitemap'
 // stays only server-side (login_otp, voice_otp read it; they never print it), in the archived signed agreements, in tests, and in
 // history (SQL files already applied, reports).
 import { readdirSync, statSync } from 'node:fs';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 const walk = (d, out = []) => { for (const n of readdirSync(join(ROOT, d))) { const p = d + '/' + n; const s = statSync(join(ROOT, p)); if (s.isDirectory()) { if (n !== 'node_modules') walk(p, out); } else out.push(p); } return out; };
 test('no served or sent source prints the mobile: functions, schema mirror, seeds, knowledge, messages, site', () => {
   const files = ['src', 'messages', 'knowledge', 'supabase/functions', 'supabase/schema', 'supabase/seeds', 'ai-organization'].flatMap((d) => (existsSync(join(ROOT, d)) ? walk(d) : []))

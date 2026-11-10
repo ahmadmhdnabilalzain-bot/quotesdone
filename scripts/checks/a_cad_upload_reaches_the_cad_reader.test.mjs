@@ -10,8 +10,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
-const api = readFileSync(new URL('../../supabase/functions/customer_api/index.ts', import.meta.url), 'utf8');
+const api = functionSource('customer_api');
 const portal = readFileSync(new URL('../../src/components/me/NewRequest.tsx', import.meta.url), 'utf8');
 const block = api.slice(api.indexOf("action === 'analyze_drawing'"), api.indexOf("action === 'create_inquiry'"));
 
@@ -107,7 +108,8 @@ function dispatchHits(file, src) {
   const out = [];
   for (const [url] of src.matchAll(DISPATCH)) {
     const wf = (url.match(/actions\/workflows\/([^'"`\s]*)\/dispatches$/) || [])[1] || 'repository_dispatch';
-    if (!(file === 'customer_api/index.ts' && wf === 'cad-read-worker.yml')) out.push(`${file} -> ${wf}`);
+    // startCadWorker's file: customer_api/index.ts until the 9 Nov 2026 split moved it, verbatim, to lib/drawings.ts.
+    if (!(file === 'customer_api/lib/drawings.ts' && wf === 'cad-read-worker.yml')) out.push(`${file} -> ${wf}`);
   }
   return out;
 }
@@ -117,8 +119,9 @@ test('the dispatch scan catches every form of a dispatch URL, and lets through o
   assert.deepEqual(dispatchHits('it_x/index.ts', `fetch(${tpl('api.github.com/repos/${REPO}/actions/workflows/x.yml/dispatches')})`), ['it_x/index.ts -> x.yml']);
   assert.deepEqual(dispatchHits('it_x/index.ts', `fetch(${tpl('api.github.com/repos/${OWNER}/${NAME}/dispatches')})`), ['it_x/index.ts -> repository_dispatch']);
   assert.deepEqual(dispatchHits('it_x/index.ts', "fetch('https://api.github.com/repos/o/r/actions/workflows/cad-read-worker.yml/dispatches')"), ['it_x/index.ts -> cad-read-worker.yml'], 'the CAD worker from any other function is a hit');
-  assert.deepEqual(dispatchHits('customer_api/index.ts', `fetch(${tpl('api.github.com/repos/${REPO}/actions/workflows/${wf}/dispatches')})`), ['customer_api/index.ts -> ${wf}'], 'a workflow named by a variable is a hit');
-  assert.deepEqual(dispatchHits('customer_api/index.ts', "fetch('https://api.github.com/repos/o/r/actions/workflows/cad-read-worker.yml/dispatches')"), []);
+  assert.deepEqual(dispatchHits('customer_api/lib/drawings.ts', `fetch(${tpl('api.github.com/repos/${REPO}/actions/workflows/${wf}/dispatches')})`), ['customer_api/lib/drawings.ts -> ${wf}'], 'a workflow named by a variable is a hit');
+  assert.deepEqual(dispatchHits('customer_api/lib/drawings.ts', "fetch('https://api.github.com/repos/o/r/actions/workflows/cad-read-worker.yml/dispatches')"), []);
+  assert.deepEqual(dispatchHits('customer_api/index.ts', "fetch('https://api.github.com/repos/o/r/actions/workflows/cad-read-worker.yml/dispatches')"), ['customer_api/index.ts -> cad-read-worker.yml'], 'only the one file that holds startCadWorker may dispatch it');
 });
 
 test('only customer_api starts a GitHub workflow, and only the CAD worker', () => {

@@ -13,9 +13,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const code = (p) => readFileSync(root + p, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+const code = (p) => strip(readFileSync(root + p, 'utf8'));
 const walk = (d) => readdirSync(root + d).flatMap((f) => {
   const p = `${d}/${f}`;
   return statSync(root + p).isDirectory() ? walk(p) : (/\.(ts|tsx)$/.test(f) && !/\.test\./.test(f) ? [p] : []);
@@ -38,5 +40,5 @@ test('the server-side callers of portal functions carry the pin', () => {
     ['supabase/functions/rfq_flag/index.ts', '/functions/v1/messages_api?forceFunctionRegion=ap-southeast-1'],
     ['supabase/functions/_shared/reasoned_delivery.ts', '/functions/v1/supplier_api?forceFunctionRegion=ap-southeast-1'],
     ['scripts/lib/demo_factory.mjs', '/functions/v1/${slug}?forceFunctionRegion=ap-southeast-1'],
-  ]) assert.ok(code(f).includes(needle), `${f} must call with ${needle}`);
+  ]) assert.ok((f === 'supabase/functions/resilience_ping/index.ts' ? strip(functionSource('resilience_ping')) : code(f)).includes(needle), `${f} must call with ${needle}`);
 });

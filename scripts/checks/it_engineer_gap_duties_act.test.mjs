@@ -18,6 +18,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -45,7 +46,7 @@ test('static: every new duty file has a header, a revoke per routine and a verdi
 });
 
 test('static: resilience_ping runs the provider reading on the IT heartbeat', () => {
-  const ping = read('supabase/functions/resilience_ping/index.ts');
+  const ping = functionSource('resilience_ping');
   assert.match(ping, /step\('provider_status'/);
   assert.match(ping, /rpc\('fn_it_provider_watch', \{ p_r: await takeProviderReadings\(sec\) \}\)/);
 });

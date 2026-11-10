@@ -15,6 +15,7 @@ import { createHmac } from 'node:crypto';
 import { Resolver } from 'node:dns/promises';
 import { spawnSync } from 'node:child_process';
 import { withRetry } from './lib/retry.mjs';
+import { functionSource } from './lib/function_sources.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const tok = process.env.SUPABASE_ACCESS_TOKEN?.trim() || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8').trim();
@@ -177,7 +178,7 @@ await guard('8 after sign-up', 'duties', async () => {
   row('8 after sign-up', 'sales-engineer duties: outreach tick, day-2/day-6 reminders, verification, 14-day close', +d.fns === 5 && age(d.se) < 180,
     `${d.fns}/5 routines live; sales_engineer last ran ${age(d.se)} min ago`);
   row('8 after sign-up', 'the outbox drains (send_outbox heartbeat)', age(d.ob) < 120, `last run ${age(d.ob)} min ago`);
-  const api = readFileSync('supabase/functions/supplier_api/index.ts', 'utf8');
+  const api = functionSource('supplier_api');   // index.ts plus its modules since the 9 Nov 2026 split
   row('8 after sign-up', "onboarding mail: registration_received to the supplier in its language + record to management", /type: 'registration_received'/.test(api) && /type: 'supplier_registered'/.test(api), 'supplier_api save_profile queues both through the outbox');
 });
 

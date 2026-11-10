@@ -14,12 +14,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readCustomerPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (f) => readFileSync(join(REPO, f), 'utf8');
 
 test('customer_api serves the guidance and confirms every posted request', () => {
-  const src = read('supabase/functions/customer_api/index.ts');
+  const src = functionSource('customer_api');
   assert.match(src, /action === 'concierge'[\s\S]{0,400}\.rpc\('fn_customer_concierge'/, "action 'concierge' no longer reads fn_customer_concierge");
   assert.match(src, /\.rpc\('fn_customer_support_concierge_confirm'/, 'create_inquiry no longer confirms the request');
   const start = src.indexOf("if (action === 'create_inquiry')");
@@ -34,7 +36,7 @@ test('the portal shows the guidance on a first request and after posting', () =>
   const nr = read('src/components/me/NewRequest.tsx');
   assert.match(nr, /action: 'concierge'/, 'the composer no longer asks for the guidance');
   assert.match(nr, /first_inquiry[\s\S]{0,120}<ConciergeSteps/, 'the composer does not show the guidance on a first request');
-  const cp = read('src/components/me/CustomerPortal.tsx');
+  const cp = readCustomerPortal();
   assert.match(cp, /r\.concierge/, 'the portal ignores the guidance create_inquiry returns');
   assert.match(cp, /<ConciergeSteps/, 'the portal does not show the guidance after posting');
 });

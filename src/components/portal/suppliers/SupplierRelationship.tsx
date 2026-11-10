@@ -551,6 +551,7 @@ export function SupplierHistoryPanel({
               `list` + `listitem` keep the collection announced to a screen reader, which is what
               the table markup was genuinely providing.
             */}
+            {/* oxlint-disable-next-line jsx-a11y/no-redundant-roles -- role=list is deliberate, see the comment above (list semantics survive list-style:none in Safari) */}
             <ul className="mt-2 space-y-1.5 text-[12.5px]" role="list"
                 aria-label={ar(lang, 'مشاريع سابقة لهذا المورّد', 'Past projects for this supplier')}>
               {projects.map((p, i) => (

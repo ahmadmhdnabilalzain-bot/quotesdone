@@ -9,8 +9,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { errText, t, transportFailed } from './portalText.ts';
+import { readCustomerPortal } from '../../../scripts/lib/portal_sources.mjs';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
-const SRC = fs.readFileSync(new URL('./CustomerPortal.tsx', import.meta.url), 'utf8');
+const SRC = readCustomerPortal();
 const body = SRC.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
 
 test('CP-05: a reveal is unlocked only when the server says it already is, and names the supplier', () => {
@@ -72,7 +74,7 @@ test('PR #1574: a held Arabic comparison report reaches the customer as a clear 
   assert.match(body, /const COMPARE_PDF_TIMEOUT_MS = 150000;/);
   assert.match(body, /action: 'compare_pdf'[^\n]*\}, token, COMPARE_PDF_TIMEOUT_MS\)/);
   // The 202 the server sends (customer_api heldReply) is rendered as its own Arabic sentence by errText.
-  const api = fs.readFileSync(new URL('../../../supabase/functions/customer_api/index.ts', import.meta.url), 'utf8');
+  const api = functionSource('customer_api');
   const held = api.match(/const heldReply = \(\) => J\(\{ ok: false, held: true, code: 'arabic_held',\s*message: '([^']+)',\s*message_ar: '([^']+)' \}, 202\);/);
   assert.ok(held, 'customer_api heldReply keeps its bilingual 202 shape');
   const reply = { ok: false, held: true, code: 'arabic_held', message: held[1], message_ar: held[2] };

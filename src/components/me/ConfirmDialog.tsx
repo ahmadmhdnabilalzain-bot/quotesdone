@@ -32,7 +32,7 @@ function ConfirmDialog({ lang, req, onClose }) {
     setTimeout(() => okRef.current && okRef.current.focus(), 30);
     const onKey = (e) => { if (e.key === 'Escape') onClose(false); };
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('keydown', onKey); try { prev && prev.focus && prev.focus(); } catch (_e) {} };
+    return () => { document.removeEventListener('keydown', onKey); try { if (prev && prev.focus) prev.focus(); } catch (_e) {} };
   }, [req]);
   return (
     <AnimatePresence>

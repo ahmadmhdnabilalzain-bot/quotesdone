@@ -1,4 +1,4 @@
-import s from '@/components/home/sealed.module.css';
+import '@/components/home/sealed.module.css';
 
 /**
  * The homepage section intro: a mono index + eyebrow, one large h2, an optional sub. Start-aligned

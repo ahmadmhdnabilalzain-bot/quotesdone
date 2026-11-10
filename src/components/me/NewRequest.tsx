@@ -151,10 +151,10 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     setVoice(v);
     // The greeting mentions voice only where the mic actually works in this browser.
     if (v !== 'none') setMessages((a) => a.map((m, i) => (i === 0 && m.text === t(lang, 'nr_greeting') ? { ...m, text: m.text + t(lang, 'nr_greeting_voice') } : m)));
-    return () => { try { recRef.current && recRef.current.sr && recRef.current.sr.abort(); } catch (_e) {} };
+    return () => { try { if (recRef.current && recRef.current.sr) recRef.current.sr.abort(); } catch (_e) {} };
   }, [modelHeld]);
   const push = (m) => setMessages((a) => [...a, m]);
-  useEffect(() => { try { endRef.current && endRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'end' }); } catch (_e) {} }, [messages, thinking, analyzing, ready, editor]);
+  useEffect(() => { try { if (endRef.current) endRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'end' }); } catch (_e) {} }, [messages, thinking, analyzing, ready, editor]);
 
   // drawingNow: the drawing just adopted, passed directly because setDrawing has not landed yet.
   // A SLOW TURN IS A PROGRESS STATE AND A RETRY, NEVER AN ERROR (27 Oct 2026, sales_engineer). Intake turns measured
@@ -322,7 +322,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       const p = { ...(await fileToImages(file)), name: file.name, source };
       if (p.mime === 'application/pdf' && p.images.length) p.schedule_tables = await readSchedules(p.b64);
       setPages(p);
-      const isPhoto = /^image\//.test(p.mime) && p.images.length > 0;
+      const isPhoto = String(p.mime).startsWith('image/') && p.images.length > 0;
       const read = isPhoto && source === 'drawing' ? await ocrDraw(p.images[0]) : null;
       if (read && read.symbols && read.symbols.matches.length) setMarks({ image: p.images[0], width: read.width, height: read.height, matches: read.symbols.matches });
       let res = await analyze(p, undefined, read || (isPhoto ? await ocr(p.images) : ''));
@@ -340,14 +340,13 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         const text = await ocr(p.images);
         if (text.trim()) {
           const d = await call('customer_api', { action: 'analyze_document', file_b64: p.b64, mime: p.mime, file_name: p.name, ocr_text: text }, token).catch(() => null);
-          if (d && d.ok && d.boq && d.boq.boq && d.boq.boq.length) res = { ...(res || {}), boq: d.boq };
+          if (d && d.ok && d.boq && d.boq.boq && d.boq.boq.length) res = { ...res, boq: d.boq };
         }
       }
       const adopted = adopt(res, file.name, source);
       const n = res && res.boq && res.boq.boq ? res.boq.boq.length : 0;
       // A line we did not READ (qty null, or our own count to confirm) is never waved through: the
       // sales engineer shows our count and asks (inquiry_intake, _shared/boq_open_lines.ts).
-      const open = n ? res.boq.boq.some((l) => l && (l.qty == null || l.qty_status === 'to_confirm' || l.qty_status === 'estimated')) : false;
       // TELL THE TRUTH ABOUT THE DRAWING. A drawing that is not fully redacted is NOT sent to
       // suppliers (customer_api drops the paths, create_inquiry refuses unrecorded ones), so this
       // never says "attached" unless redaction_complete says every page came back.
@@ -446,7 +445,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     };
     sr.onend = () => {
       if (recRef.current && recRef.current.sr === sr && recRef.current.retried) { startSpeech(langs.slice(1)); return; }
-      setRec(false); try { inputRef.current && inputRef.current.focus(); } catch (_e) {}
+      setRec(false); try { if (inputRef.current) inputRef.current.focus(); } catch (_e) {}
     };
     try { sr.start(); setRec(true); setMsg(''); } catch (_e) { setMsg(t(lang, 'nr_voice_failed')); }
   };

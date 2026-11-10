@@ -88,6 +88,10 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 - [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
 ## Working the estate
+- [Direct database access is closed (9 Nov)](direct-database-access-is-closed.md) — SSL enforced, network restrictions closed; add a machine's IP before psql/db dump
+- [deno --node-modules-dir=auto breaks next build (9 Nov)](deno-node-modules-auto-breaks-next-build.md) — two Reacts → useContext null on /_global-error; rm -rf node_modules && npm ci; use =none in a shared tree
+- [Docker and a local database in a cloud session (9 Nov)](docker-and-a-local-database-in-a-cloud-session.md) — dockerd &, mirror.gcr.io, --network=host + CA secret; `npm run db:local` rebuilds the whole public schema and measures it
+- [Checks read split code through a sources helper; oxlint not ESLint (9 Nov)](checks-read-split-code-through-a-sources-helper.md) — functionSource()/portal_sources; arabic hashes keyed by path; typescript-eslint refuses TS 7
 - [Identity shapes live in one list (3 Nov)](identity-shapes-live-in-one-list.md) — every scrubber runs _shared/identity_text.ts; measure with identity_never_leaks_before_reveal.mjs (480 trials)
 - [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
 - [The otp-race step runs on a throwaway Postgres in the cloud container (28 Oct)](the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container.md) — no Docker daemon, but Postgres 16 is installed; run it as the postgres user and set QD_OTP_RACE_PG
@@ -154,6 +158,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 ## State of the build
+- [CHECKPOINT 9 Nov — code cleanup + Supabase cost forensics](checkpoint-9-nov-cleanup-and-cost.md) — READ FIRST: PR #1874; DB clean-up applies at merge; model egress cause measured, HF switch waits on a write token; proxy-injected + NODE_USE_ENV_PROXY=1
 - [CHECKPOINT 4 Nov — weekly limit hit mid PR drain](checkpoint-4-nov-handover-pr-drain.md) — READ FIRST: 1392 proved with real AI and ready; older PRs mid-merge; 1720 DB check; Windows sign-in token fix not yet a PR; owed items
 - [CHECKPOINT 3 Nov — hand-over for the week of 4 Nov](checkpoint-3-nov-handover-week-of-4-nov.md) — READ FIRST: invitations exclude Yahoo/Microsoft (make it explicit), what went live 3 Nov, every open PR and its next step
 - [CHECKPOINT 2 Nov — founder's 10-hour push](checkpoint-2-nov-10-hour-push.md) — READ FIRST: rulings 1437-1458, what is live, the PR queue, Al Gouri, deadlines

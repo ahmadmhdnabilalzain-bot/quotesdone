@@ -27,6 +27,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
@@ -130,7 +131,7 @@ test('the silence watch lets the CEO answer first and pages a family once a day'
 test('send_whatsapp stores the Twilio SID, and resilience_ping calls it every tick', () => {
   const wa = src('supabase/functions/send_whatsapp/index.ts');
   assert.ok(/provider_message_id:\s*res\.ok\s*\?\s*\(res\.sid\s*\|\|\s*null\)/.test(wa), 'send_whatsapp does not store res.sid as provider_message_id');
-  const rp = src('supabase/functions/resilience_ping/index.ts');
+  const rp = functionSource('resilience_ping');
   const tick = rp.slice(rp.indexOf('async function whatsappTick'), rp.indexOf('async function whatsappTick') + 1500);
   assert.ok(!/if \(!count\) return/.test(tick), 'whatsappTick returns early on an empty queue: the subject beats only under load');
 });

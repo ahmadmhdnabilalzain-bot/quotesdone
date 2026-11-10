@@ -19,6 +19,8 @@ import { renderPdf } from '../pdf_native/render.ts';
 import { latinLeaks } from '../_shared/trade_glossary_ar.test.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 import * as F from '../_shared/quote_documents.fixture.ts';
+// The function is index.ts plus its modules (9 Nov 2026 split): read all of it, as the node checks do.
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const BRAND = new URL('../pdf_native/fixtures/brand/', import.meta.url);
 const fetchBytes = async (p: string) => /\.ttf$/.test(p) ? await Deno.readFile(new URL(p, BRAND)) : null;
@@ -95,7 +97,7 @@ Deno.test('the Arabic ZZ DEMO comparison report is Arabic and renders with 0 gly
 // resolve its language through documentLocale(body.lang, …); reading the registered locale alone is
 // how the Arabic button produced English.
 Deno.test('every customer document action serves the language the portal button asked for', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('customer_api');
   for (const action of ['quote_pdf', 'compare_pdf', 'compare_csv', 'brief_pdf']) {
     const at = src.indexOf(`action === '${action}'`);
     assert(at > 0, `customer_api no longer has the ${action} action — update this test with it`);
@@ -114,7 +116,7 @@ Deno.test('a cached quotation rendered by an older layout is not served; the vau
   assert(!isCurrentDoc(path.replace(DOC_VERSION, 'v2.0')), 'a v2.0 file counts as current');
   // trg_quote_pdf_cache_register matches '-quotation-<lang>\.pdf$' to replace a quote's earlier vault entry.
   assert(/-quotation-ar\.pdf$/.test(path), 'the vault trigger no longer matches the stored name');
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('customer_api');
   const at = src.indexOf(`action === 'quote_pdf'`);
   assert(/if \(cached && isCurrentDoc\(cached\.path\)/.test(src.slice(at, at + 3500)), 'quote_pdf serves a cached file without checking its layout version');
 });

@@ -75,7 +75,7 @@ There is no Observe Mode / Control Mode concept anywhere in the database or the 
 
 ## 5. Edge functions
 
-191 functions. Repository and production agree exactly â verified today by downloading all 191 and diffing (clean tree). The `supabase functions download` sweep plus `scripts/sync_migrations_from_prod.js` now make drift detectable in one command, which it was not before.
+191 functions. Repository and production agree exactly â verified today by downloading all 191 and diffing (clean tree). The `supabase functions download` sweep plus `scripts/archive/sync_migrations_from_prod.js` now make drift detectable in one command, which it was not before.
 
 `os_api` exposes 35 actions; the frontend calls 26. `nav` and `search` â the two the Command Palette requirement needs â are built and unused.
 

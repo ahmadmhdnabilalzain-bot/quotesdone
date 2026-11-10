@@ -32,7 +32,17 @@ const req = (origin?: string) => new Request('https://x.supabase.co/functions/v1
 Deno.test('return base: allowed return_url kept, path included', () => {
   eq(siteReturnBase(req(), 'https://quotesdone.ae/ar/me/'), 'https://quotesdone.ae/ar/me');
   eq(siteReturnBase(req(), 'https://www.quotesdone.com'), 'https://www.quotesdone.com');
-  eq(siteReturnBase(req(), 'https://qd-git-x.vercel.app/me'), 'https://qd-git-x.vercel.app/me');
+  eq(siteReturnBase(req(), 'https://quotesdone-next-8iestfg14-quotes-done.vercel.app/me'), 'https://quotesdone-next-8iestfg14-quotes-done.vercel.app/me');
+  eq(siteReturnBase(req(), 'https://quotesdone-next.vercel.app/me'), 'https://quotesdone-next.vercel.app/me');
+});
+Deno.test('return base: a foreign vercel.app host is refused (L1)', () => {
+  for (const u of ['https://evil.vercel.app/me', 'https://qd-git-x.vercel.app/me', 'https://quotesdone-next.evil.vercel.app/me',
+    'https://quotesdone-next-8iestfg14-evil-quotes-done.vercel.app/me', 'https://x-quotesdone-next-8iestfg14-quotes-done.vercel.app/me',
+    'https://quotesdone-next-git-main-quotes-done.vercel.app/me', 'https://quotesdone-next-8iestfg14-quotes-done.vercel.app.evil.example/me',
+    'http://quotesdone-next.vercel.app/me']) eq(siteReturnBase(req(), u), 'https://quotesdone.com');
+});
+Deno.test('return base: production origins stay allowed', () => {
+  for (const o of ['https://quotesdone.com', 'https://www.quotesdone.com', 'https://quotesdone.ae', 'https://www.quotesdone.ae']) eq(siteReturnBase(req(), o + '/me'), o + '/me');
 });
 Deno.test('return base: foreign or non-https return_url falls to Origin, then .com', () => {
   eq(siteReturnBase(req('https://quotesdone.ae'), 'https://evil.example/me'), 'https://quotesdone.ae');

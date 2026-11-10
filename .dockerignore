@@ -1,0 +1,20 @@
+# What never enters a docker build context. The dev services bind-mount the repo instead of copying it,
+# so this list only shapes the `dev`/`build`/`runner` images.
+node_modules
+.next
+out
+build
+.vercel
+.git
+.env
+.env*.local
+*.tsbuildinfo
+graphify-out
+.claude/worktrees
+.edge-backups
+supabase/.temp
+vendor
+knowledge-import/all86
+knowledge-import/all86_full
+docs/reports
+*.log

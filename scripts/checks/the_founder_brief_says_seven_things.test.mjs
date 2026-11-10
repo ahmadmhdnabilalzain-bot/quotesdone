@@ -27,6 +27,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pendingNotes } from '../lib/pending_sql.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL_FILE = 'scripts/sql/the_founder_brief_says_seven_things_in_plain_words.sql';
@@ -101,7 +102,7 @@ test('D. every count excludes demo data', () => {
 });
 
 test('E. the customer PDF is rendered on the heartbeat and attached, never skipped', () => {
-  const rp = readFileSync(path.join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8');
+  const rp = functionSource('resilience_ping');
   assert.match(rp, /fn_ceo_daily_digest_attach_pdf/);
   assert.match(rp, /pdf_pending/);
   const submit = fnBody('fn_ceo_daily_digest_submit');

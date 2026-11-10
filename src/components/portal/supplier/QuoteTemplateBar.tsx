@@ -18,7 +18,7 @@ export function QuoteTemplateBar({ token, current, onApply }: { token: string; c
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const load = async () => { const j = await call('supplier_api', { action: 'template_list' }, token); if (j?.ok) { setList(j.templates || []); setOff(!!j.unavailable); } };
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, []); // oxlint-disable-line react-hooks/exhaustive-deps
   if (off) return null;
   const save = async () => {
     setMsg(''); setBusy(true);

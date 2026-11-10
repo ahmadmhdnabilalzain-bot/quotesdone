@@ -1,0 +1,60 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "react",
+    "nextjs",
+    "jsx-a11y",
+    "import",
+    "typescript",
+    "unicorn",
+    "oxc"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    "react/set-state-in-effect": "warn",
+    "react-hooks/exhaustive-deps": "warn",
+    "react/purity": "warn",
+    "react/refs": "warn",
+    "react/immutability": "warn",
+    "react/static-components": "warn",
+    "react/preserve-manual-memoization": "warn",
+    "jsx-a11y/prefer-tag-over-role": "warn",
+    "jsx-a11y/click-events-have-key-events": "warn",
+    "jsx-a11y/no-static-element-interactions": "warn",
+    "jsx-a11y/no-noninteractive-element-interactions": "warn",
+    "jsx-a11y/no-autofocus": "warn",
+    "jsx-a11y/label-has-associated-control": "warn",
+    "jsx-a11y/control-has-associated-label": "warn",
+    "nextjs/no-img-element": "warn"
+  },
+  "ignorePatterns": [
+    "supabase/**",
+    "scripts/**",
+    "docs/**",
+    "knowledge/**",
+    "knowledge-import/**",
+    "public/**",
+    ".next/**",
+    "node_modules/**",
+    "vendor/**",
+    "tests/**",
+    "*.test.mjs",
+    "*.selfcheck.mjs",
+    ".claude/**",
+    ".github/**",
+    "ai-organization/**",
+    "qd_seat_exam_llm_on/**",
+    "messages/**",
+    "deno.lock"
+  ]
+}

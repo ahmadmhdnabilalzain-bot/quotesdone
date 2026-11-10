@@ -3,6 +3,8 @@
 // outbox that honours dedupe_key the way fn_customer_support_takes_delivery does (the same key returns the first).
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import { finishCompareArabic, MAX_ATTEMPTS, type CompareFinishIO, type Rendered, type Waiter } from './compare_arabic.ts';
+// The function is index.ts plus its modules (9 Nov 2026 split): read all of it, as the node checks do.
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const IID = 'zz-demo-inquiry';
 function rig(o: { render?: () => Rendered; email?: string | null; deliverFails?: boolean; inquiryGone?: boolean } = {}) {
@@ -94,7 +96,7 @@ Deno.test('a customer with no address: the waiter is closed, nothing is rendered
 });
 
 Deno.test('customer_api wires the finisher: the held 202 records a waiter, a report in hand clears it, the replay renders without a model', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('customer_api');
   assertMatch(src, /if \(!doc\.doc\) \{\s*const \{ error: wErr \} = await admin\.rpc\('fn_arabic_compare_wait', \{ p_inquiry: String\(inq\.id\), p_texts: doc\.missing \}\);/);
   assertMatch(src, /if \(j\?\.ok && j\.url && lang === 'ar'\) await admin\.from\('arabic_compare_waiter'\)\.delete\(\)\.eq\('inquiry_id', iid\);/);
   assertMatch(src, /buildComparePdf\(got\.analysis, inq, 'ar', Date\.now\(\)\)/);

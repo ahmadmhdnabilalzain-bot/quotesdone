@@ -20,10 +20,9 @@
 // Comments are masked before matching so this file's own prose cannot satisfy it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readCustomerPortal } from '../lib/portal_sources.mjs';
 
-const path = new URL('../../src/components/me/CustomerPortal.tsx', import.meta.url);
-const code = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
+const code = readCustomerPortal().replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
 
 // 5 Oct 2026 (sales_engineer, T2): the Journey rail was replaced by the request tracker
 // (src/components/me/requestTracker.ts). The property is unchanged and is now EXECUTED: a paid

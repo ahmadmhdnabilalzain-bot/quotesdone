@@ -21,6 +21,7 @@ import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 // sms_messages joined on 22 Sep 2026 with the sms_inbound function: until then the number's SmsUrl
 // was Twilio's demo responder and no inbound SMS was recorded anywhere. It is a conversation store
@@ -58,7 +59,7 @@ test('the sales engineer seat reads the whole record, and the heartbeat archives
   assert.match(se, /action === 'conversations'/, 'sales_engineer lost its conversations action');
   assert.match(se, /rpc\('fn_conversation_record'/, 'the conversations action no longer reads fn_conversation_record');
   assert.match(se, /from\('assistant_logs'\)\.insert/, 'the portal chat with the sales engineer is no longer saved');
-  const rp = readFileSync(join(FN, 'resilience_ping', 'index.ts'), 'utf8');
+  const rp = functionSource('resilience_ping');
   // 15 Sep 2026 (PR #714): ticks run from the STEPS list via runSteps, so "called before the healthy early
   // return" is: archiveTick is a STEPS entry, and runSteps(STEPS runs before the healthy return.
   //

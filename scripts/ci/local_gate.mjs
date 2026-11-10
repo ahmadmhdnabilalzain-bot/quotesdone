@@ -12,6 +12,9 @@
 //   npm run gate -- --pr 1601                     # and post the table on PR #1601 (gh api REST, works where GraphQL is blocked)
 //   npm run gate -- --skip=otp-race,audit         # leave named steps out, shown as SKIPPED (named)
 //   npm run gate -- --daily                       # also the daily-only step: every deployed function runs main
+//   npm run gate -- --offline                     # only the steps that need no production credential; every
+//                                                 # production step is listed as SKIPPED (offline), never PASS.
+//                                                 # What `docker compose run --rm checks` runs (docs/runbooks/docker.md).
 //
 // Offline steps run in parallel; production steps run one after another (the management API's 429 budget, and
 // the kernel gate's serial rule in project-parity.yml). Logs: <tmp>/qd-gate-<time>/<id>.log.
@@ -29,10 +32,12 @@ const PR = arg('pr');
 if (PR !== null && !/^\d+$/.test(PR)) { console.error('--pr needs a pull request number'); process.exit(2); }
 const SKIP = new Set((arg('skip') || '').split(',').map((s) => s.trim()).filter(Boolean));
 const DAILY = argv.includes('--daily');
+const OFFLINE = argv.includes('--offline');
 const LOGS = join(tmpdir(), `qd-gate-${new Date().toISOString().replace(/[:.]/g, '-')}`);
 mkdirSync(LOGS, { recursive: true });
 
-const TOKEN = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
+// --offline treats the credential as absent even when one is present, so npm test stays an offline run too.
+const TOKEN = !OFFLINE && (!!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token')));
 const DENO = 'deno test --no-lock --node-modules-dir=auto --allow-read=.';
 const env = { DENO_NO_PACKAGE_JSON: '1' };   // checks.yml / project-parity.yml workflow env (12 Oct 2026)
 // A production check that answers SKIP has asserted nothing; in the kernel gate that is a failure (project-parity.yml).
@@ -52,6 +57,7 @@ const STEPS = [
   ['scan-redact', 'checks', 'a scanned drawing is redacted by OCR, or held', `${DENO} --allow-env --allow-net=deno.land supabase/functions/_shared/scan_redact.check.ts`],
   ['scan-takeoff', 'checks', 'a scanned PDF set is counted by OCR to the hand count', `${DENO} --allow-env --allow-net=deno.land,esm.sh supabase/functions/_shared/scan_takeoff.check.ts`],
   ['migration-lint', 'migration-lint', 'lint migrations for locking operations (squawk)', () => { const f = migrations(); return f.length ? `npx squawk ${f.join(' ')}` : null; }],
+  ['lint', 'typecheck', 'lint the website (oxlint; warnings are counted debt, errors fail)', 'npm run lint'],
   ['typecheck', 'typecheck', 'typecheck the app', 'npm run typecheck'],
   ['audit', 'typecheck', 'no HIGH or CRITICAL advisory in a production dependency', 'npm audit --omit=dev --audit-level=high'],
   ['deno-gated', 'deno-check', 'typecheck the gated edge functions', 'deno check --no-lock --node-modules-dir=auto '
@@ -83,7 +89,7 @@ function run(step, extraEnv = {}) {
   if (cmd === null) return Promise.resolve({ result: 'PASS', note: 'nothing to run (only generated baseline migrations)', secs: 0 });
   const log = join(LOGS, `${step.id}.log`); const t0 = Date.now();
   return new Promise((done) => {
-    const p = spawn(cmd, { cwd: REPO, shell: true, detached: process.platform !== 'win32', env: { ...process.env, ...env, ...(step.env || {}), ...extraEnv } });
+    const p = spawn(cmd, { cwd: REPO, shell: true, detached: process.platform !== 'win32', env: { ...process.env, ...env, ...(OFFLINE ? { QD_OFFLINE: '1', SUPABASE_ACCESS_TOKEN: '' } : {}), ...(step.env || {}), ...extraEnv } });
     let out = '';
     p.stdout.on('data', (d) => { out += d; }); p.stderr.on('data', (d) => { out += d; });
     // The whole tree: with shell: true, p is only the shell, and killing it alone leaves the command running.
@@ -118,6 +124,7 @@ const results = new Map();
 const pick = (s) => {
   if (SKIP.has(s.id)) return { result: 'SKIPPED', note: 'named in --skip', secs: 0 };
   if (s.daily && !DAILY) return { result: 'SKIPPED', note: 'daily only (--daily)', secs: 0 };
+  if (s.prod && OFFLINE) return { result: 'SKIPPED', note: 'production step, --offline', secs: 0 };
   if (s.prod && !TOKEN) return { result: 'FAIL', note: 'no SUPABASE_ACCESS_TOKEN or ~/.supabase/access-token', secs: 0 };
   return null;
 };
@@ -126,6 +133,8 @@ function execOut(c) { return String(spawnSync(c, { cwd: REPO, shell: true, encod
 const SLUG = execOut('git remote get-url origin').match(/github\.com[/:]([^/]+\/[^/.]+?)(?:\.git)?$/)?.[1];
 // A PASS posted to a PR certifies that PR's code: refuse when the tree is dirty or HEAD is not the PR's head.
 if (PR !== null) {
+  // An offline run asserts nothing about production, so it never certifies a PR.
+  if (OFFLINE) { console.error('--pr refused with --offline: an offline run does not certify a PR'); process.exit(2); }
   if (!SLUG) { console.error('--pr refused: could not read owner/repo from the origin remote'); process.exit(2); }
   if (execOut('git status --porcelain --untracked-files=no')) { console.error('--pr refused: the worktree has uncommitted changes'); process.exit(2); }
   // REST only (gh api), never `gh pr`: a cloud or phone session's proxy blocks GraphQL, so `gh pr ...` gets 403 there.
@@ -147,7 +156,8 @@ await Promise.all([
 const fails = STEPS.filter((s) => results.get(s.id).result === 'FAIL');
 const rows = STEPS.map((s) => { const r = results.get(s.id);
   return `| ${r.result === 'PASS' ? 'PASS' : r.result === 'FAIL' ? '**FAIL**' : 'SKIPPED'} | \`${s.id}\` | ${s.job} | ${s.name}${r.note ? ` (${r.note})` : ''} | ${r.secs}s |`; });
-const table = [`### Local gate: ${fails.length ? `${fails.length} FAILED` : 'all PASS'} on \`${branch}\` @ \`${head}\``,
+const offlineNote = OFFLINE ? ' (OFFLINE: production steps not run)' : '';
+const table = [`### Local gate${offlineNote}: ${fails.length ? `${fails.length} FAILED` : 'all PASS'} on \`${branch}\` @ \`${head}\``,
   '', '| result | step | workflow job | what | time |', '|---|---|---|---|---|', ...rows, '',
   `Run with \`npm run gate\` (scripts/ci/local_gate.mjs). Founder, 26 Oct 2026: no paid CI until the bugs clear; this replaces checks.yml and project-parity.yml on a PR.`].join('\n');
 console.log('\n' + table);

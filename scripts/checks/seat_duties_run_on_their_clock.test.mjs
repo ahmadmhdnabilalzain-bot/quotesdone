@@ -19,11 +19,12 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FRAME = 'scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql';
-const PING = read('supabase/functions/resilience_ping/index.ts');
+const PING = functionSource('resilience_ping');
 const MANIFEST = read('scripts/sql/MANIFEST.txt').split(/\r?\n/);
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 

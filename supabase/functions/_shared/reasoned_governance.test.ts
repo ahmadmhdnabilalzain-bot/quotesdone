@@ -5,6 +5,8 @@ import { assert, assertEquals } from 'jsr:@std/assert';
 import type { GateAnswer } from './llm_hold.ts';
 import type { LlmReply, Phase, ThinkDeps } from './think.ts';
 import { ARABIC_SURFACE, arabicOf, arabicPairs, arabicQuestion, arabicTextsFor, batches, nativeArabic, needsArabic } from './reasoned_governance.ts';
+// customer_api and supplier_api are index.ts plus modules since 9 Nov 2026: read the whole function, as the node checks do.
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const J = (x: unknown) => JSON.stringify(x);
 const PLAN = J({ steps: [{ id: 's1', goal: 'translate each line natively', needs_knowledge: false }], facts: [], high_stakes: false });
@@ -111,7 +113,7 @@ Deno.test('a passed deadline files the lines instead of reasoning them (run 0a71
 });
 
 Deno.test('customer_api compare_pdf passes its request deadline to the Arabic build', async () => {
-  const src = await Deno.readTextFile(new URL('../customer_api/index.ts', import.meta.url));
+  const src = functionSource('customer_api');
   assert(/compareDocument\([\s\S]{0,400}\{ subject: \{ inquiry_id: inq\.id \}, deadline \}\)/.test(src), 'buildComparePdf must bound the Arabic reasoning');
   assert(/buildComparePdf\(analysis, inq, lang, started \+ ARABIC_COMPARE_BUDGET_MS\)/.test(src), 'compare_pdf must hand buildComparePdf its deadline');
 });

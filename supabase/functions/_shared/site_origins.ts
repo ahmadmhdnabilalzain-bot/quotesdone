@@ -43,13 +43,27 @@ export function portalLink(lang: string, requestId?: string, quoteId?: string): 
 
 const SITE_HOSTS = new Set(SITE_ORIGINS.map((o) => new URL(o).hostname));
 
-/** An https URL on one of the site hosts, or on a Vercel preview. Anything else is refused. */
+/**
+ * This project's OWN Vercel hosts, and nothing else on vercel.app (L1, pre-launch security pass, 9 Nov 2026).
+ * The old rule accepted any *.vercel.app host, and anyone can deploy one, so a Stripe success_url could
+ * send a paying customer, with {CHECKOUT_SESSION_ID} in the query, to an attacker's site. Project
+ * `quotesdone-next` in team `quotes-done` (docs/reports/.../vercel_snapshot_2026-10-12.json) serves:
+ *   quotesdone-next.vercel.app                        the project's production alias
+ *   quotesdone-next-<9 hex/alnum>-quotes-done.vercel.app   one deployment (a preview)
+ * The deployment hash is exactly 9 characters, so a host cannot be padded through the project or team
+ * part. Branch hosts (quotesdone-next-git-<branch>-quotes-done) are NOT accepted: a branch name is free
+ * text, so a foreign team ending in -quotes-done could imitate one. Previews are not where a customer
+ * pays; the site origins above are.
+ */
+const PROJECT_VERCEL_HOST = /^quotesdone-next(\.vercel\.app|-[a-z0-9]{9}-quotes-done\.vercel\.app)$/;
+
+/** An https URL on one of the site hosts, or on this project's own Vercel hosts. Anything else is refused. */
 function allowed(raw: unknown): URL | null {
   try {
     const u = new URL(String(raw));
     if (u.protocol !== 'https:') return null;
     const h = u.hostname.toLowerCase();
-    return SITE_HOSTS.has(h) || h.endsWith('.vercel.app') ? u : null;
+    return SITE_HOSTS.has(h) || PROJECT_VERCEL_HOST.test(h) ? u : null;
   } catch { return null; }
 }
 

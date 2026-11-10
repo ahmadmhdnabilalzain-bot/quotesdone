@@ -261,6 +261,7 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
   if (!open) return null;
   return (
     <aside
+      // oxlint-disable-next-line jsx-a11y/no-redundant-roles -- explicit landmark role kept on purpose, removing it would change the markup
       role="complementary"
       aria-label={t('asst_title')}
       className={cn(
@@ -502,7 +503,7 @@ export function PortalShell({
   // primary way to use the portal, not a search box bolted onto one.
   useEffect(() => {
     const onKey = (e) => {
-      if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 'k') { e.preventDefault(); searchRef.current && searchRef.current.focus(); }
+      if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 'k') { e.preventDefault(); if (searchRef.current) searchRef.current.focus(); }
       if (e.key === 'Escape') { setMoreOpen(false); setBellOpen(false); }
     };
     window.addEventListener('keydown', onKey);

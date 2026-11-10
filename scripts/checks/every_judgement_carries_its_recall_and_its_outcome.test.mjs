@@ -25,6 +25,7 @@ import { join, dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -86,7 +87,7 @@ test('an outcome trigger on every table where an outcome lands; lessons grouped 
   assert.match(clusters, /embedding <=> seed\.embedding/, 'lessons are no longer grouped by vector distance');
   assert.doesNotMatch(clusters, /ilike|to_tsvector|tsquery|similarity\(|~\*/, 'lesson grouping grew a word route');
   assert.match(sql, /'approved' when v_ver = 'disagreed' then 'rejected'/, 'the cross-family verdict no longer decides the lesson');
-  const ping = read('supabase/functions/resilience_ping/index.ts');
+  const ping = functionSource('resilience_ping');
   for (const s of ['learningMeasure', 'learningDistil']) {
     assert.match(ping, new RegExp(`${s}: \\{ run:`), `resilience_ping does not run ${s}`);
     assert.match(sql, new RegExp(`\\('${s}'`), `no resilience_step row for ${s}`);

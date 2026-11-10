@@ -131,7 +131,7 @@ floor nothing concludes today; residue 0.
 | `fn_handoff_close`, `fn_handoff_respond` | kept | driven by `org_connectivity_signal_path` / `_scenarios` (CI, every PR) |
 | `fn_handoff_stalled`, `fn_task_commercial_effect` | kept | registered `agent_tool` targets |
 | `fn_refund_amount_resolve` | kept | money path (resolves a quarantined Stripe refund amount); the refund family is DO-NOT-TOUCH |
-| `fn_pdpl_export`, `fn_pdpl_erase_plan` | kept | PDPL subject-access and erasure — a legal obligation, operator-driven (`scripts/gen_pdpl_customer_preference.mjs`) |
+| `fn_pdpl_export`, `fn_pdpl_erase_plan` | kept | PDPL subject-access and erasure — a legal obligation, operator-driven (`scripts/archive/gen_pdpl_customer_preference.mjs`) |
 | `fn_terms_integrity` | kept | T&C hash integrity — the only hard rules |
 | `fn_undo`, `fn_supersede_lesson` | kept | MASTER_PLAN §5.2 #8 / #9 are FIX orders, not drops |
 | `fn_knowledge_rollback` | kept | the only reverse path for a knowledge ingestion run |

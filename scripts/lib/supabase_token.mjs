@@ -21,6 +21,9 @@ export const MISSING_TOKEN =
 
 // The token, or '' when there is none. For callers that skip politely without one.
 export function supabaseTokenOrEmpty() {
+  // `npm run gate -- --offline` sets QD_OFFLINE=1 for every step it runs: an offline run must not reach production
+  // through a token in the environment or in ~/.supabase/access-token (review of #1874, 9 Nov 2026).
+  if (process.env.QD_OFFLINE === '1') return '';
   const env = (process.env.SUPABASE_ACCESS_TOKEN || '').trim();
   if (env) return env;
   return existsSync(SUPABASE_TOKEN_FILE) ? readFileSync(SUPABASE_TOKEN_FILE, 'utf8').trim() : '';

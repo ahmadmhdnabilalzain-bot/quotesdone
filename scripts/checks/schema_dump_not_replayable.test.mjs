@@ -64,7 +64,7 @@ test('the header does not point a rebuild at the migration set', () => {
   // supabase/migrations/ for a rebuild, because that set cannot do it.
   assert.doesNotMatch(dump.slice(0, 3000), /replay supabase\/migrations\/ in order/,
     'the schema mirror directs rebuilds at supabase/migrations/, which holds 285 of 712 applied ' +
-    'migrations and creates 131 of 403 tables. Measure with scripts/verify_repo_production_parity.mjs.');
+    'migrations and creates 131 of 403 tables. Measure with scripts/archive/verify_repo_production_parity.mjs.');
   // And the history must not silently shrink either - that would be a different defect.
   //
   // COUNTED ACROSS BOTH DIRECTORIES since the squash of 8 Aug 2026. supabase/migrations/ is now the

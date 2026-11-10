@@ -13,6 +13,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => (existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), 'utf8') : '');
@@ -38,7 +40,7 @@ test('every link the seat publishes carries UTM naming the post, tagged at LOAD 
 });
 
 test('a supplier registration records the post that brought it', () => {
-  const api = R('supabase/functions/supplier_api/index.ts');
+  const api = functionSource('supplier_api');
   assert.match(api, /rpc\('fn_marketing_first_touch_record', \{ p_lead_id: leadId, p_touch: touch \}\)/);
   // 28 Oct 2026 (#1712, ledger 1401 audit S7): create_company's body moved to supplier_api/create_company.ts, where a new
   // registration and the claim of an invited listing each record the first touch the door hands in.
@@ -48,7 +50,7 @@ test('a supplier registration records the post that brought it', () => {
   assert.match(door, /deps\.setRegistration\(id\);\s*await deps\.recordFirstTouch\(id, body\.first_touch\)/, 'create_company does not record the first touch when it claims an invited listing');
   // #979 (28 Sep 2026) issues the two together: Promise.all([setRegistration(id, false), recordFirstTouch(...)]).
   assert.match(api, /setRegistration\(id(, false)?\)(; await |, )recordFirstTouch\(id, body\.first_touch\)/, 'claim does not record the first touch');
-  const portal = R('src/components/portal/SupplierPortal.tsx');
+  const portal = readSupplierPortal();
   assert.match(portal, /action: 'create_company'[^}]*first_touch: /);
   assert.match(portal, /action: 'claim', t, first_touch: /);
   assert.match(R('src/app/[locale]/layout.tsx'), /<FirstTouch \/>/, 'the site does not keep the first touch');

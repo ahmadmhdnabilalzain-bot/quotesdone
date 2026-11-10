@@ -21,11 +21,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const ROOT = process.cwd();
 const JOURNEYS = readFileSync(join(ROOT, 'scripts/e2e/journeys.mjs'), 'utf8');
 const SHELL = readFileSync(join(ROOT, 'src/components/me/PortalShell.tsx'), 'utf8');
-const SUPPLIER = readFileSync(join(ROOT, 'src/components/portal/SupplierPortal.tsx'), 'utf8');
+const SUPPLIER = readSupplierPortal();
 const { t } = await import(pathToFileURL(join(ROOT, 'src/components/me/portalText.ts')).href);
 const { ws } = await import(pathToFileURL(join(ROOT, 'src/components/portal/supplier/workspaceCopy.ts')).href);
 

@@ -18,6 +18,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILE = 'scripts/sql/dropbox_is_checked_every_day_login_and_space.sql';
@@ -38,7 +39,7 @@ test('every routine is revoked and pins its search_path; findings go only throug
 });
 
 test('resilience_ping calls op health as its own step, and both responses carry it', () => {
-  const ts = read('supabase/functions/resilience_ping/index.ts');
+  const ts = functionSource('resilience_ping');
   assert.match(ts, /async function dropboxHealthTick\(\)[\s\S]*?fn_it_dropbox_health_due[\s\S]*?op: 'health'/);
   // 15 Sep 2026 (PR #714): the handler runs its ticks from ONE ordered STEPS list and every return
   // spreads the step results by name, so "its own step" is its own STEPS entry and "both responses carry

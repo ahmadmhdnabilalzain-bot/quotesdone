@@ -7,6 +7,8 @@
 // whose highest address is 21. Fails on the old code: there was no module and no caller.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { applyVisionCounts, isPhotoOrScan, visionCountBody } from './vision_count_wire.ts';
+// The function is index.ts plus its modules (9 Nov 2026 split): read all of it, as the node checks do.
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const PHOTO_BOQ = [
   { section: 'Fire alarm — addressable loop', type: 'loop_l1_addresses', item: 'Loop L1 addresses', qty: null, estimate: 21, unit: 'addresses', qty_status: 'to_confirm' },
@@ -50,7 +52,7 @@ Deno.test('the code stands when drawing_boq kept the code, refused, or did not a
 });
 
 Deno.test('vision_count has a caller: cad_read_status runs it for a scan job and analyze_drawing records the request', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('customer_api');
   assert(/mode: 'vision_count'/.test(src), 'customer_api calls drawing_boq mode vision_count');
   assert(/vision_count: vcBody, vision_lines: boqOut\.boq/.test(src), 'analyze_drawing puts the legend request on the queued scan job');
   const portal = await Deno.readTextFile(new URL('../../../src/components/me/NewRequest.tsx', import.meta.url));
@@ -60,7 +62,7 @@ Deno.test('vision_count has a caller: cad_read_status runs it for a scan job and
 // Independent review of #1641 (27 Oct 2026): cad_read_status kept only a successful vision count, so a failing one was
 // asked (and paid) again on every 15 s poll. Fails if a failure stops being recorded or the per-job cap is lost.
 Deno.test('cad_read_status asks the vision count at most 3 times per job and records a failure too', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('customer_api');
   assert(src.includes('if (!vj || (vj.ok !== true && tries < 3)) {'), 'the per-job cap on askings is gone');
   assert(src.includes('attempts: tries + 1'), 'the attempt count is not recorded');
   assert(!src.includes("if (vj.ok) await admin.from('cad_read_jobs').update"), 'only a success is recorded again');

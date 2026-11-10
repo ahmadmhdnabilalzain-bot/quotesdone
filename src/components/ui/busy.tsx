@@ -183,7 +183,6 @@ export function BusyButton<K extends string = string>(
   { busy, act, busyLabel, busyStatus, children, disabled, className, ...rest }: BusyButtonProps<K>,
 ) {
   const mine = act === undefined || busy.key === act;
-  const isPending = busy.pending && mine;
   const isBusy = busy.busy && mine;
   const status = busyStatus ?? (typeof busyLabel === 'string' ? busyLabel : 'Working…');
   return (

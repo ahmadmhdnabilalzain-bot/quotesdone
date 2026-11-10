@@ -5,8 +5,8 @@
 // rendering it as an ordered list with aria-current="step".
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { trackerOf } from '../../src/components/me/requestTracker.ts';
+import { readCustomerPortal } from '../lib/portal_sources.mjs';
 
 const keyOf = (tr) => tr.stages[tr.current]?.key ?? 'complete';
 
@@ -75,7 +75,7 @@ test('no quote field can put a supplier name into a stage label', () => {
 });
 
 test('the portal renders it as an ordered list with aria-current="step"', () => {
-  const src = readFileSync(new URL('../../src/components/me/CustomerPortal.tsx', import.meta.url), 'utf8');
+  const src = readCustomerPortal();
   const fn = src.match(/function RequestTracker\(([\s\S]*?)\n\}\n/);
   assert.ok(fn, 'RequestTracker not found');
   assert.match(fn[1], /<ol\b/);

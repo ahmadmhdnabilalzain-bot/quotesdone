@@ -1,4 +1,4 @@
-// Deploy edge functions with the guarantees deploy_functions.ps1 established, from any OS.
+// Deploy edge functions with the guarantees scripts/archive/deploy_functions.ps1 established, from any OS.
 //
 //   node scripts/deploy_functions.mjs --ref=<project> supplier_portal supplier_api
 //   node scripts/deploy_functions.mjs --ref=<project> --changed --base=<sha>

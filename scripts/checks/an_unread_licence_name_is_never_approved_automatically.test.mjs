@@ -10,6 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 const R = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta.url)), 'utf8');
 const SQL = R('scripts/sql/a_supplier_whose_licence_could_not_be_read_is_held_never_approved.sql');
 
@@ -29,7 +30,7 @@ test('an approval stands only while the licence name has been read', () => {
 });
 
 test('every upload path records the licence name, a scan included', () => {
-  assert.match(R('supabase/functions/supplier_api/index.ts'), /licenceModelPayload\(/);
+  assert.match(functionSource('supplier_api'), /licenceModelPayload\(/);
   assert.match(R('supabase/functions/resend_inbound/index.ts'), /licence_legal_name: licenceNameFromModel\(dc\)/);
   assert.match(R('supabase/functions/wa_inbound/index.ts'), /licence_legal_name: licenceNameFromModel\(doc\)/);
   // The portal's Documents tab (E2E stage 1, D1, 30 Sep 2026): it read only the expiry, so every licence uploaded

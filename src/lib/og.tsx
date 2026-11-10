@@ -66,7 +66,7 @@ export async function renderOg(o: { locale: string; kicker: string; title: strin
         <div style={{ display: 'flex', flexDirection: row, alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexDirection: row, alignItems: 'center' }}>
             {/* decorative brand mark inside the image; the card's alt text is set by each route */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* oxlint-disable-next-line nextjs/no-img-element */}
             <img src={MARK} width={84} height={84} alt="QuotesDone mark" style={{ margin: '-14px' }} />
             <div style={{ display: 'flex', fontSize: 38, fontWeight: 800, margin: '0 22px' }}>QuotesDone</div>
           </div>

@@ -1,0 +1,297 @@
+// customer_api — the customer's drawing: the browser OCR it arrives with, the CAD read queue, the
+// redaction for suppliers, the stored original, and the server-side resolution of redacted pages.
+// Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,516-line index.ts split into modules, a pure move).
+import { safeFilename, SAFE_UPLOAD, SAFE_CAD } from '../../_shared/attachment.ts';
+import { heldRun } from '../drawing_hold.ts';
+// MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
+// supplier to quote from, so a malicious file here would be forwarded by us, under our name.
+import { sanitizeAndScan } from '../../_shared/malware.ts';
+import { storedAt } from '../../_shared/stored_at.ts';
+import { SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
+
+// The keyword map (./keywords.ts, KW + detect()) is DELETED (23 Sep 2026, founder_instruction 886-903): a trade is
+// reasoned among the real options (_shared/reasoned_trades.ts), never read off words.
+// The portal's drawing OCR (ocrPlan lines with page boxes, the sheet width, the symbol counts),
+// passed through to drawing_boq, which validates every field. Bounded here only by size.
+export function drawingOcr(body: any): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (Array.isArray(body?.ocr_lines)) out.ocr_lines = body.ocr_lines.slice(0, 4000);
+  if (Number.isFinite(Number(body?.ocr_width))) out.ocr_width = Number(body.ocr_width);
+  if (body?.symbol_counts && typeof body.symbol_counts === 'object') out.symbol_counts = body.symbol_counts;
+  return out;
+}
+// The portal's SCHEDULE READ (ocrClient.ocrSchedules, 21 Sep 2026, founder instruction 580): the ruled
+// tables found on each page (_shared/table_grid.ts) with every cell OCR'd on its own, row/column
+// structure kept. Untrusted browser output, so it is rebuilt here to the exact shape and caps the
+// portal produces — 40 tables x 80 rows x 24 columns, 120 characters a cell, strings and numbers only —
+// and anything else is dropped rather than passed on. Page numbers are bounded by MAX_DRAWING_PAGES.
+export const MAX_DRAWING_PAGES = 20; // = src/components/me/pdfRaster.ts PDF_MAX_PAGES
+export function scheduleTables(body: any): Record<string, unknown> {
+  if (!Array.isArray(body?.schedule_tables)) return {};
+  const num = (v: unknown, lo: number, hi: number) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };
+  const out: unknown[] = [];
+  for (const t of body.schedule_tables.slice(0, 40)) {
+    if (!t || typeof t !== 'object' || !Array.isArray(t.rows)) continue;
+    const page = Math.round(Number(t.page));
+    if (!Number.isInteger(page) || page < 1 || page > MAX_DRAWING_PAGES) continue;
+    const b = t.bbox || {};
+    const rows = t.rows.slice(0, 80).filter(Array.isArray).map((r: unknown[]) => r.slice(0, 24).map((s) => (typeof s === 'string' ? s.slice(0, 120) : '')));
+    if (!rows.length) continue;
+    const conf = rows.map((r: string[], i: number) => r.map((_, j) => num(Array.isArray(t.conf) && Array.isArray(t.conf[i]) ? t.conf[i][j] : 0, 0, 100)));
+    out.push({ page, bbox: { x: num(b.x, 0, 1), y: num(b.y, 0, 1), w: num(b.w, 0, 1), h: num(b.h, 0, 1) }, rows, conf });
+  }
+  return out.length ? { schedule_tables: out } : {};
+}
+
+// A CAD DRAWING THE EDGE CANNOT READ IS READ OFF THE REQUEST PATH (22 Sep 2026, sales_engineer; founder:
+// "customer will share cad files or pdf mainly"). MEASURED on production that day: every DWG sent to
+// drawing_boq died 546 "Memory limit exceeded" (fixed in doc_read/dwg.ts), and even fixed, a DWG's cost is
+// not its size (a 562 KB drawing took 1.9 s of CPU against the 2 s cap). drawing_boq is a SEPARATE worker,
+// so its death reaches this function as a 546 answer, not a silent kill. On that answer, or when dwg.ts
+// says the drawing is past its edge ceiling, the stored original is queued in public.cad_read_jobs and the
+// CAD worker (scripts/cad_read_worker.ts on a GitHub runner, dispatched by startCadWorker; no CPU cap) reads it;
+// 'cad_read_status' hands the take-off to the customer's screen. Prevented from regressing by
+// scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
+export function cadQueueReason(status: number, jd: any): 'over_edge_ceiling' | 'edge_worker_died' | 'edge_reader_failed' | null {
+  if (jd?.ok) return jd.kind === 'dwg' && jd.needs === 'cad_conversion' ? 'over_edge_ceiling' : null;
+  if (status === 546 || jd?.code === 'WORKER_RESOURCE_LIMIT') return 'edge_worker_died';
+  // A refusal the reader gave for the file itself (not a DWG, damaged) would fail the same way off the
+  // edge, so only a transport failure or a server error is worth a second reading.
+  return status === 0 || status >= 500 ? 'edge_reader_failed' : null;
+}
+export async function queueCadRead(o: { customerId: string; email: string; path: string; name: string; mime: string; b64Len: number; why: string; boqIn?: unknown }): Promise<string | null> {
+  const { data, error } = await admin.from('cad_read_jobs').insert({ customer_id: o.customerId, owner_email: o.email, source_path: o.path,
+    file_name: o.name, mime: o.mime, bytes: Math.floor(o.b64Len * 3 / 4), why: o.why, boq_in: o.boqIn ?? null }).select('id').maybeSingle();
+  if (error || !data?.id) { console.warn(`[cad] could not queue ${o.path}: ${error?.message || 'no id'}`); return null; }
+  await startCadWorker(String(data.id), o.why);
+  return String(data.id);
+}
+// THE QUEUE STARTS ITS OWN WORKER AGAIN (3 Nov 2026, sales_engineer). 27 Oct (#1605) this dispatch was removed because
+// GitHub Actions was off; 28 Oct the founder switched Actions back on (ledger 1410) and nothing restored it, so every
+// queued drawing waited for a hand run: the nightly journey's 2.1 MB DWG sat 'queued' for 248 s on 2 Nov and 253 s on
+// 3 Nov (runs 41410340385, 41598217377), where the same job was read in 66-67 s on 20-21 Oct while this dispatch lived
+// (runs 39349907536, 39520102356). A job is dispatched the moment it is queued, and while the customer's screen polls
+// one that has not started it is dispatched again AT MOST ONCE A MINUTE, for its first hour (cad_dispatch.ts: the poll
+// claims cad_read_jobs.last_dispatch_at in one UPDATE); past the hour the poll raises the held finding instead. A
+// refused or failed dispatch raises the hour's sales_engineer finding (cadReadHeld). NOT SEEN: a dispatch answered 204
+// whose run never starts after the customer closed the page - no poll comes, and nothing sweeps cad_read_jobs (the
+// worker's 6-hourly schedule is off). Prevented by cad_dispatch.test.ts and scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
+export async function startCadWorker(jobId: string, why: string): Promise<void> {
+  let answer = 'no_github_token';
+  try {
+    const gh = await getSecret('github_token');
+    if (gh) {
+      const r = await fetch('https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone/actions/workflows/cad-read-worker.yml/dispatches', {
+        method: 'POST', headers: { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'User-Agent': 'quotesdone-customer-api' },
+        body: JSON.stringify({ ref: 'main' }), signal: AbortSignal.timeout(5000) });
+      if (r.status === 204) return;
+      answer = `HTTP ${r.status}`;
+    }
+  } catch (_e) { answer = 'network'; }
+  console.error(`[cad] the CAD worker was not dispatched for job ${jobId} (${answer}); held for the sales_engineer`);
+  await cadReadHeld(jobId, `${why}; dispatch ${answer}`);
+}
+// THE FALLBACK WHEN THE DISPATCH IS REFUSED (27 Oct 2026, it_engineer; since 3 Nov it runs when startCadWorker's
+// dispatch answers anything but 204, and when a polled job has not started within its first hour). Written when this used to dispatch .github/workflows/cad-read-worker.yml
+// and re-dispatch it while the customer's screen polled. GitHub Actions is off, so every dispatch reached nothing and a
+// queued drawing waited for a runner that never came while the customer was told "a few minutes". The reader cannot run
+// on the edge (2 s CPU cap; a scanned drawing is OCR'd for up to 30 minutes) nor in pg_cron (no Deno, no LibreDWG), so a
+// queued job is HELD FOR THE SALES ENGINEER: one finding per hour (the worker reads every queued job in one run, and a
+// run of scans must not flood the queue), raised the moment a job is queued, naming the latest job and why. The sales_engineer reads it with scripts/cad_read_worker.ts (fn_cad_read_claim still takes it), and the
+// customer's screen says an engineer is reading it (cad_read_status answers held_for). Never silent: a finding that
+// cannot be written is logged as an error, and the job stays queued for the worker either way.
+export async function cadReadHeld(jobId: string, why: string): Promise<void> {
+  try {
+    const { error } = await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: 'sales_engineer:cad_read_held:' + new Date().toISOString().slice(0, 13),
+      p_title: 'A customer CAD drawing is queued and the CAD worker could not be dispatched: read it with scripts/cad_read_worker.ts',
+      p_where: 'customer_api queueCadRead -> public.cad_read_jobs', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { job_id: jobId, why, run: 'SUPABASE_ACCESS_TOKEN=... deno run --no-lock --node-modules-dir=auto --allow-net --allow-env --allow-read scripts/cad_read_worker.ts', at: new Date().toISOString() },
+      p_raised_by: 'sales_engineer',
+    });
+    if (error) console.error(`[cad] job ${jobId} is queued but its sales_engineer finding was not written: ${error.message}`);
+  } catch (e) { console.error(`[cad] job ${jobId} is queued but its sales_engineer finding was not written: ${String((e as Error)?.message || e)}`); }
+}
+
+// A CAD DRAWING IS DRAWN FOR SUPPLIERS FROM ITS OWN ENTITIES (24 Sep 2026, sales_engineer; founder
+// instructions 32, 580, 703). Until today a .dwg / .dxf reached drawing_redact only as cad_convert's paid
+// CloudConvert raster, which has no text layer: the server could not box its title block, the model is held,
+// and every CAD drawing a customer sent was held (production, 24 Sep: 6 redaction runs, none complete).
+// drawing_redact mode 'cad' draws the drawing itself with its identity left out (_shared/cad_render.ts) and
+// records the run; the answer is shaped like the pictured path's, so drawingHandoff decides the same way.
+export async function redactCad(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }) {
+  let rj: any = null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
+      body: JSON.stringify({ __secret: o.secret, mode: 'cad', original_b64: o.b64, seed_terms: o.seeds, prefix: 'redacted', owner_customer_id: o.custId, owner_email: o.email, source_path: o.path }),
+      // A drawing that takes longer than this to draw is HELD (the CAD worker draws past the edge's limits).
+      signal: AbortSignal.timeout(60_000) });
+    rj = await r.json().catch(() => null);
+  } catch (_e) { rj = null; }
+  const ok = !!(rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths) && rj.paths.length);
+  const redacted: string[] = ok ? rj.paths.map((x: unknown) => String(x)) : [];
+  const meta = { redaction_job_id: ok ? String(rj.job_id) : null, redaction_job_ids: ok ? [String(rj.job_id)] : [], redaction_pages_in: 1, redaction_pages_out: redacted.length, redaction_pages_lost: rj ? 0 : 1, redaction_complete: ok && redacted.length === 1, needs_manual_boxes: false };
+  // The anonymised CAD FILE rides with the preview it was drawn beside (never instead of it): its own run, its own
+  // verifier; a file that is not proved is simply not attached, and the preview decides the hold as before.
+  if (meta.redaction_complete) {
+    const f = await redactFile(o);
+    if (f && 'path' in f) { redacted.push(f.path); meta.redaction_job_ids.push(f.job); }
+  }
+  return { meta, redacted, reason: ok ? null : String(rj?.held_reason || rj?.error || 'cad_redactor_unreachable') };
+}
+
+// THE DRAWING FILE ITSELF (28 Sep 2026, sales_engineer; founder ledger 30, 31, 32, 580, 703): drawing_redact mode
+// 'file' returns the customer's PDF / DWG / DXF anonymised as a PDF or DXF a supplier opens and measures, released
+// only when _shared/drawing_file_redact.ts's verifier proved geometry, counts and zero identifiers. null = not
+// attached (held, refused or unreachable); the reason is on the run row drawing_redact recorded.
+export async function redactFile(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }): Promise<{ path: string; job: string } | { held: string } | null> {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
+      body: JSON.stringify({ __secret: o.secret, mode: 'file', original_b64: o.b64, seed_terms: o.seeds, prefix: 'redacted', owner_customer_id: o.custId, owner_email: o.email, source_path: o.path }),
+      signal: AbortSignal.timeout(60_000) });
+    const j = await r.json().catch(() => null);
+    if (j?.ok && j?.recorded && j?.job_id && Array.isArray(j.paths) && j.paths.length === 1) return { path: String(j.paths[0]), job: String(j.job_id) };
+    // A hold is said, not swallowed (review of #1838): drawing_redact recorded it on drawing_redaction_runs; the reason
+    // goes back to analyze_drawing, which tells the customer (drawing_hold.fileHeldNote).
+    if (j?.ok && j?.held_reason) { console.warn(`[drawing] the anonymised file of ${o.path} was held: ${j.held_reason}`); return { held: String(j.held_reason) }; }
+    return null;
+  } catch (_e) { return null; }
+}
+// THE HOLD IS WRITTEN OR IT IS SAID (24 Sep 2026, audit finding 5). The insert answers { error } rather than
+// throwing, so the old try/catch swallowed every failure and a held drawing could have no ledger row at all.
+export async function recordHeld(row: ReturnType<typeof heldRun>): Promise<void> {
+  try {
+    const { error } = await admin.from('drawing_redaction_runs').insert(row);
+    if (error) console.error(`[drawing] the hold of ${row.source_path} was not recorded: ${error.message}`);
+  } catch (e) { console.error(`[drawing] the hold of ${row.source_path} was not recorded: ${String((e as Error)?.message || e)}`); }
+}
+
+// AUDIT 9.1 (3 Aug 2026). This is the least trusted input in the system: the customer drawing
+// path. Whatever lands here is later rendered, passed to an LLM, and shown to suppliers. It
+// previously took the caller's declared Content-Type and the caller's filename at face value and
+// checked nothing but the byte length - so an HTML document, an SVG carrying script, or a PDF with
+// an embedded /Launch action all stored cleanly as "a drawing". It also stored phone photos with
+// their EXIF intact, which on an anonymous marketplace means the supplier receives the customer's
+// GPS coordinates attached to the "masked" site photo.
+// `allow` widens to SAFE_SHEET only on the analyze_boq path (14 Sep 2026); drawings keep PDF/image/CAD.
+export async function storeOriginal(custId: string, email: string, name: string, mime: string, b64: string, allow: readonly string[] = [...SAFE_UPLOAD, ...SAFE_CAD]): Promise<string | null> {
+  try {
+    // 5 Aug 2026. The allow-list was SAFE_UPLOAD (PDF + jpeg/png/webp), which excludes CAD - on the
+    // one path in the system that explicitly SUPPORTS CAD. analyze_drawing detects .dwg/.dxf and
+    // routes it through cad_convert to get page images, so the drawing was converted, read and
+    // turned into a BOQ, while storeOriginal rejected the original and returned null behind a
+    // console.warn. The customer saw a successful upload; the inquiry got no drawing_file_path, so
+    // the actual CAD file the supplier needs to quote from was gone and nothing reported it.
+    // SAFE_CAD already exists for exactly this and was simply never wired to its only caller. The
+    // sniffer validates both formats structurally (DWG by its AC10xx magic, ASCII DXF by its
+    // SECTION/HEADER shape, and it prefers the dangerous reading on ambiguity), so this widens the
+    // accepted set without trusting the caller's declared type.
+    const sc = await sanitizeAndScan({ input: b64, declaredMime: mime, filename: name, allow, maxBytes: 25 * 1024 * 1024,
+                                       scan: { source: 'customer_api.drawing', subject: String(custId || email || ''), filename: name, bucket: 'drawing-files' } });
+    if (!sc.ok) {
+      console.warn(`[9.1] drawing rejected: ${sc.body.error} - ${sc.body.detail} (declared ${mime})`);
+      return null;
+    }
+    const s = sc.result;
+    if (s.declaredMismatch) console.warn(`[9.1] drawing declared ${mime} but is ${s.mime}; stored as ${s.mime}`);
+    const path = `drawings/${custId}/${Date.now()}_${safeFilename(name, s.mime)}`;
+    const up = await admin.storage.from('drawing-files').upload(path, s.bytes, { contentType: s.mime, upsert: false });
+    // The sanitizer's rejection is logged above but the STORAGE rejection was not, and the bucket
+    // carries its own allowed_mime_types. A CAD upload was therefore refused twice, silently, and
+    // both layers returned the same null: the caller could not tell "we would not accept this" from
+    // "the bucket would not accept this" from "the network failed".
+    if (up.error) { console.warn(`[9.1] drawing accepted by the sanitizer as ${s.mime} but REJECTED by storage: ${up.error.message}`); return null; }
+    // 14 Sep 2026: the path is returned (and later backed up) only once storage confirms the object.
+    if (!(await storedAt(admin, 'drawing-files', path))) { console.warn(`[9.1] drawing upload returned no error but storage does not hold ${path}`); return null; }
+    // 5 Aug 2026. THE ORPHAN WINDOW. At this point the object exists and the ONLY record of it is
+    // the path about to be returned to the client. If the customer never submits, swaps the
+    // attachment, or create_inquiry refuses, no row anywhere names it — and both pdpl_erase and
+    // retention_purge walk `inquiries`, so an abandoned upload is not merely litter, it is a
+    // customer's drawing that cannot be found and therefore cannot be ERASED on request.
+    // A ledger row makes it findable by owner. status='original_stored' distinguishes it from a
+    // real redaction run; resolveRedactedPaths filters it out (see the .neq there) because it
+    // carries no output_paths and would otherwise consume that query's 60-row window.
+    try {
+      await admin.from('drawing_redaction_runs').insert({
+        customer_id: custId, owner_email: email, source_path: path,
+        output_paths: [], pages_in: 0, pages_out: 0, status: 'original_stored',
+      });
+    } catch (_e) { /* never fail an accepted upload on its own bookkeeping */ }
+    return path;
+  } catch { return null; }
+}
+
+// REDACTION PROVENANCE 2 Aug 2026 (external security review). WHY: QuotesDone sells anonymity —
+// a supplier must not learn who the buyer is until the reveal fee is paid. supplier_api hands every
+// matched supplier a SIGNED URL for each entry in inquiries.drawing_redacted_paths, and it will sign
+// ANY object path in the 'drawing-files' bucket. The customer's ORIGINAL, unredacted upload sits in
+// that SAME bucket at drawings/<customer_id>/<ts>_<name> (see storeOriginal above); redacted pages
+// sit at redacted/<uuid>/page_pN.jpg. create_inquiry used to copy drawing.drawing_redacted_paths
+// verbatim out of the REQUEST BODY, so a modified or simply buggy frontend could name the original —
+// title block, client name, address, contacts, project number — and every matched supplier would get
+// it for free, pre-reveal, destroying both the promise and the reveal-fee revenue behind it.
+// Paths are no longer trusted from the client. drawing_redact records each run in
+// public.drawing_redaction_runs (owner, outputs, pages_in/pages_out, status) and this resolver will
+// only ever attach paths found in a run row that belongs to the CALLING customer. Anything else is
+// REJECTED with an explicit error rather than silently dropped, so the frontend can surface it
+// instead of quietly shipping a half-anonymous RFQ.
+const REDACT_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type RedactResolve = { paths: string[] } | { err: Record<string, unknown>; status: number };
+export async function resolveRedactedPaths(custId: string, authUserId: string, drawing: any): Promise<RedactResolve> {
+  const asked = Array.isArray(drawing?.drawing_redacted_paths) ? drawing.drawing_redacted_paths.map((s: any) => String(s)).slice(0, 24) : [];
+  const jobIds = [
+    ...(drawing?.redaction_job_id ? [String(drawing.redaction_job_id)] : []),
+    ...(Array.isArray(drawing?.redaction_job_ids) ? drawing.redaction_job_ids.map((s: any) => String(s)) : []),
+  ].filter((s) => REDACT_UUID_RE.test(s)).slice(0, 8);
+  // Explicit opt-out: the buyer (or the UI, after a partial redaction) can choose to share no pages
+  // at all. Sharing fewer pages never leaks anything, so this is always allowed.
+  if (drawing?.share_redacted === false) return { paths: [] };
+  if (!jobIds.length && !asked.length) return { paths: [] };
+  // Reference photos go through attach_photos, which is authenticated as the same auth user but does
+  // not know customers.id; drawing_redact stores the prefix it was called with, so those runs are
+  // attributed by that instead. Both branches are server-side ownership checks — neither trusts a path.
+  const photoRef = 'refphoto/' + String(authUserId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24) + '/';
+  const { data: runs, error: rerr } = await admin.from('drawing_redaction_runs')
+    .select('id,customer_id,caller_ref,output_paths,pages_in,pages_out,status')
+    .or(`customer_id.eq.${custId},caller_ref.like.${photoRef}%`)
+    // NOT optional. storeOriginal now writes one 'original_stored' row per upload so an abandoned
+    // drawing stays erasable. Those rows carry no output_paths and contribute nothing here, but
+    // this query keeps only the 60 most recent runs — so without this filter a customer who
+    // uploads repeatedly would push their own REAL redaction runs out of the window, and
+    // create_inquiry would answer redaction_job_not_found (403) on a perfectly good drawing.
+    .neq('status', 'original_stored')
+    // 'held' rows (analyze_drawing, 21 Sep 2026) are the ledger of drawings that went out unshared;
+    // they carry no output_paths either and must not push real runs out of the window.
+    .neq('status', 'held')
+    .order('created_at', { ascending: false }).limit(60);
+  if (rerr) return { err: { error: 'redaction_lookup_failed', message: 'We could not verify the redacted drawing pages just now. Please try again in a moment.' }, status: 503 };
+  const mine = (runs || []).filter((r: any) => (r.customer_id && String(r.customer_id) === String(custId)) || (r.caller_ref && String(r.caller_ref).startsWith(photoRef)));
+  const byId: Record<string, any> = {}; for (const r of mine) byId[String(r.id)] = r;
+  const chosen: any[] = [];
+  for (const jid of jobIds) {
+    const r = byId[jid];
+    if (!r) return { err: { error: 'redaction_job_not_found', message: 'That redaction job does not belong to your account or has expired. Please re-upload the drawing and try again.' }, status: 403 };
+    chosen.push(r);
+  }
+  if (!jobIds.length) chosen.push(...mine);
+  const allowed = new Set<string>();
+  for (const r of chosen) for (const p of (r.output_paths || [])) allowed.add(String(p));
+  let paths: string[];
+  if (asked.length) {
+    const bad = asked.filter((p: string) => !allowed.has(p));
+    if (bad.length) return { err: { error: 'redacted_paths_unverified', rejected: bad.length, message: `${bad.length} of the attached drawing page(s) did not come from a redaction run on your account, so nothing was sent. Please re-run the drawing analysis and submit again.` }, status: 400 };
+    paths = asked;
+  } else {
+    paths = Array.from(allowed);
+  }
+  // COMPLETENESS. A partial run (say 5 of 8 pages cleaned) must not quietly attach the 5 that
+  // worked: the buyer believes the whole drawing was anonymised, and the 3 that failed are exactly
+  // the pages the model was least sure about. Fail closed and name the number. A TOTAL failure still
+  // behaves as before — no run outputs, no paths, and the inquiry goes out with no drawing attached.
+  const used = chosen.filter((r: any) => (r.output_paths || []).some((p: any) => paths.includes(String(p))));
+  let missing = 0; for (const r of used) missing += Math.max(0, Number(r.pages_in || 0) - Number(r.pages_out || 0));
+  if (paths.length && missing > 0) {
+    return { err: { error: 'redaction_incomplete', pages_missing: missing, message: `${missing} page(s) of your drawing could not be redacted, so no pages were shared. Please re-upload a clearer copy, or send the request without the drawing.` }, status: 409 };
+  }
+  return { paths };
+}

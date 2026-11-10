@@ -44,6 +44,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readCustomerPortal } from '../../lib/portal_sources.mjs';
 
 export const EXPECTED = 26;
 
@@ -130,7 +131,7 @@ export default async function ({ req }) {
   const S7 = '7. AI RFQ Creation';
   const S8 = '8. RFQ Command Center';
 
-  const portal = SRC.get('src/components/me/CustomerPortal.tsx') || '';
+  const portal = readCustomerPortal();
   const pa = edgeSrc('project_api');
   const ca = edgeSrc('customer_api');
   const ii = edgeSrc('inquiry_intake');

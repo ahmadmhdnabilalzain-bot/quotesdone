@@ -19,6 +19,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSupplierPortal } from '../lib/portal_sources.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, '..', '..');
@@ -28,7 +29,7 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 const legal = readJson('src/content/legal.json');
 const marketing = readJson('src/content/marketing.json');
-const portal = read('src/components/portal/SupplierPortal.tsx');
+const portal = readSupplierPortal();
 
 const count = (s, re) => (s.match(re) || []).length;
 

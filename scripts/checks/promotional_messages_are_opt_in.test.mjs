@@ -9,13 +9,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSource, readSupplierPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 for (const f of ['src/components/me/CustomerPortal.tsx', 'src/components/portal/SupplierPortal.tsx']) {
   test(`${f}: the promotional box starts unticked and is not required`, () => {
-    const s = read(f);
+    const s = readSource(f);
     assert.match(s, /const \[marketingOptIn, setMarketingOptIn\] = useState\(false\)/, 'the box must start unticked');
     const box = s.split('\n').find((l) => /t\((lang|'en'), 'marketing_opt_in'\)/.test(l));
     assert.ok(box, 'the separate promotional checkbox is missing');
@@ -32,7 +34,7 @@ test('customer strings exist in English and Arabic; the supplier box is English 
   const c = read('src/components/me/portalText.ts');
   assert.ok(c.includes(EN), 'customer EN');
   assert.ok(c.includes("marketing_opt_in:'أرغب في تلقّي العروض والأخبار من QuotesDone"), 'customer AR');
-  const s = read('src/components/portal/SupplierPortal.tsx');
+  const s = readSupplierPortal();
   assert.ok(s.includes(EN), 'supplier EN');
   assert.ok(!s.includes("marketing_opt_in:'أرغب"), 'no Arabic supplier string');
   assert.ok(s.includes("t('en', 'marketing_opt_in')"), 'supplier box reads English, no lang switch');
@@ -40,7 +42,7 @@ test('customer strings exist in English and Arabic; the supplier box is English 
 
 test('the sign-up writes record consent only when it is exactly true', () => {
   assert.match(read('supabase/functions/kyc/index.ts'), /if \(b\.marketing_consent === true\) await admin\.from\('customers'\)\.update\(\{ marketing_consent: true/);
-  assert.match(read('supabase/functions/supplier_api/index.ts'), /if \(body\.marketing_consent === true\) await admin\.from\('leads'\)\.update\(\{ marketing_consent: true/);
+  assert.match(functionSource('supplier_api'), /if \(body\.marketing_consent === true\) await admin\.from\('leads'\)\.update\(\{ marketing_consent: true/);
 });
 
 test('the outbox gate exists and defaults everyone to not consented', () => {

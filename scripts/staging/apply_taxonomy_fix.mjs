@@ -23,7 +23,7 @@
 //
 // Staging is written through qd_guard's mgmtWrite, which refuses production by construction. The
 // production statements are PRINTED for a human (or the same operator) to apply through the
-// management API — the same split scripts/verify_prod_readiness.mjs uses.
+// management API — the same split scripts/archive/verify_prod_readiness.mjs uses.
 //
 //     node scripts/staging/apply_taxonomy_fix.mjs
 import { mgmtRead, mgmtWrite, PROD_REF } from '../lib/qd_guard.mjs';

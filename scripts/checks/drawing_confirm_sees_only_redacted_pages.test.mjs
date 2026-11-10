@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -35,7 +36,7 @@ test('drawing_boq: confirmStep takes no image from the request and is called onl
 });
 
 test('customer_api asks for the confirm only after redaction, with the run id, never with images', () => {
-  const src = read('supabase/functions/customer_api/index.ts');
+  const src = functionSource('customer_api');
   const at = src.indexOf("mode: 'confirm'");
   assert.ok(at > 0, 'confirm call not found');
   const call = src.slice(src.lastIndexOf('fetch(', at), src.indexOf('});', at));

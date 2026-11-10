@@ -59,3 +59,15 @@ export const modelHost = (model: string, projectUrl: string): { remoteHost: stri
   model === ML_MODEL
     ? { remoteHost: projectUrl + ML_MODEL_PATH, remotePathTemplate: '{model}/' }
     : { remoteHost: 'https://huggingface.co/', remotePathTemplate: '{model}/resolve/{revision}/' };
+
+/** The public Hugging Face repo to load the model from, or null to load it from this project's Storage. Only an
+ *  `owner/name` id is accepted, so a malformed secret falls back to Storage instead of breaking every embedding. */
+export function modelFromHf(v: string | null | undefined): string | null {
+  const id = String(v ?? '').trim();
+  return /^[A-Za-z0-9][\w.-]*\/[A-Za-z0-9][\w.-]*$/.test(id) ? id : null;
+}
+
+/** The Hugging Face commit the model is loaded from, never the movable `main`: whoever can push to the repo could
+ *  otherwise change every vector the edge produces. 168b358a… is the 9 Nov 2026 upload, sha256-verified file by file
+ *  against the Storage copy (scripts/kb/publish_ml_model_to_hf.mjs). Re-publishing means changing this line. */
+export const ML_MODEL_HF_REVISION = '168b358a0281aa5025743618492360adf41e0295';

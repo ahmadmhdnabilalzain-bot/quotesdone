@@ -10,9 +10,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
-const api = read('supabase/functions/customer_api/index.ts');
+const api = functionSource('customer_api');
 const worker = read('scripts/cad_read_worker.ts');
 const scan = read('supabase/functions/_shared/scan_redact.ts');
 const engine = read('scripts/lib/scan_ocr.ts');

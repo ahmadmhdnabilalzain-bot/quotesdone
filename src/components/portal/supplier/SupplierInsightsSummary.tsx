@@ -123,7 +123,7 @@ export default function SupplierInsightsSummary({ token, lang, goTo }: { token: 
   // A tab switch unmounts this; an answer arriving afterwards must not write state.
   const live = useRef(true);
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
-  const load = () => { setErr(false); call('supplier_portal', { action: 'insights_summary' }, token).then((j) => { if (live.current) (j && j.ok ? setS(j) : setErr(true)); }).catch(() => { if (live.current) setErr(true); }); };
+  const load = () => { setErr(false); call('supplier_portal', { action: 'insights_summary' }, token).then((j) => { if (live.current) { if (j && j.ok) setS(j); else setErr(true); } }).catch(() => { if (live.current) setErr(true); }); };
   useEffect(() => { load(); }, [token]);
   if (err) return <section className="qd-panel p-5" role="alert"><p className="text-[13px] text-muted-foreground">{ws(lang, 'in_err')}</p><Button size="sm" className="mt-3" onClick={load}>{ws(lang, 'mb_retry')}</Button></section>;
   if (!s) return <section className="qd-panel h-48 animate-pulse motion-reduce:animate-none" aria-busy="true" aria-label={ws(lang, 'in_loading')} />;

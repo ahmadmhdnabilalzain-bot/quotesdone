@@ -73,7 +73,7 @@ With either, recovery becomes a ~30-line script and a checksum comparison.
 ## Status update — recovered, and two entries added
 
 All Stage B.6 migrations are now in `supabase/migrations/` as `2026080222NN_<name>.sql`, recovered
-verbatim and checksum-verified by `scripts/recover_stage_b6.mjs`. The "not yet recovered" heading
+verbatim and checksum-verified by `scripts/archive/recover_stage_b6.mjs`. The "not yet recovered" heading
 above is history; it is kept so the reason for the delay, and the fix for it, stay on the record.
 
 Two entries beyond the original twelve:

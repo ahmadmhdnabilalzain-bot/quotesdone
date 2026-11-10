@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -60,7 +61,7 @@ test('switched off, the email says so and still shows the list; emails are maske
 });
 
 test('no model on the path: the heartbeat only renders and attaches', () => {
-  const rp = read('supabase/functions/resilience_ping/index.ts');
+  const rp = functionSource('resilience_ping');
   const i = rp.indexOf('async function supportCampaignListTick(');
   const fn = rp.slice(i, rp.indexOf('\n}\n', i));
   assert.match(fn, /admin\.rpc\('fn_customer_support_campaign_list_tick'\)/);

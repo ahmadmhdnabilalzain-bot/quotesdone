@@ -12,6 +12,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta.url)), 'utf8');
 const SQL = 'scripts/sql/a_suppliers_documents_propose_trades_and_a_new_trade_is_reviewed_not_dropped.sql';
@@ -22,7 +23,8 @@ test('every supplier upload path reads the document by code into a trade proposa
   assert.match(read('supabase/functions/_shared/supplier_docs_later.ts'), /proposeTradesFromDocs\(admin, /,
     'readStoredDocsLater no longer reads uploads into the proposal');
   for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/supplier_portal/index.ts', 'supabase/functions/supplier_catalog_ingest/index.ts']) {
-    assert.match(read(f), /proposeTradesFromDocs\(admin, |readStoredDocsLater\(admin, /, `${f} does not read uploads into the proposal`);
+    // supplier_api/index.ts names the whole function (index.ts plus its modules since 9 Nov 2026).
+    assert.match(f === 'supabase/functions/supplier_api/index.ts' ? functionSource('supplier_api') : read(f), /proposeTradesFromDocs\(admin, |readStoredDocsLater\(admin, /, `${f} does not read uploads into the proposal`);
   }
 });
 
@@ -35,7 +37,7 @@ test('a model refusal on a catalogue is unread_llm_hold, not a false zero', () =
 test('every customer_api path asks the sales engineer, and a matcher failure raises a finding', () => {
   // The turnkey path was the last keyword caller; it now shares the sales engineer route. The full
   // no-fuzzy-matcher guard is scripts/checks/supplier_matching_is_exact_or_none.test.mjs.
-  const src = read('supabase/functions/customer_api/index.ts');
+  const src = functionSource('customer_api');
   assert.doesNotMatch(src, /useRouter/, 'a path that skips the sales engineer is back');
   assert.match(src, /p_issue_key: 'sales_engineer_match_unavailable'/, 'a matcher failure raises no finding');
 });

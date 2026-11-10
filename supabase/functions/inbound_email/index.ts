@@ -8,6 +8,8 @@ import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
 import { orSafeDomain } from '../_shared/or_filter_email.ts';
+// Constant-time compare (L5 / row 40 of the security pass): the one in stripe_setup, not a fourth copy.
+import { sameSecret } from '../stripe_setup/webhook_plan.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-webhook-secret' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -48,7 +50,10 @@ Deno.serve(observe('inbound_email', async (req) => {
     const whSecret = (secRows || []).find((r: { key: string; value: string }) => r.key === 'inbound_webhook_secret')?.value || '';
     const ibSecret = (secRows || []).find((r: { key: string; value: string }) => r.key === 'cred_fn_inbound_email')?.value || '';
     const provided = req.headers.get('x-webhook-secret') || body.__secret || '';
-    if (!provided || (provided !== whSecret && provided !== ibSecret)) return J({ error: 'forbidden' }, 403);
+    // Both are compared (no short-circuit) and in constant time. This provider sends a shared secret only:
+    // no signature and no timestamp header, so there is no replay window to enforce here.
+    const [okWh, okIb] = await Promise.all([sameSecret(String(provided), whSecret), sameSecret(String(provided), ibSecret)]);
+    if (!provided || !(okWh || okIb)) return J({ error: 'forbidden' }, 403);
     const sec = { value: ibSecret }; // internal secret for downstream calls
 
     const fromEmail = String(body.from || body.sender || '').toLowerCase().trim();

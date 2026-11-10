@@ -23,6 +23,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { manifestWithPending, pendingNotes } from '../lib/pending_sql.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -73,7 +74,7 @@ test('the duty expires busy dates and sweeps every open inquiry into the rescue,
 });
 
 test('a dispatch that lands on nobody flags the rescue before it returns', () => {
-  const api = code(R('supabase/functions/customer_api/index.ts'));
+  const api = code(functionSource('customer_api'));
   const at = api.indexOf('if (!landedIds.length) {');
   assert.ok(at > 0, 'the zero-landed branch of matchAndNotify is gone');
   const branch = api.slice(at, api.indexOf('return { matches: 0, routing };', at));
@@ -81,7 +82,7 @@ test('a dispatch that lands on nobody flags the rescue before it returns', () =>
 });
 
 test('the portal offers the three states in English and writes only through the one writer', () => {
-  const api = code(R('supabase/functions/supplier_api/index.ts'));
+  const api = code(functionSource('supplier_api'));
   assert.match(api, /action === 'set_availability'[\s\S]{0,900}admin\.rpc\('fn_supplier_set_availability'/, 'supplier_api does not write through fn_supplier_set_availability');
   assert.doesNotMatch(api, /from\('supplier_availability'\)/, 'supplier_api writes or reads the table around the writer');
   assert.match(api, /admin\.rpc\('fn_supplier_availability_of'/, 'the settings answer does not carry availability as matching reads it');

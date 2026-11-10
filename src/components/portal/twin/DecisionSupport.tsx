@@ -143,7 +143,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
     // load made 7 function calls where /en made 6, in all 16 runs of
     // scripts/e2e/portal_local_shell_hydration.mjs, and /ar settled ~300 ms later for it.
     // `lang` is still used for this panel's own rendering; only the refetch is dropped.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // A panel that could only ever be empty is a dead end with a heading on it. With nothing to

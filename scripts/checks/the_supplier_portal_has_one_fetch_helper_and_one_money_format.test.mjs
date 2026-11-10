@@ -28,6 +28,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SUPPLIER_PORTAL_FILES } from '../lib/portal_sources.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DIR = path.join(REPO, 'src', 'components', 'portal', 'supplier');
@@ -38,7 +39,7 @@ const MONEY = 'src/components/portal/supplier/money.ts'; // the one file allowed
 // It sits one directory up from the panels, and it is where `aed()` and the hard-coded 'AED ' + n
 // lived — so scoping to the panel folder alone left the biggest offender unguarded. Scanned by its
 // full path alongside the folder.
-const EXTRA = [path.join(REPO, 'src', 'components', 'portal', 'SupplierPortal.tsx')];
+const EXTRA = SUPPLIER_PORTAL_FILES.map((f) => path.join(REPO, f)); // the entry and supplier/core/ (split 9 Nov 2026)
 const files = () => [
   ...fs.readdirSync(DIR).filter((f) => /\.(ts|tsx)$/.test(f) && !f.endsWith('.test.ts')).map((f) => path.join(DIR, f)),
   ...EXTRA.filter((p) => fs.existsSync(p)),

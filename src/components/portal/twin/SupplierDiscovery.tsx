@@ -150,6 +150,7 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
           </div>
 
           {res.matches.length ? (
+            // oxlint-disable-next-line jsx-a11y/no-redundant-roles -- role=list is deliberate (list semantics survive list-style:none in Safari)
             <ul className="mt-2.5 space-y-1.5" role="list">
               {res.matches.map((m, i) => (
                 <li key={m.label + i} className="rounded-md border border-border/60 bg-secondary/10 px-2.5 py-2">

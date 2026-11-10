@@ -32,6 +32,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { advisoryCount } from '../it/open_dependency_patch_pr.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILES = [
@@ -92,7 +93,7 @@ test('the table drill\'s due-check waits at most 250 ms for a lock and then says
   assert.ok(od.length > 0, 'the overdue check is missing');
   assert.doesNotMatch(od, /fn_it_restore_table_due\s*\(/, 'the overdue check must not go through the due-check');
   assert.match(od, /set lock_timeout to '250ms'/);
-  assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('restore_overdue', async \(\) => rpc\('fn_it_restore_table_overdue'\)\)/);
+  assert.match(functionSource('resilience_ping'), /step\('restore_overdue', async \(\) => rpc\('fn_it_restore_table_overdue'\)\)/);
 });
 
 test('the tag apply_sql.mjs writes is the tag the guard reads as signed', () => {
