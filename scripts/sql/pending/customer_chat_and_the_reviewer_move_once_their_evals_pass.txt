@@ -1,0 +1,7 @@
+Gated on evals, NOT applied at merge (it_engineer, 10 Nov 2026; ruling 1571, design docs/reports/2026-11-10-design-model-routing.md 5a steps 4, 5, 8).
+Moves conversation_reply, customer_portal_assistant and visitor_chat to Luna Pro > Sonnet 5.5 (gate: eval A,
+scripts/eval/model_routing/eval_a.ts) and knowledge_validation + sales_engineer__knowledge_validation to Qwen 3.8 Flash > Sonnet 5.5
+(gate: eval C, scripts/eval/model_routing/eval_c.ts). Results: docs/reports/2026-11-10-model-routing-evals.md.
+What moves it: both evals PASS against their stated criteria, and part 1 (simple_tasks_leave_sonnet_and_every_reply_runs_on_the_model_its_task_needs.sql)
+is applied. Then apply this file, delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
+If only one eval passes, split the file: the statements of the passing eval only.
