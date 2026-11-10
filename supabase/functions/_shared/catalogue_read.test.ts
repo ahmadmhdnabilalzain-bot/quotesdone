@@ -183,7 +183,8 @@ Deno.test('rulings 1175 and 1260: the last SQL to set the two switches turns bot
   const seed = manifest.indexOf('scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.sql');
   const later = manifest.slice(seed + 1).filter((f) => f.endsWith('.sql') && !f.startsWith('#'));
   for (const f of later) {
-    let t = ''; try { t = Deno.readTextFileSync(new URL('../../../' + f, here)); } catch { continue; }
+    // comments are measurements, not statements: a header quoting the old {"enabled": false} switches nothing off
+    let t = ''; try { t = Deno.readTextFileSync(new URL('../../../' + f, here)).split('\n').map((l) => l.replace(/--.*$/, '')).join('\n'); } catch { continue; }
     for (const k of [PHOTO_VISION_FLAG, CATALOGUE_MODEL_FLAG]) {
       assert(!(t.includes(k) && /"enabled": false/.test(t)), `${f} switches ${k} off again after the rulings`);
     }
