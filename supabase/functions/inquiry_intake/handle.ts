@@ -7,6 +7,7 @@ import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { serviceKeysOf } from '../_shared/service_vocabulary.ts';
+import { stateServiceKeys } from '../_shared/profile_services.ts';
 import { remoteEmbedder } from '../_shared/meaning_embed.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
@@ -894,7 +895,12 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       // 'joinery' — the card said 0 suppliers where dispatch would reach some). supplier_count.ts resolves them through
       // fn_taxonomy_trades_for exactly as sales_engineer/actions/operator.ts does before fn_match_capability.
       const countP = (async () => { try {
-        const services = (await serviceKeysOf(allText, drawingBoq?.boq ?? null, { services: await serviceVocabKept(), embed: remoteEmbedder(admin, 'inquiry_intake') })).keys;
+        // THE SERVICES THE CUSTOMER CHOSE COME FIRST (10 Nov 2026, ledger 1573/1579): exact keys the expert-advice catalogue
+        // wrote into this conversation's state (inquiry_state.specs.service_keys), checked against the live vocabulary. Only
+        // when there are none is the prose read (the same rule dispatch follows: customer_api lib/state_service_keys.ts).
+        const vocabNow = await serviceVocabKept();
+        const chosen = stateServiceKeys(await stateP, new Set(vocabNow.map((v) => v.trade_code + '.' + v.code)));
+        const services = chosen.length ? chosen : (await serviceKeysOf(allText, drawingBoq?.boq ?? null, { services: vocabNow, embed: remoteEmbedder(admin, 'inquiry_intake') })).keys;
         const c = await supplierCount(admin, { trades: (trades.length ? trades : [category]).filter(Boolean) as string[], emirate: emirate || null, services });
         brief.supplier_count = c.count;
         brief.supplier_count_basis = c.basis;

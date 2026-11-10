@@ -46,7 +46,10 @@ export type TradeHit = {
 };
 export type ExactState = 'on' | 'unavailable' | 'nothing_to_read';
 export type MeaningState = 'on' | 'service_vectors_missing' | 'embedding_unavailable' | 'budget_spent' | 'nothing_to_read';
-export type TradeRead = { trades: TradeHit[]; exact: ExactState; meaning: MeaningState };
+// `services` (10 Nov 2026, profile_services.ts): the SERVICE each meaning hit was, with the clause it was read from, so a profile
+// proposes services as well as trades without embedding its lines a second time.
+export type MeaningServiceHit = { key: string; trade: string; label_en: string; clause: string; line: string; similarity: number };
+export type TradeRead = { trades: TradeHit[]; exact: ExactState; meaning: MeaningState; services?: MeaningServiceHit[] };
 
 export type TradeResolveDeps = {
   /** public.fn_norm_trades over many phrases (public.fn_norm_trades_many): only the phrases that resolve,
@@ -244,6 +247,7 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
 
   // 2. meaning, over the stored service vectors
   let meaning: MeaningState = 'nothing_to_read';
+  const services: MeaningServiceHit[] = [];
   if (lines.some((l) => l.length >= 3)) {
     // Each line clause by clause; the evidence is the supplier's whole line.
     const origin = new Map<string, string>();
@@ -269,11 +273,12 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
         for (const p of props) {
           const line = origin.get(p.lines[0] ?? '') ?? p.lines[0] ?? '';
           add({ code: p.trade, via: 'meaning', phrases: [p.label_en.toLowerCase()], snippet: line.slice(0, 180), similarity: p.similarity });
+          services.push({ key: p.key, trade: p.trade, label_en: p.label_en, clause: p.lines[0] ?? '', line: line.slice(0, 180), similarity: p.similarity });
         }
       }
     }
   }
-  return { trades: [...hits.values()].sort((a, b) => a.code.localeCompare(b.code)), exact, meaning };
+  return { trades: [...hits.values()].sort((a, b) => a.code.localeCompare(b.code)), exact, meaning, services };
 }
 
 /** The single words of the text that public.fn_norm_trades resolves to exactly ONE trade (a live code, or a stored

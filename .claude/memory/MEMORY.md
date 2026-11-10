@@ -200,3 +200,4 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A founder ruling is not a defect to fix](a-founder-ruling-is-not-a-defect-to-fix.md): read the ledger before changing a pinned check
 - [The automatic apply's language](an-automatic-apply-and-a-probe-must-speak-its-language.md): PROBE OK wording, seat, from=, mirror regen
 - [Conversation quality eval and its limits](conversation-quality-eval-and-its-limits.md): 3 Nov; widget 5 convs/IP/day; the canon is the product, not the brief
+- [A supplier's own words reach every customer, every trade](a-suppliers-own-words-reach-every-customer-in-every-trade.md): 10 Nov, ledger 1573/1579/1586; alias queue, adjacency, similarity ranks only

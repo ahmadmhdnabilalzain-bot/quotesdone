@@ -1,0 +1,1117 @@
+{
+ "about": "The general-matching matrix (10 Nov 2026, sales_engineer; founder ledger 1573, 1579, 1586). Each row: a supplier who describes a service in his own words and a customer who asks for it differently, in a trade of each of the 12 taxonomy groups. keys = what the code path reads (service_rewrite.rewriteServices for the supplier, service_vocabulary.serviceKeysOf for the customer) over the live vocabulary plus the curated aliases of scripts/sql/a_suppliers_own_words_reach_every_customer_who_asks_for_the_same_work.sql; keys_before = the same code over the live vocabulary of 10 Nov 2026 before that file. customer.trade is a taxonomy code (ledger 1586: the 223 codes, not the 32 intake slugs). control = another group's supplier who must never be matched. The probe of the same name asks fn_match_capability on production, rolled back.",
+ "rows": [
+  {
+   "family": "wall_panels",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "wallpaper",
+    "text": "Supply and installation of PVC decorative panels, WPC panels and vinyl wrap",
+    "keys": [
+     "wallpaper.wall_panels",
+     "wallpaper.film_wrap"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "joinery",
+    "text": "PVC wall panels for an MDF partition",
+    "keys": [
+     "wallpaper.wall_panels"
+    ],
+    "keys_before": []
+   },
+   "key": "wallpaper.wall_panels",
+   "control": "home_lifts"
+  },
+  {
+   "family": "film_wrap",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "wallpaper",
+    "text": "Architectural films and vinyl wrap",
+    "keys": [
+     "wallpaper.film_wrap"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "interior_fitout",
+    "text": "Wrap sticker for kitchen cabinets",
+    "keys": [
+     "wallpaper.film_wrap"
+    ],
+    "keys_before": []
+   },
+   "key": "wallpaper.film_wrap",
+   "control": "home_lifts"
+  },
+  {
+   "family": "aluminium_windows",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "aluminium",
+    "text": "Aluminium sliding windows",
+    "keys": [
+     "aluminium.windows_doors"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "aluminium",
+    "text": "Aluminum windows for the villa",
+    "keys": [
+     "aluminium.windows_doors"
+    ],
+    "keys_before": []
+   },
+   "key": "aluminium.windows_doors",
+   "control": "solar"
+  },
+  {
+   "family": "shower_glass",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "glazing",
+    "text": "Frameless shower enclosures",
+    "keys": [
+     "glazing.partitions"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "glazing",
+    "text": "Glass shower partition for the bathroom",
+    "keys": [
+     "glazing.partitions"
+    ],
+    "keys_before": []
+   },
+   "key": "glazing.partitions",
+   "control": "fire_alarm"
+  },
+  {
+   "family": "false_ceiling",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "gypsum",
+    "text": "Gypsum false ceilings",
+    "keys": [
+     "gypsum.false_ceiling"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "interior_fitout",
+    "text": "Suspended ceilings for the majlis",
+    "keys": [
+     "gypsum.false_ceiling"
+    ],
+    "keys_before": []
+   },
+   "key": "gypsum.false_ceiling",
+   "control": "generator_rental"
+  },
+  {
+   "family": "interior_painting",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "painting",
+    "text": "Interior wall painting",
+    "keys": [
+     "painting.interior"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "painting",
+    "text": "Apartment painting",
+    "keys": [
+     "painting.interior"
+    ],
+    "keys_before": []
+   },
+   "key": "painting.interior",
+   "control": "ro_plant"
+  },
+  {
+   "family": "epoxy",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "flooring",
+    "text": "Epoxy floor coatings",
+    "keys": [
+     "flooring.epoxy"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "flooring",
+    "text": "Resin flooring for a warehouse",
+    "keys": [
+     "flooring.epoxy"
+    ],
+    "keys_before": [
+     "flooring.epoxy"
+    ]
+   },
+   "key": "flooring.epoxy",
+   "control": "patient_monitors"
+  },
+  {
+   "family": "roof_waterproofing",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "waterproofing",
+    "text": "Roof waterproofing membranes",
+    "keys": [
+     "waterproofing.roof"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "waterproofing",
+    "text": "Leaking roof",
+    "keys": [
+     "waterproofing.roof"
+    ],
+    "keys_before": []
+   },
+   "key": "waterproofing.roof",
+   "control": "fall_protection"
+  },
+  {
+   "family": "ac_maintenance",
+   "group": "mep_building_systems",
+   "supplier": {
+    "trade": "hvac",
+    "text": "AC maintenance contracts",
+    "keys": [
+     "hvac.maintenance_amc"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "hvac",
+    "text": "Air conditioner servicing for a villa",
+    "keys": [
+     "hvac.maintenance_amc"
+    ],
+    "keys_before": []
+   },
+   "key": "hvac.maintenance_amc",
+   "control": "forklifts"
+  },
+  {
+   "family": "leak_repair",
+   "group": "mep_building_systems",
+   "supplier": {
+    "trade": "plumbing",
+    "text": "Plumbing repairs",
+    "keys": [
+     "plumbing.maintenance"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "plumbing",
+    "text": "Bathroom water leak",
+    "keys": [
+     "plumbing.maintenance"
+    ],
+    "keys_before": []
+   },
+   "key": "plumbing.maintenance",
+   "control": "laser_cutting"
+  },
+  {
+   "family": "lighting",
+   "group": "mep_building_systems",
+   "supplier": {
+    "trade": "electrical",
+    "text": "LED lighting installation",
+    "keys": [
+     "electrical.lighting"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "electrical",
+    "text": "Light fixtures for the office",
+    "keys": [
+     "electrical.lighting"
+    ],
+    "keys_before": []
+   },
+   "key": "electrical.lighting",
+   "control": "catalogues"
+  },
+  {
+   "family": "kitchens",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "joinery",
+    "text": "Kitchen cabinets manufacturing",
+    "keys": [
+     "joinery.kitchens"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "joinery",
+    "text": "Kitchen cupboards",
+    "keys": [
+     "joinery.kitchens"
+    ],
+    "keys_before": []
+   },
+   "key": "joinery.kitchens",
+   "control": "exhibition_stands"
+  },
+  {
+   "family": "blinds",
+   "group": "furniture_hospitality_consumer",
+   "supplier": {
+    "trade": "curtains_blinds",
+    "text": "Blackout roller blinds",
+    "keys": [
+     "curtains_blinds.roller_blinds"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "curtains_blinds",
+    "text": "Roller shades for the bedroom",
+    "keys": [
+     "curtains_blinds.roller_blinds"
+    ],
+    "keys_before": []
+   },
+   "key": "curtains_blinds.roller_blinds",
+   "control": "cartons"
+  },
+  {
+   "family": "sofa",
+   "group": "furniture_hospitality_consumer",
+   "supplier": {
+    "trade": "upholstery",
+    "text": "Sofa reupholstery",
+    "keys": [
+     "upholstery.sofa"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "upholstery",
+    "text": "Couch upholstery",
+    "keys": [
+     "upholstery.sofa"
+    ],
+    "keys_before": []
+   },
+   "key": "upholstery.sofa",
+   "control": "labels"
+  },
+  {
+   "family": "irrigation",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "landscaping",
+    "text": "Drip irrigation systems",
+    "keys": [
+     "landscaping.irrigation"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "landscaping",
+    "text": "Garden sprinklers for the villa",
+    "keys": [
+     "landscaping.irrigation"
+    ],
+    "keys_before": []
+   },
+   "key": "landscaping.irrigation",
+   "control": "topo_survey"
+  },
+  {
+   "family": "pool_maintenance",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "swimming_pools",
+    "text": "Swimming pool maintenance",
+    "keys": [
+     "swimming_pools.pool_maintenance"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "swimming_pools",
+    "text": "Weekly pool cleaning",
+    "keys": [
+     "swimming_pools.pool_maintenance"
+    ],
+    "keys_before": []
+   },
+   "key": "swimming_pools.pool_maintenance",
+   "control": "legal_translation"
+  },
+  {
+   "family": "termites",
+   "group": "facilities_property",
+   "supplier": {
+    "trade": "pest_control",
+    "text": "Termite treatment",
+    "keys": [
+     "pest_control.termite_treatment"
+    ],
+    "keys_before": [
+     "pest_control.termite_treatment"
+    ]
+   },
+   "customer": {
+    "trade": "pest_control",
+    "text": "Anti-termite treatment",
+    "keys": [
+     "pest_control.termite_treatment"
+    ],
+    "keys_before": []
+   },
+   "key": "pest_control.termite_treatment",
+   "control": "networking"
+  },
+  {
+   "family": "deep_cleaning",
+   "group": "facilities_property",
+   "supplier": {
+    "trade": "cleaning",
+    "text": "Villa deep cleaning",
+    "keys": [
+     "cleaning.deep_cleaning"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "cleaning",
+    "text": "Move-out cleaning for an apartment",
+    "keys": [
+     "cleaning.deep_cleaning"
+    ],
+    "keys_before": []
+   },
+   "key": "cleaning.deep_cleaning",
+   "control": "pos"
+  },
+  {
+   "family": "cctv",
+   "group": "mep_building_systems",
+   "supplier": {
+    "trade": "security_systems",
+    "text": "CCTV camera installation",
+    "keys": [
+     "security_systems.cctv"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "security_systems",
+    "text": "Security cameras for the warehouse",
+    "keys": [
+     "security_systems.cctv"
+    ],
+    "keys_before": []
+   },
+   "key": "security_systems.cctv",
+   "control": "labour_transport"
+  },
+  {
+   "family": "shop_signs",
+   "group": "marketing_media_events",
+   "supplier": {
+    "trade": "signage",
+    "text": "Shop signboards",
+    "keys": [
+     "signage.shop_signs"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "signage",
+    "text": "Storefront signage for my restaurant",
+    "keys": [
+     "signage.shop_signs"
+    ],
+    "keys_before": []
+   },
+   "key": "signage.shop_signs",
+   "control": "car_leasing"
+  },
+  {
+   "family": "worktops",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "marble_stone",
+    "text": "Granite kitchen worktops",
+    "keys": [
+     "marble_stone.worktops_vanities"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "marble_stone",
+    "text": "Marble countertop for the kitchen",
+    "keys": [
+     "marble_stone.worktops_vanities"
+    ],
+    "keys_before": []
+   },
+   "key": "marble_stone.worktops_vanities",
+   "control": "ac_maintenance"
+  },
+  {
+   "family": "steel_structure",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "steel",
+    "text": "Steel structures fabrication",
+    "keys": [
+     "steel.structural_steel"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "steel",
+    "text": "Steel frame warehouse",
+    "keys": [
+     "steel.structural_steel"
+    ],
+    "keys_before": []
+   },
+   "key": "steel.structural_steel",
+   "control": "ac_maintenance"
+  },
+  {
+   "family": "car_park_shades",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "tents_shades",
+    "text": "Car parking shades",
+    "keys": [
+     "tents_shades.car_park_shades"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "tents_shades",
+    "text": "Parking shades for 10 cars",
+    "keys": [
+     "tents_shades.car_park_shades"
+    ],
+    "keys_before": []
+   },
+   "key": "tents_shades.car_park_shades",
+   "control": "ac_maintenance"
+  },
+  {
+   "family": "home_lifts",
+   "group": "mep_building_systems",
+   "supplier": {
+    "trade": "elevators",
+    "text": "Villa lifts",
+    "keys": [
+     "elevators.home_lifts"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "elevators",
+    "text": "Home elevator for a two storey villa",
+    "keys": [
+     "elevators.home_lifts"
+    ],
+    "keys_before": [
+     "elevators.home_lifts"
+    ]
+   },
+   "key": "elevators.home_lifts",
+   "control": "film_wrap"
+  },
+  {
+   "family": "solar",
+   "group": "energy_environment",
+   "supplier": {
+    "trade": "solar",
+    "text": "Solar panels installation",
+    "keys": [
+     "solar.pv_install"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "solar",
+    "text": "Rooftop solar system for my villa",
+    "keys": [
+     "solar.pv_install"
+    ],
+    "keys_before": []
+   },
+   "key": "solar.pv_install",
+   "control": "aluminium_windows"
+  },
+  {
+   "family": "fire_alarm",
+   "group": "mep_building_systems",
+   "supplier": {
+    "trade": "fire_fighting",
+    "text": "Fire alarm systems",
+    "keys": [
+     "fire_fighting.fire_alarm"
+    ],
+    "keys_before": [
+     "fire_fighting.fire_alarm"
+    ]
+   },
+   "customer": {
+    "trade": "fire_fighting",
+    "text": "Smoke detectors for the building",
+    "keys": [
+     "fire_fighting.fire_alarm"
+    ],
+    "keys_before": []
+   },
+   "key": "fire_fighting.fire_alarm",
+   "control": "shower_glass"
+  },
+  {
+   "family": "generator_rental",
+   "group": "energy_environment",
+   "supplier": {
+    "trade": "power_generators",
+    "text": "Diesel generator hire",
+    "keys": [
+     "power_generators.generator_rental"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "event_equipment_rental",
+    "text": "Silent generator rental for a wedding",
+    "keys": [
+     "power_generators.generator_rental"
+    ],
+    "keys_before": []
+   },
+   "key": "power_generators.generator_rental",
+   "control": "false_ceiling"
+  },
+  {
+   "family": "ro_plant",
+   "group": "energy_environment",
+   "supplier": {
+    "trade": "water_treatment",
+    "text": "RO water purification plants",
+    "keys": [
+     "water_treatment.ro_plants"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "water_treatment",
+    "text": "Reverse osmosis system for a villa",
+    "keys": [
+     "water_treatment.ro_plants"
+    ],
+    "keys_before": []
+   },
+   "key": "water_treatment.ro_plants",
+   "control": "interior_painting"
+  },
+  {
+   "family": "patient_monitors",
+   "group": "health_lab_safety",
+   "supplier": {
+    "trade": "medical_equipment",
+    "text": "Patient monitoring systems",
+    "keys": [
+     "medical_equipment.patient_monitors"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "medical_equipment",
+    "text": "Vital signs monitors for a clinic",
+    "keys": [
+     "medical_equipment.patient_monitors"
+    ],
+    "keys_before": []
+   },
+   "key": "medical_equipment.patient_monitors",
+   "control": "epoxy"
+  },
+  {
+   "family": "fall_protection",
+   "group": "health_lab_safety",
+   "supplier": {
+    "trade": "safety_equipment",
+    "text": "Fall arrest systems",
+    "keys": [
+     "safety_equipment.fall_protection"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "safety_equipment",
+    "text": "Safety harnesses for workers at height",
+    "keys": [
+     "safety_equipment.fall_protection"
+    ],
+    "keys_before": []
+   },
+   "key": "safety_equipment.fall_protection",
+   "control": "roof_waterproofing"
+  },
+  {
+   "family": "forklifts",
+   "group": "industrial_manufacturing",
+   "supplier": {
+    "trade": "material_handling",
+    "text": "Forklift sales and forklift rental",
+    "keys": [
+     "material_handling.forklifts_sale_rent"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "material_handling",
+    "text": "Forklift on rent for the warehouse",
+    "keys": [
+     "material_handling.forklifts_sale_rent"
+    ],
+    "keys_before": []
+   },
+   "key": "material_handling.forklifts_sale_rent",
+   "control": "ac_maintenance"
+  },
+  {
+   "family": "laser_cutting",
+   "group": "industrial_manufacturing",
+   "supplier": {
+    "trade": "cnc_machining",
+    "text": "CNC laser cutting services",
+    "keys": [
+     "cnc_machining.laser_waterjet_cutting"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "cnc_machining",
+    "text": "Waterjet cutting for steel plates",
+    "keys": [
+     "cnc_machining.laser_waterjet_cutting"
+    ],
+    "keys_before": []
+   },
+   "key": "cnc_machining.laser_waterjet_cutting",
+   "control": "leak_repair"
+  },
+  {
+   "family": "catalogues",
+   "group": "marketing_media_events",
+   "supplier": {
+    "trade": "commercial_printing",
+    "text": "Catalogue printing",
+    "keys": [
+     "commercial_printing.brochures_catalogues"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "commercial_printing",
+    "text": "Product brochures for a launch",
+    "keys": [
+     "commercial_printing.brochures_catalogues"
+    ],
+    "keys_before": []
+   },
+   "key": "commercial_printing.brochures_catalogues",
+   "control": "lighting"
+  },
+  {
+   "family": "exhibition_stands",
+   "group": "marketing_media_events",
+   "supplier": {
+    "trade": "exhibition_stands",
+    "text": "Bespoke exhibition stand building",
+    "keys": [
+     "exhibition_stands.custom_stands"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "event_management",
+    "text": "Exhibition booth for GITEX",
+    "keys": [
+     "exhibition_stands.custom_stands"
+    ],
+    "keys_before": []
+   },
+   "key": "exhibition_stands.custom_stands",
+   "control": "kitchens"
+  },
+  {
+   "family": "cartons",
+   "group": "materials_packaging",
+   "supplier": {
+    "trade": "corrugated_packaging",
+    "text": "Corrugated carton boxes manufacturing",
+    "keys": [
+     "corrugated_packaging.regular_slotted_cartons"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "corrugated_packaging",
+    "text": "Master cartons for export",
+    "keys": [
+     "corrugated_packaging.regular_slotted_cartons"
+    ],
+    "keys_before": []
+   },
+   "key": "corrugated_packaging.regular_slotted_cartons",
+   "control": "blinds"
+  },
+  {
+   "family": "labels",
+   "group": "materials_packaging",
+   "supplier": {
+    "trade": "labels_sleeves",
+    "text": "Self adhesive label printing",
+    "keys": [
+     "labels_sleeves.self_adhesive_labels"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "labels_sleeves",
+    "text": "Product stickers for honey jars",
+    "keys": [
+     "labels_sleeves.self_adhesive_labels"
+    ],
+    "keys_before": []
+   },
+   "key": "labels_sleeves.self_adhesive_labels",
+   "control": "sofa"
+  },
+  {
+   "family": "topo_survey",
+   "group": "professional_business",
+   "supplier": {
+    "trade": "land_survey",
+    "text": "Topographical surveying",
+    "keys": [
+     "land_survey.topographic_survey"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "land_survey",
+    "text": "Topo survey for a plot in Al Barsha",
+    "keys": [
+     "land_survey.topographic_survey"
+    ],
+    "keys_before": []
+   },
+   "key": "land_survey.topographic_survey",
+   "control": "irrigation"
+  },
+  {
+   "family": "legal_translation",
+   "group": "professional_business",
+   "supplier": {
+    "trade": "translation_interpretation",
+    "text": "Legal translation",
+    "keys": [
+     "translation_interpretation.certified_legal_translation"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "translation_interpretation",
+    "text": "Sworn translation for court documents",
+    "keys": [
+     "translation_interpretation.certified_legal_translation"
+    ],
+    "keys_before": []
+   },
+   "key": "translation_interpretation.certified_legal_translation",
+   "control": "pool_maintenance"
+  },
+  {
+   "family": "networking",
+   "group": "technology_telecom",
+   "supplier": {
+    "trade": "it_services",
+    "text": "LAN networking",
+    "keys": [
+     "it_services.network_install"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "it_services",
+    "text": "Wi-Fi coverage for the office",
+    "keys": [
+     "it_services.network_install"
+    ],
+    "keys_before": []
+   },
+   "key": "it_services.network_install",
+   "control": "termites"
+  },
+  {
+   "family": "pos",
+   "group": "technology_telecom",
+   "supplier": {
+    "trade": "pos_retail",
+    "text": "POS systems for retail",
+    "keys": [
+     "pos_retail.pos_terminals"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "pos_retail",
+    "text": "Cashier system for my shop",
+    "keys": [
+     "pos_retail.pos_terminals"
+    ],
+    "keys_before": []
+   },
+   "key": "pos_retail.pos_terminals",
+   "control": "deep_cleaning"
+  },
+  {
+   "family": "labour_transport",
+   "group": "transport_mobility",
+   "supplier": {
+    "trade": "staff_transport",
+    "text": "Labour transportation buses",
+    "keys": [
+     "staff_transport.labour_transport"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "staff_transport",
+    "text": "Workers transportation from camp to site",
+    "keys": [
+     "staff_transport.labour_transport"
+    ],
+    "keys_before": []
+   },
+   "key": "staff_transport.labour_transport",
+   "control": "cctv"
+  },
+  {
+   "family": "car_leasing",
+   "group": "transport_mobility",
+   "supplier": {
+    "trade": "vehicle_leasing",
+    "text": "Corporate car leasing",
+    "keys": [
+     "vehicle_leasing.long_term_leasing"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "vehicle_leasing",
+    "text": "Monthly car rental for our sales team",
+    "keys": [
+     "vehicle_leasing.long_term_leasing"
+    ],
+    "keys_before": []
+   },
+   "key": "vehicle_leasing.long_term_leasing",
+   "control": "shop_signs"
+  },
+  {
+   "family": "scaffolding",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "scaffolding",
+    "text": "Scaffolding hire",
+    "keys": [
+     "scaffolding.rental"
+    ],
+    "keys_before": [
+     "scaffolding.rental"
+    ]
+   },
+   "customer": {
+    "trade": "scaffolding",
+    "text": "Cuplock scaffolding for a facade repair",
+    "keys": [
+     "scaffolding.rental"
+    ],
+    "keys_before": []
+   },
+   "key": "scaffolding.rental",
+   "control": "home_lifts"
+  },
+  {
+   "family": "crane_hire",
+   "group": "construction_building",
+   "supplier": {
+    "trade": "heavy_equipment",
+    "text": "Mobile crane rental",
+    "keys": [
+     "heavy_equipment.crane_hire"
+    ],
+    "keys_before": []
+   },
+   "customer": {
+    "trade": "heavy_equipment",
+    "text": "Crane on rent for lifting AC units",
+    "keys": [
+     "heavy_equipment.crane_hire"
+    ],
+    "keys_before": []
+   },
+   "key": "heavy_equipment.crane_hire",
+   "control": "home_lifts"
+  }
+ ],
+ "confusables": [
+  {
+   "name": "vinyl flooring is not PVC wall panels",
+   "inquiry": "wall_panels",
+   "supplier": {
+    "trade": "flooring",
+    "services": [
+     "flooring.parquet_vinyl"
+    ]
+   },
+   "expect": "excluded"
+  },
+  {
+   "name": "a label and sticker printer is not a film-wrap applicator",
+   "inquiry": "film_wrap",
+   "supplier": {
+    "trade": "packaging",
+    "services": [
+     "packaging.labels"
+    ]
+   },
+   "expect": "excluded"
+  },
+  {
+   "name": "a pool builder in landscaping does not get weekly pool cleaning",
+   "inquiry": "pool_maintenance",
+   "supplier": {
+    "trade": "landscaping",
+    "services": [
+     "landscaping.pools"
+    ]
+   },
+   "expect": "excluded"
+  },
+  {
+   "name": "an aluminium window maker (adjacent to glazing) does not get a shower partition",
+   "inquiry": "shower_glass",
+   "supplier": {
+    "trade": "aluminium",
+    "services": [
+     "aluminium.windows_doors"
+    ]
+   },
+   "expect": "excluded"
+  },
+  {
+   "name": "an exterior-only painter does not get interior painting",
+   "inquiry": "interior_painting",
+   "supplier": {
+    "trade": "painting",
+    "services": [
+     "painting.exterior"
+    ]
+   },
+   "expect": "excluded"
+  },
+  {
+   "name": "a sofa upholsterer (adjacent to curtains and blinds) does not get roller blinds",
+   "inquiry": "blinds",
+   "supplier": {
+    "trade": "upholstery",
+    "services": [
+     "upholstery.sofa"
+    ]
+   },
+   "expect": "excluded"
+  },
+  {
+   "name": "a plant-hire firm (adjacent) without forklifts does not get a forklift rental",
+   "inquiry": "forklifts",
+   "supplier": {
+    "trade": "heavy_equipment",
+    "services": [
+     "heavy_equipment.earthmoving"
+    ]
+   },
+   "expect": "excluded"
+  },
+  {
+   "name": "an access-platform renter (adjacent to heavy equipment) does not get a crane",
+   "inquiry": "crane_hire",
+   "supplier": {
+    "trade": "scaffolding",
+    "services": [
+     "scaffolding.access_platforms"
+    ]
+   },
+   "expect": "excluded"
+  },
+  {
+   "name": "a law firm with no translation service (adjacent) does not get a sworn translation",
+   "inquiry": "legal_translation",
+   "supplier": {
+    "trade": "legal_services",
+    "services": []
+   },
+   "expect": "excluded"
+  },
+  {
+   "name": "an interior decorator is reached for PVC wall panels through adjacency and the curated implication",
+   "inquiry": "wall_panels",
+   "supplier": {
+    "trade": "interior_fitout",
+    "services": [
+     "interior_fitout.decoration"
+    ]
+   },
+   "expect": "matched"
+  },
+  {
+   "name": "an AC installer is reached for AC servicing through the curated implication",
+   "inquiry": "ac_maintenance",
+   "supplier": {
+    "trade": "hvac",
+    "services": [
+     "hvac.supply_install"
+    ]
+   },
+   "expect": "matched"
+  },
+  {
+   "name": "a forklift dealer is reached for a forklift request classified under heavy equipment",
+   "inquiry": "forklifts",
+   "supplier": {
+    "trade": "material_handling",
+    "services": [
+     "material_handling.forklifts_sale_rent"
+    ]
+   },
+   "expect": "matched",
+   "inquiry_trade": "heavy_equipment"
+  }
+ ]
+}

@@ -32,7 +32,9 @@ import { arNorm, termPattern } from './alias_pattern.ts';
 
 export type ServiceTerm = { trade_code: string; code: string; label_en: string; label_ar: string; aliases?: string[] | null };
 export type RewriteItem =
-  | { kind: 'service'; key: string; trade: string; label_en: string; label_ar: string; from: string }
+  // `part`: the words of `from` that ARE this service's name (the whole phrase, or one list part of it, its delivery frame cut).
+  // It is the supplier's own name for the service, which the alias queue cites (profile_services.aliasPairsOf).
+  | { kind: 'service'; key: string; trade: string; label_en: string; label_ar: string; from: string; part?: string }
   | { kind: 'trade'; trades: string[]; text: string; from: string }
   | { kind: 'unmatched'; text: string; from: string };
 export type Rewrite = { items: RewriteItem[]; service_keys: string[]; own_words: string[]; summary_en: string; summary_ar: string };
@@ -212,13 +214,25 @@ export const withoutAudience = (phrase: string): string => {
   return cut.length >= 2 ? cut : phrase;
 };
 
+/** HOW THE WORK IS DELIVERED IS NOT PART OF ITS NAME (10 Nov 2026, sales_engineer; founder ledger 1573/1579). A profile
+ *  writes "Supply and installation of PVC decorative panels"; split at "and" that is "Supply" and "installation of PVC
+ *  decorative panels", and the second never equalled a name, so the supplier's own service stayed unnamed (design audit
+ *  10 Nov 2026, the PVC dry-run). The "<supply | installation | fixing> of" FRAME is cut from the front of a part, as
+ *  the audience after "for" is cut from its end: grammar, not vocabulary, and the rest must still EQUAL a name whole.
+ *  Only the supply/install frame: "maintenance of", "repair of" and "design of" name a different service and stay. */
+const DELIVERY_FRAME = /^(?:the\s+)?(?:supply|supplying|installation|installing|install|fixing|supply\s+and\s+installation|supply\s*&\s*installation)\s+of\s+(?=\S)/i;
+export const withoutFrame = (part: string): string => {
+  const cut = part.replace(DELIVERY_FRAME, '').trim();
+  return cut.length >= 2 ? cut : part;
+};
+
 /** Rule 3: a phrase's parts, split at the connectives a list uses. Prose is set aside: a phrase that is not
  *  service-shaped as a whole ("We are a leading company with many years of experience") has no parts. */
 export function phraseParts(phrase: string): string[] {
   const head = withoutAudience(phrase);
   if (!looksLikeAService(head)) return [];
   return head.split(/\s+(?:and|or|with|plus)\s+|\s*[&+]\s*|\s+و\s+/i)
-    .map((p) => p.trim()).filter((p) => p.length >= 2 && looksLikeAService(p));
+    .map((p) => withoutFrame(p.trim())).filter((p) => p.length >= 2 && looksLikeAService(p));
 }
 
 /** Rule 4: a part that is no service exactly — the supplier's own words for review.
@@ -229,8 +243,8 @@ function wordsItem(text: string, from: string): RewriteItem | null {
   return looksLikeAService(t) ? { kind: 'unmatched', text: t, from } : null;
 }
 
-const serviceItem = (s: ServiceTerm, from: string): RewriteItem =>
-  ({ kind: 'service', key: `${s.trade_code}.${s.code}`, trade: s.trade_code, label_en: s.label_en, label_ar: s.label_ar, from });
+const serviceItem = (s: ServiceTerm, from: string, part: string = from): RewriteItem =>
+  ({ kind: 'service', key: `${s.trade_code}.${s.code}`, trade: s.trade_code, label_en: s.label_en, label_ar: s.label_ar, from, part });
 
 /** The whole rewrite, exactly. `services` are the active taxonomy_trade_service rows. */
 export type RewriteOptions = { supplyOnly?: boolean; maxText?: number; maxPhrases?: number };
@@ -254,8 +268,8 @@ export function rewriteServices(text: string, services: ServiceTerm[], opts: Rew
     // own words keep the whole wording; only a head that IS a service drops the tail ("False ceilings for hotels").
     const tail = parts.length ? phrase.slice(withoutAudience(phrase).length).trim() : '';
     const own = (p: string, last: boolean) => wordsItem(last && tail ? `${p} ${tail}` : p, phrase);
-    if (parts.length <= 1) { const p = parts[0] ?? phrase; const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : own(p, true)); continue; }
-    parts.forEach((p, i) => { const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : own(p, i === parts.length - 1)); });
+    if (parts.length <= 1) { const p = parts[0] ?? phrase; const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase, p) : own(p, true)); continue; }
+    parts.forEach((p, i) => { const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase, p) : own(p, i === parts.length - 1)); });
   }
   return finishRewrite(items);
 }

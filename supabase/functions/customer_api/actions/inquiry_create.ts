@@ -21,6 +21,7 @@ import { type ActionCtx, INQUIRY_LIMIT_PER_HOUR, J, SERVICE, SUPABASE_URL, admin
 import { inquiryNotSaved, labelize } from '../lib/inquiry_rules.ts';
 import { resolveRedactedPaths } from '../lib/drawings.ts';
 import { matchAndNotify } from '../lib/matching.ts';
+import { keysOfTrade, serviceKeyCols, stateKeysForIntake } from '../lib/state_service_keys.ts';
 
 export async function inquiryCreateActions(c: ActionCtx): Promise<Response | undefined> {
   let { body, action } = c;
@@ -290,6 +291,10 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // A repeated request is linked to the one it copies (founder_instruction 1028); read from the server-side intake only.
       const briefCols = { floor: floorTxt, delivery_window: timelineTxt, required_by: requiredBy, project_id: projectId, ...(briefObj?.repeat_of ? { repeat_of: String(briefObj.repeat_of) } : {}) };
 
+      // THE SERVICES THE CUSTOMER CHOSE (10 Nov 2026, ledger 1573/1579): exact keys from the conversation state, when it holds
+      // them (lib/state_service_keys.ts); otherwise none, and dispatch reads the brief as before.
+      const stateKeys = intake ? await stateKeysForIntake(admin, String(intake.id)) : [];
+
       if (wantSplit) {
         // ALL OR NOTHING (_shared/inquiry_split.ts; review of #653). Parent and every child are saved
         // first; any failed child removes what was saved and the post fails naming the trades, so no
@@ -304,7 +309,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
             return error || !data ? null : String(data.id);
           },
           insertChild: async (tr) => {
-            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, parent_inquiry_id: parentIdRef.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary(tr), keywords: childKw(tr), status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
+            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, parent_inquiry_id: parentIdRef.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary(tr), keywords: childKw(tr), status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(await keysOfTrade(admin, stateKeys, tr)), compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
             return error || !data ? null : String(data.id);
           },
           deleteInquiries: async (ids) => {
@@ -341,7 +346,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
 
       if (wantTurnkey) {
         const tkKeywords = Array.from(new Set([...keywords, 'fitout', 'fit out', 'fit-out', 'turnkey', 'interior', 'renovation', 'decoration', ...distinctTrades])).slice(0, 40);
-        const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
+        const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
         if (e1) return J(...inquiryNotSaved(e1));
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         const tradeList = distinctTrades.map(labelize).join(', ');
@@ -350,7 +355,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         return J({ ...postedSingle(String(inq!.id), 'turnkey', matches), concierge: await confirmRequest(String(inq!.id)) });
       }
 
-      const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
+      const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
       if (e1) return J(...inquiryNotSaved(e1));
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
