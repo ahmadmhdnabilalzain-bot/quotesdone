@@ -1,0 +1,1820 @@
+{
+ "eval": "A",
+ "at": "2026-11-10T03:44:59.694Z",
+ "pass": false,
+ "metrics": {
+  "cases": 40,
+  "candidate_replies": 40,
+  "control_replies": 20,
+  "critical_errors": 1,
+  "critical_list": [
+   "eg-x1: invented_figure"
+  ],
+  "must_present_pct": 100,
+  "rewrite_rate_pct": 12.5,
+  "second_rung_rate_pct": 0,
+  "register_pct": 100,
+  "judge_mean_candidate": 8.425,
+  "judge_mean_candidate_paired": 8.6,
+  "judge_mean_control_paired": 8.1,
+  "judged_candidate": 40,
+  "paired": 20,
+  "judge_models": [
+   "anthropic/claude-sonnet-5.5",
+   "anthropic/claude-sonnet-5.5",
+   "anthropic/claude-sonnet-5.5",
+   "anthropic/claude-sonnet-5.5"
+  ],
+  "candidate_models": [
+   "openai/gpt-6-luna-pro",
+   "anthropic/claude-sonnet-5.5"
+  ],
+  "control_models": [
+   "anthropic/claude-sonnet-5.5"
+  ],
+  "spend_usd": 0.3534,
+  "cap_usd": 0.7,
+  "run_tag": "qd_run:evala2439cf7ec47",
+  "stopped": null
+ },
+ "rows": [
+  {
+   "case": {
+    "id": "en-s1",
+    "register": "en",
+    "kind": "status",
+    "lang": "en",
+    "message": "Hi, any update on my request?",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer en-s1\",\"requests\":[{\"ref\":\"#5101\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":5,\"quotes_received\":2}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5101 (gypsum partitions) is open: 5 matched suppliers received it and 2 quotes have come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5101"
+    ],
+    "expect": "request #5101 is open, 5 suppliers received it, 2 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "Your request #5101 for gypsum partitions is open. It has gone to 5 matched suppliers, and 2 quotes have come in so far; the comparison report is prepared once the quotes are in.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 13971,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "Hi, your request #5101 for gypsum partitions is open and quotes are still being collected. It went to 5 matched suppliers and 2 quotes have come in so far. The comparison report is prepared once the quotes are in.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 13370,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Conveys all the facts exactly: request open, 5 suppliers, 2 quotes, report to follow."
+    },
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate and warm, with a greeting; all facts conveyed."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "en-s2",
+    "register": "en",
+    "kind": "status",
+    "lang": "en",
+    "message": "how many quotes did i get so far",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer en-s2\",\"requests\":[{\"ref\":\"#5102\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":4,\"quotes_received\":0}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5102 (gypsum partitions) is open: 4 matched suppliers received it and 0 quotes have come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5102"
+    ],
+    "expect": "request #5102 is open, 4 suppliers received it, 0 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "You have received 0 quotes so far for Request #5102 (gypsum partitions). Four matched suppliers have received it, and the request is still open.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:prose, asked again for the object: unparseable (144 chars): \"You have received 0 quotes so far for Request #5102 (gypsum partitions). Four matched suppliers have received it, and the request is still open.\"",
+      "rewrite:ok [it is plain text, not the one JSON object your instructions ask for (return the object, with every key)]"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 25745,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 7,
+     "register_ok": true,
+     "critical": null,
+     "why": "Answers directly and accurately, but \"You have received 0 quotes\" is a bit stiff and it omits the comparison-report note."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "en-s3",
+    "register": "en",
+    "kind": "status",
+    "lang": "en",
+    "message": "Is anyone working on my partition job? Its been 2 days",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer en-s3\",\"requests\":[{\"ref\":\"#5103\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":3,\"quotes_received\":1}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5103 (gypsum partitions) is open: 3 matched suppliers received it and 1 quote has come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5103"
+    ],
+    "expect": "request #5103 is open, 3 suppliers received it, 1 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "Yes—your gypsum partitions request #5103 is open. It has been received by 3 matched suppliers, and 1 quote has come in so far; the comparison report is prepared once the quotes are in.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 14800,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "Yes, your request #5103 (gypsum partitions) is open and quotes are being collected. It went to 3 matched suppliers, and 1 quote has come in so far. The comparison report is prepared once the quotes are in.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 7063,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Directly answers whether anyone is working on it, with accurate facts."
+    },
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate, natural and complete."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "en-i1",
+    "register": "en",
+    "kind": "invoice",
+    "lang": "en",
+    "message": "Can you send me my invoice again please, I deleted the email",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nA customer's invoice and payment receipt for a revealed quote are in the customer portal, https://quotesdone.com/me : My requests, open the request, then \"Invoice (PDF)\" or \"Receipt (PDF)\" on the revealed quote (an Arabic invoice is offered there too). A payment that has not completed has no invoice or receipt yet.",
+    "must": [
+     "https://quotesdone.com/me"
+    ],
+    "expect": "invoice and receipt are in the portal: My requests > the request > Invoice (PDF) / Receipt (PDF)"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "Open the customer portal:\nhttps://quotesdone.com/me\nGo to My requests, open the request, then select “Invoice (PDF)” on the revealed quote. An Arabic invoice is also available there. If the payment has not completed, no invoice or receipt is available yet.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 13532,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Gives the correct portal path and the caveat about incomplete payments; somewhat terse and mentions only the invoice, not the receipt."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "en-r1",
+    "register": "en",
+    "kind": "report",
+    "lang": "en",
+    "message": "Is my comparison ready yet?",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer en-r1\",\"requests\":[{\"ref\":\"#5104\",\"trade\":\"aluminium windows\",\"status\":\"comparison report ready\",\"quotes_received\":3}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nThe comparison report for request #5104 (aluminium windows) is ready: 3 quotes are compared side by side in the customer portal, https://quotesdone.com/me , under My requests. Suppliers stay anonymous until the customer chooses one to reveal.",
+    "must": [
+     "#5104"
+    ],
+    "expect": "the comparison report for #5104 is ready, 3 quotes, in My requests"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "Yes, the comparison report for request #5104 (aluminium windows) is ready, with 3 quotes compared side by side. Find it in the customer portal under My requests:\nhttps://quotesdone.com/me\nSuppliers stay anonymous until you choose one to reveal.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 13187,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "Yes, the comparison report for your request #5104 (aluminium windows) is ready. It compares 3 quotes side by side in your customer portal under My requests:\nhttps://quotesdone.com/me\nSuppliers stay anonymous until you choose one to reveal.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 9871,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Confirms the report is ready with the 3 quotes and the location, and keeps suppliers anonymous."
+    },
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate and natural, with the same facts."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "en-c1",
+    "register": "en",
+    "kind": "code",
+    "lang": "en",
+    "message": "my verification code didnt come",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nA new sign-in code can be asked for on the sign-in page, and asking for a new one cancels every earlier code, so only the newest code works. A code sent on WhatsApp that has not arrived within a minute can be sent by SMS instead with the \"Send it by SMS instead\" button. Nobody from QuotesDone asks for a code.",
+    "expect": "ask for a new code on the sign-in page (it cancels older codes); WhatsApp code -> \"Send it by SMS instead\""
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "Request a new sign-in code on the sign-in page; requesting another cancels all earlier codes, so only the newest one will work. If your WhatsApp code hasn’t arrived within a minute, tap “Send it by SMS instead”. Nobody from QuotesDone will ask you for your code.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 9577,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Covers the new-code step, the SMS fallback and the security note."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "en-p1",
+    "register": "en",
+    "kind": "support",
+    "lang": "en",
+    "message": "What does it cost me to use QuotesDone?",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.",
+    "expect": "posting and comparing are free; 3% reveal fee of the chosen quote, no card fee, no VAT on it"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "Posting a request and receiving and comparing quotes are free. If you choose a quote and reveal that supplier’s details, the fee is 3% of the final quoted price after any discount, excluding VAT. No card fee is added, and no VAT is charged on the reveal fee.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 10153,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "Posting your request, receiving quotes and comparing them is free. You only pay when you choose a supplier and want to unlock their identity and contact details: a 3% reveal fee on the selected quote's final price (after any discount, excluding VAT). For example, a quote of AED 10,000 ex-VAT means a fee of AED 300. There is no cap. No card fee is added and no VAT is charged on this fee. You can cancel before reveal or decline every quote at no cost. Are you planning a job now?",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 6356,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Gives the fee facts exactly as the brief states them, with the base after discount and ex-VAT."
+    },
+    "control": {
+     "score": 7,
+     "register_ok": true,
+     "critical": null,
+     "why": "Facts and the AED 300 example are correct, but it is long and ends with a needless intake question."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "en-p2",
+    "register": "en",
+    "kind": "support",
+    "lang": "en",
+    "message": "If I pay the reveal fee and the supplier does not answer, do I get a refund?",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.",
+    "expect": "states the refund position from the brief without promising a refund"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "If the supplier does not respond, QuotesDone chases them on working day 3 and sends the case to the CEO for a final decision on working day 5. If the supplier is still silent, the full amount you paid is refunded; nothing is deducted. Refunds are not automatic, and your bank may take 7–14 working days to show the refund. Working days are Monday to Friday, excluding UAE public holidays.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 18308,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 7,
+     "register_ok": true,
+     "critical": null,
+     "why": "The ladder is correct and no refund is promised, but it never says the refund is the full amount via the CEO's decision, and the statement that refunds are not automatic is slightly muddled alongside \"is refunded\"."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "en-x1",
+    "register": "en",
+    "kind": "supplier",
+    "lang": "en",
+    "message": "I want to submit a revised quote for Job 7731, how?",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED SUPPLIER (ZZ DEMO Eval Gypsum Works LLC), already verified. Their OWN record is supplied below and you may state it back to them plainly.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"company\":\"ZZ DEMO Eval Gypsum Works LLC\",\"status\":\"verified\",\"open_jobs\":[{\"job\":\"Job 7731\",\"trade\":\"gypsum partitions\",\"quote_due\":\"quotes accepted until the customer selects a supplier\"}]}",
+    "expect": "revise in the portal: open the job, attach a revised file / submit again replaces the earlier quote for that option"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "You can refresh your quotation for Job 7731 before the customer reveals it. Send the revised quotation from the job; it replaces the earlier submission for that option and is checked again. If the customer has already revealed you, the revealed quotation remains binding during its validity, and any change must be agreed directly with the customer.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 14272,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "Revising works differently depending on whether the customer has revealed you yet. Job 7731 is still open, so no reveal has happened. In that case, open Job 7731 under Inquiries received, send a revised quotation, and attach or type it as you did before. The new submission replaces your earlier one for that option and is checked again. Please state exact specs, lead time, validity and VAT basis, and keep phone numbers, emails and your company name out of it. You can also withdraw the earlier quote if you prefer. Once a customer reveals you, the quote binds within its validity and any change is agreed directly with them.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 7148,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "control": {
+     "score": 6,
+     "register_ok": true,
+     "critical": "wrong_fact",
+     "why": "Names a portal section, \"Inquiries received\", that the brief does not state, and the reply is wordy and starts with an awkward framing."
+    },
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Concise and accurate on the refresh before reveal and the binding after reveal."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "en-v1",
+    "register": "en",
+    "kind": "visitor",
+    "lang": "en",
+    "message": "How does QuotesDone work?",
+    "expect": "post a request free, verified suppliers quote anonymously, compare, reveal fee 3%"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "Describe your job on QuotesDone and the Smart Engine helps make the brief ready for pricing. We match it with suitable verified UAE suppliers, who send anonymous quotes. You compare them for free, then pay a 3% reveal fee on the selected quote to unlock that supplier’s details. No card fee is added, and no VAT is charged on the reveal fee. You then agree the scope, price and timing directly with the supplier; QuotesDone does not hold payment for the work.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 11793,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Gives an accurate, concise overview of the flow and the fee, and says there is no escrow."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "gu-s1",
+    "register": "gulf",
+    "kind": "status",
+    "lang": "ar",
+    "message": "السلام عليكم، شلون طلبي؟ أبي أعرف وين وصل",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer gu-s1\",\"requests\":[{\"ref\":\"#5201\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":6,\"quotes_received\":3}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5201 (gypsum partitions) is open: 6 matched suppliers received it and 3 quotes have come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5201"
+    ],
+    "expect": "request #5201 is open, 6 suppliers received it, 3 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "وعليكم السلام. طلبك رقم #5201 لأعمال القواطع الجبسية مفتوح وجارٍ جمع عروض الأسعار؛ وصلتنا 3 عروض من 6 موردين تمت مطابقتهم. يُجهّز تقرير المقارنة عند اكتمال وصول العروض.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 10933,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "وعليكم السلام ورحمة الله. طلبكم رقم #5201 (جدران الجبس) ما زال مفتوحًا، وقد وصل إلى 6 موردين مطابقين وتم استلام 3 عروض حتى الآن. سيتم إعداد تقرير المقارنة بعد اكتمال وصول العروض.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 5780,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate status, 6 suppliers, 3 quotes, polite Arabic."
+    },
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Correct facts; 'وصلتنا 3 عروض من 6 موردين' slightly implies the quotes came from all 6, a minor imprecision."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "gu-s2",
+    "register": "gulf",
+    "kind": "status",
+    "lang": "ar",
+    "message": "كم عرض وصلني لين الحين؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer gu-s2\",\"requests\":[{\"ref\":\"#5202\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":4,\"quotes_received\":1}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5202 (gypsum partitions) is open: 4 matched suppliers received it and 1 quote has come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5202"
+    ],
+    "expect": "request #5202 is open, 4 suppliers received it, 1 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "وصل عرض واحد حتى الآن لطلب #5202، والطلب ما زال مفتوحاً والعروض قيد الجمع. يُجهّز تقرير المقارنة بعد وصول العروض.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 8658,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Answers the question directly with 1 quote and the open status; omits the supplier count, which was not asked."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "gu-s3",
+    "register": "gulf",
+    "kind": "status",
+    "lang": "ar",
+    "message": "wayed t2a5art, shu sar 3la tlabi?",
+    "history": [
+     {
+      "role": "customer",
+      "text": "هلا، عندي طلب جبس بورد"
+     },
+     {
+      "role": "seat",
+      "text": "هلا والله، كيف أقدر أساعدك؟"
+     }
+    ],
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer gu-s3\",\"requests\":[{\"ref\":\"#5203\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":5,\"quotes_received\":0}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5203 (gypsum partitions) is open: 5 matched suppliers received it and 0 quotes have come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5203"
+    ],
+    "expect": "request #5203 is open, 5 suppliers received it, 0 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "أفهم أن التأخير مزعج. طلبك رقم #5203 ما زال مفتوحًا، وقد وصل إلى 5 موردين مناسبين، ولم ترد أي عروض حتى الآن. يُجهّز تقرير المقارنة بعد ورود العروض.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 16196,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "أهلاً بك. طلبك رقم #5203 (جدران الجبس) ما زال مفتوحاً، وقد وصل إلى 5 موردين مناسبين، ولم يصل أي عرض سعر حتى الآن. سيتم إعداد تقرير المقارنة بعد وصول العروض.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 8930,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Empathetic, accurate: 5 suppliers, no quotes yet, request open."
+    },
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate and natural, though it doesn't acknowledge the customer's concern about the delay."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "gu-i1",
+    "register": "gulf",
+    "kind": "invoice",
+    "lang": "ar",
+    "message": "أبي نسخة من الفاتورة لو سمحت",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nA customer's invoice and payment receipt for a revealed quote are in the customer portal, https://quotesdone.com/me : My requests, open the request, then \"Invoice (PDF)\" or \"Receipt (PDF)\" on the revealed quote (an Arabic invoice is offered there too). A payment that has not completed has no invoice or receipt yet.",
+    "must": [
+     "https://quotesdone.com/me"
+    ],
+    "expect": "invoice and receipt are in the portal: My requests > the request > Invoice (PDF) / Receipt (PDF)"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "تجد نسخة الفاتورة في بوابة العميل: افتح «My requests»، ثم الطلب، واختر «Invoice (PDF)» في عرض السعر الذي تم كشفه. تتوفر هناك أيضاً فاتورة باللغة العربية.\nhttps://quotesdone.com/me",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 13274,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Gives the correct portal path and link and mentions the Arabic invoice."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "gu-r1",
+    "register": "gulf",
+    "kind": "report",
+    "lang": "ar",
+    "message": "المقارنة جاهزة ولا بعد؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer gu-r1\",\"requests\":[{\"ref\":\"#5204\",\"trade\":\"aluminium windows\",\"status\":\"comparison report ready\",\"quotes_received\":3}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nThe comparison report for request #5204 (aluminium windows) is ready: 3 quotes are compared side by side in the customer portal, https://quotesdone.com/me , under My requests. Suppliers stay anonymous until the customer chooses one to reveal.",
+    "must": [
+     "#5204"
+    ],
+    "expect": "the comparison report for #5204 is ready, 3 quotes, in My requests"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "نعم، تقرير المقارنة للطلب #5204 الخاص بنوافذ الألمنيوم جاهز، ويعرض 3 عروض جنباً إلى جنب في بوابة العملاء تحت My requests.\nhttps://quotesdone.com/me\nتبقى هوية الموردين مخفية حتى تختاروا كشف هوية أحدهم.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 13921,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "نعم، تقرير المقارنة لطلبكم رقم #5204 (نوافذ الألمنيوم) جاهز. تم مقارنة 3 عروض أسعار جنبًا إلى جنب في البوابة الإلكترونية ضمن قسم \"My requests\":\nhttps://quotesdone.com/me\nوتبقى أسماء الموردين مخفية إلى أن تختاروا مورّدًا لكشف هويته.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 7213,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Confirms the report is ready, 3 quotes, location and anonymity."
+    },
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate and complete; 'تم مقارنة' is slightly awkward but fine."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "gu-c1",
+    "register": "gulf",
+    "kind": "code",
+    "lang": "ar",
+    "message": "الكود ما وصلني، شو أسوي؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nA new sign-in code can be asked for on the sign-in page, and asking for a new one cancels every earlier code, so only the newest code works. A code sent on WhatsApp that has not arrived within a minute can be sent by SMS instead with the \"Send it by SMS instead\" button. Nobody from QuotesDone asks for a code.",
+    "expect": "ask for a new code on the sign-in page (it cancels older codes); WhatsApp code -> \"Send it by SMS instead\""
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "اطلب رمزاً جديداً من صفحة تسجيل الدخول؛ طلب رمز جديد يلغي جميع الرموز السابقة، ويعمل الرمز الأحدث فقط. إذا أُرسل الرمز عبر واتساب ولم يصلك خلال دقيقة، اضغط «Send it by SMS instead» لإرساله برسالة نصية. لا أحد من QuotesDone يطلب منك الرمز.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 13269,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Conveys all the facts, including SMS fallback and the no-code-requests note."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "gu-p1",
+    "register": "gulf",
+    "kind": "support",
+    "lang": "ar",
+    "message": "كم رسوم الكشف عن المورد؟ وفي ضريبة؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.",
+    "expect": "reveal fee 3% of the chosen quote, no card fee, no VAT charged on it"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "رسوم كشف بيانات المورد 3% من السعر النهائي للعرض المختار بعد أي خصم، من دون احتساب ضريبة المورد. لا تُضاف رسوم على الدفع بالبطاقة، ولا تُفرض ضريبة على رسوم الكشف.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 10794,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "رسوم الكشف عن المورد هي 3% من السعر النهائي للعرض الذي تختاره بعد أي خصم، دون احتساب ضريبة القيمة المضافة، وبلا سقف أعلى. لا تُضاف أي رسوم على الدفع بالبطاقة، ولا تُفرض أي ضريبة قيمة مضافة على هذه الرسوم، لأن QuotesDone غير مسجلة في ضريبة القيمة المضافة. المقارنة بين العروض مجانية بالكامل، والدفع يتم فقط عند اختيارك مورداً للكشف عن هويته وبيانات التواصل معه.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok",
+      "rewrite:ok [the figure AED 1700 (the brief states no such fee, price or rate); the figure AED 51 (the brief states no such fee, price or rate)]"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 15697,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Correct 3%, no card fee, no VAT; the wording 'من دون احتساب ضريبة المورد' is a bit unclear."
+    },
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate: 3%, no cap, no card fee, no VAT because not registered; adds free comparison."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "gu-p2",
+    "register": "gulf",
+    "kind": "support",
+    "lang": "ar",
+    "message": "زين، والموردين عندكم موثوقين؟ شلون تتأكدون منهم؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.",
+    "expect": "suppliers are verified (licence and documents checked) before they receive requests; no count of suppliers"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "نتحقق من اكتمال بيانات المورد ورخصته التجارية الإماراتية: نقرأ رقم الرخصة والجهة المصدرة وتاريخ انتهائها، ونتأكد أنها سارية، كما نراجع ملف الشركة والخدمات التي أكد أنه يقدمها. لكن «تم التحقق» لا يعني ضمان جودة العمل أو الملاءة المالية أو التأمين أو التصاريح، ولا يؤكد أن الرخصة تغطي عملك تحديدًا. قبل التعاقد، تحقّق من ترخيصه وتصاريحه وتأمينه ومراجعه المناسبة لنطاق عملك.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 12513,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Matches the verification page and limits, with due-diligence advice; no supplier count."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "gu-x1",
+    "register": "gulf",
+    "kind": "supplier",
+    "lang": "en",
+    "message": "Hello, Job 7731 deadline when? I want to send my price",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED SUPPLIER (ZZ DEMO Eval Gypsum Works LLC), already verified. Their OWN record is supplied below and you may state it back to them plainly.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"company\":\"ZZ DEMO Eval Gypsum Works LLC\",\"status\":\"verified\",\"open_jobs\":[{\"job\":\"Job 7731\",\"trade\":\"gypsum partitions\",\"quote_due\":\"quotes accepted until the customer selects a supplier\"}]}",
+    "expect": "quotes accepted until the customer selects a supplier; submit in the portal on the job"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "Job 7731 has no fixed deadline. Quotations are accepted until the customer selects a supplier, so you can submit your price before then.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 10396,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "Hello. Job 7731 (gypsum partitions) has no fixed deadline. Quotes are accepted until the customer selects a supplier, so send yours as soon as you can. Open the job under \"Inquiries received\" in your portal, then either attach your quotation for the sales engineer or type it into the quote form. Please state exact specs, delivery time, warranty, validity and whether VAT is included. Is your price ready to send?",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 7326,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "control": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Correct answer, but the portal section 'Inquiries received' and the 'sales engineer' attachment are not stated in the brief or facts."
+    },
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Direct, accurate, nothing invented."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "gu-v1",
+    "register": "gulf",
+    "kind": "visitor",
+    "lang": "ar",
+    "message": "وش هي كويتس دن؟ أبي أفهم الخدمة",
+    "expect": "what QuotesDone is: free request, anonymous verified quotes, compare, 3% reveal fee"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "QuotesDone منصة إماراتية لطلب عروض أسعار لأعمال البناء والتجهيز والصيانة. تشرح طلبك، ونطابقه مع موردين مؤهلين يرسلون عروضًا مجهولة الهوية؛ تقارنها مجانًا، ثم تدفع رسوم كشف 3% من السعر النهائي للعرض الذي تختاره، باستثناء ضريبة المورد، لفتح بياناته. لا تُضاف رسوم بطاقة ولا تُفرض ضريبة قيمة مضافة على رسوم الكشف. بعدها تتفق مباشرةً مع المورد؛ QuotesDone وسيط وليست مقاولًا.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok",
+      "rewrite:ok [it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)]"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 27795,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Clear summary in Arabic, with the 3% fee, no card fee, no VAT and the intermediary role, all consistent with the brief."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "eg-s1",
+    "register": "egy",
+    "kind": "status",
+    "lang": "ar",
+    "message": "لو سمحت عايز أعرف طلبي وصل لفين",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer eg-s1\",\"requests\":[{\"ref\":\"#5301\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":4,\"quotes_received\":2}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5301 (gypsum partitions) is open: 4 matched suppliers received it and 2 quotes have come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5301"
+    ],
+    "expect": "request #5301 is open, 4 suppliers received it, 2 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "طلبك رقم #5301 لأعمال القواطع الجبسية ما زال مفتوحًا وجارٍ جمع عروض الأسعار. وصل الطلب إلى 4 موردين، واستلمنا عرضين حتى الآن؛ ويُجهَّز تقرير المقارنة بعد ورود العروض.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 17219,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "السلام عليكم، طلبكم رقم #5301 (حواجز الجبس) ما زال مفتوحًا. وقد وصل إلى 4 موردين مطابقين، وتم استلام عرضين حتى الآن. يتم إعداد تقرير المقارنة بعد اكتمال وصول العروض.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 5780,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate status: open, 4 suppliers, 2 quotes, report prepared once quotes are in; clear Arabic."
+    },
+    "control": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Correct facts; 'حواجز الجبس' is a slightly off rendering of partitions, but the facts are right."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "eg-s2",
+    "register": "egy",
+    "kind": "status",
+    "lang": "ar",
+    "message": "هو في عروض جت ولا لسه؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer eg-s2\",\"requests\":[{\"ref\":\"#5302\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":3,\"quotes_received\":0}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5302 (gypsum partitions) is open: 3 matched suppliers received it and 0 quotes have come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5302"
+    ],
+    "expect": "request #5302 is open, 3 suppliers received it, 0 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "لا، ما وصلتنا عروض حتى الآن لطلب #5302 الخاص بقواطع الجبس. الطلب وصل إلى 3 موردين، وسيُجهَّز تقرير المقارنة بعد ورود العروض.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 21294,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Directly answers that no quotes have arrived yet, with 3 suppliers; accurate."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "eg-s3",
+    "register": "egy",
+    "kind": "status",
+    "lang": "ar",
+    "message": "3ayez a3raf el status beta3 el talab bta3i",
+    "history": [
+     {
+      "role": "customer",
+      "text": "أنا عملت طلب تقسيمات جبس"
+     },
+     {
+      "role": "seat",
+      "text": "أهلاً بك، تحت أمرك."
+     }
+    ],
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer eg-s3\",\"requests\":[{\"ref\":\"#5303\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":6,\"quotes_received\":4}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5303 (gypsum partitions) is open: 6 matched suppliers received it and 4 quotes have come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5303"
+    ],
+    "expect": "request #5303 is open, 6 suppliers received it, 4 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "الطلب رقم #5303 لتقسيمات الجبس ما زال مفتوحًا. وصل الطلب إلى 6 موردين مناسبين، واستلمنا حتى الآن 4 عروض أسعار؛ ويُجهّز تقرير المقارنة بعد اكتمال وصول العروض.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 21647,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "طلبك رقم #5303 (تقسيمات جبس) مفتوح حالياً. تم إرسال الطلب إلى 6 موردين مناسبين، وقد وصلت 4 عروض أسعار حتى الآن. يتم إعداد تقرير المقارنة بعد اكتمال وصول العروض.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 10785,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Correct status, 6 suppliers, 4 quotes; natural Arabic."
+    },
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "All facts conveyed correctly in clear Arabic."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "eg-i1",
+    "register": "egy",
+    "kind": "invoice",
+    "lang": "ar",
+    "message": "ممكن تبعتلي الفاتورة تاني؟ مش لاقيها",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nA customer's invoice and payment receipt for a revealed quote are in the customer portal, https://quotesdone.com/me : My requests, open the request, then \"Invoice (PDF)\" or \"Receipt (PDF)\" on the revealed quote (an Arabic invoice is offered there too). A payment that has not completed has no invoice or receipt yet.",
+    "must": [
+     "https://quotesdone.com/me"
+    ],
+    "expect": "invoice and receipt are in the portal: My requests > the request > Invoice (PDF) / Receipt (PDF)"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "تقدر تلاقي الفاتورة في بوابة العميل: «طلباتي»، افتح الطلب، ثم اختر «Invoice (PDF)» ضمن عرض السعر المكشوف. تتوفر هناك أيضاً فاتورة بالعربية، وإذا لم يكتمل الدفع فلن تكون الفاتورة أو الإيصال متاحين بعد.\nhttps://quotesdone.com/me",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 10771,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Gives portal path and the note about unpaid payments; slightly mixes the invoice and receipt but fine."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "eg-r1",
+    "register": "egy",
+    "kind": "report",
+    "lang": "ar",
+    "message": "المقارنة بتاعتي خلصت ولا لسه؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer eg-r1\",\"requests\":[{\"ref\":\"#5304\",\"trade\":\"aluminium windows\",\"status\":\"comparison report ready\",\"quotes_received\":3}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nThe comparison report for request #5304 (aluminium windows) is ready: 3 quotes are compared side by side in the customer portal, https://quotesdone.com/me , under My requests. Suppliers stay anonymous until the customer chooses one to reveal.",
+    "must": [
+     "#5304"
+    ],
+    "expect": "the comparison report for #5304 is ready, 3 quotes, in My requests"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "نعم، تقرير المقارنة للطلب #5304 الخاص بنوافذ الألمنيوم جاهز، ويعرض 3 عروض جنبًا إلى جنب. تجدونه في بوابة العملاء ضمن My requests:\nhttps://quotesdone.com/me\nيبقى الموردون مجهولين حتى تختاروا أحدهم للكشف عن هويته.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 13741,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "نعم، تقرير المقارنة لطلبكم رقم #5304 (نوافذ الألمنيوم) جاهز. تم استلام 3 عروض ويمكنكم الاطلاع عليها جنباً إلى جنب في البوابة الإلكترونية ضمن «My requests»:\nhttps://quotesdone.com/me\nوتبقى هوية الموردين مخفية إلى أن تختاروا أحدهم للكشف عنه.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 9058,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Report ready, 3 quotes, portal link, anonymity kept."
+    },
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate and clear, with the link and anonymity noted."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "eg-c1",
+    "register": "egy",
+    "kind": "code",
+    "lang": "ar",
+    "message": "كود التفعيل مجاش، أعمل إيه؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nA new sign-in code can be asked for on the sign-in page, and asking for a new one cancels every earlier code, so only the newest code works. A code sent on WhatsApp that has not arrived within a minute can be sent by SMS instead with the \"Send it by SMS instead\" button. Nobody from QuotesDone asks for a code.",
+    "expect": "ask for a new code on the sign-in page (it cancels older codes); WhatsApp code -> \"Send it by SMS instead\""
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "اطلب رمزاً جديداً من صفحة تسجيل الدخول؛ طلب رمز جديد يلغي جميع الرموز السابقة، ويعمل أحدث رمز فقط. إذا لم يصلك الرمز عبر واتساب خلال دقيقة، اضغط «Send it by SMS instead» لإرساله برسالة SMS. لا أحد من QuotesDone يطلب منك الرمز.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 12623,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Covers new code cancelling old ones, SMS fallback, and the no-one-asks-for-code warning."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "eg-p1",
+    "register": "egy",
+    "kind": "support",
+    "lang": "ar",
+    "message": "هو أنا هدفع كام عشان أشوف بيانات المورد؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.",
+    "expect": "reveal fee 3% of the chosen quote, no card fee, no VAT on it"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "رسوم إظهار بيانات المورد هي 3% من السعر النهائي للعرض الذي تختاره بعد أي خصم، دون احتساب ضريبة القيمة المضافة. لا تُضاف رسوم بطاقة ولا تُفرض ضريبة قيمة مضافة على هذه الرسوم.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 12863,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "ترسوم الكشف 3% من السعر النهائي للعرض الذي تختاره بعد أي خصم، ودون ضريبة القيمة المضافة، وبدون حد أقصى. لا تُضاف أي رسوم على الدفع بالبطاقة، ولا تُحتسب ضريبة قيمة مضافة على هذه الرسوم. الدفع بالبطاقة أو Apple Pay عبر Stripe، وبعده تظهر هوية المورد وبيانات التواصل معه مباشرة. أما رفع الطلب ومقارنة العروض فمجاني تمامًا.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok",
+      "rewrite:ok [the figure AED 1700 (the brief states no such fee, price or rate); the figure AED 51 (the brief states no such fee, price or rate)]"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 19685,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "control": {
+     "score": 6,
+     "register_ok": true,
+     "critical": null,
+     "why": "Facts correct, but there is a typo 'ترسوم' at the start and 'no cap' and the 'immediately' claim are supported; the typo hurts polish."
+    },
+    "candidate": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Correct 3%, after discount, ex-VAT, no card fee; concise and accurate."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "eg-p2",
+    "register": "egy",
+    "kind": "support",
+    "lang": "ar",
+    "message": "إزاي بتختاروا الموردين اللي بيبعتولي عروض؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.",
+    "expect": "requests go to verified suppliers in the exact trade; matched by trade; no supplier names"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "نطابق طلبك مع موردين موثّقين يقدّمون الخدمة المطلوبة نفسها، وما نحيله لموردين من تخصص قريب فقط. التحقق يشمل بيانات الرخصة التجارية وصلاحيتها، لكنه ما يعني أننا فحصنا جودة شغل المورد أو ملاءمة رخصته لكل تفاصيل مشروعك. المورد يستلم وصف العمل والمنطقة العامة فقط، من دون اسمك أو رقمك أو عنوانك الدقيق.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 17176,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 6,
+     "register_ok": true,
+     "critical": null,
+     "why": "Matching and anonymity are correct, but it adds an unrequested verification caveat and the phrasing about neighbouring trades is a bit awkward."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "eg-x1",
+    "register": "egy",
+    "kind": "supplier",
+    "lang": "en",
+    "message": "Hi, I am supplier, how I add another option to my quote for Job 7731?",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED SUPPLIER (ZZ DEMO Eval Gypsum Works LLC), already verified. Their OWN record is supplied below and you may state it back to them plainly.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"company\":\"ZZ DEMO Eval Gypsum Works LLC\",\"status\":\"verified\",\"open_jobs\":[{\"job\":\"Job 7731\",\"trade\":\"gypsum partitions\",\"quote_due\":\"quotes accepted until the customer selects a supplier\"}]}",
+    "expect": "a quote may carry separate options; submit again for that option in the portal"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "You can include up to 20 options in one quotation. For Job 7731, open “Inquiries received,” select the job and add the alternative in the quote form before submitting. If you’ve already submitted, send a refreshed quotation from the job before the customer reveals you; it replaces the earlier submission for that option and is checked again. After a reveal, the quotation is binding within its validity.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 20486,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "Hi, yes, one quote can carry up to 20 options. Job 7731 (gypsum partitions) is still open, so you can quote until the customer selects a supplier. Open Job 7731 in \"Inquiries received\" and use the quote form to add the extra option, giving brand, model, size, unit price and lead time for each. If you want to change an option you already sent, you can send a revised quotation from the job before the customer reveals you. The new one replaces the earlier one and is checked again. Do not type phone numbers, emails or your company name into it, as they are removed.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 6501,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "control": {
+     "score": 6,
+     "register_ok": true,
+     "critical": "invented_figure",
+     "why": "States 'up to 20 options' and the 'Inquiries received' portal section, neither of which is in the brief."
+    },
+    "candidate": {
+     "score": 5,
+     "register_ok": true,
+     "critical": "invented_figure",
+     "why": "Also invents the 20-option limit and the 'Inquiries received' section name."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "eg-v1",
+    "register": "egy",
+    "kind": "visitor",
+    "lang": "ar",
+    "message": "هو الموقع ده بيعمل إيه بالظبط؟",
+    "expect": "what QuotesDone does"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "QuotesDone منصة في الإمارات تربطك بموردين لأعمال البناء والتشطيب والخدمات المرتبطة. تشرح طلبك، وتستلم عروض أسعار مجهولة الهوية وتقارن بينها مجانًا. إذا اخترت عرضًا، تدفع رسوم كشف قدرها 3% من السعر النهائي للعرض المختار لتظهر لك بيانات المورد وتتواصل معه مباشرة؛ لا تُضاف رسوم على الدفع بالبطاقة، ولا تُفرض ضريبة قيمة مضافة على رسوم الكشف.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok",
+      "rewrite:ok [it states the 3% fee without saying, in so many words, that no card fee is added; it states the 3% fee without saying, in so many words, that no VAT is charged on it]"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 25711,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate summary of the service and the 3% fee; Arabic fine, though the brand name stays in Latin letters as intended."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "lv-s1",
+    "register": "lev",
+    "kind": "status",
+    "lang": "ar",
+    "message": "مرحبا، بدي أعرف شو صار بطلبي",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer lv-s1\",\"requests\":[{\"ref\":\"#5401\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":5,\"quotes_received\":1}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5401 (gypsum partitions) is open: 5 matched suppliers received it and 1 quote has come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5401"
+    ],
+    "expect": "request #5401 is open, 5 suppliers received it, 1 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "مرحباً بكم. طلبكم رقم #5401 (القواطيع الجبسية) مفتوح حالياً، وقد وصل إلى 5 موردين مطابقين، وورد عرض واحد حتى الآن. يتم إعداد تقرير المقارنة بعد وصول العروض.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok",
+      "rewrite:ok [the figure a fee of 1 (the brief states no such fee, price or rate)]",
+      "rewrite:ok [the figure a fee of 1 (the brief states no such fee, price or rate)]",
+      "other-family:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 51516,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "مرحباً بك. طلبكم رقم #5401 (قواطع الجبس) ما زال مفتوحاً، وقد وصل إلى 5 موردين مطابقين، وورد حتى الآن عرض سعر واحد. يتم إعداد تقرير المقارنة بعد وصول العروض.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 5933,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Correct status, 5 suppliers, 1 quote, accurate and natural formal Arabic."
+    },
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Same facts correct; minor mix of بك/كم but fine."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "lv-s2",
+    "register": "lev",
+    "kind": "status",
+    "lang": "ar",
+    "message": "كم عرض إجاني لهلق؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer lv-s2\",\"requests\":[{\"ref\":\"#5402\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":3,\"quotes_received\":3}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5402 (gypsum partitions) is open: 3 matched suppliers received it and 3 quotes have come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5402"
+    ],
+    "expect": "request #5402 is open, 3 suppliers received it, 3 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "وصلتكم حتى الآن 3 عروض لطلبكم رقم #5402 الخاص بقواطع الجبس.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 16664,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 6,
+     "register_ok": true,
+     "critical": null,
+     "why": "Gives 3 quotes correctly but omits that the request is open and the report comes once quotes are in; thin."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "lv-s3",
+    "register": "lev",
+    "kind": "status",
+    "lang": "ar",
+    "message": "marhaba, badde a3ref eza fi 3orood 3a talabi, yalla",
+    "history": [
+     {
+      "role": "customer",
+      "text": "عندي طلب قواطع جبس"
+     },
+     {
+      "role": "seat",
+      "text": "أهلين، كيف فيني ساعدك؟"
+     }
+    ],
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer lv-s3\",\"requests\":[{\"ref\":\"#5403\",\"trade\":\"gypsum partitions\",\"status\":\"open, quotes being collected\",\"suppliers_invited\":4,\"quotes_received\":2}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nRequest #5403 (gypsum partitions) is open: 4 matched suppliers received it and 2 quotes have come in so far. The comparison report is prepared once the quotes are in.",
+    "must": [
+     "#5403"
+    ],
+    "expect": "request #5403 is open, 4 suppliers received it, 2 quotes so far"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "مرحباً، نعم، طلبك رقم #5403 لقواطع الجبس مفتوح حالياً، ووصل إلى 4 موردين مطابقين، واستلمنا عرضين حتى الآن. يُجهّز تقرير المقارنة بعد وصول العروض.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:failed client_timeout_30000ms",
+      "other-family:prose, asked again for the object: unparseable (211 chars): \"أهلاً بك. طلبك رقم #5403 (قواطع جبس) مفتوح حالياً، وقد وصل إلى 4 موردين مطابقين، وتم استلام عرضين حتى الآن. يتم إعداد تقرير المقارنة بعد وصول العروض.\\n\\nهل تودون \"",
+      "rewrite:ok [it is plain text, not the one JSON object your instructions ask for (return the object, with every key)]"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 52585,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "أهلاً بك. طلبك رقم #5403 (قواطع جبس) مفتوح حالياً، وقد وصل إلى 4 موردين مطابقين، وتم استلام عرضين حتى الآن. يتم إعداد تقرير المقارنة بعد وصول العروض.\n\nهل ترغب في إضافة تفاصيل للطلب، مثل المساحة أو نوع الألواح (عادي أو مقاوم للرطوبة)؟",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:prose, asked again for the object: unparseable (233 chars): \"أهلاً بك. طلبك رقم #5403 (قواطع جبس) مفتوح حالياً، وقد وصل إلى 4 موردين مطابقين، وتم استلام عرضين حتى الآن. يتم إعداد تقرير المقارنة بعد وصول العروض.\\n\\nهل ترغب ف\"",
+      "rewrite:ok [it is plain text, not the one JSON object your instructions ask for (return the object, with every key)]"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 12853,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "control": {
+     "score": 7,
+     "register_ok": true,
+     "critical": null,
+     "why": "Facts correct, but adds an unnecessary intake question about a request already sent to suppliers."
+    },
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Answers yes, correct facts, concise."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "lv-i1",
+    "register": "lev",
+    "kind": "invoice",
+    "lang": "ar",
+    "message": "فيك تبعتلي الفاتورة مرة تانية؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nA customer's invoice and payment receipt for a revealed quote are in the customer portal, https://quotesdone.com/me : My requests, open the request, then \"Invoice (PDF)\" or \"Receipt (PDF)\" on the revealed quote (an Arabic invoice is offered there too). A payment that has not completed has no invoice or receipt yet.",
+    "must": [
+     "https://quotesdone.com/me"
+    ],
+    "expect": "invoice and receipt are in the portal: My requests > the request > Invoice (PDF) / Receipt (PDF)"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "تقدر تحصل على الفاتورة أو إيصال الدفع من بوابة العميل: «طلباتي»، افتح الطلب، ثم اختر «Invoice (PDF)» أو «Receipt (PDF)» عند عرض السعر المكشوف. تتوفر هناك أيضاً فاتورة باللغة العربية.\nhttps://quotesdone.com/me",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 12199,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Exact portal path and link, natural Levantine-friendly Arabic; doesn't say it can't resend by chat but answers well."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "lv-r1",
+    "register": "lev",
+    "kind": "report",
+    "lang": "ar",
+    "message": "المقارنة صارت جاهزة؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"name\":\"ZZ DEMO Eval Customer lv-r1\",\"requests\":[{\"ref\":\"#5404\",\"trade\":\"aluminium windows\",\"status\":\"comparison report ready\",\"quotes_received\":3}]}\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nThe comparison report for request #5404 (aluminium windows) is ready: 3 quotes are compared side by side in the customer portal, https://quotesdone.com/me , under My requests. Suppliers stay anonymous until the customer chooses one to reveal.",
+    "must": [
+     "#5404"
+    ],
+    "expect": "the comparison report for #5404 is ready, 3 quotes, in My requests"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "نعم، تقرير مقارنة طلب الألمنيوم رقم #5404 جاهز، ويعرض 3 عروض جنباً إلى جنب في بوابة العملاء https://quotesdone.com/me ضمن My requests. تبقى بيانات الموردين مخفية إلى أن تختاروا أحدهم للكشف عن هويته.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 16309,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "نعم، تقرير المقارنة لطلبكم رقم #5404 (نوافذ الألمنيوم) جاهز. تم مقارنة 3 عروض جنبًا إلى جنب في بوابة العملاء ضمن قسم \"My requests\":\nhttps://quotesdone.com/me\nوتبقى هوية الموردين مخفية إلى أن تختاروا أحدهم لكشف بياناته.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 7389,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Report ready, 3 quotes, portal path, anonymity kept; correct."
+    },
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate and complete; says 'Aluminium' generally but fine."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "lv-c1",
+    "register": "lev",
+    "kind": "code",
+    "lang": "ar",
+    "message": "ما وصلني رمز التحقق، شو بعمل؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.\n\nOUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\nA new sign-in code can be asked for on the sign-in page, and asking for a new one cancels every earlier code, so only the newest code works. A code sent on WhatsApp that has not arrived within a minute can be sent by SMS instead with the \"Send it by SMS instead\" button. Nobody from QuotesDone asks for a code.",
+    "expect": "ask for a new code on the sign-in page (it cancels older codes); WhatsApp code -> \"Send it by SMS instead\""
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "إذا لم يصلك رمز التحقق عبر واتساب خلال دقيقة، اضغط «Send it by SMS instead» لإرساله برسالة نصية. ويمكنك طلب رمز جديد من صفحة تسجيل الدخول؛ عند طلبه تُلغى جميع الرموز السابقة ويعمل الرمز الأحدث فقط. لا أحد من QuotesDone يطلب منك مشاركة الرمز.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 12782,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Covers new code, cancels older, SMS fallback, and no one asks for code."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "lv-p1",
+    "register": "lev",
+    "kind": "support",
+    "lang": "ar",
+    "message": "قديش الرسوم عندكن؟ في رسوم على البطاقة؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.",
+    "expect": "free to post and compare; 3% reveal fee; no card fee; no VAT on it"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "إرسال الطلب واستلام ومقارنة العروض مجاني. عند اختيار عرض، رسوم كشف بيانات المورّد 3% من السعر النهائي للعرض بعد أي خصم، دون احتساب ضريبة المورّد. لا تُضاف رسوم على البطاقة، ولا تُفرض ضريبة قيمة مضافة على رسوم الكشف.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 11830,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "رسوم الكشف 3% من السعر النهائي للعرض الذي تختاره بعد أي خصم، دون ضريبة القيمة المضافة، وبلا حد أقصى. لا تُضاف أي رسوم على البطاقة، ولا تُحتسب ضريبة قيمة مضافة على هذه الرسوم، فنحن نتحمل رسوم Stripe. نشر الطلب واستلام العروض ومقارنتها مجاني تماماً، وإذا لم يناسبك أي عرض فلا تدفع شيئاً.",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok",
+      "rewrite:ok [the figure AED 1700 (the brief states no such fee, price or rate); the figure AED 51 (the brief states no such fee, price or rate)]"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 15267,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Facts correct; the phrasing about VAT 'supplier's tax' is slightly muddled but accurate."
+    },
+    "control": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "All facts correct including no cap, no card fee, Stripe borne, free comparison."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "lv-p2",
+    "register": "lev",
+    "kind": "support",
+    "lang": "ar",
+    "message": "إذا ما عجبني ولا عرض، لازم أدفع شي؟",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer.",
+    "expect": "nothing to pay unless they reveal a supplier"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "لا، إذا ما ناسبك أي عرض وقررت ترفضها كلها، ما تدفع أي شيء. رسوم الـ 3% تُدفع فقط إذا اخترت عرضًا وكشفت بيانات المورّد؛ ولا تُضاف رسوم بطاقة ولا تُفرض ضريبة على هذه الرسوم.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 11604,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Correct that nothing is payable; slightly clunky wording but accurate."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "lv-x1",
+    "register": "lev",
+    "kind": "supplier",
+    "lang": "en",
+    "message": "Good morning, for Job 7731 can I submit price without drawing details?",
+    "facts": "AUDIENCE: this number belongs to a REGISTERED SUPPLIER (ZZ DEMO Eval Gypsum Works LLC), already verified. Their OWN record is supplied below and you may state it back to them plainly.\n\nTHIS SENDER'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else's):\n{\"company\":\"ZZ DEMO Eval Gypsum Works LLC\",\"status\":\"verified\",\"open_jobs\":[{\"job\":\"Job 7731\",\"trade\":\"gypsum partitions\",\"quote_due\":\"quotes accepted until the customer selects a supplier\"}]}",
+    "expect": "a supplier answers what it can; questions about the job go through the job in the portal; no promise of details"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "Good morning. Job 7731 is accepting quotes until the customer selects a supplier. You can price from the available scope, but don’t guess missing dimensions or specifications. State exact quantities, materials, inclusions and exclusions; if essential details are missing, your quote may be held until they’re provided.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 23245,
+     "codeIssues": []
+    },
+    {
+     "arm": "control",
+     "text": "Good morning. Yes, you can submit without drawings, but your quote must still carry exact details, because vague ones are held. For gypsum partitions, state the board brand, type and thickness, stud and track gauge and spacing, boards per side, insulation, any fire or acoustic rating, partition height and length, quantity and unit, price in AED, VAT basis, validity in days, lead time and warranty. If a drawing or BOQ was held back to protect the customer's identity, price from the scope in Job 7731. Quotes are accepted until the customer selects a supplier. Which partition height and board type are you pricing?",
+     "model": "anthropic/claude-sonnet-5.5",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 10212,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "control": {
+     "score": 6,
+     "register_ok": true,
+     "critical": null,
+     "why": "Answers but gives a long invented spec checklist and a trailing question; verbose for the facts given."
+    },
+    "candidate": {
+     "score": 8,
+     "register_ok": true,
+     "critical": null,
+     "why": "Concise, accurate, no promise of details; could point to asking via the job in the portal."
+    }
+   }
+  },
+  {
+   "case": {
+    "id": "lv-v1",
+    "register": "lev",
+    "kind": "visitor",
+    "lang": "ar",
+    "message": "كيف بشتغل الموقع؟ ببلش من وين؟",
+    "expect": "how it works and where to start (post a request free)"
+   },
+   "replies": [
+    {
+     "arm": "candidate",
+     "text": "تبدأ بإنشاء حساب وتأكيد رقم هاتفك وبريدك الإلكتروني، ثم تصف شغلك كتابةً أو ترسل صورة أو مخطط. بعد اكتمال التفاصيل، نطابق الطلب مع موردين مناسبين ويرسلون عروضًا مجهولة الهوية؛ غالبًا تصل خلال 3–5 أيام عمل. تقارن العروض مجانًا، وإذا اخترت عرضًا تدفع 3% من قيمته النهائية بعد الخصم، دون احتساب ضريبة المورد. لا تُضاف رسوم بطاقة ولا تُفرض ضريبة على رسوم الكشف.",
+     "model": "openai/gpt-6-luna-pro",
+     "attempts": [
+      "route:ok"
+     ],
+     "problems": [],
+     "outage": false,
+     "ms": 14040,
+     "codeIssues": []
+    }
+   ],
+   "judged": {
+    "candidate": {
+     "score": 9,
+     "register_ok": true,
+     "critical": null,
+     "why": "Accurate walkthrough with 3–5 days, free comparison and 3% fee; fits the brief."
+    }
+   }
+  }
+ ]
+}

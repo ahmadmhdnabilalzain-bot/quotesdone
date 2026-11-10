@@ -201,3 +201,4 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [The automatic apply's language](an-automatic-apply-and-a-probe-must-speak-its-language.md): PROBE OK wording, seat, from=, mirror regen
 - [Conversation quality eval and its limits](conversation-quality-eval-and-its-limits.md): 3 Nov; widget 5 convs/IP/day; the canon is the product, not the brief
 - [A supplier's own words reach every customer, every trade](a-suppliers-own-words-reach-every-customer-in-every-trade.md): 10 Nov, ledger 1573/1579/1586; alias queue, adjacency, similarity ranks only
+- [A seat's plan B overrides a class fallback; routing eval lessons](a-seat-plan-b-overrides-a-class-fallback-and-other-routing-eval-lessons.md): 10 Nov, ruling 1571; judge sees the brief; gateway-shaped direct calls

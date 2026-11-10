@@ -10,6 +10,7 @@ import { waConversation } from '../_shared/wa_history.ts';
 import { dialectOf, mergeState, registerPatch, whatsappKey } from '../_shared/inquiry_state.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
+import { laneMust, STATUS_CLASS, STATUS_HISTORY_TURNS, STATUS_RULES } from './status_lane.ts';
 import { admin, itFinding, sec } from './shared.ts';
 import { sendWa } from './replies.ts';
 import type { WaTurn } from './turn.ts';
@@ -22,7 +23,8 @@ export function makeSay(t: WaTurn): void {
     { message_sid: MessageSid || null, error });
   // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
   // They are apart so a reply started speculatively (below) that is then discarded can never escalate or flag the turn.
-  const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, langGiven?: 'en' | 'ar', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => {
+  const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, langGiven?: 'en' | 'ar', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[],
+    lane?: { kind: 'status' | 'app'; databaseAnswer: string }) => {
     t.history ??= waConversation(admin, From, receivedAt, isDemoPhone(From), historyUnavailable);
     t.forbidden ??= (async () => {
       const { data } = await admin.rpc('fn_whatsapp_owner', { p_phone: From });
@@ -40,7 +42,12 @@ export function makeSay(t: WaTurn): void {
     const theirs = [...conv.filter((x) => x.role !== 'seat').map((x) => x.text), Body];
     const dialect = aud === 'supplier' || aud === 'founder' ? null : dialectOf(theirs)?.dialect ?? null;
     if (!signal && aud !== 'supplier' && aud !== 'founder') void mergeState(admin, whatsappKey(From), 'whatsapp', { turn: theirs.length, message_count: conv.length + 1, ...registerPatch(theirs, lang) });
-    return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: conv, forbidden: await t.forbidden,
+    // the status and app lanes (status_lane.ts, ruling 1571): status_reply, no brief, the last few turns, the refs or the link as must
+    const laneMustCarry = lane ? laneMust(lane.kind, lane.databaseAnswer, aud === 'supplier' ? 'en' : lang) : [];
+    if (lane) must = [...new Set([...(must ?? []), ...laneMustCarry])];
+    return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
+      conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : conv, forbidden: await t.forbidden,
+      ...(lane ? { taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES } : {}),
       budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
       // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
       // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
@@ -59,6 +66,9 @@ export function makeSay(t: WaTurn): void {
   };
   const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang?: 'en' | 'ar', must?: string[], extraCheck?: (t: string) => string[]) =>
     adopt(await askModel(aud, situation, lang, must, undefined, extraCheck));
+  const audOf = () => (t.audience === 'supplier' ? 'supplier' : t.audience === 'customer' ? 'customer' : t.audience === 'founder' ? 'founder' : 'visitor') as 'customer' | 'supplier' | 'visitor' | 'founder';
+  const sayLane = async (lane: 'status' | 'app', facts: string, databaseAnswer: string) =>
+    adopt(await askModel(audOf(), facts, undefined, undefined, undefined, undefined, { kind: lane, databaseAnswer }));
   // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
   const say = (situation: string, lang?: 'en' | 'ar') => sayFor(t.audience === 'supplier' ? 'supplier' : t.audience === 'customer' ? 'customer' : t.audience === 'founder' ? 'founder' : 'visitor')(situation, lang);
   // NOBODY IS LEFT SILENT (review of #1335). When no model wrote the reply, or the guard refused what it wrote, the
@@ -70,5 +80,5 @@ export function makeSay(t: WaTurn): void {
     holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why, outage: t.sayOutage, problems: t.sayProblems,
       enabled: async () => (await sec('wa_autoreply_enabled')) === 'true', send: (t) => sendWa(From, t),
       rpc: async (f, a) => { const r = await admin.rpc(f, a); return { data: r.data, error: r.error }; } });
-  Object.assign(t, { historyUnavailable, askModel, adopt, sayFor, say, heldTurn });
+  Object.assign(t, { historyUnavailable, askModel, adopt, sayFor, say, sayLane, heldTurn });
 }

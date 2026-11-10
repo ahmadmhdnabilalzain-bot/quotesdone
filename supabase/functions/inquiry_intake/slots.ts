@@ -111,6 +111,8 @@ export function replyDown(r: { reply?: string | null; outage?: boolean; attempts
     return !!m && !/^\[/.test(m[1]) && (m[1].trim() === 'no answer' || isOpenRouterDown(m[1]));
   });
 }
+/** The request chat's voice class (model_policy voice_draft, ruling 1571): a code-decided sentence in the customer's words. */
+export const VOICE_CLASS = 'voice_draft';
 // THE WHOLE CONVERSATION (10 Nov 2026, founder ledger 1572: "nothing said in message 2 may be forgotten by message 30+").
 // This sent only the last twelve turns: after turn 14 the reply writer could not see turn 2 and could repeat a resolved
 // question or contradict an early preference. aiReply hands every turn to the model as real messages, cached by the
@@ -122,8 +124,15 @@ export async function intakeVoice(deps: ThinkDeps, o: { draft: string; lang: Lan
     ? '\nTHE ONE QUESTION TO ASK NOW (ask exactly this, in plain words; no other question): ' + String(o.next.text).trim()
       + (o.next.options?.length ? '\nThey can tap one of: ' + o.next.options.join(' | ') : '')
     : '\nAsk no question unless the message above asks one.';
+  // THE VOICE IS A SIMPLE TASK WITH THE WHOLE CONVERSATION (it_engineer, 10 Nov 2026; rulings 1571 and 1572). It ran on
+  // conversation_reply (Sonnet 5.5) with the ~35k-token company brief to reword one sentence code had decided: USD 0.040-0.053
+  // a call (ai_cost_log, 4 and 10 Nov). It now runs on voice_draft (model_policy: Luna Pro > Qwen 3.8 Flash) with no brief: the
+  // draft already holds the facts, and every draft is still checked against the brief's figures. And it hears EVERY turn: it
+  // was the last 12, so "never repeat a question they already answered" could not hold for an answer given at message 2 of 30
+  // (1572). fitHistory (chat_history.ts) keeps ~500k tokens; a 100-message intake is ~14k. Prevented by: inquiry_intake/voice_draft.test.ts.
   const r = await aiReply(deps, {
     seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang: o.lang, message: o.message || '(they sent a file or tapped an option)',
+    taskClass: VOICE_CLASS, briefInPrompt: false,
     conversation: o.conversation.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
     facts: 'WHAT TO SAY ON THIS TURN (decided by our systems from the request\'s state; convey it in your own words, change nothing in its meaning, add nothing):\n' + o.draft + ask
       + (o.state ? '\n\n' + o.state : ''),

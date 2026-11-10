@@ -4572,17 +4572,30 @@ begin
        and not (coalesce(c.is_demo,false) or c.full_name ilike 'ZZ DEMO%'));
 
   v_plan := v_plan || (
-    select jsonb_build_array(case when count(*) = 0 then 'The IT engineer has no open technical problems.'
-                                  else 'The IT engineer works on '||count(*)||' open technical problem(s).' end)
-      -- ONE DEFINITION OF "OPEN", CALLED, NOT COPIED (22 Sep 2026, it_engineer, UNSOLVED-11). This counted
-      -- every unclosed finding, including the ones the IT loop classes as 'warn' and never hands off, so the
-      -- founder's brief said a bigger number than the digest he gets minutes later. MEASURED today: 9
-      -- unclosed findings, of which 1 is 'warn' (watch:run_failure:wa_status) — brief 9, digest 8.
-      -- fn_it_open_findings() is that definition and fn_it_loop_tick selects from the same function
-      -- (the_founder_gets_one_it_digest_per_tick.sql, which must be applied before this file), so there is
-      -- no second copy of the predicate to drift. The loop adds one further condition of its own — has this
-      -- occurrence been handed off yet — which is about what to raise NOW, not about what is open.
-      from public.fn_it_open_findings() f);
+    -- PROBLEMS, NOT ALERTS (10 Nov 2026, it_engineer). This line counted one per open alert row, and the founder read
+    -- "works on 833 open technical problem(s)" (2 Nov) as 833 bugs. One fault opens many rows: duty:delivery opened
+    -- 2,773 for one burst on 2-4 Nov, duty:credential_rotation_age 43 for one batch of credentials. MEASURED today:
+    -- 266 open rows = 51 problems, 0 of which need him. fn_it_open_problems groups fn_it_open_findings() (still the ONE
+    -- definition of open) by the first two parts of the issue key, and marks a problem as his by the IT digest's rule.
+    with p as (select * from public.fn_it_open_problems()),
+         s as (select count(*)::int as n, coalesce(sum(p.alerts), 0)::int as a,
+                      count(*) filter (where p.needs_founder)::int as k,
+                      array_agg(p.founder_title order by p.started_at, p.problem) filter (where p.needs_founder) as t
+                 from p)
+    select jsonb_build_array(case
+      when s.n = 0 then 'The IT engineer has no open technical problems.'
+      else 'The IT engineer is working on ' || s.n
+           || case when s.n = 1 then ' technical problem' else ' technical problems' end
+           || ', raised as ' || s.a || case when s.a = 1 then ' alert. ' else ' separate alerts. ' end
+           || case when s.k = 0 then case when s.n = 1 then 'It does not need you.' else 'None of them needs you.' end
+                   else case when s.n = 1 then 'It needs you: '
+                             when s.k = 1 then '1 of them needs you: '
+                             else s.k || ' of them need you: ' end
+                        || array_to_string(s.t[1:3], '; ')
+                        || case when s.k > 3 then '; and ' || (s.k - 3) || ' more' else '' end || '.'
+              end
+      end)
+      from s);
 
   -- 22 Sep 2026 (ceo, instruction 638): the CEO's own plan leads item 7 -- the binding constraint, the
   -- directive each seat is working to, and the one decision only the founder can take, if any. This is

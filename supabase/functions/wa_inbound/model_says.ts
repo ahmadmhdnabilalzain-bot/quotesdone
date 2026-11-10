@@ -27,6 +27,10 @@ export interface SayRequest {
   extraCheck?: (text: string) => string[];   // the turn's own rule: a draft it names a problem in is rewritten, never sent
   situationAnswers?: boolean;   // the facts alone say what to tell them (a person is needed): the brief-less last chance may run
   dialect?: Dialect | null;     // the customer's register (_shared/inquiry_state.ts dialectOf; never for a supplier, ruling 1008)
+  // THE STATUS LANE (status_lane.ts, ruling 1571): its own class (status_reply), no company brief, and its own rules after WA_RULES
+  taskClass?: string;
+  briefInPrompt?: boolean;
+  laneRules?: string;
 }
 // A VOICE NOTE REPLY NEVER ASKS FOR A DOCUMENT (customer_support, 3 Nov 2026). Measured on the real exchange on main
 // (run 41528725657, after f6dcbe7d): the voice turn came after four licence/file turns in the same chat, the model saw them
@@ -66,7 +70,8 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       message: r.message || '(no text — they pressed a menu option or sent a file)',
       conversation: r.conversation,
       facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation,
-      rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must, ...(r.signal ? { signal: r.signal } : {}), ...(r.extraCheck ? { extraCheck: r.extraCheck } : {}),
+      rules: r.laneRules ? WA_RULES + ' ' + r.laneRules : WA_RULES, subject: r.subject,
+      ...(r.taskClass ? { taskClass: r.taskClass } : {}), ...(r.briefInPrompt === false ? { briefInPrompt: false } : {}), rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must, ...(r.signal ? { signal: r.signal } : {}), ...(r.extraCheck ? { extraCheck: r.extraCheck } : {}),
       ...(r.dialect && r.audience !== 'supplier' ? { dialect: r.dialect } : {}),
       deadline, ...o,
     });

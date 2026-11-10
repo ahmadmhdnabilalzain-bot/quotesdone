@@ -40,6 +40,9 @@ const LEAKS = [
   '١٩٬٩٠١ مورد.',
   '15 ألف مورد.',
   'Our network has 450 suppliers.',
+  // a reference is only a number of 3+ digits written AS one (10 Nov 2026): "#1" is a rank, and the count still leaks
+  'The #1 platform, with 19,901 suppliers.',
+  'Request a quote from our 19,901 suppliers.',
 ];
 const FINE = [
   'Your reference is QD-10234.',
@@ -67,6 +70,11 @@ const FINE = [
   'Your request went to 120 suppliers in that trade.',
   'Attach files up to 2,000 KB for suppliers.',
   'The 1,001st supplier pays AED 1,000 a year.',
+  // a status answer: the request's own reference beside the suppliers it reached (eval A, 10 Nov 2026)
+  'Request #5202 went to 4 matched suppliers and 1 quote has come in.',
+  'Job 7731 is open to 6 suppliers in that trade.',
+  'طلبكم #5202 وصل إلى 4 موردين مطابقين ووصلكم عرض واحد حتى الآن.',
+  'الطلب رقم 5403 وصل إلى 4 موردين.',
 ];
 
 Deno.test('a count of our suppliers, customers or leads is an internal_number violation, in every form', () => {

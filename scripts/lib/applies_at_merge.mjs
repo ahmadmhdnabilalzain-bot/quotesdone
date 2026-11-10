@@ -71,3 +71,12 @@ export function rehearsalProblem(results, files, base, { cwd = process.cwd() } =
   if (!results.post_state?.ok) return `the read-back after every file failed: ${String(results.post_state?.error).slice(0, 300)}`;
   return '';
 }
+
+/** This branch's own new MANIFEST files (prAddedFiles against its merge-base with origin/main), or [] on main, without a
+ *  remote ref, or when the two readings disagree. For a check that replays pending files built on a file this PR applies at
+ *  merge (it_engineer, 10 Nov 2026: a pending file naming a model only this PR's MANIFEST file registers). */
+export function branchAddedFiles({ cwd = process.cwd() } = {}) {
+  let base = '';
+  try { base = execFileSync('git', ['merge-base', 'origin/main', 'HEAD'], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { return []; }
+  return prAddedFiles(base, { cwd }).files;
+}

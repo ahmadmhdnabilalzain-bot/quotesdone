@@ -46,11 +46,27 @@ Deno.test('a failed model climbs the ladder: unstreamed, then a counterpart of a
   const g1 = gateway([json({ error: 'all_models_failed' }, 502), json({ content: 'The reveal fee is 3%, with no card fee and no VAT.', model: 'google/gemini-3.8-flash' })]);
   const a1 = await answerFromBrief(C, () => {}, g1.f);
   assertEquals(a1.reply, 'The reveal fee is 3%, with no card fee and no VAT.');
-  const g2 = gateway([json({ error: 'x' }, 502), json({ error: 'x' }, 502), json({ error: 'x' }, 502)]);
+  // the gateway's 502 names its ladder (ai_gateway handle.ts); the third call counters the route's head, whatever it is
+  const LADDER = ['openai/gpt-6-luna-pro', 'anthropic/claude-sonnet-5.5'];
+  const g2 = gateway([json({ error: 'x', ladder: LADDER }, 502), json({ error: 'x', ladder: LADDER }, 502), json({ error: 'x', ladder: LADDER }, 502)]);
   const a2 = await answerFromBrief(C, () => {}, g2.f);
   assertEquals(a2.reply, '');
   assert(a2.error);
-  assert('counterpart_model' in g2.bodies[2], 'the third call is routed to another family');
+  assertEquals(g2.bodies[2].counterpart_model, 'openai/gpt-6-luna-pro', 'the third call is routed to another family than the route');
+});
+
+// prevented by: this test (10 Nov 2026, ruling 1571). The third call named 'anthropic/claude-sonnet-5.5' whatever the route:
+// with visitor_chat on Luna Pro that asked for "not Anthropic" and got Luna Pro's own family a third time.
+Deno.test('the third call counters the model that answered, else the route\'s head; nothing known, no counterpart is invented', async () => {
+  const g = gateway([sse(['The reveal fee is 5% of the quote. ']), json({ content: 'The reveal fee is 7%.', model: 'anthropic/claude-sonnet-5.5' }),
+    json({ content: 'The reveal fee is 7%.', model: 'anthropic/claude-sonnet-5.5' }), json({ error: 'x' }, 502), json({ content: 'The reveal fee is 3%, with no card fee and no VAT.', model: 'openai/gpt-6-luna-pro' })]);
+  const a = await answerFromBrief(C, () => {}, g.f);
+  assertEquals(a.reply, 'The reveal fee is 3%, with no card fee and no VAT.');
+  assertEquals(g.bodies.at(-1)!.counterpart_model, 'anthropic/claude-sonnet-5.5', 'it counters the model that wrote the refused drafts');
+  const n = gateway([json({ error: 'x' }, 502), json({ error: 'x' }, 502), json({ error: 'x' }, 502)]);
+  await answerFromBrief(C, () => {}, n.f);
+  assertEquals(n.bodies.length, 3);
+  assert(!('counterpart_model' in n.bodies[2]), 'no model and no ladder known: a plain third ask, no invented counterpart');
 });
 
 Deno.test('the caller rule (reply guard) is part of the check', async () => {

@@ -7,9 +7,10 @@
 //     does not state, false policy claims (card fee, VAT on the fee, refund promises, liability), the reply guard
 //     (licence, "AI", internal or prompt text), a deferral or "I don't know" (903), another party's identity before a
 //     reveal (the caller's `forbidden` list, and any e-mail, phone or licence-like number not in the brief or facts).
-//   - The model ladder: the gateway's route for class conversation_reply (anthropic/claude-sonnet-5.5, gemini-3.8-flash
-//     behind it; founder ruling 1219, 13 Oct 2026), then a counterpart of another family. The company brief is sent as
-//     the cacheable system block (sys_stable), so the gateway marks it with Anthropic cache_control.
+//   - The model ladder: the gateway's route for the request's class (conversation_reply unless the caller names another:
+//     status_reply, voice_draft; model_policy decides the models, ruling 1571), then a counterpart of ANOTHER FAMILY than
+//     that route's primary, read from the route itself (routePrimary below), never a model named here. The company brief is
+//     sent as the cacheable system block (sys_stable); the 1-hour cache tier is asked only of an Anthropic primary.
 //     At most MAX_CALLS model calls per reply, answers and rewrites together.
 //   - Code writes no reply text. If no draft passes whole, the passing sentences of the last draft are kept (salvage);
 //     if none pass, the reply is ''. `outage` says whether that '' is because no call reached a model at all
@@ -24,10 +25,23 @@ import { isOpenRouterDown } from './openrouter_down.ts';
 import { arabicRegister, type Dialect } from './inquiry_state.ts';
 import { EVASION, substanceWords, type LlmReply, type Seat, type ThinkDeps, type Turn } from './think.ts';
 
-/** The model class every conversation reply is routed by (founder ruling 1219: Sonnet 5.5, Gemini behind it). */
+/** The model class a conversation reply is routed by unless the caller names another (AiReplyRequest.taskClass). */
 export const REPLY_CLASS = 'conversation_reply';
-/** The primary of REPLY_CLASS: the second rung asks for a counterpart of it, so another family answers. */
-export const REPLY_MODEL = 'anthropic/claude-sonnet-5.5';
+
+// THE SECOND RUNG FOLLOWS THE ROUTE (it_engineer, 10 Nov 2026; ruling 1571, design docs/reports/2026-11-10-design-model-
+// routing.md 5b). The other-family rung named a constant, 'anthropic/claude-sonnet-5.5', as the model to move away from. Once
+// model_policy puts a class on Luna Pro, that constant would send the "other family" rung to Luna Pro's own family: the primary
+// itself. The primary is now READ, per reply: fn_ai_route (STABLE, read-only, one round trip beside a model call of seconds) for
+// the class and seat, the route the gateway takes. Unreadable: the model that answered the first rung, else no counterpart (a
+// plain second ask on the route). Prevented by: _shared/ai_reply_task_class.test.ts.
+/** The primary model the route gives `taskClass` for `seat` today, or null when it cannot be read. */
+export async function routePrimary(deps: Pick<ThinkDeps, 'rpc'>, taskClass: string, seat: string | null): Promise<string | null> {
+  try {
+    const { data, error } = await deps.rpc('fn_ai_route', { p_task_class: taskClass, p_agent_key: seat });
+    const m = !error && data && typeof data === 'object' ? String((data as Record<string, unknown>).model ?? '') : '';
+    return /^[a-z0-9-]+\/[a-z0-9.:-]+$/i.test(m) ? m : null;
+  } catch (_e) { return null; }
+}
 
 export const MAX_CALLS = 4;
 // THE TURN HAS A CLOCK (customer_support, 19 Oct 2026). Without one, MAX_CALLS calls at 45 s each could hold a turn
@@ -58,10 +72,13 @@ export interface AiReplyRequest {
   // THE ASYNCHRONOUS RE-ASK (_shared/reask.ts, ledger 1339 review, 27 Oct 2026): a turn whose every draft was refused is
   // asked again a minute later. These make that second ask a different one, not the same call repeated:
   priorProblems?: string[]; // why the earlier drafts for this same message were refused; named in the prompt
-  otherFamilyFirst?: boolean; // start on another model family (the counterpart of REPLY_MODEL), the route after it
+  otherFamilyFirst?: boolean; // start on another model family than the route's primary (routePrimary), the route after it
   effort?: 'low' | 'medium' | 'high'; // reasoning effort asked of the model
   signal?: AbortSignal;     // the caller no longer wants the answer (a discarded speculative draft): the call in flight is aborted and none starts
   extraCheck?: (text: string) => string[]; // the caller's own rules (the portal's plain-language gate, English for suppliers)
+  // THE CLASS (ruling 1571, 10 Nov 2026): conversation_reply when absent. status_reply (a WhatsApp status, invoice-copy or code
+  // answer whose facts code fixed) and voice_draft (the request chat's code-decided sentence) run on their own route.
+  taskClass?: string;
   // false: the company brief (21-40k tokens since 3 Nov 2026; ~140k before) is NOT sent, only the rules and the caller's facts; every draft is still checked
   // against the brief. WhatsApp's last chance (model_says.ts) uses it: a short prompt answers in seconds, not 10-15 s.
   briefInPrompt?: boolean;
@@ -240,7 +257,12 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const input = (r.facts ? 'THIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000)
     + (prior.length ? '\n\nAN EARLIER ANSWER TO THIS MESSAGE COULD NOT BE SENT. It had these problems: ' + [...new Set(prior)].join('; ')
       + '. Write a complete answer that avoids every one of them and follows every rule in your instructions.' : '');
-  const opts = { taskClass: REPLY_CLASS, ...(r.effort ? { effort: r.effort } : {}), ...(history.length ? { history } : {}), ...(r.briefInPrompt === false ? {} : { sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable }), cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.images?.length ? { images: r.images } : {}) };
+  const taskClass = r.taskClass ?? REPLY_CLASS;
+  const primary = await routePrimary(deps, taskClass, r.seat);
+  // Anthropic's 1-hour tier is a cache WRITE at 2x (the design's measured 1.27x on the voice call): asked only of an Anthropic
+  // primary, or when the route could not be read (as before).
+  const hourCache = !primary || primary.startsWith('anthropic/');
+  const opts = { taskClass, ...(r.effort ? { effort: r.effort } : {}), ...(history.length ? { history } : {}), ...(r.briefInPrompt === false ? {} : { sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable }), ...(hourCache ? { cacheTtl: '1h' as const } : {}), seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = []; let rateLimited = false;
   const left = () => (r.deadline ?? Infinity) - Date.now();
@@ -285,11 +307,15 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     const prose = proseOf(res?.content);
     return proseIsReply ? { text: prose, prose: '' } : { text: '', prose };
   };
-  // the gateway's route (its own ladder), then a counterpart of another family; MAX_CALLS in all
-  const rungs = r.otherFamilyFirst ? [REPLY_MODEL, null] : [null, REPLY_MODEL];
-  for (const [rung, counterpartModel] of rungs.entries()) {
+  // the gateway's route (its own ladder), then a counterpart of another family than the route's primary; MAX_CALLS in all.
+  // 'other' with no primary read: the first rung's own model, else a plain second ask on the route (counterpart null).
+  let firstModel: string | null = null;
+  const rungs: ('route' | 'other')[] = r.otherFamilyFirst ? (primary ? ['other', 'route'] : ['route']) : ['route', 'other'];
+  for (const [rung, kind] of rungs.entries()) {
     if (calls >= MAX_CALLS) break;
+    const counterpartModel = kind === 'other' ? (primary ?? firstModel) : null;
     let res = await call(input, counterpartModel);
+    if (rung === 0) firstModel = res?.model ?? null;
     let { text, prose } = read(res);
     seen(res, text);
     attempts.push((counterpartModel ? 'other-family:' : 'route:') + (text ? 'ok' : prose ? 'prose, asked again for the object: ' + failedWhy(res) : 'failed ' + failedWhy(res)));

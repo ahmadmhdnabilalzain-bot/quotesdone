@@ -1631,6 +1631,7 @@ select cron.schedule('seat_duty:customer_support.person_followup_email','*/5 * *
 select cron.schedule('seat_duty:accountant.reveal_reconcile','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('accountant.reveal_reconcile');$CRON$);
 select cron.schedule('cron_history_purge_hourly','37 * * * *',$CRON$select public.fn_cron_history_purge();$CRON$);
 select cron.schedule('site_uptime_5min','2-59/5 * * * *',$CRON$set statement_timeout = '30s'; select public.fn_site_uptime_tick();$CRON$);
+select cron.schedule('openrouter_low_balance_hourly','23 * * * *',$CRON$select public.fn_openrouter_low_balance_tick();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
