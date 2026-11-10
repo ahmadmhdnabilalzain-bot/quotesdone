@@ -28,6 +28,10 @@ const ENTRIES = [
   'supabase/functions/supplier_portal/index.ts',
   'supabase/functions/supplier_api/index.ts',
   'supabase/functions/supplier_catalog_ingest/index.ts',
+  // The page a supplier opens from his reveal reminder ("I have contacted the customer"). It printed every answer in
+  // English AND Arabic until 10 Nov 2026 (customer_support, supplier-journey audit): the walk never reached it, because
+  // nothing imports it. Named here so it is read like every other supplier surface.
+  'supabase/functions/supplier_ack/index.ts',
 ];
 const SHARED = /^(supabase\/functions\/_shared\/|src\/lib\/|src\/components\/(ui|me)\/)/;
 
