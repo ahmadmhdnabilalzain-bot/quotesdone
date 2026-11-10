@@ -7606,7 +7606,17 @@
  "supabase/functions/wa_inbound/general_turn.ts": [
   "caa8dfdaf4f5"
  ],
+ "supabase/functions/_shared/speech_to_text.ts": [
+  "5d71e855bc89",
+  "693394be7e68",
+  "862612de7f90"
+ ],
+ "supabase/functions/wa_inbound/media.ts": [
+  "cf33dc96c4fc"
+ ],
  "supabase/functions/wa_inbound/media_in.ts": [
+  "52100b6c66c6",
+  "de8343fdff3d",
   "75e7c95e9ceb",
   "7fea49861151"
  ],

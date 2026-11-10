@@ -106,6 +106,17 @@
       "self_fix": "retried once after 3 s",
       "action": "Issue a new OpenRouter key and store it as app_secrets.openrouter_api_key", "link": "https://openrouter.ai/settings/keys"
     },
+    "hf_inference": {
+      "what": "speech to text for WhatsApp voice notes and the portal recorder (Whisper on Hugging Face Inference, _shared/speech_to_text.ts); called only when app_secrets.voice_transcription_provider = 'hf'",
+      "hosts": ["router.huggingface.co"],
+      "secrets": ["hf_inference_token", "voice_transcription_provider", "voice_transcription_max_seconds", "voice_transcription_daily_cap", "voice_transcription_per_sender_daily", "voice_transcription_timeout_ms", "voice_transcription_hf_model"],
+      "env": [],
+      "owner_seat": "it_engineer", "blast": "customer_facing",
+      "notify_founder": false, "notify_why": "a voice note that cannot be heard gets the honest please-type reply; the finding stays with the IT engineer",
+      "probe": { "kind": "covered", "by": "wa_inbound/hear.ts records every attempt on its voice_claim row (heard, why, ms); nothing is called while the provider is off" },
+      "self_fix": "none: a failed hearing falls back to the please-type reply, never retried",
+      "action": "Create a fine-grained token on the Quotesdone Hugging Face account with 'Make calls to Inference Providers', store it as app_secrets.hf_inference_token and set voice_transcription_provider = hf", "link": "https://huggingface.co/settings/tokens"
+    },
     "dropbox": {
       "what": "the daily backups and the compliance archive",
       "hosts": ["api.dropboxapi.com", "content.dropboxapi.com"],

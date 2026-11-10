@@ -81,6 +81,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; code first, LLM only where code can't
 - [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
 - [Always name the seat](always-name-the-seat.md) — never say "an agent"; commits signed by the owning seat
+- [A WhatsApp voice note is heard only once a provider is set (10 Nov)](a-whatsapp-voice-note-is-heard-only-once-a-provider-is-set.md) — hear.ts + _shared/speech_to_text.ts; voice_transcription_provider off by default; 'hf' needs hf_inference_token (founder-held, absent), 'gateway' is OpenRouter (held); the live check is in the module header
 - [One inquiry state for every surface; the 100-message cap (10 Nov)](one-inquiry-state-every-surface-and-the-hundred-message-cap.md) — ledger 1572: public.inquiry_state, both sides count, 80/95/100, a does-not-know is never re-asked, New request carries the portal job
 - [The inquiry agent advises like an expert in every trade (10 Nov)](the-inquiry-agent-advises-like-an-expert-in-every-trade.md) — ledger 1572/1579/1586: diagnose -> advise -> qualify on all three surfaces; the whole 223-trade taxonomy and each trade's pack drive the questions; the chosen option names the services
 - [All conversations are kept for sales](all-conversations-are-kept-for-sales.md) — kept while active + 5 years after closure if lawful (6 Oct, ledger 1126), then purged

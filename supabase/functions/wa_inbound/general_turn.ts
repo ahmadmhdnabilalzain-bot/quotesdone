@@ -102,15 +102,17 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   const lane = laneOf(routedIntent, needsPerson === true || route?.needs_a_person === true);
   timings.lane = lane === 'status' ? 1 : lane === 'app' ? 2 : 0;
   mark('facts_ready');
-  // The speculative draft is the reply only when the real route's inputs are exactly the ones it was composed on.
+  // A person is needed: the facts carry the contact and what to say, so the last chance may answer without the brief.
+  t.factsAnswer = needsPerson === true || route?.needs_a_person === true || routedIntent === 'contact_human';
+  // The speculative draft is the reply whenever the facts the real route gives are the facts it was composed on (speculation.ts,
+  // 10 Nov 2026: it was adopted only for intent 'none', 0 of 7 real turns), on the conversation lane, with no person needed.
   // An empty draft (rate-limited, aborted, refused) is no draft: the reply is then asked on the real route, as before.
-  const adoptable = speculative && needsPerson === false && routedIntent === 'none' && route?.needs_a_person === false;
+  const sameFacts = speculative ? (await t.specFacts) === situation : false;
+  const adoptable = speculative && sameFacts && lane === 'conversation' && needsPerson !== true && route?.needs_a_person !== true && !t.factsAnswer;
   const spec = adoptable ? await speculative : null;
   if (!(spec && spec.text)) specAbort.abort();   // discarded: stop paying for it
   const drafted = spec && spec.text ? spec : null;
   timings.speculative = drafted ? 1 : 0;
-  // A person is needed: the facts carry the contact and what to say, so the last chance may answer without the brief.
-  t.factsAnswer = needsPerson === true || route?.needs_a_person === true || routedIntent === 'contact_human';
   let reply = (drafted ? adopt(drafted) : lane === 'conversation' ? await say(situation)
     : await t.sayLane(lane, lean, String(route?.deterministic_reply || ''))).slice(0, 1200);
   mark('reply_written');
@@ -135,7 +137,7 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   }
 
   let rowSaved = true;
-  try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { timings, enabled, reply_attempts: t.sayAttempts, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+  try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { timings, enabled, reply_attempts: t.sayAttempts, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null, ...(t.voice ? { voice: t.voice } : {}) } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
 
   // A captured fixture send (isDemoPhone: never handed to Twilio) is not a failed delivery: the QA channels run of 19 Oct

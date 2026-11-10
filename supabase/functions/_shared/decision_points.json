@@ -2031,9 +2031,19 @@
    "held": "Held/unreadable: a transcriber reply that is not the {speech, text} object is not guessed at; the caller gets transcription_failed (unreadable) and is asked to record again. Under the paid hold the gateway refuses as before.",
    "proof": [
     {
+     "file": "supabase/functions/_shared/speech_to_text.ts",
+     "must_contain": [
+      "const read = readTranscript(j?.content);",
+      "if (!read.speech) return { ok: false, reason: 'silent'"
+     ],
+     "must_not_contain": [
+      "no (clear )?(human )?speech|silence"
+     ]
+    },
+    {
      "file": "supabase/functions/transcribe/index.ts",
      "must_contain": [
-      "const read = readTranscript(j?.content);"
+      "const heard = await transcribeAudio("
      ],
      "must_not_contain": [
       "no (clear )?(human )?speech|silence"

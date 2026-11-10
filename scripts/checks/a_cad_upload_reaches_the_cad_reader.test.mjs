@@ -61,18 +61,18 @@ test('the queue has a worker, a queued job is held for the sales_engineer, and t
   assert.match(workerTs, /readDwg\(bytes, ctx, Infinity\)/);
   const status = api.slice(api.indexOf("action === 'cad_read_status'"), api.indexOf("action === 'analyze_boq'"));
   assert.match(status, /\.eq\('customer_id', cust\.id\)/);
-  // 3 Nov 2026: Actions is on again (ledger 1410), and from 27 Oct nothing started the worker: the nightly's DWG sat
-  // queued 248 s (2 Nov) and 253 s (3 Nov). A queued job DISPATCHES the worker at once, a polled job that has not
-  // started is dispatched again, and a dispatch that does not answer 204 raises the hour's sales_engineer finding
-  // (one per hour: the worker reads every queued job in one run); a polled open job tells the screen who holds it.
+  // 10 Nov 2026 (it_engineer, channels audit R3): Actions is OFF (ledger 1564), so a dispatch answered nothing and a queued DWG
+  // waited for a runner that never came (264 s, 6 failed dispatches). The queue is read by the Claude routine the founder switched
+  // on (lib/drawings.ts CAD_READER_ROUTINE, every 2 h): a queued job is announced, never dispatched, and a poll raises the
+  // sales_engineer's held finding only for a job the routine has not taken within its interval and run time (cad_dispatch.ts).
   const queue = api.slice(api.indexOf('async function queueCadRead'), api.indexOf('async function startCadWorker'));
-  assert.match(queue, /await startCadWorker\(String\(data\.id\), o\.why\)/, 'a queued CAD job must start its worker');
-  const start = api.slice(api.indexOf('async function startCadWorker'), api.indexOf('// THE FALLBACK WHEN THE DISPATCH IS REFUSED'));
-  assert.match(start, /actions\/workflows\/cad-read-worker\.yml\/dispatches/, 'startCadWorker must dispatch the CAD worker workflow');
-  assert.match(start, /r\.status === 204\) return;[\s\S]{0,300}await cadReadHeld\(jobId/, 'a refused dispatch must fall back to the held finding');
-  // Independent review of #1837: a poll re-dispatches only after it claims the job's once-a-minute slot in the database,
-  // and past the first hour it raises the held finding instead (cad_dispatch.ts; cad_dispatch.test.ts runs the timing).
-  assert.match(status, /const redo = cadJobNeedsRedispatch\(job as any\);\s*if \(redo && await claimCadDispatch\(admin, id\)\) \{\s*if \(redo === 'dispatch'\) await startCadWorker\(id[^\n]*\n\s*else await cadReadHeld\(id/, 'a polled job is re-dispatched only through the claimed slot');
+  assert.match(queue, /await startCadWorker\(String\(data\.id\), o\.why\)/, 'a queued CAD job is announced to its reader');
+  const start = api.slice(api.indexOf('async function startCadWorker'), api.indexOf('// THE HELD FINDING'));
+  assert.ok(start.length > 0 && !/api\.github\.com/.test(start), 'startCadWorker must not call GitHub: Actions is off and the routine reads the queue');
+  assert.match(api, /export const CAD_READER_ROUTINE = 'QuotesDone — CAD read worker \(every 2 h\)';/, 'the queue names the routine that reads it');
+  const dispatch = readFileSync(new URL('../../supabase/functions/customer_api/cad_dispatch.ts', import.meta.url), 'utf8');
+  assert.match(dispatch, /export const CAD_READER_EVERY_MS = 2 \* 60 \* 60_000;/, 'the held threshold follows the routine\'s cadence');
+  assert.match(status, /if \(redo === 'held' && await claimCadDispatch\(admin, id\)\) await cadReadHeld\(id/, 'a polled job past the routine raises the held finding, once a minute at most');
   const held = api.slice(api.indexOf('async function cadReadHeld'), api.indexOf('// A CAD DRAWING IS DRAWN FOR SUPPLIERS'));
   assert.match(held, /fn_it_engineer_finding_upsert[\s\S]{0,200}sales_engineer:cad_read_held:' \+ new Date\(\)\.toISOString\(\)\.slice\(0, 13\)[\s\S]{0,800}p_raised_by: 'sales_engineer'/);
   assert.match(held, /if \(error\) console\.error\(/, 'a finding that was not written is said, never swallowed');
@@ -110,22 +110,22 @@ function dispatchHits(file, src) {
   for (const [url] of src.matchAll(DISPATCH)) {
     const wf = (url.match(/actions\/workflows\/([^'"`\s]*)\/dispatches$/) || [])[1] || 'repository_dispatch';
     // startCadWorker's file: customer_api/index.ts until the 9 Nov 2026 split moved it, verbatim, to lib/drawings.ts.
-    if (!(file === 'customer_api/lib/drawings.ts' && wf === 'cad-read-worker.yml')) out.push(`${file} -> ${wf}`);
+    out.push(`${file} -> ${wf}`);   // 10 Nov 2026 (R3): no edge function starts a workflow, the CAD worker included
   }
   return out;
 }
 
-test('the dispatch scan catches every form of a dispatch URL, and lets through only the CAD worker in customer_api', () => {
+test('the dispatch scan catches every form of a dispatch URL, the CAD worker included', () => {
   const tpl = (s) => '`https://' + s + '`';
   assert.deepEqual(dispatchHits('it_x/index.ts', `fetch(${tpl('api.github.com/repos/${REPO}/actions/workflows/x.yml/dispatches')})`), ['it_x/index.ts -> x.yml']);
   assert.deepEqual(dispatchHits('it_x/index.ts', `fetch(${tpl('api.github.com/repos/${OWNER}/${NAME}/dispatches')})`), ['it_x/index.ts -> repository_dispatch']);
   assert.deepEqual(dispatchHits('it_x/index.ts', "fetch('https://api.github.com/repos/o/r/actions/workflows/cad-read-worker.yml/dispatches')"), ['it_x/index.ts -> cad-read-worker.yml'], 'the CAD worker from any other function is a hit');
   assert.deepEqual(dispatchHits('customer_api/lib/drawings.ts', `fetch(${tpl('api.github.com/repos/${REPO}/actions/workflows/${wf}/dispatches')})`), ['customer_api/lib/drawings.ts -> ${wf}'], 'a workflow named by a variable is a hit');
-  assert.deepEqual(dispatchHits('customer_api/lib/drawings.ts', "fetch('https://api.github.com/repos/o/r/actions/workflows/cad-read-worker.yml/dispatches')"), []);
+  assert.deepEqual(dispatchHits('customer_api/lib/drawings.ts', "fetch('https://api.github.com/repos/o/r/actions/workflows/cad-read-worker.yml/dispatches')"), ['customer_api/lib/drawings.ts -> cad-read-worker.yml'], 'since 10 Nov 2026 not even the CAD worker');
   assert.deepEqual(dispatchHits('customer_api/index.ts', "fetch('https://api.github.com/repos/o/r/actions/workflows/cad-read-worker.yml/dispatches')"), ['customer_api/index.ts -> cad-read-worker.yml'], 'only the one file that holds startCadWorker may dispatch it');
 });
 
-test('only customer_api starts a GitHub workflow, and only the CAD worker', () => {
+test('no edge function starts a GitHub workflow (Actions is off; the CAD queue is read by its routine)', () => {
   const dir = new URL('../../supabase/functions/', import.meta.url);
   const hits = [];
   for (const f of readdirSync(dir, { recursive: true })) {

@@ -17,6 +17,8 @@ export interface SayRequest {
   lang: 'en' | 'ar';
   message: string;              // what the person wrote this turn
   situation: string;            // what code decided / the routine returned — the facts the reply must convey
+  /** the classification's needs-a-person reading of this message, read only when a draft is prose (_shared/ai_reply.ts, 10 Nov 2026) */
+  escalateReading?: () => Promise<boolean | null>;
   conversation?: Turn[];
   subject?: Record<string, unknown>;
   rateKey?: string;             // the per-sender ceiling at the gateway (wa:<From>, 20/hour)
@@ -75,7 +77,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation
         + (r.expert && r.audience !== 'supplier' ? '\n\n' + r.expert : ''),
       rules: r.laneRules ? WA_RULES + ' ' + r.laneRules : WA_RULES, subject: r.subject,
-      ...(r.taskClass ? { taskClass: r.taskClass } : {}), ...(r.briefInPrompt === false ? { briefInPrompt: false } : {}), rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must, ...(r.signal ? { signal: r.signal } : {}), ...(r.extraCheck ? { extraCheck: r.extraCheck } : {}),
+      ...(r.taskClass ? { taskClass: r.taskClass } : {}), ...(r.briefInPrompt === false ? { briefInPrompt: false } : {}), rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, ...(r.escalateReading ? { escalateReading: r.escalateReading } : {}), must: r.must, ...(r.signal ? { signal: r.signal } : {}), ...(r.extraCheck ? { extraCheck: r.extraCheck } : {}),
       ...(r.dialect && r.audience !== 'supplier' ? { dialect: r.dialect } : {}), ...(r.effort ? { effort: r.effort } : {}),
       deadline, ...o,
     });
