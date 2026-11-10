@@ -173,12 +173,17 @@
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU34-ASPP2_Technical-Guidelines-for-Approval-of-Swimming-Pool-Plans_V4.pdf",
         "https://dmpmedia.dm.gov.ae/uploads/2022/03/DM-HSD-GU80_PRSPS2_Private-Swimming-Pools-Safety-Guidelines_V1-1.pdf",
-        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU81-PSPS2_Public-Swimming-Pools-Safety-Guidelines_V3-26-04-2024-003.pdf"
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU81-PSPS2_Public-Swimming-Pools-Safety-Guidelines_V3-26-04-2024-003.pdf",
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.dm.gov.ae/documents/hsd-gu34/",
+        "https://www.dm.gov.ae/documents/hsd-gu80/",
+        "https://www.dm.gov.ae/documents/hsd-gu81/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM approves private and public pool drawings before construction and publishes Technical Guidelines 34 (approval of pool plans, dated 25 Jul 2024), 80 (private pools safety) and 81 (public pools safety). Not confirmed on any reachable page: the content of the guidelines (DM e-service registration, Dubai Building Permits System, pool category) and the DDA/Trakhees permits. Host(s) that could not be reached: dmpmedia.dm.gov.ae (Dubai Municipality's PDF host; blocked, and the cited www.dm.gov.ae/wp-content PDF links now redirect to the home page)."
     },
     {
       "id": "swimming_pools:quote-red-flags",
@@ -274,8 +279,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
+    "fetched_urls": 5,
+    "claims_checked": 7,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -321,7 +326,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: swimming_pools:approvals-per-emirate re-checked against official pages opened through the session network (4 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

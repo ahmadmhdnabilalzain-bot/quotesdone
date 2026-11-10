@@ -460,13 +460,15 @@
       "body_ar": "في أبوظبي: يتضمن إطار نظام إدارة السلامة والصحة المهنية التابع لمركز أبوظبي للصحة العامة مدونة ممارسة للسقالات (COP 26) تغطي التصميم والتركيب بأشخاص أكفاء والفحص والوسم، وتطبقها دائرة البلديات والنقل في مواقع البناء. في دبي: تنظم بلدية دبي السلامة في مواقع البناء، وتُفحص السقالات من قبل فاحصين أكفاء أو طرف ثالث، ويحتاج استخدام جزء من الطريق العام أو الرصيف للسقالة إلى إذن هيئة الطرق والمواصلات. في الشارقة والإمارات الشمالية: تنطبق قواعد السلامة البلدية في البناء، ولم يُتحقق من القاعدة المحددة للسقالات في هذه الجلسة. والسقالة داخل قطعة أرض خاصة للصيانة لا تحتاج إلى ترخيص، وقد يطلبه المجمع. من يحصل عليها: مقاول السقالات (التصميم والفحص والبطاقات) والمقاول الرئيسي (تصاريح الطريق والموقع).",
       "sources": [
         "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/2026/COP-260--Scaffolding-v41-English.pdf",
-        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=3704531",
-        "https://www.dm.gov.ae/dubai-municipality-services/"
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=314",
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.dm.gov.ae/municipality-business/technical-guidelines-list/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: RTA permits use of part of the right of way (footpath, parking, hard shoulder) for construction or maintenance works; DM publishes technical guidelines on mobile access towers (74) and safe use of ladders (73). Not confirmed on any reachable page: the OSHAD scaffolding code. Host(s) that could not be reached: www.adphc.gov.ae (blocked by the session network)."
     },
     {
       "id": "scaffolding:compare-quotes-cost-to-value",
@@ -570,8 +572,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 17,
-    "claims_checked": 151,
+    "fetched_urls": 20,
+    "claims_checked": 156,
     "corrected": [
       "scaffolding:load-classes",
       "scaffolding:mobile-towers",
@@ -596,7 +598,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: scaffolding:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 5 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

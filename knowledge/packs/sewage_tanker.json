@@ -135,12 +135,14 @@
       "body_en": "Sewage tankers must hold a permit from the emirate's municipality or sewerage authority and discharge only at approved treatment plants, against a receipt. Dubai: Dubai Municipality permits tanker companies and runs the discharge points. Abu Dhabi: the sewerage services company and the municipality; Sharjah and the northern emirates: their municipalities. Grease-trap waste may need a separate permit. The specific permits were not confirmed on an official page in this session. Who obtains: the tanker company; the buyer should keep discharge receipts.",
       "body_ar": "يجب أن تحمل صهاريج الصرف الصحي تصريحاً من بلدية الإمارة أو جهة الصرف الصحي، وألا تفرغ إلا في محطات معالجة معتمدة مقابل إيصال. في دبي: تصرّح بلدية دبي لشركات الصهاريج وتدير نقاط التفريغ. في أبوظبي: شركة خدمات الصرف الصحي والبلدية، وفي الشارقة والإمارات الشمالية بلدياتها. وقد تحتاج مخلفات مصائد الشحوم إلى تصريح منفصل. ولم يُتحقق من التصاريح المحددة في صفحة رسمية في هذه الجلسة. من يحصل عليه: شركة الصهاريج، وعلى المشتري الاحتفاظ بإيصالات التفريغ.",
       "sources": [
-        "https://www.dm.gov.ae/dubai-municipality-services/"
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.dm.gov.ae/municipality-business/waste-department-technical-guidelines-2/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM offers withdrawal of sewage water from sites not connected to the public network (DM services) and publishes waste and sewerage technical guidelines. Not confirmed on any reachable page: DM permits for tanker companies and discharge receipts."
     },
     {
       "id": "sewage_tanker:quote-red-flags",
@@ -229,8 +231,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
+    "fetched_urls": 3,
+    "claims_checked": 5,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -276,7 +278,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: sewage_tanker:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 4 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

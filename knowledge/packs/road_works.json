@@ -160,7 +160,7 @@
       "body_en": "Dubai: any infrastructure work within the road right of way needs a construction NOC from the concerned service authorities through RTA's e-NOC system; RTA states that approvals are valid for 6 months from the final NOC and that all service-authority approvals must be obtained within 2 months of applying; works regulated under Executive Council Resolution No. 54 of 2021; work in a rail corridor needs a separate rail NOC. Using part of a road needs an RTA traffic plan. In Trakhees areas, infrastructure NOCs come from Trakhees. Abu Dhabi: the Abu Dhabi infrastructure services guideline sets right-of-way and permitting rules, utility NOCs come from each utility (ADDC publishes its NOC requirements), and traffic approval comes from the Integrated Transport Centre (Abu Dhabi Mobility). Sharjah: the Sharjah Roads and Transport Authority and the municipality; the northern emirates: their municipalities or public-works departments; the detailed steps there were not confirmed in this session. Roads inside a private plot need no right-of-way NOC. Who obtains: the contractor applies; the consultant prepares drawings.",
       "body_ar": "في دبي: تحتاج أي أعمال بنية تحتية داخل حرم الطريق إلى شهادة عدم ممانعة إنشائية من جهات الخدمات المعنية عبر نظام هيئة الطرق والمواصلات الإلكتروني، وتذكر الهيئة أن الموافقة صالحة 6 أشهر من تاريخ الشهادة النهائية وأن موافقات جميع الجهات يجب أن تُستكمل خلال شهرين من تقديم الطلب، وتنظم هذه الأعمال وفق قرار المجلس التنفيذي رقم 54 لسنة 2021، وتحتاج الأعمال في ممر السكك إلى شهادة مستقلة. ويحتاج استخدام جزء من الطريق إلى مخطط مروري معتمد من الهيئة. وفي مناطق تراخيص تصدر شهادات البنية التحتية من تراخيص. في أبوظبي: يحدد الدليل الإرشادي لمواصفات البنية التحتية قواعد حرم الطريق والتراخيص، وتصدر شهادات المرافق من كل جهة (وتنشر شركة أبوظبي للتوزيع متطلباتها)، والموافقة المرورية من مركز النقل المتكامل (أبوظبي للتنقل). في الشارقة: هيئة الطرق والمواصلات بالشارقة والبلدية، وفي الإمارات الشمالية بلدياتها أو دوائر الأشغال فيها، ولم يُتحقق من الخطوات التفصيلية هناك في هذه الجلسة. والطرق داخل قطعة أرض خاصة لا تحتاج إلى شهادة حرم طريق. من يحصل عليها: يتقدم المقاول بالطلب ويعد الاستشاري المخططات.",
       "sources": [
-        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=3704531",
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=314",
         "https://www.rta.ae/links/rail-noc.pdf",
         "https://pcfc.ae/en/Service%20Documents/TRK-CED-PS-CF15a,%20Infrastructure%20NOC%20Application%20Form.pdf",
         "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/E-Library/Abu-Dhabi-Emirate-Guideline-for-Infrastructure-Services-Standards.pdf",
@@ -169,8 +169,9 @@
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: RTA requires an eNOC for any excavation and links works in the right of way to Executive Council Resolution No. 54 of 2021; occupying part of the road needs an RTA permit with a traffic management layout; rail-corridor works need a separate Rail Agency NOC through eNOC (RTA rail NOC guideline, August 2023); the Abu Dhabi infrastructure services guideline sets right-of-way and NOC rules; ADDC publishes NOC requirements. Not confirmed on any reachable page: the 6-month validity and 2-month collection periods (the cited RTA service page now returns 404), Trakhees NOCs, the Integrated Transport Centre and the Sharjah RTA. Host(s) that could not be reached: pcfc.ae (Trakhees; blocked, and www.trakhees.ae redirects there); itc.gov.ae (blocked by the session network)."
     },
     {
       "id": "road_works:quote-red-flags",
@@ -266,8 +267,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
+    "fetched_urls": 5,
+    "claims_checked": 11,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -313,7 +314,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: road_works:approvals-per-emirate re-checked against official pages opened through the session network (4 URL(s) read, 10 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

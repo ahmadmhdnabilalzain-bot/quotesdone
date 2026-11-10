@@ -140,16 +140,17 @@
       "kind": "authority_approval",
       "topic": "Disposables: the single-use plastic ban and other rules",
       "topic_ar": "المنتجات أحادية الاستخدام: حظر البلاستيك والقواعد الأخرى",
-      "body_en": "Federal: Ministerial Resolution No. 380 of 2022 phases out single-use plastics. Its first phase, from 1 January 2024, banned the import, manufacture and trade of single-use plastic shopping bags; its second phase, from 1 January 2026, extends to items including beverage cups and lids, cutlery, plates, straws and stirrers, and Styrofoam food containers, with exemptions this session did not read. Dubai: Executive Council Resolution No. 124 of 2023 reached its final phase on 1 January 2026, aligned with the federal resolution. The other emirates apply the federal ban. Food-contact disposables must also meet the emirate's food-contact rules. Who obtains: the importer or maker is responsible for compliance; the buyer should not order banned items.",
-      "body_ar": "اتحادياً: يقضي القرار الوزاري رقم 380 لسنة 2022 بالتخلص التدريجي من البلاستيك أحادي الاستخدام. فقد حظرت مرحلته الأولى من 1 يناير 2024 استيراد وتصنيع وتداول أكياس التسوق البلاستيكية أحادية الاستخدام، وتمتد مرحلته الثانية من 1 يناير 2026 إلى منتجات منها أكواب المشروبات وأغطيتها، وأدوات المائدة، والأطباق، والمصاصات وأعواد التقليب، وعلب الطعام المصنوعة من الستايروفوم، مع استثناءات لم يُطّلع عليها في هذه الجلسة. وفي دبي بلغ قرار المجلس التنفيذي رقم 124 لسنة 2023 مرحلته الأخيرة في 1 يناير 2026 متوافقاً مع القرار الاتحادي. وتطبق الإمارات الأخرى الحظر الاتحادي. ويجب أن تحقق المنتجات الملامسة للأغذية أيضاً قواعد الإمارة الخاصة بمواد ملامسة الأغذية. من يتحمل المسؤولية: المستورد أو الصانع مسؤول عن الامتثال، ولا ينبغي للمشتري طلب منتجات محظورة.",
+      "body_en": "Federal: Cabinet Resolution No. 380 of 2022 regulates single-use products and phases out single-use plastics. Its first phase, from 1 January 2024, banned the import, manufacture and trade of single-use plastic shopping bags; its second phase, from 1 January 2026, extends to items including beverage cups and lids, cutlery, plates, straws and stirrers, and Styrofoam food containers, with exemptions this session did not read. Dubai: Executive Council Resolution No. 124 of 2023 reached its final phase on 1 January 2026, aligned with the federal resolution. The other emirates apply the federal ban. Food-contact disposables must also meet the emirate's food-contact rules. Who obtains: the importer or maker is responsible for compliance; the buyer should not order banned items.",
+      "body_ar": "اتحادياً: ينظم قرار مجلس الوزراء رقم 380 لسنة 2022 المنتجات أحادية الاستخدام ويقضي بالتخلص التدريجي من البلاستيك أحادي الاستخدام. فقد حظرت مرحلته الأولى من 1 يناير 2024 استيراد وتصنيع وتداول أكياس التسوق البلاستيكية أحادية الاستخدام، وتمتد مرحلته الثانية من 1 يناير 2026 إلى منتجات منها أكواب المشروبات وأغطيتها، وأدوات المائدة، والأطباق، والمصاصات وأعواد التقليب، وعلب الطعام المصنوعة من الستايروفوم، مع استثناءات لم يُطّلع عليها في هذه الجلسة. وفي دبي بلغ قرار المجلس التنفيذي رقم 124 لسنة 2023 مرحلته الأخيرة في 1 يناير 2026 متوافقاً مع القرار الاتحادي. وتطبق الإمارات الأخرى الحظر الاتحادي. ويجب أن تحقق المنتجات الملامسة للأغذية أيضاً قواعد الإمارة الخاصة بمواد ملامسة الأغذية. من يتحمل المسؤولية: المستورد أو الصانع مسؤول عن الامتثال، ولا ينبغي للمشتري طلب منتجات محظورة.",
       "sources": [
         "https://www.wam.ae/en/article/bn8qxpm-second-phase-nationwide-ban-import-trade",
         "https://www.dm.gov.ae/dubai-to-enforce-final-phase-of-single-use-plastic-ban-from-2026/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Dubai Municipality (24 Dec 2025): the final phase of Executive Council Resolution No. 124 of 2023 took effect on 1 January 2026, banning single-use plastic plates, cutlery, beverage cups and lids, alongside items already banned in 2025, and coincides with enforcement of UAE Cabinet Resolution No. 380 of 2022 (the pack called it a Ministerial Resolution; corrected). Not confirmed on any reachable page: the federal phase dates and item list. Host(s) that could not be reached: www.wam.ae (blocked by the session network). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "tissue_disposables:quote-red-flags",
@@ -245,9 +246,11 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
-    "corrected": [],
+    "fetched_urls": 2,
+    "claims_checked": 7,
+    "corrected": [
+      "tissue_disposables:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
       "tissue_disposables:spec-checklist",
@@ -292,7 +295,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: tissue_disposables:approvals-per-emirate re-checked against official pages opened through the session network (1 URL(s) read, 6 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }
