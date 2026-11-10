@@ -31,6 +31,12 @@ one ZZ DEMO supplier); real reveal revenue 0 (the one paid reveal is ZZ DEMO); m
 CEO re-tunes weekly from the measured quote rate after 30 invitations. A demo supplier never counts; the probe uses the
 session setting `qd.trade_opening_fixture_counts` because a verified supplier cannot be faked (fn_supplier_mandatory_six).
 
+**Demo suppliers count only for a demo customer** (coordinator review): the doors read fn_customer_is_demo /
+fn_is_demo_phone, the reveal reads fn_inquiry_is_demo; for a demo customer a trade opens at the floor of 5, so the
+evidence pack (five ZZ DEMO suppliers per journey) runs while no real trade is open. The real state table never counts demo.
+After merging main at ef9c5b103 every pre-existing routine these files redefine was diffed against live and the mirror:
+unchanged, nothing rebuilt.
+
 **The IT session list** now lives in `public.it_session_fix_day` (one row a Dubai day): read it at session start.
 
 Related: [[seat-qualification-audit-10-nov-break-even]].
