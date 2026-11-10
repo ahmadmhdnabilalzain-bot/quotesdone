@@ -9,8 +9,12 @@
 do $p$
 declare
   v_it_before int; v_it jsonb; v_it_after int; v_ceo_before int; v_ceo jsonb; v_ceo_after int;
-  v_kr_before int; v_kr jsonb; v_kr_after int; v_bad int; v_unrecorded int; v_ok boolean;
+  v_kr_before int; v_kr jsonb; v_kr_after int; v_bad int; v_unrecorded int; v_ok boolean; v_open bigint[];
 begin
+  -- the handoffs open before the sweeps: only THEIR closes are judged (an earlier file in the same transaction may close others)
+  select coalesce(array_agg(a.id), '{}') into v_open from public.agent_actions a
+   where a.kind = 'handoff' and a.status = 'pending'
+     and a.detail->>'type' in ('it.finding', 'ceo.root_cause', 'deliberation.review', 'ceo.revise', 'ceo.month_directive');
   select count(*) into v_it_before from public.agent_actions a left join public.it_engineer_finding f on f.issue_key = a.detail->>'issue_key'
    where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'pending' and a.detail ? 'replied_at'
      and (f.issue_key is null or f.closed_at is not null or f.started_at > (a.detail->>'occurrence_started_at')::timestamptz);
@@ -37,8 +41,7 @@ begin
 
   -- a close with no record, or a record with an empty reading
   select count(*) into v_unrecorded from public.agent_actions a
-   where a.kind = 'handoff' and a.status = 'done' and a.decided_at = now()
-     and a.detail->>'type' in ('it.finding', 'ceo.root_cause', 'deliberation.review', 'ceo.revise', 'ceo.month_directive')
+   where a.id = any (v_open) and a.status = 'done'
      and not exists (select 1 from public.originator_close_record r where r.handoff_id = a.id and r.reading <> '{}'::jsonb);
   -- a close the predicate does not allow: an it.finding whose own occurrence is still open, a root cause of an open
   -- task in the current month
