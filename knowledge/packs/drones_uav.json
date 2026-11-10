@@ -6,8 +6,8 @@
       "topic": "Drones & unmanned aircraft - what the buyer must state",
       "topic_ar": "الطائرات بدون طيار (الدرون): ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For drones & unmanned aircraft (trade code drones_uav only), every quoted line must state: Drone type and use (camera, survey, inspection, spraying); Make and model; Maximum take-off weight; Flight time and range; Payload or camera and sensor specs; Positioning (GNSS, RTK); Batteries and chargers included; Software and data processing; Registration and operating approvals needed; Training; Warranty and repair support; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الطائرات بدون طيار (الدرون) (رمز النشاط drones_uav فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الطائرة واستخدامها (تصوير، مسح، فحص، رش)؛ الماركة والموديل؛ أقصى وزن للإقلاع؛ زمن الطيران والمدى؛ الحمولة أو الكاميرا ومواصفات الحساسات؛ تحديد الموقع (GNSS، RTK)؛ البطاريات والشواحن المشمولة؛ البرامج ومعالجة البيانات؛ التسجيل وموافقات التشغيل المطلوبة؛ التدريب؛ الضمان ودعم الإصلاح؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For drones & unmanned aircraft (trade code drones_uav only), every quoted line must state: Drone type and use (camera, survey, inspection, spraying); Make and model; Maximum take-off weight; Flight time and range; Payload or camera and sensor specs; Positioning (GNSS, RTK); Batteries and chargers included; Software and data processing; Registration and operating approvals needed; Training; Warranty and repair support; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Drone type and use (camera, survey, inspection, spraying); Make and model; Payload or camera and sensor specs; Registration and operating approvals needed. Before a firm price: a firm price needs use, model or class and payload; a drone service (survey, inspection) also needs the site and the airspace check before the price is firm.",
+      "body_ar": "في نشاط الطائرات بدون طيار (الدرون) (رمز النشاط drones_uav فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الطائرة واستخدامها (تصوير، مسح، فحص، رش)؛ الماركة والموديل؛ أقصى وزن للإقلاع؛ زمن الطيران والمدى؛ الحمولة أو الكاميرا ومواصفات الحساسات؛ تحديد الموقع (GNSS، RTK)؛ البطاريات والشواحن المشمولة؛ البرامج ومعالجة البيانات؛ التسجيل وموافقات التشغيل المطلوبة؛ التدريب؛ الضمان ودعم الإصلاح؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الاستخدام، والعلامة والطراز، والحمولة أو المستشعر، والتسجيل وموافقات التشغيل. خدمة المسيّرات (المسح أو الفحص) تحتاج أيضاً الموقع والتحقق من المجال الجوي قبل السعر النهائي.",
       "required_specs": [
         "Drone type and use (camera, survey, inspection, spraying)",
         "Make and model",
@@ -28,7 +28,100 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: GCAA: recreational drones registered before flight, up to 5 kg only in approved zones, within line of sight below 400 ft, away from airports; commercial operators need an Unmanned Aircraft Operator Authorisation (UOA, about 3 weeks) and separate operational permission, with security clearance for camera flights. Re-read 19 Oct on the same GCAA page, verbatim: \"UAS/drones shall fly only during day time and in good weather conditions\"; \"All UAS/drones weighing above 5kgs and/or equipped with gas engine shall only operate within the GCAA approved flying clubs\" -> confirmed."
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: GCAA: recreational drones registered before flight, up to 5 kg only in approved zones, within line of sight below 400 ft, away from airports; commercial operators need an Unmanned Aircraft Operator Authorisation (UOA, about 3 weeks) and separate operational permission, with security clearance for camera flights. Re-read 19 Oct on the same GCAA page, verbatim: \"UAS/drones shall fly only during day time and in good weather conditions\"; \"All UAS/drones weighing above 5kgs and/or equipped with gas engine shall only operate within the GCAA approved flying clubs\" -> confirmed.",
+      "blocking": [
+        "Drone type and use (camera, survey, inspection, spraying)",
+        "Make and model",
+        "Payload or camera and sensor specs",
+        "Registration and operating approvals needed"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Drone type and use (camera, survey, inspection, spraying)",
+          "why_needed_to_price": "Use decides the drone class.",
+          "uae_options": "camera; survey; inspection; spraying; delivery",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Make and model",
+          "why_needed_to_price": "Make and model.",
+          "uae_options": "model",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Maximum take-off weight",
+          "why_needed_to_price": "Maximum take-off weight.",
+          "uae_options": "kg",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Flight time and range",
+          "why_needed_to_price": "Flight time and range.",
+          "uae_options": "minutes; km",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payload or camera and sensor specs",
+          "why_needed_to_price": "Payload or sensor drives price.",
+          "uae_options": "camera; LiDAR; thermal; multispectral; spray tank",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Positioning (GNSS, RTK)",
+          "why_needed_to_price": "Positioning.",
+          "uae_options": "GNSS; RTK",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Batteries and chargers included",
+          "why_needed_to_price": "Batteries and chargers.",
+          "uae_options": "sets",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Software and data processing",
+          "why_needed_to_price": "Software.",
+          "uae_options": "mapping; processing",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Registration and operating approvals needed",
+          "why_needed_to_price": "Registration and operating approvals decide whether it can fly.",
+          "uae_options": "registration; MoIAT letter of conformity; GCAA or local authority approvals",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Training",
+          "why_needed_to_price": "Training.",
+          "uae_options": "pilot training by approved operator",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty and repair support",
+          "why_needed_to_price": "Warranty and repair.",
+          "uae_options": "local service",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock; import",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs use, model or class and payload; a drone service (survey, inspection) also needs the site and the airspace check before the price is firm."
     },
     {
       "id": "drones_uav:product-distinctions",
@@ -59,6 +152,73 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "drones_uav:authority-approvals",
+      "topic": "Drones & unmanned aircraft: licences, permits and approvals by emirate",
+      "topic_ar": "الطائرات بدون طيار (الدرون): التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "The GCAA regulation CAR-UAC (Unmanned Aircraft Commercial and Governmental Operations, Issue 02) states that no operator may perform commercial drone operations without a valid UA Operator Authorisation (UOA) issued by GCAA or the Local Appropriate Authority (LAA) of the emirate, that only UAE-based operators can be granted a UOA, and that before applying the applicant must obtain a Letter of Conformity for each drone from the Ministry of Industry and Advanced Technology (MoIAT) e-service. The operator must ensure every drone is registered and appropriately insured before operating. From January 2024 no one may operate a drone in UAE airspace without a pilot licence issued by GCAA or the LAA, which requires training by an approved training operator. The UOA is valid for one year and may be renewed. Each emirate's LAA authorises and oversees drone operations in its territory; where there is none, GCAA does. A buyer of drone services should ask for the operator's UOA and the pilot's licence; a buyer of drones should ask whether the model has the MoIAT Letter of Conformity.",
+      "body_ar": "تنص لائحة الهيئة العامة للطيران المدني CAR-UAC (العمليات التجارية والحكومية للطائرات بدون طيار، الإصدار 02) على أنه لا يجوز لأي مشغل القيام بعمليات تجارية بالطائرات المسيّرة دون تفويض مشغل ساري المفعول تصدره الهيئة أو سلطة الطيران المحلية المختصة في الإمارة، وأن التفويض لا يُمنح إلا لمشغل مقره في الدولة، وأن على مقدم الطلب قبل التقدم الحصول على خطاب مطابقة لكل طائرة من الخدمة الإلكترونية لوزارة الصناعة والتكنولوجيا المتقدمة. ويجب أن يضمن المشغل تسجيل كل طائرة وتأمينها تأميناً مناسباً قبل التشغيل. ومنذ يناير 2024 لا يجوز لأحد تشغيل طائرة مسيّرة في أجواء الدولة دون رخصة طيار تصدرها الهيئة أو السلطة المحلية، ويتطلب ذلك تدريباً لدى جهة تدريب معتمدة. والتفويض صالح لسنة واحدة ويجوز تجديده. وتتولى السلطة المحلية في كل إمارة تفويض عمليات المسيّرات والإشراف عليها في نطاقها، وحيث لا توجد تتولاها الهيئة. ينبغي لمشتري خدمات المسيّرات طلب تفويض المشغل ورخصة الطيار، ولمشتري الطائرات السؤال عن خطاب المطابقة من الوزارة للطراز.",
+      "sources": [
+        "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590); every claim in the body was read on the official page(s) listed first in sources, opened with curl on 10 Nov 2026.",
+      "source_note": "Opened 10 Nov 2026: GCAA CAR-UAC Issue 02 (PDF on www.gcaa.gov.ae): UAC.010 (UOA from GCAA or LAA required for commercial operations; only UAE-based operators; MoIAT Letter of Conformity for each UA before applying), UAC.015(b) (all UA registered and insured), UAC.020 (pilot licence from GCAA or LAA from January 2024; training by an approved UA training operator), UAC.040 (UOA valid one year, renewable) and GM to UAC.001 (each emirate's LAA authorises and oversees UA operations in its territory, otherwise GCAA)."
+    },
+    {
+      "id": "drones_uav:quote-red-flags",
+      "topic": "Drones & unmanned aircraft: red flags in supplier quotations",
+      "topic_ar": "الطائرات بدون طيار (الدرون): علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for drones without the MoIAT letter of conformity, services offered by operators without a UOA or licensed pilots, insurance excluded, grey imports without local service, batteries and spare parts excluded, and data processing software as a separate subscription.",
+      "body_ar": "انتبه إلى طائرات دون خطاب المطابقة من الوزارة، وخدمات يقدمها مشغلون دون تفويض أو طيارين مرخصين، واستثناء التأمين، والاستيراد الموازي دون خدمة محلية، واستثناء البطاريات وقطع الغيار، وبرامج معالجة البيانات كاشتراك منفصل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "drones_uav:buyer-mistakes",
+      "topic": "Drones & unmanned aircraft: common buyer mistakes",
+      "topic_ar": "الطائرات بدون طيار (الدرون): الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers import drones and then find they cannot register or fly them, and hire cheap operators without a UOA.",
+      "body_ar": "يستورد المشترون الطائرات ثم يكتشفون أنهم لا يستطيعون تسجيلها أو تشغيلها، ويستعينون بمشغلين رخيصين دون تفويض.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "drones_uav:price-drivers",
+      "topic": "Drones & unmanned aircraft: what makes prices differ legitimately",
+      "topic_ar": "الطائرات بدون طيار (الدرون): العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: class and payload, RTK and sensors, batteries, software, training, local support, and for services the approvals, crew and data deliverables.",
+      "body_ar": "العوامل: الفئة والحمولة، وRTK والمستشعرات، والبطاريات، والبرامج، والتدريب، والدعم المحلي، وفي الخدمات الموافقات والطاقم ومخرجات البيانات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "drones_uav:compare-quotes-cost-to-value",
+      "topic": "Drones & unmanned aircraft: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الطائرات بدون طيار (الدرون): مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "For equipment compare the same model and payload with approvals, batteries and service; for services compare the same deliverables with UOA and licensed pilots. Recommend three compliant offers.",
+      "body_ar": "في المعدات قارن الطراز والحمولة نفسيهما مع الموافقات والبطاريات والخدمة، وفي الخدمات قارن المخرجات نفسها مع التفويض والطيارين المرخصين. أوصِ بثلاثة عروض ممتثلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -92,6 +252,30 @@
       903,
       1198,
       1209
+    ],
+    "still_unverified": [],
+    "expert_authored_unsourced": [
+      "drones_uav:quote-red-flags",
+      "drones_uav:buyer-mistakes",
+      "drones_uav:price-drivers",
+      "drones_uav:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "k3_pages_opened": [
+      "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf"
+    ],
+    "k3_verified": [
+      "drones_uav:authority-approvals"
     ]
   }
 }

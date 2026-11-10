@@ -26,8 +26,8 @@
       "topic": "Telecom equipment & services: makes, brands, distributors and origins in the UAE",
       "topic_ar": "معدات وخدمات اتصالات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the licensed telecom operators and satellite providers in the UAE: e&, du, Virgin Mobile, Yahsat and Thuraya. Licensed operators and satellite providers: e&, du, Virgin Mobile, Yahsat, Thuraya. Virgin Mobile and the satellite brands were not checked on opened pages.",
-      "body_ar": "مشغلو الاتصالات المرخصون ومزودو خدمات الأقمار الصناعية في الإمارات هم e& وdu وVirgin Mobile وYahsat وThuraya. المشغلون المرخصون ومزودو الأقمار الاصطناعية: e&، du، Virgin Mobile، Yahsat، Thuraya. ولم يُتحقق من فيرجن موبايل وعلامات الأقمار الاصطناعية عبر صفحات مفتوحة.",
+      "body_en": "This entry lists the licensed telecom operators and satellite providers in the UAE: e&, du, Virgin Mobile, Yahsat and Thuraya. Licensed operators and satellite providers: e&, du, Virgin Mobile, Yahsat, Thuraya. Virgin Mobile and the satellite brands were not checked on opened pages.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): e& = a UAE operator; du = a UAE operator; Virgin Mobile = a UAE operator; Yahsat = a UAE operator; Thuraya = a UAE operator.",
+      "body_ar": "مشغلو الاتصالات المرخصون ومزودو خدمات الأقمار الصناعية في الإمارات هم e& وdu وVirgin Mobile وYahsat وThuraya. المشغلون المرخصون ومزودو الأقمار الاصطناعية: e&، du، Virgin Mobile، Yahsat، Thuraya. ولم يُتحقق من فيرجن موبايل وعلامات الأقمار الاصطناعية عبر صفحات مفتوحة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): e& = جهة تشغيل إماراتية؛ du = جهة تشغيل إماراتية؛ Virgin Mobile = جهة تشغيل إماراتية؛ Yahsat = جهة تشغيل إماراتية؛ Thuraya = جهة تشغيل إماراتية.",
       "sources": [
         "https://www.du.ae",
         "https://www.eand.com",
@@ -36,7 +36,44 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: du offers mobile, home internet and business services in the UAE -> confirmed | e& operates in the UAE -> confirmed_domain_only | TDRA regulates telecom and type approval -> confirmed. Not checked: Current virtual operator brands, Space42 rebrand scope, and VoIP app rules should be rechecked; plan pricing was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: du offers mobile, home internet and business services in the UAE -> confirmed | e& operates in the UAE -> confirmed_domain_only | TDRA regulates telecom and type approval -> confirmed. Not checked: Current virtual operator brands, Space42 rebrand scope, and VoIP app rules should be rechecked; plan pricing was not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "e&",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "du",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "Virgin Mobile",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "Yahsat",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "Thuraya",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        }
+      ]
     },
     {
       "id": "telecom_services:uae-market-sizes",

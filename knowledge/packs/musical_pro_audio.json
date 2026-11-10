@@ -5,8 +5,8 @@
       "id": "musical_pro_audio:spec-checklist",
       "topic": "Musical instruments and pro audio - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For musical instruments and pro audio (trade code musical_pro_audio only), every quoted line must state: Item, brand and model; Power output or specification; Connectivity; Voltage and plug; Cases and accessories; System design and tuning scope; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الآلات الموسيقية والصوتيات الاحترافية (رمز النشاط musical_pro_audio فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الصنف والعلامة والطراز؛ القدرة أو المواصفة؛ وسائل التوصيل؛ الجهد والقابس؛ الحقائب والملحقات؛ نطاق تصميم النظام وضبطه؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For musical instruments and pro audio (trade code musical_pro_audio only), every quoted line must state: Item, brand and model; Power output or specification; Connectivity; Voltage and plug; Cases and accessories; System design and tuning scope; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item, brand and model; Power output or specification; System design and tuning scope; Quantity and unit of measure; Delivery terms and location; Installation or commissioning scope. Follow-up questions the answers trigger: System design and tuning scope: Venue: drawings or site visit; UAE conformity or authority approval: Ask frequency band. Before a firm price: boxed instruments and audio can be priced firm by model; installed sound needs drawings or a site visit and a design before a firm price.",
+      "body_ar": "في نشاط الآلات الموسيقية والصوتيات الاحترافية (رمز النشاط musical_pro_audio فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الصنف والعلامة والطراز؛ القدرة أو المواصفة؛ وسائل التوصيل؛ الجهد والقابس؛ الحقائب والملحقات؛ نطاق تصميم النظام وضبطه؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الصنف والعلامة والطراز، والقدرة أو المواصفة، ونطاق تصميم النظام وضبطه، والكمية، والتسليم، والتركيب والتشغيل. أسئلة المتابعة: الميكروفونات اللاسلكية تستلزم نطاق الترددات المسموح، والقاعات تستلزم مخططات أو زيارة موقع. الصوتيات المركبة تحتاج مخططات أو زيارة موقع وتصميماً قبل السعر النهائي.",
       "required_specs": [
         "Item, brand and model",
         "Power output or specification",
@@ -27,7 +27,117 @@
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Item, brand and model",
+        "Power output or specification",
+        "System design and tuning scope",
+        "Quantity and unit of measure",
+        "Delivery terms and location",
+        "Installation or commissioning scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Item, brand and model",
+          "why_needed_to_price": "Exact model decides price; pro audio ranges span many tiers.",
+          "uae_options": "brand and model",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Power output or specification",
+          "why_needed_to_price": "Power and specification size the system.",
+          "uae_options": "watts RMS; SPL; channels; frequency band for wireless",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Connectivity",
+          "why_needed_to_price": "Connectivity must match existing systems.",
+          "uae_options": "XLR; Dante/AES67; USB; Bluetooth",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Voltage and plug",
+          "why_needed_to_price": "UAE uses 230 V and BS plugs.",
+          "uae_options": "230 V 50 Hz",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Cases and accessories",
+          "why_needed_to_price": "Cases and accessories add cost.",
+          "uae_options": "flight cases; stands; cables",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "System design and tuning scope",
+          "why_needed_to_price": "Installed sound needs design and tuning.",
+          "uae_options": "system design; acoustic modelling; tuning",
+          "follow_up_if": "Venue: drawings or site visit.",
+          "blocking": true
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "Standards.",
+          "uae_options": "safety reports",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "Wireless microphones need TDRA approval and allowed frequencies.",
+          "uae_options": "TDRA type approval",
+          "follow_up_if": "Ask frequency band.",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "DDP",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "why_needed_to_price": "Installation and commissioning.",
+          "uae_options": "supply only; install and commission",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "years",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock; import",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "cabling; rigging; electrical",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "boxed instruments and audio can be priced firm by model; installed sound needs drawings or a site visit and a design before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "musical_pro_audio:uae-standards-and-approvals",
@@ -84,6 +194,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "musical_pro_audio:authority-approvals",
+      "topic": "Musical Instruments & Pro Audio: licences, permits and approvals by emirate",
+      "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Wireless microphones, in-ear monitors and other radio equipment must have TDRA type approval and use frequencies TDRA permits; the importer or registered dealer holds the approval, and certification bodies report that equipment is registered with TDRA before sale and that a TDRA label card accompanies it. Powered audio equipment is electrical equipment that may need a MoIAT conformity certificate where regulated. Installed sound in public venues is part of the fit-out approval, and voice evacuation systems fall under civil defence rules. Events using sound need the event permit of the emirate (in Dubai, the Department of Economy and Tourism), obtained by the organiser.",
+      "body_ar": "يجب أن تحمل الميكروفونات اللاسلكية وسماعات المراقبة داخل الأذن وغيرها من الأجهزة الراديوية اعتماداً نوعياً من هيئة تنظيم الاتصالات والحكومة الرقمية وأن تستخدم الترددات التي تسمح بها الهيئة؛ ويحوز المستورد أو الوكيل المسجل الاعتماد، وتفيد جهات الاعتماد بأن الأجهزة تُسجَّل لدى الهيئة قبل البيع وترافقها بطاقة الهيئة. والأجهزة الصوتية الكهربائية قد تحتاج شهادة مطابقة من وزارة الصناعة والتكنولوجيا المتقدمة إذا كانت منظمة. والصوتيات المركبة في القاعات العامة جزء من اعتماد التجهيز، وتخضع أنظمة الإخلاء الصوتي لقواعد الدفاع المدني. وتحتاج الفعاليات التي تستخدم الصوت إلى تصريح الفعالية في الإمارة (دائرة الاقتصاد والسياحة في دبي) ويستخرجه المنظم.",
+      "sources": [
+        "https://www.tuv.com/market-access-services/en/certification-filter/united-arab-emirates-telecommunication-apparatus-(tdra)-approval.html",
+        "https://www.tuvsud.com/en/services/product-certification/global-market-access/united-arab-emirates",
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "musical_pro_audio:quote-red-flags",
+      "topic": "Musical Instruments & Pro Audio: red flags in supplier quotations",
+      "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for wireless systems in non-permitted bands or without TDRA approval, grey imports without local warranty, peak watts quoted instead of RMS, a lower model in the same series, installation and tuning excluded, and cabling and rigging \"by others\".",
+      "body_ar": "انتبه إلى أنظمة لاسلكية بنطاقات غير مسموحة أو دون اعتماد الهيئة، واستيراد موازٍ دون ضمان محلي، وذكر القدرة القصوى بدل الفعلية، وطراز أدنى من السلسلة نفسها، واستثناء التركيب والضبط، والكابلات والتعليق \"على الغير\".",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "musical_pro_audio:buyer-mistakes",
+      "topic": "Musical Instruments & Pro Audio: common buyer mistakes",
+      "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers buy speakers without a coverage design, buy wireless mics abroad that cannot be used legally, and forget training for the venue staff.",
+      "body_ar": "يشتري المشترون السماعات دون تصميم للتغطية، ويشترون ميكروفونات لاسلكية من الخارج لا يجوز استخدامها قانونياً، وينسون تدريب موظفي القاعة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "musical_pro_audio:price-drivers",
+      "topic": "Musical Instruments & Pro Audio: what makes prices differ legitimately",
+      "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand tier, power and coverage, networking, wireless channels, design and tuning, installation, and warranty.",
+      "body_ar": "العوامل: فئة العلامة، والقدرة والتغطية، والشبكات، والقنوات اللاسلكية، والتصميم والضبط، والتركيب، والضمان.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "musical_pro_audio:compare-quotes-cost-to-value",
+      "topic": "Musical Instruments & Pro Audio: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "For installed systems compare designs that meet the same coverage and SPL, installed and tuned. For boxed goods compare model for model with local warranty. Recommend three that meet the design.",
+      "body_ar": "في الأنظمة المركبة قارن تصاميم تحقق التغطية ومستوى الصوت نفسيهما مع التركيب والضبط. وفي البضائع المعبأة قارن طرازاً بطراز مع الضمان المحلي. أوصِ بثلاثة عروض تلبي التصميم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +305,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "musical_pro_audio:spec-checklist"
+      "musical_pro_audio:spec-checklist",
+      "musical_pro_audio:authority-approvals"
     ],
     "added": [
       "musical_pro_audio:spec-checklist",
@@ -156,6 +337,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "musical_pro_audio:quote-red-flags",
+      "musical_pro_audio:buyer-mistakes",
+      "musical_pro_audio:price-drivers",
+      "musical_pro_audio:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

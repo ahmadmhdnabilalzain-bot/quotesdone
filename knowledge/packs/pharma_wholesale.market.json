@@ -29,8 +29,8 @@
       "topic": "Pharmaceuticals wholesale: makes, brands, distributors and origins in the UAE",
       "topic_ar": "تجارة أدوية بالجملة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the UAE pharmaceutical distributors and makers, such as City Pharmacy, MPC, Julphar and Rafed, plus the multinationals, and where to check each product's registered agent. Confirmed UAE distributors, manufacturers and purchasing body, plus multinationals: City Pharmacy Co., Modern Pharmaceutical Company (MPC), Julphar, Neopharma, Globalpharma, Rafed (PureHealth), Pfizer, Novartis, Sanofi, GSK, AstraZeneca, Roche, Novo Nordisk. The multinationals' UAE agents were not checked; check each product's registered agent with the Emirates Drug Establishment.",
-      "body_ar": "من أبرز موزعي ومصنعي الأدوية في الإمارات City Pharmacy وMPC وJulphar وRafed، إضافة إلى الشركات متعددة الجنسيات وطريقة التحقق من الوكيل المسجل لكل منتج. الموزعون والمصنعون وجهة الشراء المؤكدون في الإمارات، إضافة إلى الشركات متعددة الجنسيات: City Pharmacy Co.، Modern Pharmaceutical Company (MPC)، Julphar، Neopharma، Globalpharma، Rafed (PureHealth)، Pfizer، Novartis، Sanofi، GSK، AstraZeneca، Roche، Novo Nordisk. ولم يُتحقق من وكلاء الشركات متعددة الجنسيات في الإمارات؛ ويجب التحقق من الوكيل المسجل لكل منتج لدى مؤسسة الإمارات للدواء.",
+      "body_en": "This lists the UAE pharmaceutical distributors and makers, such as City Pharmacy, MPC, Julphar and Rafed, plus the multinationals, and where to check each product's registered agent. Confirmed UAE distributors, manufacturers and purchasing body, plus multinationals: City Pharmacy Co., Modern Pharmaceutical Company (MPC), Julphar, Neopharma, Globalpharma, Rafed (PureHealth), Pfizer, Novartis, Sanofi, GSK, AstraZeneca, Roche, Novo Nordisk. The multinationals' UAE agents were not checked; check each product's registered agent with the Emirates Drug Establishment.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): City Pharmacy Co. = a UAE trading or retail name; Modern Pharmaceutical Company (MPC) = a UAE trading or retail name; Julphar = a mid-tier UAE brand; Neopharma = a mid-tier UAE brand; Globalpharma = a mid-tier UAE brand; Rafed (PureHealth) = a UAE operator; Pfizer = a premium American brand; Novartis = a premium Swiss brand; Sanofi = a premium French brand; GSK = a premium British brand; AstraZeneca = a premium British brand; Roche = a premium Swiss brand; Novo Nordisk = a premium Danish brand.",
+      "body_ar": "من أبرز موزعي ومصنعي الأدوية في الإمارات City Pharmacy وMPC وJulphar وRafed، إضافة إلى الشركات متعددة الجنسيات وطريقة التحقق من الوكيل المسجل لكل منتج. الموزعون والمصنعون وجهة الشراء المؤكدون في الإمارات، إضافة إلى الشركات متعددة الجنسيات: City Pharmacy Co.، Modern Pharmaceutical Company (MPC)، Julphar، Neopharma، Globalpharma، Rafed (PureHealth)، Pfizer، Novartis، Sanofi، GSK، AstraZeneca، Roche، Novo Nordisk. ولم يُتحقق من وكلاء الشركات متعددة الجنسيات في الإمارات؛ ويجب التحقق من الوكيل المسجل لكل منتج لدى مؤسسة الإمارات للدواء.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): City Pharmacy Co. = اسم تجاري لتاجر أو موزع في الإمارات؛ Modern Pharmaceutical Company (MPC) = اسم تجاري لتاجر أو موزع في الإمارات؛ Julphar = علامة إماراتية من الفئة المتوسطة؛ Neopharma = علامة إماراتية من الفئة المتوسطة؛ Globalpharma = علامة إماراتية من الفئة المتوسطة؛ Rafed (PureHealth) = جهة تشغيل إماراتية؛ Pfizer = علامة أمريكية من الفئة الممتازة؛ Novartis = علامة سويسرية من الفئة الممتازة؛ Sanofi = علامة فرنسية من الفئة الممتازة؛ GSK = علامة بريطانية من الفئة الممتازة؛ AstraZeneca = علامة بريطانية من الفئة الممتازة؛ Roche = علامة سويسرية من الفئة الممتازة؛ Novo Nordisk = علامة دنماركية من الفئة الممتازة.",
       "sources": [
         "https://www.ede.gov.ae/en/home",
         "https://www.citypharmacy.com/",
@@ -42,7 +42,100 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EDE is the federal regulator for pharmaceutical products -> confirmed | City Pharmacy Co. (since 1967, KEZAD warehouse) and Modern Pharmaceutical Company (1969, Dubai) are UAE pharmaceutical distributors -> confirmed | Julphar (RAK), Neopharma and Globalpharma (Dubai, WHO prequalified) are UAE manufacturers -> confirmed | Rafed centralises healthcare procurement in Abu Dhabi -> confirmed. Not checked: Distributor names beyond the widely known ones are generalised; exact wholesale margin rules, current payment term norms and each multinational's appointed agent were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE is the federal regulator for pharmaceutical products -> confirmed | City Pharmacy Co. (since 1967, KEZAD warehouse) and Modern Pharmaceutical Company (1969, Dubai) are UAE pharmaceutical distributors -> confirmed | Julphar (RAK), Neopharma and Globalpharma (Dubai, WHO prequalified) are UAE manufacturers -> confirmed | Rafed centralises healthcare procurement in Abu Dhabi -> confirmed. Not checked: Distributor names beyond the widely known ones are generalised; exact wholesale margin rules, current payment term norms and each multinational's appointed agent were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "City Pharmacy Co.",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Modern Pharmaceutical Company (MPC)",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Julphar",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Neopharma",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Globalpharma",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Rafed (PureHealth)",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "Pfizer",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Novartis",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sanofi",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "GSK",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "AstraZeneca",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Roche",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Novo Nordisk",
+          "origin": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "pharma_wholesale:uae-market-sizes",

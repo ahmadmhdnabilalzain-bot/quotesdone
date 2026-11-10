@@ -5,8 +5,8 @@
       "id": "hotel_furniture:spec-checklist",
       "topic": "Hotel furniture (FF&E) - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For hotel furniture (ff&e) (trade code hotel_furniture only), every quoted line must state: Item code per FF&E schedule; Dimensions; Frame and board material; Upholstery fabric and foam; Finish and colour reference; Fire performance of fabrics and foam; Mock-up or sample approval; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط أثاث الفنادق (رمز النشاط hotel_furniture فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: رمز الصنف حسب جدول الأثاث؛ الأبعاد؛ مادة الهيكل والألواح؛ قماش التنجيد والإسفنج؛ التشطيب ومرجع اللون؛ أداء الأقمشة والإسفنج عند الحريق؛ اعتماد النموذج أو العينة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For hotel furniture (ff&e) (trade code hotel_furniture only), every quoted line must state: Item code per FF&E schedule; Dimensions; Frame and board material; Upholstery fabric and foam; Finish and colour reference; Fire performance of fabrics and foam; Mock-up or sample approval; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item code per FF&E schedule; Dimensions; Frame and board material; Upholstery fabric and foam; Finish and colour reference; Fire performance of fabrics and foam; Mock-up or sample approval; Quantity and unit of measure; Delivery terms and location; Installation or commissioning scope. Follow-up questions the answers trigger: Item code per FF&E schedule: Ask for the FF&E schedule and spec sheets per item; Frame and board material: Wet areas: moisture-resistant board; Upholstery fabric and foam: COM: ask who buys the fabric and the metres needed; Finish and colour reference: Ask for finish samples with reference codes; Fire performance of fabrics and foam: Ask the operator's brand standard and the consultant's fire requirement; Mock-up or sample approval: Brand-operated hotels usually require a mock-up before mass production. Before a firm price: a firm price needs the FF&E schedule with spec sheets and room counts; for a branded hotel the price is normally firmed only after a mock-up or prototype is approved, so the first quote is a budget until then.",
+      "body_ar": "في نشاط أثاث الفنادق (رمز النشاط hotel_furniture فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: رمز الصنف حسب جدول الأثاث؛ الأبعاد؛ مادة الهيكل والألواح؛ قماش التنجيد والإسفنج؛ التشطيب ومرجع اللون؛ أداء الأقمشة والإسفنج عند الحريق؛ اعتماد النموذج أو العينة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: رمز الصنف في جدول التجهيزات، والمقاسات، ومادة الهيكل والألواح، وقماش التنجيد والإسفنج، والتشطيب والألوان، ومعيار مقاومة الحريق، والنموذج التجريبي، والكمية، وشروط التسليم، ونطاق التركيب. أسئلة المتابعة: القماش الذي يوفره العميل يستلزم تحديد من يشتريه وكميته، والفنادق التابعة لعلامات تشغيل تستلزم معايير العلامة. لا يُعطى سعر نهائي دون جدول التجهيزات وعدد الغرف، وفي الفنادق ذات العلامات يبقى العرض الأول تقديرياً حتى اعتماد غرفة نموذجية أو نموذج أولي.",
       "required_specs": [
         "Item code per FF&E schedule",
         "Dimensions",
@@ -30,7 +30,128 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Item code per FF&E schedule",
+        "Dimensions",
+        "Frame and board material",
+        "Upholstery fabric and foam",
+        "Finish and colour reference",
+        "Fire performance of fabrics and foam",
+        "Mock-up or sample approval",
+        "Quantity and unit of measure",
+        "Delivery terms and location",
+        "Installation or commissioning scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Item code per FF&E schedule",
+          "why_needed_to_price": "FF&E is priced line by line against the designer's item codes.",
+          "uae_options": "FF&E schedule codes per room type",
+          "follow_up_if": "Ask for the FF&E schedule and spec sheets per item.",
+          "blocking": true
+        },
+        {
+          "spec": "Dimensions",
+          "why_needed_to_price": "Size drives material and carcass cost.",
+          "uae_options": "from shop drawings or the designer's spec sheets",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Frame and board material",
+          "why_needed_to_price": "Solid timber, plywood, MDF and steel carcasses price very differently.",
+          "uae_options": "solid hardwood; plywood; MR/fire-rated MDF; metal",
+          "follow_up_if": "Wet areas: moisture-resistant board.",
+          "blocking": true
+        },
+        {
+          "spec": "Upholstery fabric and foam",
+          "why_needed_to_price": "Fabric grade and foam set price and fire compliance.",
+          "uae_options": "COM (customer's own material) or supplier fabric; HR foam; FR foam",
+          "follow_up_if": "COM: ask who buys the fabric and the metres needed.",
+          "blocking": true
+        },
+        {
+          "spec": "Finish and colour reference",
+          "why_needed_to_price": "Veneer species, lacquer sheen and metal finishes change labour.",
+          "uae_options": "veneer species; lacquer; brass/PVD trims",
+          "follow_up_if": "Ask for finish samples with reference codes.",
+          "blocking": true
+        },
+        {
+          "spec": "Fire performance of fabrics and foam",
+          "why_needed_to_price": "Contract upholstery needs fire-tested composites.",
+          "uae_options": "BS 5852 Crib 5; BS 7176 medium hazard; NFPA 260; BS 5867-2 for drapery",
+          "follow_up_if": "Ask the operator's brand standard and the consultant's fire requirement.",
+          "blocking": true
+        },
+        {
+          "spec": "Mock-up or sample approval",
+          "why_needed_to_price": "A mock-up room or prototype adds cost and time but is normal for hotels.",
+          "uae_options": "mock-up room; prototype per item; finish sample only",
+          "follow_up_if": "Brand-operated hotels usually require a mock-up before mass production.",
+          "blocking": true
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "Room count multiplies every line and drives factory capacity.",
+          "uae_options": "per room type x number of rooms",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "Test reports and brand standards decide acceptance.",
+          "uae_options": "lab reports on fabric, foam, finishes",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "Furniture needs no UAE product approval; the fit-out approval covers fire performance.",
+          "uae_options": "civil defence via fit-out consultant",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Delivery to site floors and phased handover change logistics.",
+          "uae_options": "DDP site; ex-works; phased by floor",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "why_needed_to_price": "Installation, fixing and snagging are often separate.",
+          "uae_options": "supply only; supply and install with snagging",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "Defects period and warranty differ.",
+          "uae_options": "12-24 months typical by contract; by component",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Production slots and shipping define programme.",
+          "uae_options": "factory programme from mock-up approval",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions shift cost.",
+          "uae_options": "COM fabric; artwork; mirrors; electrical connection",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs the FF&E schedule with spec sheets and room counts; for a branded hotel the price is normally firmed only after a mock-up or prototype is approved, so the first quote is a budget until then.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "hotel_furniture:uae-standards-and-approvals",
@@ -89,6 +210,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "hotel_furniture:authority-approvals",
+      "topic": "Hotel & FF&E furniture: licences, permits and approvals by emirate",
+      "topic_ar": "أثاث الفنادق وتجهيزاتها (FF&E): التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Hotel furniture has no UAE product registration, but its fire performance is checked as part of the hotel's fit-out and pre-opening approval by the civil defence of the emirate (Dubai Civil Defence, Abu Dhabi Civil Defence, and the civil defence of the other emirates) under the UAE Fire and Life Safety Code of Practice. Search results report that inspectors look for composite fire test certificates for upholstered seating and headboards and for drapery; this came from a vendor source and should be confirmed with the project's fire consultant. The hotel's licence to operate is issued by the tourism authority (in Dubai the Department of Economy and Tourism, in Abu Dhabi the Department of Culture and Tourism), and its classification standards and the operator's brand standards often set furniture requirements that go beyond the law. The supplier provides the test reports; the fit-out contractor and consultant submit them.",
+      "body_ar": "لا يخضع أثاث الفنادق لتسجيل منتج في الإمارات، لكن أداءه في مقاومة الحريق يُفحص ضمن اعتماد التجهيز الداخلي وما قبل الافتتاح لدى الدفاع المدني في الإمارة المعنية وفق كود الإمارات للحماية من الحرائق وسلامة الأرواح. وتفيد نتائج البحث بأن المفتشين يطلبون شهادات اختبار حريق مركّبة للمقاعد المنجدة ولوحات الأسرّة والستائر، وهذه معلومة من مصدر تجاري ينبغي تأكيدها مع استشاري الحريق للمشروع. ويصدر ترخيص تشغيل الفندق عن جهة السياحة (دائرة الاقتصاد والسياحة في دبي ودائرة الثقافة والسياحة في أبوظبي)، وكثيراً ما تفرض معايير التصنيف ومعايير علامة المشغل متطلبات للأثاث تتجاوز القانون. ويقدّم المورد تقارير الاختبار، ويرفعها مقاول التجهيز والاستشاري.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://bsa-trading.pages.dev/blog/uae-civil-defence-fire-ratings-hotel-furniture/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "hotel_furniture:quote-red-flags",
+      "topic": "Hotel & FF&E furniture: red flags in supplier quotations",
+      "topic_ar": "أثاث الفنادق وتجهيزاتها (FF&E): علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Hotel FF&E quotes often substitute: MDF where plywood or solid timber was specified, lower-grade veneer, standard foam for fire-retardant or HR foam, a fabric-only fire certificate instead of a composite one, and hardware of a lesser make than the spec. Look for mock-up and prototype costs excluded, COM fabric quantities not stated, packing and site storage excluded, installation and snagging \"by others\", and a price valid only for a few weeks while production is months away. Check that origin and factory are stated when the specification required a country of manufacture.",
+      "body_ar": "كثيراً ما تستبدل عروض تجهيزات الفنادق ما يلي: ألواح MDF بدل الخشب الرقائقي أو المصمت، وقشرة خشب أقل درجة، وإسفنجاً عادياً بدل المقاوم للحريق أو عالي المرونة، وشهادة حريق للقماش وحده بدل الشهادة المركّبة، وإكسسوارات من صنع أقل من المواصفة. وابحث عن استثناء تكاليف الغرفة النموذجية والنموذج الأولي، وعدم ذكر كميات القماش الذي يوفره العميل، واستثناء التغليف والتخزين في الموقع، والتركيب ومعالجة الملاحظات \"على الغير\"، وسعر صالح لأسابيع قليلة بينما الإنتاج بعد أشهر. وتأكد من ذكر المنشأ والمصنع إذا اشترطت المواصفة بلد تصنيع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hotel_furniture:buyer-mistakes",
+      "topic": "Hotel & FF&E furniture: common buyer mistakes",
+      "topic_ar": "أثاث الفنادق وتجهيزاتها (FF&E): الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Common mistakes: requesting quotes from a mood board instead of an FF&E schedule; skipping the mock-up room to save time and then finding finish or comfort faults in mass production; leaving fire evidence until the civil defence inspection; buying COM fabric without the supplier's metre calculation; and planning delivery without the site's floor-by-floor handover dates.",
+      "body_ar": "من الأخطاء الشائعة: طلب عروض من لوحة إلهام بدل جدول التجهيزات، وتخطي الغرفة النموذجية لتوفير الوقت ثم اكتشاف عيوب التشطيب أو الراحة في الإنتاج الكامل، وتأجيل أدلة مقاومة الحريق حتى تفتيش الدفاع المدني، وشراء القماش الخاص بالعميل دون حساب المورد للأمتار، وتخطيط التسليم دون مواعيد استلام الطوابق في الموقع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hotel_furniture:price-drivers",
+      "topic": "Hotel & FF&E furniture: what makes prices differ legitimately",
+      "topic_ar": "أثاث الفنادق وتجهيزاتها (FF&E): العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Legitimate price differences come from carcass material, timber species and veneer quality, lacquer and metal finishes, fabric and foam fire grade, construction joints and hardware make, the cost of mock-ups and prototypes, factory location and freight, packing for long transit, phased delivery, installation scope and the defects period.",
+      "body_ar": "تنشأ الفروق المشروعة في الأسعار من مادة الهيكل ونوع الخشب وجودة القشرة، وتشطيبات الورنيش والمعادن، ودرجة مقاومة القماش والإسفنج للحريق، ونوع الوصلات وصنع الإكسسوارات، وتكلفة الغرف النموذجية والنماذج الأولية، وموقع المصنع والشحن، والتغليف للنقل الطويل، والتسليم المرحلي، ونطاق التركيب، وفترة مسؤولية العيوب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hotel_furniture:compare-quotes-cost-to-value",
+      "topic": "Hotel & FF&E furniture: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "أثاث الفنادق وتجهيزاتها (FF&E): مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare on the FF&E schedule line by line, with the same materials, finishes, fire evidence and scope (mock-up, delivery, installation, snagging). Score value on construction quality evidenced by the mock-up, composite fire certificates, factory capacity against the opening date, defects period and spare stock (extra fabric, finish touch-up kits). Recommend the three that comply with the specification and the programme, noting any line where one supplier offered an alternative material.",
+      "body_ar": "قارن العروض بنداً بنداً وفق جدول التجهيزات، بالمواد والتشطيبات وأدلة الحريق والنطاق نفسها (الغرفة النموذجية، والتسليم، والتركيب، ومعالجة الملاحظات). وقيّم القيمة بجودة التصنيع كما تظهر في النموذج، وشهادات الحريق المركّبة، وطاقة المصنع مقارنة بموعد الافتتاح، وفترة مسؤولية العيوب، والمخزون الاحتياطي من قماش إضافي وأدوات ترميم التشطيب. أوصِ بالعروض الثلاثة المطابقة للمواصفة والبرنامج الزمني، مع الإشارة إلى أي بند عرض فيه مورد مادة بديلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -131,7 +321,8 @@
     "removed": [],
     "still_unverified": [
       "hotel_furniture:spec-checklist",
-      "hotel_furniture:uae-standards-and-approvals"
+      "hotel_furniture:uae-standards-and-approvals",
+      "hotel_furniture:authority-approvals"
     ],
     "added": [
       "hotel_furniture:spec-checklist",
@@ -162,6 +353,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "hotel_furniture:quote-red-flags",
+      "hotel_furniture:buyer-mistakes",
+      "hotel_furniture:price-drivers",
+      "hotel_furniture:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

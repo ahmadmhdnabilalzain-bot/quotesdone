@@ -6,8 +6,8 @@
       "topic": "Testing laboratories - what the buyer must state",
       "topic_ar": "مختبرات الاختبار: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For testing laboratories quotes to be compared like-for-like, every quoted line (services) must state: (1) sample type and number of samples; (2) tests required and test methods; (3) accreditation to ISO/IEC 17025 for those tests; (4) authority recognition (municipality or MoIAT); (5) sampling by lab or client; (6) turnaround time; (7) report format and language; (8) price per test; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the testing_labs trade.",
-      "body_ar": "حتى تُقارن عروض مختبرات الاختبار على أساس واحد، يجب أن يذكر كل بند (خدمات): (1) نوع العينة وعدد العينات؛ (2) الاختبارات المطلوبة وطرق الاختبار؛ (3) اعتماد المختبر وفق ISO/IEC 17025 لهذه الاختبارات؛ (4) اعتراف الجهة المختصة (البلدية أو الوزارة)؛ (5) من يأخذ العينات: المختبر أم العميل؛ (6) مدة صدور النتائج؛ (7) شكل التقرير ولغته؛ (8) السعر لكل اختبار؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأوقات الاستجابة؛ (11) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو تقرير أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة testing_labs فقط.",
+      "body_en": "For testing laboratories quotes to be compared like-for-like, every quoted line (services) must state: (1) sample type and number of samples; (2) tests required and test methods; (3) accreditation to ISO/IEC 17025 for those tests; (4) authority recognition (municipality or MoIAT); (5) sampling by lab or client; (6) turnaround time; (7) report format and language; (8) price per test; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the testing_labs trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): sample type and number of samples; tests required and test methods; accreditation to ISO/IEC 17025 for those tests; authority recognition (municipality or MoIAT); price per test. Follow-up questions the answers trigger: tests required and test methods: Ask the project specification. Before a firm price: a firm price needs the test list with methods and quantities; field work such as boreholes or site sampling needs site location and access before a firm price.",
+      "body_ar": "حتى تُقارن عروض مختبرات الاختبار على أساس واحد، يجب أن يذكر كل بند (خدمات): (1) نوع العينة وعدد العينات؛ (2) الاختبارات المطلوبة وطرق الاختبار؛ (3) اعتماد المختبر وفق ISO/IEC 17025 لهذه الاختبارات؛ (4) اعتراف الجهة المختصة (البلدية أو الوزارة)؛ (5) من يأخذ العينات: المختبر أم العميل؛ (6) مدة صدور النتائج؛ (7) شكل التقرير ولغته؛ (8) السعر لكل اختبار؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأوقات الاستجابة؛ (11) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو تقرير أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة testing_labs فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العينة وعددها، والاختبارات وطرقها، والاعتماد وفق ISO/IEC 17025 لهذه الاختبارات، واعتراف الجهة المختصة، وسعر الاختبار. الأعمال الميدانية كالحفر وأخذ العينات تحتاج الموقع والوصول قبل السعر النهائي.",
       "required_specs": [
         "sample type and number of samples",
         "tests required and test methods",
@@ -27,7 +27,95 @@
         "https://www.iso.org/standards.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "sample type and number of samples",
+        "tests required and test methods",
+        "accreditation to ISO/IEC 17025 for those tests",
+        "authority recognition (municipality or MoIAT)",
+        "price per test"
+      ],
+      "spec_guide": [
+        {
+          "spec": "sample type and number of samples",
+          "why_needed_to_price": "Sample type and count are the base of price.",
+          "uae_options": "soil; concrete cubes; steel; aggregates; asphalt; number",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "tests required and test methods",
+          "why_needed_to_price": "Tests and methods define each line.",
+          "uae_options": "BS; ASTM; EN methods",
+          "follow_up_if": "Ask the project specification.",
+          "blocking": true
+        },
+        {
+          "spec": "accreditation to ISO/IEC 17025 for those tests",
+          "why_needed_to_price": "Accreditation for each test is needed for acceptance.",
+          "uae_options": "ISO/IEC 17025 scope listing the test",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "authority recognition (municipality or MoIAT)",
+          "why_needed_to_price": "Authority recognition decides whether reports are accepted.",
+          "uae_options": "Dubai Municipality approved lab; other emirate approvals",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "sampling by lab or client",
+          "why_needed_to_price": "Sampling by lab or client.",
+          "uae_options": "lab sampling; client delivers",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "turnaround time",
+          "why_needed_to_price": "Turnaround.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "report format and language",
+          "why_needed_to_price": "Report format.",
+          "uae_options": "English; Arabic",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "price per test",
+          "why_needed_to_price": "Price per test.",
+          "uae_options": "rate list",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "project; annual",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "turnaround",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "sampling travel; retests",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs the test list with methods and quantities; field work such as boreholes or site sampling needs site location and access before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "testing_labs:uae-standards-and-approvals",
@@ -74,6 +162,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "testing_labs:authority-approvals",
+      "topic": "Geotechnical & materials testing labs: licences, permits and approvals by emirate",
+      "topic_ar": "مختبرات فحص التربة والمواد: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Test reports are accepted when the laboratory is accredited for that test and, for construction in some emirates, approved by the building authority. EIAC accredits laboratories to ISO/IEC 17025 (testing, calibration and medical). Dubai Municipality keeps its own approval of construction materials laboratories for projects in Dubai; the current list was not opened in this session. Product conformity testing for regulated products goes through MoIAT-recognised laboratories. Ask for the accreditation scope listing each test.",
+      "body_ar": "تُقبل تقارير الاختبار حين يكون المختبر معتمداً لذلك الاختبار، وفي البناء في بعض الإمارات معتمداً من جهة البناء. ويعتمد مركز الإمارات الدولي للاعتماد المختبرات وفق ISO/IEC 17025 (الاختبار والمعايرة والمختبرات الطبية). وتحتفظ بلدية دبي باعتمادها الخاص لمختبرات مواد البناء للمشاريع في دبي، ولم تُفتح القائمة الحالية في هذه الجلسة. ويمر اختبار مطابقة المنتجات المنظمة عبر مختبرات تعترف بها وزارة الصناعة. اطلب نطاق الاعتماد الذي يذكر كل اختبار.",
+      "sources": [
+        "https://hqc.eu/en/recgonition_details/42",
+        "https://www.dm.gov.ae/?p=87545"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "testing_labs:quote-red-flags",
+      "topic": "Geotechnical & materials testing labs: red flags in supplier quotations",
+      "topic_ar": "مختبرات فحص التربة والمواد: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for tests outside the lab's accredited scope, a different method from the specification, sampling travel and retests extra, long turnaround, and reports not accepted by the authority.",
+      "body_ar": "انتبه إلى اختبارات خارج نطاق اعتماد المختبر، وطريقة تختلف عن المواصفة، واحتساب انتقال أخذ العينات وإعادة الاختبار إضافياً، وطول مدة الإنجاز، وتقارير لا تقبلها الجهة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "testing_labs:buyer-mistakes",
+      "topic": "Geotechnical & materials testing labs: common buyer mistakes",
+      "topic_ar": "مختبرات فحص التربة والمواد: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Contractors choose labs on price without checking the accredited scope and authority approval.",
+      "body_ar": "يختار المقاولون المختبرات بالسعر دون التحقق من نطاق الاعتماد واعتماد الجهة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "testing_labs:price-drivers",
+      "topic": "Geotechnical & materials testing labs: what makes prices differ legitimately",
+      "topic_ar": "مختبرات فحص التربة والمواد: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: test type and method, accreditation, sampling, turnaround, volume and location.",
+      "body_ar": "العوامل: نوع الاختبار وطريقته، والاعتماد، وأخذ العينات، ومدة الإنجاز، والحجم، والموقع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "testing_labs:compare-quotes-cost-to-value",
+      "topic": "Geotechnical & materials testing labs: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "مختبرات فحص التربة والمواد: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare rate lists for the same tests and methods from labs accredited and authority-approved for them. Recommend three accepted labs.",
+      "body_ar": "قارن قوائم الأسعار للاختبارات والطرق نفسها من مختبرات معتمدة ومقبولة لدى الجهة لها. أوصِ بثلاثة مختبرات مقبولة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -117,7 +274,8 @@
     "removed": [],
     "still_unverified": [
       "testing_labs:spec-checklist",
-      "testing_labs:uae-standards-and-approvals"
+      "testing_labs:uae-standards-and-approvals",
+      "testing_labs:authority-approvals"
     ],
     "added": [
       "testing_labs:spec-checklist",
@@ -145,6 +303,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "testing_labs:quote-red-flags",
+      "testing_labs:buyer-mistakes",
+      "testing_labs:price-drivers",
+      "testing_labs:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

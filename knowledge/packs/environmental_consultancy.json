@@ -5,8 +5,8 @@
       "id": "environmental_consultancy:spec-checklist",
       "topic": "Environmental consultancy - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for environmental consultancy must state: study type; project and site; regulator; consultant registration with the regulator; sampling and monitoring; laboratory accreditation; deliverables; programme; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الاستشارات البيئية: نوع الدراسة؛ المشروع والموقع؛ الجهة الرقابية؛ تسجيل الاستشاري لدى الجهة؛ أخذ العينات والرصد؛ اعتماد المختبر؛ المخرجات؛ البرنامج الزمني؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for environmental consultancy must state: study type; project and site; regulator; consultant registration with the regulator; sampling and monitoring; laboratory accreditation; deliverables; programme; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): study type; project and site; regulator; consultant registration with the regulator; sampling and monitoring; deliverables. Before a firm price: a firm fee needs the study type, regulator, project description and site; monitoring scopes need sampling points and durations, often after a site visit.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الاستشارات البيئية: نوع الدراسة؛ المشروع والموقع؛ الجهة الرقابية؛ تسجيل الاستشاري لدى الجهة؛ أخذ العينات والرصد؛ اعتماد المختبر؛ المخرجات؛ البرنامج الزمني؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نوع الدراسة، والمشروع والموقع، والجهة الرقابية، وتسجيل المستشار لديها، والعينات والرصد، والمخرجات. يحتاج نطاق الرصد نقاط أخذ العينات ومددها، وكثيراً بعد زيارة موقع.",
       "required_specs": [
         "study type",
         "project and site",
@@ -27,7 +27,110 @@
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "study type",
+        "project and site",
+        "regulator",
+        "consultant registration with the regulator",
+        "sampling and monitoring",
+        "deliverables"
+      ],
+      "spec_guide": [
+        {
+          "spec": "study type",
+          "why_needed_to_price": "Study type decides scope.",
+          "uae_options": "environmental clearance; EIA; monitoring; permit renewal; contaminated land; ESG",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "project and site",
+          "why_needed_to_price": "Project and site define field work.",
+          "uae_options": "location; size; activity",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "regulator",
+          "why_needed_to_price": "The regulator decides the format and the registered consultants allowed.",
+          "uae_options": "Dubai Municipality; EAD Abu Dhabi; free zone",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "consultant registration with the regulator",
+          "why_needed_to_price": "Only registered consultants are accepted by Dubai Municipality and EAD.",
+          "uae_options": "registration number",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "sampling and monitoring",
+          "why_needed_to_price": "Sampling and monitoring drive cost.",
+          "uae_options": "air; noise; water; soil; durations",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "laboratory accreditation",
+          "why_needed_to_price": "Laboratory accreditation.",
+          "uae_options": "ISO/IEC 17025",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "deliverables",
+          "why_needed_to_price": "Deliverables.",
+          "uae_options": "report; permit application",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "programme",
+          "why_needed_to_price": "Programme.",
+          "uae_options": "weeks",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Licences.",
+          "uae_options": "copies",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "response",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Duration.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "fixed; per sample",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "authority fees; lab tests beyond scope",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm fee needs the study type, regulator, project description and site; monitoring scopes need sampling points and durations, often after a site visit.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "environmental_consultancy:uae-standards-and-approvals",
@@ -72,6 +175,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "environmental_consultancy:authority-approvals",
+      "topic": "Environmental consultancy: licences, permits and approvals by emirate",
+      "topic_ar": "الاستشارات البيئية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Environmental studies must be done by consultants registered with the regulator. Dubai Municipality's Environment and Sustainability Department registers environmental consultants and publishes a list of registered consultants (a 2024 list is on its site), and its guidance sets environmental clearance requirements for development, infrastructure and industrial projects. In Abu Dhabi, the Environment Agency (EAD) Resolution 4 of 2025 on approval and registration of environmental consultancy offices requires establishments to use only approved and registered offices, with annual classification reviews (as reported). Free zones and Trakhees have their own environmental departments. Ask for the consultant's registration with the relevant regulator.",
+      "body_ar": "يجب أن يُعدّ الدراسات البيئية مستشارون مسجلون لدى الجهة الرقابية. إذ تسجل إدارة البيئة والاستدامة في بلدية دبي المستشارين البيئيين وتنشر قائمتهم (قائمة 2024 على موقعها)، وتحدد إرشاداتها متطلبات التصريح البيئي لمشاريع التطوير والبنية التحتية والصناعة. وفي أبوظبي يشترط قرار هيئة البيئة رقم 4 لسنة 2025 بشأن اعتماد وتسجيل مكاتب الاستشارات البيئية ألا تتعامل المنشآت إلا مع المكاتب المعتمدة والمسجلة، مع مراجعة سنوية للتصنيف (بحسب ما أُفيد). وللمناطق الحرة ومؤسسة تراخيص إداراتها البيئية. اطلب تسجيل المستشار لدى الجهة المعنية.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/environment-sustainability-technical-guidelines/registered-environmental-consultants-with-environment-department/",
+        "https://www.dm.gov.ae/wp-content/uploads/2024/05/1.-Guidance-on-the-Environmental-Clearance-EC-Requirements-for-Development-Infrastructure-Industrial-Projects-in-the-Emirate-of-Dubai.pdf",
+        "https://www.magzter.com/de/stories/newspaper/Gulf-Today/EAD-ISSUES-RESOLUTION-ON-APPROVAL-REGISTRATION-OF-ECOS"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: Dubai Municipality's Environment Sustainability Department runs a registration process for environmental consultants so that environmental reports submitted to it are prepared by qualified registered consultants, and provides the latest list of registered consultants on request. Not confirmed: the EAD Resolution 4 of 2025 on environmental consultancy offices, which rests on a news report. Hosts not reachable from this session: the Environment Agency Abu Dhabi site (ead.gov.ae, not on the allowed list)."
+    },
+    {
+      "id": "environmental_consultancy:quote-red-flags",
+      "topic": "Environmental consultancy: red flags in supplier quotations",
+      "topic_ar": "الاستشارات البيئية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for unregistered consultants, sampling durations shorter than the regulator requires, non-accredited labs, authority fees excluded, and resubmission rounds charged extra.",
+      "body_ar": "انتبه إلى مستشارين غير مسجلين، ومدد أخذ عينات أقصر مما تشترطه الجهة، ومختبرات غير معتمدة، واستثناء رسوم الجهة، واحتساب جولات إعادة التقديم إضافياً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "environmental_consultancy:buyer-mistakes",
+      "topic": "Environmental consultancy: common buyer mistakes",
+      "topic_ar": "الاستشارات البيئية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Developers start the study late and delay permits, and pick consultants not registered with the right emirate.",
+      "body_ar": "يبدأ المطورون الدراسة متأخرين فتتأخر التصاريح، ويختارون مستشارين غير مسجلين في الإمارة الصحيحة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "environmental_consultancy:price-drivers",
+      "topic": "Environmental consultancy: what makes prices differ legitimately",
+      "topic_ar": "الاستشارات البيئية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: study type, project size and sensitivity, field monitoring, laboratory testing, modelling, and regulator review rounds.",
+      "body_ar": "العوامل: نوع الدراسة، وحجم المشروع وحساسيته، والرصد الميداني، والفحص المخبري، والنمذجة، وجولات مراجعة الجهة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "environmental_consultancy:compare-quotes-cost-to-value",
+      "topic": "Environmental consultancy: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الاستشارات البيئية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare registered consultants on the same study scope, monitoring and lab accreditation, with resubmissions included. Recommend three registered offers.",
+      "body_ar": "قارن المستشارين المسجلين على نطاق الدراسة والرصد واعتماد المختبر نفسها مع شمول إعادة التقديم. أوصِ بثلاثة عروض مسجلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -113,7 +286,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "environmental_consultancy:spec-checklist"
+      "environmental_consultancy:spec-checklist",
+      "environmental_consultancy:authority-approvals"
     ],
     "added": [
       "environmental_consultancy:spec-checklist",
@@ -141,6 +315,26 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "environmental_consultancy:quote-red-flags",
+      "environmental_consultancy:buyer-mistakes",
+      "environmental_consultancy:price-drivers",
+      "environmental_consultancy:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "k3_pages_opened": [
+      "https://www.dm.gov.ae/municipality-business/environment-sustainability-technical-guidelines/registered-environmental-consultants-with-environment-department/"
+    ]
   }
 }

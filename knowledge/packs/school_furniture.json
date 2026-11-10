@@ -5,8 +5,8 @@
       "id": "school_furniture:spec-checklist",
       "topic": "School furniture - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For school furniture quotes to be compared like-for-like, every quoted line (goods) must state: (1) item (desk, chair, cabinet, lab bench); (2) age group and size mark (EN 1729); (3) frame and top materials; (4) dimensions; (5) colour and finish; (6) stability and strength test report; (7) fire performance of upholstery; (8) quantity per item; (9) delivery and assembly; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the school_furniture trade.",
-      "body_ar": "لكي تُقارن عروض الأثاث المدرسي على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) الصنف (مكتب، أو كرسي، أو خزانة، أو طاولة مختبر)؛ (2) الفئة العمرية ومقاس الحجم (EN 1729)؛ (3) مواد الهيكل والسطح؛ (4) الأبعاد؛ (5) اللون والتشطيب؛ (6) تقرير اختبار الثبات والمتانة؛ (7) أداء التنجيد في الحريق؛ (8) الكمية لكل صنف؛ (9) التسليم والتجميع؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة school_furniture فقط.",
+      "body_en": "For school furniture quotes to be compared like-for-like, every quoted line (goods) must state: (1) item (desk, chair, cabinet, lab bench); (2) age group and size mark (EN 1729); (3) frame and top materials; (4) dimensions; (5) colour and finish; (6) stability and strength test report; (7) fire performance of upholstery; (8) quantity per item; (9) delivery and assembly; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the school_furniture trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): item (desk, chair, cabinet, lab bench); age group and size mark (EN 1729); frame and top materials; dimensions; quantity per item; delivery and assembly; delivery terms and location. Follow-up questions the answers trigger: item (desk, chair, cabinet, lab bench): Ask for a schedule per classroom type; age group and size mark (EN 1729): If only grades are known, ask the age range per classroom; frame and top materials: Labs: ask chemical resistance of the top; stability and strength test report: Private schools and tenders often ask for it. Before a firm price: a firm price needs the schedule per classroom with age groups (size marks) and quantities; lab benches with services need the lab layout and often a site visit.",
+      "body_ar": "لكي تُقارن عروض الأثاث المدرسي على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) الصنف (مكتب، أو كرسي، أو خزانة، أو طاولة مختبر)؛ (2) الفئة العمرية ومقاس الحجم (EN 1729)؛ (3) مواد الهيكل والسطح؛ (4) الأبعاد؛ (5) اللون والتشطيب؛ (6) تقرير اختبار الثبات والمتانة؛ (7) أداء التنجيد في الحريق؛ (8) الكمية لكل صنف؛ (9) التسليم والتجميع؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة school_furniture فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الصنف، والفئة العمرية ورمز المقاس وفق EN 1729، ومواد الهيكل والسطح، والمقاسات، والكمية، والتجميع، وموقع التسليم وموعده. أسئلة المتابعة: إذا عُرفت الصفوف فقط يُسأل عن الأعمار في كل صف، ومختبرات العلوم تستلزم معرفة مقاومة السطح للمواد الكيميائية. لا يُعطى سعر نهائي دون جدول لكل نوع صف بالأعمار والكميات، وطاولات المختبر الموصولة بالخدمات تحتاج مخطط المختبر وغالباً زيارة موقع.",
       "required_specs": [
         "item (desk, chair, cabinet, lab bench)",
         "age group and size mark (EN 1729)",
@@ -26,7 +26,111 @@
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "item (desk, chair, cabinet, lab bench)",
+        "age group and size mark (EN 1729)",
+        "frame and top materials",
+        "dimensions",
+        "quantity per item",
+        "delivery and assembly",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "item (desk, chair, cabinet, lab bench)",
+          "why_needed_to_price": "Desks, chairs, lab benches and storage are separate products.",
+          "uae_options": "single/double desk; chair; teacher desk; lab bench; locker; library shelving",
+          "follow_up_if": "Ask for a schedule per classroom type.",
+          "blocking": true
+        },
+        {
+          "spec": "age group and size mark (EN 1729)",
+          "why_needed_to_price": "Size marks by age set chair and desk height.",
+          "uae_options": "EN 1729 size marks 0-7",
+          "follow_up_if": "If only grades are known, ask the age range per classroom.",
+          "blocking": true
+        },
+        {
+          "spec": "frame and top materials",
+          "why_needed_to_price": "Steel frame, polypropylene shells, HPL or MFC tops drive cost and durability.",
+          "uae_options": "steel tube; polypropylene; HPL; MFC; solid surface for labs",
+          "follow_up_if": "Labs: ask chemical resistance of the top.",
+          "blocking": true
+        },
+        {
+          "spec": "dimensions",
+          "why_needed_to_price": "Dimensions set material.",
+          "uae_options": "per item",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "colour and finish",
+          "why_needed_to_price": "Colours and finishes change little but matter for matching.",
+          "uae_options": "RAL colour; laminate colour",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "stability and strength test report",
+          "why_needed_to_price": "Stability and strength tests confirm the product suits children.",
+          "uae_options": "EN 1729-2 test report",
+          "follow_up_if": "Private schools and tenders often ask for it.",
+          "blocking": false
+        },
+        {
+          "spec": "fire performance of upholstery",
+          "why_needed_to_price": "Upholstered items in schools need fire evidence.",
+          "uae_options": "fabric and foam reports",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "quantity per item",
+          "why_needed_to_price": "Quantity per item sets price.",
+          "uae_options": "per piece",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "delivery and assembly",
+          "why_needed_to_price": "Assembly on site is labour.",
+          "uae_options": "flat-pack assembled; pre-assembled",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Delivery location and school calendar decide logistics.",
+          "uae_options": "before term start; floors; access hours",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Imported stock vs made to order.",
+          "uae_options": "ex-stock; made to order",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "Warranty differs on frames and shells.",
+          "uae_options": "years per component",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions shift cost.",
+          "uae_options": "lab services connections; fixing to walls",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs the schedule per classroom with age groups (size marks) and quantities; lab benches with services need the lab layout and often a site visit.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "school_furniture:uae-standards-and-approvals",
@@ -84,6 +188,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "school_furniture:authority-approvals",
+      "topic": "School & education furniture: licences, permits and approvals by emirate",
+      "topic_ar": "أثاث مدارس: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "School furniture has no national product registration. The regulator of the school sets facility requirements: in Dubai the Knowledge and Human Development Authority (KHDA) for private schools, in Abu Dhabi the Abu Dhabi Department of Education and Knowledge (ADEK), and the federal Ministry of Education for public schools and schools in the northern emirates; Sharjah has its own Private Education Authority. These bodies and their tender documents can require ergonomic sizing and safety, and many name EN 1729 for chairs and desks. Upholstered items and auditorium seating fall under the UAE Fire and Life Safety Code during the school's building approval, enforced by the emirate's civil defence. The school or its contractor obtains these approvals; the supplier provides test reports.",
+      "body_ar": "لا يخضع أثاث المدارس لتسجيل منتج على المستوى الوطني. وتحدد الجهة المنظمة للمدرسة متطلبات المرافق: هيئة المعرفة والتنمية البشرية في دبي للمدارس الخاصة، ودائرة التعليم والمعرفة في أبوظبي، ووزارة التربية والتعليم للمدارس الحكومية ومدارس الإمارات الشمالية، ولإمارة الشارقة هيئة خاصة للتعليم الخاص. وقد تشترط هذه الجهات ووثائق مناقصاتها مقاسات مريحة وآمنة، وكثير منها يذكر المعيار EN 1729 للكراسي والطاولات. وتخضع القطع المنجدة ومقاعد المسارح لكود الإمارات للحماية من الحرائق عند اعتماد مبنى المدرسة لدى الدفاع المدني في الإمارة. وتستخرج المدرسة أو مقاولها هذه الاعتمادات، بينما يقدّم المورد تقارير الاختبار.",
+      "sources": [
+        "https://adek.gov.ae/-/media/Project/TAMM/ADEK/Policies/School-Policies/Health-safety-and-wellbeing/ADEK_S_Buildings-and-Facilities-Policy_EN.pdf",
+        "https://www.khaleejtimes.com/uae/khda-private-schools-handbook-safety-measures-pools-labs",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "school_furniture:quote-red-flags",
+      "topic": "School & education furniture: red flags in supplier quotations",
+      "topic_ar": "أثاث مدارس: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for one chair height offered for all ages, thinner steel tube or plastic shells than specified, MFC tops where HPL was asked (edges chip in classrooms), no EN 1729 test report when the tender asked for one, lab tops of ordinary laminate instead of chemical-resistant material, and assembly or delivery after school hours excluded. Ask whether stock is in the UAE when the term start date is close.",
+      "body_ar": "انتبه إلى عرض ارتفاع كرسي واحد لكل الأعمار، وأنابيب فولاذية أو هياكل بلاستيكية أرق من المواصفة، وأسطح MFC بدل HPL المطلوب (تتكسر حوافها في الصفوف)، وغياب تقرير اختبار EN 1729 عند اشتراطه في المناقصة، وأسطح مختبرات من رقائق عادية بدل مادة مقاومة للمواد الكيميائية، واستثناء التجميع أو التسليم خارج ساعات الدوام. واسأل عن وجود المخزون في الدولة إذا كان موعد بدء الفصل قريباً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "school_furniture:buyer-mistakes",
+      "topic": "School & education furniture: common buyer mistakes",
+      "topic_ar": "أثاث مدارس: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "The usual mistakes are ordering one size for all grades, ordering too late for the summer installation window, and choosing on price per chair without checking frame thickness and the warranty. Schools also forget spare quantities for growth and breakage.",
+      "body_ar": "الأخطاء المعتادة هي طلب مقاس واحد لكل الصفوف، والطلب متأخراً عن فترة التركيب الصيفية، والاختيار على أساس سعر الكرسي دون التحقق من سماكة الهيكل والضمان. كما تنسى المدارس الكميات الاحتياطية للتوسع والكسر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "school_furniture:price-drivers",
+      "topic": "School & education furniture: what makes prices differ legitimately",
+      "topic_ar": "أثاث مدارس: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Prices vary with frame gauge and coating, shell material, top material (MFC, HPL, solid surface, epoxy for labs), size range, test certification, origin, quantity, and the delivery window (summer installation compresses labour).",
+      "body_ar": "تختلف الأسعار بسماكة الهيكل وطلائه، ومادة المقعد، ومادة السطح (MFC أو HPL أو السطح الصلب أو الإيبوكسي للمختبرات)، ونطاق المقاسات، وشهادات الاختبار، والمنشأ، والكمية، ونافذة التسليم (فالتركيب الصيفي يضغط العمالة).",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "school_furniture:compare-quotes-cost-to-value",
+      "topic": "School & education furniture: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "أثاث مدارس: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare on the same schedule of items and size marks, same materials and test evidence, delivered and assembled before the term. Value is durability over years of daily use: frame thickness, top material, warranty and availability of spare shells and glides. Recommend the three that meet the age sizing and materials in full and can deliver in time.",
+      "body_ar": "قارن العروض على جدول الأصناف ورموز المقاسات نفسه، وبالمواد وأدلة الاختبار نفسها، مسلّمة ومجمّعة قبل بدء الفصل. والقيمة هي المتانة على سنوات من الاستخدام اليومي: سماكة الهيكل ومادة السطح والضمان وتوفر المقاعد والأقدام الاحتياطية. أوصِ بالعروض الثلاثة التي تلبي المقاسات العمرية والمواد كاملة وتستطيع التسليم في الوقت.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +300,8 @@
     "removed": [],
     "still_unverified": [
       "school_furniture:spec-checklist",
-      "school_furniture:uae-standards-and-approvals"
+      "school_furniture:uae-standards-and-approvals",
+      "school_furniture:authority-approvals"
     ],
     "added": [
       "school_furniture:spec-checklist",
@@ -157,6 +332,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "school_furniture:quote-red-flags",
+      "school_furniture:buyer-mistakes",
+      "school_furniture:price-drivers",
+      "school_furniture:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

@@ -28,8 +28,8 @@
       "topic": "Event equipment & AV rental: makes, brands, distributors and origins in the UAE",
       "topic_ar": "تأجير معدات الفعاليات والصوت والصورة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "UAE event rental companies and the equipment brands common in their stock, such as PROTEC, Harlequin, Aggreko, L-Acoustics and Robe, with rental houses in Al Quoz, Dubai Investments Park and Musaffah. Confirmed UAE rental companies and brands common in rental stock: PROTEC, Harlequin, Al Laith, Aggreko, L-Acoustics, d&b audiotechnik, Robe, Claypaky, ROE Visual, Absen. The equipment brands' UAE dealers were not checked. Many mid-size rental houses operate in Al Quoz, Dubai Investments Park and Musaffah.",
-      "body_ar": "شركات تأجير معدات الفعاليات في الإمارات والعلامات الشائعة في مخزونها مثل PROTEC وHarlequin وAggreko وL-Acoustics وRobe، وتتركز شركات التأجير في القوز ومجمع دبي للاستثمار ومصفح. شركات التأجير المؤكدة في الإمارات والعلامات الشائعة في مخزون التأجير: PROTEC، Harlequin، Al Laith، Aggreko، L-Acoustics، d&b audiotechnik، Robe، Claypaky، ROE Visual، Absen. ولم يُتحقق من وكلاء علامات المعدات في الإمارات. وتعمل دور تأجير متوسطة كثيرة في القوز ومجمع دبي للاستثمار ومصفح.",
+      "body_en": "UAE event rental companies and the equipment brands common in their stock, such as PROTEC, Harlequin, Aggreko, L-Acoustics and Robe, with rental houses in Al Quoz, Dubai Investments Park and Musaffah. Confirmed UAE rental companies and brands common in rental stock: PROTEC, Harlequin, Al Laith, Aggreko, L-Acoustics, d&b audiotechnik, Robe, Claypaky, ROE Visual, Absen. The equipment brands' UAE dealers were not checked. Many mid-size rental houses operate in Al Quoz, Dubai Investments Park and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): PROTEC = a UAE trading or retail name; Harlequin = a premium British brand; Al Laith = a UAE trading or retail name; Aggreko = a premium British brand; L-Acoustics = a luxury French brand; d&b audiotechnik = a luxury German brand; Robe = a premium Czech brand; Claypaky = a premium Italian brand; ROE Visual = a premium Chinese brand; Absen = a mid-tier Chinese brand.",
+      "body_ar": "شركات تأجير معدات الفعاليات في الإمارات والعلامات الشائعة في مخزونها مثل PROTEC وHarlequin وAggreko وL-Acoustics وRobe، وتتركز شركات التأجير في القوز ومجمع دبي للاستثمار ومصفح. شركات التأجير المؤكدة في الإمارات والعلامات الشائعة في مخزون التأجير: PROTEC، Harlequin، Al Laith، Aggreko، L-Acoustics، d&b audiotechnik، Robe، Claypaky، ROE Visual، Absen. ولم يُتحقق من وكلاء علامات المعدات في الإمارات. وتعمل دور تأجير متوسطة كثيرة في القوز ومجمع دبي للاستثمار ومصفح.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): PROTEC = اسم تجاري لتاجر أو موزع في الإمارات؛ Harlequin = علامة بريطانية من الفئة الممتازة؛ Al Laith = اسم تجاري لتاجر أو موزع في الإمارات؛ Aggreko = علامة بريطانية من الفئة الممتازة؛ L-Acoustics = علامة فرنسية من الفئة الفاخرة؛ d&b audiotechnik = علامة ألمانية من الفئة الفاخرة؛ Robe = علامة تشيكية من الفئة الممتازة؛ Claypaky = علامة إيطالية من الفئة الممتازة؛ ROE Visual = علامة صينية من الفئة الممتازة؛ Absen = علامة صينية من الفئة المتوسطة.",
       "sources": [
         "https://psm-uae.com/blog/dubai-tents-stages-pass-dcd-first-time/",
         "https://protecevents.com/",
@@ -40,7 +40,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Civil Defence reviews and inspects temporary event structures and tents (exits, material flammability, fire equipment) under the UAE Fire and Life Safety Code -> confirmed | PROTEC (UAE since 1999), Harlequin Furniture Rental, Al Laith (1995) and Aggreko (event power and cooling) serve UAE events -> confirmed | Stage One, Losberger De Boer, Röder in the UAE -> removed: not checked. Not checked: Several rental company names are market examples; their current operation and exact permit workflow for temporary structures were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Civil Defence reviews and inspects temporary event structures and tents (exits, material flammability, fire equipment) under the UAE Fire and Life Safety Code -> confirmed | PROTEC (UAE since 1999), Harlequin Furniture Rental, Al Laith (1995) and Aggreko (event power and cooling) serve UAE events -> confirmed | Stage One, Losberger De Boer, Röder in the UAE -> removed: not checked. Not checked: Several rental company names are market examples; their current operation and exact permit workflow for temporary structures were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "PROTEC",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Harlequin",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Al Laith",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Aggreko",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "L-Acoustics",
+          "origin": "France",
+          "tier": "luxury",
+          "generic_en": "a luxury French brand",
+          "generic_ar": "علامة فرنسية من الفئة الفاخرة"
+        },
+        {
+          "brand": "d&b audiotechnik",
+          "origin": "Germany",
+          "tier": "luxury",
+          "generic_en": "a luxury German brand",
+          "generic_ar": "علامة ألمانية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Robe",
+          "origin": "Czechia",
+          "tier": "premium",
+          "generic_en": "a premium Czech brand",
+          "generic_ar": "علامة تشيكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Claypaky",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "ROE Visual",
+          "origin": "China",
+          "tier": "premium",
+          "generic_en": "a premium Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الممتازة"
+        },
+        {
+          "brand": "Absen",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "event_equipment_rental:uae-market-sizes",

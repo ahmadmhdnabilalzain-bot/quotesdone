@@ -5,8 +5,8 @@
       "id": "call_centre_bpo:spec-checklist",
       "topic": "Call centre and BPO - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for call centre and bpo must state: process scope; channels; languages; volume forecast; operating hours; service level targets; quality monitoring; data protection obligations; reporting; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مراكز الاتصال والاستعانة بمصادر خارجية: نطاق العمليات؛ القنوات؛ اللغات؛ توقعات الحجم؛ ساعات العمل؛ أهداف مستوى الخدمة؛ مراقبة الجودة؛ التزامات حماية البيانات؛ التقارير؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for call centre and bpo must state: process scope; channels; languages; volume forecast; operating hours; service level targets; quality monitoring; data protection obligations; reporting; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): process scope; channels; languages; volume forecast; operating hours; service level targets; data protection obligations; contract duration; pricing basis. Follow-up questions the answers trigger: volume forecast: Ask for last year's volumes by hour. Before a firm price: a firm price needs process scope, channels, languages, volume forecast with handle time, hours and service levels; complex processes usually need a discovery workshop or a process walkthrough before a firm price.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مراكز الاتصال والاستعانة بمصادر خارجية: نطاق العمليات؛ القنوات؛ اللغات؛ توقعات الحجم؛ ساعات العمل؛ أهداف مستوى الخدمة؛ مراقبة الجودة؛ التزامات حماية البيانات؛ التقارير؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نطاق العملية، والقنوات، واللغات، وتوقعات الحجم مع زمن المعالجة، وساعات التشغيل، وأهداف مستوى الخدمة، والتزامات حماية البيانات، ومدة العقد، وأساس التسعير. العمليات المعقدة تحتاج عادة ورشة استكشاف أو شرحاً للعملية قبل السعر النهائي.",
       "required_specs": [
         "process scope",
         "channels",
@@ -28,7 +28,120 @@
         "https://tdra.gov.ae/en/Services"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "process scope",
+        "channels",
+        "languages",
+        "volume forecast",
+        "operating hours",
+        "service level targets",
+        "data protection obligations",
+        "contract duration",
+        "pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "process scope",
+          "why_needed_to_price": "Process scope decides skills and handling time.",
+          "uae_options": "inbound support; outbound sales; collections; back office; chat moderation",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "channels",
+          "why_needed_to_price": "Channels change staffing.",
+          "uae_options": "voice; email; chat; WhatsApp; social",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "languages",
+          "why_needed_to_price": "Languages drive the agent pool and rate.",
+          "uae_options": "Arabic; English; Hindi/Urdu; others",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "volume forecast",
+          "why_needed_to_price": "Volume forecast decides seats.",
+          "uae_options": "calls or contacts per month; handle time; peaks",
+          "follow_up_if": "Ask for last year's volumes by hour.",
+          "blocking": true
+        },
+        {
+          "spec": "operating hours",
+          "why_needed_to_price": "Operating hours decide shifts.",
+          "uae_options": "business hours; 24/7",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "service level targets",
+          "why_needed_to_price": "Service level targets change staffing.",
+          "uae_options": "80/20; answer rate; first contact resolution",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quality monitoring",
+          "why_needed_to_price": "Quality monitoring.",
+          "uae_options": "% calls scored",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "data protection obligations",
+          "why_needed_to_price": "Data protection and location of data.",
+          "uae_options": "PDPL obligations; on-shore data",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "reporting",
+          "why_needed_to_price": "Reporting.",
+          "uae_options": "daily; weekly",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Licences.",
+          "uae_options": "trade licence; TDRA approval for telemarketing",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "penalties and credits",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "months; ramp-up",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "per seat; per hour; per contact; per outcome",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "telephony costs; CRM licences",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs process scope, channels, languages, volume forecast with handle time, hours and service levels; complex processes usually need a discovery workshop or a process walkthrough before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "call_centre_bpo:uae-standards-and-approvals",
@@ -86,6 +199,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "call_centre_bpo:authority-approvals",
+      "topic": "Call centre & BPO: licences, permits and approvals by emirate",
+      "topic_ar": "مراكز الاتصال وتعهيد العمليات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Telemarketing (outbound marketing calls) is regulated: 2024 resolutions of the Ministry of Economy and TDRA (one law firm cites Cabinet Resolution 57 of 2024) require prior TDRA approval for telemarketing, calls from local numbers registered to the company licence, calling only within set hours and frequencies, respecting the Do Not Call Registry, recording calls with notice, and disclosing the source of the database on request; penalties include fines and licence suspension. Personal data handled for clients is subject to Federal Decree-Law 45 of 2021 on personal data protection (outside DIFC and ADGM, which have their own laws). Collections on behalf of banks bring Central Bank requirements. The BPO provider holds the approvals; ask for its TDRA telemarketing approval if calls are outbound.",
+      "body_ar": "التسويق الهاتفي (المكالمات التسويقية الصادرة) منظم: إذ تشترط قرارات وزارة الاقتصاد وهيئة تنظيم الاتصالات لعام 2024 (ويذكر مكتب محاماة قرار مجلس الوزراء رقم 57 لسنة 2024) موافقة مسبقة من الهيئة على التسويق الهاتفي، والاتصال من أرقام محلية مسجلة على رخصة الشركة، والاتصال في ساعات ووتيرة محددة، واحترام سجل عدم الإزعاج، وتسجيل المكالمات مع إشعار المتصل به، والإفصاح عن مصدر قاعدة البيانات عند الطلب، والعقوبات تشمل الغرامات وتعليق الرخصة. وتخضع البيانات الشخصية المعالجة للعملاء للمرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية (خارج مركز دبي المالي وسوق أبوظبي العالمي اللذين لهما قوانينهما). والتحصيل لصالح البنوك يجلب متطلبات المصرف المركزي. ويحوز مزود الخدمة الموافقات؛ فاطلب موافقة الهيئة على التسويق الهاتفي إذا كانت المكالمات صادرة.",
+      "sources": [
+        "https://www.clydeco.com/en/insights/2024/07/uae-tightens-telemarketing-regulations-what-you-ne",
+        "https://gulfnews.com/living-in-uae/telephone-internet/new-uae-telemarketing-regulations-effective-from-today--what-you-need-to-know-1.1718026358937",
+        "https://www.simmons-simmons.com/en/publications/ckwugz8lu16rs0a44qvbqcbz9/uae-personal-data-protection-law-faqs"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "call_centre_bpo:quote-red-flags",
+      "topic": "Call centre & BPO: red flags in supplier quotations",
+      "topic_ar": "مراكز الاتصال وتعهيد العمليات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for per-seat prices that assume low occupancy, telephony and CRM licences extra, ramp-up and training charged separately, service levels without credits, minimum volume commitments, data stored offshore without disclosure, and outbound calling without TDRA approval.",
+      "body_ar": "انتبه إلى أسعار للمقعد تفترض إشغالاً منخفضاً، واحتساب الاتصالات وتراخيص إدارة علاقات العملاء إضافياً، وتحصيل رسوم منفصلة للتجهيز والتدريب، ومستويات خدمة دون تعويضات، والتزامات بحد أدنى للحجم، وتخزين البيانات خارج الدولة دون إفصاح، والاتصال الصادر دون موافقة الهيئة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "call_centre_bpo:buyer-mistakes",
+      "topic": "Call centre & BPO: common buyer mistakes",
+      "topic_ar": "مراكز الاتصال وتعهيد العمليات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients give no volume data, compare per-seat prices across different service levels, and ignore data protection terms.",
+      "body_ar": "لا يقدّم العملاء بيانات الحجم، ويقارنون أسعار المقاعد عبر مستويات خدمة مختلفة، ويتجاهلون شروط حماية البيانات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "call_centre_bpo:price-drivers",
+      "topic": "Call centre & BPO: what makes prices differ legitimately",
+      "topic_ar": "مراكز الاتصال وتعهيد العمليات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: languages, hours, service levels, channel mix, location (onshore or offshore), technology stack, training and quality programme.",
+      "body_ar": "العوامل: اللغات، والساعات، ومستويات الخدمة، ومزيج القنوات، والموقع داخل الدولة أو خارجها، والمنظومة التقنية، والتدريب، وبرنامج الجودة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "call_centre_bpo:compare-quotes-cost-to-value",
+      "topic": "Call centre & BPO: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "مراكز الاتصال وتعهيد العمليات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Convert offers to cost per handled contact at the same service level and quality, including telephony and tools. Recommend three meeting the service level with credits and compliant data handling.",
+      "body_ar": "حوّل العروض إلى تكلفة لكل تواصل مُعالج بمستوى الخدمة والجودة نفسيهما شاملة الاتصالات والأدوات. أوصِ بثلاثة عروض تحقق مستوى الخدمة مع تعويضات ومعالجة بيانات ممتثلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -128,7 +311,8 @@
     "removed": [],
     "still_unverified": [
       "call_centre_bpo:spec-checklist",
-      "call_centre_bpo:uae-standards-and-approvals"
+      "call_centre_bpo:uae-standards-and-approvals",
+      "call_centre_bpo:authority-approvals"
     ],
     "added": [
       "call_centre_bpo:spec-checklist",
@@ -159,6 +343,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "call_centre_bpo:quote-red-flags",
+      "call_centre_bpo:buyer-mistakes",
+      "call_centre_bpo:price-drivers",
+      "call_centre_bpo:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

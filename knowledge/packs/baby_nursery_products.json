@@ -6,8 +6,8 @@
       "topic": "Baby & nursery products - what the buyer must state",
       "topic_ar": "منتجات الأطفال الرضع وغرف الأطفال: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For baby & nursery products (trade code baby_nursery_products only), every quoted line must state: Product type and age or weight range; Brand and model; Safety standard and certification; Materials; Dimensions or size; Colour; Quantity; Expiry date for consumables; Labelling language and warnings; Warranty; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط منتجات الأطفال الرضع وغرف الأطفال (رمز النشاط baby_nursery_products فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المنتج والفئة العمرية أو الوزنية؛ العلامة والموديل؛ معيار السلامة والاعتماد؛ المواد؛ الأبعاد أو المقاس؛ اللون؛ الكمية؛ تاريخ الانتهاء للمستهلكات؛ لغة الملصق والتحذيرات؛ الضمان؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For baby & nursery products (trade code baby_nursery_products only), every quoted line must state: Product type and age or weight range; Brand and model; Safety standard and certification; Materials; Dimensions or size; Colour; Quantity; Expiry date for consumables; Labelling language and warnings; Warranty; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Product type and age or weight range; Brand and model; Safety standard and certification; Quantity; Delivery terms. Before a firm price: a firm price needs models, quantities and the certification status; uncertified child care products are quoted only subject to certification.",
+      "body_ar": "في نشاط منتجات الأطفال الرضع وغرف الأطفال (رمز النشاط baby_nursery_products فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المنتج والفئة العمرية أو الوزنية؛ العلامة والموديل؛ معيار السلامة والاعتماد؛ المواد؛ الأبعاد أو المقاس؛ اللون؛ الكمية؛ تاريخ الانتهاء للمستهلكات؛ لغة الملصق والتحذيرات؛ الضمان؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المنتج والفئة العمرية أو الوزنية، والعلامة والطراز، ومعيار السلامة والشهادة، والكمية، وشروط التسليم. منتجات رعاية الأطفال غير المعتمدة لا تُسعّر إلا رهناً بالحصول على الشهادة.",
       "required_specs": [
         "Product type and age or weight range",
         "Brand and model",
@@ -28,7 +28,101 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: ECE R44/04 groups 0-3, UNECE R129 (i-Size), ISOFIX fixing."
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: ECE R44/04 groups 0-3, UNECE R129 (i-Size), ISOFIX fixing.",
+      "blocking": [
+        "Product type and age or weight range",
+        "Brand and model",
+        "Safety standard and certification",
+        "Quantity",
+        "Delivery terms"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Product type and age or weight range",
+          "why_needed_to_price": "Product and age or weight range define the safety class.",
+          "uae_options": "car seat group; stroller; cot; high chair; feeding; diapers",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Brand and model",
+          "why_needed_to_price": "Brand and model fix price.",
+          "uae_options": "model",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Safety standard and certification",
+          "why_needed_to_price": "Safety standards and UAE certification decide whether it can be sold.",
+          "uae_options": "ECE R44/R129 car seats; EN 716 cots; MoIAT child care conformity",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Materials",
+          "why_needed_to_price": "Materials.",
+          "uae_options": "BPA-free; fabrics",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Dimensions or size",
+          "why_needed_to_price": "Size.",
+          "uae_options": "dimensions",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Colour",
+          "why_needed_to_price": "Colour.",
+          "uae_options": "colours",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Expiry date for consumables",
+          "why_needed_to_price": "Expiry for consumables.",
+          "uae_options": "months remaining",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Labelling language and warnings",
+          "why_needed_to_price": "Arabic labelling and warnings.",
+          "uae_options": "Arabic/English",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms",
+          "why_needed_to_price": "Delivery terms.",
+          "uae_options": "DDP",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock; import",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs models, quantities and the certification status; uncertified child care products are quoted only subject to certification."
     },
     {
       "id": "baby_nursery_products:product-distinctions",
@@ -59,6 +153,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "baby_nursery_products:authority-approvals",
+      "topic": "Baby & nursery products: licences, permits and approvals by emirate",
+      "topic_ar": "منتجات الأطفال الرضع وغرف الأطفال: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Child care products are regulated: certification bodies report that MoIAT launched an ECAS scheme for child care products in 2020, so listed items (such as cots, high chairs, strollers and similar) need a conformity certificate held by the importer. Toys fall under the toy regulation. Baby food and formula are food products needing food authority registration, and diapers and wipes may need municipal consumer product registration in Dubai. Car seats are tested to UN ECE R44 or R129. Ask for certificate numbers per model.",
+      "body_ar": "منتجات رعاية الأطفال منظمة: تفيد جهات الاعتماد بأن وزارة الصناعة والتكنولوجيا المتقدمة أطلقت عام 2020 نظام ECAS لمنتجات رعاية الأطفال، فتحتاج الأصناف المدرجة (كالأسرّة والكراسي العالية وعربات الأطفال وما شابهها) شهادة مطابقة يحوزها المستورد. وتخضع الألعاب للائحة الألعاب. وأغذية الرضع والحليب الصناعي منتجات غذائية تحتاج تسجيلاً لدى جهة سلامة الغذاء، وقد تحتاج الحفاضات والمناديل إلى تسجيل المنتجات الاستهلاكية لدى بلدية دبي. وتُختبر مقاعد السيارات وفق UN ECE R44 أو R129. اطلب أرقام الشهادات لكل طراز.",
+      "sources": [
+        "https://sgs.com/en/news/2020/10/moiat-launches-ecas-certification-for-child-care-products",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "baby_nursery_products:quote-red-flags",
+      "topic": "Baby & nursery products: red flags in supplier quotations",
+      "topic_ar": "منتجات الأطفال الرضع وغرف الأطفال: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for car seats without R44/R129 labels, uncertified cots and strollers, counterfeit branded items, short-dated consumables, missing Arabic warnings and grey imports without warranty.",
+      "body_ar": "انتبه إلى مقاعد سيارات دون ملصقات R44/R129، وأسرّة وعربات غير معتمدة، وأصناف مقلدة، ومستهلكات قصيرة الصلاحية، وغياب التحذيرات العربية، واستيراد موازٍ دون ضمان.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "baby_nursery_products:buyer-mistakes",
+      "topic": "Baby & nursery products: common buyer mistakes",
+      "topic_ar": "منتجات الأطفال الرضع وغرف الأطفال: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers import certified-abroad products assuming they are allowed, and buy on price where safety certification is the point.",
+      "body_ar": "يستورد المشترون منتجات معتمدة في الخارج على افتراض أنها مسموحة، ويشترون بالسعر بينما الشهادة هي الأساس.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "baby_nursery_products:price-drivers",
+      "topic": "Baby & nursery products: what makes prices differ legitimately",
+      "topic_ar": "منتجات الأطفال الرضع وغرف الأطفال: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand, safety features, materials, certification cost, volume and freight.",
+      "body_ar": "العوامل: العلامة، وخصائص السلامة، والمواد، وتكلفة الاعتماد، والكمية، والشحن.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "baby_nursery_products:compare-quotes-cost-to-value",
+      "topic": "Baby & nursery products: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "منتجات الأطفال الرضع وغرف الأطفال: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same models, UAE-certified, landed. Recommend three certified offers.",
+      "body_ar": "قارن الطرازات نفسها معتمدة في الدولة ومسلّمة. أوصِ بثلاثة عروض معتمدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -92,6 +255,26 @@
       903,
       1198,
       1209
-    ]
+    ],
+    "still_unverified": [
+      "baby_nursery_products:authority-approvals"
+    ],
+    "expert_authored_unsourced": [
+      "baby_nursery_products:quote-red-flags",
+      "baby_nursery_products:buyer-mistakes",
+      "baby_nursery_products:price-drivers",
+      "baby_nursery_products:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    }
   }
 }

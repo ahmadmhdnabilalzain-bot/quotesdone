@@ -5,8 +5,8 @@
       "id": "laundry_equipment:spec-checklist",
       "topic": "Laundry equipment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For laundry equipment (trade code laundry_equipment only), every quoted line must state: Machine type and capacity; Heating source; Power, water and drain connections; Control and programmes; Installation and commissioning; Spare parts and service support; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط معدات المغاسل (رمز النشاط laundry_equipment فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الآلة وسعتها؛ مصدر التسخين؛ توصيلات الكهرباء والمياه والصرف؛ التحكم والبرامج؛ التركيب والتشغيل؛ قطع الغيار ودعم الصيانة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For laundry equipment (trade code laundry_equipment only), every quoted line must state: Machine type and capacity; Heating source; Power, water and drain connections; Control and programmes; Installation and commissioning; Spare parts and service support; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Machine type and capacity; Heating source; Power, water and drain connections; Installation and commissioning; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Machine type and capacity: Ask kg of linen per day and the number of shifts; Heating source: Gas: ask whether the building allows it; Power, water and drain connections: Existing laundry: ask a photo of connections. Before a firm price: a firm price needs machine types and capacities (or kg of linen per day), heating source and connections; replacing machines in an existing laundry, or a basement laundry, needs a site visit for access and services.",
+      "body_ar": "في نشاط معدات المغاسل (رمز النشاط laundry_equipment فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الآلة وسعتها؛ مصدر التسخين؛ توصيلات الكهرباء والمياه والصرف؛ التحكم والبرامج؛ التركيب والتشغيل؛ قطع الغيار ودعم الصيانة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الآلة وسعتها، ومصدر التسخين، وتوصيلات الكهرباء والمياه والصرف، ونطاق التركيب والتشغيل، والكمية، وطريق التسليم. أسئلة المتابعة: يُسأل عن كيلوغرامات البياضات يومياً وعدد المناوبات، والغاز يستلزم التحقق من سماح المبنى به. استبدال آلات في مغسلة قائمة أو مغسلة في القبو يحتاج زيارة موقع للوصول والخدمات.",
       "required_specs": [
         "Machine type and capacity",
         "Heating source",
@@ -27,7 +27,110 @@
         "https://www.dcd.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Machine type and capacity",
+        "Heating source",
+        "Power, water and drain connections",
+        "Installation and commissioning",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Machine type and capacity",
+          "why_needed_to_price": "Washer-extractors, dryers and ironers are priced by type and kg capacity.",
+          "uae_options": "washer-extractor kg; tumble dryer kg; flatwork ironer width",
+          "follow_up_if": "Ask kg of linen per day and the number of shifts.",
+          "blocking": true
+        },
+        {
+          "spec": "Heating source",
+          "why_needed_to_price": "Heating source changes model and installation.",
+          "uae_options": "electric; steam; gas",
+          "follow_up_if": "Gas: ask whether the building allows it.",
+          "blocking": true
+        },
+        {
+          "spec": "Power, water and drain connections",
+          "why_needed_to_price": "Connections and drain decide installation work.",
+          "uae_options": "3-phase power; water pressure; drain pit or pump",
+          "follow_up_if": "Existing laundry: ask a photo of connections.",
+          "blocking": true
+        },
+        {
+          "spec": "Control and programmes",
+          "why_needed_to_price": "Controls affect usability and price.",
+          "uae_options": "programmable; chemical dosing interface",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Installation and commissioning",
+          "why_needed_to_price": "Installation includes bases and connections.",
+          "uae_options": "supply only; install and commission",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Spare parts and service support",
+          "why_needed_to_price": "Service support matters for uptime.",
+          "uae_options": "local technicians; spare stock",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "Quantity per machine type.",
+          "uae_options": "per machine",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "Standards for safety and EMC.",
+          "uae_options": "IEC 60335 report",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "Electrical appliances may need MoIAT conformity.",
+          "uae_options": "ECAS/EQM where regulated",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Delivery into basement laundries needs access.",
+          "uae_options": "access route; lifting",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "Warranty on parts and labour.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Imported machines take longer.",
+          "uae_options": "stock; imported",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "plumbing and electrical; chemicals",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs machine types and capacities (or kg of linen per day), heating source and connections; replacing machines in an existing laundry, or a basement laundry, needs a site visit for access and services.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "laundry_equipment:uae-standards-and-approvals",
@@ -85,6 +188,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "laundry_equipment:authority-approvals",
+      "topic": "Commercial laundry equipment: licences, permits and approvals by emirate",
+      "topic_ar": "معدات المغاسل التجارية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Commercial laundry machines are electrical equipment; where MoIAT lists a machine type as regulated, the importer must hold a conformity certificate (ECAS or EQM), and household washing machines and dryers carry the MoIAT energy and water label under UAE.S 5010 Part 2 (commercial machines are generally outside that label). A laundry business needs a trade licence and, in Dubai, municipality health and safety approval for the premises; laundries using dry-cleaning solvents or steam boilers face environmental and civil defence requirements in the emirate. Gas dryers need civil defence approved gas installation. The operator obtains premises approvals; the supplier provides certificates.",
+      "body_ar": "آلات الغسيل التجارية معدات كهربائية، وإذا أدرجت وزارة الصناعة والتكنولوجيا المتقدمة نوع الآلة ضمن المنتجات المنظمة وجب على المستورد حيازة شهادة مطابقة (ECAS أو EQM)، وتحمل الغسالات والمجففات المنزلية بطاقة الطاقة والمياه وفق الجزء الثاني من المواصفة UAE.S 5010 (والآلات التجارية خارج تلك البطاقة عموماً). ويحتاج نشاط المغسلة إلى رخصة تجارية، وفي دبي إلى موافقة البلدية على الصحة والسلامة في المنشأة، وتواجه المغاسل التي تستخدم مذيبات التنظيف الجاف أو غلايات البخار متطلبات بيئية ومتطلبات الدفاع المدني في الإمارة. وتحتاج المجففات العاملة بالغاز إلى تمديدات غاز معتمدة من الدفاع المدني. ويستخرج المشغّل موافقات المنشأة، بينما يقدّم المورد الشهادات.",
+      "sources": [
+        "https://cprc-clasp.ngo/policies/uaes-5010-22013-labeling-energy-efficiency-label-electrical-appliances-part-2-washing",
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "laundry_equipment:quote-red-flags",
+      "topic": "Commercial laundry equipment: red flags in supplier quotations",
+      "topic_ar": "معدات المغاسل التجارية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Check the capacity basis (kg dry linen at a stated fill factor), G-factor of washer-extractors (a soft-mount high-spin machine needs no bolting but costs more; a hard-mount needs a base), heating type changed, installation and bases excluded, dosing pumps excluded, a household or semi-professional machine offered for hotel duty, and warranty conditional on the supplier's service contract.",
+      "body_ar": "تحقق من أساس السعة (كيلوغرام بياضات جافة بنسبة تعبئة محددة)، ومعامل الطرد المركزي للغسالات (الآلة المعلقة عالية الدوران لا تحتاج تثبيتاً لكنها أغلى، والمثبتة تحتاج قاعدة)، وتغيير نوع التسخين، واستثناء التركيب والقواعد، واستثناء مضخات الجرعات، وعرض آلة منزلية أو شبه احترافية لاستخدام فندقي، وضمان مشروط بعقد صيانة لدى المورد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "laundry_equipment:buyer-mistakes",
+      "topic": "Commercial laundry equipment: common buyer mistakes",
+      "topic_ar": "معدات المغاسل التجارية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers often size machines on room count without linen weight per room and shifts, choose hard-mount machines for upper floors, and forget drain capacity and ventilation for dryers.",
+      "body_ar": "كثيراً ما يحدد المشترون سعة الآلات بعدد الغرف دون وزن البياضات لكل غرفة وعدد المناوبات، ويختارون آلات مثبتة للطوابق العليا، وينسون سعة الصرف وتهوية المجففات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "laundry_equipment:price-drivers",
+      "topic": "Commercial laundry equipment: what makes prices differ legitimately",
+      "topic_ar": "معدات المغاسل التجارية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: capacity, spin G-factor and mounting, heating type, controls, brand and origin, ironer width, installation complexity, service network and warranty.",
+      "body_ar": "العوامل: السعة، ومعامل الدوران وطريقة التثبيت، ونوع التسخين، والتحكم، والعلامة والمنشأ، وعرض المكواة، وتعقيد التركيب، وشبكة الصيانة، والضمان.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "laundry_equipment:compare-quotes-cost-to-value",
+      "topic": "Commercial laundry equipment: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "معدات المغاسل التجارية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare at the same capacity, G-factor, heating and installation scope. Value includes water and energy per kg, drying time from residual moisture, service response, parts stock and warranty. Recommend three that meet daily throughput with the lowest life cost.",
+      "body_ar": "قارن بالسعة ومعامل الدوران ونوع التسخين ونطاق التركيب نفسها. وتشمل القيمة استهلاك المياه والطاقة لكل كيلوغرام، وزمن التجفيف حسب الرطوبة المتبقية، وسرعة الصيانة، ومخزون القطع، والضمان. أوصِ بثلاثة عروض تحقق الإنتاج اليومي بأقل تكلفة عمر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +298,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "laundry_equipment:spec-checklist"
+      "laundry_equipment:spec-checklist",
+      "laundry_equipment:authority-approvals"
     ],
     "added": [
       "laundry_equipment:spec-checklist",
@@ -157,6 +330,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "laundry_equipment:quote-red-flags",
+      "laundry_equipment:buyer-mistakes",
+      "laundry_equipment:price-drivers",
+      "laundry_equipment:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

@@ -5,8 +5,8 @@
       "id": "investigation_screening:spec-checklist",
       "topic": "Investigation and background screening - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For investigation and background screening (trade code investigation_screening only), every quoted line must state: Type of check; Subject consent; Jurisdictions covered; Data protection handling; Report content; Turnaround per check; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط التحقيقات والتحقق من الخلفيات (رمز النشاط investigation_screening فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع التحقق؛ موافقة الشخص المعني؛ الولايات القضائية المشمولة؛ التعامل وفق حماية البيانات؛ محتوى التقرير؛ مدة الإنجاز لكل تحقق؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For investigation and background screening (trade code investigation_screening only), every quoted line must state: Type of check; Subject consent; Jurisdictions covered; Data protection handling; Report content; Turnaround per check; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Type of check; Subject consent; Jurisdictions covered; Deliverables and scope of work; Duration and schedule; Pricing basis. Before a firm price: a firm price needs the check types, jurisdictions and monthly volume; corporate investigations need a confidential briefing before scope and fee are fixed.",
+      "body_ar": "في نشاط التحقيقات والتحقق من الخلفيات (رمز النشاط investigation_screening فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع التحقق؛ موافقة الشخص المعني؛ الولايات القضائية المشمولة؛ التعامل وفق حماية البيانات؛ محتوى التقرير؛ مدة الإنجاز لكل تحقق؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع التحقق، وموافقة الشخص، والولايات القضائية، ونطاق العمل، والحجم، وأساس التسعير. التحقيقات المتعلقة بالشركات تحتاج إحاطة سرية قبل تثبيت النطاق والأتعاب.",
       "required_specs": [
         "Type of check",
         "Subject consent",
@@ -25,7 +25,103 @@
         "https://uaelegislation.gov.ae/en"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Type of check",
+        "Subject consent",
+        "Jurisdictions covered",
+        "Deliverables and scope of work",
+        "Duration and schedule",
+        "Pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Type of check",
+          "why_needed_to_price": "Type of check decides sources and price.",
+          "uae_options": "employment verification; education; criminal record via subject; credit; company due diligence",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Subject consent",
+          "why_needed_to_price": "Subject consent is needed for personal checks.",
+          "uae_options": "signed consent",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Jurisdictions covered",
+          "why_needed_to_price": "Jurisdictions multiply time and cost.",
+          "uae_options": "UAE; home country; others",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Data protection handling",
+          "why_needed_to_price": "Data protection handling.",
+          "uae_options": "PDPL",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Report content",
+          "why_needed_to_price": "Report content.",
+          "uae_options": "fields",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Turnaround per check",
+          "why_needed_to_price": "Turnaround per check.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "Scope of work.",
+          "uae_options": "written scope",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Licence.",
+          "uae_options": "licence for the activity",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Service level.",
+          "uae_options": "turnaround",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "Volume and duration.",
+          "uae_options": "checks per month",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "per check; package",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "third-party fees; translation",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs the check types, jurisdictions and monthly volume; corporate investigations need a confidential briefing before scope and fee are fixed.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "investigation_screening:uae-standards-and-approvals",
@@ -82,6 +178,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "investigation_screening:authority-approvals",
+      "topic": "Investigation & Background Screening: licences, permits and approvals by emirate",
+      "topic_ar": "التحريات والتحقق من الخلفيات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Private investigation is a restricted activity in the UAE. Sources describe licensing through the security regulator (in Dubai the Security Industry Regulatory Agency under Dubai Police) and the Ministry of Interior, but disagree on the exact approvals, and a news report warns that unlicensed investigators risk prosecution. Employment background screening with the subject's consent is a commercial activity; personal data handling falls under the federal personal data protection law and the labour law limits on what employers may request. Ask any investigator for its security licence.",
+      "body_ar": "التحقيق الخاص نشاط مقيد في الإمارات. وتصف المصادر ترخيصه عبر جهة تنظيم الأمن (في دبي مؤسسة تنظيم الصناعة الأمنية التابعة لشرطة دبي) ووزارة الداخلية، لكنها تختلف في الموافقات بدقة، ويحذر تقرير إخباري من تعرض المحققين غير المرخصين للملاحقة. أما التحقق من خلفية التوظيف بموافقة الشخص فنشاط تجاري، وتخضع معالجة البيانات الشخصية للقانون الاتحادي لحماية البيانات ولحدود قانون العمل فيما يجوز لصاحب العمل طلبه. اطلب من أي محقق ترخيصه الأمني.",
+      "sources": [
+        "https://www.thenationalnews.com/uae/dubai-s-exential-scam-sheds-light-on-risks-for-private-investigators-working-in-uae-1.665901",
+        "https://uaefreezonefinder.com/uae-private-investigation-detective-guide-2026/",
+        "https://www.simmons-simmons.com/en/publications/ckwugz8lu16rs0a44qvbqcbz9/uae-personal-data-protection-law-faqs"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "investigation_screening:quote-red-flags",
+      "topic": "Investigation & Background Screening: red flags in supplier quotations",
+      "topic_ar": "التحريات والتحقق من الخلفيات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for checks run without consent, \"criminal record\" offered without the lawful channel, unlicensed investigators, surveillance proposals that breach privacy law, and per-check prices excluding third-party fees.",
+      "body_ar": "انتبه إلى تحقق دون موافقة، وعرض \"السجل الجنائي\" دون القناة المشروعة، ومحققين غير مرخصين، ومقترحات مراقبة تخالف قانون الخصوصية، وأسعار للتحقق تستثني رسوم الأطراف الثالثة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "investigation_screening:buyer-mistakes",
+      "topic": "Investigation & Background Screening: common buyer mistakes",
+      "topic_ar": "التحريات والتحقق من الخلفيات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Employers skip consent forms and expose themselves to privacy complaints, and hire investigators without checking the licence.",
+      "body_ar": "يتجاوز أصحاب العمل نماذج الموافقة فيعرّضون أنفسهم لشكاوى الخصوصية، ويستعينون بمحققين دون التحقق من الترخيص.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "investigation_screening:price-drivers",
+      "topic": "Investigation & Background Screening: what makes prices differ legitimately",
+      "topic_ar": "التحريات والتحقق من الخلفيات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: check type, jurisdictions, turnaround, volume and third-party fees.",
+      "body_ar": "العوامل: نوع التحقق، والولايات القضائية، ومدة الإنجاز، والحجم، ورسوم الأطراف الثالثة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "investigation_screening:compare-quotes-cost-to-value",
+      "topic": "Investigation & Background Screening: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "التحريات والتحقق من الخلفيات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare per-check total cost including third-party fees, for the same checks and turnaround, from lawful providers. Recommend three compliant providers.",
+      "body_ar": "قارن التكلفة الإجمالية لكل تحقق شاملة رسوم الأطراف الثالثة، للتحققات والمدة نفسها، من مزودين يعملون بشكل مشروع. أوصِ بثلاثة مزودين ممتثلين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -124,7 +290,8 @@
     "removed": [],
     "still_unverified": [
       "investigation_screening:spec-checklist",
-      "investigation_screening:uae-standards-and-approvals"
+      "investigation_screening:uae-standards-and-approvals",
+      "investigation_screening:authority-approvals"
     ],
     "added": [
       "investigation_screening:spec-checklist",
@@ -155,6 +322,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "investigation_screening:quote-red-flags",
+      "investigation_screening:buyer-mistakes",
+      "investigation_screening:price-drivers",
+      "investigation_screening:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

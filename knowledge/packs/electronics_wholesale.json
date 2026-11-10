@@ -5,8 +5,8 @@
       "id": "electronics_wholesale:spec-checklist",
       "topic": "Electronics wholesale - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for electronics wholesale must state: product and model; brand; specification; regional version; conformity or type approval; quantity; new or refurbished; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة تجارة الإلكترونيات بالجملة: المنتج والطراز؛ العلامة التجارية؛ المواصفة؛ النسخة الإقليمية؛ المطابقة أو اعتماد الطراز؛ الكمية؛ جديد أو مجدد؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for electronics wholesale must state: product and model; brand; specification; regional version; conformity or type approval; quantity; new or refurbished; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product and model; brand; regional version; conformity or type approval; quantity; new or refurbished. Before a firm price: a firm price needs model codes, regional version, condition and quantity; prices are usually valid only briefly because stock moves.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة تجارة الإلكترونيات بالجملة: المنتج والطراز؛ العلامة التجارية؛ المواصفة؛ النسخة الإقليمية؛ المطابقة أو اعتماد الطراز؛ الكمية؛ جديد أو مجدد؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج والطراز، والعلامة، والنسخة الإقليمية، وشهادة المطابقة أو الاعتماد النوعي، والكمية، وجديد أم مجدد. تكون الأسعار صالحة لمدة قصيرة عادة لأن المخزون يتحرك.",
       "required_specs": [
         "product and model",
         "brand",
@@ -27,7 +27,103 @@
         "https://tdra.gov.ae/en/Services"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "product and model",
+        "brand",
+        "regional version",
+        "conformity or type approval",
+        "quantity",
+        "new or refurbished"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product and model",
+          "why_needed_to_price": "Product and model fix the price.",
+          "uae_options": "model code",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "brand",
+          "why_needed_to_price": "Brand.",
+          "uae_options": "brand",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "specification",
+          "why_needed_to_price": "Specification.",
+          "uae_options": "key specs",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "regional version",
+          "why_needed_to_price": "Regional version changes warranty and compliance.",
+          "uae_options": "Middle East version; international",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "conformity or type approval",
+          "why_needed_to_price": "Conformity or type approval decides whether it can be sold.",
+          "uae_options": "MoIAT certificate; TDRA approval for wireless",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quantity",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "new or refurbished",
+          "why_needed_to_price": "New or refurbished.",
+          "uae_options": "new; refurbished grade",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "why_needed_to_price": "UAE approvals.",
+          "uae_options": "certificates",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery and installation scope",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "free zone; mainland",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "local; international",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "accessories",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs model codes, regional version, condition and quantity; prices are usually valid only briefly because stock moves.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "electronics_wholesale:uae-standards-and-approvals",
@@ -86,6 +182,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "electronics_wholesale:authority-approvals",
+      "topic": "Consumer electronics wholesale: licences, permits and approvals by emirate",
+      "topic_ar": "جملة إلكترونيات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Consumer electronics are regulated: electrical products on MoIAT's regulated list need a conformity certificate (ECAS or EQM) before sale, and any product with radio functions (Wi-Fi, Bluetooth, cellular) needs TDRA type approval and registration, held by the registered importer or distributor; certification bodies report a TDRA label card on approved equipment and a reported TDRA customs release permit for telecom imports. Goods for re-export from free zones are treated differently from goods released into the UAE market. Ask for the certificate and TDRA approval for each model sold locally.",
+      "body_ar": "الإلكترونيات الاستهلاكية منظمة: فالمنتجات الكهربائية المدرجة في قائمة وزارة الصناعة والتكنولوجيا المتقدمة تحتاج شهادة مطابقة (ECAS أو EQM) قبل البيع، وأي منتج بوظائف راديوية (واي فاي أو بلوتوث أو خلوي) يحتاج اعتماداً نوعياً وتسجيلاً من هيئة تنظيم الاتصالات يحوزهما المستورد أو الموزع المسجل؛ وتفيد جهات الاعتماد ببطاقة الهيئة على المعدات المعتمدة وبتصريح إفراج جمركي للاتصالات أُفيد به. وتُعامل البضائع المعدة لإعادة التصدير من المناطق الحرة بشكل مختلف عن البضائع المطروحة في سوق الدولة. اطلب الشهادة واعتماد الهيئة لكل طراز يُباع محلياً.",
+      "sources": [
+        "https://www.tuv.com/market-access-services/en/certification-filter/united-arab-emirates-telecommunication-apparatus-(tdra)-approval.html",
+        "https://www.tuvsud.com/en/services/product-certification/global-market-access/united-arab-emirates",
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "electronics_wholesale:quote-red-flags",
+      "topic": "Consumer electronics wholesale: red flags in supplier quotations",
+      "topic_ar": "جملة إلكترونيات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for international versions without local warranty or TDRA approval, refurbished stock sold as new, older model years, mixed lots, missing accessories or chargers with non-UAE plugs, and prices valid for hours.",
+      "body_ar": "انتبه إلى نسخ دولية دون ضمان محلي أو اعتماد الهيئة، ومخزون مجدد يُباع على أنه جديد، وطرازات سنوات سابقة، ودفعات مختلطة، ونقص الملحقات أو شواحن بقوابس غير إماراتية، وأسعار صالحة لساعات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "electronics_wholesale:buyer-mistakes",
+      "topic": "Consumer electronics wholesale: common buyer mistakes",
+      "topic_ar": "جملة إلكترونيات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers chase the lowest unit price on parallel stock that cannot be sold locally or carries no warranty.",
+      "body_ar": "يلاحق المشترون أقل سعر للوحدة في مخزون موازٍ لا يمكن بيعه محلياً أو بلا ضمان.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "electronics_wholesale:price-drivers",
+      "topic": "Consumer electronics wholesale: what makes prices differ legitimately",
+      "topic_ar": "جملة إلكترونيات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand, model year, regional version, channel, condition, quantity and currency.",
+      "body_ar": "العوامل: العلامة، وسنة الطراز، والنسخة الإقليمية، والقناة، والحالة، والكمية، والعملة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "electronics_wholesale:compare-quotes-cost-to-value",
+      "topic": "Consumer electronics wholesale: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "جملة إلكترونيات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same model, version and condition with local warranty and approvals. Recommend three authorised offers.",
+      "body_ar": "قارن الطراز والنسخة والحالة نفسها مع الضمان المحلي والاعتمادات. أوصِ بثلاثة عروض معتمدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -128,7 +294,8 @@
     "removed": [],
     "still_unverified": [
       "electronics_wholesale:spec-checklist",
-      "electronics_wholesale:uae-standards-and-approvals"
+      "electronics_wholesale:uae-standards-and-approvals",
+      "electronics_wholesale:authority-approvals"
     ],
     "added": [
       "electronics_wholesale:spec-checklist",
@@ -159,6 +326,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "electronics_wholesale:quote-red-flags",
+      "electronics_wholesale:buyer-mistakes",
+      "electronics_wholesale:price-drivers",
+      "electronics_wholesale:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

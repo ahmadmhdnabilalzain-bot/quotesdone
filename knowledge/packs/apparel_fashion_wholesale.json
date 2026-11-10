@@ -6,8 +6,8 @@
       "topic": "Garments & fashion wholesale - what the buyer must state",
       "topic_ar": "تجارة الملابس والأزياء بالجملة: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For garments & fashion wholesale (trade code apparel_fashion_wholesale only), every quoted line must state: Garment type and style or design reference; Fabric composition and weight; Size range and size ratio per style; Colours; Quantity per style, colour and size; Stock garments or made to order; Branding, labels and packaging; Quality standard and inspection (AQL); Country of origin; Delivery terms and location; Lead time; Returns and defect policy. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط تجارة الملابس والأزياء بالجملة (رمز النشاط apparel_fashion_wholesale فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الملبس وتصميمه أو مرجعه؛ تركيب القماش ووزنه؛ مدى المقاسات ونسبتها لكل تصميم؛ الألوان؛ الكمية لكل تصميم ولون ومقاس؛ بضاعة جاهزة أم تصنيع بالطلب؛ العلامة والملصقات والتغليف؛ معيار الجودة والفحص (AQL)؛ بلد المنشأ؛ شروط التسليم وموقعه؛ مدة التوريد؛ سياسة المرتجعات والعيوب. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For garments & fashion wholesale (trade code apparel_fashion_wholesale only), every quoted line must state: Garment type and style or design reference; Fabric composition and weight; Size range and size ratio per style; Colours; Quantity per style, colour and size; Stock garments or made to order; Branding, labels and packaging; Quality standard and inspection (AQL); Country of origin; Delivery terms and location; Lead time; Returns and defect policy. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Garment type and style or design reference; Fabric composition and weight; Size range and size ratio per style; Quantity per style, colour and size; Stock garments or made to order; Delivery terms and location. Before a firm price: stock lots can be priced firm from the lot list; made-to-order garments need a tech pack and an approved sample before a firm price.",
+      "body_ar": "في نشاط تجارة الملابس والأزياء بالجملة (رمز النشاط apparel_fashion_wholesale فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الملبس وتصميمه أو مرجعه؛ تركيب القماش ووزنه؛ مدى المقاسات ونسبتها لكل تصميم؛ الألوان؛ الكمية لكل تصميم ولون ومقاس؛ بضاعة جاهزة أم تصنيع بالطلب؛ العلامة والملصقات والتغليف؛ معيار الجودة والفحص (AQL)؛ بلد المنشأ؛ شروط التسليم وموقعه؛ مدة التوريد؛ سياسة المرتجعات والعيوب. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع القطعة وتصميمها، وتركيب القماش ووزنه، ونطاق المقاسات ونسبها، والكمية لكل تصميم ولون ومقاس، والمخزون الجاهز أو التصنيع حسب الطلب، وشروط التسليم. الدفعات الجاهزة تُسعّر نهائياً من قائمتها، أما التصنيع حسب الطلب فيحتاج ملفاً فنياً وعيّنة معتمدة قبل السعر النهائي.",
       "required_specs": [
         "Garment type and style or design reference",
         "Fabric composition and weight",
@@ -28,7 +28,102 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: abayas in the Gulf mostly black; crepe, georgette and chiffon common, with light shades also worn."
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: abayas in the Gulf mostly black; crepe, georgette and chiffon common, with light shades also worn.",
+      "blocking": [
+        "Garment type and style or design reference",
+        "Fabric composition and weight",
+        "Size range and size ratio per style",
+        "Quantity per style, colour and size",
+        "Stock garments or made to order",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Garment type and style or design reference",
+          "why_needed_to_price": "Style or design reference fixes the pattern and cost.",
+          "uae_options": "tech pack; style number; photo",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Fabric composition and weight",
+          "why_needed_to_price": "Fabric composition and weight drive cost.",
+          "uae_options": "fibre %; GSM",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Size range and size ratio per style",
+          "why_needed_to_price": "Size range and ratio set the cutting plan.",
+          "uae_options": "S-XXL ratio",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Colours",
+          "why_needed_to_price": "Colours affect MOQ.",
+          "uae_options": "colours per style",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity per style, colour and size",
+          "why_needed_to_price": "Quantity per style, colour and size sets price.",
+          "uae_options": "units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Stock garments or made to order",
+          "why_needed_to_price": "Stock garments and made to order are priced differently.",
+          "uae_options": "stock lot; made to order",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Branding, labels and packaging",
+          "why_needed_to_price": "Labels and packaging add cost.",
+          "uae_options": "woven label; hang tag; polybag",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quality standard and inspection (AQL)",
+          "why_needed_to_price": "An AQL inspection standard defines acceptable defects.",
+          "uae_options": "AQL 2.5; third-party inspection",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Country of origin",
+          "why_needed_to_price": "Origin matters for duty and buyer requirements.",
+          "uae_options": "country of manufacture",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Delivery terms.",
+          "uae_options": "FOB; CIF; DDP",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock; production",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Returns and defect policy",
+          "why_needed_to_price": "Returns and defects policy.",
+          "uae_options": "terms",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "stock lots can be priced firm from the lot list; made-to-order garments need a tech pack and an approved sample before a firm price."
     },
     {
       "id": "apparel_fashion_wholesale:product-distinctions",
@@ -59,6 +154,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "apparel_fashion_wholesale:authority-approvals",
+      "topic": "Garments & fashion wholesale: licences, permits and approvals by emirate",
+      "topic_ar": "الملابس والأزياء بالجملة: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Garments sold in the UAE fall under the UAE scheme for the control of textile products (Cabinet Resolution; 2019 and 2024 texts on the UAE legislation portal), administered by MoIAT, which requires labelling of fibre composition and care, with Arabic reported as required. Branded goods are protected by trademark law; counterfeit stock is seized by the economic departments and customs. Goods moving from free-zone warehouses into the mainland clear customs. The importer is responsible for labelling and certificates.",
+      "body_ar": "تخضع الملابس المبيعة في الدولة للنظام الإماراتي للرقابة على المنتجات النسيجية (بقرار من مجلس الوزراء؛ نصّا 2019 و2024 على بوابة التشريعات)، الذي تديره وزارة الصناعة والتكنولوجيا المتقدمة ويشترط بطاقة بنسبة الألياف والعناية، وأُفيد باشتراط العربية. والسلع ذات العلامات محمية بقانون العلامات التجارية، وتضبط الدوائر الاقتصادية والجمارك المخزون المقلد. وتُخلّص البضائع المنقولة من مستودعات المناطق الحرة إلى البر الرئيسي جمركياً. والمستورد مسؤول عن البطاقات والشهادات.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2802/download",
+        "https://ccis-expertise.com/en/certification-of-textile-products-united-arab-emirates"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "apparel_fashion_wholesale:quote-red-flags",
+      "topic": "Garments & fashion wholesale: red flags in supplier quotations",
+      "topic_ar": "الملابس والأزياء بالجملة: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for fabric weight or blend lower than the sample, size ratio changed, AQL not stated, stock lots with mixed seasons or defects, counterfeit branded stock, origin different from stated, and missing labels.",
+      "body_ar": "انتبه إلى وزن قماش أو خليط أقل من العيّنة، وتغيير نسب المقاسات، وعدم ذكر مستوى AQL، ودفعات جاهزة بمواسم مختلطة أو عيوب، ومخزون مقلد لعلامات، ومنشأ يختلف عن المذكور، وغياب البطاقات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "apparel_fashion_wholesale:buyer-mistakes",
+      "topic": "Garments & fashion wholesale: common buyer mistakes",
+      "topic_ar": "الملابس والأزياء بالجملة: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers approve a sample but not the bulk fabric, skip inspection before shipment, and buy stock lots without a size and defect breakdown.",
+      "body_ar": "يعتمد المشترون العيّنة دون قماش الإنتاج الكامل، ويتخطون الفحص قبل الشحن، ويشترون دفعات جاهزة دون تفصيل المقاسات والعيوب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "apparel_fashion_wholesale:price-drivers",
+      "topic": "Garments & fashion wholesale: what makes prices differ legitimately",
+      "topic_ar": "الملابس والأزياء بالجملة: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: fabric, construction, trims, quantity per style, origin, labour cost of the country, inspection and freight.",
+      "body_ar": "العوامل: القماش، والتفصيل، والإكسسوارات، والكمية لكل تصميم، والمنشأ، وتكلفة العمالة في بلد التصنيع، والفحص، والشحن.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "apparel_fashion_wholesale:compare-quotes-cost-to-value",
+      "topic": "Garments & fashion wholesale: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الملابس والأزياء بالجملة: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare landed cost per garment at the same fabric, construction, quantity and AQL. Recommend three whose samples match the tech pack.",
+      "body_ar": "قارن التكلفة الواصلة لكل قطعة بالقماش والتفصيل والكمية ومستوى AQL نفسها. أوصِ بثلاثة عروض تطابق عيّناتها الملف الفني.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -92,6 +256,26 @@
       903,
       1198,
       1209
-    ]
+    ],
+    "still_unverified": [
+      "apparel_fashion_wholesale:authority-approvals"
+    ],
+    "expert_authored_unsourced": [
+      "apparel_fashion_wholesale:quote-red-flags",
+      "apparel_fashion_wholesale:buyer-mistakes",
+      "apparel_fashion_wholesale:price-drivers",
+      "apparel_fashion_wholesale:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    }
   }
 }

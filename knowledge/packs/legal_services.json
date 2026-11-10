@@ -5,8 +5,8 @@
       "id": "legal_services:spec-checklist",
       "topic": "Legal services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For legal services (trade code legal_services only), every quoted line must state: Matter and area of law; Jurisdiction and courts; Lawyer licence and rights of audience; Deliverables and stages; Fee basis; Conflict check; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الخدمات القانونية (رمز النشاط legal_services فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الموضوع ومجال القانون؛ الولاية القضائية والمحاكم؛ ترخيص المحامي وحق الترافع؛ المخرجات والمراحل؛ أساس الأتعاب؛ التحقق من تعارض المصالح؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For legal services (trade code legal_services only), every quoted line must state: Matter and area of law; Jurisdiction and courts; Lawyer licence and rights of audience; Deliverables and stages; Fee basis; Conflict check; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Matter and area of law; Jurisdiction and courts; Deliverables and stages; Fee basis; Conflict check; Deliverables and scope of work; Duration and schedule; Pricing basis; Exclusions. Follow-up questions the answers trigger: Matter and area of law: Ask a one-paragraph summary and the documents; Jurisdiction and courts: Litigation onshore: a locally licensed advocate is needed; Conflict check: Ask for the names of the other side. Before a firm price: a firm fee needs the matter summary, the documents, the parties for a conflict check, the forum and the stages; a dispute or a complex transaction usually needs a short meeting or call and a document review before a firm fee or a cap is offered.",
+      "body_ar": "في نشاط الخدمات القانونية (رمز النشاط legal_services فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الموضوع ومجال القانون؛ الولاية القضائية والمحاكم؛ ترخيص المحامي وحق الترافع؛ المخرجات والمراحل؛ أساس الأتعاب؛ التحقق من تعارض المصالح؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: موضوع المسألة ومجال القانون، والاختصاص والمحكمة، والمراحل، وأساس الأتعاب، وفحص تعارض المصالح، ونطاق العمل والمخرجات، والمدة والمواعيد، وأساس التسعير، والاستثناءات. أسئلة المتابعة: يُطلب ملخص المسألة والمستندات وأسماء الأطراف، والتقاضي أمام المحاكم المحلية يستلزم محامياً مرخصاً محلياً. النزاع أو المعاملة المعقدة يحتاج عادة اجتماعاً قصيراً أو مكالمة ومراجعة للمستندات قبل أتعاب نهائية أو سقف.",
       "required_specs": [
         "Matter and area of law",
         "Jurisdiction and courts",
@@ -25,7 +25,106 @@
         "https://www.moj.gov.ae/en/home.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Matter and area of law",
+        "Jurisdiction and courts",
+        "Deliverables and stages",
+        "Fee basis",
+        "Conflict check",
+        "Deliverables and scope of work",
+        "Duration and schedule",
+        "Pricing basis",
+        "Exclusions"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Matter and area of law",
+          "why_needed_to_price": "The matter and area of law decide who can act and the effort.",
+          "uae_options": "contract; corporate; employment; real estate; dispute; IP; regulatory",
+          "follow_up_if": "Ask a one-paragraph summary and the documents.",
+          "blocking": true
+        },
+        {
+          "spec": "Jurisdiction and courts",
+          "why_needed_to_price": "Jurisdiction decides the licence needed and the procedure.",
+          "uae_options": "onshore courts (federal, Dubai, Abu Dhabi, RAK); DIFC; ADGM; arbitration (DIAC and others)",
+          "follow_up_if": "Litigation onshore: a locally licensed advocate is needed.",
+          "blocking": true
+        },
+        {
+          "spec": "Lawyer licence and rights of audience",
+          "why_needed_to_price": "Rights of audience decide whether the firm can appear in court itself.",
+          "uae_options": "advocate licensed for the court; legal consultant (advice only)",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and stages",
+          "why_needed_to_price": "Stages define what is priced.",
+          "uae_options": "advice; drafting; negotiation; first instance; appeal; cassation; execution",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Fee basis",
+          "why_needed_to_price": "Fee basis changes the total risk.",
+          "uae_options": "fixed fee; hourly; capped; retainer; stage fee; success fee where lawful",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Conflict check",
+          "why_needed_to_price": "A conflict check must clear before the firm can quote.",
+          "uae_options": "names of all parties",
+          "follow_up_if": "Ask for the names of the other side.",
+          "blocking": true
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "Scope of work and deliverables.",
+          "uae_options": "memo; contract draft; pleadings; hearings attended",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Licence and qualifications.",
+          "uae_options": "licensed firm; partner experience in the area",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Response time.",
+          "uae_options": "hours or days",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "Duration and deadlines.",
+          "uae_options": "limitation dates; hearing dates",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Pricing basis must state hours or caps.",
+          "uae_options": "rates by seniority; cap; estimate",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions often hide large costs.",
+          "uae_options": "court fees; expert fees; translation; travel",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "site_visit_required_when": "a firm fee needs the matter summary, the documents, the parties for a conflict check, the forum and the stages; a dispute or a complex transaction usually needs a short meeting or call and a document review before a firm fee or a cap is offered.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "legal_services:uae-standards-and-approvals",
@@ -82,6 +181,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "legal_services:authority-approvals",
+      "topic": "Legal services: licences, permits and approvals by emirate",
+      "topic_ar": "الخدمات القانونية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Legal practice is licensed. Federal Law 34 of 2022 regulating the advocacy and legal consultancy profession (in force from 2 January 2023) governs advocates and legal consultants, with the Ministry of Justice licensing advocates before the federal courts. In Dubai, firms and individual consultants register with the Dubai Legal Affairs Department (DLAD) under its own law and 2022 implementing resolutions; a consultancy source describes two stacked registrations, the firm licence and each consultant, on top of the Department of Economy and Tourism trade licence. Foreign lawyers act as legal consultants and cannot plead before onshore courts; a locally licensed advocate appears there. DIFC and ADGM run their own practitioner registration for their courts. Ask the firm for its licence and the licence of the lawyer who will act.",
+      "body_ar": "ممارسة القانون مرخصة. إذ ينظم القانون الاتحادي رقم 34 لسنة 2022 بشأن تنظيم مهنة المحاماة والاستشارات القانونية (نافذ منذ 2 يناير 2023) المحامين والمستشارين القانونيين، وتمنح وزارة العدل تراخيص المحامين أمام المحاكم الاتحادية. وفي دبي تسجل المكاتب والمستشارون الأفراد لدى دائرة الشؤون القانونية لحكومة دبي وفق قانونها الخاص وقرارات تنفيذية صدرت عام 2022، ويصف مصدر استشاري تسجيلين متراكبين: ترخيص المكتب وتسجيل كل مستشار، فوق الرخصة التجارية من دائرة الاقتصاد والسياحة. ويعمل المحامون الأجانب مستشارين قانونيين ولا يترافعون أمام المحاكم المحلية، ويمثّل أمامها محامٍ مرخص محلياً. ولمركز دبي المالي العالمي وسوق أبوظبي العالمي نظام تسجيل خاص للممارسين أمام محاكمهما. اطلب من المكتب ترخيصه وترخيص المحامي الذي سيتولى المسألة.",
+      "sources": [
+        "https://www.nortonrosefulbright.com/en/knowledge/publications/a3002b1d/new-uae-and-dubai-laws-bring-in-tighter-regulation-of-uae-legal-professionals",
+        "https://www.businessdubai.ae/blogs/legal-consultancy-company-setup-dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "legal_services:quote-red-flags",
+      "topic": "Legal services: red flags in supplier quotations",
+      "topic_ar": "الخدمات القانونية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for an hourly rate with no estimate or cap, \"fixed fee\" covering only first instance, court fees, expert fees, translation and travel excluded without saying so, a success fee without the conditions the law sets, junior staff doing work priced at partner rate, a consultancy firm quoting litigation it cannot plead, and a retainer that renews automatically.",
+      "body_ar": "انتبه إلى سعر ساعة دون تقدير أو سقف، و\"أتعاب ثابتة\" تغطي الدرجة الأولى فقط، واستثناء رسوم المحكمة والخبراء والترجمة والسفر دون تصريح، وأتعاب نجاح دون الشروط التي يحددها القانون، وتنفيذ موظفين مبتدئين لعمل مُسعّر بسعر الشريك، ومكتب استشارات يعرض تقاضياً لا يحق له الترافع فيه، واتفاق أتعاب شهرية يتجدد تلقائياً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "legal_services:buyer-mistakes",
+      "topic": "Legal services: common buyer mistakes",
+      "topic_ar": "الخدمات القانونية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients ask for a price without sending documents, compare hourly rates instead of total estimates, forget that appeals are separate stages, and hire a firm without checking who will appear in court.",
+      "body_ar": "يطلب العملاء سعراً دون إرسال المستندات، ويقارنون أسعار الساعة بدل التقديرات الإجمالية، وينسون أن الاستئناف مراحل منفصلة، ويوكلون مكتباً دون التحقق ممن سيترافع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "legal_services:price-drivers",
+      "topic": "Legal services: what makes prices differ legitimately",
+      "topic_ar": "الخدمات القانونية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Fees differ with seniority and specialism, complexity, value at stake, urgency, forum and language (Arabic proceedings need translation), the number of stages and the fee model.",
+      "body_ar": "تختلف الأتعاب بالأقدمية والتخصص، والتعقيد، والقيمة محل النزاع، والاستعجال، والجهة القضائية واللغة (الإجراءات العربية تحتاج ترجمة)، وعدد المراحل، ونموذج الأتعاب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "legal_services:compare-quotes-cost-to-value",
+      "topic": "Legal services: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الخدمات القانونية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare total estimated cost for the same scope and stages, including disbursements, and the team that will do the work. Weigh relevant experience in the same forum and response time. Recommend three that can act in the forum, with a cap or a clear estimate.",
+      "body_ar": "قارن التكلفة الإجمالية التقديرية للنطاق والمراحل نفسها شاملة المصاريف، والفريق الذي سينفذ العمل. وزن الخبرة ذات الصلة أمام الجهة نفسها وسرعة الاستجابة. أوصِ بثلاثة مكاتب يحق لها العمل أمام الجهة، بسقف أو تقدير واضح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -123,7 +291,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "legal_services:spec-checklist"
+      "legal_services:spec-checklist",
+      "legal_services:authority-approvals"
     ],
     "added": [
       "legal_services:spec-checklist",
@@ -154,6 +323,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "legal_services:quote-red-flags",
+      "legal_services:buyer-mistakes",
+      "legal_services:price-drivers",
+      "legal_services:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

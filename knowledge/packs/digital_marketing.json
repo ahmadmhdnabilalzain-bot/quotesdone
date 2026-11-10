@@ -5,8 +5,8 @@
       "id": "digital_marketing:spec-checklist",
       "topic": "Digital marketing - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for digital marketing must state: channels; deliverables per month; media budget separate from fee; targeting and markets; languages; performance metrics; reporting frequency; account and asset ownership; advertiser permit where required; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة التسويق الرقمي: القنوات؛ المخرجات الشهرية؛ ميزانية الإعلانات منفصلة عن الرسوم؛ الاستهداف والأسواق؛ اللغات؛ مؤشرات الأداء؛ تكرار التقارير؛ ملكية الحسابات والأصول؛ تصريح المعلن عند الحاجة؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for digital marketing must state: channels; deliverables per month; media budget separate from fee; targeting and markets; languages; performance metrics; reporting frequency; account and asset ownership; advertiser permit where required; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): channels; deliverables per month; media budget separate from fee; languages; contract duration; pricing basis. Before a firm price: a firm retainer needs channels, monthly deliverables, languages and media budget; an existing account usually needs an audit or access before a firm proposal.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة التسويق الرقمي: القنوات؛ المخرجات الشهرية؛ ميزانية الإعلانات منفصلة عن الرسوم؛ الاستهداف والأسواق؛ اللغات؛ مؤشرات الأداء؛ تكرار التقارير؛ ملكية الحسابات والأصول؛ تصريح المعلن عند الحاجة؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: القنوات، والمخرجات الشهرية، وفصل ميزانية الإعلانات عن الأتعاب، واللغات، ومدة العقد، وأساس التسعير. الحساب القائم يحتاج عادة تدقيقاً أو صلاحية وصول قبل العرض النهائي.",
       "required_specs": [
         "channels",
         "deliverables per month",
@@ -27,7 +27,117 @@
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "channels",
+        "deliverables per month",
+        "media budget separate from fee",
+        "languages",
+        "contract duration",
+        "pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "channels",
+          "why_needed_to_price": "Channels define the team.",
+          "uae_options": "SEO; paid search; paid social; social management; email; content",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "deliverables per month",
+          "why_needed_to_price": "Monthly deliverables are what the fee buys.",
+          "uae_options": "posts; articles; campaigns; hours",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "media budget separate from fee",
+          "why_needed_to_price": "Media budget must be separate from the fee.",
+          "uae_options": "media budget; management fee",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "targeting and markets",
+          "why_needed_to_price": "Targeting and markets.",
+          "uae_options": "emirates; GCC",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "languages",
+          "why_needed_to_price": "Languages change content cost.",
+          "uae_options": "Arabic; English",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "performance metrics",
+          "why_needed_to_price": "Performance metrics.",
+          "uae_options": "CPL; ROAS; rankings",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "reporting frequency",
+          "why_needed_to_price": "Reporting frequency.",
+          "uae_options": "monthly",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "account and asset ownership",
+          "why_needed_to_price": "Account and asset ownership.",
+          "uae_options": "client-owned ad accounts",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "advertiser permit where required",
+          "why_needed_to_price": "Advertiser permit where creators are used.",
+          "uae_options": "UAE Media Council permit",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Licences.",
+          "uae_options": "copies",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "response",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "months; notice",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "retainer; % of spend; per deliverable",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "ad spend; tools; production",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm retainer needs channels, monthly deliverables, languages and media budget; an existing account usually needs an audit or access before a firm proposal.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "digital_marketing:uae-standards-and-approvals",
@@ -84,6 +194,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "digital_marketing:authority-approvals",
+      "topic": "Digital marketing, SEO & social media: licences, permits and approvals by emirate",
+      "topic_ar": "التسويق الرقمي ومحركات البحث والتواصل الاجتماعي: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Digital marketing agencies need a trade licence with an advertising or digital marketing activity from the emirate or a free zone. The UAE Media Council regulates advertising content; under the advertiser permit regime reported in 2025, individuals who publish promotional content on social media, paid or unpaid, need an advertiser permit (reported as required from 1 February 2026), and visiting creators apply through licensed advertising or talent agencies. Regulated sectors (health, financial services, real estate, education) need prior approval of advertising from their regulators. Customer data used for targeting is subject to the federal personal data protection law, and outbound marketing calls and messages to the telemarketing rules. Ask the agency to confirm permits for any creators it uses.",
+      "body_ar": "تحتاج وكالات التسويق الرقمي إلى رخصة تجارية بنشاط الإعلان أو التسويق الرقمي من الإمارة أو منطقة حرة. وينظم مجلس الإمارات للإعلام المحتوى الإعلاني؛ ووفق نظام تصريح المعلن الذي أُعلن عنه في 2025 يحتاج الأفراد الذين ينشرون محتوى ترويجياً على وسائل التواصل، مدفوعاً أو غير مدفوع، إلى تصريح معلن (أُفيد بأنه إلزامي من 1 فبراير 2026)، ويتقدم صناع المحتوى الزائرون عبر وكالات إعلان أو إدارة مواهب مرخصة. وتحتاج القطاعات المنظمة (الصحة والخدمات المالية والعقارات والتعليم) إلى موافقة مسبقة على الإعلانات من جهاتها الرقابية. وتخضع بيانات العملاء المستخدمة في الاستهداف للقانون الاتحادي لحماية البيانات الشخصية، والمكالمات والرسائل التسويقية لقواعد التسويق الهاتفي. اطلب من الوكالة تأكيد تصاريح أي صناع محتوى تستعين بهم.",
+      "sources": [
+        "https://www.thenationalnews.com/news/uae/2025/07/30/uae-launches-new-advertising-regulation-for-influencers",
+        "https://gulfnews.com/uae/new-uae-law-advertiser-permit-now-mandatory-for-influencers-and-creators-for-social-media-1.500427938",
+        "https://www.simmons-simmons.com/en/publications/ckwugz8lu16rs0a44qvbqcbz9/uae-personal-data-protection-law-faqs"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "digital_marketing:quote-red-flags",
+      "topic": "Digital marketing, SEO & social media: red flags in supplier quotations",
+      "topic_ar": "التسويق الرقمي ومحركات البحث والتواصل الاجتماعي: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for media budget mixed with fee, ad accounts owned by the agency, vague deliverables (\"social media management\"), guaranteed rankings, bought followers, tool subscriptions charged on top, long lock-in, and creators without advertiser permits.",
+      "body_ar": "انتبه إلى خلط ميزانية الإعلانات بالأتعاب، وحسابات إعلانية يملكها الوكيل، ومخرجات مبهمة (\"إدارة وسائل التواصل\")، وضمان ترتيب في محركات البحث، ومتابعين مشترين، واحتساب اشتراكات الأدوات إضافياً، والارتباط الطويل، وصناع محتوى دون تصاريح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "digital_marketing:buyer-mistakes",
+      "topic": "Digital marketing, SEO & social media: common buyer mistakes",
+      "topic_ar": "التسويق الرقمي ومحركات البحث والتواصل الاجتماعي: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers compare monthly fees without deliverables or media budget, let the agency own the accounts and data, and set no measurable goal.",
+      "body_ar": "يقارن المشترون الأتعاب الشهرية دون المخرجات أو ميزانية الإعلانات، ويتركون الحسابات والبيانات ملكاً للوكالة، ولا يحددون هدفاً قابلاً للقياس.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "digital_marketing:price-drivers",
+      "topic": "Digital marketing, SEO & social media: what makes prices differ legitimately",
+      "topic_ar": "التسويق الرقمي ومحركات البحث والتواصل الاجتماعي: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: channels, content volume and languages, seniority, media budget size, tools and reporting depth.",
+      "body_ar": "العوامل: القنوات، وحجم المحتوى ولغاته، والأقدمية، وحجم ميزانية الإعلانات، والأدوات، وعمق التقارير.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "digital_marketing:compare-quotes-cost-to-value",
+      "topic": "Digital marketing, SEO & social media: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "التسويق الرقمي ومحركات البحث والتواصل الاجتماعي: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare fee per deliverable with media budget excluded, and the expected cost per result from case evidence. Recommend three that leave account ownership with the client.",
+      "body_ar": "قارن الأتعاب لكل مخرج مع استبعاد ميزانية الإعلانات، والتكلفة المتوقعة لكل نتيجة من أدلة الحالات. أوصِ بثلاثة عروض تترك ملكية الحسابات للعميل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +306,8 @@
     "removed": [],
     "still_unverified": [
       "digital_marketing:spec-checklist",
-      "digital_marketing:uae-standards-and-approvals"
+      "digital_marketing:uae-standards-and-approvals",
+      "digital_marketing:authority-approvals"
     ],
     "added": [
       "digital_marketing:spec-checklist",
@@ -157,6 +338,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "digital_marketing:quote-red-flags",
+      "digital_marketing:buyer-mistakes",
+      "digital_marketing:price-drivers",
+      "digital_marketing:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

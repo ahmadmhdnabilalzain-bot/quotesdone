@@ -187,8 +187,8 @@
       "id": "safety_equipment:spec-ppe-order",
       "topic": "Spec checklist: ordering PPE for a project",
       "kind": "spec_checklist",
-      "body_en": "A PPE order is quotable only when each line states the item, the standard, the rating and the size mix. For each item the buyer should give: the item type (for example S3 SRC safety shoe, FFP2 valveless respirator, EN 397 helmet with 440 V marking); the required standard system (EN/ISO, ANSI/ISEA or NIOSH, or both) and any client or regulator specification that applies (for example ADNOC, OSHAD, Dubai Municipality); the performance level (cut level, SNR, class, arc rating); materials or features (composite toe, metal-free, FR, anti-static, ventilated); colour and branding or logo printing; size breakdown by quantity (shoes by EU size, gloves by size 7 to 11, coveralls by chest size); packaging and labelling (individual packing, Arabic labels if required); quantity and delivery schedule (call-off orders are common); required documents (EU type-examination certificate, declaration of conformity, test reports, certificate of origin); and shelf-life or manufacturing date limits for items that age, such as helmets, respirators and harnesses. Where a brand or model is specified by the client, state whether equivalents are acceptable and who approves them.",
-      "body_ar": "لا يمكن تسعير طلب معدات الوقاية إلا إذا حدد كل بند الصنف والمعيار والتصنيف وتوزيع المقاسات. ولكل صنف يجب أن يذكر المشتري: نوع الصنف (مثل حذاء سلامة S3 SRC، أو كمامة FFP2 بلا صمام، أو خوذة EN 397 بعلامة 440 فولت)؛ ونظام المعيار المطلوب (EN/ISO أو ANSI/ISEA أو NIOSH أو كليهما) وأي مواصفة للعميل أو الجهة الرقابية (مثل أدنوك أو أوشاد أو بلدية دبي)؛ ومستوى الأداء (مستوى القطع، أو SNR، أو الفئة، أو تصنيف القوس)؛ والمواد أو الخصائص (مقدمة مركبة، خالٍ من المعدن، مقاوم للهب، مضاد للكهرباء الساكنة، مهوى)؛ واللون والعلامة أو طباعة الشعار؛ وتوزيع المقاسات بالكميات (الأحذية بالمقاس الأوروبي، والقفازات من 7 إلى 11، والأفرولات بمقاس الصدر)؛ والتغليف والملصقات (تغليف فردي، ملصقات عربية إن لزم)؛ والكمية وجدول التسليم (طلبات السحب شائعة)؛ والوثائق المطلوبة (شهادة فحص النوع الأوروبية، إعلان المطابقة، تقارير الاختبار، شهادة المنشأ)؛ وحدود تاريخ التصنيع أو الصلاحية للأصناف التي تتقادم كالخوذ وأجهزة التنفس والأحزمة. وإذا حدد العميل علامة أو طرازاً فيجب ذكر هل البدائل المكافئة مقبولة ومن يعتمدها.",
+      "body_en": "A PPE order is quotable only when each line states the item, the standard, the rating and the size mix. For each item the buyer should give: the item type (for example S3 SRC safety shoe, FFP2 valveless respirator, EN 397 helmet with 440 V marking); the required standard system (EN/ISO, ANSI/ISEA or NIOSH, or both) and any client or regulator specification that applies (for example ADNOC, OSHAD, Dubai Municipality); the performance level (cut level, SNR, class, arc rating); materials or features (composite toe, metal-free, FR, anti-static, ventilated); colour and branding or logo printing; size breakdown by quantity (shoes by EU size, gloves by size 7 to 11, coveralls by chest size); packaging and labelling (individual packing, Arabic labels if required); quantity and delivery schedule (call-off orders are common); required documents (EU type-examination certificate, declaration of conformity, test reports, certificate of origin); and shelf-life or manufacturing date limits for items that age, such as helmets, respirators and harnesses. Where a brand or model is specified by the client, state whether equivalents are acceptable and who approves them.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): item type; standard system (EN/ANSI/NIOSH); performance level/class; size breakdown with quantities. Follow-up questions the answers trigger: standard system (EN/ANSI/NIOSH): Ask which system the client or site requires. Before a firm price: a firm price needs item type, standard and performance class, size breakdown and quantities; branded logo printing needs artwork and a sample.",
+      "body_ar": "لا يمكن تسعير طلب معدات الوقاية إلا إذا حدد كل بند الصنف والمعيار والتصنيف وتوزيع المقاسات. ولكل صنف يجب أن يذكر المشتري: نوع الصنف (مثل حذاء سلامة S3 SRC، أو كمامة FFP2 بلا صمام، أو خوذة EN 397 بعلامة 440 فولت)؛ ونظام المعيار المطلوب (EN/ISO أو ANSI/ISEA أو NIOSH أو كليهما) وأي مواصفة للعميل أو الجهة الرقابية (مثل أدنوك أو أوشاد أو بلدية دبي)؛ ومستوى الأداء (مستوى القطع، أو SNR، أو الفئة، أو تصنيف القوس)؛ والمواد أو الخصائص (مقدمة مركبة، خالٍ من المعدن، مقاوم للهب، مضاد للكهرباء الساكنة، مهوى)؛ واللون والعلامة أو طباعة الشعار؛ وتوزيع المقاسات بالكميات (الأحذية بالمقاس الأوروبي، والقفازات من 7 إلى 11، والأفرولات بمقاس الصدر)؛ والتغليف والملصقات (تغليف فردي، ملصقات عربية إن لزم)؛ والكمية وجدول التسليم (طلبات السحب شائعة)؛ والوثائق المطلوبة (شهادة فحص النوع الأوروبية، إعلان المطابقة، تقارير الاختبار، شهادة المنشأ)؛ وحدود تاريخ التصنيع أو الصلاحية للأصناف التي تتقادم كالخوذ وأجهزة التنفس والأحزمة. وإذا حدد العميل علامة أو طرازاً فيجب ذكر هل البدائل المكافئة مقبولة ومن يعتمدها.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الصنف، ونظام المعايير، ومستوى الأداء أو الفئة، وتوزيع المقاسات مع الكميات. طباعة الشعار تحتاج التصميم وعيّنة.",
       "sources": [
         "https://www.satra.com/spotlight/article.php?id=561",
         "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/20---Personal-Protective--Eng.pdf",
@@ -209,7 +209,101 @@
         "certificates and documents required",
         "manufacturing date / shelf-life limits",
         "brand/model and equivalents policy"
-      ]
+      ],
+      "blocking": [
+        "item type",
+        "standard system (EN/ANSI/NIOSH)",
+        "performance level/class",
+        "size breakdown with quantities"
+      ],
+      "spec_guide": [
+        {
+          "spec": "item type",
+          "why_needed_to_price": "Item type defines the product.",
+          "uae_options": "helmets; glasses; gloves; boots; harnesses; respirators; coveralls",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "standard system (EN/ANSI/NIOSH)",
+          "why_needed_to_price": "Standard system decides certification and price.",
+          "uae_options": "EN; ANSI; NIOSH",
+          "follow_up_if": "Ask which system the client or site requires.",
+          "blocking": true
+        },
+        {
+          "spec": "client/regulator specification",
+          "why_needed_to_price": "Client or regulator specification.",
+          "uae_options": "oil and gas client spec; OSHAD; site rules",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "performance level/class",
+          "why_needed_to_price": "Performance level or class drives cost.",
+          "uae_options": "EN 388 levels; EN ISO 20345 class; respirator class",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "materials and features",
+          "why_needed_to_price": "Materials and features.",
+          "uae_options": "nitrile; leather; anti-fog; FR",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "colour and logo printing",
+          "why_needed_to_price": "Colour and logo.",
+          "uae_options": "printing",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "size breakdown with quantities",
+          "why_needed_to_price": "Size breakdown with quantities.",
+          "uae_options": "sizes; quantity per size",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "packaging and labelling",
+          "why_needed_to_price": "Packaging and labelling.",
+          "uae_options": "per worker",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery schedule / call-off",
+          "why_needed_to_price": "Delivery schedule.",
+          "uae_options": "one-off; call-off",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "certificates and documents required",
+          "why_needed_to_price": "Certificates required.",
+          "uae_options": "EU type examination; test reports; MoIAT certificate",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "manufacturing date / shelf-life limits",
+          "why_needed_to_price": "Manufacturing date and shelf life.",
+          "uae_options": "respirator filters; harnesses",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "brand/model and equivalents policy",
+          "why_needed_to_price": "Brand and equivalents policy.",
+          "uae_options": "named brand; approved equivalents",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs item type, standard and performance class, size breakdown and quantities; branded logo printing needs artwork and a sample.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "safety_equipment:certificate-check",
@@ -475,6 +569,18 @@
       "safety_equipment:confined-space-kit",
       "safety_equipment:first-aid-eyewash",
       "safety_equipment:inspection-lifespan"
-    ]
+    ],
+    "expert_authored_unsourced": [],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    }
   }
 }

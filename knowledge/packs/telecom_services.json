@@ -5,8 +5,8 @@
       "id": "telecom_services:spec-checklist",
       "topic": "Telecom services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For telecom services quotes to be compared like-for-like, every quoted line (services) must state: (1) service type (fixed line, mobile, internet, leased line, SIP); (2) bandwidth and number of lines or SIMs; (3) sites and addresses; (4) licensed operator; (5) contract term; (6) SLA uptime and repair time; (7) installation and equipment; (8) equipment registered with the regulator; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the telecom_services trade.",
-      "body_ar": "لكي تُقارن عروض خدمات الاتصالات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع الخدمة (خط ثابت، أو متنقل، أو إنترنت، أو خط مؤجر، أو SIP)؛ (2) السعة وعدد الخطوط أو الشرائح؛ (3) المواقع والعناوين؛ (4) المشغل المرخص؛ (5) مدة العقد؛ (6) نسبة التوفر في اتفاقية الخدمة وزمن الإصلاح؛ (7) التركيب والمعدات؛ (8) المعدات المسجلة لدى الجهة التنظيمية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة telecom_services فقط.",
+      "body_en": "For telecom services quotes to be compared like-for-like, every quoted line (services) must state: (1) service type (fixed line, mobile, internet, leased line, SIP); (2) bandwidth and number of lines or SIMs; (3) sites and addresses; (4) licensed operator; (5) contract term; (6) SLA uptime and repair time; (7) installation and equipment; (8) equipment registered with the regulator; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the telecom_services trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): service type (fixed line, mobile, internet, leased line, SIP); bandwidth and number of lines or SIMs; sites and addresses; contract term. Follow-up questions the answers trigger: sites and addresses: Ask whether the building is fibre-ready for each operator. Before a firm price: a firm price needs service, bandwidth or lines, site addresses and term; a leased line or new building needs an operator feasibility check of the site.",
+      "body_ar": "لكي تُقارن عروض خدمات الاتصالات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع الخدمة (خط ثابت، أو متنقل، أو إنترنت، أو خط مؤجر، أو SIP)؛ (2) السعة وعدد الخطوط أو الشرائح؛ (3) المواقع والعناوين؛ (4) المشغل المرخص؛ (5) مدة العقد؛ (6) نسبة التوفر في اتفاقية الخدمة وزمن الإصلاح؛ (7) التركيب والمعدات؛ (8) المعدات المسجلة لدى الجهة التنظيمية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة telecom_services فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الخدمة، والسعة وعدد الخطوط، والمواقع، ومدة العقد. الخط المؤجر أو المبنى الجديد يحتاج دراسة جدوى من المشغل للموقع.",
       "required_specs": [
         "service type (fixed line, mobile, internet, leased line, SIP)",
         "bandwidth and number of lines or SIMs",
@@ -24,7 +24,94 @@
         "https://tdra.gov.ae/en/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "service type (fixed line, mobile, internet, leased line, SIP)",
+        "bandwidth and number of lines or SIMs",
+        "sites and addresses",
+        "contract term"
+      ],
+      "spec_guide": [
+        {
+          "spec": "service type (fixed line, mobile, internet, leased line, SIP)",
+          "why_needed_to_price": "Service type.",
+          "uae_options": "fixed line; mobile; internet; leased line; SIP; IPLC",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "bandwidth and number of lines or SIMs",
+          "why_needed_to_price": "Bandwidth and line count.",
+          "uae_options": "Mbps; lines; SIMs",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "sites and addresses",
+          "why_needed_to_price": "Sites decide availability and installation.",
+          "uae_options": "addresses",
+          "follow_up_if": "Ask whether the building is fibre-ready for each operator.",
+          "blocking": true
+        },
+        {
+          "spec": "licensed operator",
+          "why_needed_to_price": "Licensed operator.",
+          "uae_options": "e&; du",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract term",
+          "why_needed_to_price": "Contract term.",
+          "uae_options": "12-36 months",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "SLA uptime and repair time",
+          "why_needed_to_price": "SLA.",
+          "uae_options": "uptime; repair time",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "installation and equipment",
+          "why_needed_to_price": "Installation and equipment.",
+          "uae_options": "router; PBX",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "equipment registered with the regulator",
+          "why_needed_to_price": "Equipment registered with TDRA.",
+          "uae_options": "approved models",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "monthly",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "support",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "civil works; early termination",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs service, bandwidth or lines, site addresses and term; a leased line or new building needs an operator feasibility check of the site.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "telecom_services:uae-standards-and-approvals",
@@ -81,6 +168,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "telecom_services:authority-approvals",
+      "topic": "Telecom equipment & services: licences, permits and approvals by emirate",
+      "topic_ar": "معدات وخدمات اتصالات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Telecommunications services in the UAE are provided only by operators licensed by the Telecommunications and Digital Government Regulatory Authority (TDRA), principally e& and du; resellers sell their services. Telecom equipment must have TDRA type approval and be registered before it is sold or used; certification bodies report that the registered manufacturer, importer or distributor obtains it, that equipment registration is valid for a fixed period and that a TDRA label card accompanies approved devices, and a recent report says a TDRA customs release permit is required to import telecom equipment. Ask the supplier for TDRA approval of routers, PBX handsets and wireless devices. The official TDRA pages were not reachable from this session.",
+      "body_ar": "لا تقدم خدمات الاتصالات في الإمارات إلا مشغلون مرخصون من هيئة تنظيم الاتصالات والحكومة الرقمية، وأساساً e& وdu، ويبيع الموزعون خدماتهما. ويجب أن تحمل معدات الاتصالات اعتماداً نوعياً من الهيئة وأن تُسجَّل قبل بيعها أو استخدامها؛ وتفيد جهات الاعتماد بأن المصنّع أو المستورد أو الموزع المسجل يستخرجه، وأن تسجيل المعدات صالح لمدة محددة، وأن بطاقة الهيئة ترافق الأجهزة المعتمدة، ويفيد تقرير حديث باشتراط تصريح إفراج جمركي من الهيئة لاستيراد معدات الاتصالات. اطلب من المورد اعتماد الهيئة للموجهات وسماعات المقسم والأجهزة اللاسلكية. ولم تكن صفحات الهيئة الرسمية متاحة من هذه الجلسة.",
+      "sources": [
+        "https://www.tuv.com/market-access-services/en/certification-filter/united-arab-emirates-telecommunication-apparatus-(tdra)-approval.html",
+        "https://www.tuvsud.com/en/services/product-certification/global-market-access/united-arab-emirates",
+        "https://www.middleeastbriefing.com/news/?p=5830"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "telecom_services:quote-red-flags",
+      "topic": "Telecom equipment & services: red flags in supplier quotations",
+      "topic_ar": "معدات وخدمات اتصالات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for promotional prices that rise after months, early-termination fees, installation charges, contention ratios on \"dedicated\" lines, SLA without credits, and equipment rental hidden in the monthly fee.",
+      "body_ar": "انتبه إلى أسعار ترويجية ترتفع بعد أشهر، ورسوم الإنهاء المبكر، ورسوم التركيب، ونسب المشاركة في الخطوط \"المخصصة\"، واتفاقيات مستوى خدمة دون تعويضات، وإيجار المعدات المخفي في الرسوم الشهرية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "telecom_services:buyer-mistakes",
+      "topic": "Telecom equipment & services: common buyer mistakes",
+      "topic_ar": "معدات وخدمات اتصالات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers sign long terms without checking building availability for the other operator, and compare bandwidth without SLA.",
+      "body_ar": "يوقع المشترون عقوداً طويلة دون التحقق من توفر المشغل الآخر في المبنى، ويقارنون السعات دون مستوى الخدمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "telecom_services:price-drivers",
+      "topic": "Telecom equipment & services: what makes prices differ legitimately",
+      "topic_ar": "معدات وخدمات اتصالات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: bandwidth, dedicated or shared, term, SLA level, number of sites and building readiness.",
+      "body_ar": "العوامل: السعة، ومخصص أم مشترك، والمدة، ومستوى الخدمة، وعدد المواقع، وجاهزية المبنى.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "telecom_services:compare-quotes-cost-to-value",
+      "topic": "Telecom equipment & services: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "معدات وخدمات اتصالات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare total cost over the term at the same bandwidth type and SLA, including installation and equipment. Recommend three with credits for downtime.",
+      "body_ar": "قارن التكلفة الإجمالية على المدة بنوع السعة ومستوى الخدمة نفسيهما شاملة التركيب والمعدات. أوصِ بثلاثة عروض بتعويضات عن الانقطاع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -122,7 +279,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "telecom_services:spec-checklist"
+      "telecom_services:spec-checklist",
+      "telecom_services:authority-approvals"
     ],
     "added": [
       "telecom_services:spec-checklist",
@@ -153,6 +311,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "telecom_services:quote-red-flags",
+      "telecom_services:buyer-mistakes",
+      "telecom_services:price-drivers",
+      "telecom_services:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

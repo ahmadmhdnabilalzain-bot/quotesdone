@@ -28,8 +28,8 @@
       "topic": "Mobile phones & accessories wholesale: makes, brands, distributors and origins in the UAE",
       "topic_ar": "جملة هواتف وإكسسوارات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names the phone brands traded in the UAE, such as Apple, Samsung and Xiaomi, and where wholesale trading is concentrated in Deira, Sharjah and free zones. Brands traded: Apple, Samsung, Xiaomi, OPPO, vivo, HONOR, Huawei, Tecno, Infinix. Their official UAE distributors were not checked. Wholesale trading is concentrated in Deira (Al Murar, Naif, Al Sabkha) and Sharjah, and in free zones for re-export.",
-      "body_ar": "من ماركات الهواتف المتداولة في الإمارات Apple وSamsung وXiaomi، وتتركز تجارة الجملة في ديرة والشارقة والمناطق الحرة. العلامات المتداولة: Apple، Samsung، Xiaomi، OPPO، vivo، HONOR، Huawei، Tecno، Infinix. ولم يُتحقق من موزعيها الرسميين في الإمارات. وتتركز تجارة الجملة في ديرة (المرر، ونايف، والصبخة) والشارقة، وفي المناطق الحرة لإعادة التصدير.",
+      "body_en": "This names the phone brands traded in the UAE, such as Apple, Samsung and Xiaomi, and where wholesale trading is concentrated in Deira, Sharjah and free zones. Brands traded: Apple, Samsung, Xiaomi, OPPO, vivo, HONOR, Huawei, Tecno, Infinix. Their official UAE distributors were not checked. Wholesale trading is concentrated in Deira (Al Murar, Naif, Al Sabkha) and Sharjah, and in free zones for re-export.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Apple = a luxury American brand; Samsung = a premium South Korean brand; Xiaomi = an economy Chinese brand; OPPO = a mid-tier Chinese brand; vivo = a mid-tier Chinese brand; HONOR = a mid-tier Chinese brand; Huawei = a premium Chinese brand; Tecno = an economy Chinese brand; Infinix = an economy Chinese brand.",
+      "body_ar": "من ماركات الهواتف المتداولة في الإمارات Apple وSamsung وXiaomi، وتتركز تجارة الجملة في ديرة والشارقة والمناطق الحرة. العلامات المتداولة: Apple، Samsung، Xiaomi، OPPO، vivo، HONOR، Huawei، Tecno، Infinix. ولم يُتحقق من موزعيها الرسميين في الإمارات. وتتركز تجارة الجملة في ديرة (المرر، ونايف، والصبخة) والشارقة، وفي المناطق الحرة لإعادة التصدير.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Apple = علامة أمريكية من الفئة الفاخرة؛ Samsung = علامة كورية جنوبية من الفئة الممتازة؛ Xiaomi = علامة صينية من الفئة الاقتصادية؛ OPPO = علامة صينية من الفئة المتوسطة؛ vivo = علامة صينية من الفئة المتوسطة؛ HONOR = علامة صينية من الفئة المتوسطة؛ Huawei = علامة صينية من الفئة الممتازة؛ Tecno = علامة صينية من الفئة الاقتصادية؛ Infinix = علامة صينية من الفئة الاقتصادية.",
       "sources": [
         "https://tdra.gov.ae/-/media/About/Type-approval-PDF/ITem-72-Type-approval-policy-21-clear-version-EN1-1.ashx",
         "https://www.axiomtelecom.com",
@@ -40,7 +40,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Mobile devices must be TDRA type-approved before sale in the UAE -> confirmed | Axiom Telecom and Emircom as distributors -> removed: site certificate expired | Samsung UAE operates locally -> confirmed. Not checked: Current distributor for each brand, the exact device registration process, and the IEC URL were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mobile devices must be TDRA type-approved before sale in the UAE -> confirmed | Axiom Telecom and Emircom as distributors -> removed: site certificate expired | Samsung UAE operates locally -> confirmed. Not checked: Current distributor for each brand, the exact device registration process, and the IEC URL were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Apple",
+          "origin": "USA",
+          "tier": "luxury",
+          "generic_en": "a luxury American brand",
+          "generic_ar": "علامة أمريكية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Samsung",
+          "origin": "South Korea",
+          "tier": "premium",
+          "generic_en": "a premium South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
+        },
+        {
+          "brand": "Xiaomi",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "an economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "OPPO",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "vivo",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "HONOR",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Huawei",
+          "origin": "China",
+          "tier": "premium",
+          "generic_en": "a premium Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الممتازة"
+        },
+        {
+          "brand": "Tecno",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "an economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Infinix",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "an economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        }
+      ]
     },
     {
       "id": "mobile_phones_wholesale:uae-market-sizes",

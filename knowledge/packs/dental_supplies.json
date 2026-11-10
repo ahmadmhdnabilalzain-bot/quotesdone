@@ -5,8 +5,8 @@
       "id": "dental_supplies:spec-checklist",
       "topic": "Dental supplies - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for dental supplies must state: product and model; brand and manufacturer; size or shade and quantity; EDE marketing authorization; device classification; sterility; expiry date; storage conditions; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مستلزمات طب الأسنان: المنتج والطراز؛ العلامة والمصنّع؛ المقاس أو اللون والكمية؛ إذن التسويق من مؤسسة الإمارات للدواء؛ تصنيف الجهاز؛ التعقيم؛ تاريخ الانتهاء؛ ظروف التخزين؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for dental supplies must state: product and model; brand and manufacturer; size or shade and quantity; EDE marketing authorization; device classification; sterility; expiry date; storage conditions; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product and model; brand and manufacturer; size or shade and quantity; EDE marketing authorization; delivery and installation scope. Follow-up questions the answers trigger: delivery and installation scope: Chairs and units: site visit for services. Before a firm price: consumables can be priced firm by product and quantity; dental chairs and imaging need a site visit for services and shielding before a firm price.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مستلزمات طب الأسنان: المنتج والطراز؛ العلامة والمصنّع؛ المقاس أو اللون والكمية؛ إذن التسويق من مؤسسة الإمارات للدواء؛ تصنيف الجهاز؛ التعقيم؛ تاريخ الانتهاء؛ ظروف التخزين؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج وطرازه، والعلامة والمصنّع، والمقاس أو الدرجة والكمية، وترخيص التسويق، والتسليم والتركيب. المستهلكات تُسعّر نهائياً بالمنتج والكمية، أما كراسي الأسنان والتصوير فتحتاج زيارة موقع للخدمات والتدريع.",
       "required_specs": [
         "product and model",
         "brand and manufacturer",
@@ -27,7 +27,109 @@
         "https://mohap.gov.ae/en/w/registered-medical-devices"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "product and model",
+        "brand and manufacturer",
+        "size or shade and quantity",
+        "EDE marketing authorization",
+        "delivery and installation scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product and model",
+          "why_needed_to_price": "Product and model.",
+          "uae_options": "chair; implant; composite; burs",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "brand and manufacturer",
+          "why_needed_to_price": "Brand and manufacturer decide price tier.",
+          "uae_options": "brand",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "size or shade and quantity",
+          "why_needed_to_price": "Size or shade and quantity.",
+          "uae_options": "shades; sizes; units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "EDE marketing authorization",
+          "why_needed_to_price": "EDE marketing authorisation decides sale.",
+          "uae_options": "registration",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "device classification",
+          "why_needed_to_price": "Device classification.",
+          "uae_options": "class",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "sterility",
+          "why_needed_to_price": "Sterility.",
+          "uae_options": "sterile",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "expiry date",
+          "why_needed_to_price": "Expiry.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "storage conditions",
+          "why_needed_to_price": "Storage.",
+          "uae_options": "temperature",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "why_needed_to_price": "UAE approvals.",
+          "uae_options": "registration",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery and installation scope",
+          "why_needed_to_price": "Delivery and installation.",
+          "uae_options": "chair installation; plumbing",
+          "follow_up_if": "Chairs and units: site visit for services.",
+          "blocking": true
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "weeks",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "years",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "plumbing; compressor",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "consumables can be priced firm by product and quantity; dental chairs and imaging need a site visit for services and shielding before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "dental_supplies:uae-standards-and-approvals",
@@ -86,6 +188,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "dental_supplies:authority-approvals",
+      "topic": "Dental equipment & supplies: licences, permits and approvals by emirate",
+      "topic_ar": "معدات ومستلزمات الأسنان: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Dental devices and materials are medical devices that must hold UAE marketing authorisation, now with the Emirates Drug Establishment (EDE) after the transfer from MOHAP described from 29 December 2025. Dental clinics are licensed by DHA in Dubai, the Department of Health in Abu Dhabi and MOHAP elsewhere, and dental X-ray units need FANR licensing. Ask the supplier for the registration of each product.",
+      "body_ar": "أجهزة ومواد طب الأسنان أجهزة طبية يجب أن تحمل ترخيص تسويق في الدولة، وهو الآن لدى مؤسسة الإمارات للدواء بعد النقل من وزارة الصحة ووقاية المجتمع الموصوف اعتباراً من 29 ديسمبر 2025. وتُرخَّص عيادات الأسنان من هيئة الصحة بدبي ودائرة الصحة في أبوظبي والوزارة في الإمارات الأخرى، وتحتاج أجهزة الأشعة السنية ترخيص الهيئة الاتحادية للرقابة النووية. اطلب من المورد تسجيل كل منتج.",
+      "sources": [
+        "https://mohap.gov.ae/Handlers/DownloadPDF.ashx?id=29939",
+        "https://www.pureglobal.com/markets/uae",
+        "https://uppersetup.com/en/article/registering-medicines-and-medical-devices-in-the-uae-2026"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "dental_supplies:quote-red-flags",
+      "topic": "Dental equipment & supplies: red flags in supplier quotations",
+      "topic_ar": "معدات ومستلزمات الأسنان: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for unregistered implants or materials, near-expiry stock, grey imports without manufacturer warranty, and chairs quoted without installation and plumbing.",
+      "body_ar": "انتبه إلى زرعات أو مواد غير مسجلة، ومخزون قارب على الانتهاء، واستيراد موازٍ دون ضمان المصنع، وكراسٍ مُسعّرة دون التركيب والسباكة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "dental_supplies:buyer-mistakes",
+      "topic": "Dental equipment & supplies: common buyer mistakes",
+      "topic_ar": "معدات ومستلزمات الأسنان: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clinics buy cheaper unregistered materials and face inspection issues.",
+      "body_ar": "تشتري العيادات مواد أرخص غير مسجلة فتواجه مشكلات في التفتيش.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "dental_supplies:price-drivers",
+      "topic": "Dental equipment & supplies: what makes prices differ legitimately",
+      "topic_ar": "معدات ومستلزمات الأسنان: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand, product line, registration, quantity, installation and service.",
+      "body_ar": "العوامل: العلامة، وخط المنتج، والتسجيل، والكمية، والتركيب، والخدمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "dental_supplies:compare-quotes-cost-to-value",
+      "topic": "Dental equipment & supplies: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "معدات ومستلزمات الأسنان: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare registered products of the same brand tier and specification, with service for equipment. Recommend three registered offers.",
+      "body_ar": "قارن منتجات مسجلة من فئة العلامة والمواصفة نفسيهما مع خدمة المعدات. أوصِ بثلاثة عروض مسجلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +299,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "dental_supplies:spec-checklist"
+      "dental_supplies:spec-checklist",
+      "dental_supplies:authority-approvals"
     ],
     "added": [
       "dental_supplies:spec-checklist",
@@ -158,6 +331,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "dental_supplies:quote-red-flags",
+      "dental_supplies:buyer-mistakes",
+      "dental_supplies:price-drivers",
+      "dental_supplies:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

@@ -6,8 +6,8 @@
       "topic": "Houseware & kitchenware wholesale - what the buyer must state",
       "topic_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For houseware & kitchenware wholesale (trade code houseware_wholesale only), every quoted line must state: Item type and set composition; Material and grade; Coating type (if any); Size or capacity; Compatibility (induction, dishwasher, oven); Brand or private label; Packaging and carton quantity; Food-contact compliance; Quantity; Origin; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الأدوات المنزلية وأدوات المطبخ بالجملة (رمز النشاط houseware_wholesale فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الصنف ومكونات الطقم؛ المادة ودرجتها؛ نوع الطلاء (إن وجد)؛ المقاس أو السعة؛ التوافق (الحث، غسالة الصحون، الفرن)؛ علامة تجارية أو خاصة؛ التغليف وعدد القطع في الكرتون؛ الامتثال لملامسة الأغذية؛ الكمية؛ المنشأ؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For houseware & kitchenware wholesale (trade code houseware_wholesale only), every quoted line must state: Item type and set composition; Material and grade; Coating type (if any); Size or capacity; Compatibility (induction, dishwasher, oven); Brand or private label; Packaging and carton quantity; Food-contact compliance; Quantity; Origin; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item type and set composition; Material and grade; Size or capacity; Brand or private label; Food-contact compliance; Quantity; Delivery terms. Before a firm price: stock items can be priced firm by SKU; private label needs the sample, packaging artwork and MOQ approved before a firm price.",
+      "body_ar": "في نشاط الأدوات المنزلية وأدوات المطبخ بالجملة (رمز النشاط houseware_wholesale فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الصنف ومكونات الطقم؛ المادة ودرجتها؛ نوع الطلاء (إن وجد)؛ المقاس أو السعة؛ التوافق (الحث، غسالة الصحون، الفرن)؛ علامة تجارية أو خاصة؛ التغليف وعدد القطع في الكرتون؛ الامتثال لملامسة الأغذية؛ الكمية؛ المنشأ؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الصنف ومكونات الطقم، والمادة ودرجتها، والمقاس أو السعة، والعلامة أو العلامة الخاصة، والامتثال لمتطلبات ملامسة الغذاء، والكمية، وشروط التسليم. الأصناف الجاهزة تُسعّر برمزها، والعلامة الخاصة تحتاج اعتماد العيّنة وتصميم التغليف والحد الأدنى للطلب.",
       "required_specs": [
         "Item type and set composition",
         "Material and grade",
@@ -28,7 +28,103 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: cookware in stainless steel, cast iron, aluminium, PTFE non-stick and ceramic coatings, copper and carbon steel."
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: cookware in stainless steel, cast iron, aluminium, PTFE non-stick and ceramic coatings, copper and carbon steel.",
+      "blocking": [
+        "Item type and set composition",
+        "Material and grade",
+        "Size or capacity",
+        "Brand or private label",
+        "Food-contact compliance",
+        "Quantity",
+        "Delivery terms"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Item type and set composition",
+          "why_needed_to_price": "Item and set composition fix the product.",
+          "uae_options": "pieces per set",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Material and grade",
+          "why_needed_to_price": "Material and grade drive price.",
+          "uae_options": "stainless 18/10 or 18/0; aluminium; cast iron; glass; plastic type",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Coating type (if any)",
+          "why_needed_to_price": "Coating type affects safety and life.",
+          "uae_options": "PTFE; ceramic; enamel",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Size or capacity",
+          "why_needed_to_price": "Size or capacity.",
+          "uae_options": "cm; litres",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Compatibility (induction, dishwasher, oven)",
+          "why_needed_to_price": "Compatibility.",
+          "uae_options": "induction; dishwasher; oven",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Brand or private label",
+          "why_needed_to_price": "Brand or private label.",
+          "uae_options": "brand; private label with logo",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Packaging and carton quantity",
+          "why_needed_to_price": "Packaging and carton quantity.",
+          "uae_options": "gift box; carton",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Food-contact compliance",
+          "why_needed_to_price": "Food-contact compliance is needed for sale.",
+          "uae_options": "food-contact test report; Dubai Municipality FCM registration",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Quantity",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Origin",
+          "why_needed_to_price": "Origin.",
+          "uae_options": "country",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms",
+          "why_needed_to_price": "Delivery terms.",
+          "uae_options": "FOB; DDP",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock; production",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "stock items can be priced firm by SKU; private label needs the sample, packaging artwork and MOQ approved before a firm price."
     },
     {
       "id": "houseware_wholesale:product-distinctions",
@@ -59,6 +155,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "houseware_wholesale:authority-approvals",
+      "topic": "Houseware & kitchenware wholesale: licences, permits and approvals by emirate",
+      "topic_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Kitchenware that touches food is a food-contact material: in Dubai, Dubai Municipality registers food-contact materials through its Montaji system with reports from ISO/IEC 17025 accredited laboratories and publishes a list of non-conforming food-contact materials; consultancy sources cite GSO 1863 for plastics. Electrical kitchen appliances are regulated electrical products needing a MoIAT conformity certificate. The importer registers; ask for the registration and test reports.",
+      "body_ar": "أدوات المطبخ الملامسة للغذاء مواد ملامسة للأغذية: ففي دبي تسجل بلدية دبي هذه المواد عبر نظام منتجي بتقارير من مختبرات معتمدة وفق ISO/IEC 17025، وتنشر قائمة بالمواد الملامسة للأغذية غير المطابقة، وتذكر مصادر استشارية المعيار GSO 1863 للبلاستيك. والأجهزة الكهربائية للمطبخ منتجات كهربائية منظمة تحتاج شهادة مطابقة من وزارة الصناعة والتكنولوجيا المتقدمة. ويتولى المستورد التسجيل؛ فاطلب التسجيل وتقارير الاختبار.",
+      "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.rizmona.com/product-registration/food-contact-material-registration",
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-L10-NCFC_قائمة-المواد-الملامسة-للاغذية-الغير-المطابقة_V3.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: the Dubai Municipality services page lists \"Register Consumer Products (Montaji)\": consumer products establishments can assess and register consumer products and food contact materials on Montaji; it also lists an import and re-export permit for consumer products, an advertising permit for consumer products, a free sale certificate for registered consumer products and laboratory testing of consumer product samples. Not confirmed: the laboratory accreditation requirement, GSO 1863 and the MoIAT requirement for electrical kitchen appliances. Hosts not reachable from this session: moiat.gov.ae (no answer), dmpmedia.dm.gov.ae (no answer; the guideline PDFs are hosted there) and the other emirates' municipality sites."
+    },
+    {
+      "id": "houseware_wholesale:quote-red-flags",
+      "topic": "Houseware & kitchenware wholesale: red flags in supplier quotations",
+      "topic_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for 18/0 stainless sold as 18/10, thinner gauge, coatings without food-contact reports, \"induction compatible\" not true, set pieces missing, and lookalike brands.",
+      "body_ar": "انتبه إلى فولاذ 18/0 يُباع على أنه 18/10، وسماكة أقل، وطلاءات دون تقارير ملامسة الغذاء، وادعاء التوافق مع الحث غير الصحيح، ونقص قطع الطقم، والعلامات المقلدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "houseware_wholesale:buyer-mistakes",
+      "topic": "Houseware & kitchenware wholesale: common buyer mistakes",
+      "topic_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers import without food-contact reports, compare sets with different piece counts, and ignore carton breakage.",
+      "body_ar": "يستورد المشترون دون تقارير ملامسة الغذاء، ويقارنون أطقماً بأعداد قطع مختلفة، ويتجاهلون التلف في الكراتين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "houseware_wholesale:price-drivers",
+      "topic": "Houseware & kitchenware wholesale: what makes prices differ legitimately",
+      "topic_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: material grade and thickness, coating, brand, packaging, origin, MOQ and freight.",
+      "body_ar": "العوامل: درجة المادة وسماكتها، والطلاء، والعلامة، والتغليف، والمنشأ، والحد الأدنى للطلب، والشحن.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "houseware_wholesale:compare-quotes-cost-to-value",
+      "topic": "Houseware & kitchenware wholesale: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same set composition, material grade and coating, with food-contact evidence, landed. Recommend three compliant offers.",
+      "body_ar": "قارن مكونات الطقم ودرجة المادة والطلاء نفسها مع أدلة ملامسة الغذاء ومسلّمة. أوصِ بثلاثة عروض مطابقة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -92,6 +259,29 @@
       903,
       1198,
       1209
+    ],
+    "still_unverified": [
+      "houseware_wholesale:authority-approvals"
+    ],
+    "expert_authored_unsourced": [
+      "houseware_wholesale:quote-red-flags",
+      "houseware_wholesale:buyer-mistakes",
+      "houseware_wholesale:price-drivers",
+      "houseware_wholesale:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "k3_pages_opened": [
+      "https://www.dm.gov.ae/dubai-municipality-services/"
     ]
   }
 }

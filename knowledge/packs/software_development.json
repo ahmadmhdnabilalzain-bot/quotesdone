@@ -5,8 +5,8 @@
       "id": "software_development:spec-checklist",
       "topic": "Software development - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For software development quotes to be compared like-for-like, every quoted line (services) must state: (1) functional scope and user stories; (2) platforms (web, iOS, Android); (3) technology stack; (4) integrations; (5) hosting and data location; (6) pricing model (fixed price, time and materials); (7) milestones and acceptance criteria; (8) source code and IP ownership; (9) security and data protection; (10) support and maintenance period; (11) contract duration and pricing basis; (12) service levels and response times; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the software_development trade.",
-      "body_ar": "لكي تُقارن عروض تطوير البرمجيات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) النطاق الوظيفي وقصص المستخدمين؛ (2) المنصات (ويب، أو iOS، أو أندرويد)؛ (3) التقنيات المستخدمة؛ (4) التكاملات؛ (5) الاستضافة وموقع البيانات؛ (6) نموذج التسعير (سعر ثابت، أو وقت ومواد)؛ (7) المراحل ومعايير القبول؛ (8) ملكية الشيفرة المصدرية والملكية الفكرية؛ (9) الأمن وحماية البيانات؛ (10) مدة الدعم والصيانة؛ (11) مدة العقد وأساس التسعير؛ (12) مستويات الخدمة وأزمنة الاستجابة؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة software_development فقط.",
+      "body_en": "For software development quotes to be compared like-for-like, every quoted line (services) must state: (1) functional scope and user stories; (2) platforms (web, iOS, Android); (3) technology stack; (4) integrations; (5) hosting and data location; (6) pricing model (fixed price, time and materials); (7) milestones and acceptance criteria; (8) source code and IP ownership; (9) security and data protection; (10) support and maintenance period; (11) contract duration and pricing basis; (12) service levels and response times; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the software_development trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): functional scope and user stories; platforms (web, iOS, Android); integrations; pricing model (fixed price, time and materials); milestones and acceptance criteria. Follow-up questions the answers trigger: functional scope and user stories: Ask for a requirements document or a discovery phase. Before a firm price: a fixed price needs a defined scope with screens, roles and integrations; without it vendors can only estimate, so a paid discovery phase or workshop is normally needed first.",
+      "body_ar": "لكي تُقارن عروض تطوير البرمجيات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) النطاق الوظيفي وقصص المستخدمين؛ (2) المنصات (ويب، أو iOS، أو أندرويد)؛ (3) التقنيات المستخدمة؛ (4) التكاملات؛ (5) الاستضافة وموقع البيانات؛ (6) نموذج التسعير (سعر ثابت، أو وقت ومواد)؛ (7) المراحل ومعايير القبول؛ (8) ملكية الشيفرة المصدرية والملكية الفكرية؛ (9) الأمن وحماية البيانات؛ (10) مدة الدعم والصيانة؛ (11) مدة العقد وأساس التسعير؛ (12) مستويات الخدمة وأزمنة الاستجابة؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة software_development فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: النطاق الوظيفي، والمنصات، والتكاملات، ونموذج التسعير، والمراحل ومعايير القبول. السعر الثابت يحتاج نطاقاً محدداً بالشاشات والأدوار والتكاملات، وإلا فلا بد عادة من مرحلة استكشاف أو ورشة مدفوعة أولاً.",
       "required_specs": [
         "functional scope and user stories",
         "platforms (web, iOS, Android)",
@@ -26,7 +26,109 @@
         "https://www.iso.org/standards.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "functional scope and user stories",
+        "platforms (web, iOS, Android)",
+        "integrations",
+        "pricing model (fixed price, time and materials)",
+        "milestones and acceptance criteria"
+      ],
+      "spec_guide": [
+        {
+          "spec": "functional scope and user stories",
+          "why_needed_to_price": "Functional scope is what is built.",
+          "uae_options": "user stories; screens; roles",
+          "follow_up_if": "Ask for a requirements document or a discovery phase.",
+          "blocking": true
+        },
+        {
+          "spec": "platforms (web, iOS, Android)",
+          "why_needed_to_price": "Platforms multiply effort.",
+          "uae_options": "web; iOS; Android; admin panel",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "technology stack",
+          "why_needed_to_price": "Technology stack.",
+          "uae_options": "named or open",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "integrations",
+          "why_needed_to_price": "Integrations add effort and risk.",
+          "uae_options": "payment; ERP; maps; APIs",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "hosting and data location",
+          "why_needed_to_price": "Hosting and data location.",
+          "uae_options": "UAE cloud region; client account",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "pricing model (fixed price, time and materials)",
+          "why_needed_to_price": "Pricing model.",
+          "uae_options": "fixed price; time and materials",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "milestones and acceptance criteria",
+          "why_needed_to_price": "Milestones and acceptance criteria.",
+          "uae_options": "stages; tests",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "source code and IP ownership",
+          "why_needed_to_price": "Source code and IP ownership.",
+          "uae_options": "client owns",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "security and data protection",
+          "why_needed_to_price": "Security and data protection.",
+          "uae_options": "PDPL; testing",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "support and maintenance period",
+          "why_needed_to_price": "Support period.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "bug response",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "hosting; third-party fees; content",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a fixed price needs a defined scope with screens, roles and integrations; without it vendors can only estimate, so a paid discovery phase or workshop is normally needed first.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "software_development:uae-standards-and-approvals",
@@ -86,6 +188,74 @@
       "gap_kind": "commercial",
       "verified": false,
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
+    },
+    {
+      "id": "software_development:authority-approvals",
+      "topic": "Software, web & app development: licences, permits and approvals by emirate",
+      "topic_ar": "تطوير البرمجيات والمواقع والتطبيقات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Software development needs a trade licence with a software or IT activity from the emirate or a free zone. Apps that process personal data must comply with Federal Decree-Law 45 of 2021 on personal data protection (or the DIFC and ADGM data laws for those zones); payment features must use licensed payment providers, and health, financial and government apps face sector rules (for example Central Bank rules on payments and health authority rules on health data) that were not opened in this session. Apps published with in-app advertising content fall within UAE Media Council content rules.",
+      "body_ar": "يحتاج تطوير البرمجيات إلى رخصة تجارية بنشاط البرمجيات أو تقنية المعلومات من الإمارة أو منطقة حرة. ويجب أن تمتثل التطبيقات التي تعالج بيانات شخصية للمرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية (أو قوانين البيانات في المركزين الماليين لمناطقهما)، ويجب أن تستخدم خصائص الدفع مزودي دفع مرخصين، وتواجه التطبيقات الصحية والمالية والحكومية قواعد قطاعية (مثل قواعد المصرف المركزي للمدفوعات وقواعد الجهات الصحية للبيانات الصحية) لم تُفتح في هذه الجلسة. وتقع التطبيقات التي تنشر محتوى إعلانياً ضمن قواعد المحتوى لدى مجلس الإمارات للإعلام.",
+      "sources": [
+        "https://www.simmons-simmons.com/en/publications/ckwugz8lu16rs0a44qvbqcbz9/uae-personal-data-protection-law-faqs"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "software_development:quote-red-flags",
+      "topic": "Software, web & app development: red flags in supplier quotations",
+      "topic_ar": "تطوير البرمجيات والمواقع والتطبيقات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for fixed prices on vague scope (change requests later), IP retained by the developer, source code not delivered, hosting and app store accounts in the developer's name, no acceptance testing, short warranty on bugs, and offshore teams not disclosed.",
+      "body_ar": "انتبه إلى أسعار ثابتة على نطاق مبهم (طلبات تغيير لاحقاً)، واحتفاظ المطور بالملكية الفكرية، وعدم تسليم الشيفرة المصدرية، وحسابات الاستضافة ومتاجر التطبيقات باسم المطور، وغياب اختبارات القبول، وضمان قصير على الأخطاء، وفرق خارجية غير مفصح عنها.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "software_development:buyer-mistakes",
+      "topic": "Software, web & app development: common buyer mistakes",
+      "topic_ar": "تطوير البرمجيات والمواقع والتطبيقات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients ask for a fixed price without a written scope, ignore maintenance cost after launch, and do not secure the code and accounts.",
+      "body_ar": "يطلب العملاء سعراً ثابتاً دون نطاق مكتوب، ويتجاهلون تكلفة الصيانة بعد الإطلاق، ولا يؤمّنون الشيفرة والحسابات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "software_development:price-drivers",
+      "topic": "Software, web & app development: what makes prices differ legitimately",
+      "topic_ar": "تطوير البرمجيات والمواقع والتطبيقات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: scope size, platforms, integrations, design depth, team location and seniority, testing, security and support.",
+      "body_ar": "العوامل: حجم النطاق، والمنصات، والتكاملات، وعمق التصميم، وموقع الفريق وأقدميته، والاختبار، والأمن، والدعم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "software_development:compare-quotes-cost-to-value",
+      "topic": "Software, web & app development: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "تطوير البرمجيات والمواقع والتطبيقات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare offers on the same written scope and acceptance criteria, with IP, code handover and support terms. Recommend three with relevant shipped products and clear change-request rates.",
+      "body_ar": "قارن العروض على النطاق المكتوب ومعايير القبول نفسها، مع شروط الملكية الفكرية وتسليم الشيفرة والدعم. أوصِ بثلاثة عروض لديها منتجات مماثلة منجزة وأسعار واضحة لطلبات التغيير.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -111,7 +281,8 @@
     "removed": [],
     "still_unverified": [
       "software_development:spec-checklist",
-      "software_development:uae-standards-and-approvals"
+      "software_development:uae-standards-and-approvals",
+      "software_development:authority-approvals"
     ],
     "added": [
       "software_development:spec-checklist",
@@ -145,6 +316,23 @@
         "software_development:lead-times",
         "software_development:quotation-requirements"
       ]
+    },
+    "expert_authored_unsourced": [
+      "software_development:quote-red-flags",
+      "software_development:buyer-mistakes",
+      "software_development:price-drivers",
+      "software_development:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

@@ -5,8 +5,8 @@
       "id": "salon_equipment:spec-checklist",
       "topic": "Salon equipment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For salon equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) equipment type and model (chair, basin, dryer, steamer, trolley); (2) dimensions and colour; (3) hydraulic or electric mechanism; (4) power rating and plug type (230 V); (5) upholstery material; (6) conformity certificate for electrical items; (7) installation and plumbing; (8) quantity per item; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the salon_equipment trade.",
-      "body_ar": "لكي تُقارن عروض معدات الصالونات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع المعدات وطرازها (كرسي، أو مغسلة، أو مجفف، أو جهاز بخار، أو عربة)؛ (2) الأبعاد واللون؛ (3) آلية هيدروليكية أو كهربائية؛ (4) القدرة الكهربائية ونوع القابس (230 فولت)؛ (5) مادة التنجيد؛ (6) شهادة المطابقة للأجهزة الكهربائية؛ (7) التركيب والسباكة؛ (8) الكمية لكل صنف؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة salon_equipment فقط.",
+      "body_en": "For salon equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) equipment type and model (chair, basin, dryer, steamer, trolley); (2) dimensions and colour; (3) hydraulic or electric mechanism; (4) power rating and plug type (230 V); (5) upholstery material; (6) conformity certificate for electrical items; (7) installation and plumbing; (8) quantity per item; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the salon_equipment trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): equipment type and model (chair, basin, dryer, steamer, trolley); hydraulic or electric mechanism; installation and plumbing; quantity per item; delivery terms and location. Follow-up questions the answers trigger: equipment type and model (chair, basin, dryer, steamer, trolley): Ask for an equipment list per station; installation and plumbing: Existing salon: site visit for plumbing points. Before a firm price: a firm price needs the equipment list with models and quantities; shampoo and pedicure units in an existing salon need a site visit for plumbing and drainage.",
+      "body_ar": "لكي تُقارن عروض معدات الصالونات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع المعدات وطرازها (كرسي، أو مغسلة، أو مجفف، أو جهاز بخار، أو عربة)؛ (2) الأبعاد واللون؛ (3) آلية هيدروليكية أو كهربائية؛ (4) القدرة الكهربائية ونوع القابس (230 فولت)؛ (5) مادة التنجيد؛ (6) شهادة المطابقة للأجهزة الكهربائية؛ (7) التركيب والسباكة؛ (8) الكمية لكل صنف؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة salon_equipment فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المعدة وطرازها، والآلية الهيدروليكية أو الكهربائية، ونطاق التركيب والسباكة، والكمية، والتسليم. أسئلة المتابعة: يُطلب قائمة المعدات لكل محطة. وحدات غسل الشعر والباديكير في صالون قائم تحتاج زيارة موقع للسباكة والصرف.",
       "required_specs": [
         "equipment type and model (chair, basin, dryer, steamer, trolley)",
         "dimensions and colour",
@@ -26,7 +26,102 @@
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "equipment type and model (chair, basin, dryer, steamer, trolley)",
+        "hydraulic or electric mechanism",
+        "installation and plumbing",
+        "quantity per item",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "equipment type and model (chair, basin, dryer, steamer, trolley)",
+          "why_needed_to_price": "Each item and model is priced separately.",
+          "uae_options": "styling chair; shampoo unit; dryer; steamer; pedicure spa; trolley; facial bed",
+          "follow_up_if": "Ask for an equipment list per station.",
+          "blocking": true
+        },
+        {
+          "spec": "dimensions and colour",
+          "why_needed_to_price": "Size and colour must fit the layout.",
+          "uae_options": "dimensions; upholstery colour",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "hydraulic or electric mechanism",
+          "why_needed_to_price": "Hydraulic and electric chairs and beds differ in price.",
+          "uae_options": "hydraulic; electric; manual",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "power rating and plug type (230 V)",
+          "why_needed_to_price": "Power rating and UK-type plugs suit UAE sockets.",
+          "uae_options": "230 V; BS 1363 plug",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "upholstery material",
+          "why_needed_to_price": "Upholstery material affects cleaning and life.",
+          "uae_options": "PU; vinyl; leather",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "conformity certificate for electrical items",
+          "why_needed_to_price": "Electrical items may need MoIAT conformity.",
+          "uae_options": "ECAS/EQM",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "installation and plumbing",
+          "why_needed_to_price": "Shampoo and pedicure units need plumbing.",
+          "uae_options": "plumbing by supplier or fit-out contractor",
+          "follow_up_if": "Existing salon: site visit for plumbing points.",
+          "blocking": true
+        },
+        {
+          "spec": "quantity per item",
+          "why_needed_to_price": "Quantity per item.",
+          "uae_options": "per piece",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Delivery and installation.",
+          "uae_options": "delivery; installation",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Imported brands take weeks.",
+          "uae_options": "stock; import",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "Warranty on pumps and motors.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "plumbing; electrical works",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs the equipment list with models and quantities; shampoo and pedicure units in an existing salon need a site visit for plumbing and drainage.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "salon_equipment:uae-standards-and-approvals",
@@ -84,6 +179,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "salon_equipment:authority-approvals",
+      "topic": "Beauty & salon equipment: licences, permits and approvals by emirate",
+      "topic_ar": "معدات صالونات وتجميل: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Salon equipment has no product registration, but electrical items (dryers, steamers, sterilisers, electric beds) may need a MoIAT conformity certificate held by the importer. The salon itself is regulated: in Dubai, Dubai Municipality publishes technical guidelines for compliance of salons, barbershops and beauty centres covering hygiene, sterilisation, safety and water and air quality, approves the premises, and requires staff health cards and training (reported by news sources); the trade licence comes from the Department of Economy and Tourism. Other emirates have their own municipality rules. Equipment that is a medical device (some laser and aesthetic devices) needs health authority registration and is outside ordinary salon equipment. The salon operator obtains premises approvals.",
+      "body_ar": "لا تخضع معدات الصالونات لتسجيل منتج، لكن الأجهزة الكهربائية (المجففات وأجهزة البخار والتعقيم والأسرّة الكهربائية) قد تحتاج شهادة مطابقة من وزارة الصناعة والتكنولوجيا المتقدمة يحوزها المستورد. أما الصالون نفسه فمنظم: ففي دبي تنشر بلدية دبي إرشادات فنية لامتثال الصالونات ومحلات الحلاقة ومراكز التجميل تغطي النظافة والتعقيم والسلامة وجودة المياه والهواء، وتعتمد المنشأة، وتشترط بطاقات صحية وتدريباً للعاملين (بحسب مصادر إخبارية)، وتصدر الرخصة التجارية دائرة الاقتصاد والسياحة. ولكل إمارة أخرى قواعد بلديتها. والأجهزة التي تُعد أجهزة طبية (بعض أجهزة الليزر والتجميل) تحتاج تسجيلاً لدى الجهة الصحية وتخرج عن معدات الصالون العادية. ويستخرج مشغّل الصالون اعتمادات المنشأة.",
+      "sources": [
+        "https://dmpmedia.dm.gov.ae/uploads/2021/05/DM-HSD-GU77-SBBCG2_Technical-Guidelines-for-Compliance-of-Salons-Barbershops-and-Beauty-Centers_V5-.pdf",
+        "https://gulfnews.com/uae/health/health-and-safety-certificate-mandatory-for-salon-workers-in-dubai-1.1866601",
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "salon_equipment:quote-red-flags",
+      "topic": "Beauty & salon equipment: red flags in supplier quotations",
+      "topic_ar": "معدات صالونات وتجميل: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for lookalike copies of known chair brands, thin chrome plating and weak hydraulic pumps, upholstery that cracks, no spare parts locally, electrical items without certificates, plumbing excluded, and aesthetic devices sold as salon equipment without health authority registration.",
+      "body_ar": "انتبه إلى نسخ مقلدة من علامات كراسي معروفة، وطلاء كروم رقيق ومضخات هيدروليكية ضعيفة، وتنجيد يتشقق، وغياب قطع الغيار محلياً، وأجهزة كهربائية دون شهادات، واستثناء السباكة، وأجهزة تجميلية تُباع كمعدات صالون دون تسجيل لدى الجهة الصحية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "salon_equipment:buyer-mistakes",
+      "topic": "Beauty & salon equipment: common buyer mistakes",
+      "topic_ar": "معدات صالونات وتجميل: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Owners buy before the layout is approved by the municipality, forget sterilisation equipment that inspections check, and buy cheap chairs whose pumps fail early.",
+      "body_ar": "يشتري الملاك قبل اعتماد البلدية للتوزيع، وينسون أجهزة التعقيم التي يفحصها التفتيش، ويشترون كراسي رخيصة تتعطل مضخاتها مبكراً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "salon_equipment:price-drivers",
+      "topic": "Beauty & salon equipment: what makes prices differ legitimately",
+      "topic_ar": "معدات صالونات وتجميل: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand and origin, mechanism, materials and upholstery, features, quantity, installation and plumbing, and warranty.",
+      "body_ar": "العوامل: العلامة والمنشأ، والآلية، والمواد والتنجيد، والمزايا، والكمية، والتركيب والسباكة، والضمان.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "salon_equipment:compare-quotes-cost-to-value",
+      "topic": "Beauty & salon equipment: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "معدات صالونات وتجميل: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same item types and mechanism, installed, with warranty and spare parts. Recommend three with local service.",
+      "body_ar": "قارن أنواع المعدات والآلية نفسها مع التركيب والضمان وقطع الغيار. أوصِ بثلاثة عروض ذات خدمة محلية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +291,8 @@
     "removed": [],
     "still_unverified": [
       "salon_equipment:spec-checklist",
-      "salon_equipment:uae-standards-and-approvals"
+      "salon_equipment:uae-standards-and-approvals",
+      "salon_equipment:authority-approvals"
     ],
     "added": [
       "salon_equipment:spec-checklist",
@@ -157,6 +323,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "salon_equipment:quote-red-flags",
+      "salon_equipment:buyer-mistakes",
+      "salon_equipment:price-drivers",
+      "salon_equipment:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

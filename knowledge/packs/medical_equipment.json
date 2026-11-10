@@ -5,8 +5,8 @@
       "id": "medical_equipment:spec-checklist",
       "topic": "Medical equipment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For medical equipment (trade code medical_equipment only), every quoted line must state: Device type, make and model; Technical specification; Registration with the health authority; Installation and site requirements; User and biomedical training; Preventive maintenance contract; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط المعدات الطبية (رمز النشاط medical_equipment فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الجهاز والصانع والطراز؛ المواصفة الفنية؛ التسجيل لدى الجهة الصحية؛ التركيب ومتطلبات الموقع؛ تدريب المستخدمين وفنيي الأجهزة الطبية؛ عقد الصيانة الوقائية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For medical equipment (trade code medical_equipment only), every quoted line must state: Device type, make and model; Technical specification; Registration with the health authority; Installation and site requirements; User and biomedical training; Preventive maintenance contract; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Device type, make and model; Technical specification; Registration with the health authority; Installation and site requirements; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Device type, make and model: If no model, ask the clinical use and expected volume; Installation and site requirements: Imaging and theatre equipment: site visit needed. Before a firm price: a firm price needs make and model or a full specification, quantity and the installation scope; imaging, radiotherapy and theatre equipment need a site survey and site plans before a firm price.",
+      "body_ar": "في نشاط المعدات الطبية (رمز النشاط medical_equipment فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الجهاز والصانع والطراز؛ المواصفة الفنية؛ التسجيل لدى الجهة الصحية؛ التركيب ومتطلبات الموقع؛ تدريب المستخدمين وفنيي الأجهزة الطبية؛ عقد الصيانة الوقائية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الجهاز وعلامته وطرازه، والمواصفة الفنية، والتسجيل لدى الجهة الصحية، ومتطلبات الموقع، والكمية، والتسليم والتركيب. أجهزة التصوير والعلاج الإشعاعي وغرف العمليات تحتاج مسحاً للموقع ومخططاته قبل السعر النهائي.",
       "required_specs": [
         "Device type, make and model",
         "Technical specification",
@@ -27,7 +27,110 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Device type, make and model",
+        "Technical specification",
+        "Registration with the health authority",
+        "Installation and site requirements",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Device type, make and model",
+          "why_needed_to_price": "Device type, make and model decide the price and the registration file.",
+          "uae_options": "device; make; model",
+          "follow_up_if": "If no model, ask the clinical use and expected volume.",
+          "blocking": true
+        },
+        {
+          "spec": "Technical specification",
+          "why_needed_to_price": "Technical specification defines configuration.",
+          "uae_options": "channels; probes; software options",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Registration with the health authority",
+          "why_needed_to_price": "The device must be registered for the UAE market.",
+          "uae_options": "EDE (formerly MOHAP) registration; emirate requirements",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Installation and site requirements",
+          "why_needed_to_price": "Site requirements can be major works.",
+          "uae_options": "power; shielding for X-ray; gases; floor load",
+          "follow_up_if": "Imaging and theatre equipment: site visit needed.",
+          "blocking": true
+        },
+        {
+          "spec": "User and biomedical training",
+          "why_needed_to_price": "User and biomedical training.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Preventive maintenance contract",
+          "why_needed_to_price": "Preventive maintenance contract.",
+          "uae_options": "years; visits",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "Standards and reports.",
+          "uae_options": "IEC 60601; CE; FDA",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "UAE approvals.",
+          "uae_options": "EDE; FANR licence for radiation devices",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Delivery and installation.",
+          "uae_options": "DDP; installation; commissioning",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "years; uptime guarantee",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "weeks",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "civil works; shielding; consumables",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs make and model or a full specification, quantity and the installation scope; imaging, radiotherapy and theatre equipment need a site survey and site plans before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "medical_equipment:uae-standards-and-approvals",
@@ -72,6 +175,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "medical_equipment:authority-approvals",
+      "topic": "Medical equipment: licences, permits and approvals by emirate",
+      "topic_ar": "أجهزة ومعدات طبية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Medical devices must be registered for the UAE market. Federal Decree-Law 38 of 2024 created the Emirates Drug Establishment (EDE), in force from 2 January 2025, as the federal authority for medical products, and a MOHAP notice describes services moving from MOHAP to EDE from 29 December 2025; consultancy sources say device marketing authorisation, classification and import permits now sit with EDE and that the marketing authorisation holder must first register as an establishment. A Dubai Health Authority standard (2025) still requires facilities to use medical equipment registered with MOHAP in the UAE, reflecting the period before the transfer. Health facilities are licensed by DHA in Dubai, the Department of Health in Abu Dhabi and MOHAP elsewhere. Radiation-emitting equipment needs a licence from the Federal Authority for Nuclear Regulation. The registered agent obtains the registration; ask for the registration number of each model.",
+      "body_ar": "يجب تسجيل الأجهزة الطبية لسوق الدولة. فقد أنشأ المرسوم بقانون اتحادي رقم 38 لسنة 2024 مؤسسة الإمارات للدواء، النافذ من 2 يناير 2025، جهةً اتحادية للمنتجات الطبية، ويصف إشعار من وزارة الصحة ووقاية المجتمع نقل خدمات من الوزارة إلى المؤسسة اعتباراً من 29 ديسمبر 2025؛ وتفيد مصادر استشارية بأن ترخيص تسويق الأجهزة وتصنيفها وتصاريح استيرادها باتت لدى المؤسسة، وبأن حامل ترخيص التسويق يجب أن يسجل أولاً كمنشأة. وما زال معيار لهيئة الصحة بدبي (2025) يشترط على المنشآت استخدام معدات طبية مسجلة لدى وزارة الصحة ووقاية المجتمع في الدولة، بما يعكس المرحلة السابقة للنقل. وتُرخَّص المنشآت الصحية من هيئة الصحة بدبي في دبي ودائرة الصحة في أبوظبي والوزارة في الإمارات الأخرى. وتحتاج المعدات الباعثة للإشعاع ترخيصاً من الهيئة الاتحادية للرقابة النووية. ويستخرج الوكيل المسجل التسجيل؛ فاطلب رقم التسجيل لكل طراز.",
+      "sources": [
+        "https://www.dha.gov.ae/uploads/072025/Standards%20for%20Long%20Term%20Care%20Services202571310.pdf",
+        "https://mohap.gov.ae/Handlers/DownloadPDF.ashx?id=29939",
+        "https://www.pureglobal.com/markets/uae",
+        "https://uppersetup.com/en/article/registering-medicines-and-medical-devices-in-the-uae-2026"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: DHA Standards for Long-Term Care Services (DHA/HRS/HPSD/ST-67, issued 03/07/2025), clause 13.1: facilities shall ensure all medical equipment used is registered with MOHAP in the UAE. Not confirmed: the EDE takeover of device registration (Federal Decree-Law 38 of 2024; transfer from 29 December 2025), which rests on a MOHAP notice located by search and consultancy pages, and the FANR licence for radiation equipment. Hosts not reachable from this session: mohap.gov.ae and the EDE site (not reachable or not allowed); www.doh.gov.ae (no answer)."
+    },
+    {
+      "id": "medical_equipment:quote-red-flags",
+      "topic": "Medical equipment: red flags in supplier quotations",
+      "topic_ar": "أجهزة ومعدات طبية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for unregistered models or registration under a different model, refurbished units presented as new, software options or probes excluded, installation, shielding and site works excluded, training and PM excluded, a warranty without uptime guarantee, and consumables locked to the vendor at undisclosed prices. A European brand may be made in Asia; state origin when asked.",
+      "body_ar": "انتبه إلى طرازات غير مسجلة أو مسجلة باسم طراز آخر، ووحدات مجددة تُقدَّم على أنها جديدة، واستثناء خيارات البرامج أو المجسات، واستثناء التركيب والتدريع وأعمال الموقع، واستثناء التدريب والصيانة الوقائية، وضمان دون ضمان تشغيل، ومستهلكات مرتبطة بالمورد بأسعار غير مفصح عنها. وقد تُصنع علامة أوروبية في آسيا؛ فاذكر المنشأ عند الطلب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "medical_equipment:buyer-mistakes",
+      "topic": "Medical equipment: common buyer mistakes",
+      "topic_ar": "أجهزة ومعدات طبية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers compare device prices without service and consumables over the device life, skip the site survey, and order models not yet registered.",
+      "body_ar": "يقارن المشترون أسعار الأجهزة دون الخدمة والمستهلكات على مدى عمر الجهاز، ويتخطون مسح الموقع، ويطلبون طرازات لم تُسجل بعد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "medical_equipment:price-drivers",
+      "topic": "Medical equipment: what makes prices differ legitimately",
+      "topic_ar": "أجهزة ومعدات طبية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand and model, configuration and software, installation and site works, training, warranty and service contract, consumables, and registration status.",
+      "body_ar": "العوامل: العلامة والطراز، والتهيئة والبرامج، والتركيب وأعمال الموقع، والتدريب، والضمان وعقد الخدمة، والمستهلكات، وحالة التسجيل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "medical_equipment:compare-quotes-cost-to-value",
+      "topic": "Medical equipment: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "أجهزة ومعدات طبية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare total cost of ownership over the expected life (device, installation, service, consumables, uptime) for registered models with equivalent clinical specification. Recommend three registered offers with local service.",
+      "body_ar": "قارن التكلفة الإجمالية للملكية على العمر المتوقع (الجهاز والتركيب والخدمة والمستهلكات والتشغيل) لطرازات مسجلة بمواصفة سريرية مكافئة. أوصِ بثلاثة عروض مسجلة ذات خدمة محلية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -114,7 +288,8 @@
     "removed": [],
     "still_unverified": [
       "medical_equipment:spec-checklist",
-      "medical_equipment:uae-standards-and-approvals"
+      "medical_equipment:uae-standards-and-approvals",
+      "medical_equipment:authority-approvals"
     ],
     "added": [
       "medical_equipment:spec-checklist",
@@ -142,6 +317,26 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "medical_equipment:quote-red-flags",
+      "medical_equipment:buyer-mistakes",
+      "medical_equipment:price-drivers",
+      "medical_equipment:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "k3_pages_opened": [
+      "https://www.dha.gov.ae/uploads/072025/Standards%20for%20Long%20Term%20Care%20Services202571310.pdf"
+    ]
   }
 }

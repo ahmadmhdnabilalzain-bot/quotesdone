@@ -5,8 +5,8 @@
       "id": "event_entertainment:spec-checklist",
       "topic": "Event entertainment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for event entertainment must state: act or performer type; event date and venue; performance duration; technical rider; permits for performers; content approval; travel and accommodation; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الترفيه في الفعاليات: نوع العرض أو المؤدي؛ تاريخ الفعالية ومكانها؛ مدة الأداء؛ المتطلبات الفنية؛ تصاريح المؤدين؛ الموافقة على المحتوى؛ السفر والإقامة؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for event entertainment must state: act or performer type; event date and venue; performance duration; technical rider; permits for performers; content approval; travel and accommodation; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): act or performer type; event date and venue; performance duration; pricing basis. Before a firm price: a firm fee needs act type, date, venue and duration; international acts are firm only after availability, rider and travel are confirmed.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الترفيه في الفعاليات: نوع العرض أو المؤدي؛ تاريخ الفعالية ومكانها؛ مدة الأداء؛ المتطلبات الفنية؛ تصاريح المؤدين؛ الموافقة على المحتوى؛ السفر والإقامة؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العرض، والتاريخ والمكان، ومدة الأداء، وأساس التسعير. العروض الدولية لا تُثبت إلا بعد تأكيد التوفر والمتطلبات الفنية والسفر.",
       "required_specs": [
         "act or performer type",
         "event date and venue",
@@ -26,7 +26,101 @@
         "https://www.dubaidet.gov.ae/en/licences-and-permits/events-and-activations"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "act or performer type",
+        "event date and venue",
+        "performance duration",
+        "pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "act or performer type",
+          "why_needed_to_price": "Act type decides fee range.",
+          "uae_options": "band; DJ; dancers; magician; folk troupe; drone show",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "event date and venue",
+          "why_needed_to_price": "Date and venue.",
+          "uae_options": "date; venue",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "performance duration",
+          "why_needed_to_price": "Performance duration.",
+          "uae_options": "sets; minutes",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "technical rider",
+          "why_needed_to_price": "Technical rider adds equipment.",
+          "uae_options": "sound; light; stage",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "permits for performers",
+          "why_needed_to_price": "Permits for performers.",
+          "uae_options": "visas; work permits; event permit",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "content approval",
+          "why_needed_to_price": "Content approval.",
+          "uae_options": "lyrics; costumes",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "travel and accommodation",
+          "why_needed_to_price": "Travel and accommodation.",
+          "uae_options": "for international acts",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Licences.",
+          "uae_options": "agency licence",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "arrival times",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "one-off",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "per set; package",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "rider; travel; permits",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm fee needs act type, date, venue and duration; international acts are firm only after availability, rider and travel are confirmed.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "event_entertainment:uae-standards-and-approvals",
@@ -72,6 +166,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "event_entertainment:authority-approvals",
+      "topic": "Event Performers & Entertainment: licences, permits and approvals by emirate",
+      "topic_ar": "فنانو الفعاليات والترفيه: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Performers at events need the right immigration status (visit or work permits) and the event needs the emirate's event permit; in Dubai event and performer permits sit with the Department of Economy and Tourism (not opened in this session). Fireworks and pyrotechnics need police and civil defence approval, and drone shows need GCAA or local aviation authority approval (GCAA CAR-UAC requires a UA Operator Authorisation for commercial drone operations). Promotional posts by performers may need UAE Media Council advertiser permits. The agency should state which permits it obtains.",
+      "body_ar": "يحتاج المؤدون في الفعاليات إلى الوضع القانوني المناسب للإقامة (تأشيرات زيارة أو تصاريح عمل)، وتحتاج الفعالية إلى تصريح الإمارة؛ ففي دبي تقع تصاريح الفعاليات والمؤدين لدى دائرة الاقتصاد والسياحة (لم تُفتح في هذه الجلسة). وتحتاج الألعاب النارية إلى موافقة الشرطة والدفاع المدني، وتحتاج عروض الطائرات المسيّرة إلى موافقة الهيئة العامة للطيران المدني أو سلطة الطيران المحلية (تشترط لائحة CAR-UAC تفويض مشغل للعمليات التجارية بالمسيّرات). وقد تحتاج منشورات المؤدين الترويجية إلى تصاريح معلن من مجلس الإمارات للإعلام. وينبغي للوكالة ذكر التصاريح التي تستخرجها.",
+      "sources": [
+        "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf",
+        "https://www.thenationalnews.com/news/uae/2025/07/30/uae-launches-new-advertising-regulation-for-influencers"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: GCAA CAR-UAC Issue 02: commercial drone operations need a UA Operator Authorisation issued by GCAA or the emirate's Local Appropriate Authority, and from January 2024 a pilot licence issued by GCAA or the LAA. Not confirmed: the DET event and performer permits, the fireworks approvals and the advertiser permit. Hosts not reachable from this session: the Department of Economy and Tourism site (not on the allowed list), www.dcd.gov.ae (dropped the connection)."
+    },
+    {
+      "id": "event_entertainment:quote-red-flags",
+      "topic": "Event Performers & Entertainment: red flags in supplier quotations",
+      "topic_ar": "فنانو الفعاليات والترفيه: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for permits excluded, rider costs hidden, substitutes for named performers, set durations shorter than booked, and cancellation terms that leave you paying.",
+      "body_ar": "انتبه إلى استثناء التصاريح، وإخفاء تكاليف المتطلبات الفنية، واستبدال المؤدين المسمين، ومدة عرض أقصر من المحجوز، وشروط إلغاء تُلزمك بالدفع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "event_entertainment:buyer-mistakes",
+      "topic": "Event Performers & Entertainment: common buyer mistakes",
+      "topic_ar": "فنانو الفعاليات والترفيه: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients book acts before checking venue rules and permit lead times.",
+      "body_ar": "يحجز العملاء العروض قبل التحقق من قواعد المكان ومهل التصاريح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "event_entertainment:price-drivers",
+      "topic": "Event Performers & Entertainment: what makes prices differ legitimately",
+      "topic_ar": "فنانو الفعاليات والترفيه: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: act profile, duration, date, travel, rider and permits.",
+      "body_ar": "العوامل: شهرة العرض، والمدة، والتاريخ، والسفر، والمتطلبات الفنية، والتصاريح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "event_entertainment:compare-quotes-cost-to-value",
+      "topic": "Event Performers & Entertainment: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "فنانو الفعاليات والترفيه: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same act type and duration, all-in with rider and permits. Recommend three with confirmed availability.",
+      "body_ar": "قارن نوع العرض والمدة نفسيهما شاملاً المتطلبات الفنية والتصاريح. أوصِ بثلاثة عروض مؤكدة التوفر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -113,7 +276,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "event_entertainment:spec-checklist"
+      "event_entertainment:spec-checklist",
+      "event_entertainment:authority-approvals"
     ],
     "added": [
       "event_entertainment:spec-checklist",
@@ -141,6 +305,26 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "event_entertainment:quote-red-flags",
+      "event_entertainment:buyer-mistakes",
+      "event_entertainment:price-drivers",
+      "event_entertainment:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "k3_pages_opened": [
+      "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf"
+    ]
   }
 }

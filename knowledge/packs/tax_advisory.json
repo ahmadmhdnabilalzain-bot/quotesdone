@@ -5,8 +5,8 @@
       "id": "tax_advisory:spec-checklist",
       "topic": "Tax advisory - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For tax advisory quotes to be compared like-for-like, every quoted line (services) must state: (1) tax type (VAT, corporate tax, excise); (2) scope (registration, returns, advisory, audit support, disputes); (3) entity details and number of entities; (4) FTA-registered tax agent; (5) period covered; (6) deliverables; (7) fee basis; (8) professional indemnity and confidentiality; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tax_advisory trade.",
-      "body_ar": "لكي تُقارن عروض الاستشارات الضريبية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع الضريبة (القيمة المضافة، أو ضريبة الشركات، أو الانتقائية)؛ (2) النطاق (تسجيل، أو إقرارات، أو استشارة، أو دعم تدقيق، أو منازعات)؛ (3) بيانات المنشأة وعددها؛ (4) وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب؛ (5) الفترة المشمولة؛ (6) المخرجات؛ (7) أساس الأتعاب؛ (8) تأمين المسؤولية المهنية والسرية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tax_advisory فقط.",
+      "body_en": "For tax advisory quotes to be compared like-for-like, every quoted line (services) must state: (1) tax type (VAT, corporate tax, excise); (2) scope (registration, returns, advisory, audit support, disputes); (3) entity details and number of entities; (4) FTA-registered tax agent; (5) period covered; (6) deliverables; (7) fee basis; (8) professional indemnity and confidentiality; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tax_advisory trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): tax type (VAT, corporate tax, excise); scope (registration, returns, advisory, audit support, disputes); entity details and number of entities; period covered; deliverables; fee basis. Before a firm price: returns and registrations can be priced firm from entity count and volume; advisory, health checks and disputes need the facts and documents, usually after a call or meeting, before a firm fee.",
+      "body_ar": "لكي تُقارن عروض الاستشارات الضريبية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع الضريبة (القيمة المضافة، أو ضريبة الشركات، أو الانتقائية)؛ (2) النطاق (تسجيل، أو إقرارات، أو استشارة، أو دعم تدقيق، أو منازعات)؛ (3) بيانات المنشأة وعددها؛ (4) وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب؛ (5) الفترة المشمولة؛ (6) المخرجات؛ (7) أساس الأتعاب؛ (8) تأمين المسؤولية المهنية والسرية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tax_advisory فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نوع الضريبة، والنطاق، وتفاصيل الكيانات والهيكل، والفترة، والمخرجات، وأساس الأتعاب. الإقرارات والتسجيلات تُسعّر من عدد الكيانات والحجم، أما الاستشارات والفحص والنزاعات فتحتاج الوقائع والمستندات بعد مكالمة أو اجتماع غالباً.",
       "required_specs": [
         "tax type (VAT, corporate tax, excise)",
         "scope (registration, returns, advisory, audit support, disputes)",
@@ -24,7 +24,96 @@
         "https://tax.gov.ae/en/services/tax.agents.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "tax type (VAT, corporate tax, excise)",
+        "scope (registration, returns, advisory, audit support, disputes)",
+        "entity details and number of entities",
+        "period covered",
+        "deliverables",
+        "fee basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "tax type (VAT, corporate tax, excise)",
+          "why_needed_to_price": "Tax type decides expertise.",
+          "uae_options": "VAT; corporate tax; excise; transfer pricing",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "scope (registration, returns, advisory, audit support, disputes)",
+          "why_needed_to_price": "Scope decides effort.",
+          "uae_options": "registration; returns; advisory memo; health check; FTA audit support; reconsideration and disputes",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "entity details and number of entities",
+          "why_needed_to_price": "Entity details and group structure drive complexity.",
+          "uae_options": "entities; free zone status; group",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "FTA-registered tax agent",
+          "why_needed_to_price": "Only a registered tax agent can represent before the FTA.",
+          "uae_options": "FTA tax agent number",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "period covered",
+          "why_needed_to_price": "Period covered.",
+          "uae_options": "months; years",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "deliverables",
+          "why_needed_to_price": "Deliverables.",
+          "uae_options": "returns; memo; filings",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "fee basis",
+          "why_needed_to_price": "Fee basis.",
+          "uae_options": "fixed; hourly; retainer",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "professional indemnity and confidentiality",
+          "why_needed_to_price": "PI insurance and confidentiality.",
+          "uae_options": "limit",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "Duration.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Response times.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "penalties; FTA fees",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "returns and registrations can be priced firm from entity count and volume; advisory, health checks and disputes need the facts and documents, usually after a call or meeting, before a firm fee.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "tax_advisory:uae-standards-and-approvals",
@@ -68,6 +157,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "tax_advisory:authority-approvals",
+      "topic": "VAT & corporate tax advisory: licences, permits and approvals by emirate",
+      "topic_ar": "استشارات ضريبة القيمة المضافة وضريبة الشركات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "A tax agent who acts for a taxpayer before the Federal Tax Authority must be registered with the FTA. The FTA's own page lists the registration requirements: a degree in tax, accounting or law (or an internationally recognised tax certification with another degree), at least three years of recent experience in tax, accounting or law, proficiency in Arabic and English, certificates of good conduct and medical fitness, a pass in the FTA Tax Agent examination, and professional indemnity insurance; registration is renewed every three years, and the FTA publishes professional standards and a continuing professional development guide for agents. A tax agent must keep client information confidential and refuse work that would breach the law. The FTA publishes a register of tax agents that can be filtered by emirate and by previous experience (VAT, corporate tax, excise and others), each with a tax agent approval number (TAAN). Before appointing an adviser to file or represent, check the person in that register.",
+      "body_ar": "يجب أن يكون الوكيل الضريبي الذي يتصرف عن المكلف أمام الهيئة الاتحادية للضرائب مسجلاً لدى الهيئة. وتذكر صفحة الهيئة شروط التسجيل: شهادة جامعية في الضرائب أو المحاسبة أو القانون (أو شهادة ضريبية معترف بها دولياً مع شهادة في تخصص آخر)، وخبرة حديثة لا تقل عن ثلاث سنوات في الضرائب أو المحاسبة أو القانون، وإتقان العربية والإنجليزية، وشهادتا حسن السيرة واللياقة الطبية، واجتياز اختبار الوكيل الضريبي لدى الهيئة، والتأمين ضد المسؤولية المهنية؛ ويُجدَّد التسجيل كل ثلاث سنوات، وتنشر الهيئة معايير مهنية ودليلاً للتطوير المهني المستمر للوكلاء. ويلتزم الوكيل بالمحافظة على سرية معلومات العميل ورفض أي عمل يؤدي إلى مخالفة القانون. وتنشر الهيئة سجلاً للوكلاء الضريبيين يمكن تصفيته حسب الإمارة والخبرة السابقة (ضريبة القيمة المضافة وضريبة الشركات والضريبة الانتقائية وغيرها)، لكل منهم رقم اعتماد وكيل ضريبي. قبل تعيين مستشار لتقديم الإقرارات أو التمثيل تحقق منه في ذلك السجل.",
+      "sources": [
+        "https://tax.gov.ae/en/tax.support/tax.agents/registered.tax.agents.aspx",
+        "https://tax.gov.ae/en/tax.support/tax.agents/how.to.become.a.tax.agent.aspx",
+        "https://www.wafeq.com/en-ae/business-hub/for-business/fta-approved",
+        "https://dlapiper.com/insights/publications/gulf-tax-insights/2024/gulf-tax-insights-april-2024/fta-issues-decision-professional-standards-for-tax-agents"
+      ],
+      "confidence": "high",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590); every claim in the body was read on the official page(s) listed first in sources, opened with curl on 10 Nov 2026.",
+      "source_note": "Opened 10 Nov 2026: the FTA page on becoming a tax agent (registration requirements: a degree in tax, accounting or law or an international tax certification; at least three years of recent experience in tax, accounting or law; Arabic and English proficiency; good conduct and medical fitness certificates; passing the FTA Tax Agent examination; registration renewable every three years; professional indemnity insurance; duties including confidentiality and refusing work that breaches the law; FTA professional standards and a CPD guide) and the FTA register of tax agents (filterable by emirate and previous experience, each agent listed with a TAAN)."
+    },
+    {
+      "id": "tax_advisory:quote-red-flags",
+      "topic": "VAT & corporate tax advisory: red flags in supplier quotations",
+      "topic_ar": "استشارات ضريبة القيمة المضافة وضريبة الشركات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for advice from an unregistered agent offered as representation, a retainer without a list of included returns, disputes priced per hour without a cap, a health check that excludes the corporate tax review, and penalties promised to be waived.",
+      "body_ar": "انتبه إلى استشارة من وكيل غير مقيد تُعرض على أنها تمثيل، واشتراك دون قائمة الإقرارات المشمولة، وتسعير النزاعات بالساعة دون سقف، وفحص يستثني مراجعة ضريبة الشركات، والوعد بإعفاء الغرامات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "tax_advisory:buyer-mistakes",
+      "topic": "VAT & corporate tax advisory: common buyer mistakes",
+      "topic_ar": "استشارات ضريبة القيمة المضافة وضريبة الشركات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Businesses wait for an FTA audit before seeking advice, do not register for corporate tax on time, and compare monthly fees without the list of filings included.",
+      "body_ar": "تنتظر الشركات تدقيق الهيئة قبل طلب الاستشارة، ولا تسجل في ضريبة الشركات في الوقت، وتقارن الرسوم الشهرية دون قائمة الإقرارات المشمولة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "tax_advisory:price-drivers",
+      "topic": "VAT & corporate tax advisory: what makes prices differ legitimately",
+      "topic_ar": "استشارات ضريبة القيمة المضافة وضريبة الشركات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: tax type and complexity, number of entities, transaction volume, whether disputes are included, seniority and urgency.",
+      "body_ar": "العوامل: نوع الضريبة وتعقيدها، وعدد الكيانات، وحجم المعاملات، وشمول النزاعات، والأقدمية، والاستعجال.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "tax_advisory:compare-quotes-cost-to-value",
+      "topic": "VAT & corporate tax advisory: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "استشارات ضريبة القيمة المضافة وضريبة الشركات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the yearly cost of the same filings and advisory hours from registered agents. Recommend three registered agents with clear inclusions.",
+      "body_ar": "قارن التكلفة السنوية للإقرارات وساعات الاستشارة نفسها من وكلاء مقيدين. أوصِ بثلاثة وكلاء مقيدين بمشمولات واضحة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -138,6 +297,30 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "tax_advisory:quote-red-flags",
+      "tax_advisory:buyer-mistakes",
+      "tax_advisory:price-drivers",
+      "tax_advisory:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "k3_pages_opened": [
+      "https://tax.gov.ae/en/tax.support/tax.agents/how.to.become.a.tax.agent.aspx",
+      "https://tax.gov.ae/en/tax.support/tax.agents/registered.tax.agents.aspx"
+    ],
+    "k3_verified": [
+      "tax_advisory:authority-approvals"
+    ]
   }
 }

@@ -5,8 +5,8 @@
       "id": "debt_collection:spec-checklist",
       "topic": "Debt collection - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for debt collection must state: portfolio size and age; debtor type; collection methods allowed; licence for the activity; legal escalation; reporting; data protection; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة تحصيل الديون: حجم المحفظة وعمر الديون؛ نوع المدينين؛ طرق التحصيل المسموحة؛ الترخيص للنشاط؛ التصعيد القانوني؛ التقارير؛ حماية البيانات؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for debt collection must state: portfolio size and age; debtor type; collection methods allowed; licence for the activity; legal escalation; reporting; data protection; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): portfolio size and age; debtor type; collection methods allowed; legal escalation; contract duration; pricing basis. Follow-up questions the answers trigger: portfolio size and age: Ask an ageing report. Before a firm price: a firm commission needs the portfolio size, ageing, debtor type and documents per account; large or old portfolios are usually priced after a sample file review.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة تحصيل الديون: حجم المحفظة وعمر الديون؛ نوع المدينين؛ طرق التحصيل المسموحة؛ الترخيص للنشاط؛ التصعيد القانوني؛ التقارير؛ حماية البيانات؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: حجم المحفظة وعمرها، ونوع المدين، والأساليب المسموح بها، والتصعيد القانوني، ومدة العقد، وأساس التسعير. المحافظ الكبيرة أو القديمة تُسعّر عادة بعد مراجعة عيّنة من الملفات.",
       "required_specs": [
         "portfolio size and age",
         "debtor type",
@@ -25,7 +25,103 @@
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "portfolio size and age",
+        "debtor type",
+        "collection methods allowed",
+        "legal escalation",
+        "contract duration",
+        "pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "portfolio size and age",
+          "why_needed_to_price": "Portfolio size and age decide recovery and fee.",
+          "uae_options": "number of accounts; total value; months overdue",
+          "follow_up_if": "Ask an ageing report.",
+          "blocking": true
+        },
+        {
+          "spec": "debtor type",
+          "why_needed_to_price": "Debtor type changes method and rules.",
+          "uae_options": "B2B; consumer; local; overseas",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "collection methods allowed",
+          "why_needed_to_price": "Methods allowed define the work.",
+          "uae_options": "calls; letters; visits; legal notice",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "licence for the activity",
+          "why_needed_to_price": "The agency must hold the right licence for the activity.",
+          "uae_options": "trade licence with collection activity; CBUAE requirements for bank debts",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "legal escalation",
+          "why_needed_to_price": "Legal escalation is a separate cost.",
+          "uae_options": "legal notice; payment order; lawsuit; execution",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "reporting",
+          "why_needed_to_price": "Reporting.",
+          "uae_options": "weekly; per account",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "data protection",
+          "why_needed_to_price": "Data protection.",
+          "uae_options": "PDPL compliance",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Licences.",
+          "uae_options": "copies",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "first contact time",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "% of amount collected; fixed fee per account; legal fees",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "court fees; overseas agents",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm commission needs the portfolio size, ageing, debtor type and documents per account; large or old portfolios are usually priced after a sample file review.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "debt_collection:uae-standards-and-approvals",
@@ -83,6 +179,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "debt_collection:authority-approvals",
+      "topic": "Debt collection & credit reports: licences, permits and approvals by emirate",
+      "topic_ar": "تحصيل الديون والتقارير الائتمانية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Debt collection on the Dubai mainland is licensed as a commercial activity by the Department of Economy and Tourism; sources disagree on whether a Central Bank approval is always needed, with one source saying the Central Bank is involved only when collecting for banks and finance companies. Attachment, salary deduction and enforcement need a court order through the courts of the emirate; collectors may not use threats or misleading contact, and personal data handling falls under the federal personal data protection law. Ask the agency for its licence activity and, for bank debts, its Central Bank standing.",
+      "body_ar": "تُرخَّص أعمال تحصيل الديون في البر الرئيسي لدبي نشاطاً تجارياً من دائرة الاقتصاد والسياحة، وتختلف المصادر في وجوب موافقة المصرف المركزي دائماً، إذ يفيد مصدر بأن المصرف المركزي يتدخل فقط عند التحصيل لصالح البنوك وشركات التمويل. ويحتاج الحجز والاقتطاع من الراتب والتنفيذ إلى أمر قضائي عبر محاكم الإمارة، ولا يجوز للمحصلين التهديد أو التواصل المضلل، وتخضع معالجة البيانات الشخصية للقانون الاتحادي لحماية البيانات. اطلب من الوكالة نشاط ترخيصها، ولديون البنوك وضعها لدى المصرف المركزي.",
+      "sources": [
+        "https://www.businessdubai.ae/blogs/debt-collection-agency-setup-dubai",
+        "https://www.mondaq.com/financial-services/1856482/domestic-debt-collection-in-dubai",
+        "https://www.simmons-simmons.com/en/publications/ckwugz8lu16rs0a44qvbqcbz9/uae-personal-data-protection-law-faqs"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "debt_collection:quote-red-flags",
+      "topic": "Debt collection & credit reports: red flags in supplier quotations",
+      "topic_ar": "تحصيل الديون والتقارير الائتمانية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for upfront fees with no recovery, commission on amounts the debtor paid directly to you, legal costs uncapped, aggressive methods that expose the client to complaints, exclusivity and long lock-in, and collected money held too long before remittance.",
+      "body_ar": "انتبه إلى رسوم مقدمة دون تحصيل، وعمولة على مبالغ دفعها المدين لك مباشرة، وتكاليف قانونية دون سقف، وأساليب عدوانية تعرّض العميل للشكاوى، والحصرية والارتباط الطويل، واحتجاز المبالغ المحصلة مدة طويلة قبل تحويلها.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "debt_collection:buyer-mistakes",
+      "topic": "Debt collection & credit reports: common buyer mistakes",
+      "topic_ar": "تحصيل الديون والتقارير الائتمانية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Creditors pass accounts too late, without invoices and signed contracts, and do not agree the remittance timetable.",
+      "body_ar": "يحيل الدائنون الحسابات متأخرين دون الفواتير والعقود الموقعة، ولا يتفقون على جدول تحويل المبالغ.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "debt_collection:price-drivers",
+      "topic": "Debt collection & credit reports: what makes prices differ legitimately",
+      "topic_ar": "تحصيل الديون والتقارير الائتمانية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: age and size of debts, documentation, debtor location, methods, legal escalation and portfolio volume.",
+      "body_ar": "العوامل: عمر الديون وحجمها، والتوثيق، وموقع المدين، والأساليب، والتصعيد القانوني، وحجم المحفظة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "debt_collection:compare-quotes-cost-to-value",
+      "topic": "Debt collection & credit reports: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "تحصيل الديون والتقارير الائتمانية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the expected net recovery (recovery rate times value, minus commission and legal costs), not the commission rate alone. Recommend three licensed agencies with a lawful method and clear remittance terms.",
+      "body_ar": "قارن صافي التحصيل المتوقع (نسبة التحصيل مضروبة في القيمة مطروحاً منها العمولة والتكاليف القانونية) لا نسبة العمولة وحدها. أوصِ بثلاث وكالات مرخصة بأساليب مشروعة وشروط تحويل واضحة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +291,8 @@
     "removed": [],
     "still_unverified": [
       "debt_collection:spec-checklist",
-      "debt_collection:uae-standards-and-approvals"
+      "debt_collection:uae-standards-and-approvals",
+      "debt_collection:authority-approvals"
     ],
     "added": [
       "debt_collection:spec-checklist",
@@ -156,6 +323,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "debt_collection:quote-red-flags",
+      "debt_collection:buyer-mistakes",
+      "debt_collection:price-drivers",
+      "debt_collection:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

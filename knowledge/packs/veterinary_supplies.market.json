@@ -28,8 +28,8 @@
       "topic": "Animal & veterinary supplies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "مستلزمات بيطرية وحيوانات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the major animal health and pet food brands, such as Zoetis, Boehringer Ingelheim, MSD, Elanco and Royal Canin, and that imports go through MOCCAE-licensed veterinary warehouses. Major animal health and pet food brands: Zoetis, Boehringer Ingelheim Animal Health, MSD Animal Health, Elanco, Ceva, Virbac, Royal Canin, Hill's, Purina. Their UAE distributors were not checked; imports go through MOCCAE-licensed veterinary warehouses in Dubai, Sharjah, Al Ain and Abu Dhabi.",
-      "body_ar": "من كبرى علامات الصحة الحيوانية وأغذية الحيوانات الأليفة Zoetis وBoehringer Ingelheim وMSD وElanco وRoyal Canin، ويتم الاستيراد عبر مستودعات بيطرية مرخصة من وزارة التغير المناخي والبيئة. كبرى علامات صحة الحيوان وأغذية الحيوانات الأليفة: Zoetis، Boehringer Ingelheim Animal Health، MSD Animal Health، Elanco، Ceva، Virbac، Royal Canin، Hill's، Purina. ولم يُتحقق من موزعيها في الإمارات؛ وتمر الواردات عبر مستودعات بيطرية مرخصة من وزارة التغير المناخي والبيئة في دبي والشارقة والعين وأبوظبي.",
+      "body_en": "This entry lists the major animal health and pet food brands, such as Zoetis, Boehringer Ingelheim, MSD, Elanco and Royal Canin, and that imports go through MOCCAE-licensed veterinary warehouses. Major animal health and pet food brands: Zoetis, Boehringer Ingelheim Animal Health, MSD Animal Health, Elanco, Ceva, Virbac, Royal Canin, Hill's, Purina. Their UAE distributors were not checked; imports go through MOCCAE-licensed veterinary warehouses in Dubai, Sharjah, Al Ain and Abu Dhabi.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Zoetis = a premium American brand; Boehringer Ingelheim Animal Health = a premium German brand; MSD Animal Health = a premium American brand; Elanco = a premium American brand; Ceva = a premium French brand; Virbac = a mid-tier French brand; Royal Canin = a premium French brand; Hill's = a premium American brand; Purina = a mid-tier American brand.",
+      "body_ar": "من كبرى علامات الصحة الحيوانية وأغذية الحيوانات الأليفة Zoetis وBoehringer Ingelheim وMSD وElanco وRoyal Canin، ويتم الاستيراد عبر مستودعات بيطرية مرخصة من وزارة التغير المناخي والبيئة. كبرى علامات صحة الحيوان وأغذية الحيوانات الأليفة: Zoetis، Boehringer Ingelheim Animal Health، MSD Animal Health، Elanco، Ceva، Virbac، Royal Canin، Hill's، Purina. ولم يُتحقق من موزعيها في الإمارات؛ وتمر الواردات عبر مستودعات بيطرية مرخصة من وزارة التغير المناخي والبيئة في دبي والشارقة والعين وأبوظبي.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Zoetis = علامة أمريكية من الفئة الممتازة؛ Boehringer Ingelheim Animal Health = علامة ألمانية من الفئة الممتازة؛ MSD Animal Health = علامة أمريكية من الفئة الممتازة؛ Elanco = علامة أمريكية من الفئة الممتازة؛ Ceva = علامة فرنسية من الفئة الممتازة؛ Virbac = علامة فرنسية من الفئة المتوسطة؛ Royal Canin = علامة فرنسية من الفئة الممتازة؛ Hill's = علامة أمريكية من الفئة الممتازة؛ Purina = علامة أمريكية من الفئة المتوسطة.",
       "sources": [
         "https://www.ede.gov.ae/en/home",
         "https://www.wam.ae/en/article/hszr6ixu-moccae-provides-services-for-veterinary-products",
@@ -40,7 +40,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EDE regulates veterinary medications; MOCCAE licenses veterinary companies and warehouses and registers foreign makers through a licensed warehouse -> corrected: regulator updated in products text | MOCCAE offers 23 veterinary product services -> confirmed | Zoetis and Boehringer Ingelheim UAE distributors; Pet's Delight and Dubai Pet Food -> removed: UAE distributors not found. Not checked: Whether veterinary product registration has moved to the Emirates Drug Establishment, and current distributors per brand, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE regulates veterinary medications; MOCCAE licenses veterinary companies and warehouses and registers foreign makers through a licensed warehouse -> corrected: regulator updated in products text | MOCCAE offers 23 veterinary product services -> confirmed | Zoetis and Boehringer Ingelheim UAE distributors; Pet's Delight and Dubai Pet Food -> removed: UAE distributors not found. Not checked: Whether veterinary product registration has moved to the Emirates Drug Establishment, and current distributors per brand, were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Zoetis",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Boehringer Ingelheim Animal Health",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "MSD Animal Health",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Elanco",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Ceva",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Virbac",
+          "origin": "France",
+          "tier": "mid",
+          "generic_en": "a mid-tier French brand",
+          "generic_ar": "علامة فرنسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Royal Canin",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hill's",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Purina",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "veterinary_supplies:uae-market-sizes",

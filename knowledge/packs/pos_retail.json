@@ -33,8 +33,8 @@
       "id": "pos_retail:arabic-receipts",
       "topic": "Arabic and bilingual receipts, printer code pages and RTL shaping",
       "kind": "spec_checklist",
-      "body_en": "The VAT Executive Regulation's list of tax-invoice particulars does not itself require Arabic, and an English-only tax invoice is generally accepted; the FTA may ask for Arabic translations during an audit. In practice many UAE retailers print bilingual receipts for customers and for brand reasons, and government or semi-government buyers often specify Arabic. The technical trap is the printer: Arabic is right-to-left and its letters change shape depending on position, so a printer that only maps single-byte code pages may print disconnected or reversed characters. Robust set-ups either use a printer with a proper Arabic font and shaping engine, or let the POS render the receipt as an image and send it as raster graphics, which is slower but always correct. The POS database must also store Arabic item names in Unicode with enough field length. When buying, insist on a test print of a real receipt with long Arabic item names, numerals, the TRN line and a QR code, on the exact printer model, before the order is confirmed. Bilingual layouts also consume more paper width, which is one reason 80 mm is preferred over 58 mm for retail counters. The FTA may ask for certified Arabic translations of records submitted during an audit. The shaping-engine versus raster-image printing advice is practitioner guidance, not established from a fetched source.",
-      "body_ar": "لا تشترط قائمة بيانات الفاتورة الضريبية في اللائحة التنفيذية اللغة العربية بحد ذاتها، وتُقبل الفاتورة الإنجليزية عموماً، وقد تطلب الهيئة ترجمة عربية أثناء التدقيق. لكن كثيراً من تجار التجزئة في الدولة يطبعون إيصالات ثنائية اللغة، والجهات الحكومية وشبه الحكومية كثيراً ما تشترط العربية. المشكلة الفنية في الطابعة: العربية تُكتب من اليمين إلى اليسار وتتغير أشكال حروفها بحسب موقعها، فالطابعة التي تعتمد صفحات ترميز أحادية البايت قد تطبع حروفاً منفصلة أو معكوسة. الحل إما طابعة تدعم خطاً عربياً ومحرك تشكيل صحيحاً، أو أن يرسم نظام نقاط البيع الإيصال كصورة ويرسله طباعةً نقطية، وهي أبطأ لكنها صحيحة دائماً. ويجب أن تُخزّن أسماء الأصناف العربية بترميز يونيكود بطول كافٍ. عند الشراء اطلب طباعة تجريبية لإيصال حقيقي يتضمن أسماء أصناف عربية طويلة وأرقاماً وسطر الرقم الضريبي ورمز QR على نفس طراز الطابعة قبل تأكيد الطلب. كما أن التصميم ثنائي اللغة يحتاج عرضاً أكبر، ولذلك يُفضَّل ورق 80 مم على 58 مم في كاونترات التجزئة. قد تطلب الهيئة الاتحادية للضرائب ترجمة عربية معتمدة للمستندات المقدمة أثناء التدقيق. أما نصيحة محرك تشكيل الحروف مقابل الطباعة كصورة فهي إرشاد عملي لم يثبت من مصدر تم الاطلاع عليه.",
+      "body_en": "The VAT Executive Regulation's list of tax-invoice particulars does not itself require Arabic, and an English-only tax invoice is generally accepted; the FTA may ask for Arabic translations during an audit. In practice many UAE retailers print bilingual receipts for customers and for brand reasons, and government or semi-government buyers often specify Arabic. The technical trap is the printer: Arabic is right-to-left and its letters change shape depending on position, so a printer that only maps single-byte code pages may print disconnected or reversed characters. Robust set-ups either use a printer with a proper Arabic font and shaping engine, or let the POS render the receipt as an image and send it as raster graphics, which is slower but always correct. The POS database must also store Arabic item names in Unicode with enough field length. When buying, insist on a test print of a real receipt with long Arabic item names, numerals, the TRN line and a QR code, on the exact printer model, before the order is confirmed. Bilingual layouts also consume more paper width, which is one reason 80 mm is preferred over 58 mm for retail counters. The FTA may ask for certified Arabic translations of records submitted during an audit. The shaping-engine versus raster-image printing advice is practitioner guidance, not established from a fetched source.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Receipt language(s): English only / Arabic only / bilingual; Printer must render shaped Arabic (connected letters, RTL) natively or via raster/graphic printing. Before a firm price: a firm price needs the receipt language and a test print on the named POS software.",
+      "body_ar": "لا تشترط قائمة بيانات الفاتورة الضريبية في اللائحة التنفيذية اللغة العربية بحد ذاتها، وتُقبل الفاتورة الإنجليزية عموماً، وقد تطلب الهيئة ترجمة عربية أثناء التدقيق. لكن كثيراً من تجار التجزئة في الدولة يطبعون إيصالات ثنائية اللغة، والجهات الحكومية وشبه الحكومية كثيراً ما تشترط العربية. المشكلة الفنية في الطابعة: العربية تُكتب من اليمين إلى اليسار وتتغير أشكال حروفها بحسب موقعها، فالطابعة التي تعتمد صفحات ترميز أحادية البايت قد تطبع حروفاً منفصلة أو معكوسة. الحل إما طابعة تدعم خطاً عربياً ومحرك تشكيل صحيحاً، أو أن يرسم نظام نقاط البيع الإيصال كصورة ويرسله طباعةً نقطية، وهي أبطأ لكنها صحيحة دائماً. ويجب أن تُخزّن أسماء الأصناف العربية بترميز يونيكود بطول كافٍ. عند الشراء اطلب طباعة تجريبية لإيصال حقيقي يتضمن أسماء أصناف عربية طويلة وأرقاماً وسطر الرقم الضريبي ورمز QR على نفس طراز الطابعة قبل تأكيد الطلب. كما أن التصميم ثنائي اللغة يحتاج عرضاً أكبر، ولذلك يُفضَّل ورق 80 مم على 58 مم في كاونترات التجزئة. قد تطلب الهيئة الاتحادية للضرائب ترجمة عربية معتمدة للمستندات المقدمة أثناء التدقيق. أما نصيحة محرك تشكيل الحروف مقابل الطباعة كصورة فهي إرشاد عملي لم يثبت من مصدر تم الاطلاع عليه.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: لغة الإيصال، وقدرة الطابعة على العربية المتصلة. يحتاج السعر النهائي إلى طباعة تجريبية على برنامج نقاط البيع المحدد.",
       "required_specs": [
         "Receipt language(s): English only / Arabic only / bilingual",
         "Printer must render shaped Arabic (connected letters, RTL) natively or via raster/graphic printing",
@@ -48,7 +48,57 @@
         "https://www.hprt.com/Product/POS-PRINTERS/80mm-Thermal-Receipt-Printer-Buying-Guide.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Receipt language(s): English only / Arabic only / bilingual",
+        "Printer must render shaped Arabic (connected letters, RTL) natively or via raster/graphic printing"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Receipt language(s): English only / Arabic only / bilingual",
+          "why_needed_to_price": "Receipt language decides printer and software capability.",
+          "uae_options": "English; Arabic; bilingual",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Printer must render shaped Arabic (connected letters, RTL) natively or via raster/graphic printing",
+          "why_needed_to_price": "Shaped Arabic printing is not supported by every printer.",
+          "uae_options": "native; raster",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Font and code page support confirmed by live test print",
+          "why_needed_to_price": "Code page support.",
+          "uae_options": "test print",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Arabic item names field length in POS database",
+          "why_needed_to_price": "Arabic item name field length.",
+          "uae_options": "characters",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Logo, TRN and \"Tax Invoice\" header layout in both languages",
+          "why_needed_to_price": "Tax invoice header.",
+          "uae_options": "TRN; Tax Invoice",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Paper width (58/80 mm) to fit bilingual lines",
+          "why_needed_to_price": "Paper width.",
+          "uae_options": "58; 80 mm",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs the receipt language and a test print on the named POS software.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "pos_retail:thermal-printer-58-vs-80",
@@ -67,8 +117,8 @@
       "id": "pos_retail:receipt-printer-spec-checklist",
       "topic": "Receipt printer specification checklist for an exact quote",
       "kind": "spec_checklist",
-      "body_en": "\"A receipt printer\" is not a quotable line. For a supplier to price exactly, the buyer should state the paper width and roll size, whether it is direct thermal (normal retail) or impact (hot kitchens, carbon copies), speed and resolution expectations, whether an automatic cutter is needed, and the interfaces - Ethernet is preferred for fixed tills and kitchen printers shared across terminals, USB for a single dedicated till, Bluetooth for tablets and mobile. Name the POS software and operating system the printer must work with, because driver and ESC/POS compatibility is the most common failure after delivery. Specify whether a cash drawer will be driven from the printer and at what voltage, whether Arabic must print correctly, and the mounting (desktop, wall bracket, front-exit, or a kiosk print module). Finally state quantity, warranty length, and whether you expect advance replacement or return-to-base repair. Missing any of these, a supplier will either quote the cheapest generic model or guess, and the comparison between quotes becomes meaningless.",
-      "body_ar": "عبارة \"طابعة إيصالات\" لا تكفي لعرض سعر دقيق. يجب أن يحدد المشتري عرض الورق وحجم اللفة، وهل الطباعة حرارية مباشرة (التجزئة العادية) أم نقطية بالصدم (المطابخ الحارة أو النسخ الكربونية)، وتوقعات السرعة والدقة، والحاجة إلى قاطع آلي، والمنافذ: الإيثرنت مفضل للكاشيرات الثابتة وطابعات المطبخ المشتركة، وUSB لكاشير واحد، وبلوتوث للأجهزة اللوحية والمحمولة. سمِّ برنامج نقاط البيع ونظام التشغيل، لأن عدم توافق التعريفات وأوامر ESC/POS هو أكثر عطل شائع بعد التسليم. وحدد هل سيُفتح درج النقود من الطابعة وبأي جهد كهربائي، وهل يجب طباعة العربية بشكل صحيح، وطريقة التركيب (مكتبي، حامل جداري، خروج أمامي، وحدة طباعة للكشك). وأخيراً الكمية ومدة الضمان ونوع الخدمة (استبدال مسبق أو إصلاح بإعادة الجهاز). بدون ذلك سيعرض المورد أرخص طراز عام أو يخمن، وتفقد المقارنة بين العروض معناها.",
+      "body_en": "\"A receipt printer\" is not a quotable line. For a supplier to price exactly, the buyer should state the paper width and roll size, whether it is direct thermal (normal retail) or impact (hot kitchens, carbon copies), speed and resolution expectations, whether an automatic cutter is needed, and the interfaces - Ethernet is preferred for fixed tills and kitchen printers shared across terminals, USB for a single dedicated till, Bluetooth for tablets and mobile. Name the POS software and operating system the printer must work with, because driver and ESC/POS compatibility is the most common failure after delivery. Specify whether a cash drawer will be driven from the printer and at what voltage, whether Arabic must print correctly, and the mounting (desktop, wall bracket, front-exit, or a kiosk print module). Finally state quantity, warranty length, and whether you expect advance replacement or return-to-base repair. Missing any of these, a supplier will either quote the cheapest generic model or guess, and the comparison between quotes becomes meaningless.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Paper width (58/80/112 mm) and max roll diameter; Print method (direct thermal / impact for kitchen); Interfaces (USB, Ethernet, serial, Bluetooth, Wi-Fi); Command set / driver compatibility with named POS software and OS; Quantity, warranty period and on-site vs return-to-base service. Before a firm price: a firm price needs width, method, interface, compatibility and quantity.",
+      "body_ar": "عبارة \"طابعة إيصالات\" لا تكفي لعرض سعر دقيق. يجب أن يحدد المشتري عرض الورق وحجم اللفة، وهل الطباعة حرارية مباشرة (التجزئة العادية) أم نقطية بالصدم (المطابخ الحارة أو النسخ الكربونية)، وتوقعات السرعة والدقة، والحاجة إلى قاطع آلي، والمنافذ: الإيثرنت مفضل للكاشيرات الثابتة وطابعات المطبخ المشتركة، وUSB لكاشير واحد، وبلوتوث للأجهزة اللوحية والمحمولة. سمِّ برنامج نقاط البيع ونظام التشغيل، لأن عدم توافق التعريفات وأوامر ESC/POS هو أكثر عطل شائع بعد التسليم. وحدد هل سيُفتح درج النقود من الطابعة وبأي جهد كهربائي، وهل يجب طباعة العربية بشكل صحيح، وطريقة التركيب (مكتبي، حامل جداري، خروج أمامي، وحدة طباعة للكشك). وأخيراً الكمية ومدة الضمان ونوع الخدمة (استبدال مسبق أو إصلاح بإعادة الجهاز). بدون ذلك سيعرض المورد أرخص طراز عام أو يخمن، وتفقد المقارنة بين العروض معناها.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: عرض الورق، وطريقة الطباعة، والواجهات، والتوافق مع برنامج نقاط البيع، والكمية.",
       "required_specs": [
         "Paper width (58/80/112 mm) and max roll diameter",
         "Print method (direct thermal / impact for kitchen)",
@@ -88,7 +138,95 @@
         "https://www.posatmparts.com/guides/cash-drawer-wiring-connection-guide"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Paper width (58/80/112 mm) and max roll diameter",
+        "Print method (direct thermal / impact for kitchen)",
+        "Interfaces (USB, Ethernet, serial, Bluetooth, Wi-Fi)",
+        "Command set / driver compatibility with named POS software and OS",
+        "Quantity, warranty period and on-site vs return-to-base service"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Paper width (58/80/112 mm) and max roll diameter",
+          "why_needed_to_price": "Paper width.",
+          "uae_options": "58; 80; 112 mm",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Print method (direct thermal / impact for kitchen)",
+          "why_needed_to_price": "Print method.",
+          "uae_options": "thermal; impact",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Resolution (dpi) and speed (mm/s)",
+          "why_needed_to_price": "Resolution and speed.",
+          "uae_options": "dpi; mm/s",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Auto-cutter required (full/partial) and cutter life",
+          "why_needed_to_price": "Auto-cutter.",
+          "uae_options": "full; partial",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Interfaces (USB, Ethernet, serial, Bluetooth, Wi-Fi)",
+          "why_needed_to_price": "Interfaces.",
+          "uae_options": "USB; Ethernet; serial; Bluetooth",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Cash drawer kick port and voltage",
+          "why_needed_to_price": "Cash drawer port.",
+          "uae_options": "yes",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Command set / driver compatibility with named POS software and OS",
+          "why_needed_to_price": "Driver compatibility with the POS software.",
+          "uae_options": "named software; OS",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Arabic printing support",
+          "why_needed_to_price": "Arabic support.",
+          "uae_options": "shaped Arabic",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Mounting (desktop, wall, front-exit, kiosk module)",
+          "why_needed_to_price": "Mounting.",
+          "uae_options": "desktop; wall; kiosk",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Power supply type and plug",
+          "why_needed_to_price": "Power supply.",
+          "uae_options": "plug type",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity, warranty period and on-site vs return-to-base service",
+          "why_needed_to_price": "Quantity and warranty.",
+          "uae_options": "units; years",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "site_visit_required_when": "a firm price needs width, method, interface, compatibility and quantity.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "pos_retail:barcode-scanner-1d-vs-2d",
@@ -283,8 +421,8 @@
       "id": "pos_retail:pos-software-spec-checklist",
       "topic": "POS software and system RFQ checklist",
       "kind": "spec_checklist",
-      "body_en": "To get comparable quotes for a retail POS system the buyer must describe the operation, not just ask for \"POS software\". Start with the business type and formats, number of stores and tills, and peak volumes. Decide the deployment model and write down what must still work if the internet fails. State where data may be hosted. Require VAT-compliant tax invoices, the ability to issue full invoices to registered trade customers, and a stated plan for UAE e-invoicing (structured data or accredited-provider integration, electronic credit notes). Require Arabic interface and bilingual receipts. Name the acquirer and whether the payment terminal must be integrated. List the ERP, accounting and e-commerce platforms to connect. Tick required modules - inventory with transfers and counts, promotions engine, loyalty, gift cards, serial numbers for electronics, batch and expiry for pharmacy and cosmetics. State whether hardware is to be included and list it. Ask for the licensing model and the five-year total cost, the implementation scope (data migration, configuration, training, hypercare), and a support SLA with UAE business hours, weekend coverage and response times. Without these points, vendor quotes will cover different scopes and cannot be ranked honestly. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
-      "body_ar": "للحصول على عروض قابلة للمقارنة لنظام نقاط بيع، يجب أن يصف المشتري طبيعة العمل لا أن يطلب \"برنامج نقاط بيع\" فقط. ابدأ بنوع النشاط وأشكال المتاجر، وعدد المتاجر والكاشيرات، وأحجام الذروة. حدد نموذج التشغيل واكتب ما يجب أن يستمر في العمل عند انقطاع الإنترنت، وأين يُسمح باستضافة البيانات. اشترط فواتير ضريبية مطابقة، وإمكانية إصدار فاتورة كاملة للعملاء التجاريين المسجلين، وخطة واضحة للفوترة الإلكترونية في الإمارات (بيانات مهيكلة أو ربط مع مزود معتمد، وإشعارات دائنة إلكترونية). اشترط واجهة عربية وإيصالات ثنائية اللغة. سمِّ البنك المحصّل وهل يجب ربط جهاز الدفع. اذكر أنظمة ERP والمحاسبة والتجارة الإلكترونية المطلوب ربطها. حدد الوحدات المطلوبة: مخزون بالتحويلات والجرد، ومحرك عروض، وولاء، وبطاقات هدايا، وأرقام تسلسلية للإلكترونيات، ودفعات وتواريخ صلاحية للصيدليات ومستحضرات التجميل. وبيّن هل الأجهزة ضمن العرض مع قائمتها. اطلب نموذج الترخيص والتكلفة الإجمالية لخمس سنوات، ونطاق التنفيذ (ترحيل البيانات، الإعداد، التدريب، الدعم بعد الإطلاق)، واتفاقية مستوى خدمة تغطي ساعات العمل الإماراتية وعطلة نهاية الأسبوع وأزمنة الاستجابة. دون ذلك ستغطي العروض نطاقات مختلفة ولا يمكن ترتيبها بإنصاف. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "body_en": "To get comparable quotes for a retail POS system the buyer must describe the operation, not just ask for \"POS software\". Start with the business type and formats, number of stores and tills, and peak volumes. Decide the deployment model and write down what must still work if the internet fails. State where data may be hosted. Require VAT-compliant tax invoices, the ability to issue full invoices to registered trade customers, and a stated plan for UAE e-invoicing (structured data or accredited-provider integration, electronic credit notes). Require Arabic interface and bilingual receipts. Name the acquirer and whether the payment terminal must be integrated. List the ERP, accounting and e-commerce platforms to connect. Tick required modules - inventory with transfers and counts, promotions engine, loyalty, gift cards, serial numbers for electronics, batch and expiry for pharmacy and cosmetics. State whether hardware is to be included and list it. Ask for the licensing model and the five-year total cost, the implementation scope (data migration, configuration, training, hypercare), and a support SLA with UAE business hours, weekend coverage and response times. Without these points, vendor quotes will cover different scopes and cannot be ranked honestly. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Business type and formats (supermarket, apparel, pharmacy, electronics, F&B excluded); Number of stores, tills per store, and peak transactions per hour; Deployment model: cloud, on-premise, hybrid; offline requirements; ERP / accounting / e-commerce systems to integrate with; Licensing model and 5-year total cost; Implementation scope: data migration, training, go-live support. Before a firm price: a firm price needs store and till counts, deployment model, integrations and implementation scope; a demo and a requirements session are normal before a firm proposal for multi-store rollouts.",
+      "body_ar": "للحصول على عروض قابلة للمقارنة لنظام نقاط بيع، يجب أن يصف المشتري طبيعة العمل لا أن يطلب \"برنامج نقاط بيع\" فقط. ابدأ بنوع النشاط وأشكال المتاجر، وعدد المتاجر والكاشيرات، وأحجام الذروة. حدد نموذج التشغيل واكتب ما يجب أن يستمر في العمل عند انقطاع الإنترنت، وأين يُسمح باستضافة البيانات. اشترط فواتير ضريبية مطابقة، وإمكانية إصدار فاتورة كاملة للعملاء التجاريين المسجلين، وخطة واضحة للفوترة الإلكترونية في الإمارات (بيانات مهيكلة أو ربط مع مزود معتمد، وإشعارات دائنة إلكترونية). اشترط واجهة عربية وإيصالات ثنائية اللغة. سمِّ البنك المحصّل وهل يجب ربط جهاز الدفع. اذكر أنظمة ERP والمحاسبة والتجارة الإلكترونية المطلوب ربطها. حدد الوحدات المطلوبة: مخزون بالتحويلات والجرد، ومحرك عروض، وولاء، وبطاقات هدايا، وأرقام تسلسلية للإلكترونيات، ودفعات وتواريخ صلاحية للصيدليات ومستحضرات التجميل. وبيّن هل الأجهزة ضمن العرض مع قائمتها. اطلب نموذج الترخيص والتكلفة الإجمالية لخمس سنوات، ونطاق التنفيذ (ترحيل البيانات، الإعداد، التدريب، الدعم بعد الإطلاق)، واتفاقية مستوى خدمة تغطي ساعات العمل الإماراتية وعطلة نهاية الأسبوع وأزمنة الاستجابة. دون ذلك ستغطي العروض نطاقات مختلفة ولا يمكن ترتيبها بإنصاف. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: نوع النشاط، وعدد المتاجر ونقاط البيع والمعاملات، ونموذج النشر، والتكاملات، ونموذج الترخيص وتكلفة خمس سنوات، ونطاق التنفيذ. يُعدّ العرض التجريبي وجلسة المتطلبات أمراً معتاداً قبل العرض النهائي للفروع المتعددة.",
       "required_specs": [
         "Business type and formats (supermarket, apparel, pharmacy, electronics, F&B excluded)",
         "Number of stores, tills per store, and peak transactions per hour",
@@ -306,7 +444,110 @@
         "https://blog.pcisecuritystandards.org/now-is-the-time-for-organizations-to-adopt-the-future-dated-requirements-of-pci-dss-v4-x"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Business type and formats (supermarket, apparel, pharmacy, electronics, F&B excluded)",
+        "Number of stores, tills per store, and peak transactions per hour",
+        "Deployment model: cloud, on-premise, hybrid; offline requirements",
+        "ERP / accounting / e-commerce systems to integrate with",
+        "Licensing model and 5-year total cost",
+        "Implementation scope: data migration, training, go-live support"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Business type and formats (supermarket, apparel, pharmacy, electronics, F&B excluded)",
+          "why_needed_to_price": "Business type decides modules.",
+          "uae_options": "supermarket; apparel; pharmacy; electronics",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Number of stores, tills per store, and peak transactions per hour",
+          "why_needed_to_price": "Stores, tills and transactions set licences.",
+          "uae_options": "stores; tills; peak per hour",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Deployment model: cloud, on-premise, hybrid; offline requirements",
+          "why_needed_to_price": "Deployment model.",
+          "uae_options": "cloud; on-prem; hybrid; offline",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Data hosting location",
+          "why_needed_to_price": "Data hosting location.",
+          "uae_options": "UAE; abroad",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "VAT tax invoice and e-invoicing (PINT AE / ASP) readiness",
+          "why_needed_to_price": "VAT and e-invoicing readiness.",
+          "uae_options": "tax invoice; e-invoicing",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Arabic UI and bilingual receipts",
+          "why_needed_to_price": "Arabic UI and receipts.",
+          "uae_options": "yes",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terminal integration and named acquirer",
+          "why_needed_to_price": "Payment terminal integration.",
+          "uae_options": "named acquirer",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "ERP / accounting / e-commerce systems to integrate with",
+          "why_needed_to_price": "Integrations add effort.",
+          "uae_options": "ERP; accounting; e-commerce",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Modules: inventory, loyalty, promotions, gift cards, layaway, serial/batch/expiry tracking",
+          "why_needed_to_price": "Modules.",
+          "uae_options": "inventory; loyalty; promotions",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Hardware bundle required (terminals, printers, scanners, drawers, customer displays)",
+          "why_needed_to_price": "Hardware bundle.",
+          "uae_options": "terminals; printers; scanners",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Licensing model and 5-year total cost",
+          "why_needed_to_price": "Licensing model and 5-year cost.",
+          "uae_options": "subscription; perpetual",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Implementation scope: data migration, training, go-live support",
+          "why_needed_to_price": "Implementation scope.",
+          "uae_options": "migration; training; go-live",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Support SLA hours and response times, local UAE presence",
+          "why_needed_to_price": "Support SLA.",
+          "uae_options": "hours; local presence",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs store and till counts, deployment model, integrations and implementation scope; a demo and a requirements session are normal before a firm proposal for multi-store rollouts.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "pos_retail:thermal-paper-quality",
@@ -534,6 +775,18 @@
       "pos_retail:lead-times",
       "pos_retail:warranty-support"
     ],
-    "note": "still_unverified = entries whose practice-guidance claims are explicitly marked \"Not established\" (confidence lowered where no direct source); every other claim was checked against the listed fetched URLs. Batch A5, 2026-09-23."
+    "note": "still_unverified = entries whose practice-guidance claims are explicitly marked \"Not established\" (confidence lowered where no direct source); every other claim was checked against the listed fetched URLs. Batch A5, 2026-09-23.",
+    "expert_authored_unsourced": [],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    }
   }
 }

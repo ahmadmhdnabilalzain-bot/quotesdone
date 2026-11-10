@@ -5,8 +5,8 @@
       "id": "leather_footwear:spec-checklist",
       "topic": "Leather and footwear - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For leather and footwear (trade code leather_footwear only), every quoted line must state: Product and style; Upper and lining material; Sole material; Size range and ratio; Safety class for safety footwear; Colour and branding; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الجلود والأحذية (رمز النشاط leather_footwear فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المنتج والطراز؛ مادة الوجه والبطانة؛ مادة النعل؛ نطاق المقاسات ونسبها؛ فئة السلامة لأحذية السلامة؛ اللون والعلامة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For leather and footwear (trade code leather_footwear only), every quoted line must state: Product and style; Upper and lining material; Sole material; Size range and ratio; Safety class for safety footwear; Colour and branding; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Product and style; Upper and lining material; Sole material; Size range and ratio; Safety class for safety footwear; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Sole material: Oil and gas: ask heat and oil resistance; Safety class for safety footwear: Ask the site hazard. Before a firm price: a firm price needs style, material, sole, safety class and the size breakdown; custom styles need a sample pair approved first.",
+      "body_ar": "في نشاط الجلود والأحذية (رمز النشاط leather_footwear فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المنتج والطراز؛ مادة الوجه والبطانة؛ مادة النعل؛ نطاق المقاسات ونسبها؛ فئة السلامة لأحذية السلامة؛ اللون والعلامة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج وتصميمه، ومادة الوجه والبطانة، ومادة النعل، وتوزيع المقاسات، وفئة السلامة لأحذية الحماية، والكمية، والتسليم. أسئلة المتابعة: مواقع النفط والغاز تستلزم مقاومة الحرارة والزيوت، ويُسأل عن خطر الموقع لتحديد الفئة. التصاميم الخاصة تحتاج اعتماد زوج عيّنة أولاً.",
       "required_specs": [
         "Product and style",
         "Upper and lining material",
@@ -27,7 +27,111 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Product and style",
+        "Upper and lining material",
+        "Sole material",
+        "Size range and ratio",
+        "Safety class for safety footwear",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Product and style",
+          "why_needed_to_price": "Style defines the last and pattern.",
+          "uae_options": "safety boot; formal shoe; sandal; bag; belt",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Upper and lining material",
+          "why_needed_to_price": "Upper material is the main cost driver.",
+          "uae_options": "full-grain leather; split; PU; textile; lining",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Sole material",
+          "why_needed_to_price": "Sole material decides durability and safety.",
+          "uae_options": "PU; TPU; rubber; nitrile (heat and oil resistant)",
+          "follow_up_if": "Oil and gas: ask heat and oil resistance.",
+          "blocking": true
+        },
+        {
+          "spec": "Size range and ratio",
+          "why_needed_to_price": "Size range and ratio set the order.",
+          "uae_options": "EU sizes; quantity per size",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Safety class for safety footwear",
+          "why_needed_to_price": "Safety class changes construction and price.",
+          "uae_options": "EN ISO 20345 SB, S1, S1P, S3; toe cap steel or composite",
+          "follow_up_if": "Ask the site hazard.",
+          "blocking": true
+        },
+        {
+          "spec": "Colour and branding",
+          "why_needed_to_price": "Colour and branding.",
+          "uae_options": "colour; logo",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "pairs; pieces",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "Test reports for safety footwear.",
+          "uae_options": "EN ISO 20345 certificate",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "Safety footwear may need MoIAT conformity as PPE.",
+          "uae_options": "ECAS where regulated",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Delivery terms.",
+          "uae_options": "DDP site",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "sole separation; stitching",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock; production",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "size exchanges",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs style, material, sole, safety class and the size breakdown; custom styles need a sample pair approved first.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "leather_footwear:uae-standards-and-approvals",
@@ -85,6 +189,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "leather_footwear:authority-approvals",
+      "topic": "Leather Goods & Footwear: licences, permits and approvals by emirate",
+      "topic_ar": "المنتجات الجلدية والأحذية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "General footwear and leather goods need no UAE product registration. Safety footwear is personal protective equipment: MoIAT regulates listed PPE and the importer holds the conformity certificate; employers and oil and gas operators require EN ISO 20345 or an equivalent certificate. Leather goods made from protected species fall under CITES, administered in the UAE by the Ministry of Climate Change and Environment. Counterfeit branded goods are seized under trademark law by the economic departments.",
+      "body_ar": "لا تحتاج الأحذية العامة والمنتجات الجلدية إلى تسجيل منتج في الإمارات. أما أحذية السلامة فمعدات حماية شخصية: تنظم وزارة الصناعة والتكنولوجيا المتقدمة معدات الحماية المدرجة ويحوز المستورد شهادة المطابقة، ويشترط أصحاب العمل ومشغلو النفط والغاز شهادة EN ISO 20345 أو ما يعادلها. والمنتجات الجلدية المصنوعة من أنواع محمية تخضع لاتفاقية سايتس التي تديرها في الدولة وزارة التغير المناخي والبيئة. وتضبط الدوائر الاقتصادية السلع المقلدة وفق قانون العلامات التجارية.",
+      "sources": [
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "leather_footwear:quote-red-flags",
+      "topic": "Leather Goods & Footwear: red flags in supplier quotations",
+      "topic_ar": "المنتجات الجلدية والأحذية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for split or PU leather described as leather, safety class lower than asked (S1 for S3), steel toe where composite was required, no certificate, nitrile sole replaced by PU in hot sites, and lookalike brands.",
+      "body_ar": "انتبه إلى جلد مشقوق أو صناعي يوصف بأنه جلد، وفئة سلامة أدنى من المطلوبة (S1 بدل S3)، ومقدمة فولاذية حيث اشتُرطت مركبة، وغياب الشهادة، واستبدال النعل النتريلي بنعل PU في المواقع الحارة، والعلامات المقلدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "leather_footwear:buyer-mistakes",
+      "topic": "Leather Goods & Footwear: common buyer mistakes",
+      "topic_ar": "المنتجات الجلدية والأحذية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers order safety shoes without the hazard assessment, ignore sizes for large teams, and choose by price where comfort affects whether workers wear them.",
+      "body_ar": "يطلب المشترون أحذية السلامة دون تقييم الخطر، ويتجاهلون المقاسات للفرق الكبيرة، ويختارون بالسعر بينما تؤثر الراحة في التزام العمال بارتدائها.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "leather_footwear:price-drivers",
+      "topic": "Leather Goods & Footwear: what makes prices differ legitimately",
+      "topic_ar": "المنتجات الجلدية والأحذية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: leather grade, sole compound, safety class, construction (cemented, injected, Goodyear welted), brand and origin, quantity.",
+      "body_ar": "العوامل: درجة الجلد، ومركب النعل، وفئة السلامة، وطريقة الصنع (لصق أو حقن أو خياطة جوديير)، والعلامة والمنشأ، والكمية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "leather_footwear:compare-quotes-cost-to-value",
+      "topic": "Leather Goods & Footwear: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "المنتجات الجلدية والأحذية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same safety class, materials and sole, certified, with size availability. Recommend three that meet the hazard and give a comfort sample.",
+      "body_ar": "قارن فئة السلامة والمواد والنعل نفسها مع الشهادة وتوفر المقاسات. أوصِ بثلاثة عروض تلبي الخطر وتقدم عيّنة للتجربة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +299,8 @@
     "removed": [],
     "still_unverified": [
       "leather_footwear:spec-checklist",
-      "leather_footwear:uae-standards-and-approvals"
+      "leather_footwear:uae-standards-and-approvals",
+      "leather_footwear:authority-approvals"
     ],
     "added": [
       "leather_footwear:spec-checklist",
@@ -158,6 +331,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "leather_footwear:quote-red-flags",
+      "leather_footwear:buyer-mistakes",
+      "leather_footwear:price-drivers",
+      "leather_footwear:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

@@ -28,8 +28,8 @@
       "topic": "Exhibition stand design & build: makes, brands, distributors and origins in the UAE",
       "topic_ar": "تصميم وتنفيذ أجنحة المعارض: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Dubai stand builders such as Beyond Productions, Spark Innovations and StandMaker, the modular systems Octanorm, BeMatrix and Aluvision, and major shows like GITEX, Gulfood and Arab Health. Confirmed Dubai stand builders and common modular systems: Beyond Productions, Spark Innovations, StandMaker, Mind Spirit Design, Octanorm, BeMatrix, Aluvision. The modular systems' UAE suppliers were not checked. Major shows include GITEX, Gulfood, Arab Health, Big 5, ADIPEC and IDEX.",
-      "body_ar": "من أبرز منفذي أجنحة المعارض في دبي Beyond Productions وSpark Innovations وStandMaker، ومن الأنظمة المعيارية Octanorm وBeMatrix وAluvision، ومن كبرى المعارض GITEX وGulfood وArab Health. بناة الأجنحة المؤكدون في دبي والأنظمة المعيارية الشائعة: Beyond Productions، Spark Innovations، StandMaker، Mind Spirit Design، Octanorm، BeMatrix، Aluvision. ولم يُتحقق من موردي الأنظمة المعيارية في الإمارات. وتشمل المعارض الكبرى جيتكس وجلفود والصحة العربي وبيغ 5 وأديبك وآيدكس.",
+      "body_en": "Dubai stand builders such as Beyond Productions, Spark Innovations and StandMaker, the modular systems Octanorm, BeMatrix and Aluvision, and major shows like GITEX, Gulfood and Arab Health. Confirmed Dubai stand builders and common modular systems: Beyond Productions, Spark Innovations, StandMaker, Mind Spirit Design, Octanorm, BeMatrix, Aluvision. The modular systems' UAE suppliers were not checked. Major shows include GITEX, Gulfood, Arab Health, Big 5, ADIPEC and IDEX.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Beyond Productions = a UAE trading or retail name; Spark Innovations = a UAE trading or retail name; StandMaker = a UAE trading or retail name; Mind Spirit Design = a UAE trading or retail name; Octanorm = a premium German brand; BeMatrix = a premium Belgian brand; Aluvision = a premium Belgian brand.",
+      "body_ar": "من أبرز منفذي أجنحة المعارض في دبي Beyond Productions وSpark Innovations وStandMaker، ومن الأنظمة المعيارية Octanorm وBeMatrix وAluvision، ومن كبرى المعارض GITEX وGulfood وArab Health. بناة الأجنحة المؤكدون في دبي والأنظمة المعيارية الشائعة: Beyond Productions، Spark Innovations، StandMaker، Mind Spirit Design، Octanorm، BeMatrix، Aluvision. ولم يُتحقق من موردي الأنظمة المعيارية في الإمارات. وتشمل المعارض الكبرى جيتكس وجلفود والصحة العربي وبيغ 5 وأديبك وآيدكس.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Beyond Productions = اسم تجاري لتاجر أو موزع في الإمارات؛ Spark Innovations = اسم تجاري لتاجر أو موزع في الإمارات؛ StandMaker = اسم تجاري لتاجر أو موزع في الإمارات؛ Mind Spirit Design = اسم تجاري لتاجر أو موزع في الإمارات؛ Octanorm = علامة ألمانية من الفئة الممتازة؛ BeMatrix = علامة بلجيكية من الفئة الممتازة؛ Aluvision = علامة بلجيكية من الفئة الممتازة.",
       "sources": [
         "https://www.dwtc.com/en/exhibit/stand-building/",
         "https://beyondentt.com/services/exhibition-stand-fabrication/",
@@ -40,7 +40,58 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: DWTC requires contractor accreditation; stands above 4 m need structural approval and fire-rated finishes; double-deck approval is hall-specific -> corrected: 4-6 m range replaced with the 4 m approval threshold | Stand builders in Dubai include Beyond Productions, Spark Innovations, StandMaker (Al Quoz) and Mind Spirit Design -> confirmed | Sparks as a named builder -> corrected: Spark Innovations. Not checked: Builder names are examples; maximum stand heights differ per venue and show and were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: DWTC requires contractor accreditation; stands above 4 m need structural approval and fire-rated finishes; double-deck approval is hall-specific -> corrected: 4-6 m range replaced with the 4 m approval threshold | Stand builders in Dubai include Beyond Productions, Spark Innovations, StandMaker (Al Quoz) and Mind Spirit Design -> confirmed | Sparks as a named builder -> corrected: Spark Innovations. Not checked: Builder names are examples; maximum stand heights differ per venue and show and were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Beyond Productions",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Spark Innovations",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "StandMaker",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Mind Spirit Design",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Octanorm",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "BeMatrix",
+          "origin": "Belgium",
+          "tier": "premium",
+          "generic_en": "a premium Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Aluvision",
+          "origin": "Belgium",
+          "tier": "premium",
+          "generic_en": "a premium Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "exhibition_stands:uae-market-sizes",
