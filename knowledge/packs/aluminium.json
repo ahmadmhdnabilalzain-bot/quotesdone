@@ -658,14 +658,16 @@
       "sources": [
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
         "https://www.dcd.gov.ae/portal/en/e-services/company-approval-services",
-        "https://dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
-        "https://shjmun.gov.ae/servicedirectory/subServices/10",
-        "https://pcfc.ae/en/Service%20Documents/PCFC-TRK-CED-PS-CP-01,%20Client%20procedure%20for%20Obtaining%20Building%20Permits.pdf"
+        "https://www.dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
+        "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
+        "https://pcfc.ae/en/Service%20Documents/PCFC-TRK-CED-PS-CP-01,%20Client%20procedure%20for%20Obtaining%20Building%20Permits.pdf",
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Sharjah Municipality's new-project drawing approval lists Civil Defense among the supporting departments (shjmun.gov.ae service directory); DMT's occupancy-certificate programme (Administrative Decision No. 1 of 2024) makes fire safety an essential standard. Not confirmed on any reachable page: the fire-code classification, Dubai Civil Defence product and installer registration, and that an Abu Dhabi occupancy certificate needs civil defence clearance (the DMT news does not say so). Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt); pcfc.ae (Trakhees; blocked, and www.trakhees.ae redirects there); www.adcd.gov.ae (empty reply)."
     },
     {
       "id": "aluminium:compare-quotes-cost-to-value",
@@ -771,8 +773,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 23,
-    "claims_checked": 195,
+    "fetched_urls": 26,
+    "claims_checked": 203,
     "corrected": [
       "aluminium:extrusion-process-and-tolerances",
       "aluminium:thermal-break-profiles",
@@ -794,7 +796,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: aluminium:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 8 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

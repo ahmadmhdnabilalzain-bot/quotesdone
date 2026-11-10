@@ -693,13 +693,15 @@
       "body_ar": "في دبي: يشترط الدليل الفني لبلدية دبي للرافعات والروافع والمصاعد ومعدات الرفع الأخرى فحصها واعتمادها من طرف ثالث معتمد من مركز الإمارات الدولي للاعتماد، وينص الدليل على فاصل 12 شهراً، ويجب إيقاف أي وحدة غير آمنة وإبلاغ إدارة الصحة والسلامة. ويعتمد الدفاع المدني بدبي مصاعد مكافحة الحريق وربط المصاعد بإنذار الحريق. في أبوظبي: يدرج برنامج شهادات الإشغال لدى دائرة البلديات والنقل سلامة المصاعد ضمن المتطلبات الأساسية، وتذكر تقارير صحفية غرامات من الدفاع المدني للمباني دون عقد صيانة معتمد للمصاعد، ولم يُتحقق من ذلك في صفحة رسمية في هذه الجلسة. في الشارقة والإمارات الشمالية: تنطبق موافقة الدفاع المدني والفحص من طرف ثالث، ولم يُتحقق من القواعد المحددة. من يحصل عليها: يحتفظ مالك المبنى بالشهادة، وتنفذ شركة المصاعد والفاحص العمل.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2025/02/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V5.pdf",
-        "https://dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
-        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+        "https://www.dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.dm.gov.ae/documents/hsd-gu48/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM publishes Technical Guideline 48 for examination and certification of cranes, hoists, lifts and other lifting equipment (dated 17 Feb 2025); DMT's occupancy programme lists elevator safety among the essential standards. Not confirmed on any reachable page: the content of Guideline 48 (EIAC third party, 12-month interval, stop-and-report) and civil defence approval of firefighting lifts. Host(s) that could not be reached: dmpmedia.dm.gov.ae (Dubai Municipality's PDF host; blocked, and the cited www.dm.gov.ae/wp-content PDF links now redirect to the home page); www.dcd.gov.ae (connection reset by the site, every attempt)."
     },
     {
       "id": "elevators:compare-quotes-cost-to-value",
@@ -803,8 +805,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 13,
-    "claims_checked": 196,
+    "fetched_urls": 15,
+    "claims_checked": 202,
     "corrected": [
       "elevators:en-81-70-accessibility",
       "elevators:en-81-72-firefighter-lifts",
@@ -825,7 +827,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: elevators:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

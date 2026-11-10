@@ -143,12 +143,15 @@
       "body_en": "A business centre must hold a trade licence for business-centre activity from the emirate's economic department or free-zone authority (in Dubai, the Department of Economy and Tourism or the free zone). For a company licence, many authorities require a registered tenancy: Ejari in Dubai and Tawtheeq in Abu Dhabi; free zones (for example DMCC, DAFZA, RAKEZ, IFZA) issue their own flexi-desk leases inside set-up packages. Whether a given flexi-desk supports visas depends on the authority's rules, which this session did not confirm per authority. Who obtains: the centre registers the tenancy; the customer uses it for licensing.",
       "body_ar": "يجب أن يحمل مركز الأعمال رخصة تجارية لنشاط مركز الأعمال من الدائرة الاقتصادية في الإمارة أو من سلطة المنطقة الحرة (في دبي دائرة الاقتصاد والسياحة أو المنطقة الحرة). ولترخيص الشركة تشترط جهات كثيرة إيجاراً مسجلاً: إيجاري في دبي وتوثيق في أبوظبي، وتصدر المناطق الحرة (مثل مركز دبي للسلع المتعددة والمنطقة الحرة لمطار دبي ومنطقة رأس الخيمة الاقتصادية والمنطقة الحرة الدولية بدبي) عقود المكاتب المرنة الخاصة بها ضمن باقات التأسيس. ويعتمد دعم المكتب المرن للتأشيرات على قواعد الجهة، ولم يُتحقق من ذلك لكل جهة في هذه الجلسة. من يسجّل: المركز يسجّل الإيجار، والعميل يستخدمه للترخيص.",
       "sources": [
-        "https://www.dubaidet.gov.ae/en/licences-and-permits"
+        "https://www.dubaidet.gov.ae/en/licences-and-permits",
+        "https://u.ae/en/information-and-services/business/Doing-business/doing-business-on-the-mainland/steps-to-start-a-business-on-the-mainland",
+        "https://u.ae/en/information-and-services/moving-to-the-uae/leasing-a-property-in-the-uae"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: a Dubai mainland licence application asks for a lease attested by RERA (Ejari), and Abu Dhabi tenancy contracts are registered in Tawtheeq (u.ae). Not confirmed on any reachable page: the Department of Economy and Tourism page and the free-zone flexi-desk rules. Host(s) that could not be reached: www.dubaidet.gov.ae (blocked by the session network)."
     },
     {
       "id": "business_centres:quote-red-flags",
@@ -237,8 +240,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 0,
-    "claims_checked": 0,
+    "fetched_urls": 2,
+    "claims_checked": 5,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -284,7 +287,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: business_centres:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 5 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

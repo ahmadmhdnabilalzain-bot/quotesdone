@@ -141,15 +141,16 @@
       "body_en": "Federal: pesticides may be imported, exported or circulated only after registration (Ministerial Decree No. 27 of 2018), each consignment needs a prior import permit, and banned pesticides cannot be registered; fertilisers and agricultural conditioners need a registration certificate, valid five years, and import permits per consignment, with restricted materials needing annual approval coordinated with the Ministry of Interior. These services moved from MOCCAE to the Emirates Drug Establishment (EDE) from 25 December 2025. Abu Dhabi: ADAFSA regulates agriculture in the emirate; its role in inputs was not confirmed in this session. Who obtains: the registrant or importer; the trader should show the registration.",
       "body_ar": "اتحادياً: لا يجوز استيراد المبيدات أو تصديرها أو تداولها إلا بعد تسجيلها (القرار الوزاري رقم 27 لسنة 2018)، وتحتاج كل شحنة إلى إذن استيراد مسبق، ولا يجوز تسجيل المبيدات المحظورة؛ وتحتاج الأسمدة والمحسنات الزراعية إلى شهادة تسجيل صالحة خمس سنوات وإلى إذن استيراد لكل شحنة، وتحتاج المواد المقيدة إلى موافقة سنوية بالتنسيق مع وزارة الداخلية. وقد انتقلت هذه الخدمات من وزارة التغير المناخي والبيئة إلى مؤسسة الإمارات للدواء اعتباراً من 25 ديسمبر 2025. في أبوظبي: تنظم هيئة أبوظبي للزراعة والسلامة الغذائية الزراعة في الإمارة، ولم يُتحقق من دورها في المدخلات في هذه الجلسة. من يحصل عليها: صاحب التسجيل أو المستورد، وعلى التاجر إبراز التسجيل.",
       "sources": [
-        "https://moccae.gov.ae/en/media-center/news/8/2/2018/ministry-of-climate-change-and-environment-issues-new-decree-on-registration-and-import-of-pesticide",
+        "https://www.moccae.gov.ae/en/media-center/news/8/2/2018/ministry-of-climate-change-and-environment-issues-new-decree-on-registration-and-import-of-pesticide",
         "https://www.moccae.gov.ae/en/services/permit-of-pesticide-import",
         "https://site.moccae.gov.ae/en/services/registration-of-fertilizers-and-agricultural-conditioners",
         "https://www.ede.gov.ae"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: MOCCAE news of 8 Feb 2018 on Ministerial Decree No. 27 of 2018: pesticides may be imported, exported or circulated only after registration, banned pesticides cannot be registered or imported, and import permits are issued per facility. Not confirmed on any reachable page: the per-consignment import permit wording, the fertiliser registration (the cited MOCCAE fertiliser and pesticide-import service pages now return MOCCAE's page-not-found, consistent with the services having moved), and the transfer to the Emirates Drug Establishment. Host(s) that could not be reached: www.ede.gov.ae (blocked by the session network)."
     },
     {
       "id": "agri_inputs:quote-red-flags",
@@ -238,8 +239,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 1,
+    "fetched_urls": 4,
+    "claims_checked": 8,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -285,7 +286,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: agri_inputs:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 7 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

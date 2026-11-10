@@ -141,17 +141,19 @@
       "kind": "authority_approval",
       "topic": "Electrical supplies: product approvals",
       "topic_ar": "المستلزمات الكهربائية: اعتمادات المنتجات",
-      "body_en": "Federal: electrical products on MoIAT's regulated list (for example plugs, sockets, switches, many appliances and lighting) need a conformity certificate before they are sold in any emirate; this is the ECAS/EQM scheme formerly run by ESMA. Utility-specific items (meters, some cables and switchgear for connection points) must be on the approved list of the emirate's utility: DEWA (Dubai), ADDC/AADC (Abu Dhabi), SEWA (Sharjah), EtihadWE (northern emirates). No approval is needed to buy for one's own use, but the installer must use conforming products. Who obtains: the importer or brand owner holds the certificate; the wholesaler should provide it.",
-      "body_ar": "اتحادياً: تحتاج المنتجات الكهربائية المدرجة في قائمة المنتجات الخاضعة للرقابة لدى وزارة الصناعة والتكنولوجيا المتقدمة (مثل القوابس والمقابس والمفاتيح وكثير من الأجهزة والإنارة) إلى شهادة مطابقة قبل بيعها في أي إمارة، وهو نظام كانت تديره هيئة الإمارات للمواصفات والمقاييس. ويجب أن تكون البنود الخاصة بالجهات (العدادات وبعض الكابلات والمفاتيح عند نقاط التوصيل) ضمن القائمة المعتمدة لجهة الكهرباء في الإمارة: هيئة كهرباء ومياه دبي، وشركتا التوزيع في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة، والاتحاد للماء والكهرباء. ولا يحتاج الشراء للاستخدام الخاص إلى اعتماد، لكن يجب على المركّب استخدام منتجات مطابقة. من يحصل عليها: المستورد أو مالك العلامة يحمل الشهادة، وعلى تاجر الجملة تقديمها.",
+      "body_en": "Federal: electrical products on MoIAT's regulated list (for example plugs, sockets, switches, many appliances and lighting) need a conformity certificate before they are sold in any emirate; this is the ECAS/EQM scheme formerly run by ESMA. Utility-specific items (meters, some cables and switchgear for connection points) must be on the approved list of the emirate's utility: DEWA (Dubai), ADDC/AADC, now merged as TAQA Distribution (Abu Dhabi), SEWA (Sharjah), EtihadWE (northern emirates). No approval is needed to buy for one's own use, but the installer must use conforming products. Who obtains: the importer or brand owner holds the certificate; the wholesaler should provide it.",
+      "body_ar": "اتحادياً: تحتاج المنتجات الكهربائية المدرجة في قائمة المنتجات الخاضعة للرقابة لدى وزارة الصناعة والتكنولوجيا المتقدمة (مثل القوابس والمقابس والمفاتيح وكثير من الأجهزة والإنارة) إلى شهادة مطابقة قبل بيعها في أي إمارة، وهو نظام كانت تديره هيئة الإمارات للمواصفات والمقاييس. ويجب أن تكون البنود الخاصة بالجهات (العدادات وبعض الكابلات والمفاتيح عند نقاط التوصيل) ضمن القائمة المعتمدة لجهة الكهرباء في الإمارة: هيئة كهرباء ومياه دبي، وشركتا التوزيع في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة، والاتحاد للماء والكهرباء. ولا يحتاج الشراء للاستخدام الخاص إلى اعتماد، لكن يجب على المركّب استخدام منتجات مطابقة. وقد دُمجت شركة أبوظبي للتوزيع وشركة العين للتوزيع في شركة «طاقة للتوزيع» المسؤولة عن شبكات الكهرباء والمياه في إمارة أبوظبي. من يحصل عليها: المستورد أو مالك العلامة يحمل الشهادة، وعلى تاجر الجملة تقديمها.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/E-Library/ADDC-requirement-for-issuing-NOC-online.pdf",
-        "https://www.etihadwe.ae/en"
+        "https://www.etihadwe.ae/en",
+        "https://u.ae/en/information-and-services/housing/public-utilities"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE publishes an approved vendor list and material pre-qualification (etihadwe.ae); ADDC and AADC are merged into TAQA Distribution (u.ae). Not confirmed on any reachable page: the MoIAT regulated list and ECAS/EQM scheme, and the DEWA approved list. Host(s) that could not be reached: moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection); www.dewa.gov.ae (HTTP 403 from the site; dewa.gov.ae blocked by the session network). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "electrical_wholesale:quote-red-flags",
@@ -240,9 +242,11 @@
     }
   ],
   "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 1,
-    "corrected": [],
+    "fetched_urls": 4,
+    "claims_checked": 6,
+    "corrected": [
+      "electrical_wholesale:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
       "electrical_wholesale:spec-checklist",
@@ -286,7 +290,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: electrical_wholesale:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 5 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

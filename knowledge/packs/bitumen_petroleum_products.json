@@ -138,14 +138,15 @@
       "body_en": "Trading petroleum products requires a licence for the activity in the emirate, under federal petroleum-products rules of the Ministry of Energy and Infrastructure, which this session did not read. Bitumen for public roads must meet the road authority's specification: RTA in Dubai, the DMT municipalities and the Integrated Transport Centre in Abu Dhabi, and the authorities of Sharjah and the northern emirates. Storage of flammable products needs civil defence approval. Who obtains: the trader holds the licence; the road contractor submits the product for approval.",
       "body_ar": "يتطلب تداول المنتجات البترولية ترخيصاً للنشاط في الإمارة وفق القواعد الاتحادية للمنتجات البترولية لدى وزارة الطاقة والبنية التحتية، ولم يُطّلع عليها في هذه الجلسة. ويجب أن يحقق البيتومين المستخدم في الطرق العامة مواصفة جهة الطرق: هيئة الطرق والمواصلات في دبي، وبلديات دائرة البلديات والنقل ومركز النقل المتكامل في أبوظبي، وجهات الشارقة والإمارات الشمالية. ويحتاج تخزين المنتجات القابلة للاشتعال إلى موافقة الدفاع المدني. من يحصل عليها: التاجر يحمل الترخيص، ومقاول الطرق يقدم المنتج للاعتماد.",
       "sources": [
-        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=3704531",
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=314",
         "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/E-Library/Abu-Dhabi-Emirate-Guideline-for-Infrastructure-Services-Standards.pdf",
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: the cited RTA service page (serviceId 3704531) now returns RTA's 404 page and was replaced by RTA's right-of-way permit page; the Abu Dhabi infrastructure services guideline (DMT, 2nd edition, January 2017) was opened but does not set a bitumen specification. Not confirmed on any reachable page: the road-authority bitumen specifications, the petroleum-products trading rules and civil defence storage approval. Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt)."
     },
     {
       "id": "bitumen_petroleum_products:quote-red-flags",
@@ -234,8 +235,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 1,
+    "fetched_urls": 4,
+    "claims_checked": 6,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -280,7 +281,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: bitumen_petroleum_products:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 5 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

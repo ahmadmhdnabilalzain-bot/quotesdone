@@ -946,19 +946,22 @@
       "kind": "authority_approval",
       "topic": "Electrical works: utility approvals per emirate",
       "topic_ar": "الأعمال الكهربائية: موافقات الجهات في كل إمارة",
-      "body_en": "Each emirate's electricity authority approves new connections, load increases and installations: DEWA in Dubai (its regulations make the building permit a prerequisite), ADDC (Abu Dhabi and Al Dhafra) and AADC (Al Ain) under the Department of Energy's wiring regulations in Abu Dhabi, SEWA in Sharjah, and Etihad Water and Electricity (EtihadWE) in Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah, which handles new service connections by consumption category and connection type. Installations must be carried out by contractors registered with the authority. Regulated electrical products need MoIAT conformity. Fire alarm and emergency lighting are approved by civil defence. Who obtains: the registered electrical contractor or consultant.",
-      "body_ar": "تعتمد جهة الكهرباء في كل إمارة التوصيلات الجديدة وزيادات الأحمال والتمديدات: هيئة كهرباء ومياه دبي في دبي (وتجعل لوائحها رخصة البناء شرطاً مسبقاً)، وشركة أبوظبي للتوزيع (أبوظبي والظفرة) وشركة العين للتوزيع وفق لوائح التمديدات الكهربائية لدائرة الطاقة في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة في الشارقة، والاتحاد للماء والكهرباء في عجمان وأم القيوين ورأس الخيمة والفجيرة التي تتولى التوصيلات الجديدة حسب فئة الاستهلاك ونوع التوصيل. ويجب أن ينفذ التمديدات مقاولون مسجلون لدى الجهة. وتحتاج المنتجات الكهربائية الخاضعة للرقابة إلى مطابقة وزارة الصناعة والتكنولوجيا المتقدمة. ويعتمد الدفاع المدني إنذار الحريق والإنارة الطارئة. من يحصل عليها: المقاول الكهربائي المسجل أو الاستشاري.",
+      "body_en": "Each emirate's electricity authority approves new connections, load increases and installations: DEWA in Dubai (its regulations make the building permit a prerequisite), ADDC (Abu Dhabi and Al Dhafra) and AADC (Al Ain), now merged as TAQA Distribution, under the Department of Energy's wiring regulations in Abu Dhabi, SEWA in Sharjah, and Etihad Water and Electricity (EtihadWE) in Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah, which handles new service connections by consumption category and connection type. Installations must be carried out by contractors registered with the authority. Regulated electrical products need MoIAT conformity. Fire alarm and emergency lighting are approved by civil defence. Who obtains: the registered electrical contractor or consultant.",
+      "body_ar": "تعتمد جهة الكهرباء في كل إمارة التوصيلات الجديدة وزيادات الأحمال والتمديدات: هيئة كهرباء ومياه دبي في دبي (وتجعل لوائحها رخصة البناء شرطاً مسبقاً)، وشركة أبوظبي للتوزيع (أبوظبي والظفرة) وشركة العين للتوزيع وفق لوائح التمديدات الكهربائية لدائرة الطاقة في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة في الشارقة، والاتحاد للماء والكهرباء في عجمان وأم القيوين ورأس الخيمة والفجيرة التي تتولى التوصيلات الجديدة حسب فئة الاستهلاك ونوع التوصيل. ويجب أن ينفذ التمديدات مقاولون مسجلون لدى الجهة. وتحتاج المنتجات الكهربائية الخاضعة للرقابة إلى مطابقة وزارة الصناعة والتكنولوجيا المتقدمة. ويعتمد الدفاع المدني إنذار الحريق والإنارة الطارئة. وقد دُمجت شركة أبوظبي للتوزيع وشركة العين للتوزيع في شركة «طاقة للتوزيع» المسؤولة عن شبكات الكهرباء والمياه في إمارة أبوظبي. من يحصل عليها: المقاول الكهربائي المسجل أو الاستشاري.",
       "sources": [
         "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/E-Library/ADDC-requirement-for-issuing-NOC-online.pdf",
-        "https://shjmun.gov.ae/servicedirectory/subServices/10",
+        "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
         "https://www.etihadwe.ae/en",
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
-        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://u.ae/en/information-and-services/housing/public-utilities",
+        "https://www.sewa.gov.ae/en/about-us"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE serves Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah and offers new service connections by consumption category and connection type, publishes an electricity wiring regulation and approved LV contractor lists (etihadwe.ae); SEWA supplies electricity in Sharjah; ADDC and AADC are merged into TAQA Distribution (u.ae). Not confirmed on any reachable page: the DEWA regulations, MoIAT conformity and civil defence approval. Host(s) that could not be reached: www.dewa.gov.ae (HTTP 403 from the site; dewa.gov.ae blocked by the session network); moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection); www.dcd.gov.ae (connection reset by the site, every attempt); www.doe.gov.ae (blocked by the session network). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "electrical:compare-quotes-cost-to-value",
@@ -1080,8 +1083,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 47,
-    "claims_checked": 166,
+    "fetched_urls": 52,
+    "claims_checked": 174,
     "corrected": [
       "electrical:surge-protective-devices",
       "electrical:ev-charger-dewa-process",
@@ -1098,7 +1101,8 @@
       "electrical:smart-meters-submetering",
       "electrical:fault-level-breaking-capacity",
       "electrical:emergency-lighting",
-      "electrical:fire-resistant-cables"
+      "electrical:fire-resistant-cables",
+      "electrical:approvals-per-emirate"
     ],
     "removed": [],
     "still_unverified": [
@@ -1117,7 +1121,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: electrical:approvals-per-emirate re-checked against official pages opened through the session network (5 URL(s) read, 8 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

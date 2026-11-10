@@ -146,18 +146,21 @@
       "kind": "authority_approval",
       "topic": "Batteries and storage: approvals per emirate",
       "topic_ar": "البطاريات والتخزين: الاعتمادات في كل إمارة",
-      "body_en": "Battery energy storage connected to the grid with solar needs the utility's approval: DEWA (Dubai), ADDC/AADC under the Department of Energy (Abu Dhabi), SEWA (Sharjah) and EtihadWE (northern emirates). Larger stationary systems are approved for fire safety by the emirate's civil defence under the UAE Fire and Life Safety Code; the thresholds were not confirmed in this session. Batteries on MoIAT's regulated list need a conformity certificate. Lithium batteries must carry UN 38.3 transport test evidence for shipping. A small UPS battery replacement needs no approval. Who obtains: the installer or contractor; the supplier provides test certificates.",
-      "body_ar": "يحتاج تخزين الطاقة بالبطاريات الموصول بالشبكة مع الطاقة الشمسية إلى موافقة الجهة: هيئة كهرباء ومياه دبي، وشركتا التوزيع وفق دائرة الطاقة في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة، والاتحاد للماء والكهرباء في الإمارات الشمالية. وتُعتمد الأنظمة الثابتة الأكبر من ناحية السلامة من الحريق لدى الدفاع المدني في الإمارة وفق كود الإمارات للحماية من الحرائق، ولم يُتحقق من الحدود في هذه الجلسة. وتحتاج البطاريات المدرجة ضمن المنتجات الخاضعة للرقابة إلى شهادة مطابقة من وزارة الصناعة. ويجب أن تحمل بطاريات الليثيوم ما يثبت اجتياز اختبار النقل UN 38.3 للشحن. واستبدال بطارية UPS صغيرة لا يحتاج إلى اعتماد. من يحصل عليها: المركّب أو المقاول، ويقدم المورد شهادات الاختبار.",
+      "body_en": "Battery energy storage connected to the grid with solar needs the utility's approval: DEWA (Dubai), ADDC/AADC under the Department of Energy (Abu Dhabi; the two companies have been merged into TAQA Distribution), SEWA (Sharjah) and EtihadWE (northern emirates). Larger stationary systems are approved for fire safety by the emirate's civil defence under the UAE Fire and Life Safety Code; the thresholds were not confirmed in this session. Batteries on MoIAT's regulated list need a conformity certificate. Lithium batteries must carry UN 38.3 transport test evidence for shipping. A small UPS battery replacement needs no approval. Who obtains: the installer or contractor; the supplier provides test certificates.",
+      "body_ar": "يحتاج تخزين الطاقة بالبطاريات الموصول بالشبكة مع الطاقة الشمسية إلى موافقة الجهة: هيئة كهرباء ومياه دبي، وشركتا التوزيع وفق دائرة الطاقة في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة، والاتحاد للماء والكهرباء في الإمارات الشمالية. وتُعتمد الأنظمة الثابتة الأكبر من ناحية السلامة من الحريق لدى الدفاع المدني في الإمارة وفق كود الإمارات للحماية من الحرائق، ولم يُتحقق من الحدود في هذه الجلسة. وتحتاج البطاريات المدرجة ضمن المنتجات الخاضعة للرقابة إلى شهادة مطابقة من وزارة الصناعة. ويجب أن تحمل بطاريات الليثيوم ما يثبت اجتياز اختبار النقل UN 38.3 للشحن. واستبدال بطارية UPS صغيرة لا يحتاج إلى اعتماد. وقد دُمجت شركة أبوظبي للتوزيع وشركة العين للتوزيع في شركة «طاقة للتوزيع» المسؤولة عن شبكات الكهرباء والمياه في إمارة أبوظبي. من يحصل عليها: المركّب أو المقاول، ويقدم المورد شهادات الاختبار.",
       "sources": [
         "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/contractors-and-consultants/list-of-eligible-equipment",
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
-        "https://www.etihadwe.ae/en"
+        "https://www.etihadwe.ae/en",
+        "https://u.ae/en/information-and-services/housing/public-utilities",
+        "https://www.sewa.gov.ae/en/about-us"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE serves the northern emirates, SEWA is the electricity provider of Sharjah, and ADDC and AADC have been merged into TAQA Distribution (u.ae public utilities page, updated 29 Oct 2026). Not confirmed on any reachable page: the DEWA, civil defence and MoIAT parts. Host(s) that could not be reached: www.dewa.gov.ae (HTTP 403 from the site; dewa.gov.ae blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt); moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "batteries_storage:quote-red-flags",
@@ -246,9 +249,11 @@
     }
   ],
   "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 1,
-    "corrected": [],
+    "fetched_urls": 5,
+    "claims_checked": 7,
+    "corrected": [
+      "batteries_storage:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
       "batteries_storage:spec-checklist",
@@ -293,7 +298,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: batteries_storage:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 6 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }
