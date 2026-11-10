@@ -5,6 +5,7 @@ import { amountInOwnWords, supplierDirectiveAllowed } from './directive_gate.ts'
 import { admin, sec, TW } from './shared.ts';
 import { sendWa, toContact } from './replies.ts';
 import type { WaTurn } from './turn.ts';
+import { repriceOutagePlan } from './reprice_outage.ts';
 
 // ---- A SUPPLIER ASKING FOR A CHANGE, NOT AN ANSWER (v18) ---------------
 // "Adjust my quotation price" is the one verb on the supplier's list, and until now this
@@ -27,7 +28,27 @@ export async function supplierDirective(t: WaTurn): Promise<Response | undefined
   if (supplierDirectiveAllowed({ audience, internalCaller })) {
     try {
       const parsed = await directiveRead();   // started beside the classification (above); asked here when it was not
-      const ownAmount = parsed?.change === true ? amountInOwnWords(parsed?.amount, Body) : null;
+      // THE READER IS DOWN (reprice_outage.ts, 10 Nov 2026): a message that states an amount is told so now and filed for
+      // one more reading; nothing is applied on a guess. Without an amount it cannot be a re-price: the ordinary path answers.
+      const out0 = repriceOutagePlan(parsed, From, Body, MessageSid || null);
+      if (out0) {
+        const { data: heldId, error: holdErr } = await admin.rpc('fn_reason_hold', out0.hold);
+        const enabledO = (await sec('wa_autoreply_enabled')) === 'true';
+        const r = enabledO ? await sendWa(From, out0.notice) : { ok: false, err: 'autoreply_disabled' };
+        try {
+          await waInsert(receivedAt, {
+            wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
+            inbound: Body, reply: out0.notice, lang: 'en', escalated: false, sent: r.ok,
+            meta: { enabled: enabledO, audience: 'supplier', route: 'supplier_directive_outage', applied: false, held_id: Number(heldId) || null,
+                    hold_error: holdErr?.message ?? null, amounts: out0.amounts, why: parsed && 'why' in parsed ? parsed.why : null,
+                    send_error: r.err || null, provenance_verified: true, message_sid: MessageSid || null },
+          });
+        } catch (_e) { /* the notice already went out */ }
+        await logRun('error', { audience: 'supplier', route: 'supplier_directive_outage', applied: false, sent: r.ok, held: heldId ? 1 : 0 },
+          'a supplier WhatsApp message with an amount could not be read for a price change (reader unavailable): told so, nothing applied, ' + (heldId ? 'filed for one more reading as held question ' + heldId : 'NOT filed: ' + String(holdErr?.message || 'fixture or no row')));
+        return TW(200);
+      }
+      const ownAmount = parsed && parsed.outage !== true && parsed.change === true ? amountInOwnWords(parsed.amount, Body) : null;
       if (ownAmount) {
         const { data: applied } = await admin.rpc('fn_supplier_apply_change', {
           p_phone: From, p_field: 'quote_price', p_value: ownAmount,

@@ -34,3 +34,12 @@ export function amountInOwnWords(amount: unknown, body: string): string | null {
   const said = western(String(body || '')).match(/\d(?:[\d,\u066C.]|\s(?=\d{3}\b))*k?/gi) ?? [];
   return said.some((s) => toNumber(s.replace(/[.,\u066C]+$/, '')) === want) ? String(want) : null;
 }
+
+/** Every amount the supplier's own message states, as the bare number amountInOwnWords would accept (largest first). The
+ *  replay of a re-price the model could not read chooses among THESE only (reprice_outage.ts): no amount is invented. */
+export function amountsInOwnWords(body: string): string[] {
+  const said = western(String(body || '')).match(/\d(?:[\d,\u066C.]|\s(?=\d{3}\b))*k?/gi) ?? [];
+  const out = new Set<number>();
+  for (const s of said) { const n = toNumber(s.replace(/[.,\u066C]+$/, '')); if (n != null && n > 0) out.add(n); }
+  return [...out].sort((a, b) => b - a).slice(0, 8).map(String);
+}
