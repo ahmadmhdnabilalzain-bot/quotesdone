@@ -54,8 +54,8 @@ Deno.test('a proprietary product line is "proprietary"; a quoted phrase or a spe
 
 Deno.test('a brand that is also a plain word is taken only where the text treats it as a make', () => {
   assertEquals(T('Continental breakfast for 50 guests'), 'Continental breakfast for 50 guests');
-  assertEquals(T('Carrier 5 TR ducted split unit'), 'American brand 5 TR ducted split unit');
-  assertEquals(T('Brand: Carrier'), 'Brand: American brand');
+  assertEquals(T('Carrier 5 TR ducted split unit'), 'premium American brand 5 TR ducted split unit');   // the packs' brand_origins give its tier (10 Nov)
+  assertEquals(T('Brand: Carrier'), 'Brand: premium American brand');
   assertEquals(brandFact('Malaysian'), null, 'a nationality is never a brand');
 });
 

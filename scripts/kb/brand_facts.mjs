@@ -66,11 +66,21 @@ export function namesOf(entry) {
     const prev = out.get(name);
     if (!prev || (!prev.origin && origin)) out.set(name, { origin: origin ?? prev?.origin ?? null, tier: tier ?? prev?.tier ?? null, from: origin ? from : (prev?.from ?? from) });
   };
-  // 1. the k1/k2 shape: structured facts on the entry win over everything read from prose.
-  for (const b of Array.isArray(entry.brands) ? entry.brands : []) {
-    const o = b && typeof b.origin === 'string' ? (ISO2.has(b.origin.toUpperCase()) ? b.origin.toUpperCase() : COUNTRY[b.origin.toLowerCase()] ?? null) : null;
-    const t = b && typeof b.tier === 'string' && TIERS.has(b.tier.toLowerCase()) ? b.tier.toLowerCase() : null;
-    if (b?.name) add(b.name, o, t, 'pack_structured');
+  // 1. the structured facts on the entry win over everything read from prose. The knowledge packs of 10 Nov 2026 (k1/k2/k3,
+  // ledger 1587) write `brand_origins: [{brand, origin, tier, generic_en, generic_ar}]`; an older shape wrote
+  // `brands: [{name, origin, tier}]`. Both are read. Their tier words map onto the generaliser's three: 'mid' is
+  // mid-range and 'luxury' is premium. 'dealer', 'operator' and 'supplier' mark a SELLER the pack named, not a make:
+  // it gets no origin or tier here (a seller's own name is removed as "the supplier" by quote_generalise, never
+  // described as a brand), so it is skipped.
+  const TIER_OF = { premium: 'premium', luxury: 'premium', 'mid-range': 'mid-range', mid: 'mid-range', economy: 'economy' };
+  const structured = [...(Array.isArray(entry.brand_origins) ? entry.brand_origins : []), ...(Array.isArray(entry.brands) ? entry.brands : [])];
+  for (const b of structured) {
+    const name = b?.brand ?? b?.name;
+    const rawTier = typeof b?.tier === 'string' ? b.tier.toLowerCase().trim() : '';
+    if (!name || /^(?:dealer|operator|supplier)$/.test(rawTier)) continue;
+    const o = typeof b.origin === 'string' ? (ISO2.has(b.origin.toUpperCase()) ? b.origin.toUpperCase() : COUNTRY[b.origin.toLowerCase().trim()] ?? null) : null;
+    const t = TIER_OF[rawTier] ?? null;
+    add(name, o, t, 'pack_structured');
   }
   const body = String(entry.body_en || '');
   // 2. "Name (Country)": the pack states where the make is from.
