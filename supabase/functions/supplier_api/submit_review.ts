@@ -16,7 +16,7 @@
 // never read off the request body: otherwise a supplier posting straight to the endpoint could declare
 // every BOQ line excluded and walk past the whole review.
 import { readDelivery, readInstallation, readWarranty, RELEASE_CHOICES, termItem, type MissingItem, type TermsSpec } from '../_shared/line_specs/assess.ts';
-import { foreignCurrency, parseQty, sanitizeSpec, sanitizeTermsSpec, type Issue, type WLine, type Working } from './quote_review.ts';
+import { foreignCurrency, parseQty, reviewQuotation, sanitizeSpec, sanitizeTermsSpec, type DeskInputs, type Issue, type SafeInquiry, type WLine, type Working } from './quote_review.ts';
 
 const num = (v: unknown): number | null => { const n = Number(v); return Number.isFinite(n) && String(v ?? '').trim() !== '' ? n : null; };
 const str = (v: unknown): string => (v == null ? '' : String(v));
@@ -297,4 +297,22 @@ export function carryHeldAnswers(body: SubmitBody, held: HeldAnswers[], optionOf
   const out: SubmitBody = { ...body, items: Array.isArray(body.items) ? outItems : body.items, validity };
   if (reviewTs) out.terms_spec = reviewTs;
   return { body: out, options, carried };
+}
+
+// ── THE RELEASE CHECK IS ONE FUNCTION, AND IT JUDGES WHAT THE DESK JUDGES (live re-run ea40c830, 10 Nov 2026) ────────────
+// After #1896 the form still asked what deskAssess asked, while spec_fill / spec_approve asked this review: two evaluators.
+// Measured on quotes a6f89b7f and 080e2091 (RFQ of inquiry 78aa5217, wallpaper): the desk read the customer's requirements
+// from the inquiry row (a named material component, so line 3 was asked component_material, which reasoning had already
+// filled), while the review read them from the supplier-inbox view (inqSafe.spec), which the inbox withholds or scrubs;
+// with no named component, line 3 fell back to the trade's mandatory `material` ("wallpaper type"), which the form never
+// showed. The supplier filled every field, spec_fill answered complete:false missing [material], and the hold closed
+// unresolved when the customer chose. Now the review is judged on the STORED row with the desk's own requirements and
+// checklist (rule 8 = deskAssess), and no second model reading: the gate's settled reading is already on the row. The
+// BOQ, the VAT basis, the currency and the totals (rules 1-7) are still the review's own, read from the inbox's job.
+/** The release review of a stored quote, as spec_hold, spec_fill and spec_approve all run it (supplier_api actions/quotes.ts). */
+// deno-lint-ignore no-explicit-any
+export function releaseReview(inq: SafeInquiry, row: any, lines: any[], answers: Record<string, string>, desk: DeskInputs, resolved: Resolved = NOTHING_EXPLAINED, now: Date = new Date()) {
+  const w = withDeskAnswers(withResolved(workingFromStoredQuote(row, lines), resolved), answers);
+  const rvw = reviewQuotation(inq, w, now, desk);
+  return rvw.approved ? null : { missing: rvw.issues.map(issueAsMissing), issues: rvw.issues };
 }

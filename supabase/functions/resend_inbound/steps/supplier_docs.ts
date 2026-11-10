@@ -3,6 +3,8 @@
 import type { Out as ReceiptsOut } from './receipts.ts';
 import { clearerCopyAsk } from '../../_shared/read_every_attachment.ts';
 import { timedFetch } from '../../_shared/timed_fetch.ts';
+// in the database's region, not Resend's (email_triage measured us-east-1 p50 4.7 s; it_engineer, 10 Nov 2026)
+import { inDbRegion } from '../../_shared/db_region.ts';
 import { paidProviderGate } from '../../_shared/paid_gate.ts';
 import { SAFE_UPLOAD } from '../../_shared/attachment.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
@@ -143,7 +145,7 @@ export async function supplierDocs(ctx: ReceiptsOut) {
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
     // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.
     if (inbRow?.id && appliedSummary.length === 0 && !receiptish && (await sec('email_triage_enabled')) === 'true') {
-      const wake = timedFetch(`${SUPA_URL}/functions/v1/email_triage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const wake = timedFetch(inDbRegion(`${SUPA_URL}/functions/v1/email_triage`), { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ __secret: await sec('cred_fn_resend_inbound'), message_id: inbRow.id }) }, 55_000).then((r) => r.body?.cancel()).catch(() => {});
       (globalThis as any).EdgeRuntime?.waitUntil?.(wake);
     }

@@ -6,7 +6,7 @@ import { readEveryAttachment, envGatewayVision, untrustedBlock } from '../_share
 import { SAFE_UPLOAD } from '../_shared/attachment.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { voiceReplyProblems } from './model_says.ts';
-import { waRow } from './wa_row.ts';
+import { mediaItems, waRow } from './wa_row.ts';
 import { admin, sec, TW } from './shared.ts';
 import { fetchTwilioMedia, handleSupplierDoc } from './media.ts';
 import { sendWa, toContact } from './replies.ts';
@@ -44,7 +44,11 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
       const audioOnly = media.every((m) => /^audio\//i.test(m.mime));
       if (audioOnly) {
         results.push('voice note: not heard, no transcription on WhatsApp yet');
-        reply = await sayFor(leadId ? 'supplier' : 'visitor')('They sent a voice note. Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed. Tell them so plainly, apologise briefly, and ask them to type the message here; a typed message is answered at once. Whatever was said earlier in this chat, this reply is about the voice note only: do not ask for, offer or mention any document, licence, PDF, photo or upload.', 'en', undefined, voiceReplyProblems);
+        // AS WHO SENT IT, IN THEIR CONVERSATION'S LANGUAGE (it_engineer, 10 Nov 2026): this was 'visitor' for every number with no
+        // supplier lead, and always English, so a signed-in customer writing in Arabic was answered as a stranger, in English. The
+        // language is left to askModel (the conversation's, turnLang); a supplier is still answered in English by aiReply.
+        // prevented by: the_whole_exchange.test.ts (a known customer's voice note is answered as that customer).
+        reply = await sayFor(leadId ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor')('They sent a voice note. Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed. Tell them so plainly, apologise briefly, and ask them to type the message here; a typed message is answered at once. Whatever was said earlier in this chat, this reply is about the voice note only: do not ask for, offer or mention any document, licence, PDF, photo or upload.', undefined, undefined, voiceReplyProblems);
       } else if (!leadId) {
         // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
         // model, one more asking). It is never filed against a company — there is none — but its words are kept on this
@@ -112,7 +116,7 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
           wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
           // The read text is kept in its OWN field, marked as untrusted data, never mixed into what the sender typed.
           inbound: (Body || '(no caption)').slice(0, 2000), reply, lang: 'en', escalated: false, sent,
-          meta: { enabled, audience, route: 'media_in', media_count: media.length, lead_id: leadId,
+          meta: { enabled, audience, route: 'media_in', media_count: media.length, media_items: mediaItems(media), lead_id: leadId,
                   ...(readText ? { attachment_text_untrusted: readText.slice(0, 4000) } : {}),   // the read was counted by its claim row
                   results, send_error: sendErr || null, provenance_verified: true,
                   message_sid: MessageSid || null },

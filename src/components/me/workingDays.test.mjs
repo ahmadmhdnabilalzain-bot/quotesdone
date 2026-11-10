@@ -43,3 +43,12 @@ test('a term the server did not serve yields no clock rather than an invented on
   assert.equal(guaranteeClock({ revealed_at: PAID }, { window_days: null, chase_after_days: 3 }), null);
   assert.equal(guaranteeClock(null, TERMS), null);
 });
+// TWO READERS OF ONE COLUMN (sales_engineer, customer-journey audit 10 Nov 2026). public.trg_reveal_window writes
+// refund_status = 'window_open' on a sale saved without a deadline, and every SQL reader treats 'window_open' (and
+// 'none', and null) as "no refund in play" (coalesce(t.refund_status,'none') in ('none','window_open','declined')).
+// This clock read ANY value as a refund, so such a sale showed the customer "Refund window_open." on day 0.
+test('an open refund window is not a refund: window_open and none read as no refund in play', () => {
+  assert.equal(guaranteeClock({ revealed_at: PAID, refund_status: 'window_open' }, TERMS, at('2026-09-14T08:00:00Z')).phase, 'waiting');
+  assert.equal(guaranteeClock({ revealed_at: PAID, refund_status: 'none' }, TERMS, at('2026-09-17T06:00:00Z')).phase, 'chased');
+  assert.equal(guaranteeClock({ revealed_at: PAID, refund_status: 'window_open', supplier_ack_at: PAID }, TERMS, at('2026-09-15T06:00:00Z')).phase, 'acknowledged');
+});
