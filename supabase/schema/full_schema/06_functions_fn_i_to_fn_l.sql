@@ -223,7 +223,8 @@ begin
   select * into i from public.inquiries where id = p_inquiry for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'inquiry_not_found'); end if;
   if p_customer is not null and i.customer_id is distinct from p_customer then return jsonb_build_object('ok', false, 'error', 'not_your_inquiry'); end if;
-  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed') then return jsonb_build_object('ok', false, 'error', 'inquiry_closed'); end if;
+  -- 10 Nov 2026: expired and lost are ends too (one list with _shared/request_closed.ts)
+  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed', 'expired', 'lost') then return jsonb_build_object('ok', false, 'error', 'inquiry_closed'); end if;
   if jsonb_typeof(p_answers) is distinct from 'object' then return jsonb_build_object('ok', false, 'error', 'answers_required'); end if;
 
   -- Only what is missing NOW, keyed as the check reads it; anything else is not this door's to write.

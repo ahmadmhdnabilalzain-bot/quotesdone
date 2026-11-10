@@ -1944,7 +1944,8 @@ begin
   if p_customer is not null and v.customer_id is distinct from p_customer then
     return jsonb_build_object('error','not_your_inquiry'); end if;
   select exists(select 1 from transactions where inquiry_id=p_inquiry) into v_paid;
-  if v_paid or v.status in ('revealed','completed','cancelled','closed') or v.pipeline_stage in ('revealed','won','cancelled') then
+  -- 10 Nov 2026: expired and lost are ends too (one list with _shared/request_closed.ts)
+  if v_paid or v.status in ('revealed','completed','cancelled','closed','expired','lost') or v.pipeline_stage in ('revealed','won','cancelled') then
     return jsonb_build_object('error','not_editable','status',v.status,
       'message','This request can no longer be edited.'); end if;
   v_deadline := v.created_at + interval '1 hour';
