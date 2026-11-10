@@ -67,6 +67,8 @@ export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Da
   lines.forEach((l, j) => {
     if (heading(l) || priced(l) || !l.qty) return;
     if ([...match.values()].includes(j)) return;   // already raised against its BOQ line
+    // The supplier's explanation recorded on the hold desk ("included in line 2's price"), as rules 1, 2 and 4 take theirs.
+    if (w.qty_explained[`line:${j + 1}`]) return;
     issues.push(I('line_unpriced', 'adjustment', j + 1, null, null,
       `Your line ${j + 1} (${cut(l.description)}) has a quantity but no price. Add its price.`,
       `بندكم ${j + 1} (${cut(l.description)}) ذُكرت كميته دون سعر. يُرجى إضافة سعره.`));
