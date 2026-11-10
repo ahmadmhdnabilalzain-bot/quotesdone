@@ -198,13 +198,14 @@
       "body_ar": "آلة البيع الذاتي معدات كهربائية، وإذا أدرجتها وزارة الصناعة والتكنولوجيا المتقدمة ضمن المنتجات المنظمة حاز المستورد شهادة المطابقة (ECAS أو EQM). وبيع الطعام أو المشروبات منها نشاط غذائي: يحتاج المشغّل إلى رخصة تجارية تشمل البيع الآلي، وبحسب الإمارة والمنتجات إلى موافقة جهة سلامة الغذاء (إدارة سلامة الغذاء في بلدية دبي، وهيئة أبوظبي للزراعة والسلامة الغذائية، والبلدية في الإمارات الأخرى). وتخضع آلات الطعام الطازج لقواعد أشد في الحرارة والبطاقات من الوجبات الخفيفة المعبأة. ويحتاج الدفع بالبطاقة إلى اتفاقية مع مزود دفع في الدولة. ويحوز المشغّل لا الموقع المضيف هذه الموافقات عادة، فاطلبها في العرض. ولم تُفتح في هذه الجلسة القاعدة الخاصة بكل إمارة لكل نوع منتج.",
       "sources": [
         "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification",
-        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists low-voltage electrical products (G-Mark under Gulf regulation BD-142004-01) as regulated. Not confirmed on any page that opened: the food-authority approvals (ADAFSA is not on the session network), fresh-food rules and payment acquiring."
     },
     {
       "id": "vending_machines:quote-red-flags",
@@ -348,6 +349,20 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "vending_machines:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

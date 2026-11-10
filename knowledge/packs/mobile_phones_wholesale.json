@@ -192,18 +192,20 @@
       "topic": "Mobile phones & accessories wholesale: licences, permits and approvals by emirate",
       "topic_ar": "جملة هواتف وإكسسوارات: التراخيص والتصاريح والموافقات حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "Mobile phones are telecom terminal equipment: TDRA requires type approval and registration of each model before it is sold in the UAE, obtained by the registered manufacturer, importer or distributor, and certification bodies report a TDRA label card and a TDRA customs release permit for imports. Phones bought for re-export from free zones are outside local sale. Counterfeit phones are seized under trademark law. Ask for TDRA approval of every model for local sale and confirm the warranty provider. The official TDRA pages were not reachable from this session.",
-      "body_ar": "الهواتف المتحركة معدات طرفية للاتصالات: تشترط هيئة تنظيم الاتصالات والحكومة الرقمية الاعتماد النوعي وتسجيل كل طراز قبل بيعه في الدولة، ويستخرجه المصنّع أو المستورد أو الموزع المسجل، وتفيد جهات الاعتماد ببطاقة الهيئة وبتصريح إفراج جمركي من الهيئة للاستيراد. والهواتف المشتراة لإعادة التصدير من المناطق الحرة خارج البيع المحلي. وتُضبط الهواتف المقلدة وفق قانون العلامات التجارية. اطلب اعتماد الهيئة لكل طراز للبيع المحلي وتأكد من جهة الضمان. ولم تكن صفحات الهيئة الرسمية متاحة من هذه الجلسة.",
+      "body_en": "Mobile phones are telecom terminal equipment: TDRA requires type approval and registration of each model before it is sold in the UAE, obtained by the registered manufacturer, importer or distributor, and certification bodies report a TDRA label card and a TDRA customs release permit for imports. Phones bought for re-export from free zones are outside local sale. Counterfeit phones are seized under trademark law. Ask for TDRA approval of every model for local sale and confirm the warranty provider.",
+      "body_ar": "الهواتف المتحركة معدات طرفية للاتصالات: تشترط هيئة تنظيم الاتصالات والحكومة الرقمية الاعتماد النوعي وتسجيل كل طراز قبل بيعه في الدولة، ويستخرجه المصنّع أو المستورد أو الموزع المسجل، وتفيد جهات الاعتماد ببطاقة الهيئة وبتصريح إفراج جمركي من الهيئة للاستيراد. والهواتف المشتراة لإعادة التصدير من المناطق الحرة خارج البيع المحلي. وتُضبط الهواتف المقلدة وفق قانون العلامات التجارية. اطلب اعتماد الهيئة لكل طراز للبيع المحلي وتأكد من جهة الضمان.",
       "sources": [
         "https://www.tuv.com/market-access-services/en/certification-filter/united-arab-emirates-telecommunication-apparatus-(tdra)-approval.html",
         "https://www.tuvsud.com/en/services/product-certification/global-market-access/united-arab-emirates",
-        "https://www.middleeastbriefing.com/news/?p=5830"
+        "https://www.middleeastbriefing.com/news/?p=5830",
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval",
+        "https://tdra.gov.ae/-/media/TDRA-Media/Resources/Resources-2025/TDRA-Service-Manual---EN---16-Oct-2025.ashx?c=Resources&t=Services+Guide"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: TDRA's Type Approval page (tdra.gov.ae): radio and telecommunications terminal equipment must be registered with TDRA before it is used, sold or distributed in the UAE, and dealers, importers and manufacturers must be registered with TDRA; TDRA's service guide of 16 October 2025 describes the supplier registration and device approval services. Not confirmed on any page that opened: the TDRA label card and the customs release permit (reported by certification bodies), and trademark seizures. Corrected: removed the line 'The official TDRA pages were not reachable from this session'; tdra.gov.ae opened."
     },
     {
       "id": "mobile_phones_wholesale:quote-red-flags",
@@ -294,7 +296,9 @@
   "verified": {
     "fetched_urls": 1,
     "claims_checked": 1,
-    "corrected": [],
+    "corrected": [
+      "mobile_phones_wholesale:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "mobile_phones_wholesale:spec-checklist",
@@ -346,6 +350,22 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "mobile_phones_wholesale:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "mobile_phones_wholesale:authority-approvals"
+      ],
+      "urls_read": [
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

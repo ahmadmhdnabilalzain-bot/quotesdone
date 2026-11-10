@@ -159,17 +159,18 @@
       "topic": "Baby & nursery products: licences, permits and approvals by emirate",
       "topic_ar": "منتجات الأطفال الرضع وغرف الأطفال: التراخيص والتصاريح والموافقات حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "Child care products are regulated: certification bodies report that MoIAT launched an ECAS scheme for child care products in 2020, so listed items (such as cots, high chairs, strollers and similar) need a conformity certificate held by the importer. Toys fall under the toy regulation. Baby food and formula are food products needing food authority registration, and diapers and wipes may need municipal consumer product registration in Dubai. Car seats are tested to UN ECE R44 or R129. Ask for certificate numbers per model.",
-      "body_ar": "منتجات رعاية الأطفال منظمة: تفيد جهات الاعتماد بأن وزارة الصناعة والتكنولوجيا المتقدمة أطلقت عام 2020 نظام ECAS لمنتجات رعاية الأطفال، فتحتاج الأصناف المدرجة (كالأسرّة والكراسي العالية وعربات الأطفال وما شابهها) شهادة مطابقة يحوزها المستورد. وتخضع الألعاب للائحة الألعاب. وأغذية الرضع والحليب الصناعي منتجات غذائية تحتاج تسجيلاً لدى جهة سلامة الغذاء، وقد تحتاج الحفاضات والمناديل إلى تسجيل المنتجات الاستهلاكية لدى بلدية دبي. وتُختبر مقاعد السيارات وفق UN ECE R44 أو R129. اطلب أرقام الشهادات لكل طراز.",
+      "body_en": "Child care products are regulated: certification bodies report that MoIAT launched an ECAS scheme for child care products in 2020, so listed items (such as cots, high chairs, strollers and similar) need a conformity certificate held by the importer. Toys fall under the toy regulation. Baby food and formula are food products needing food authority registration, and diapers and wipes may need municipal consumer product registration in Dubai. Car seats are a separate regulated product under Cabinet Resolution No. 27 of 2017, tested to UN ECE R44 or R129 or the US FMVSS 213; MoIAT's sheet lists baby care products under Cabinet Resolution No. 34 of 2019. Ask for certificate numbers per model.",
+      "body_ar": "منتجات رعاية الأطفال منظمة: تفيد جهات الاعتماد بأن وزارة الصناعة والتكنولوجيا المتقدمة أطلقت عام 2020 نظام ECAS لمنتجات رعاية الأطفال، فتحتاج الأصناف المدرجة (كالأسرّة والكراسي العالية وعربات الأطفال وما شابهها) شهادة مطابقة يحوزها المستورد. وتخضع الألعاب للائحة الألعاب. وأغذية الرضع والحليب الصناعي منتجات غذائية تحتاج تسجيلاً لدى جهة سلامة الغذاء، وقد تحتاج الحفاضات والمناديل إلى تسجيل المنتجات الاستهلاكية لدى بلدية دبي. ومقاعد السيارات منتج خاضع مستقل بموجب قرار مجلس الوزراء رقم 27 لسنة 2017، وتُختبر وفق UN ECE R44 أو R129 أو المعيار الأمريكي FMVSS 213؛ وتدرج قائمة الوزارة منتجات العناية بالأطفال بموجب قرار مجلس الوزراء رقم 34 لسنة 2019. اطلب أرقام الشهادات لكل طراز.",
       "sources": [
         "https://sgs.com/en/news/2020/10/moiat-launches-ecas-certification-for-child-care-products",
-        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists 'Baby care products' under Cabinet Resolution No. 34 of 2019 (test report from an accredited laboratory, product label) and 'Child restraint seats' under Cabinet Resolution No. 27 of 2017 (UNECE R44 or R129, or FMVSS 213); DM Guideline 100 (V2, dmpmedia.dm.gov.ae): under Local Order No. 11 of 2003 consumer products (cosmetics and fragrances, detergents, biocides, health supplements, food-contact materials, children's toys) are registered by DM through its Montaji platform before sale in Dubai. Not confirmed on any page that opened: which nursery items the baby-care category lists, and food-authority registration of baby food. Corrected: the federal basis is read on MoIAT's own sheet: Cabinet Resolution No. 34 of 2019 for baby care products and No. 27 of 2017 for child seats, which also accepts FMVSS 213."
     },
     {
       "id": "baby_nursery_products:quote-red-flags",
@@ -275,6 +276,23 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "baby_nursery_products:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "baby_nursery_products:authority-approvals"
+      ],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

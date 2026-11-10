@@ -198,13 +198,16 @@
       "sources": [
         "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification",
         "https://www.tuvsud.com/en/services/product-certification/global-market-access/united-arab-emirates",
-        "https://uaelegislation.gov.ae/en/legislations/2802/download"
+        "https://uaelegislation.gov.ae/en/legislations/2802/download",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval",
+        "https://u.ae/en/media/media-in-the-uae/media-regulation"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists low-voltage electrical products (G-Mark under Gulf regulation BD-142004-01) as regulated; TDRA's Type Approval page (tdra.gov.ae): radio and telecommunications terminal equipment must be registered with TDRA before it is used, sold or distributed in the UAE, and dealers, importers and manufacturers must be registered with TDRA; MoIAT's regulated-products sheet (moiat.gov.ae) lists 'Textiles' under Cabinet Resolution No. 54 of 2019: a test report from an ISO/IEC 17025 laboratory per Annex 1, the product label per the resolution's technical requirements, and an electronic declaration of conformity; u.ae's media regulation page describes the UAE Media Council's remit over printing and publishing media content. Not confirmed on any page that opened: toy safety rules for children's gifts (no MoIAT toy category found)."
     },
     {
       "id": "promotional_gifts:quote-red-flags",
@@ -348,6 +351,22 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "promotional_gifts:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval",
+        "https://u.ae/en/media/media-in-the-uae/media-regulation"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

@@ -164,13 +164,14 @@
       "body_ar": "تخضع الملابس المبيعة في الدولة للنظام الإماراتي للرقابة على المنتجات النسيجية (بقرار من مجلس الوزراء؛ نصّا 2019 و2024 على بوابة التشريعات)، الذي تديره وزارة الصناعة والتكنولوجيا المتقدمة ويشترط بطاقة بنسبة الألياف والعناية، وأُفيد باشتراط العربية. والسلع ذات العلامات محمية بقانون العلامات التجارية، وتضبط الدوائر الاقتصادية والجمارك المخزون المقلد. وتُخلّص البضائع المنقولة من مستودعات المناطق الحرة إلى البر الرئيسي جمركياً. والمستورد مسؤول عن البطاقات والشهادات.",
       "sources": [
         "https://uaelegislation.gov.ae/en/legislations/2802/download",
-        "https://ccis-expertise.com/en/certification-of-textile-products-united-arab-emirates"
+        "https://ccis-expertise.com/en/certification-of-textile-products-united-arab-emirates",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists 'Textiles' under Cabinet Resolution No. 54 of 2019: a test report from an ISO/IEC 17025 laboratory per Annex 1, the product label per the resolution's technical requirements, and an electronic declaration of conformity. Not confirmed on any page that opened: the 2024 text, the Arabic-label requirement, and counterfeit seizure by economic departments and customs."
     },
     {
       "id": "apparel_fashion_wholesale:quote-red-flags",
@@ -276,6 +277,20 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "apparel_fashion_wholesale:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

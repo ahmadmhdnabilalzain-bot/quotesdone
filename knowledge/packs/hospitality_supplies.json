@@ -204,13 +204,14 @@
         "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
         "https://www.rizmona.com/product-registration/food-contact-material-registration",
         "https://uaelegislation.gov.ae/en/legislations/2802/download",
-        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification"
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: the Dubai Municipality services page lists \"Register Consumer Products (Montaji)\": consumer products establishments can assess and register consumer products and food contact materials on Montaji; it also lists an import and re-export permit for consumer products, an advertising permit for consumer products, a free sale certificate for registered consumer products and laboratory testing of consumer product samples. Not confirmed: the MoIAT cosmetics conformity requirement and the textile labelling scheme. Hosts not reachable from this session: moiat.gov.ae (no answer), dmpmedia.dm.gov.ae (no answer; the guideline PDFs are hosted there) and the other emirates' municipality sites."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM Guideline 100 (V2, dmpmedia.dm.gov.ae): under Local Order No. 11 of 2003 consumer products (cosmetics and fragrances, detergents, biocides, health supplements, food-contact materials, children's toys) are registered by DM through its Montaji platform before sale in Dubai; MoIAT's regulated-products sheet (moiat.gov.ae) lists cosmetics and personal care (Cabinet Resolution No. 18 of 2014), food-contact material (No. 20 of 2015) and textiles (No. 54 of 2019). Not confirmed on any page that opened: that the DM and MoIAT approvals are separate (consultancy statement)."
     },
     {
       "id": "hospitality_supplies:quote-red-flags",
@@ -356,6 +357,21 @@
     },
     "k3_pages_opened": [
       "https://www.dm.gov.ae/dubai-municipality-services/"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "hospitality_supplies:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }
