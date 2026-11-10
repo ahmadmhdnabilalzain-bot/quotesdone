@@ -120,6 +120,26 @@ Deno.test('862: a first visit saves exactly the services he ticked himself, and 
   assert(cap.confirmed_at, 'a portfolio with a ticked service is confirmed');
 });
 
+// ── WORDS HE NEVER WROTE ARE NOT "KEPT IN YOUR OWN WORDS" (10 Nov 2026, customer_support, supplier-journey audit) ──
+// Measured on production 10 Nov 2026: 14,733 of the 14,745 unconfirmed supplier_capabilities rows are review_status
+// 'derived' and carry free-text `services` from the directory import ('installation', 'supply', 'construction machinery
+// accessories', in 13 rows the company's own name). servicesState gated the TICKED keys on the first run, but returned
+// every free-text word as extra_services, which the Services tab shows under "Kept in your own words ... exactly as you
+// wrote them" and re-sends as own_words on Confirm. Pressing Confirm untouched therefore confirmed him, with services
+// nobody stated, past the very "nothing ticked is not a confirmation" rule the tests above pin: two readings of one
+// rule (ticked was first-run aware, extras were not). An unconfirmed row holds nothing that is his.
+Deno.test('862: a derived row\'s words are not offered as his own, and Confirm untouched still confirms nothing', async () => {
+  const { admin, cap } = fakeDb({}, null);
+  cap.services = ['installation', 'supply'];   // what the directory import left on a derived row
+  const st = await servicesState(admin, 7);
+  assertEquals(st.first_run, true);
+  assertEquals(st.extra_services, [], 'a word the import wrote is not the supplier\'s own word');
+  const [s, out] = await servicesSaveRewrite(admin, 7, { ...base, trades: st.checklist.map((c) => c.code), services: st.selected_services, own_words: st.extra_services });
+  assertEquals(s, 400, JSON.stringify(out));
+  assertEquals((out as Row).code, 'services_none_ticked');
+  assertEquals(cap.confirmed_at, null, 'nothing he stated, so nothing is confirmed');
+});
+
 Deno.test('862: the older capability_confirm route refuses an empty portfolio too', async () => {
   const { admin, cap } = fakeDb({}, null);
   const { capabilityConfirm } = await import('./supplier_capability.ts');
