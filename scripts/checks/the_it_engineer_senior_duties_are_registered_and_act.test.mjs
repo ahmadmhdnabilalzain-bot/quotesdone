@@ -60,7 +60,7 @@ test('IT-C13: every perimeter run stamps its schedule row', () => {
 });
 
 test('IT-C15: the workflow audit catches each rule on a planted workflow and passes a clean one', () => {
-  const bad = auditWorkflow('bad.yml', ['on: push', 'permissions: write-all', 'jobs:', '  a:', '    runs-on: ubuntu-latest',
+  const bad = auditWorkflow('bad.yml', ['on: push', 'permissions: write-all', 'jobs:', '  a:', '    runs-on: self-hosted',
     '    steps:', '      - uses: actions/checkout@v4', '      - run: echo ${{ secrets.TOKEN }}'].join('\n'));
   assert.deepEqual(bad.map((v) => v.rule).sort(), ['runner', 'secret_in_log', 'unpinned_action', 'write_all']);
   const good = auditWorkflow('good.yml', ['on: push', 'permissions:', '  contents: read', 'jobs:', '  a:',
@@ -70,6 +70,9 @@ test('IT-C15: the workflow audit catches each rule on a planted workflow and pas
   // the slowest CI jobs run on ubicloud-standard-8 since #1293; a bare Ubicloud label without vars.RUNNER is still caught
   assert.deepEqual(auditWorkflow('sizes.yml', ['permissions:', '  contents: read', 'jobs:', '  a:', "    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-8' }}",
     '  b:', '    runs-on: ubicloud-standard-2'].join('\n')).map((v) => [v.rule, v.lines]), [['runner', [7]]]);
+
+  // ledger 1410: ubuntu-latest is the house runner now and must not be reported
+  assert.deepEqual(auditWorkflow('house.yml', ['permissions:', '  contents: read', 'jobs:', '  a:', '    runs-on: ubuntu-latest'].join('\n')), []);
 
   assert.ok(auditDir().files > 0, 'the repository has workflows to audit');
   assert.match(readFileSync('.github/workflows/it-weekly-readings.yml', 'utf8'), /node scripts\/it\/workflow_audit\.mjs/);
