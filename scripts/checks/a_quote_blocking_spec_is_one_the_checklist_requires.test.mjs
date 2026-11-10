@@ -41,7 +41,7 @@ test('every guided checklist names its blockers and guides every spec it require
 
 test('every brand profile has an origin and a tier the description can be built from', () => {
   for (const { f, p } of packs) for (const e of p.entries ?? []) for (const b of e.brand_profiles ?? []) {
-    assert.ok(b.origin_country && ['economy', 'mid', 'premium', 'luxury', 'dealer', 'operator'].includes(b.tier), `${f} ${b.brand}`);
+    assert.ok(b.origin_country && ['economy', 'mid', 'premium', 'luxury', 'dealer', 'operator', 'supplier'].includes(b.tier), `${f} ${b.brand}`);
     assert.ok(!b.generic_en.includes(b.brand), `${f} ${b.brand}: the generic description repeats the brand`);
   }
 });

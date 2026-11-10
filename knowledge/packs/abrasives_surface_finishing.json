@@ -5,8 +5,8 @@
       "id": "abrasives_surface_finishing:spec-checklist",
       "topic": "Abrasives and surface finishing - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for abrasives and surface finishing must state: abrasive type and grain material; grit size per FEPA or ISO 6344; product form and dimensions; backing or bond type; maximum operating speed; safety standard such as EN 12413 or EN 13743; substrate to be finished; quantity and pack unit; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المواد الكاشطة وتشطيب الأسطح: نوع المادة الكاشطة ومادة الحبيبات؛ حجم الحبيبات وفق FEPA أو ISO 6344؛ شكل المنتج وأبعاده؛ نوع القاعدة أو الرابط؛ السرعة القصوى للتشغيل؛ معيار السلامة مثل EN 12413 أو EN 13743؛ المادة المراد تشطيبها؛ الكمية ووحدة التعبئة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for abrasives and surface finishing must state: abrasive type and grain material; grit size per FEPA or ISO 6344; product form and dimensions; backing or bond type; maximum operating speed; safety standard such as EN 12413 or EN 13743; substrate to be finished; quantity and pack unit; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): abrasive type and grain material; grit size per FEPA or ISO 6344; product form and dimensions; maximum operating speed; quantity and pack unit. Follow-up questions the answers trigger: abrasive type and grain material: Stainless work brings iron-free (inox) grades. UAE approvals and certificates: Blasting brings the site's rules on silica sand. Before a firm price: none; a firm price is possible from the specs. A finishing process trial may be needed to choose between grades.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المواد الكاشطة وتشطيب الأسطح: نوع المادة الكاشطة ومادة الحبيبات؛ حجم الحبيبات وفق FEPA أو ISO 6344؛ شكل المنتج وأبعاده؛ نوع القاعدة أو الرابط؛ السرعة القصوى للتشغيل؛ معيار السلامة مثل EN 12413 أو EN 13743؛ المادة المراد تشطيبها؛ الكمية ووحدة التعبئة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المادة الكاشطة وحبيباتها، وحجم الحبيبات، وشكل المنتج وأبعاده، وأقصى سرعة تشغيل، والكمية ووحدة التعبئة. أسئلة المتابعة: أعمال الستانلس تستلزم درجات خالية من الحديد، وأعمال السفع تستلزم قواعد الموقع بشأن رمل السيليكا.",
       "required_specs": [
         "abrasive type and grain material",
         "grit size per FEPA or ISO 6344",
@@ -27,7 +27,109 @@
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "abrasive type and grain material",
+        "grit size per FEPA or ISO 6344",
+        "product form and dimensions",
+        "maximum operating speed",
+        "quantity and pack unit"
+      ],
+      "spec_guide": [
+        {
+          "spec": "abrasive type and grain material",
+          "blocking": true,
+          "why_it_prices": "Aluminium oxide, zirconia, ceramic and silicon carbide differ in life and price.",
+          "uae_options": "Aluminium oxide, zirconia alumina, ceramic, silicon carbide; garnet, steel grit, glass bead for blasting.",
+          "follow_up": "Stainless work brings iron-free (inox) grades."
+        },
+        {
+          "spec": "grit size per FEPA or ISO 6344",
+          "blocking": true,
+          "why_it_prices": "Grit sets the finish and the product.",
+          "uae_options": "P24-P1200 coated; F grits for bonded; mesh for blasting media.",
+          "follow_up": ""
+        },
+        {
+          "spec": "product form and dimensions",
+          "blocking": true,
+          "why_it_prices": "Discs, flap discs, belts, wheels and media are different products.",
+          "uae_options": "115/125/180/230 mm discs; belt width x length; wheel diameter x bore.",
+          "follow_up": ""
+        },
+        {
+          "spec": "backing or bond type",
+          "blocking": false,
+          "why_it_prices": "Backing and bond change performance and price.",
+          "uae_options": "Cloth, paper, fibre, film; resin, vitrified bond.",
+          "follow_up": ""
+        },
+        {
+          "spec": "maximum operating speed",
+          "blocking": true,
+          "why_it_prices": "Speed rating must match the tool; a mismatch is unsafe and a different product.",
+          "uae_options": "RPM or m/s stated on the disc.",
+          "follow_up": ""
+        },
+        {
+          "spec": "safety standard such as EN 12413 or EN 13743",
+          "blocking": false,
+          "why_it_prices": "Certified bonded abrasives (EN 12413, oSa) cost more than uncertified.",
+          "uae_options": "EN 12413, EN 13743, oSa.",
+          "follow_up": ""
+        },
+        {
+          "spec": "substrate to be finished",
+          "blocking": false,
+          "why_it_prices": "The material decides grain and grade.",
+          "uae_options": "Carbon steel, stainless, aluminium, wood, concrete, paint.",
+          "follow_up": ""
+        },
+        {
+          "spec": "quantity and pack unit",
+          "blocking": true,
+          "why_it_prices": "Boxes of 10, 25 or 50 and per-kg media break comparison.",
+          "uae_options": "Pieces, boxes, kg, bags.",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "blocking": false,
+          "why_it_prices": "Blasting media may need a free-silica statement.",
+          "uae_options": "",
+          "follow_up": "Blasting brings the site's rules on silica sand."
+        },
+        {
+          "spec": "delivery and installation scope",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "none; a firm price is possible from the specs. A finishing process trial may be needed to choose between grades.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "abrasives_surface_finishing:uae-standards-and-approvals",
@@ -85,6 +187,73 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "abrasives_surface_finishing:authority-approvals",
+      "topic": "Abrasives and blasting: approvals and site rules",
+      "topic_ar": "المواد الكاشطة والسفع: الموافقات وقواعد المواقع",
+      "kind": "authority_approval",
+      "body_en": "No UAE product licence or conformity scheme was found for coated or bonded abrasives; safety marking follows European standards (EN 12413, EN 13743) and the oSa voluntary scheme. Abrasive blasting is controlled at the workplace: dust and silica exposure fall under the occupational safety frameworks (Abu Dhabi OSHAD, Dubai Municipality health and safety guidelines), and many end users ban free-silica sand and require low-silica media such as garnet or steel grit. Blasting waste and spent media are disposed of through licensed waste handlers.",
+      "body_ar": "لم يُعثر على ترخيص منتج أو نظام مطابقة في الإمارات للمواد الكاشطة المطلية أو المترابطة، وتتبع علامات السلامة المواصفات الأوروبية (EN 12413 وEN 13743) والنظام الطوعي oSa. أما السفع بالمواد الكاشطة فيُضبط في مكان العمل: إذ يخضع التعرض للغبار والسيليكا لأطر السلامة المهنية (أوشاد في أبوظبي وأدلة الصحة والسلامة لدى بلدية دبي)، ويمنع كثير من المستخدمين النهائيين رمل السيليكا الحرة ويشترطون مواد منخفضة السيليكا مثل الغارنت أو الحبيبات الفولاذية. ويُتخلص من نفايات السفع والمواد المستهلكة عبر جهات مرخصة لمعالجة النفايات.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold. No abrasive-specific UAE regulation was found by search; the cited MoIAT page is the voluntary conformity route."
+    },
+    {
+      "id": "abrasives_surface_finishing:quote-red-flags",
+      "topic": "Red flags in abrasive quotations",
+      "topic_ar": "علامات التحذير في عروض المواد الكاشطة",
+      "kind": "quote_red_flag",
+      "body_en": "Check grain, grit, size and speed rating on each line: aluminium oxide offered for zirconia or ceramic, a thinner or thicker disc than asked, a lower RPM rating, or a non-inox disc for stainless are substitutions. Watch for box quantities that differ (10 vs 25), private-label discs presented as a named brand, missing EN 12413 marking, and blasting media with high free silica or without a grading.",
+      "body_ar": "افحص الحبيبات والدرجة والمقاس وتصنيف السرعة في كل بند: فعرض أكسيد الألمنيوم بدل الزركونيا أو السيراميك، أو قرص أرق أو أسمك من المطلوب، أو تصنيف سرعة أقل، أو قرص غير مخصص للستانلس لأعمال الستانلس، كلها استبدالات. وانتبه إلى: اختلاف الكمية في العلبة (10 أو 25)، وأقراص بعلامة خاصة تُقدم على أنها علامة معروفة، وغياب علامة EN 12413، ومواد سفع عالية السيليكا الحرة أو دون تدرج حبيبي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "abrasives_surface_finishing:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying abrasives",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء المواد الكاشطة",
+      "kind": "buyer_mistake",
+      "body_en": "Buying the cheapest disc per piece when a premium grain lasts several times longer; using carbon-steel discs on stainless and contaminating it; mismatching disc speed and grinder; and ordering blasting media without the profile and cleanliness the coating spec requires. Ask the material, the finish needed and the tools used.",
+      "body_ar": "شراء أرخص قرص بالقطعة بينما تدوم الحبيبات الممتازة أضعافاً؛ واستخدام أقراص الفولاذ الكربوني على الستانلس مما يلوثه؛ وعدم مطابقة سرعة القرص للجلاخة؛ وطلب مواد السفع دون مستوى الخشونة والنظافة الذي تشترطه مواصفة الطلاء. لذا يُسأل عن المادة والتشطيب المطلوب والعدد المستخدمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "abrasives_surface_finishing:price-drivers",
+      "topic": "What legitimately moves abrasive prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار المواد الكاشطة",
+      "kind": "price_driver",
+      "body_en": "Grain type (ceramic and zirconia above aluminium oxide), backing and bond, size, brand tier and origin, certification, pack quantity and volume. Blasting media price on type, grading, recyclability and delivery in bags or bulk.",
+      "body_ar": "نوع الحبيبات (السيراميك والزركونيا أعلى من أكسيد الألمنيوم)، والقاعدة والرابط، والمقاس، وفئة العلامة ومنشؤها، والشهادة، وكمية العبوة والحجم. وتُسعّر مواد السفع حسب النوع والتدرج وقابلية إعادة الاستخدام والتسليم في أكياس أو سائباً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "abrasives_surface_finishing:compare-quotes",
+      "topic": "Comparing abrasive quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض المواد الكاشطة من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare on cost per unit of work, not per disc: a premium disc that removes more metal before wearing out often costs less per metre of weld ground. Normalise pack quantities and sizes, check grain and speed rating, and where possible trial two grades. Recommend the three compliant offers with the best cost per job.",
+      "body_ar": "قارن التكلفة لكل وحدة عمل لا لكل قرص: فالقرص الممتاز الذي يزيل معدناً أكثر قبل أن يستهلك يكلف غالباً أقل لكل متر لحام مجلوخ. ووحّد كميات العبوات والمقاسات، وتحقق من الحبيبات وتصنيف السرعة، وجرّب درجتين إن أمكن. ويوصى بأفضل ثلاثة عروض مطابقة بأفضل تكلفة لكل مهمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +295,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "abrasives_surface_finishing:spec-checklist"
+      "abrasives_surface_finishing:spec-checklist",
+      "abrasives_surface_finishing:authority-approvals"
     ],
     "added": [
       "abrasives_surface_finishing:spec-checklist",
@@ -157,6 +327,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "abrasives_surface_finishing:quote-red-flags",
+      "abrasives_surface_finishing:buyer-mistakes",
+      "abrasives_surface_finishing:price-drivers",
+      "abrasives_surface_finishing:compare-quotes"
+    ]
   }
 }

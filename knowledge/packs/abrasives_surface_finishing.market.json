@@ -25,8 +25,8 @@
       "topic": "Abrasives & surface finishing: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المواد الكاشطة وتشطيب الأسطح: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the abrasive and blasting brands found in the UAE, such as 3M, Norton, Klingspor and Pferd, and where distribution clusters. Brands in the market: 3M, Norton, Klingspor, Pferd, Tyrolit, Bosch, Makita, DeWalt, Flexovit, Rhodius, Cumi, Awuko, Mirka, Sia, Graco, Clemco, Blastline. Which UAE distributor carries each brand was not checked. Distribution clusters in Deira (Naif, Al Ras), Sharjah Industrial Area, Al Quoz and Musaffah.",
-      "body_ar": "أبرز علامات المواد الكاشطة ومعدات السفع الرملي المتوفرة في الإمارات هي 3M وNorton وKlingspor وPferd، مع بيان المناطق التي يتركز فيها موزعوها. العلامات في السوق: 3M، Norton، Klingspor، Pferd، Tyrolit، Bosch، Makita، DeWalt، Flexovit، Rhodius، Cumi، Awuko، Mirka، Sia، Graco، Clemco، Blastline. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع التوزيع في ديرة (نايف والراس) والمنطقة الصناعية بالشارقة والقوز ومصفح.",
+      "body_en": "This entry lists the abrasive and blasting brands found in the UAE, such as 3M, Norton, Klingspor and Pferd, and where distribution clusters. Brands in the market: 3M, Norton, Klingspor, Pferd, Tyrolit, Bosch, Makita, DeWalt, Flexovit, Rhodius, Cumi, Awuko, Mirka, Sia, Graco, Clemco, Blastline. Which UAE distributor carries each brand was not checked. Distribution clusters in Deira (Naif, Al Ras), Sharjah Industrial Area, Al Quoz and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): 3M = a premium American brand; Norton = a premium French brand; Klingspor = a premium German brand; Pferd = a premium German brand; Tyrolit = a premium Austrian brand; Bosch = a premium German brand; Makita = a mid-tier Japanese brand; DeWalt = a mid-tier American brand; Flexovit = a mid-tier French brand; Rhodius = a premium German brand; Cumi = a economy Indian brand; Awuko = a mid-tier German brand; Mirka = a premium Finnish brand; Sia = a premium Swiss brand; Graco = a premium American brand; Clemco = a premium American brand; Blastline = a mid-tier Singaporean brand.",
+      "body_ar": "أبرز علامات المواد الكاشطة ومعدات السفع الرملي المتوفرة في الإمارات هي 3M وNorton وKlingspor وPferd، مع بيان المناطق التي يتركز فيها موزعوها. العلامات في السوق: 3M، Norton، Klingspor، Pferd، Tyrolit، Bosch، Makita، DeWalt، Flexovit، Rhodius، Cumi، Awuko، Mirka، Sia، Graco، Clemco، Blastline. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع التوزيع في ديرة (نايف والراس) والمنطقة الصناعية بالشارقة والقوز ومصفح.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): 3M = علامة أمريكية من الفئة الممتازة؛ Norton = علامة فرنسية من الفئة الممتازة؛ Klingspor = علامة ألمانية من الفئة الممتازة؛ Pferd = علامة ألمانية من الفئة الممتازة؛ Tyrolit = علامة نمساوية من الفئة الممتازة؛ Bosch = علامة ألمانية من الفئة الممتازة؛ Makita = علامة يابانية من الفئة المتوسطة؛ DeWalt = علامة أمريكية من الفئة المتوسطة؛ Flexovit = علامة فرنسية من الفئة المتوسطة؛ Rhodius = علامة ألمانية من الفئة الممتازة؛ Cumi = علامة هندية من الفئة الاقتصادية؛ Awuko = علامة ألمانية من الفئة المتوسطة؛ Mirka = علامة فنلندية من الفئة الممتازة؛ Sia = علامة سويسرية من الفئة الممتازة؛ Graco = علامة أمريكية من الفئة الممتازة؛ Clemco = علامة أمريكية من الفئة الممتازة؛ Blastline = علامة سنغافورية من الفئة المتوسطة.",
       "sources": [
         "https://www.osa-abrasives.org",
         "https://www.cencenelec.eu",
@@ -34,7 +34,128 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: oSa safety marking for bonded abrasives (EN 12413) -> confirmed (oSa organisation page). Not checked: Current UAE distributors of each named brand were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: oSa safety marking for bonded abrasives (EN 12413) -> confirmed (oSa organisation page). Not checked: Current UAE distributors of each named brand were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "3M",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Norton",
+          "origin_country": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Klingspor",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Pferd",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Tyrolit",
+          "origin_country": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium Austrian brand",
+          "generic_ar": "علامة نمساوية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bosch",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Makita",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "DeWalt",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Flexovit",
+          "origin_country": "France",
+          "tier": "mid",
+          "generic_en": "a mid-tier French brand",
+          "generic_ar": "علامة فرنسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Rhodius",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Cumi",
+          "origin_country": "India",
+          "tier": "economy",
+          "generic_en": "a economy Indian brand",
+          "generic_ar": "علامة هندية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Awuko",
+          "origin_country": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Mirka",
+          "origin_country": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sia",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Graco",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Clemco",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Blastline",
+          "origin_country": "Singapore",
+          "tier": "mid",
+          "generic_en": "a mid-tier Singaporean brand",
+          "generic_ar": "علامة سنغافورية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "abrasives_surface_finishing:uae-market-sizes",

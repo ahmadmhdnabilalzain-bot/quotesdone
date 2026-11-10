@@ -25,8 +25,8 @@
       "topic": "Racking & storage systems: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الرفوف وأنظمة التخزين: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the racking brands sold in the UAE, such as Mecalux, Stow, SSI Schäfer and Dexion, the local makers and installers, and the main origins. Brands: Mecalux, Stow, SSI Schäfer, Dexion, AR Racking, Kardex, Constructor, Averys, Nedcon, Godrej, plus racking made locally in Sharjah, Jebel Ali and Dubai Industrial City and Chinese imports. Local makers were not checked by name. Installers and SEMA-trained rack inspectors work across Dubai, Sharjah and Abu Dhabi. Origins: Spain, Belgium, Germany, the UK, India, China, UAE.",
-      "body_ar": "من ماركات الرفوف المباعة في الإمارات Mecalux وStow وSSI Schäfer وDexion، إضافة إلى المصنعين والمركّبين المحليين وأهم دول المنشأ. العلامات: Mecalux، Stow، SSI Schäfer، Dexion، AR Racking، Kardex، Constructor، Averys، Nedcon، Godrej، إضافة إلى رفوف مصنعة محلياً في الشارقة وجبل علي ومدينة دبي الصناعية وواردات صينية، ولم يُتحقق من المصنّعين المحليين بالاسم. ويعمل المركبون ومفتشو الرفوف المدربون وفق SEMA في دبي والشارقة وأبوظبي. المنشأ: إسبانيا، بلجيكا، ألمانيا، المملكة المتحدة، الهند، الصين، الإمارات.",
+      "body_en": "This lists the racking brands sold in the UAE, such as Mecalux, Stow, SSI Schäfer and Dexion, the local makers and installers, and the main origins. Brands: Mecalux, Stow, SSI Schäfer, Dexion, AR Racking, Kardex, Constructor, Averys, Nedcon, Godrej, plus racking made locally in Sharjah, Jebel Ali and Dubai Industrial City and Chinese imports. Local makers were not checked by name. Installers and SEMA-trained rack inspectors work across Dubai, Sharjah and Abu Dhabi. Origins: Spain, Belgium, Germany, the UK, India, China, UAE.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Mecalux = a premium Spanish brand; Stow = a premium Belgian brand; SSI Schäfer = a premium German brand; Dexion = a mid-tier British brand; AR Racking = a mid-tier Spanish brand; Kardex = a premium Swiss brand; Constructor = a mid-tier Norwegian brand; Averys = a mid-tier French brand; Nedcon = a mid-tier Dutch brand; Godrej = a mid-tier Indian brand.",
+      "body_ar": "من ماركات الرفوف المباعة في الإمارات Mecalux وStow وSSI Schäfer وDexion، إضافة إلى المصنعين والمركّبين المحليين وأهم دول المنشأ. العلامات: Mecalux، Stow، SSI Schäfer، Dexion، AR Racking، Kardex، Constructor، Averys، Nedcon، Godrej، إضافة إلى رفوف مصنعة محلياً في الشارقة وجبل علي ومدينة دبي الصناعية وواردات صينية، ولم يُتحقق من المصنّعين المحليين بالاسم. ويعمل المركبون ومفتشو الرفوف المدربون وفق SEMA في دبي والشارقة وأبوظبي. المنشأ: إسبانيا، بلجيكا، ألمانيا، المملكة المتحدة، الهند، الصين، الإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Mecalux = علامة إسبانية من الفئة الممتازة؛ Stow = علامة بلجيكية من الفئة الممتازة؛ SSI Schäfer = علامة ألمانية من الفئة الممتازة؛ Dexion = علامة بريطانية من الفئة المتوسطة؛ AR Racking = علامة إسبانية من الفئة المتوسطة؛ Kardex = علامة سويسرية من الفئة الممتازة؛ Constructor = علامة نرويجية من الفئة المتوسطة؛ Averys = علامة فرنسية من الفئة المتوسطة؛ Nedcon = علامة هولندية من الفئة المتوسطة؛ Godrej = علامة هندية من الفئة المتوسطة.",
       "sources": [
         "https://www.sema.org.uk",
         "https://www.cencenelec.eu",
@@ -34,7 +34,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: SEMA guidance on racking installation and inspection (EN 15635 practice) -> confirmed. Not checked: Names of local racking factories and the current in-rack sprinkler thresholds in the UAE Fire Code were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: SEMA guidance on racking installation and inspection (EN 15635 practice) -> confirmed. Not checked: Names of local racking factories and the current in-rack sprinkler thresholds in the UAE Fire Code were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Mecalux",
+          "origin_country": "Spain",
+          "tier": "premium",
+          "generic_en": "a premium Spanish brand",
+          "generic_ar": "علامة إسبانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Stow",
+          "origin_country": "Belgium",
+          "tier": "premium",
+          "generic_en": "a premium Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة الممتازة"
+        },
+        {
+          "brand": "SSI Schäfer",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Dexion",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "AR Racking",
+          "origin_country": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid-tier Spanish brand",
+          "generic_ar": "علامة إسبانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Kardex",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Constructor",
+          "origin_country": "Norway",
+          "tier": "mid",
+          "generic_en": "a mid-tier Norwegian brand",
+          "generic_ar": "علامة نرويجية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Averys",
+          "origin_country": "France",
+          "tier": "mid",
+          "generic_en": "a mid-tier French brand",
+          "generic_ar": "علامة فرنسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Nedcon",
+          "origin_country": "Netherlands",
+          "tier": "mid",
+          "generic_en": "a mid-tier Dutch brand",
+          "generic_ar": "علامة هولندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Godrej",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "racking_storage:uae-market-sizes",

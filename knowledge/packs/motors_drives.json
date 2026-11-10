@@ -5,8 +5,8 @@
       "id": "motors_drives:spec-checklist",
       "topic": "Motors and drives - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For motors and drives (trade code motors_drives only), every quoted line must state: Motor or drive type; Power rating; Voltage, phase and frequency; Speed and poles; Efficiency class; Frame, mounting and enclosure; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط المحركات ومحولات التردد (رمز النشاط motors_drives فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المحرك أو المحول؛ القدرة المقننة؛ الجهد والطور والتردد؛ السرعة وعدد الأقطاب؛ فئة الكفاءة؛ الإطار وطريقة التثبيت ودرجة الحماية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For motors and drives (trade code motors_drives only), every quoted line must state: Motor or drive type; Power rating; Voltage, phase and frequency; Speed and poles; Efficiency class; Frame, mounting and enclosure; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Motor or drive type; Power rating; Voltage, phase and frequency; Speed and poles; Efficiency class; Frame, mounting and enclosure; Quantity and unit of measure. Follow-up questions the answers trigger: Motor or drive type: VFDs bring the motor rating, control mode and harmonics requirement. Frame, mounting and enclosure: Outdoor or coastal sites bring IP56+ and anti-corrosion paint. Hazardous-area rating: Hazardous area brings the zone, gas group and T-class. Before a firm price: none; a firm price is possible from the nameplate data or the specs.",
+      "body_ar": "في نشاط المحركات ومحولات التردد (رمز النشاط motors_drives فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المحرك أو المحول؛ القدرة المقننة؛ الجهد والطور والتردد؛ السرعة وعدد الأقطاب؛ فئة الكفاءة؛ الإطار وطريقة التثبيت ودرجة الحماية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المحرك أو المشغّل، والقدرة، والجهد والطور والتردد، والسرعة وعدد الأقطاب، وفئة الكفاءة، والهيكل وطريقة التثبيت ودرجة الحماية، والكمية. أسئلة المتابعة: مغيرات السرعة تستلزم قدرة المحرك ونمط التحكم ومتطلبات التوافقيات، والمواقع الخارجية أو الساحلية تستلزم درجة حماية IP56 فأعلى وطلاء مقاوماً للتآكل، والمناطق الخطرة تستلزم المنطقة ومجموعة الغاز وفئة الحرارة، وحرارة الإمارات قد تستلزم تخفيض القدرة أو هيكلاً أكبر.",
       "required_specs": [
         "Motor or drive type",
         "Power rating",
@@ -21,14 +21,141 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Hazardous-area rating",
+        "Ambient temperature"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Motor or drive type",
+        "Power rating",
+        "Voltage, phase and frequency",
+        "Speed and poles",
+        "Efficiency class",
+        "Frame, mounting and enclosure",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Motor or drive type",
+          "blocking": true,
+          "why_it_prices": "Induction motor, servo, VFD and soft starter are different products.",
+          "uae_options": "TEFC induction motor, Ex motor, servo, VFD/VSD, soft starter.",
+          "follow_up": "VFDs bring the motor rating, control mode and harmonics requirement."
+        },
+        {
+          "spec": "Power rating",
+          "blocking": true,
+          "why_it_prices": "kW is the main price axis.",
+          "uae_options": "kW or HP; for VFDs the continuous current.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Voltage, phase and frequency",
+          "blocking": true,
+          "why_it_prices": "UAE is 400 V/3 ph/50 Hz; other builds cost extra or fail.",
+          "uae_options": "400 V/50 Hz, 690 V, 230 V single phase.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Speed and poles",
+          "blocking": true,
+          "why_it_prices": "2, 4, 6 and 8-pole motors differ in frame and price.",
+          "uae_options": "2-pole 2,900 rpm, 4-pole 1,450 rpm.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Efficiency class",
+          "blocking": true,
+          "why_it_prices": "IE2, IE3 and IE4 are different motors.",
+          "uae_options": "IE2, IE3, IE4 per IEC 60034-30-1.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Frame, mounting and enclosure",
+          "blocking": true,
+          "why_it_prices": "Mounting and IP rating fix the build.",
+          "uae_options": "IEC frame; B3 foot, B5 flange, B35; IP55/IP56/IP66.",
+          "follow_up": "Outdoor or coastal sites bring IP56+ and anti-corrosion paint."
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Quantity changes discount.",
+          "uae_options": "Units.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "IEC 60034; routine test report.",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "Hazardous-area motors need IECEx/ATEX; electrical products may need ECAS.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "blocking": false,
+          "why_it_prices": "VFD programming and commissioning are services.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Stock for standard frames; weeks for Ex or large motors.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Hazardous-area rating",
+          "blocking": false,
+          "why_it_prices": "Ex d, Ex e or Ex n motors cost far more.",
+          "uae_options": "Zone 1/2, gas group, temperature class.",
+          "follow_up": "Hazardous area brings the zone, gas group and T-class."
+        },
+        {
+          "spec": "Ambient temperature",
+          "blocking": false,
+          "why_it_prices": "Standard motors are rated for 40 °C; UAE outdoor needs derating or a larger frame.",
+          "uae_options": "40, 45, 50 °C ambient.",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "none; a firm price is possible from the nameplate data or the specs.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "motors_drives:uae-standards-and-approvals",
@@ -86,6 +213,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "motors_drives:authority-approvals",
+      "topic": "Motors and drives: electrical conformity and hazardous-area certification",
+      "topic_ar": "المحركات ومغيرات السرعة: المطابقة الكهربائية وشهادات المناطق الخطرة",
+      "kind": "authority_approval",
+      "body_en": "Motors, VFDs and soft starters designed for 50-1,000 V AC are electrical equipment within the GCC low-voltage regulation adopted by Cabinet Resolution No. 6 of 2019; regulated electrical products need an ECAS certificate from MoIAT obtained by the importer. Whether a UAE minimum efficiency (MEPS) regulation applies to industrial motors was not established by search. Motors for hazardous areas carry IECEx or ATEX certification from the manufacturer, and oil and gas end users require it. Connection to the grid and large-motor starting are matters for the distribution utility (DEWA, ADDC/AADC, EtihadWE) through the electrical contractor.",
+      "body_ar": "المحركات ومغيرات السرعة والمشغلات الناعمة المصممة بين 50 و1000 فولت تيار متردد معدات كهربائية ضمن اللائحة الخليجية للجهد المنخفض المعتمدة بقرار مجلس الوزراء رقم 6 لسنة 2019، والمنتجات الكهربائية الخاضعة للتنظيم تحتاج شهادة ECAS من وزارة الصناعة والتكنولوجيا المتقدمة يحصل عليها المستورد. ولم يثبت بالبحث وجود لائحة إماراتية لحد أدنى لكفاءة المحركات الصناعية. ومحركات المناطق الخطرة تحمل شهادة IECEx أو ATEX من الصانع ويشترطها مستخدمو قطاع النفط والغاز. أما الربط بالشبكة وبدء تشغيل المحركات الكبيرة فمن اختصاص شركة التوزيع (هيئة كهرباء ومياه دبي، أو شركات أبوظبي للتوزيع، أو الاتحاد للماء والكهرباء) عبر المقاول الكهربائي.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2957",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "motors_drives:quote-red-flags",
+      "topic": "Red flags in motor and drive quotations",
+      "topic_ar": "علامات التحذير في عروض المحركات ومغيرات السرعة",
+      "kind": "quote_red_flag",
+      "body_en": "Check efficiency class and frame on each line: an IE2 motor offered where IE3 was asked, a 60 Hz nameplate, IP54 instead of IP55/56, a smaller frame needing derating, or a VFD rated for light duty on a heavy-duty load are substitutions. Watch for Ex motors without a valid certificate number, \"European brand\" motors built elsewhere without saying so, VFDs without EMC filter or harmonic mitigation where asked, and programming and commissioning excluded.",
+      "body_ar": "افحص فئة الكفاءة والهيكل في كل بند: فعرض محرك IE2 حيث طُلب IE3، أو لوحة بيانات بتردد 60 هرتز، أو IP54 بدل IP55/56، أو هيكل أصغر يحتاج تخفيضاً للقدرة، أو مغير سرعة مقنن للخدمة الخفيفة على حمل ثقيل، كلها استبدالات. وانتبه إلى: محركات للمناطق الخطرة دون رقم شهادة سارية، ومحركات \"علامة أوروبية\" مصنعة في بلد آخر دون ذكر ذلك، ومغيرات سرعة دون مرشح توافق كهرومغناطيسي أو معالجة توافقيات حيث طُلب، واستثناء البرمجة والتشغيل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "motors_drives:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying motors and drives",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء المحركات ومغيرات السرعة",
+      "kind": "buyer_mistake",
+      "body_en": "Replacing a motor by kW only, without speed, frame and mounting, so the new one does not fit; ignoring UAE ambient derating; sizing a VFD by kW instead of motor current and duty; and buying the cheapest motor for continuous duty when the energy saved by a higher efficiency class repays the difference. Ask for the old motor's nameplate photo.",
+      "body_ar": "استبدال المحرك بالقدرة وحدها دون السرعة والهيكل وطريقة التثبيت فلا يناسب المحرك الجديد مكانه؛ وتجاهل تخفيض القدرة بسبب حرارة الإمارات؛ وتحديد مغير السرعة بالكيلوواط بدل تيار المحرك ونوع الخدمة؛ وشراء أرخص محرك لخدمة متواصلة بينما توفير الطاقة بفئة كفاءة أعلى يسدد الفرق. لذا تُطلب صورة لوحة بيانات المحرك القديم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "motors_drives:price-drivers",
+      "topic": "What legitimately moves motor and drive prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار المحركات ومغيرات السرعة",
+      "kind": "price_driver",
+      "body_en": "Power and poles, efficiency class, enclosure and hazardous-area protection, mounting, brand and country of build, special windings or high-ambient design, and for VFDs current rating, duty, IP rating, filters and communication options. Copper prices and currency move motor list prices.",
+      "body_ar": "القدرة وعدد الأقطاب، وفئة الكفاءة، ودرجة الحماية والحماية للمناطق الخطرة، وطريقة التثبيت، والعلامة وبلد التصنيع، واللفات الخاصة أو التصميم لحرارة المحيط العالية، وفي مغيرات السرعة التيار المقنن ونوع الخدمة ودرجة الحماية والمرشحات وخيارات الاتصال. وتتحرك أسعار المحركات مع أسعار النحاس والعملات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "motors_drives:compare-quotes",
+      "topic": "Comparing motor and drive quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض المحركات ومغيرات السرعة من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Match kW, poles, voltage, frame, mounting, IP and efficiency class first. For continuous-duty motors compute energy cost over the expected life: a higher efficiency class often repays its premium. Then compare delivered price, stock availability and local service. Recommend the three compliant offers with the lowest life cost.",
+      "body_ar": "طابق أولاً القدرة وعدد الأقطاب والجهد والهيكل وطريقة التثبيت ودرجة الحماية وفئة الكفاءة. وفي محركات الخدمة المتواصلة احسب تكلفة الطاقة على مدى العمر المتوقع: ففئة الكفاءة الأعلى كثيراً ما تسدد فرق سعرها. ثم قارن سعر التسليم والتوفر في المخزون والخدمة المحلية. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة دورة حياة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -128,7 +323,8 @@
     "removed": [],
     "still_unverified": [
       "motors_drives:spec-checklist",
-      "motors_drives:uae-standards-and-approvals"
+      "motors_drives:uae-standards-and-approvals",
+      "motors_drives:authority-approvals"
     ],
     "added": [
       "motors_drives:spec-checklist",
@@ -159,6 +355,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "motors_drives:quote-red-flags",
+      "motors_drives:buyer-mistakes",
+      "motors_drives:price-drivers",
+      "motors_drives:compare-quotes"
+    ]
   }
 }

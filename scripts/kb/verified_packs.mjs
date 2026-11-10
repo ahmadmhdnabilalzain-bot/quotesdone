@@ -108,8 +108,8 @@ export function validate(pack, kind, code, sibling = new Set()) {
       }
     }
     for (const b of e.brand_profiles ?? []) {
-      if (!b?.brand || !b.origin_country || !['economy', 'mid', 'premium', 'luxury', 'dealer', 'operator'].includes(b.tier) || !String(b.generic_en ?? '').trim() || !AR.test(String(b.generic_ar ?? '')))
-        err.push(`${at}: brand_profiles row ${JSON.stringify(b?.brand)} needs origin_country, a tier (economy/mid/premium/luxury/dealer/operator) and generic_en/generic_ar`);
+      if (!b?.brand || !b.origin_country || !['economy', 'mid', 'premium', 'luxury', 'dealer', 'operator', 'supplier'].includes(b.tier) || !String(b.generic_en ?? '').trim() || !AR.test(String(b.generic_ar ?? '')))
+        err.push(`${at}: brand_profiles row ${JSON.stringify(b?.brand)} needs origin_country, a tier (economy/mid/premium/luxury/dealer/operator/supplier) and generic_en/generic_ar`);
     }
   }
   for (const q of pack.eval ?? []) {

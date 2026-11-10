@@ -5,8 +5,8 @@
       "id": "industrial_gases:spec-checklist",
       "topic": "Industrial gases - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For industrial gases (trade code industrial_gases only), every quoted line must state: Gas and purity grade; Supply mode; Cylinder size and valve type; Cylinder rental and deposit; Certificate of analysis; Storage and handling approval on site; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الغازات الصناعية (رمز النشاط industrial_gases فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الغاز ودرجة نقائه؛ طريقة التوريد؛ حجم الأسطوانة ونوع الصمام؛ إيجار الأسطوانة والتأمين؛ شهادة التحليل؛ موافقة التخزين والمناولة في الموقع؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For industrial gases (trade code industrial_gases only), every quoted line must state: Gas and purity grade; Supply mode; Cylinder size and valve type; Cylinder rental and deposit; Certificate of analysis; Storage and handling approval on site; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Gas and purity grade; Supply mode; Cylinder size and valve type; Cylinder rental and deposit; Storage and handling approval on site; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Gas and purity grade: Medical use brings the medical-gas regulator's requirements; food use brings food-grade certification. Supply mode: Bulk brings tank rental, telemetry and site civil works; on-site generation brings power and space. Cylinder rental and deposit: Ask how many cylinders are kept on site and the usage per month. Storage and handling approval on site: Ask whether the site already has an approved storage area. Before a firm price: bulk tank or pipeline supply needs a site survey for the tank pad, access and safety distances; cylinder supply can be priced from the specs.",
+      "body_ar": "في نشاط الغازات الصناعية (رمز النشاط industrial_gases فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الغاز ودرجة نقائه؛ طريقة التوريد؛ حجم الأسطوانة ونوع الصمام؛ إيجار الأسطوانة والتأمين؛ شهادة التحليل؛ موافقة التخزين والمناولة في الموقع؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الغاز ودرجة نقائه، وطريقة التوريد، وحجم الأسطوانة ونوع الصمام، وإيجار الأسطوانات والتأمين، وموافقة التخزين والمناولة في الموقع، والكمية ووحدة القياس، وشروط التسليم. أسئلة المتابعة: الاستخدام الطبي يستلزم متطلبات الجهة المنظمة للغازات الطبية والاستخدام الغذائي يستلزم شهادة الدرجة الغذائية، والتوريد السائب يستلزم إيجار الخزان والمراقبة عن بعد والأعمال المدنية، ويُسأل عن عدد الأسطوانات في الموقع والاستهلاك الشهري وهل توجد منطقة تخزين معتمدة. توريد الخزانات السائبة يحتاج مسحاً للموقع.",
       "required_specs": [
         "Gas and purity grade",
         "Supply mode",
@@ -28,7 +28,111 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Gas and purity grade",
+        "Supply mode",
+        "Cylinder size and valve type",
+        "Cylinder rental and deposit",
+        "Storage and handling approval on site",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Gas and purity grade",
+          "blocking": true,
+          "why_it_prices": "Purity grade multiplies the price.",
+          "uae_options": "Industrial, high purity (4.5-5.0), ultra-high purity, food grade (CO2, N2), medical.",
+          "follow_up": "Medical use brings the medical-gas regulator's requirements; food use brings food-grade certification."
+        },
+        {
+          "spec": "Supply mode",
+          "blocking": true,
+          "why_it_prices": "Cylinders, cylinder packs, bulk liquid tanks and on-site generation are priced on different bases.",
+          "uae_options": "Single cylinders, MCPs, micro-bulk, bulk liquid with tank, on-site N2/O2 generator.",
+          "follow_up": "Bulk brings tank rental, telemetry and site civil works; on-site generation brings power and space."
+        },
+        {
+          "spec": "Cylinder size and valve type",
+          "blocking": true,
+          "why_it_prices": "Size and valve outlet decide the regulator and the refill price.",
+          "uae_options": "Water capacity in litres; valve outlet standard.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Cylinder rental and deposit",
+          "blocking": true,
+          "why_it_prices": "Rental per cylinder per month can exceed the gas price.",
+          "uae_options": "Monthly rental, deposit, customer-owned cylinders.",
+          "follow_up": "Ask how many cylinders are kept on site and the usage per month."
+        },
+        {
+          "spec": "Certificate of analysis",
+          "blocking": false,
+          "why_it_prices": "CoA per batch costs more for specialty gases.",
+          "uae_options": "Per batch, per cylinder.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Storage and handling approval on site",
+          "blocking": true,
+          "why_it_prices": "Site storage must meet civil defence rules before delivery.",
+          "uae_options": "Cylinder cage, segregation, ventilation; bulk tank approval.",
+          "follow_up": "Ask whether the site already has an approved storage area."
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Gas is sold by cylinder, m3, kg or litre of liquid.",
+          "uae_options": "Cylinders/month, m3, kg, litres.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "ISO 14175 for shielding gases; pharmacopoeia grades for medical.",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivery frequency and distance are part of the price.",
+          "uae_options": "Delivered per call, scheduled, collected.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Regulators, manifolds and pipework are often extras.",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "bulk tank or pipeline supply needs a site survey for the tank pad, access and safety distances; cylinder supply can be priced from the specs.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "industrial_gases:uae-standards-and-approvals",
@@ -87,6 +191,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "industrial_gases:authority-approvals",
+      "topic": "Industrial gases: storage, transport and supply approvals by emirate",
+      "topic_ar": "الغازات الصناعية: موافقات التخزين والنقل والتوريد حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Gas storage and handling are civil defence matters in every emirate under the UAE Fire and Life Safety Code. In Dubai, Dubai Municipality's LPG cylinder guideline assigns LPG distribution and retail to the Department of Economy, and bulk storage, manifolds and piping to Dubai Civil Defence; LPG distribution licences in Dubai also need the Supreme Council of Energy's approval (search result, 2021 directive). Trakhees publishes a cylinder storage guideline for its zones. Vehicles carrying dangerous goods on Dubai roads are licensed through the RTA, which has an agreement with Dubai Civil Defence on such vehicles. Medical gases fall under the medical-products regulator. The supplier holds the transport and filling licences; the buyer obtains approval for on-site storage, usually with the supplier's help.",
+      "body_ar": "تخزين الغازات ومناولتها من اختصاص الدفاع المدني في كل إمارة وفق كود الإمارات للحماية من الحرائق وسلامة الأرواح. ففي دبي يسند دليل بلدية دبي لأسطوانات الغاز المسال التوزيع والبيع بالتجزئة إلى دائرة الاقتصاد، والتخزين السائب والمشعبات والأنابيب إلى الدفاع المدني بدبي؛ وتحتاج رخص توزيع الغاز المسال في دبي أيضاً موافقة المجلس الأعلى للطاقة (وفق نتيجة بحث عن تعميم صدر عام 2021). وتنشر تراخيص دليلاً لتخزين الأسطوانات في مناطقها. وتُرخّص المركبات الناقلة للبضائع الخطرة على طرق دبي عبر هيئة الطرق والمواصلات التي أبرمت اتفاقية مع الدفاع المدني بدبي بشأنها. وتخضع الغازات الطبية للجهة المنظمة للمنتجات الطبية. ويحمل المورد رخص النقل والتعبئة، ويحصل المشتري على موافقة التخزين في الموقع بمساعدة المورد عادة.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2025/01/DM-HSD-GU53-LPGC2_Technical-Guidelines-for-Liquefied-Petroleum-Gas-Cylinders_V5-26-04-2024.pdf",
+        "https://pcfc.ae/en/Rules%20and%20Regulations/Trakhees/Civil%20Engineering%20Department/Inspection%20&%20Compliance%20(Construction%20Safety)/Guidelines/PCFC-TRK-CED-CS-G05,%20Guidelines%20-%20Storage%20of%20LPG%20cylinders.pdf",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.dm.gov.ae/wp-content/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "industrial_gases:quote-red-flags",
+      "topic": "Red flags in industrial gas quotations",
+      "topic_ar": "علامات التحذير في عروض الغازات الصناعية",
+      "kind": "quote_red_flag",
+      "body_en": "Check the purity grade on each line: industrial grade offered against high-purity or food grade is a substitution. Watch for gas price per cylinder with rental, deposit, delivery and hazardous-goods surcharges hidden in terms; a smaller cylinder size than asked (more refills); mixtures with a different composition (e.g. Ar/CO2 ratio); no certificate of analysis; bulk offers with long minimum contract terms, take-or-pay volumes and tank rental escalation; and a regulator or manifold not included.",
+      "body_ar": "افحص درجة النقاء في كل بند: فعرض الدرجة الصناعية مقابل طلب درجة عالية النقاء أو غذائية استبدال. وانتبه إلى: سعر الغاز للأسطوانة مع إخفاء الإيجار والتأمين والتوصيل ورسوم البضائع الخطرة في الشروط؛ وحجم أسطوانة أصغر من المطلوب (تعبئات أكثر)؛ وخلائط بتركيبة مختلفة (مثل نسبة الأرغون إلى ثاني أكسيد الكربون)؛ وغياب شهادة التحليل؛ وعروض التوريد السائب بمدد تعاقد دنيا طويلة وكميات ملزمة الدفع وزيادات في إيجار الخزان؛ وعدم شمول المنظم أو المشعب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_gases:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying industrial gases",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الغازات الصناعية",
+      "kind": "buyer_mistake",
+      "body_en": "Comparing gas price only and forgetting cylinder rental, which accrues on idle cylinders; keeping too many cylinders on site; storing oxygen beside fuel gases; signing a bulk contract without checking minimum volumes and term; and ordering industrial grade for food, lab or medical use. Ask the monthly usage, the number of cylinders held and the end use.",
+      "body_ar": "مقارنة سعر الغاز وحده ونسيان إيجار الأسطوانات الذي يتراكم على الأسطوانات غير المستخدمة؛ والاحتفاظ بعدد زائد من الأسطوانات في الموقع؛ وتخزين الأكسجين بجانب غازات الوقود؛ وتوقيع عقد توريد سائب دون التحقق من الكميات الدنيا والمدة؛ وطلب الدرجة الصناعية لاستخدام غذائي أو مخبري أو طبي. لذا يُسأل عن الاستهلاك الشهري وعدد الأسطوانات المحتفظ بها والاستخدام النهائي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_gases:price-drivers",
+      "topic": "What legitimately moves industrial gas prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الغازات الصناعية",
+      "kind": "price_driver",
+      "body_en": "Purity and certification, supply mode (cylinders cost far more per m3 than bulk liquid), volume and contract length, cylinder rental and deposits, delivery frequency and distance, hazardous-goods transport, specialty mixtures, and power cost for gases made by air separation. On-site generators trade capital cost for lower running cost.",
+      "body_ar": "النقاء والشهادة، وطريقة التوريد (الأسطوانات أغلى كثيراً لكل متر مكعب من السائل السائب)، والكمية ومدة العقد، وإيجار الأسطوانات والتأمين، وتكرار التوصيل ومسافته، ونقل البضائع الخطرة، والخلائط الخاصة، وتكلفة الكهرباء للغازات المنتجة بفصل الهواء. والمولدات في الموقع تستبدل تكلفة رأسمالية بتكلفة تشغيل أقل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_gases:compare-quotes",
+      "topic": "Comparing industrial gas quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض الغازات الصناعية من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Convert every offer to total monthly cost at the buyer's usage: gas, rental for the cylinders actually held, delivery and surcharges; for bulk add tank rental and take-or-pay. Compare per m3 or per kg of delivered gas at the same purity. Weigh reliability of delivery and emergency supply. Recommend the three with the lowest total cost that meet purity and supply mode.",
+      "body_ar": "حوّل كل عرض إلى التكلفة الشهرية الإجمالية عند استهلاك المشتري: الغاز وإيجار الأسطوانات المحتفظ بها فعلاً والتوصيل والرسوم الإضافية؛ وفي التوريد السائب أضف إيجار الخزان والكميات الملزمة. وقارن لكل متر مكعب أو كيلوغرام من الغاز المسلّم بالنقاء نفسه. وزن موثوقية التوصيل والتوريد الطارئ. ويوصى بأفضل ثلاثة عروض بأقل تكلفة إجمالية تستوفي النقاء وطريقة التوريد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -129,7 +303,8 @@
     "removed": [],
     "still_unverified": [
       "industrial_gases:spec-checklist",
-      "industrial_gases:uae-standards-and-approvals"
+      "industrial_gases:uae-standards-and-approvals",
+      "industrial_gases:authority-approvals"
     ],
     "added": [
       "industrial_gases:spec-checklist",
@@ -160,6 +335,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "industrial_gases:quote-red-flags",
+      "industrial_gases:buyer-mistakes",
+      "industrial_gases:price-drivers",
+      "industrial_gases:compare-quotes"
+    ]
   }
 }

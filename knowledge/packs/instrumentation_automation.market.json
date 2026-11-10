@@ -26,8 +26,8 @@
       "topic": "Instrumentation & automation (PLC): makes, brands, distributors and origins in the UAE",
       "topic_ar": "أجهزة القياس والتحكم الآلي (PLC): الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the automation and instrument brands in the UAE market, such as Siemens, Rockwell Automation, ABB, Emerson and Endress+Hauser, and where distributors and integrators are. Brands in the market: Siemens, Rockwell Automation, Schneider Electric, ABB, Emerson, Honeywell, Yokogawa, Endress+Hauser, Krohne, Vega, WIKA, Omron, Mitsubishi Electric, Delta, Phoenix Contact, Pepperl+Fuchs, Dräger, MSA. Which UAE distributor carries each brand was not checked. Distributors and integrators are in Dubai (JAFZA, Al Quoz, Dubai Investments Park), Sharjah and Abu Dhabi (Musaffah, ICAD).",
-      "body_ar": "من أشهر ماركات التحكم الآلي وأجهزة القياس في سوق الإمارات Siemens وRockwell Automation وABB وEmerson وEndress+Hauser، مع بيان أماكن الموزعين وشركات التكامل. العلامات في السوق: Siemens، Rockwell Automation، Schneider Electric، ABB، Emerson، Honeywell، Yokogawa، Endress+Hauser، Krohne، Vega، WIKA، Omron، Mitsubishi Electric، Delta، Phoenix Contact، Pepperl+Fuchs، Dräger، MSA. ولم يُتحقق من الموزع الإماراتي لكل علامة. والموزعون والمكاملون في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة وأبوظبي (مصفح وICAD).",
+      "body_en": "This entry lists the automation and instrument brands in the UAE market, such as Siemens, Rockwell Automation, ABB, Emerson and Endress+Hauser, and where distributors and integrators are. Brands in the market: Siemens, Rockwell Automation, Schneider Electric, ABB, Emerson, Honeywell, Yokogawa, Endress+Hauser, Krohne, Vega, WIKA, Omron, Mitsubishi Electric, Delta, Phoenix Contact, Pepperl+Fuchs, Dräger, MSA. Which UAE distributor carries each brand was not checked. Distributors and integrators are in Dubai (JAFZA, Al Quoz, Dubai Investments Park), Sharjah and Abu Dhabi (Musaffah, ICAD).\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Siemens = a premium German brand; Rockwell Automation = a premium American brand; Schneider Electric = a premium French brand; ABB = a premium Swiss brand; Emerson = a premium American brand; Honeywell = a premium American brand; Yokogawa = a premium Japanese brand; Endress+Hauser = a premium Swiss brand; Krohne = a premium German brand; Vega = a premium German brand; WIKA = a mid-tier German brand; Omron = a mid-tier Japanese brand; Mitsubishi Electric = a premium Japanese brand; Delta = a economy Taiwanese brand; Phoenix Contact = a premium German brand; Pepperl+Fuchs = a premium German brand; Dräger = a premium German brand; MSA = a premium American brand.",
+      "body_ar": "من أشهر ماركات التحكم الآلي وأجهزة القياس في سوق الإمارات Siemens وRockwell Automation وABB وEmerson وEndress+Hauser، مع بيان أماكن الموزعين وشركات التكامل. العلامات في السوق: Siemens، Rockwell Automation، Schneider Electric، ABB، Emerson، Honeywell، Yokogawa، Endress+Hauser، Krohne، Vega، WIKA، Omron، Mitsubishi Electric، Delta، Phoenix Contact، Pepperl+Fuchs، Dräger، MSA. ولم يُتحقق من الموزع الإماراتي لكل علامة. والموزعون والمكاملون في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة وأبوظبي (مصفح وICAD).\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Siemens = علامة ألمانية من الفئة الممتازة؛ Rockwell Automation = علامة أمريكية من الفئة الممتازة؛ Schneider Electric = علامة فرنسية من الفئة الممتازة؛ ABB = علامة سويسرية من الفئة الممتازة؛ Emerson = علامة أمريكية من الفئة الممتازة؛ Honeywell = علامة أمريكية من الفئة الممتازة؛ Yokogawa = علامة يابانية من الفئة الممتازة؛ Endress+Hauser = علامة سويسرية من الفئة الممتازة؛ Krohne = علامة ألمانية من الفئة الممتازة؛ Vega = علامة ألمانية من الفئة الممتازة؛ WIKA = علامة ألمانية من الفئة المتوسطة؛ Omron = علامة يابانية من الفئة المتوسطة؛ Mitsubishi Electric = علامة يابانية من الفئة الممتازة؛ Delta = علامة تايوانية من الفئة الاقتصادية؛ Phoenix Contact = علامة ألمانية من الفئة الممتازة؛ Pepperl+Fuchs = علامة ألمانية من الفئة الممتازة؛ Dräger = علامة ألمانية من الفئة الممتازة؛ MSA = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.ae.endress.com/en",
         "https://www.iec.ch",
@@ -36,7 +36,135 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Endress+Hauser serves the UAE (regional company, Dubai events) -> confirmed. Not checked: ADNOC's current approved vendor list for instruments was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Endress+Hauser serves the UAE (regional company, Dubai events) -> confirmed. Not checked: ADNOC's current approved vendor list for instruments was not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Siemens",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Rockwell Automation",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Schneider Electric",
+          "origin_country": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "ABB",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Emerson",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Honeywell",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Yokogawa",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Endress+Hauser",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Krohne",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Vega",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "WIKA",
+          "origin_country": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Omron",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Mitsubishi Electric",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Delta",
+          "origin_country": "Taiwan",
+          "tier": "economy",
+          "generic_en": "a economy Taiwanese brand",
+          "generic_ar": "علامة تايوانية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Phoenix Contact",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Pepperl+Fuchs",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Dräger",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "MSA",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "instrumentation_automation:uae-market-sizes",
