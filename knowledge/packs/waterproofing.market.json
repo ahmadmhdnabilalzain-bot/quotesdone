@@ -26,8 +26,8 @@
       "topic": "Waterproofing & insulation: makes, brands, distributors and origins in the UAE",
       "topic_ar": "العزل المائي والحراري: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the waterproofing membrane and chemical brands in the UAE, such as Sika, Fosroc, Mapei, Bitumat and Awazel, and that applicators are specialist subcontractors approved by the maker. Membrane and chemical brands: Sika, Master Builders Solutions, Fosroc, Mapei, Henkel, GCP Applied Technologies, Soprema, Index, Derbigum, Bitumat, Awazel, Polyglass, Tremco, Xypex, Penetron. Fosroc is based in Dubai. Bitumat and Awazel (Saudi) are distributed through Dubai contractors and traders, and the local distributors of the others were not checked. Applicators are specialist subcontractors, and system warranties usually require them to be approved by the maker. Distribution is through building-chemical traders in Dubai, Sharjah and Abu Dhabi.",
-      "body_ar": "من ماركات أغشية وكيماويات العزل المائي في الإمارات Sika وFosroc وMapei وBitumat وAwazel، ويتولى التنفيذ مقاولو باطن متخصصون معتمدون من الشركة المصنعة. علامات الأغشية والكيماويات: Sika، Master Builders Solutions، Fosroc، Mapei، Henkel، GCP Applied Technologies، Soprema، Index، Derbigum، Bitumat، Awazel، Polyglass، Tremco، Xypex، Penetron. ومقر Fosroc في دبي، وتُوزع Bitumat وAwazel (السعودية) عبر مقاولين وتجار في دبي، ولم يُتحقق من الموزعين المحليين للبقية. والمطبقون مقاولون متخصصون من الباطن، وعادة يُشترط اعتمادهم من المصنع لضمان الأنظمة. ويجري التوزيع عبر تجار كيماويات البناء في دبي والشارقة وأبوظبي.",
+      "body_en": "This entry lists the waterproofing membrane and chemical brands in the UAE, such as Sika, Fosroc, Mapei, Bitumat and Awazel, and that applicators are specialist subcontractors approved by the maker. Membrane and chemical brands: Sika, Master Builders Solutions, Fosroc, Mapei, Henkel, GCP Applied Technologies, Soprema, Index, Derbigum, Bitumat, Awazel, Polyglass, Tremco, Xypex, Penetron. Fosroc is based in Dubai. Bitumat and Awazel (Saudi) are distributed through Dubai contractors and traders, and the local distributors of the others were not checked. Applicators are specialist subcontractors, and system warranties usually require them to be approved by the maker. Distribution is through building-chemical traders in Dubai, Sharjah and Abu Dhabi.\n\nOrigin and tier, for describing a quoted brand without naming it: Sika - premium, Switzerland; Master Builders Solutions - premium, Germany; Fosroc - mid, UK; Mapei - premium, Italy; Henkel - premium, Germany; GCP Applied Technologies - premium, USA; Soprema - premium, France; Index - mid, Italy; Derbigum - premium, Belgium; Bitumat - mid, Saudi Arabia; Awazel - mid, Saudi Arabia; Polyglass - mid, Italy; Tremco - premium, USA; Xypex - premium, Canada; Penetron - mid, USA.",
+      "body_ar": "من ماركات أغشية وكيماويات العزل المائي في الإمارات Sika وFosroc وMapei وBitumat وAwazel، ويتولى التنفيذ مقاولو باطن متخصصون معتمدون من الشركة المصنعة. علامات الأغشية والكيماويات: Sika، Master Builders Solutions، Fosroc، Mapei، Henkel، GCP Applied Technologies، Soprema، Index، Derbigum، Bitumat، Awazel، Polyglass، Tremco، Xypex، Penetron. ومقر Fosroc في دبي، وتُوزع Bitumat وAwazel (السعودية) عبر مقاولين وتجار في دبي، ولم يُتحقق من الموزعين المحليين للبقية. والمطبقون مقاولون متخصصون من الباطن، وعادة يُشترط اعتمادهم من المصنع لضمان الأنظمة. ويجري التوزيع عبر تجار كيماويات البناء في دبي والشارقة وأبوظبي.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Sika: فئة ممتازة، سويسرا؛ Master Builders Solutions: فئة ممتازة، ألمانيا؛ Fosroc: فئة متوسطة، المملكة المتحدة؛ Mapei: فئة ممتازة، إيطاليا؛ Henkel: فئة ممتازة، ألمانيا؛ GCP Applied Technologies: فئة ممتازة، الولايات المتحدة؛ Soprema: فئة ممتازة، فرنسا؛ Index: فئة متوسطة، إيطاليا؛ Derbigum: فئة ممتازة، بلجيكا؛ Bitumat: فئة متوسطة، السعودية؛ Awazel: فئة متوسطة، السعودية؛ Polyglass: فئة متوسطة، إيطاليا؛ Tremco: فئة ممتازة، الولايات المتحدة؛ Xypex: فئة ممتازة، كندا؛ Penetron: فئة متوسطة، الولايات المتحدة.",
       "sources": [
         "https://www.fepy.com/blog/best-waterproofing-products-for-roofs-in-uae",
         "https://www.cencenelec.eu",
@@ -36,7 +36,114 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: membrane brands in the UAE -> confirmed Bitumat and Awazel distributed in Dubai, Fosroc based in Dubai, Sika, Henkel, BASF, Mapei present; unnamed local membrane makers removed. Not checked: Local membrane manufacturers' current output and each brand's warranty terms in the UAE were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: membrane brands in the UAE -> confirmed Bitumat and Awazel distributed in Dubai, Fosroc based in Dubai, Sika, Henkel, BASF, Mapei present; unnamed local membrane makers removed. Not checked: Local membrane manufacturers' current output and each brand's warranty terms in the UAE were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Sika",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Switzerland",
+          "generic_ar": "علامة ممتازة من سويسرا"
+        },
+        {
+          "brand": "Master Builders Solutions",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Fosroc",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Mapei",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        },
+        {
+          "brand": "Henkel",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "GCP Applied Technologies",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Soprema",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Index",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid brand from Italy",
+          "generic_ar": "علامة متوسطة من إيطاليا"
+        },
+        {
+          "brand": "Derbigum",
+          "origin": "Belgium",
+          "tier": "premium",
+          "generic_en": "a premium brand from Belgium",
+          "generic_ar": "علامة ممتازة من بلجيكا"
+        },
+        {
+          "brand": "Bitumat",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Saudi Arabia",
+          "generic_ar": "علامة متوسطة من السعودية"
+        },
+        {
+          "brand": "Awazel",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Saudi Arabia",
+          "generic_ar": "علامة متوسطة من السعودية"
+        },
+        {
+          "brand": "Polyglass",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid brand from Italy",
+          "generic_ar": "علامة متوسطة من إيطاليا"
+        },
+        {
+          "brand": "Tremco",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Xypex",
+          "origin": "Canada",
+          "tier": "premium",
+          "generic_en": "a premium brand from Canada",
+          "generic_ar": "علامة ممتازة من كندا"
+        },
+        {
+          "brand": "Penetron",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid brand from USA",
+          "generic_ar": "علامة متوسطة من الولايات المتحدة"
+        }
+      ]
     },
     {
       "id": "waterproofing:uae-market-sizes",

@@ -281,8 +281,8 @@
       "id": "doors:spec-checklist-fire-door",
       "topic": "Spec checklist: fire door-set RFQ",
       "kind": "spec_checklist",
-      "body_en": "A fire door quote can only be compared like-for-like when the buyer fixes the variables that change the product, the evidence and the price. First, the fire performance: the required duration (30, 60, 90 or 120 minutes), the class (E, EI1, EI2, or FD with or without smoke \"S\"), smoke control class if needed, and the test route the consultant accepts (EN 1634-1, BS 476-22 or UL 10C). Second, the physical door: leaf count (single, double, leaf-and-a-half), structural opening or frame size, leaf thickness, handing and swing, material (timber or steel), core, face finish and frame type and wall construction (block, drywall, concrete), because certification is wall-specific. Third, glazing: vision panel size, position and whether glazing must be E or EI. Fourth, ironmongery: hinges, lock function, cylinder/keying, closer power, exit hardware (EN 1125 / EN 179), coordinator for pairs, flush bolts, door stops, kick plates, signage and any access control or hold-open linked to the fire alarm. Fifth, other performance: acoustic Rw, security class, hygiene or impact needs. Sixth, compliance paperwork: Civil Defence approval for the emirate of installation, third-party certification, labels on leaf and frame, and field-of-application coverage for any non-standard size. Finally, commercial scope: supply only or supply and install, installation by trained fitters, site measurement, delivery programme, and warranty and maintenance. Missing any of these usually leads to a lowest price that is later rejected by the consultant or Civil Defence. The platform should hold a quote where rating, test standard, size, or the hardware schedule is missing.",
-      "body_ar": "لا يمكن مقارنة عروض أبواب الحريق مقارنة عادلة إلا إذا ثبّت المشتري المتغيرات التي تغيّر المنتج والأدلة والسعر. أولاً أداء الحريق: المدة المطلوبة (30 أو 60 أو 90 أو 120 دقيقة)، والفئة (E أو EI1 أو EI2 أو FD مع حرف الدخان S أو بدونه)، وفئة التحكم بالدخان إن لزمت، ومسار الاختبار الذي يقبله الاستشاري (EN 1634-1 أو BS 476-22 أو UL 10C). ثانياً الباب نفسه: عدد الضلف (مفرد، مزدوج، ضلفة ونصف)، ومقاس الفتحة الإنشائية أو الإطار، وسماكة الضلفة، واتجاه الفتح، والمادة (خشب أو فولاذ)، والقلب، وتشطيب الوجه، ونوع الإطار ونوع الجدار (بلوك، جبس، خرسانة)، لأن الاعتماد مرتبط بنوع الجدار. ثالثاً الزجاج: مقاس النافذة وموضعها وهل يجب أن يكون الزجاج E أم EI. رابعاً الإكسسوارات: المفصلات، ووظيفة القفل، والأسطوانة ونظام المفاتيح، وقوة المغلق، وإكسسوار الخروج (EN 1125 أو EN 179)، والمنسّق للأبواب المزدوجة، والمزاليج، ومصدات الأبواب، وألواح الركل، واللافتات، وأي تحكم في الدخول أو تثبيت مفتوح مرتبط بإنذار الحريق. خامساً الأداء الآخر: العزل الصوتي Rw، وفئة الأمان، ومتطلبات النظافة أو مقاومة الصدمات. سادساً مستندات المطابقة: اعتماد الدفاع المدني في إمارة التركيب، وشهادة الطرف الثالث، والملصقات على الضلفة والإطار، وتغطية مجال التطبيق لأي مقاس غير قياسي. وأخيراً النطاق التجاري: توريد فقط أم توريد وتركيب، والتركيب بفنيين مدرّبين، والقياس في الموقع، وبرنامج التسليم، والضمان والصيانة. وغياب أي من هذه البنود يؤدي غالباً إلى سعر أدنى يرفضه لاحقاً الاستشاري أو الدفاع المدني. وينبغي للمنصة تعليق أي عرض ينقصه التصنيف أو معيار الاختبار أو المقاس أو جدول الإكسسوارات.",
+      "body_en": "A fire door quote can only be compared like-for-like when the buyer fixes the variables that change the product, the evidence and the price. First, the fire performance: the required duration (30, 60, 90 or 120 minutes), the class (E, EI1, EI2, or FD with or without smoke \"S\"), smoke control class if needed, and the test route the consultant accepts (EN 1634-1, BS 476-22 or UL 10C). Second, the physical door: leaf count (single, double, leaf-and-a-half), structural opening or frame size, leaf thickness, handing and swing, material (timber or steel), core, face finish and frame type and wall construction (block, drywall, concrete), because certification is wall-specific. Third, glazing: vision panel size, position and whether glazing must be E or EI. Fourth, ironmongery: hinges, lock function, cylinder/keying, closer power, exit hardware (EN 1125 / EN 179), coordinator for pairs, flush bolts, door stops, kick plates, signage and any access control or hold-open linked to the fire alarm. Fifth, other performance: acoustic Rw, security class, hygiene or impact needs. Sixth, compliance paperwork: Civil Defence approval for the emirate of installation, third-party certification, labels on leaf and frame, and field-of-application coverage for any non-standard size. Finally, commercial scope: supply only or supply and install, installation by trained fitters, site measurement, delivery programme, and warranty and maintenance. Missing any of these usually leads to a lowest price that is later rejected by the consultant or Civil Defence. The platform should hold a quote where rating, test standard, size, or the hardware schedule is missing.\n\nExpert interview (2026-11-10): Blocking: rating minutes, fire class, configuration, sizes, leaf material and the ironmongery schedule.",
+      "body_ar": "لا يمكن مقارنة عروض أبواب الحريق مقارنة عادلة إلا إذا ثبّت المشتري المتغيرات التي تغيّر المنتج والأدلة والسعر. أولاً أداء الحريق: المدة المطلوبة (30 أو 60 أو 90 أو 120 دقيقة)، والفئة (E أو EI1 أو EI2 أو FD مع حرف الدخان S أو بدونه)، وفئة التحكم بالدخان إن لزمت، ومسار الاختبار الذي يقبله الاستشاري (EN 1634-1 أو BS 476-22 أو UL 10C). ثانياً الباب نفسه: عدد الضلف (مفرد، مزدوج، ضلفة ونصف)، ومقاس الفتحة الإنشائية أو الإطار، وسماكة الضلفة، واتجاه الفتح، والمادة (خشب أو فولاذ)، والقلب، وتشطيب الوجه، ونوع الإطار ونوع الجدار (بلوك، جبس، خرسانة)، لأن الاعتماد مرتبط بنوع الجدار. ثالثاً الزجاج: مقاس النافذة وموضعها وهل يجب أن يكون الزجاج E أم EI. رابعاً الإكسسوارات: المفصلات، ووظيفة القفل، والأسطوانة ونظام المفاتيح، وقوة المغلق، وإكسسوار الخروج (EN 1125 أو EN 179)، والمنسّق للأبواب المزدوجة، والمزاليج، ومصدات الأبواب، وألواح الركل، واللافتات، وأي تحكم في الدخول أو تثبيت مفتوح مرتبط بإنذار الحريق. خامساً الأداء الآخر: العزل الصوتي Rw، وفئة الأمان، ومتطلبات النظافة أو مقاومة الصدمات. سادساً مستندات المطابقة: اعتماد الدفاع المدني في إمارة التركيب، وشهادة الطرف الثالث، والملصقات على الضلفة والإطار، وتغطية مجال التطبيق لأي مقاس غير قياسي. وأخيراً النطاق التجاري: توريد فقط أم توريد وتركيب، والتركيب بفنيين مدرّبين، والقياس في الموقع، وبرنامج التسليم، والضمان والصيانة. وغياب أي من هذه البنود يؤدي غالباً إلى سعر أدنى يرفضه لاحقاً الاستشاري أو الدفاع المدني. وينبغي للمنصة تعليق أي عرض ينقصه التصنيف أو معيار الاختبار أو المقاس أو جدول الإكسسوارات.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مدة المقاومة بالدقائق، وفئة الحريق، وشكل الباب، والمقاسات، ومادة الضلفة، وجدول الإكسسوارات المعدنية.",
       "required_specs": [
         "fire rating duration (30/60/90/120 min)",
         "fire class (E / EI1 / EI2 / FD) and smoke class if required",
@@ -309,14 +309,67 @@
         "https://idighardware.com/2024/04/bs-en-classification-of-emergency-exit-hardware-hardware/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "fire rating duration (30/60/90/120 min)",
+        "fire class (E / EI1 / EI2 / FD) and smoke class if required",
+        "single / double / leaf-and-a-half",
+        "structural opening or frame size and leaf thickness",
+        "leaf material and core (timber / steel)",
+        "full ironmongery schedule (hinges, lock function, cylinder/keying, closer power size, exit device standard, coordinator, flush bolts, stops, kick plates, signage)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "fire rating duration (30/60/90/120 min)",
+          "why_needed_to_price": "Minutes decide core, frame and glazing; a 120-minute door costs far more than a 30-minute one.",
+          "uae_options": "30; 60; 90; 120 minutes",
+          "follow_up_if": "If the drawings only say \"FD\", ask the fire consultant for the minutes per door.",
+          "blocking": true
+        },
+        {
+          "spec": "fire class (E / EI1 / EI2 / FD) and smoke class if required",
+          "why_needed_to_price": "Insulated (EI) and smoke-sealed doors need different cores and seals.",
+          "uae_options": "E integrity; EI1 or EI2 insulation; smoke control Sa/S200",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "single / double / leaf-and-a-half",
+          "why_needed_to_price": "Leaf configuration changes hardware and price.",
+          "uae_options": "single; double; leaf-and-a-half",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "structural opening or frame size and leaf thickness",
+          "why_needed_to_price": "Door-sets are certified within tested sizes.",
+          "uae_options": "from the door schedule",
+          "follow_up_if": "Existing openings: site measurement needed.",
+          "blocking": true
+        },
+        {
+          "spec": "leaf material and core (timber / steel)",
+          "why_needed_to_price": "Steel and timber fire doors are different products and prices.",
+          "uae_options": "timber with mineral core; steel; glazed",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "full ironmongery schedule (hinges, lock function, cylinder/keying, closer power size, exit device standard, coordinator, flush bolts, stops, kick plates, signage)",
+          "why_needed_to_price": "Hardware is often a third of the cost and must be fire-rated with the door.",
+          "uae_options": "per door schedule",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "doors:spec-checklist-ironmongery",
       "topic": "Spec checklist: door hardware (ironmongery) schedule",
       "kind": "spec_checklist",
-      "body_en": "Door hardware is usually quoted from a schedule, one line per door type, and most disputes come from a vague schedule. For each door, the buyer should give the door reference and quantity, the door type (fire or non-fire, rating, timber or steel, single or pair), leaf width, height and mass, handing, and the room function because it determines the lock function. Hinges: type (butt, ball-bearing, concealed, pivot), size, quantity per leaf, EN 1935 or BHMA grade and material. Locking: lock or latch function, case type, backset, EN 12209 or BHMA grade, cylinder profile, keying (keyed alike, master-key hierarchy, construction keying) and number of keys. Lever handles and escutcheons: design family, rose type and material, noting that lever design must meet any accessibility requirement. Closer: EN 1154 power size or adjustable range, arm type, backcheck/delay, mounting face, and any electromagnetic hold-open (EN 1155) or free-swing function wired to the fire alarm. Exit hardware: EN 1125 or EN 179 (or UL 305), rim, mortice or vertical rod, outside trim. Pairs: coordinator, flush bolts or automatic bolts, astragal. Accessories: door stops, kick/push/pull plates, signage, drop seals, smoke and acoustic seals, viewers. Finish: stainless steel grade (304 or 316), satin or polished, PVD colours, and coastal suitability. Electrical: electric strikes, electrified locks, power transfer, door contacts, request-to-exit. Compliance: fire certification of each item for the door it goes on, and CE, UL or other marking. Scope: supply only or supply and fix, and who coordinates with the access-control contractor. Hold a quote that lists brand and model without the function and grade.",
-      "body_ar": "تُسعَّر إكسسوارات الأبواب عادةً وفق جدول، بسطر لكل نوع باب، ومعظم الخلافات تنشأ من جدول غامض. لكل باب ينبغي أن يحدد المشتري رقم الباب والكمية، ونوع الباب (حريق أو عادي، والتصنيف، وخشب أو فولاذ، ومفرد أو مزدوج)، وعرض الضلفة وارتفاعها ووزنها، واتجاه الفتح، ووظيفة الغرفة لأنها تحدد وظيفة القفل. المفصلات: النوع (عادية، بمحامل كروية، مخفية، محورية)، والمقاس، والعدد في كل ضلفة، ودرجة EN 1935 أو BHMA، والمادة. الإقفال: وظيفة القفل أو اللسان، ونوع العلبة، والمسافة الخلفية، ودرجة EN 12209 أو BHMA، ومقطع الأسطوانة، ونظام المفاتيح (متماثلة، تسلسل مفتاح رئيسي، مفاتيح إنشائية) وعدد المفاتيح. المقابض والوردات: عائلة التصميم، ونوع الوردة ومادتها، مع مراعاة متطلبات إمكانية الوصول لتصميم المقبض. المغلق: قوة EN 1154 أو المدى القابل للتعديل، ونوع الذراع، ومقاومة الفتح العنيف أو التأخير، ووجه التركيب، وأي تثبيت كهرومغناطيسي (EN 1155) أو حركة حرة مربوطة بإنذار الحريق. إكسسوار الخروج: EN 1125 أو EN 179 (أو UL 305)، سطحي أو غاطس أو بقضبان رأسية، والمقبض الخارجي. الأبواب المزدوجة: المنسّق، والمزاليج اليدوية أو الأوتوماتيكية، وشريط التغطية. الملحقات: مصدات الأبواب، وألواح الركل والدفع والسحب، واللافتات، والمانعات السفلية، ومانعات الدخان والصوت، والعين السحرية. التشطيب: درجة الفولاذ المقاوم للصدأ (304 أو 316)، مطفي أو لامع، وألوان PVD، والملاءمة للمناطق الساحلية. الكهرباء: الأقفال الكهربائية في الإطار، والأقفال المكهربة، وناقل الطاقة، وحساسات الباب، وطلب الخروج. المطابقة: اعتماد الحريق لكل قطعة على الباب الذي تُركّب عليه، وعلامة CE أو UL أو غيرها. النطاق: توريد فقط أم توريد وتركيب، ومن ينسّق مع مقاول التحكم في الدخول. ويُعلَّق العرض الذي يذكر العلامة التجارية والطراز دون الوظيفة والدرجة.",
+      "body_en": "Door hardware is usually quoted from a schedule, one line per door type, and most disputes come from a vague schedule. For each door, the buyer should give the door reference and quantity, the door type (fire or non-fire, rating, timber or steel, single or pair), leaf width, height and mass, handing, and the room function because it determines the lock function. Hinges: type (butt, ball-bearing, concealed, pivot), size, quantity per leaf, EN 1935 or BHMA grade and material. Locking: lock or latch function, case type, backset, EN 12209 or BHMA grade, cylinder profile, keying (keyed alike, master-key hierarchy, construction keying) and number of keys. Lever handles and escutcheons: design family, rose type and material, noting that lever design must meet any accessibility requirement. Closer: EN 1154 power size or adjustable range, arm type, backcheck/delay, mounting face, and any electromagnetic hold-open (EN 1155) or free-swing function wired to the fire alarm. Exit hardware: EN 1125 or EN 179 (or UL 305), rim, mortice or vertical rod, outside trim. Pairs: coordinator, flush bolts or automatic bolts, astragal. Accessories: door stops, kick/push/pull plates, signage, drop seals, smoke and acoustic seals, viewers. Finish: stainless steel grade (304 or 316), satin or polished, PVD colours, and coastal suitability. Electrical: electric strikes, electrified locks, power transfer, door contacts, request-to-exit. Compliance: fire certification of each item for the door it goes on, and CE, UL or other marking. Scope: supply only or supply and fix, and who coordinates with the access-control contractor. Hold a quote that lists brand and model without the function and grade.\n\nExpert interview (2026-11-10): Blocking: the door schedule with types, lock functions and the keying plan.",
+      "body_ar": "تُسعَّر إكسسوارات الأبواب عادةً وفق جدول، بسطر لكل نوع باب، ومعظم الخلافات تنشأ من جدول غامض. لكل باب ينبغي أن يحدد المشتري رقم الباب والكمية، ونوع الباب (حريق أو عادي، والتصنيف، وخشب أو فولاذ، ومفرد أو مزدوج)، وعرض الضلفة وارتفاعها ووزنها، واتجاه الفتح، ووظيفة الغرفة لأنها تحدد وظيفة القفل. المفصلات: النوع (عادية، بمحامل كروية، مخفية، محورية)، والمقاس، والعدد في كل ضلفة، ودرجة EN 1935 أو BHMA، والمادة. الإقفال: وظيفة القفل أو اللسان، ونوع العلبة، والمسافة الخلفية، ودرجة EN 12209 أو BHMA، ومقطع الأسطوانة، ونظام المفاتيح (متماثلة، تسلسل مفتاح رئيسي، مفاتيح إنشائية) وعدد المفاتيح. المقابض والوردات: عائلة التصميم، ونوع الوردة ومادتها، مع مراعاة متطلبات إمكانية الوصول لتصميم المقبض. المغلق: قوة EN 1154 أو المدى القابل للتعديل، ونوع الذراع، ومقاومة الفتح العنيف أو التأخير، ووجه التركيب، وأي تثبيت كهرومغناطيسي (EN 1155) أو حركة حرة مربوطة بإنذار الحريق. إكسسوار الخروج: EN 1125 أو EN 179 (أو UL 305)، سطحي أو غاطس أو بقضبان رأسية، والمقبض الخارجي. الأبواب المزدوجة: المنسّق، والمزاليج اليدوية أو الأوتوماتيكية، وشريط التغطية. الملحقات: مصدات الأبواب، وألواح الركل والدفع والسحب، واللافتات، والمانعات السفلية، ومانعات الدخان والصوت، والعين السحرية. التشطيب: درجة الفولاذ المقاوم للصدأ (304 أو 316)، مطفي أو لامع، وألوان PVD، والملاءمة للمناطق الساحلية. الكهرباء: الأقفال الكهربائية في الإطار، والأقفال المكهربة، وناقل الطاقة، وحساسات الباب، وطلب الخروج. المطابقة: اعتماد الحريق لكل قطعة على الباب الذي تُركّب عليه، وعلامة CE أو UL أو غيرها. النطاق: توريد فقط أم توريد وتركيب، ومن ينسّق مع مقاول التحكم في الدخول. ويُعلَّق العرض الذي يذكر العلامة التجارية والطراز دون الوظيفة والدرجة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: جدول الأبواب بأنواعها، ووظائف الأقفال، ومخطط المفاتيح.",
       "required_specs": [
         "door reference, quantity and door type (fire rating, material, single/pair)",
         "leaf width, height and mass",
@@ -342,14 +395,43 @@
         "https://www.yunngd.com/2026/02/11/fire-door-hardware-for-bs-476-en-doors-specification-grading-and-compliance/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "door reference, quantity and door type (fire rating, material, single/pair)",
+        "room function / lock function",
+        "cylinder profile and keying plan (keyed alike / master key) and key count"
+      ],
+      "spec_guide": [
+        {
+          "spec": "door reference, quantity and door type (fire rating, material, single/pair)",
+          "why_needed_to_price": "Hardware sets are priced per door type.",
+          "uae_options": "door schedule",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "room function / lock function",
+          "why_needed_to_price": "Lock function (privacy, office, classroom, storeroom) sets the lock case and cylinder.",
+          "uae_options": "per EN 12209 function",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "cylinder profile and keying plan (keyed alike / master key) and key count",
+          "why_needed_to_price": "Master-key systems are designed and cost more per cylinder.",
+          "uae_options": "keyed alike; keyed different; master-key suite",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "doors:spec-checklist-windows",
       "topic": "Spec checklist: windows and glazed doors RFQ",
       "kind": "spec_checklist",
-      "body_en": "Windows and aluminium or uPVC glazed doors are priced per square metre or per unit, and the rate swings widely depending on the system, the glass and the performance class, so an RFQ needs more than a sketch. The buyer should state for each type: overall frame size (width and height) or the opening size with tolerances, and quantity; opening type (fixed, sliding, lift-and-slide, casement in or out, tilt-and-turn, top-hung, folding); frame material and profile system series (aluminium thermally broken or non-thermally broken, uPVC with reinforcement, timber, composite); finish (powder coating colour and grade, anodising, or uPVC colour or foil); glass make-up (single, double or triple; thickness of each pane; low-e or solar-control coating; argon fill; laminated or tempered safety glass where required); target performance values (SHGC, U-value, visible light transmittance) for green-building compliance in Dubai or Abu Dhabi; air permeability, water tightness and wind resistance classes, particularly for towers where wind loads are higher; acoustic Rw if near roads or airports; hardware (handles, locks, multi-point locking, restrictors for child safety at height); insect screens; sub-frames and fixing to the wall type; sealing and flashing responsibility; and whether the scope includes shop drawings, structural calculations, site measurement and installation. Warranty terms for profiles, coatings, glass sealed units and hardware should be stated separately. For fire-rated windows or glazed screens, state the rating and test standard. A quote giving only a price per square metre without the system series and glass make-up should be held until clarified.",
-      "body_ar": "تُسعَّر النوافذ والأبواب الزجاجية من الألمنيوم أو uPVC بالمتر المربع أو بالوحدة، ويتفاوت السعر كثيراً حسب النظام والزجاج وفئة الأداء، لذا يحتاج طلب التسعير إلى أكثر من رسم تقريبي. ينبغي أن يحدد المشتري لكل نوع: المقاس الكلي للإطار (العرض والارتفاع) أو مقاس الفتحة مع السماحيات، والكمية؛ ونوع الفتح (ثابت، منزلق، رفع وانزلاق، مفصلي للداخل أو الخارج، قلاب ودوار، معلّق من الأعلى، قابل للطي)؛ ومادة الإطار وسلسلة نظام المقطع (ألمنيوم بعازل حراري أو بدونه، uPVC مع تقوية، خشب، مركّب)؛ والتشطيب (لون الطلاء البودرة ودرجته، أو الأنودة، أو لون uPVC أو الغلاف)؛ وتركيبة الزجاج (مفرد أو مزدوج أو ثلاثي، وسماكة كل لوح، والطلاء منخفض الانبعاث أو للتحكم الشمسي، والتعبئة بالأرغون، والزجاج المصفح أو المقسّى حيث يلزم للسلامة)؛ وقيم الأداء المستهدفة (SHGC وقيمة U ونفاذية الضوء المرئي) لتحقيق متطلبات المباني الخضراء في دبي أو أبوظبي؛ وفئات نفاذية الهواء ومنع تسرب الماء ومقاومة الرياح، خاصة للأبراج حيث تكون أحمال الرياح أعلى؛ والعزل الصوتي Rw قرب الطرق أو المطارات؛ والإكسسوارات (المقابض، والأقفال، والإقفال متعدد النقاط، ومحددات الفتح لسلامة الأطفال في الارتفاعات)؛ والشبك الواقي من الحشرات؛ والإطارات الفرعية والتثبيت بحسب نوع الجدار؛ ومسؤولية المانعات والعزل حول الفتحة؛ وهل يشمل النطاق الرسومات التنفيذية والحسابات الإنشائية والقياس في الموقع والتركيب. وينبغي ذكر شروط الضمان للمقاطع والطلاءات ووحدات الزجاج المعزول والإكسسوارات كلٌّ على حدة. وللنوافذ أو الحواجز الزجاجية المقاومة للحريق يُذكر التصنيف ومعيار الاختبار. ويُعلَّق العرض الذي يقدّم سعراً للمتر المربع فقط دون سلسلة النظام وتركيبة الزجاج حتى يُوضَّح.",
+      "body_en": "Windows and aluminium or uPVC glazed doors are priced per square metre or per unit, and the rate swings widely depending on the system, the glass and the performance class, so an RFQ needs more than a sketch. The buyer should state for each type: overall frame size (width and height) or the opening size with tolerances, and quantity; opening type (fixed, sliding, lift-and-slide, casement in or out, tilt-and-turn, top-hung, folding); frame material and profile system series (aluminium thermally broken or non-thermally broken, uPVC with reinforcement, timber, composite); finish (powder coating colour and grade, anodising, or uPVC colour or foil); glass make-up (single, double or triple; thickness of each pane; low-e or solar-control coating; argon fill; laminated or tempered safety glass where required); target performance values (SHGC, U-value, visible light transmittance) for green-building compliance in Dubai or Abu Dhabi; air permeability, water tightness and wind resistance classes, particularly for towers where wind loads are higher; acoustic Rw if near roads or airports; hardware (handles, locks, multi-point locking, restrictors for child safety at height); insect screens; sub-frames and fixing to the wall type; sealing and flashing responsibility; and whether the scope includes shop drawings, structural calculations, site measurement and installation. Warranty terms for profiles, coatings, glass sealed units and hardware should be stated separately. For fire-rated windows or glazed screens, state the rating and test standard. A quote giving only a price per square metre without the system series and glass make-up should be held until clarified.\n\nExpert interview (2026-11-10): Blocking: schedule with sizes, opening type, frame system and glass make-up. Replacement needs a site measurement.",
+      "body_ar": "تُسعَّر النوافذ والأبواب الزجاجية من الألمنيوم أو uPVC بالمتر المربع أو بالوحدة، ويتفاوت السعر كثيراً حسب النظام والزجاج وفئة الأداء، لذا يحتاج طلب التسعير إلى أكثر من رسم تقريبي. ينبغي أن يحدد المشتري لكل نوع: المقاس الكلي للإطار (العرض والارتفاع) أو مقاس الفتحة مع السماحيات، والكمية؛ ونوع الفتح (ثابت، منزلق، رفع وانزلاق، مفصلي للداخل أو الخارج، قلاب ودوار، معلّق من الأعلى، قابل للطي)؛ ومادة الإطار وسلسلة نظام المقطع (ألمنيوم بعازل حراري أو بدونه، uPVC مع تقوية، خشب، مركّب)؛ والتشطيب (لون الطلاء البودرة ودرجته، أو الأنودة، أو لون uPVC أو الغلاف)؛ وتركيبة الزجاج (مفرد أو مزدوج أو ثلاثي، وسماكة كل لوح، والطلاء منخفض الانبعاث أو للتحكم الشمسي، والتعبئة بالأرغون، والزجاج المصفح أو المقسّى حيث يلزم للسلامة)؛ وقيم الأداء المستهدفة (SHGC وقيمة U ونفاذية الضوء المرئي) لتحقيق متطلبات المباني الخضراء في دبي أو أبوظبي؛ وفئات نفاذية الهواء ومنع تسرب الماء ومقاومة الرياح، خاصة للأبراج حيث تكون أحمال الرياح أعلى؛ والعزل الصوتي Rw قرب الطرق أو المطارات؛ والإكسسوارات (المقابض، والأقفال، والإقفال متعدد النقاط، ومحددات الفتح لسلامة الأطفال في الارتفاعات)؛ والشبك الواقي من الحشرات؛ والإطارات الفرعية والتثبيت بحسب نوع الجدار؛ ومسؤولية المانعات والعزل حول الفتحة؛ وهل يشمل النطاق الرسومات التنفيذية والحسابات الإنشائية والقياس في الموقع والتركيب. وينبغي ذكر شروط الضمان للمقاطع والطلاءات ووحدات الزجاج المعزول والإكسسوارات كلٌّ على حدة. وللنوافذ أو الحواجز الزجاجية المقاومة للحريق يُذكر التصنيف ومعيار الاختبار. ويُعلَّق العرض الذي يقدّم سعراً للمتر المربع فقط دون سلسلة النظام وتركيبة الزجاج حتى يُوضَّح.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الجدول بالمقاسات، ونوع الفتح، ونظام الإطار، وتركيبة الزجاج. والاستبدال يحتاج إلى قياس في الموقع.",
       "required_specs": [
         "window/door type reference, size (W x H) and quantity",
         "opening type",
@@ -372,14 +454,52 @@
         "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "window/door type reference, size (W x H) and quantity",
+        "opening type",
+        "frame material and profile system series",
+        "glass make-up (panes, thickness, coating, gas fill, laminated/tempered)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "window/door type reference, size (W x H) and quantity",
+          "why_needed_to_price": "Each type and size is priced separately.",
+          "uae_options": "schedule",
+          "follow_up_if": "Replacement: site measurement needed.",
+          "blocking": true
+        },
+        {
+          "spec": "opening type",
+          "why_needed_to_price": "Opening systems differ widely in price.",
+          "uae_options": "fixed; sliding; casement; tilt-turn",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "frame material and profile system series",
+          "why_needed_to_price": "uPVC, aluminium and timber, and their series, are different prices.",
+          "uae_options": "uPVC; aluminium; timber",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "glass make-up (panes, thickness, coating, gas fill, laminated/tempered)",
+          "why_needed_to_price": "Glass is a large share of the price.",
+          "uae_options": "single; double with low-e",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "site_visit_required_when": "Replacement windows always need a site measurement before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "doors:spec-checklist-automatic-shutters",
       "topic": "Spec checklist: automatic doors, shutters and garage doors",
       "kind": "spec_checklist",
-      "body_en": "Power-operated doors combine a door, a drive and safety devices, so an RFQ must describe all three plus the service commitment. For automatic pedestrian doors (sliding, swing, folding, revolving, hermetic hospital sliders), the buyer should state: door type; clear opening width and height; single or bi-parting leaves; fixed side-screen sizes; frame profile and finish; glazing (tempered or laminated, thickness, any insulated unit); traffic level and user groups (public, elderly, hospital beds); whether the door is on an escape route and needs break-out or a fail-safe opening mode; fire or smoke rating if any; activation (radar, push button, touchless switch, access control) and night-locking; behaviour on power failure (battery back-up, opens or stays locked); and compliance with EN 16005 including the risk assessment and the annual maintenance contract. For rolling shutters, grilles, sectional and garage doors: clear width and height, available headroom and side room, mounting position, curtain or panel material and gauge (galvanised steel, aluminium, insulated panels), perforation or vision sections, wind exposure and required wind class for large external doors, insulation value, manual or motorised operation, operator duty cycle, controls (remote, keypad, access control), safety edges and photocells, manual override, and wicket door if people must pass. For fire shutters, the rating, test standard and Civil Defence approval are mandatory and the shutter must be linked to the fire alarm. Also state finish and colour, site conditions (dust, sea air), and whether civil works and electrical supply are by others. Hold any quote without dimensions, safety devices or service terms.",
-      "body_ar": "تجمع الأبواب الآلية بين الباب والمحرك وأجهزة السلامة، لذا يجب أن يصف طلب التسعير العناصر الثلاثة إضافةً إلى التزام الخدمة. بالنسبة للأبواب الآلية للمشاة (منزلقة، مفصلية، قابلة للطي، دوارة، منزلقة محكمة للمستشفيات) ينبغي أن يحدد المشتري: نوع الباب؛ والعرض والارتفاع الصافيين؛ ضلفة واحدة أو ضلفتين متقابلتين؛ ومقاسات الألواح الجانبية الثابتة؛ ومقطع الإطار وتشطيبه؛ والزجاج (مقسّى أو مصفح، والسماكة، وأي وحدة معزولة)؛ ومستوى الحركة وفئات المستخدمين (جمهور، كبار سن، أسرّة مستشفيات)؛ وهل الباب على مسار هروب ويحتاج إلى فتح بالدفع أو وضع فتح آمن؛ وتصنيف الحريق أو الدخان إن وجد؛ وطريقة التفعيل (رادار، زر دفع، مفتاح دون لمس، تحكم في الدخول) والإقفال الليلي؛ والسلوك عند انقطاع الكهرباء (بطارية احتياطية، يفتح أم يبقى مقفلاً)؛ والالتزام بمعيار EN 16005 بما في ذلك تقييم المخاطر وعقد الصيانة السنوي. وبالنسبة للستائر الملفوفة والشبكات والأبواب المقطعية وأبواب المرائب: العرض والارتفاع الصافيان، والمسافة العلوية والجانبية المتاحة، وموضع التركيب، ومادة الستارة أو الألواح وسماكتها (فولاذ مجلفن، ألمنيوم، ألواح معزولة)، والأجزاء المثقبة أو الشفافة، والتعرض للرياح وفئة الرياح المطلوبة للأبواب الخارجية الكبيرة، وقيمة العزل، والتشغيل اليدوي أو الآلي، ودورة تشغيل المحرك، ووسائل التحكم (جهاز عن بعد، لوحة أرقام، تحكم في الدخول)، وحواف السلامة والخلايا الضوئية، والتشغيل اليدوي البديل، وباب المشاة المدمج إذا لزم مرور الأشخاص. وفي ستائر الحريق يكون التصنيف ومعيار الاختبار واعتماد الدفاع المدني إلزامية ويجب ربط الستارة بإنذار الحريق. واذكر أيضاً التشطيب واللون، وظروف الموقع (الغبار، الهواء البحري)، وهل الأعمال المدنية والتغذية الكهربائية على الغير. ويُعلَّق أي عرض بلا أبعاد أو أجهزة سلامة أو شروط خدمة.",
+      "body_en": "Power-operated doors combine a door, a drive and safety devices, so an RFQ must describe all three plus the service commitment. For automatic pedestrian doors (sliding, swing, folding, revolving, hermetic hospital sliders), the buyer should state: door type; clear opening width and height; single or bi-parting leaves; fixed side-screen sizes; frame profile and finish; glazing (tempered or laminated, thickness, any insulated unit); traffic level and user groups (public, elderly, hospital beds); whether the door is on an escape route and needs break-out or a fail-safe opening mode; fire or smoke rating if any; activation (radar, push button, touchless switch, access control) and night-locking; behaviour on power failure (battery back-up, opens or stays locked); and compliance with EN 16005 including the risk assessment and the annual maintenance contract. For rolling shutters, grilles, sectional and garage doors: clear width and height, available headroom and side room, mounting position, curtain or panel material and gauge (galvanised steel, aluminium, insulated panels), perforation or vision sections, wind exposure and required wind class for large external doors, insulation value, manual or motorised operation, operator duty cycle, controls (remote, keypad, access control), safety edges and photocells, manual override, and wicket door if people must pass. For fire shutters, the rating, test standard and Civil Defence approval are mandatory and the shutter must be linked to the fire alarm. Also state finish and colour, site conditions (dust, sea air), and whether civil works and electrical supply are by others. Hold any quote without dimensions, safety devices or service terms.\n\nExpert interview (2026-11-10): Blocking: door type, clear opening and headroom. Existing openings need a site visit.",
+      "body_ar": "تجمع الأبواب الآلية بين الباب والمحرك وأجهزة السلامة، لذا يجب أن يصف طلب التسعير العناصر الثلاثة إضافةً إلى التزام الخدمة. بالنسبة للأبواب الآلية للمشاة (منزلقة، مفصلية، قابلة للطي، دوارة، منزلقة محكمة للمستشفيات) ينبغي أن يحدد المشتري: نوع الباب؛ والعرض والارتفاع الصافيين؛ ضلفة واحدة أو ضلفتين متقابلتين؛ ومقاسات الألواح الجانبية الثابتة؛ ومقطع الإطار وتشطيبه؛ والزجاج (مقسّى أو مصفح، والسماكة، وأي وحدة معزولة)؛ ومستوى الحركة وفئات المستخدمين (جمهور، كبار سن، أسرّة مستشفيات)؛ وهل الباب على مسار هروب ويحتاج إلى فتح بالدفع أو وضع فتح آمن؛ وتصنيف الحريق أو الدخان إن وجد؛ وطريقة التفعيل (رادار، زر دفع، مفتاح دون لمس، تحكم في الدخول) والإقفال الليلي؛ والسلوك عند انقطاع الكهرباء (بطارية احتياطية، يفتح أم يبقى مقفلاً)؛ والالتزام بمعيار EN 16005 بما في ذلك تقييم المخاطر وعقد الصيانة السنوي. وبالنسبة للستائر الملفوفة والشبكات والأبواب المقطعية وأبواب المرائب: العرض والارتفاع الصافيان، والمسافة العلوية والجانبية المتاحة، وموضع التركيب، ومادة الستارة أو الألواح وسماكتها (فولاذ مجلفن، ألمنيوم، ألواح معزولة)، والأجزاء المثقبة أو الشفافة، والتعرض للرياح وفئة الرياح المطلوبة للأبواب الخارجية الكبيرة، وقيمة العزل، والتشغيل اليدوي أو الآلي، ودورة تشغيل المحرك، ووسائل التحكم (جهاز عن بعد، لوحة أرقام، تحكم في الدخول)، وحواف السلامة والخلايا الضوئية، والتشغيل اليدوي البديل، وباب المشاة المدمج إذا لزم مرور الأشخاص. وفي ستائر الحريق يكون التصنيف ومعيار الاختبار واعتماد الدفاع المدني إلزامية ويجب ربط الستارة بإنذار الحريق. واذكر أيضاً التشطيب واللون، وظروف الموقع (الغبار، الهواء البحري)، وهل الأعمال المدنية والتغذية الكهربائية على الغير. ويُعلَّق أي عرض بلا أبعاد أو أجهزة سلامة أو شروط خدمة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع الباب، والفتحة الصافية، والارتفاع المتاح فوقها. والفتحات القائمة تحتاج إلى زيارة الموقع.",
       "required_specs": [
         "door type (auto sliding/swing/revolving/hermetic, rolling shutter, grille, sectional, garage)",
         "clear opening width and height",
@@ -404,7 +524,44 @@
         "https://www.intertek.com/building/standards/en-13241/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "door type (auto sliding/swing/revolving/hermetic, rolling shutter, grille, sectional, garage)",
+        "clear opening width and height",
+        "headroom and side room (shutters/sectional)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "door type (auto sliding/swing/revolving/hermetic, rolling shutter, grille, sectional, garage)",
+          "why_needed_to_price": "Each type has a different operator and structure.",
+          "uae_options": "auto sliding; swing; revolving; hermetic; rolling shutter; sectional",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "clear opening width and height",
+          "why_needed_to_price": "Size sets the curtain or leaf and the motor.",
+          "uae_options": "measured",
+          "follow_up_if": "Existing opening: site visit to check headroom and side room.",
+          "blocking": true
+        },
+        {
+          "spec": "headroom and side room (shutters/sectional)",
+          "why_needed_to_price": "Lack of headroom forces a different, often costlier, system.",
+          "uae_options": "measured",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "fire or smoke rating and Civil Defence approval if applicable",
+          "why_needed_to_price": "Fire shutters are certified products at a higher price.",
+          "uae_options": "none; rated",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site visit is unavoidable for shutters and sectional doors in existing openings to check headroom, side room and fixing.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "doors:buyer-mistakes-doors",
@@ -489,6 +646,37 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "doors:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Doors and fire doors: approvals per emirate",
+      "topic_ar": "الأبواب وأبواب الحريق: الاعتمادات في كل إمارة",
+      "body_en": "A normal internal door in a private home needs no approval. Fire doors are approved per emirate under the UAE Fire and Life Safety Code: in Dubai the door-set and its hardware must be products registered with Dubai Civil Defence and installed by an approved company; in Abu Dhabi the Abu Dhabi Civil Defence Authority approves fire-safety elements and its approval is part of the occupancy certificate; Sharjah and the northern emirates apply their civil defence approvals. Automatic doors on escape routes must meet the code's break-out rules. Doors in a commercial fit-out are part of the fit-out permit. Who obtains: the contractor or consultant; the door maker provides the test certificate and the civil defence listing.",
+      "body_ar": "لا يحتاج الباب الداخلي العادي في منزل خاص إلى اعتماد. أما أبواب الحريق فتُعتمد في كل إمارة وفق كود الإمارات للحماية من الحرائق وسلامة الأرواح: ففي دبي يجب أن يكون الباب وإكسسواراته منتجات مسجلة لدى الدفاع المدني بدبي وأن تركبها شركة معتمدة، وفي أبوظبي تعتمد هيئة أبوظبي للدفاع المدني عناصر السلامة من الحريق وموافقتها جزء من شهادة الإشغال، وتطبق الشارقة والإمارات الشمالية موافقات الدفاع المدني لديها. ويجب أن تحقق الأبواب الأوتوماتيكية على مسارات الهروب قواعد الفتح الطارئ في الكود. وأبواب التجهيز التجاري جزء من رخصة التجهيز. من يحصل عليها: المقاول أو الاستشاري، ويقدم صانع الباب شهادة الاختبار وإدراج الدفاع المدني.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.dcd.gov.ae/portal/en/e-services/company-approval-services",
+        "https://dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
+        "https://shjmun.gov.ae/servicedirectory/subServices/10"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10: each URL is an official page or document named in the search results. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "doors:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing door quotes like for like",
+      "topic_ar": "مقارنة عروض الأبواب على أساس متكافئ",
+      "body_en": "Compare per door type with the same rating, leaf material, size, finish and full hardware set, with frames, installation and keying in or out alike. A fire door quoted without its certified hardware, or with hardware from a different tested set, is not comparable. Value beyond price: a door-set certificate covering the exact configuration, civil defence listing, and hardware brand tier named per item.",
+      "body_ar": "قارن لكل نوع باب بالمقاومة نفسها ومادة الضلفة والمقاس والتشطيب ومجموعة الإكسسوارات الكاملة، مع معاملة الإطارات والتركيب ونظام المفاتيح بالطريقة نفسها. وباب الحريق المسعّر دون إكسسواراته المعتمدة، أو بإكسسوارات من مجموعة اختبار مختلفة، لا يقارن. القيمة إلى جانب السعر: شهادة لمجموعة الباب تغطي الشكل نفسه، وإدراج لدى الدفاع المدني، وفئة علامة الإكسسوارات مذكورة لكل بند.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -591,7 +779,18 @@
       "doors:window-energy-al-safat"
     ],
     "removed": [],
-    "still_unverified": [],
-    "note": "A8 Phase A verify 2026-09-23. Sources are only URLs fetched in this session; draft citations never opened (ASTM store 403s, homepages, dcd.gov.ae) were dropped. Low-confidence entries tagged gap_kind."
+    "still_unverified": [
+      "doors:approvals-per-emirate"
+    ],
+    "note": "A8 Phase A verify 2026-09-23. Sources are only URLs fetched in this session; draft citations never opened (ASTM store 403s, homepages, dcd.gov.ae) were dropped. Low-confidence entries tagged gap_kind.",
+    "added": [
+      "doors:approvals-per-emirate",
+      "doors:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+    }
   }
 }

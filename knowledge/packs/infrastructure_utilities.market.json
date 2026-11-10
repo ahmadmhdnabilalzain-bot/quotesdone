@@ -29,8 +29,8 @@
       "topic": "Utility networks & pipelines: makes, brands, distributors and origins in the UAE",
       "topic_ar": "شبكات المرافق وخطوط الأنابيب: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists pipe, cable and equipment makers such as Future Pipe Industries, Ducab, Cosmoplast and Saint-Gobain PAM, and notes each utility keeps approved contractor and material lists. Makers and suppliers: Future Pipe Industries, Ducab, Cosmoplast, Borouge, Amiantit, Saint-Gobain PAM, Electrosteel, Wavin, Polypipe, Herrenknecht, Vermeer, Ditch Witch. Future Pipe Industries (GRP), Ducab (cable) and Cosmoplast (PE and PVC, with Borouge resin) are UAE producers; the rest are imported or equipment brands. Each utility keeps its own approved contractor and material lists, for example DEWA's approved vendors. Origins: UAE for GRP, PE and cable; India and Europe for ductile iron; Europe for valves and fittings.",
-      "body_ar": "من أبرز مصنعي الأنابيب والكابلات والمعدات في أعمال البنية التحتية والمرافق Future Pipe Industries وDucab وCosmoplast وSaint-Gobain PAM، ولكل جهة خدمات قوائمها المعتمدة للمقاولين والمواد. المصنعون والموردون: Future Pipe Industries، Ducab، Cosmoplast، Borouge، Amiantit، Saint-Gobain PAM، Electrosteel، Wavin، Polypipe، Herrenknecht، Vermeer، Ditch Witch. وFuture Pipe Industries (أنابيب GRP) وDucab (كابلات) وCosmoplast (أنابيب PE وPVC بخامات Borouge) منتجون إماراتيون، أما البقية فمستوردة أو ماركات معدات. ولكل جهة خدمات قوائمها الخاصة بالمقاولين والمواد المعتمدة، مثل قائمة الموردين المعتمدين لدى DEWA. دول المنشأ: الإمارات لأنابيب GRP وPE والكابلات، والهند وأوروبا للحديد الدكتايل، وأوروبا للمحابس والقطع.",
+      "body_en": "This entry lists pipe, cable and equipment makers such as Future Pipe Industries, Ducab, Cosmoplast and Saint-Gobain PAM, and notes each utility keeps approved contractor and material lists. Makers and suppliers: Future Pipe Industries, Ducab, Cosmoplast, Borouge, Amiantit, Saint-Gobain PAM, Electrosteel, Wavin, Polypipe, Herrenknecht, Vermeer, Ditch Witch. Future Pipe Industries (GRP), Ducab (cable) and Cosmoplast (PE and PVC, with Borouge resin) are UAE producers; the rest are imported or equipment brands. Each utility keeps its own approved contractor and material lists, for example DEWA's approved vendors. Origins: UAE for GRP, PE and cable; India and Europe for ductile iron; Europe for valves and fittings.\n\nOrigin and tier, for describing a quoted brand without naming it: Future Pipe Industries - mid, UAE; Ducab - premium, UAE; Cosmoplast - mid, UAE; Borouge - premium, UAE; Amiantit - mid, Saudi Arabia; Saint-Gobain PAM - premium, France; Electrosteel - economy, India; Wavin - premium, Netherlands; Polypipe - mid, UK; Herrenknecht - premium, Germany; Vermeer - premium, USA; Ditch Witch - mid, USA.",
+      "body_ar": "من أبرز مصنعي الأنابيب والكابلات والمعدات في أعمال البنية التحتية والمرافق Future Pipe Industries وDucab وCosmoplast وSaint-Gobain PAM، ولكل جهة خدمات قوائمها المعتمدة للمقاولين والمواد. المصنعون والموردون: Future Pipe Industries، Ducab، Cosmoplast، Borouge، Amiantit، Saint-Gobain PAM، Electrosteel، Wavin، Polypipe، Herrenknecht، Vermeer، Ditch Witch. وFuture Pipe Industries (أنابيب GRP) وDucab (كابلات) وCosmoplast (أنابيب PE وPVC بخامات Borouge) منتجون إماراتيون، أما البقية فمستوردة أو ماركات معدات. ولكل جهة خدمات قوائمها الخاصة بالمقاولين والمواد المعتمدة، مثل قائمة الموردين المعتمدين لدى DEWA. دول المنشأ: الإمارات لأنابيب GRP وPE والكابلات، والهند وأوروبا للحديد الدكتايل، وأوروبا للمحابس والقطع.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Future Pipe Industries: فئة متوسطة، الإمارات؛ Ducab: فئة ممتازة، الإمارات؛ Cosmoplast: فئة متوسطة، الإمارات؛ Borouge: فئة ممتازة، الإمارات؛ Amiantit: فئة متوسطة، السعودية؛ Saint-Gobain PAM: فئة ممتازة، فرنسا؛ Electrosteel: فئة اقتصادية، الهند؛ Wavin: فئة ممتازة، هولندا؛ Polypipe: فئة متوسطة، المملكة المتحدة؛ Herrenknecht: فئة ممتازة، ألمانيا؛ Vermeer: فئة ممتازة، الولايات المتحدة؛ Ditch Witch: فئة متوسطة، الولايات المتحدة.",
       "sources": [
         "https://futurepipe.com/40-years-of-fpi/",
         "https://ducab.com/",
@@ -42,7 +42,93 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Future Pipe Industries GRP, Dubai -> confirmed (Dubai Industrial City plant) | Ducab power cable, Dubai and Abu Dhabi -> confirmed | Cosmoplast HDPE/uPVC pipes, Sharjah -> confirmed (Harwal Group) | Emirates Plastic Pipes and Hepworth as local makers -> removed (not confirmed). Not checked: Current approved vendor lists of each utility and which pipe makers are listed on them were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Future Pipe Industries GRP, Dubai -> confirmed (Dubai Industrial City plant) | Ducab power cable, Dubai and Abu Dhabi -> confirmed | Cosmoplast HDPE/uPVC pipes, Sharjah -> confirmed (Harwal Group) | Emirates Plastic Pipes and Hepworth as local makers -> removed (not confirmed). Not checked: Current approved vendor lists of each utility and which pipe makers are listed on them were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Future Pipe Industries",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "Ducab",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "Cosmoplast",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "Borouge",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "Amiantit",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Saudi Arabia",
+          "generic_ar": "علامة متوسطة من السعودية"
+        },
+        {
+          "brand": "Saint-Gobain PAM",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Electrosteel",
+          "origin": "India",
+          "tier": "economy",
+          "generic_en": "a economy brand from India",
+          "generic_ar": "علامة اقتصادية من الهند"
+        },
+        {
+          "brand": "Wavin",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium brand from Netherlands",
+          "generic_ar": "علامة ممتازة من هولندا"
+        },
+        {
+          "brand": "Polypipe",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Herrenknecht",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Vermeer",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Ditch Witch",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid brand from USA",
+          "generic_ar": "علامة متوسطة من الولايات المتحدة"
+        }
+      ]
     },
     {
       "id": "infrastructure_utilities:uae-market-sizes",

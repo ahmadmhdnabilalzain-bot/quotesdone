@@ -5,8 +5,8 @@
       "id": "prefab_buildings:spec-checklist",
       "topic": "Prefabricated buildings - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For prefabricated buildings quotes to be compared like-for-like, every quoted line (goods) must state: (1) building use and occupancy; (2) plan dimensions and number of floors; (3) structural system (steel frame, sandwich panel, container, precast); (4) wall and roof panel type, thickness and core; (5) fire rating of panels; (6) design wind load and structural calculations; (7) MEP scope (electrical, AC, plumbing); (8) foundation and installation scope; (9) authority approvals; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the prefab_buildings trade.",
-      "body_ar": "لكي تُقارن عروض المباني الجاهزة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) استخدام المبنى ونوع الإشغال؛ (2) أبعاد المسقط وعدد الطوابق؛ (3) النظام الإنشائي (هيكل فولاذي، أو ألواح ساندويتش، أو حاويات، أو خرسانة مسبقة الصب)؛ (4) نوع ألواح الجدران والسقف وسماكتها ونوع الحشوة؛ (5) تصنيف مقاومة الألواح للحريق؛ (6) حمل الرياح التصميمي والحسابات الإنشائية؛ (7) نطاق الأعمال الكهروميكانيكية (كهرباء، وتكييف، وسباكة)؛ (8) نطاق الأساسات والتركيب؛ (9) موافقات الجهات المختصة؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة prefab_buildings فقط.",
+      "body_en": "For prefabricated buildings quotes to be compared like-for-like, every quoted line (goods) must state: (1) building use and occupancy; (2) plan dimensions and number of floors; (3) structural system (steel frame, sandwich panel, container, precast); (4) wall and roof panel type, thickness and core; (5) fire rating of panels; (6) design wind load and structural calculations; (7) MEP scope (electrical, AC, plumbing); (8) foundation and installation scope; (9) authority approvals; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the prefab_buildings trade.\n\nExpert interview (2026-11-10): Blocking: use, size and floors, buy or rent, panel type and MEP scope. No site visit is needed for a factory price; site levels matter for installation.",
+      "body_ar": "لكي تُقارن عروض المباني الجاهزة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) استخدام المبنى ونوع الإشغال؛ (2) أبعاد المسقط وعدد الطوابق؛ (3) النظام الإنشائي (هيكل فولاذي، أو ألواح ساندويتش، أو حاويات، أو خرسانة مسبقة الصب)؛ (4) نوع ألواح الجدران والسقف وسماكتها ونوع الحشوة؛ (5) تصنيف مقاومة الألواح للحريق؛ (6) حمل الرياح التصميمي والحسابات الإنشائية؛ (7) نطاق الأعمال الكهروميكانيكية (كهرباء، وتكييف، وسباكة)؛ (8) نطاق الأساسات والتركيب؛ (9) موافقات الجهات المختصة؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة prefab_buildings فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الاستخدام، والمقاس وعدد الطوابق، والشراء أو الاستئجار، ونوع الألواح، ونطاق الأعمال الكهروميكانيكية. ولا تلزم زيارة الموقع لسعر المصنع، لكن مناسيب الموقع مهمة للتركيب.",
       "required_specs": [
         "building use and occupancy",
         "plan dimensions and number of floors",
@@ -20,14 +20,74 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "buy or rent, and rental period"
       ],
       "sources": [
         "https://www.dm.gov.ae/",
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "building use and occupancy",
+        "plan dimensions and number of floors",
+        "buy or rent, and rental period",
+        "wall and roof panel type, thickness and core",
+        "MEP scope (electrical, AC, plumbing)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "building use and occupancy",
+          "why_needed_to_price": "Site office, labour accommodation, classroom, clinic or kiosk each have different rules and fit-out.",
+          "uae_options": "site office; accommodation; toilet block; classroom; guard room",
+          "follow_up_if": "Accommodation: ask the number of occupants and the authority standard.",
+          "blocking": true
+        },
+        {
+          "spec": "plan dimensions and number of floors",
+          "why_needed_to_price": "Size sets steel, panels and price.",
+          "uae_options": "e.g. container sizes; custom plans; G or G+1",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "buy or rent, and rental period",
+          "why_needed_to_price": "Purchase and rental are priced on different bases.",
+          "uae_options": "buy new; buy used; rent monthly",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "wall and roof panel type, thickness and core",
+          "why_needed_to_price": "Panel core (EPS, PU, rock wool) sets insulation, fire behaviour and price.",
+          "uae_options": "EPS; PU/PIR; rock wool sandwich panels",
+          "follow_up_if": "Fire-sensitive use: ask for rock wool.",
+          "blocking": true
+        },
+        {
+          "spec": "MEP scope (electrical, AC, plumbing)",
+          "why_needed_to_price": "AC units, toilets and wiring add significantly.",
+          "uae_options": "shell; electrical only; full MEP",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "foundation and installation scope",
+          "why_needed_to_price": "Blocks, plinths and crane offloading are often excluded.",
+          "uae_options": "on blocks; on plinth; crane by buyer",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "authority approvals",
+          "why_needed_to_price": "Some uses need a municipal and civil defence approval.",
+          "uae_options": "contractor; owner",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "prefab_buildings:uae-standards-and-approvals",
@@ -86,6 +146,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "prefab_buildings:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Prefab buildings: approvals per emirate",
+      "topic_ar": "المباني الجاهزة: الاعتمادات في كل إمارة",
+      "body_en": "Abu Dhabi: DMT Circular 04/2022 requires a civil defence certificate of fulfilling safety requirements for site offices, labour rest areas, storage areas and fuel tanks on construction sites, plus a fire risk assessment and emergency plan for each site. Dubai: temporary structures on a construction site follow the building permit and Dubai Municipality site-safety rules; a permanent prefab building needs a building permit like any other (or Trakhees/DDA in their areas), and fire safety is approved by Dubai Civil Defence. Sharjah and the northern emirates: municipal permits and civil defence approval apply; the specific temporary-structure rules were not confirmed in this session. Who obtains: the main contractor or the owner; the manufacturer provides panel fire certificates and drawings.",
+      "body_ar": "في أبوظبي: يشترط تعميم دائرة البلديات والنقل رقم 04/2022 الحصول على شهادة استيفاء متطلبات السلامة من الدفاع المدني لمكاتب الموقع واستراحات العمال ومناطق التخزين وخزانات الوقود في مواقع البناء، مع تقييم لمخاطر الحريق وخطة طوارئ لكل موقع. في دبي: تتبع المنشآت المؤقتة في موقع البناء رخصة البناء وقواعد السلامة في بلدية دبي، ويحتاج المبنى الجاهز الدائم إلى رخصة بناء كأي مبنى آخر (أو من تراخيص أو سلطة دبي للتطوير في مناطقهما)، ويعتمد الدفاع المدني بدبي متطلبات السلامة من الحريق. في الشارقة والإمارات الشمالية: تنطبق التراخيص البلدية وموافقة الدفاع المدني، ولم يُتحقق من قواعد المنشآت المؤقتة المحددة في هذه الجلسة. من يحصل عليها: المقاول الرئيسي أو المالك، ويقدم المصنّع شهادات حريق الألواح والمخططات.",
+      "sources": [
+        "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/AboutUs/EHS/Circulars/004-2022.pdf",
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10: each URL is an official page or document named in the search results. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "prefab_buildings:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in prefab building quotes",
+      "topic_ar": "علامات التحذير في عروض المباني الجاهزة",
+      "body_en": "Watch for: panel thickness or core not stated (EPS swapped for PU or rock wool claims), steel frame gauge missing, AC units, toilets, flooring, doors or electrical DB excluded, transport and crane offloading excluded, used cabins offered as new, and a warranty on the structure only.",
+      "body_ar": "انتبه إلى: عدم ذكر سماكة الألواح أو مادة قلبها (استبدال الـEPS بادعاء PU أو صوف صخري)، وغياب سماكة الهيكل الحديدي، واستثناء وحدات التكييف أو الحمامات أو الأرضيات أو الأبواب أو لوحة الكهرباء، واستثناء النقل والتنزيل بالرافعة، وعرض كبائن مستعملة على أنها جديدة، وضمان على الهيكل فقط.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "prefab_buildings:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in prefab building",
+      "topic_ar": "أخطاء شائعة لدى المشترين في المباني الجاهزة",
+      "body_en": "Buyers compare cabins by size and price only, forget the site needs a level base and power, and order EPS panels for uses where the fire code calls for non-combustible insulation.",
+      "body_ar": "يقارن المشترون الكبائن بالمقاس والسعر فقط، وينسون أن الموقع يحتاج إلى قاعدة مستوية وكهرباء، ويطلبون ألواح EPS لاستخدامات يشترط فيها كود الحريق عزلاً غير قابل للاشتعال.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "prefab_buildings:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves prefab building prices",
+      "topic_ar": "ما الذي يغيّر أسعار المباني الجاهزة بشكل مشروع",
+      "body_en": "Prices differ legitimately by panel core and thickness, steel frame, internal finishes, MEP, number of floors, transport distance and craneage, and buy versus rent.",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب قلب الألواح وسماكتها، والهيكل الحديدي، والتشطيبات الداخلية، والأعمال الكهروميكانيكية، وعدد الطوابق، ومسافة النقل والرافعات، والشراء مقابل الاستئجار.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "prefab_buildings:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing prefab building quotes like for like",
+      "topic_ar": "مقارنة عروض المباني الجاهزة على أساس متكافئ",
+      "body_en": "Compare per unit of the same size with the same panel core and thickness, frame, finishes and MEP, delivered and installed. Value beyond price: fire certificates for the panels, a factory that makes its own panels, and a structural warranty.",
+      "body_ar": "قارن لكل وحدة بالمقاس نفسه وبقلب الألواح وسماكتها والهيكل والتشطيبات والأعمال الكهروميكانيكية نفسها، مسلّمة ومركّبة. القيمة إلى جانب السعر: شهادات حريق للألواح، ومصنع ينتج ألواحه بنفسه، وضمان إنشائي.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -128,11 +258,17 @@
     "removed": [],
     "still_unverified": [
       "prefab_buildings:spec-checklist",
-      "prefab_buildings:uae-standards-and-approvals"
+      "prefab_buildings:uae-standards-and-approvals",
+      "prefab_buildings:approvals-per-emirate"
     ],
     "added": [
       "prefab_buildings:spec-checklist",
-      "prefab_buildings:uae-standards-and-approvals"
+      "prefab_buildings:uae-standards-and-approvals",
+      "prefab_buildings:approvals-per-emirate",
+      "prefab_buildings:quote-red-flags",
+      "prefab_buildings:buyer-mistakes",
+      "prefab_buildings:price-drivers",
+      "prefab_buildings:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -159,6 +295,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }
