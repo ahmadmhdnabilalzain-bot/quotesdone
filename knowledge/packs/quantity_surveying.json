@@ -6,8 +6,8 @@
       "topic": "Quantity surveying - what the buyer must state",
       "topic_ar": "مسح الكميات: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For quantity surveying quotes to be compared like-for-like, every quoted line (services) must state: (1) project type, size and stage; (2) services (cost plan, BOQ, tender, valuations, final account); (3) measurement method (POMI, NRM, CESMM); (4) drawings and information provided; (5) team qualifications (RICS or equivalent); (6) consultancy licence; (7) deliverables and format; (8) professional indemnity insurance; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the quantity_surveying trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): project type, size and stage; services (cost plan, BOQ, tender, valuations, final account); drawings and information provided; deliverables and format; contract duration and pricing basis. Follow-up questions the answers trigger: drawings and information provided: Ask the drawing set. Before a firm price: a BOQ fee needs the drawing set and project size; post-contract services need the construction programme and value; claims work needs a document review first.",
-      "body_ar": "لكي تُقارن عروض مسح الكميات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المشروع وحجمه ومرحلته؛ (2) الخدمات (خطة التكلفة، وجدول الكميات، والمناقصة، والتقييمات، والحساب الختامي)؛ (3) طريقة القياس (POMI أو NRM أو CESMM)؛ (4) الرسومات والمعلومات المقدمة؛ (5) مؤهلات الفريق (RICS أو ما يعادلها)؛ (6) ترخيص الاستشارات؛ (7) المخرجات وصيغتها؛ (8) تأمين المسؤولية المهنية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة quantity_surveying فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نوع المشروع وحجمه ومرحلته، والخدمات، والمخططات المتوفرة، والمخرجات، ومدة خدمات ما بعد العقد. أتعاب جداول الكميات تحتاج المخططات وحجم المشروع، وأعمال المطالبات تحتاج مراجعة مستندات أولاً.",
+      "body_en": "For quantity surveying quotes to be compared like-for-like, every quoted line (services) must state: (1) project type, size and stage; (2) services (cost plan, BOQ, tender, valuations, final account); (3) measurement method (POMI, NRM, CESMM); (4) drawings and information provided; (5) team qualifications (RICS or equivalent); (6) consultancy licence; (7) deliverables and format; (8) professional indemnity insurance; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the quantity_surveying trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): project type, size and stage; services (cost plan, BOQ, tender, valuations, final account); drawings and information provided; deliverables and format; contract duration and pricing basis. Follow-up questions the answers trigger: drawings and information provided: Ask the drawing set. Before a firm price: a BOQ fee needs the drawing set and project size; post-contract services need the construction programme and value; claims work needs a document review first. Supplier ask-back review (2026-11-10): the inquiry now also states Project location and emirate; Payment terms, so no supplier has to come back to the customer for them. deliverables and format is no longer quote-blocking: the services asked already fix what is delivered; the file format (Excel or a named software) does not change the fee. Quote-blocking after this review: project type, size and stage; services (cost plan, BOQ, tender, valuations, final account); drawings and information provided; contract duration and pricing basis.",
+      "body_ar": "لكي تُقارن عروض مسح الكميات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المشروع وحجمه ومرحلته؛ (2) الخدمات (خطة التكلفة، وجدول الكميات، والمناقصة، والتقييمات، والحساب الختامي)؛ (3) طريقة القياس (POMI أو NRM أو CESMM)؛ (4) الرسومات والمعلومات المقدمة؛ (5) مؤهلات الفريق (RICS أو ما يعادلها)؛ (6) ترخيص الاستشارات؛ (7) المخرجات وصيغتها؛ (8) تأمين المسؤولية المهنية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة quantity_surveying فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نوع المشروع وحجمه ومرحلته، والخدمات، والمخططات المتوفرة، والمخرجات، ومدة خدمات ما بعد العقد. أتعاب جداول الكميات تحتاج المخططات وحجم المشروع، وأعمال المطالبات تحتاج مراجعة مستندات أولاً. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع المشروع والإمارة؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «المخرجات وصيغتها» مانعاً للتسعير: الخدمات المطلوبة تحدد أصلاً ما يُسلَّم؛ وصيغة الملف لا تغيّر الأتعاب.",
       "required_specs": [
         "project type, size and stage",
         "services (cost plan, BOQ, tender, valuations, final account)",
@@ -19,7 +19,9 @@
         "professional indemnity insurance",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Project location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/"
@@ -30,7 +32,6 @@
         "project type, size and stage",
         "services (cost plan, BOQ, tender, valuations, final account)",
         "drawings and information provided",
-        "deliverables and format",
         "contract duration and pricing basis"
       ],
       "spec_guide": [
@@ -81,7 +82,7 @@
           "why_needed_to_price": "Deliverables and format.",
           "uae_options": "BOQ in Excel; CostX",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "professional indemnity insurance",
@@ -110,10 +111,24 @@
           "uae_options": "site visits beyond number; claims",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "Project location and emirate",
+          "why_needed_to_price": "Valuations, site measurements and progress meetings are site visits whose time and travel depend on where the project is.",
+          "uae_options": "A named emirate and area; remote site; several sites.",
+          "follow_up_if": "For post-contract services, ask how many site visits a month are expected.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "a BOQ fee needs the drawing set and project size; post-contract services need the construction programme and value; claims work needs a document review first.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "quantity_surveying:uae-standards-and-approvals",

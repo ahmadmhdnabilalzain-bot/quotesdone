@@ -31,8 +31,8 @@
       "id": "power_generators:sizing",
       "topic": "How to size a generator",
       "kind": "spec_checklist",
-      "body_en": "Sizing starts with a load schedule, not a guess from the DEWA meter rating. List every load to be backed up with its kW, power factor, whether it is a motor, how it starts (direct-on-line, star-delta, soft starter, VFD) and whether it is linear or non-linear. Add the running loads, then check the largest motor step: the generator must pick up that step while the others run, keeping voltage dip within what the equipment tolerates (commonly around 15-20% for general loads, tighter for sensitive IT). Manufacturers' sizing software models this and is worth requesting. Apply site derating for UAE ambient temperature, allow a sensible margin for future load (often 10-25% by designer judgement), and remember diesel engines dislike running below roughly 30% load for long periods because of wet stacking, so oversizing has a cost too. For fire pumps, life-safety loads and lifts, the designer must follow the civil defence and lift regulations on what must be on emergency supply. The final specification to suppliers should be in kW and kVA at 0.8 PF, duty rating, voltage and frequency, and the ambient condition the rating must hold at.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): load, duty and the largest motor.",
-      "body_ar": "يبدأ التحجيم بجدول أحمال وليس بتقدير من سعة عداد ديوا. اذكر كل حمل مطلوب تغذيته احتياطياً مع قدرته بالكيلوواط ومعامل القدرة، وهل هو محرك، وطريقة بدئه (مباشر، نجمة-دلتا، بادئ ناعم، محول تردد)، وهل هو خطي أم غير خطي. اجمع الأحمال الجارية ثم افحص أكبر خطوة محرك: يجب أن يلتقط المولد تلك الخطوة والأحمال الأخرى تعمل، مع إبقاء هبوط الجهد ضمن ما تتحمله المعدات (غالباً نحو 15 إلى 20% للأحمال العامة وأقل لأجهزة تقنية المعلومات الحساسة). برامج التحجيم لدى المصنّعين تحاكي ذلك ويستحق طلبها. طبّق تخفيض القدرة لحرارة الإمارات، وأضف هامشاً معقولاً للتوسع المستقبلي (غالباً 10 إلى 25% بحسب تقدير المصمم)، وتذكّر أن محركات الديزل لا تحب العمل تحت نحو 30% من الحمل لفترات طويلة بسبب ظاهرة التكدس الرطب، فالتكبير المفرط له كلفة أيضاً. لمضخات الحريق وأحمال سلامة الأرواح والمصاعد يجب اتباع اشتراطات الدفاع المدني وأنظمة المصاعد. ويجب أن تُرسل المواصفة النهائية للموردين بالكيلوواط والكيلوفولت أمبير عند 0.8، مع التصنيف والجهد والتردد ودرجة الحرارة المحيطة التي يجب أن تتحقق عندها القدرة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الحمل، ونوع التشغيل، وأكبر محرك.",
+      "body_en": "Sizing starts with a load schedule, not a guess from the DEWA meter rating. List every load to be backed up with its kW, power factor, whether it is a motor, how it starts (direct-on-line, star-delta, soft starter, VFD) and whether it is linear or non-linear. Add the running loads, then check the largest motor step: the generator must pick up that step while the others run, keeping voltage dip within what the equipment tolerates (commonly around 15-20% for general loads, tighter for sensitive IT). Manufacturers' sizing software models this and is worth requesting. Apply site derating for UAE ambient temperature, allow a sensible margin for future load (often 10-25% by designer judgement), and remember diesel engines dislike running below roughly 30% load for long periods because of wet stacking, so oversizing has a cost too. For fire pumps, life-safety loads and lifts, the designer must follow the civil defence and lift regulations on what must be on emergency supply. The final specification to suppliers should be in kW and kVA at 0.8 PF, duty rating, voltage and frequency, and the ambient condition the rating must hold at.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): load, duty and the largest motor. Supplier ask-back review (2026-11-10): a supplier can price firm from the required specs; nothing was added. Quote-blocking after this review: Load in kW and kVA at stated power factor; Duty rating (standby/prime/continuous per ISO 8528-1); Largest motor load and its starting method.",
+      "body_ar": "يبدأ التحجيم بجدول أحمال وليس بتقدير من سعة عداد ديوا. اذكر كل حمل مطلوب تغذيته احتياطياً مع قدرته بالكيلوواط ومعامل القدرة، وهل هو محرك، وطريقة بدئه (مباشر، نجمة-دلتا، بادئ ناعم، محول تردد)، وهل هو خطي أم غير خطي. اجمع الأحمال الجارية ثم افحص أكبر خطوة محرك: يجب أن يلتقط المولد تلك الخطوة والأحمال الأخرى تعمل، مع إبقاء هبوط الجهد ضمن ما تتحمله المعدات (غالباً نحو 15 إلى 20% للأحمال العامة وأقل لأجهزة تقنية المعلومات الحساسة). برامج التحجيم لدى المصنّعين تحاكي ذلك ويستحق طلبها. طبّق تخفيض القدرة لحرارة الإمارات، وأضف هامشاً معقولاً للتوسع المستقبلي (غالباً 10 إلى 25% بحسب تقدير المصمم)، وتذكّر أن محركات الديزل لا تحب العمل تحت نحو 30% من الحمل لفترات طويلة بسبب ظاهرة التكدس الرطب، فالتكبير المفرط له كلفة أيضاً. لمضخات الحريق وأحمال سلامة الأرواح والمصاعد يجب اتباع اشتراطات الدفاع المدني وأنظمة المصاعد. ويجب أن تُرسل المواصفة النهائية للموردين بالكيلوواط والكيلوفولت أمبير عند 0.8، مع التصنيف والجهد والتردد ودرجة الحرارة المحيطة التي يجب أن تتحقق عندها القدرة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الحمل، ونوع التشغيل، وأكبر محرك. مراجعة من منظور المورّد (2026-11-10): يستطيع المورّد التسعير النهائي من المواصفات المطلوبة؛ ولم يُضف شيء.",
       "sources": [
         "https://filipinoengineer.com/blog/2025/05/understanding-iso-8528-1-generator-set-ratings-overloads-and-duty-classes.html",
         "https://www.genpower.com/en/frequently-asked-questions-detail/what-do-standby-esp-prime-prp-continouscop-dcp-mean"
@@ -113,7 +113,7 @@
         }
       ],
       "site_visit_required_when": "A load survey on site is needed when no load list exists.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "power_generators:uae-derating",
@@ -208,8 +208,8 @@
       "id": "power_generators:gen-spec-checklist",
       "topic": "Generator purchase specification checklist",
       "kind": "spec_checklist",
-      "body_en": "A supplier can only quote a generator exactly when the buyer defines the rating and the scope around it. Beyond kVA, the most common gaps are the duty rating, the ambient at which the rating is guaranteed, whether the price includes the ATS, fuel system, exhaust, cabling, delivery, offloading by crane, installation, commissioning and load-bank test, and which authority approvals the supplier handles. Engine and alternator make and origin should be declared separately because assemblers often combine brands, and the controller model determines what AMF and remote monitoring features you get. Noise level must be stated with distance. The warranty should be in both months and running hours, whichever comes first, with clarity about whether it covers parts only or parts and labour. For villas and small commercial buyers, a clear statement of what is and is not included is the most important protection against later variations. Where the specification is incomplete, the quote should be held until the missing fields are confirmed.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): rating with duty, output at site ambient and canopy/noise.",
-      "body_ar": "لا يستطيع المورد تسعير مولد بدقة إلا إذا حدد المشتري التصنيف والنطاق المحيط به. بعد الكيلوفولت أمبير، أكثر النواقص شيوعاً: نوع التصنيف، والحرارة المحيطة التي تُضمن عندها القدرة، وهل السعر يشمل مفتاح التحويل ونظام الوقود والعادم والكابلات والتوصيل والتنزيل بالرافعة والتركيب والتشغيل التجريبي واختبار حمل الأحمال الوهمية، وأي موافقات الجهات يتولاها المورد. يجب التصريح بماركة المحرك والمولّد الكهربائي ومنشئهما كلٌّ على حدة لأن المجمّعين كثيراً ما يجمعون ماركات مختلفة، وطراز وحدة التحكم يحدد مزايا التحويل الآلي والمراقبة عن بعد. ويجب ذكر مستوى الضجيج مع المسافة. ويكون الضمان بالأشهر وبساعات التشغيل أيهما أسبق، مع وضوح هل يغطي القطع فقط أم القطع والعمالة. للفلل والمشترين التجاريين الصغار، البيان الواضح لما هو مشمول وما هو غير مشمول هو أهم حماية من التغييرات اللاحقة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: القدرة مع نوع التشغيل، والقدرة عند حرارة الموقع، والمظلة ومستوى الضجيج.",
+      "body_en": "A supplier can only quote a generator exactly when the buyer defines the rating and the scope around it. Beyond kVA, the most common gaps are the duty rating, the ambient at which the rating is guaranteed, whether the price includes the ATS, fuel system, exhaust, cabling, delivery, offloading by crane, installation, commissioning and load-bank test, and which authority approvals the supplier handles. Engine and alternator make and origin should be declared separately because assemblers often combine brands, and the controller model determines what AMF and remote monitoring features you get. Noise level must be stated with distance. The warranty should be in both months and running hours, whichever comes first, with clarity about whether it covers parts only or parts and labour. For villas and small commercial buyers, a clear statement of what is and is not included is the most important protection against later variations. Where the specification is incomplete, the quote should be held until the missing fields are confirmed.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): rating with duty, output at site ambient and canopy/noise. Supplier ask-back review (2026-11-10): the inquiry now also states Purchase or rental, and rental period (quote-blocking); Number of generator sets (quote-blocking); Delivery location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: kVA/kW at 0.8 PF and ISO 8528 duty rating; Guaranteed output at site ambient (e.g. 50 C); Open or canopy; noise dB(A) at stated distance; Purchase or rental, and rental period; Number of generator sets; Delivery location and emirate.",
+      "body_ar": "لا يستطيع المورد تسعير مولد بدقة إلا إذا حدد المشتري التصنيف والنطاق المحيط به. بعد الكيلوفولت أمبير، أكثر النواقص شيوعاً: نوع التصنيف، والحرارة المحيطة التي تُضمن عندها القدرة، وهل السعر يشمل مفتاح التحويل ونظام الوقود والعادم والكابلات والتوصيل والتنزيل بالرافعة والتركيب والتشغيل التجريبي واختبار حمل الأحمال الوهمية، وأي موافقات الجهات يتولاها المورد. يجب التصريح بماركة المحرك والمولّد الكهربائي ومنشئهما كلٌّ على حدة لأن المجمّعين كثيراً ما يجمعون ماركات مختلفة، وطراز وحدة التحكم يحدد مزايا التحويل الآلي والمراقبة عن بعد. ويجب ذكر مستوى الضجيج مع المسافة. ويكون الضمان بالأشهر وبساعات التشغيل أيهما أسبق، مع وضوح هل يغطي القطع فقط أم القطع والعمالة. للفلل والمشترين التجاريين الصغار، البيان الواضح لما هو مشمول وما هو غير مشمول هو أهم حماية من التغييرات اللاحقة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: القدرة مع نوع التشغيل، والقدرة عند حرارة الموقع، والمظلة ومستوى الضجيج. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شراء أو استئجار ومدة الاستئجار (مانع للتسعير)؛ عدد المولدات (مانع للتسعير)؛ موقع التسليم والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "sources": [
         "https://filipinoengineer.com/blog/2025/05/understanding-iso-8528-1-generator-set-ratings-overloads-and-duty-classes.html",
         "https://www.genpower.com/en/frequently-asked-questions-detail/what-do-standby-esp-prime-prp-continouscop-dcp-mean"
@@ -228,12 +228,19 @@
         "ATS rating and poles (if included)",
         "Scope: delivery, crane, installation, cabling, exhaust, commissioning, load bank test",
         "Warranty months and running hours; parts/labour",
-        "Authority approvals included or excluded"
+        "Authority approvals included or excluded",
+        "Purchase or rental, and rental period",
+        "Number of generator sets",
+        "Delivery location and emirate",
+        "Payment terms"
       ],
       "blocking": [
         "kVA/kW at 0.8 PF and ISO 8528 duty rating",
         "Guaranteed output at site ambient (e.g. 50 C)",
-        "Open or canopy; noise dB(A) at stated distance"
+        "Open or canopy; noise dB(A) at stated distance",
+        "Purchase or rental, and rental period",
+        "Number of generator sets",
+        "Delivery location and emirate"
       ],
       "spec_guide": [
         {
@@ -319,9 +326,37 @@
           "uae_options": "Civil Defence; municipality.",
           "follow_up_if": "If a supplier excludes it, ask who provides it and at what cost.",
           "blocking": false
+        },
+        {
+          "spec": "Purchase or rental, and rental period",
+          "why_needed_to_price": "A purchased set and a rented set (with or without fuel, operator and maintenance) are priced on different bases, and rental rates fall with the period.",
+          "uae_options": "Buy new; buy used or refurbished; rent daily, weekly or monthly for a stated period; rental with fuel, operator or maintenance included or not.",
+          "follow_up_if": "If rented, ask who refuels and how many running hours a day are expected.",
+          "blocking": true
+        },
+        {
+          "spec": "Number of generator sets",
+          "why_needed_to_price": "The set count sets the price, and sets in parallel need synchronising panels.",
+          "uae_options": "One set; a stated number of sets; sets in parallel or as duty and standby.",
+          "follow_up_if": "If sets run in parallel, ask whether synchronising and a load-sharing panel are in scope.",
+          "blocking": true
+        },
+        {
+          "spec": "Delivery location and emirate",
+          "why_needed_to_price": "Transport of a generator, crane hire for offloading and the travel of the commissioning crew all depend on the site and its emirate.",
+          "uae_options": "Ex-warehouse collection; delivered to one address in a named emirate; delivered and offloaded; split deliveries to several sites.",
+          "follow_up_if": "If the site has access limits (time windows, small vehicles only, no forklift), state them so freight is priced correctly.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
       "site_visit_required_when": "A site visit is needed for an existing site, to check location, access for the crane and exhaust routes."
     },
     {
@@ -340,8 +375,8 @@
       "id": "power_generators:ups-spec-checklist",
       "topic": "UPS specification checklist",
       "kind": "spec_checklist",
-      "body_en": "To quote a UPS exactly, a supplier needs the protected load and the runtime, not only a kVA figure. Load should be given in kW as well as kVA because modern UPS are rated at output power factors of 0.9 or 1.0, so a '10 kVA' unit can mean 9 or 10 kW. Runtime at a stated load determines the battery bank, which is often the largest cost item. Input and output configuration (single-phase in/out, three-phase in/single out, three-phase in/out) must match the site. Redundancy (single unit, N+1 parallel, modular hot-swappable) and whether an external maintenance bypass is required should be stated. Environment matters: batteries are rated at 20-25 degrees C, and every sustained rise shortens their life, so the UPS room needs air conditioning. Communication (SNMP card, dry contacts, BMS/Modbus) and generator compatibility should be specified. The warranty on the electronics and on batteries is usually different and should be quoted separately.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): load, topology and runtime.",
-      "body_ar": "لتسعير UPS بدقة يحتاج المورد الحمل المحمي ومدة التشغيل، لا رقم الكيلوفولت أمبير وحده. يُذكر الحمل بالكيلوواط والكيلوفولت أمبير لأن أجهزة UPS الحديثة مصنفة بمعامل قدرة خرج 0.9 أو 1.0، فجهاز «10 كيلوفولت أمبير» قد يعني 9 أو 10 كيلوواط. ومدة التشغيل عند حمل محدد تحدد مجموعة البطاريات، وهي غالباً البند الأعلى كلفة. ويجب أن يطابق تكوين الدخل والخرج الموقع (أحادي/أحادي، ثلاثي/أحادي، ثلاثي/ثلاثي). ويُذكر مستوى الاحتياط (جهاز منفرد، توازي N+1، وحدات قابلة للتبديل أثناء التشغيل) وهل يلزم مفتاح تجاوز صيانة خارجي. والبيئة مهمة: البطاريات مصنفة عند 20 إلى 25 درجة مئوية وكل ارتفاع مستمر يقصّر عمرها، فغرفة UPS تحتاج تكييفاً. ويجب تحديد الاتصالات (بطاقة SNMP، تلامسات جافة، BMS/Modbus) والتوافق مع المولد. وضمان الإلكترونيات يختلف عادةً عن ضمان البطاريات ويجب تسعير كلٍّ منهما على حدة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الحمل، ونوع البنية، ومدة التشغيل.",
+      "body_en": "To quote a UPS exactly, a supplier needs the protected load and the runtime, not only a kVA figure. Load should be given in kW as well as kVA because modern UPS are rated at output power factors of 0.9 or 1.0, so a '10 kVA' unit can mean 9 or 10 kW. Runtime at a stated load determines the battery bank, which is often the largest cost item. Input and output configuration (single-phase in/out, three-phase in/single out, three-phase in/out) must match the site. Redundancy (single unit, N+1 parallel, modular hot-swappable) and whether an external maintenance bypass is required should be stated. Environment matters: batteries are rated at 20-25 degrees C, and every sustained rise shortens their life, so the UPS room needs air conditioning. Communication (SNMP card, dry contacts, BMS/Modbus) and generator compatibility should be specified. The warranty on the electronics and on batteries is usually different and should be quoted separately.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): load, topology and runtime. Supplier ask-back review (2026-11-10): the inquiry now also states Quantity of units (quote-blocking); Delivery location and emirate; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Load in kW and kVA; Topology (online double-conversion / line-interactive / offline); Runtime in minutes at stated load; Quantity of units.",
+      "body_ar": "لتسعير UPS بدقة يحتاج المورد الحمل المحمي ومدة التشغيل، لا رقم الكيلوفولت أمبير وحده. يُذكر الحمل بالكيلوواط والكيلوفولت أمبير لأن أجهزة UPS الحديثة مصنفة بمعامل قدرة خرج 0.9 أو 1.0، فجهاز «10 كيلوفولت أمبير» قد يعني 9 أو 10 كيلوواط. ومدة التشغيل عند حمل محدد تحدد مجموعة البطاريات، وهي غالباً البند الأعلى كلفة. ويجب أن يطابق تكوين الدخل والخرج الموقع (أحادي/أحادي، ثلاثي/أحادي، ثلاثي/ثلاثي). ويُذكر مستوى الاحتياط (جهاز منفرد، توازي N+1، وحدات قابلة للتبديل أثناء التشغيل) وهل يلزم مفتاح تجاوز صيانة خارجي. والبيئة مهمة: البطاريات مصنفة عند 20 إلى 25 درجة مئوية وكل ارتفاع مستمر يقصّر عمرها، فغرفة UPS تحتاج تكييفاً. ويجب تحديد الاتصالات (بطاقة SNMP، تلامسات جافة، BMS/Modbus) والتوافق مع المولد. وضمان الإلكترونيات يختلف عادةً عن ضمان البطاريات ويجب تسعير كلٍّ منهما على حدة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الحمل، ونوع البنية، ومدة التشغيل. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً عدد الوحدات (مانع للتسعير)؛ موقع التسليم والإمارة؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "sources": [
         "https://batteryuniversity.com/article/bu-806a-how-heat-and-loading-affect-battery-life"
       ],
@@ -358,12 +393,16 @@
         "Communication: SNMP/Modbus/dry contacts",
         "Room/ambient temperature",
         "Warranty: electronics and batteries separately",
-        "Installation, commissioning, battery rack/cabinet included?"
+        "Installation, commissioning, battery rack/cabinet included?",
+        "Quantity of units",
+        "Delivery location and emirate",
+        "Payment terms"
       ],
       "blocking": [
         "Load in kW and kVA",
         "Topology (online double-conversion / line-interactive / offline)",
-        "Runtime in minutes at stated load"
+        "Runtime in minutes at stated load",
+        "Quantity of units"
       ],
       "spec_guide": [
         {
@@ -442,9 +481,30 @@
           "uae_options": "Installation; battery cabinet.",
           "follow_up_if": "If a supplier excludes it, ask who provides it and at what cost.",
           "blocking": false
+        },
+        {
+          "spec": "Quantity of units",
+          "why_needed_to_price": "The number of units sets the price break, the battery and cabinet count and the installation labour.",
+          "uae_options": "Units per rating.",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Delivery location and emirate",
+          "why_needed_to_price": "Freight, offloading and the distance to site are part of a delivered price; a delivered price to Dubai is not the same as one to Al Dhafra or Fujairah.",
+          "uae_options": "Ex-warehouse collection; delivered to one address in a named emirate; delivered and offloaded; split deliveries to several sites.",
+          "follow_up_if": "If the site has access limits (time windows, small vehicles only, no forklift), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
       "site_visit_required_when": null
     },
     {
