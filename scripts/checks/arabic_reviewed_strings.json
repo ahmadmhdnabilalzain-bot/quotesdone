@@ -7299,7 +7299,6 @@
  "supabase/functions/site_assistant/index.ts": [
   "0271a1f4c66d",
   "0e0329c97c49",
-  "244053c77971",
   "32f673f57030",
   "35a1a42cc34d",
   "416b9983b5ec",
@@ -7327,6 +7326,9 @@
  ],
  "supabase/functions/site_assistant/stream_reply.ts": [
   "aeb58bdf5c4d"
+ ],
+ "supabase/functions/site_assistant/turn_facts.ts": [
+  "f412eb02dab3"
  ],
  "supabase/functions/site_assistant/visitor_scope.ts": [
   "0b3fc2f067e7",

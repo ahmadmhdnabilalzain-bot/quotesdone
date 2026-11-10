@@ -63,7 +63,6 @@
 --
 -- Prevented by: scripts/checks/the_founder_brief_counts_it_problems_not_alerts.test.mjs
 
-begin;
 
 -- ---------------------------------------------------------------------------------------------
 -- 1. ONE ROW PER PROBLEM.
@@ -285,4 +284,3 @@ select case
        || (select k from prob) || ' need the founder; brief line: ' || (select l from line)
 end as verdict;
 
-commit;
