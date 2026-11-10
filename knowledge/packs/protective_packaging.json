@@ -5,8 +5,8 @@
       "id": "protective_packaging:spec-checklist",
       "topic": "Protective packaging - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For protective packaging quotes to be compared like-for-like, every quoted line (goods) must state: (1) material (bubble wrap, foam, air pillows, corner boards, stretch film); (2) dimensions, thickness or gauge; (3) roll length or piece count; (4) density or strength rating; (5) anti-static or special properties; (6) recycled content; (7) quantity per unit of measure; (8) printing if required; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the protective_packaging trade.",
-      "body_ar": "لكي تُقارن عروض مواد التغليف الواقية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) المادة (فقاعات هوائية، أو فوم، أو وسائد هوائية، أو زوايا كرتونية، أو فيلم مطاطي)؛ (2) الأبعاد أو السماكة؛ (3) طول اللفة أو عدد القطع؛ (4) الكثافة أو تصنيف المتانة؛ (5) خاصية مضادة للكهرباء الساكنة أو خصائص أخرى؛ (6) نسبة المحتوى المعاد تدويره؛ (7) الكمية لكل وحدة قياس؛ (8) الطباعة إن لزم؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة protective_packaging فقط.",
+      "body_en": "For protective packaging quotes to be compared like-for-like, every quoted line (goods) must state: (1) material (bubble wrap, foam, air pillows, corner boards, stretch film); (2) dimensions, thickness or gauge; (3) roll length or piece count; (4) density or strength rating; (5) anti-static or special properties; (6) recycled content; (7) quantity per unit of measure; (8) printing if required; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the protective_packaging trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): material (bubble wrap, foam, air pillows, corner boards, stretch film); dimensions, thickness or gauge; roll length or piece count; quantity per unit of measure. Follow-up questions the answers trigger: anti-static or special properties: Electronics bring the ESD requirement. Before a firm price: custom foam inserts or EPS mouldings need the product (or a drawing) for design; stock materials can be priced from the specs.",
+      "body_ar": "لكي تُقارن عروض مواد التغليف الواقية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) المادة (فقاعات هوائية، أو فوم، أو وسائد هوائية، أو زوايا كرتونية، أو فيلم مطاطي)؛ (2) الأبعاد أو السماكة؛ (3) طول اللفة أو عدد القطع؛ (4) الكثافة أو تصنيف المتانة؛ (5) خاصية مضادة للكهرباء الساكنة أو خصائص أخرى؛ (6) نسبة المحتوى المعاد تدويره؛ (7) الكمية لكل وحدة قياس؛ (8) الطباعة إن لزم؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة protective_packaging فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المادة، والأبعاد أو السماكة أو المقياس، وطول اللفة أو عدد القطع، والكمية ووحدة القياس. أسئلة المتابعة: الإلكترونيات تستلزم متطلبات الحماية من الكهرباء الساكنة. الحشوات الرغوية الخاصة أو قوالب EPS تحتاج المنتج أو رسماً للتصميم.",
       "required_specs": [
         "material (bubble wrap, foam, air pillows, corner boards, stretch film)",
         "dimensions, thickness or gauge",
@@ -19,14 +19,116 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "custom moulding or cut inserts"
       ],
       "sources": [
         "https://www.moccae.gov.ae/en/services.aspx",
         "https://www.iso.org/standards.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "material (bubble wrap, foam, air pillows, corner boards, stretch film)",
+        "dimensions, thickness or gauge",
+        "roll length or piece count",
+        "quantity per unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "material (bubble wrap, foam, air pillows, corner boards, stretch film)",
+          "blocking": true,
+          "why_it_prices": "Bubble, foam, air pillows, paper void fill and stretch film are different products.",
+          "uae_options": "Bubble wrap, EPE foam, EPS mouldings, PU foam-in-place, air pillows, paper void fill, corner boards, stretch film.",
+          "follow_up": ""
+        },
+        {
+          "spec": "dimensions, thickness or gauge",
+          "blocking": true,
+          "why_it_prices": "Thickness and gauge set material use.",
+          "uae_options": "Bubble size; foam thickness; film microns.",
+          "follow_up": ""
+        },
+        {
+          "spec": "roll length or piece count",
+          "blocking": true,
+          "why_it_prices": "Price per roll means nothing without its length.",
+          "uae_options": "Roll length x width; pieces.",
+          "follow_up": ""
+        },
+        {
+          "spec": "density or strength rating",
+          "blocking": false,
+          "why_it_prices": "Foam density and film pre-stretch rating decide protection.",
+          "uae_options": "kg/m3; film elongation.",
+          "follow_up": ""
+        },
+        {
+          "spec": "anti-static or special properties",
+          "blocking": false,
+          "why_it_prices": "Anti-static and VCI materials cost more.",
+          "uae_options": "Pink anti-static, static-shielding, VCI, fire-retardant.",
+          "follow_up": "Electronics bring the ESD requirement."
+        },
+        {
+          "spec": "recycled content",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "quantity per unit of measure",
+          "blocking": true,
+          "why_it_prices": "Rolls, kg and pieces break comparison.",
+          "uae_options": "Rolls, kg, pieces.",
+          "follow_up": ""
+        },
+        {
+          "spec": "printing if required",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": false,
+          "why_it_prices": "Low-density goods are freight-heavy.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "custom moulding or cut inserts",
+          "blocking": false,
+          "why_it_prices": "Moulded EPS and cut foam inserts need tooling.",
+          "uae_options": "Stock material, CNC-cut foam, EPS mould.",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "custom foam inserts or EPS mouldings need the product (or a drawing) for design; stock materials can be priced from the specs.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "protective_packaging:uae-standards-and-approvals",
@@ -85,6 +187,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "protective_packaging:authority-approvals",
+      "topic": "Protective packaging: single-use plastic rules and food-contact",
+      "topic_ar": "مواد الحماية والتغليف: قواعد البلاستيك أحادي الاستخدام وملامسة الغذاء",
+      "kind": "authority_approval",
+      "body_en": "Food-contact packaging is the regulated case. Search results report that food-contact materials are certified under MoIAT's conformity scheme (ECAS) against Cabinet Resolution No. 20 of 2015, for plastic, glass, ceramic, silicone, paper, metal and wood materials, through a MoIAT-notified body, with the certificate obtained by the manufacturer or importer, not the buyer; a 2023 MoIAT workshop on recycled plastic food packaging described quality-system documentation and migration tests at an accredited UAE laboratory. Dubai Municipality and ADAFSA in Abu Dhabi inspect food businesses, including their packaging. Single-use products are restricted by federal Ministerial Resolution No. 380 of 2022 (single-use plastic shopping bags from 1 January 2024; cups and lids, cutlery, plates, straws, stirrers and polystyrene food containers from 1 January 2026, as reported) and in Dubai by Executive Council Resolution No. 124 of 2023, with exemptions reported for some recycled and exported products. Industrial protective packaging (bubble wrap, foam, stretch film) for non-food goods has no product approval found; buyers should check whether an item falls within the single-use product rules for their emirate. ",
+      "body_ar": "التغليف الملامس للغذاء هو الحالة الخاضعة للتنظيم. إذ تفيد نتائج البحث بأن المواد الملامسة للغذاء تُعتمد ضمن نظام المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وفق قرار مجلس الوزراء رقم 20 لسنة 2015، للمواد البلاستيكية والزجاجية والخزفية والسيليكونية والورقية والمعدنية والخشبية، عبر جهة مخطرة لدى الوزارة، ويحصل على الشهادة المصنع أو المستورد لا المشتري؛ وتناولت ورشة عمل للوزارة عام 2023 حول تغليف الأغذية من البلاستيك المعاد تدويره توثيق نظام الجودة واختبارات الانتقال في مختبر إماراتي معتمد. وتفتش بلدية دبي وهيئة أبوظبي للزراعة والسلامة الغذائية منشآت الأغذية بما في ذلك تغليفها. وتقيّد المنتجات أحادية الاستخدام بالقرار الوزاري الاتحادي رقم 380 لسنة 2022 (أكياس التسوق البلاستيكية أحادية الاستخدام من 1 يناير 2024، والأكواب وأغطيتها وأدوات المائدة والأطباق والمصاصات وأعواد التحريك وعلب الطعام من البوليسترين من 1 يناير 2026 وفق ما نُشر)، وفي دبي بقرار المجلس التنفيذي رقم 124 لسنة 2023، مع استثناءات منشورة لبعض المنتجات المعاد تدويرها والمعدة للتصدير. ولم يُعثر على موافقة منتج لمواد الحماية الصناعية (الفقاعات والرغوة والأفلام المطاطية) للبضائع غير الغذائية، وعلى المشتري التحقق هل يدخل الصنف ضمن قواعد المنتجات أحادية الاستخدام في إمارته.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
+        "https://leap.unep.org/en/countries/ae/national-legislation/ministerial-resolution-no-380-2022-regarding-regulating-use",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2023/Executive%20Council%20Resolution%20No.%20(124)%20of%202023%20Regulating%20the%20Use%20of%20Single-use%20Products.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "protective_packaging:quote-red-flags",
+      "topic": "Red flags in protective packaging quotations",
+      "topic_ar": "علامات التحذير في عروض مواد الحماية",
+      "kind": "quote_red_flag",
+      "body_en": "Check gauge and density: a thinner stretch film at a lower price per roll, lower-density foam, or smaller bubble size are downgrades. Watch for roll lengths shorter than standard, core weight included in \"kg\" film prices, recycled film with poor cling, pink \"anti-static\" offered where static-shielding was needed, and freight charged separately on bulky goods.",
+      "body_ar": "افحص المقياس والكثافة: فالفيلم المطاطي الأرق بسعر أقل للفة، أو الرغوة الأقل كثافة، أو الفقاعات الأصغر، كلها تخفيض. وانتبه إلى: أطوال لفات أقصر من المعتاد، واحتساب وزن اللب في أسعار الأفلام بالكيلوغرام، وفيلم معاد تدويره ضعيف الالتصاق، وعرض الأكياس الوردية \"المضادة للكهرباء الساكنة\" حيث يلزم الحجب الكامل، واحتساب الشحن منفصلاً على البضائع كبيرة الحجم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "protective_packaging:buyer-mistakes",
+      "topic": "Common buyer mistakes in protective packaging",
+      "topic_ar": "أخطاء شائعة لدى المشترين في مواد الحماية",
+      "kind": "buyer_mistake",
+      "body_en": "Comparing stretch film per roll without metres and microns; over-packing with void fill instead of right-sizing boxes; using anti-static bags for sensitive electronics that need shielding; and ignoring that film behaviour changes in UAE heat. Ask the product, transport and current consumption.",
+      "body_ar": "مقارنة الأفلام المطاطية باللفة دون الأمتار والميكرونات؛ والإفراط في مواد الحشو بدل ملاءمة مقاس الصناديق؛ واستخدام أكياس مضادة للكهرباء الساكنة لإلكترونيات حساسة تحتاج حجباً؛ وتجاهل تغير سلوك الأفلام في حرارة الإمارات. لذا يُسأل عن المنتج والنقل والاستهلاك الحالي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "protective_packaging:price-drivers",
+      "topic": "What legitimately moves protective packaging prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار مواد الحماية",
+      "kind": "price_driver",
+      "body_en": "Resin prices, gauge and density, roll size, special properties (ESD, VCI), recycled content, custom tooling, quantity and freight for low-density goods.",
+      "body_ar": "أسعار الراتنج، والمقياس والكثافة، ومقاس اللفة، والخصائص الخاصة (الحماية من الكهرباء الساكنة ومنع التآكل)، والمحتوى المعاد تدويره، والأدوات الخاصة، والكمية، وشحن البضائع منخفضة الكثافة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "protective_packaging:compare-quotes",
+      "topic": "Comparing protective packaging quotes like-for-like",
+      "topic_ar": "مقارنة عروض مواد الحماية على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare cost per metre (or per square metre, or per pallet wrapped) at the same gauge and properties, delivered. For stretch film, compare cost per pallet using the stated pre-stretch. Recommend the three compliant offers with the lowest cost per use.",
+      "body_ar": "قارن التكلفة للمتر (أو للمتر المربع أو لكل منصة ملفوفة) عند المقياس والخصائص نفسها، مسلّمة. وفي الأفلام المطاطية قارن التكلفة لكل منصة باستخدام نسبة الشد المسبق المذكورة. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة لكل استخدام.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +299,8 @@
     "removed": [],
     "still_unverified": [
       "protective_packaging:spec-checklist",
-      "protective_packaging:uae-standards-and-approvals"
+      "protective_packaging:uae-standards-and-approvals",
+      "protective_packaging:authority-approvals"
     ],
     "added": [
       "protective_packaging:spec-checklist",
@@ -158,6 +331,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "protective_packaging:quote-red-flags",
+      "protective_packaging:buyer-mistakes",
+      "protective_packaging:price-drivers",
+      "protective_packaging:compare-quotes"
+    ]
   }
 }

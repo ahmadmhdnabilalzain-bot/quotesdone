@@ -5,8 +5,8 @@
       "id": "labels_sleeves:spec-checklist",
       "topic": "Labels and sleeves - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For labels and sleeves (trade code labels_sleeves only), every quoted line must state: Label type; Size and shape; Substrate and adhesive; Printing colours and finish; Artwork and proof approval; Core size, roll direction and labels per roll; Regulatory text in Arabic; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الملصقات والأغلفة المنكمشة (رمز النشاط labels_sleeves فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الملصق؛ المقاس والشكل؛ المادة الأساسية واللاصق؛ ألوان الطباعة والتشطيب؛ اعتماد التصميم والبروفة؛ مقاس اللب واتجاه اللفة وعدد الملصقات لكل لفة؛ النص التنظيمي باللغة العربية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For labels and sleeves (trade code labels_sleeves only), every quoted line must state: Label type; Size and shape; Substrate and adhesive; Printing colours and finish; Artwork and proof approval; Core size, roll direction and labels per roll; Regulatory text in Arabic; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Label type; Size and shape; Substrate and adhesive; Printing colours and finish; Artwork and proof approval; Core size, roll direction and labels per roll; Quantity and unit of measure. Follow-up questions the answers trigger: Label type: Sleeves bring the container drawing and shrink ratio. Size and shape: Custom shapes bring a cutting die. Substrate and adhesive: Wet, frozen or squeezable containers bring film substrates and special adhesives. Core size, roll direction and labels per roll: Ask the label applicator or printer model. Regulatory text in Arabic: Regulated products bring the product category's labelling rule. Before a firm price: printed labels need the artwork (or at least the size and colour count) and the applicator details; shrink sleeves need the container sample.",
+      "body_ar": "في نشاط الملصقات والأغلفة المنكمشة (رمز النشاط labels_sleeves فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الملصق؛ المقاس والشكل؛ المادة الأساسية واللاصق؛ ألوان الطباعة والتشطيب؛ اعتماد التصميم والبروفة؛ مقاس اللب واتجاه اللفة وعدد الملصقات لكل لفة؛ النص التنظيمي باللغة العربية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الملصق، والمقاس والشكل، والمادة والمادة اللاصقة، وألوان الطباعة والتشطيب، واعتماد التصميم والبروفة، ومقاس اللب واتجاه اللف وعدد الملصقات في اللفة، والكمية. أسئلة المتابعة: الأكمام الحرارية تستلزم رسم العبوة ونسبة الانكماش، والأشكال الخاصة تستلزم قالب قص، والعبوات الرطبة أو المجمدة أو القابلة للعصر تستلزم مواد بلاستيكية ولواصق خاصة، ويُسأل عن طراز آلة وضع الملصقات، والمنتجات المنظمة تستلزم قاعدة الوسم الخاصة بفئتها. الأكمام الحرارية تحتاج عينة من العبوة.",
       "required_specs": [
         "Label type",
         "Size and shape",
@@ -28,7 +28,118 @@
         "https://www.gso.org.sa/en/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Label type",
+        "Size and shape",
+        "Substrate and adhesive",
+        "Printing colours and finish",
+        "Artwork and proof approval",
+        "Core size, roll direction and labels per roll",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Label type",
+          "blocking": true,
+          "why_it_prices": "Self-adhesive, wet-glue, shrink sleeve, in-mould and wrap-around labels use different presses.",
+          "uae_options": "Self-adhesive (pressure-sensitive), wet-glue, shrink sleeve, stretch sleeve, IML, thermal transfer/direct thermal blanks.",
+          "follow_up": "Sleeves bring the container drawing and shrink ratio."
+        },
+        {
+          "spec": "Size and shape",
+          "blocking": true,
+          "why_it_prices": "Size and die shape set material and tooling.",
+          "uae_options": "W x H; rectangle, round, custom die.",
+          "follow_up": "Custom shapes bring a cutting die."
+        },
+        {
+          "spec": "Substrate and adhesive",
+          "blocking": true,
+          "why_it_prices": "Paper vs film and permanent vs removable adhesive change price and performance.",
+          "uae_options": "Semi-gloss paper, PP, PE, PET, metallised; permanent, removable, freezer, high-tack adhesive.",
+          "follow_up": "Wet, frozen or squeezable containers bring film substrates and special adhesives."
+        },
+        {
+          "spec": "Printing colours and finish",
+          "blocking": true,
+          "why_it_prices": "Colours, varnish, foil and embellishments add plates and passes.",
+          "uae_options": "CMYK plus spot colours; varnish, lamination, hot foil, emboss, screen tactile.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Artwork and proof approval",
+          "blocking": true,
+          "why_it_prices": "Ready artwork avoids repro and design charges.",
+          "uae_options": "Print-ready PDF, proof, press pass.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Core size, roll direction and labels per roll",
+          "blocking": true,
+          "why_it_prices": "Rolls must fit the applicator.",
+          "uae_options": "Core 25/40/76 mm; winding direction; labels per roll; outer diameter.",
+          "follow_up": "Ask the label applicator or printer model."
+        },
+        {
+          "spec": "Regulatory text in Arabic",
+          "blocking": false,
+          "why_it_prices": "Mandatory text on food, cosmetics and other regulated products affects layout.",
+          "uae_options": "Arabic and English text per the product rule.",
+          "follow_up": "Regulated products bring the product category's labelling rule."
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Set-up dominates short runs.",
+          "uae_options": "Labels per design, number of designs.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Plates, dies and design are often extra.",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "printed labels need the artwork (or at least the size and colour count) and the applicator details; shrink sleeves need the container sample.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "labels_sleeves:uae-standards-and-approvals",
@@ -86,6 +197,73 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "labels_sleeves:authority-approvals",
+      "topic": "Labels and sleeves: labelling rules, barcodes and food-contact",
+      "topic_ar": "الملصقات والأكمام: قواعد الوسم والباركود وملامسة الغذاء",
+      "kind": "authority_approval",
+      "body_en": "The label converter needs no product approval; the rules sit with the product being labelled. Food, cosmetics, medicines and other regulated products carry mandatory label content in Arabic (and usually English) set by the GCC and UAE technical regulations for that category, and the brand owner is responsible for the text; medicines additionally carry Tatmeen serialisation codes. Barcodes (GTINs) are issued through GS1 UAE to the brand owner. Labels that touch food directly fall under the food-contact route. The buyer supplies approved text; the converter prints it.",
+      "body_ar": "لا يحتاج محوّل الملصقات موافقة منتج، فالقواعد تخص المنتج الذي يحمل الملصق. فالأغذية ومستحضرات التجميل والأدوية والمنتجات المنظمة الأخرى تحمل محتوى وسم إلزامياً باللغة العربية (وعادة الإنجليزية) تحدده اللوائح الفنية الخليجية والإماراتية لكل فئة، ومالك العلامة مسؤول عن النص؛ وتحمل الأدوية أيضاً رموز التتبع في نظام تتمين. وتصدر أرقام الباركود (GTIN) عبر GS1 الإمارات لمالك العلامة. والملصقات الملامسة للغذاء مباشرة تخضع لمسار ملامسة الغذاء. ويقدم المشتري النص المعتمد ويطبعه المحوّل.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold. The labelling-rule statements are general (category technical regulations); no single UAE labelling page was located."
+    },
+    {
+      "id": "labels_sleeves:quote-red-flags",
+      "topic": "Red flags in label quotations",
+      "topic_ar": "علامات التحذير في عروض الملصقات",
+      "kind": "quote_red_flag",
+      "body_en": "Check substrate and adhesive: paper offered for PP film, a general-purpose adhesive for freezer or squeeze-bottle use, or a thinner face stock are substitutions. Watch for colour counts lower than the artwork needs, foil and varnish excluded, plates and dies charged later, rolls on the wrong core or winding direction, overs invoiced, and digital print offered for a long run at a higher unit cost.",
+      "body_ar": "افحص المادة واللاصق: فعرض الورق بدل فيلم PP، أو لاصق عام لاستخدام التجميد أو العبوات القابلة للعصر، أو مادة سطحية أرق، كلها استبدالات. وانتبه إلى: عدد ألوان أقل مما يحتاجه التصميم، واستثناء الرقائق المعدنية والورنيش، واحتساب الألواح والقوالب لاحقاً، ولفات على لب أو اتجاه لف خاطئ، وفوترة الزيادة، وعرض الطباعة الرقمية لكميات طويلة بتكلفة وحدة أعلى.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "labels_sleeves:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying labels",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الملصقات",
+      "kind": "buyer_mistake",
+      "body_en": "Ordering without the applicator's core and winding needs; choosing paper labels for wet or chilled products; ordering many small designs separately instead of combining runs; and printing regulated products without checking mandatory Arabic text. Ask the container, the conditions and the applicator.",
+      "body_ar": "الطلب دون معرفة متطلبات اللب واتجاه اللف لآلة وضع الملصقات؛ واختيار ملصقات ورقية لمنتجات رطبة أو مبردة؛ وطلب تصاميم صغيرة كثيرة منفصلة بدل دمجها؛ وطباعة منتجات منظمة دون التحقق من النص العربي الإلزامي. لذا يُسأل عن العبوة والظروف والآلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "labels_sleeves:price-drivers",
+      "topic": "What legitimately moves label prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الملصقات",
+      "kind": "price_driver",
+      "body_en": "Substrate and adhesive, size, colours and embellishments, print process (flexo, digital, offset, gravure for sleeves), run length and number of designs, tooling (dies, plates, cylinders), and finishing.",
+      "body_ar": "المادة واللاصق، والمقاس، والألوان والتحسينات، وطريقة الطباعة (فلكسو أو رقمية أو أوفست أو روتوغرافور للأكمام)، وطول التشغيل وعدد التصاميم، والأدوات (القوالب والألواح والأسطوانات)، والتشطيب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "labels_sleeves:compare-quotes",
+      "topic": "Comparing label quotes like-for-like",
+      "topic_ar": "مقارنة عروض الملصقات على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare price per 1,000 labels for the same size, substrate, adhesive, colours and finish, adding plates and dies spread over expected reorders. Recommend the three compliant offers with the lowest cost per 1,000 at the buyer's run lengths.",
+      "body_ar": "قارن السعر لكل 1000 ملصق بالمقاس والمادة واللاصق والألوان والتشطيب نفسها، مع إضافة الألواح والقوالب موزعة على إعادة الطلب المتوقعة. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة لكل 1000 عند أطوال تشغيل المشتري.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +305,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "labels_sleeves:spec-checklist"
+      "labels_sleeves:spec-checklist",
+      "labels_sleeves:authority-approvals"
     ],
     "added": [
       "labels_sleeves:spec-checklist",
@@ -158,6 +337,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "labels_sleeves:quote-red-flags",
+      "labels_sleeves:buyer-mistakes",
+      "labels_sleeves:price-drivers",
+      "labels_sleeves:compare-quotes"
+    ]
   }
 }

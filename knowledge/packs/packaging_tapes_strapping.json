@@ -5,8 +5,8 @@
       "id": "packaging_tapes_strapping:spec-checklist",
       "topic": "Packaging tapes and strapping - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For packaging tapes and strapping (trade code packaging_tapes_strapping only), every quoted line must state: Product type; Width and length; Thickness; Adhesive type; Break strength; Printing; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط أشرطة التغليف والتربيط (رمز النشاط packaging_tapes_strapping فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المنتج؛ العرض والطول؛ السماكة؛ نوع اللاصق؛ قوة الكسر؛ الطباعة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For packaging tapes and strapping (trade code packaging_tapes_strapping only), every quoted line must state: Product type; Width and length; Thickness; Adhesive type; Break strength; Printing; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Product type; Width and length; Thickness; Adhesive type; Quantity and unit of measure. Follow-up questions the answers trigger: Adhesive type: Hot or dusty warehouses bring acrylic or solvent adhesive. Core size and machine compatibility: Ask the strapping machine model. Before a firm price: none; a firm price is possible from the specs.",
+      "body_ar": "في نشاط أشرطة التغليف والتربيط (رمز النشاط packaging_tapes_strapping فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المنتج؛ العرض والطول؛ السماكة؛ نوع اللاصق؛ قوة الكسر؛ الطباعة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المنتج، والعرض والطول، والسماكة، ونوع اللاصق، والكمية. أسئلة المتابعة: المستودعات الحارة أو المتربة تستلزم لاصقاً أكريلياً أو مطاطياً بالمذيبات، ويُسأل عن طراز آلة التربيط لمطابقة اللب.",
       "required_specs": [
         "Product type",
         "Width and length",
@@ -20,13 +20,123 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Core size and machine compatibility"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Product type",
+        "Width and length",
+        "Thickness",
+        "Adhesive type",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Product type",
+          "blocking": true,
+          "why_it_prices": "BOPP tape, paper tape, filament tape, PP strap, PET strap and steel strap are different products.",
+          "uae_options": "BOPP carton tape, water-activated paper tape, filament tape, PP strap, PET strap, steel strap, seals and buckles.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Width and length",
+          "blocking": true,
+          "why_it_prices": "Price follows area or length.",
+          "uae_options": "48 mm x 100 m; strap 12-19 mm x coil length.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Thickness",
+          "blocking": true,
+          "why_it_prices": "Microns or strap thickness set strength and price.",
+          "uae_options": "Tape 40-50 µm; strap 0.5-1.0 mm.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Adhesive type",
+          "blocking": true,
+          "why_it_prices": "Acrylic, hot-melt and natural rubber adhesives perform differently in UAE heat.",
+          "uae_options": "Acrylic, hot-melt, solvent rubber.",
+          "follow_up": "Hot or dusty warehouses bring acrylic or solvent adhesive."
+        },
+        {
+          "spec": "Break strength",
+          "blocking": false,
+          "why_it_prices": "Strap break strength decides the load secured.",
+          "uae_options": "kN or kg.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Printing",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Plain or printed with logo.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Carton and pallet quantities change the unit price.",
+          "uae_options": "Rolls, coils, cartons.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Dispensers, tools and seals are often extra.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Core size and machine compatibility",
+          "blocking": false,
+          "why_it_prices": "Strapping coils must fit the machine.",
+          "uae_options": "Core 200/280/406 mm; manual or machine grade.",
+          "follow_up": "Ask the strapping machine model."
+        }
+      ],
+      "firm_price_condition": "none; a firm price is possible from the specs.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "packaging_tapes_strapping:uae-standards-and-approvals",
@@ -85,6 +195,73 @@
       "gap_kind": "commercial",
       "verified": false,
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
+    },
+    {
+      "id": "packaging_tapes_strapping:authority-approvals",
+      "topic": "Packaging tapes and strapping: approvals that apply",
+      "topic_ar": "أشرطة التغليف والتربيط: الموافقات المطبقة",
+      "kind": "authority_approval",
+      "body_en": "No UAE licence or conformity scheme was found for packaging tapes, strapping or seals. Cargo securing on vehicles is governed by road-transport rules for load securing applied by traffic authorities, not by a product approval. Electric strapping tools and machines are electrical equipment within the GCC low-voltage regulation adopted in 2019.",
+      "body_ar": "لم يُعثر على ترخيص أو نظام مطابقة في الإمارات لأشرطة التغليف والتربيط والأختام. وتثبيت الحمولات على المركبات تحكمه قواعد النقل البري لتثبيت الأحمال التي تطبقها جهات المرور لا موافقة المنتج. وعدد وآلات التربيط الكهربائية معدات كهربائية ضمن اللائحة الخليجية للجهد المنخفض المعتمدة عام 2019.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2957"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold. No tape- or strapping-specific UAE regulation was found by search."
+    },
+    {
+      "id": "packaging_tapes_strapping:quote-red-flags",
+      "topic": "Red flags in tape and strapping quotations",
+      "topic_ar": "علامات التحذير في عروض الأشرطة والتربيط",
+      "kind": "quote_red_flag",
+      "body_en": "Check microns and length: a 38 µm tape for 45 µm, 90 m rolls priced beside 100 m, recycled PP strap with lower break strength, or a water-based adhesive for hot warehouses are substitutions. Watch for core sizes that do not fit the machine, seals not included, and printed tape plates charged later.",
+      "body_ar": "افحص الميكرونات والطول: فشريط 38 ميكروناً بدل 45، أو لفات 90 متراً مسعّرة بجانب 100 متر، أو شريط تربيط PP معاد تدويره بقوة كسر أقل، أو لاصق مائي لمستودعات حارة، كلها استبدالات. وانتبه إلى: مقاسات لب لا تناسب الآلة، وعدم شمول الأختام، واحتساب ألواح الشريط المطبوع لاحقاً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "packaging_tapes_strapping:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying tapes and strapping",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الأشرطة والتربيط",
+      "kind": "buyer_mistake",
+      "body_en": "Comparing tape per roll without length and microns; using tape that fails in summer heat; choosing PP strap for heavy loads that need PET or steel; and buying coils that do not fit the strapping machine. Ask the cartons, the load and the machine.",
+      "body_ar": "مقارنة الشريط باللفة دون الطول والميكرونات؛ واستخدام شريط يفشل في حرارة الصيف؛ واختيار شريط PP لأحمال ثقيلة تحتاج PET أو فولاذاً؛ وشراء لفات لا تناسب آلة التربيط. لذا يُسأل عن الكراتين والحمل والآلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "packaging_tapes_strapping:price-drivers",
+      "topic": "What legitimately moves tape and strapping prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الأشرطة والتربيط",
+      "kind": "price_driver",
+      "body_en": "Film and adhesive type, thickness, length per roll, printing, strap material (PP, PET, steel) and break strength, quantity, and resin and steel prices.",
+      "body_ar": "نوع الفيلم واللاصق، والسماكة، والطول في اللفة، والطباعة، ومادة شريط التربيط (PP أو PET أو فولاذ) وقوة الكسر، والكمية، وأسعار الراتنج والفولاذ.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "packaging_tapes_strapping:compare-quotes",
+      "topic": "Comparing tape and strapping quotes like-for-like",
+      "topic_ar": "مقارنة عروض الأشرطة والتربيط على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Convert to cost per 100 metres at the same width, microns and adhesive (or per metre of strap at the same break strength), delivered. Recommend the three compliant offers with the lowest cost per metre.",
+      "body_ar": "حوّل العروض إلى التكلفة لكل 100 متر بالعرض والميكرونات واللاصق نفسها (أو للمتر من شريط التربيط بقوة الكسر نفسها)، مسلّمة. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة للمتر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -117,7 +294,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "packaging_tapes_strapping:spec-checklist"
+      "packaging_tapes_strapping:spec-checklist",
+      "packaging_tapes_strapping:authority-approvals"
     ],
     "added": [
       "packaging_tapes_strapping:spec-checklist",
@@ -152,6 +330,12 @@
         "packaging_tapes_strapping:lead-times",
         "packaging_tapes_strapping:quotation-requirements"
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "packaging_tapes_strapping:quote-red-flags",
+      "packaging_tapes_strapping:buyer-mistakes",
+      "packaging_tapes_strapping:price-drivers",
+      "packaging_tapes_strapping:compare-quotes"
+    ]
   }
 }

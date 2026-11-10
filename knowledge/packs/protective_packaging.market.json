@@ -25,8 +25,8 @@
       "topic": "Protective packaging: makes, brands, distributors and origins in the UAE",
       "topic_ar": "مواد التغليف الواقية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the protective packaging brands, such as Sealed Air, Storopack and Pregis, the local foam and EPS producers, and the main origins. Brands: Sealed Air, Storopack, Pregis, Ranpak, Clariant, Cortec. Their UAE agents were not checked. Many local producers of EPE foam, bubble wrap and EPS mouldings in Sharjah, Ajman, UAQ, RAK and Jebel Ali were not checked by name. Origins: UAE, GCC, Europe, China.",
-      "body_ar": "من ماركات مواد التغليف الواقية Sealed Air وStoropack وPregis، إضافة إلى منتجي الفوم والفلين (EPS) المحليين وأهم دول المنشأ. والماركات: Sealed Air وStoropack وPregis وRanpak وClariant وCortec. ولم نتحقق من وكلائها في الإمارات. ويوجد كثير من المنتجين المحليين لفوم EPE والنايلون الفقاعي وقوالب الفلين EPS في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي، ولم نتحقق منهم بأسمائهم. وبلدان المنشأ: الإمارات ودول الخليج وأوروبا والصين.",
+      "body_en": "This lists the protective packaging brands, such as Sealed Air, Storopack and Pregis, the local foam and EPS producers, and the main origins. Brands: Sealed Air, Storopack, Pregis, Ranpak, Clariant, Cortec. Their UAE agents were not checked. Many local producers of EPE foam, bubble wrap and EPS mouldings in Sharjah, Ajman, UAQ, RAK and Jebel Ali were not checked by name. Origins: UAE, GCC, Europe, China.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Sealed Air = a premium American brand; Storopack = a premium German brand; Pregis = a mid-tier American brand; Ranpak = a mid-tier American brand; Clariant = a premium Swiss brand; Cortec = a premium American brand.",
+      "body_ar": "من ماركات مواد التغليف الواقية Sealed Air وStoropack وPregis، إضافة إلى منتجي الفوم والفلين (EPS) المحليين وأهم دول المنشأ. والماركات: Sealed Air وStoropack وPregis وRanpak وClariant وCortec. ولم نتحقق من وكلائها في الإمارات. ويوجد كثير من المنتجين المحليين لفوم EPE والنايلون الفقاعي وقوالب الفلين EPS في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي، ولم نتحقق منهم بأسمائهم. وبلدان المنشأ: الإمارات ودول الخليج وأوروبا والصين.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Sealed Air = علامة أمريكية من الفئة الممتازة؛ Storopack = علامة ألمانية من الفئة الممتازة؛ Pregis = علامة أمريكية من الفئة المتوسطة؛ Ranpak = علامة أمريكية من الفئة المتوسطة؛ Clariant = علامة سويسرية من الفئة الممتازة؛ Cortec = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.storopack.com",
         "https://www.sealedair.com",
@@ -34,7 +34,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Storopack protective packaging -> confirmed (maker site; UAE agent not checked). Not checked: Local foam and EPS producers' names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Storopack protective packaging -> confirmed (maker site; UAE agent not checked). Not checked: Local foam and EPS producers' names were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Sealed Air",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Storopack",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Pregis",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Ranpak",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Clariant",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Cortec",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "protective_packaging:uae-market-sizes",
