@@ -256,6 +256,31 @@ Deno.test('WhatsApp (askEscalate): a prose answer is not the reply; the rewrite 
   assertEquals(r.escalate, true, 'the model flag survives (it is OR-ed with the router)');
   assert(r.attempts[0].startsWith('route:prose'), r.attempts.join(' | '));
 });
+// Run f5d32825 (10 Nov 2026), "Do you cover glass balustrades?": route:ok, rewrite:prose [internal_number], rewrite:ok [not the
+// JSON object]. The third call (~80k tokens, 10-20 s) only wrapped a passing answer in JSON. Once a draft of the same message gave
+// the escalate reading, a finished prose rewrite is checked as the reply. Fails on main (3 calls, the object asked for again).
+Deno.test('WhatsApp: a passing prose rewrite is the reply once an earlier draft gave the escalate reading (one call fewer)', async () => {
+  const fixed = 'I am sorry this happened. Please reach our team on +1 218 316 6814 and they will help you directly.';
+  const s = mkRec([JSON.stringify({ answer: 'I am sorry. The refund is AED 4,321 and it is on its way.', escalate: true }), fixed,
+    JSON.stringify({ answer: fixed, escalate: false })]);
+  const r = await aiReply(s.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money', askEscalate: true });
+  assertEquals(r.reply, fixed, r.attempts.join(' | '));
+  assertEquals(s.opts.length, 2, 'two calls, not three: ' + r.attempts.join(' | '));
+  assertEquals(r.escalate, true, 'the first draft said a person is needed; the prose rewrite cannot lose it');
+  assert(r.attempts.some((a) => a.startsWith('prose taken')), r.attempts.join(' | '));
+  // every check still runs on the prose: a prose rewrite that repeats the bad figure is not sent
+  const bad = mkRec([JSON.stringify({ answer: 'The refund is AED 4,321.', escalate: false }), 'Thank you. The refund is AED 4,321 and it is on its way to you today.',
+    JSON.stringify({ answer: fixed, escalate: false })]);
+  const r2 = await aiReply(bad.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO refund?', askEscalate: true });
+  assert(!r2.reply.includes('4,321'), 'control: a prose draft with a figure the brief does not state is rewritten: ' + r2.attempts.join(' | '));
+});
+Deno.test('a prose rewrite is never taken where the reply picks an action (the action is that draft\'s own)', async () => {
+  const s = mkRec([JSON.stringify({ answer: 'Your quotation is AED 9,876 in total; shall I submit it?', action: 'none' }), 'Done, your quotation has been submitted to the customer.',
+    JSON.stringify({ answer: 'Your quotation is complete. Shall I submit it to the customer now?', action: 'none' })]);
+  const r = await aiReply(s.deps, { seat: 'sales_engineer', channel: 'portal', audience: 'supplier', lang: 'en', message: 'ZZ DEMO submit it',
+    actions: [{ id: 'submit', meaning: 'submit the quotation' }, { id: 'none', meaning: 'nothing to do yet' }] });
+  assert(!r.reply.startsWith('Done'), r.attempts.join(' | '));
+});
 Deno.test('prose that is a preamble, meta-text, a trailing key or cut off is never a reply; a finished one is', () => {
   assertEquals(proseOf("Here's my reply: Thank you for your message."), '');
   assertEquals(proseOf('Answer: Thank you for your message.'), '');
@@ -309,4 +334,22 @@ Deno.test('a spent sender bucket stops the reply: exactly one model call, no tex
   assertEquals(r.reply, '');
   assertEquals(r.rateLimited, true);
   assertEquals(r.outage, false, 'a spent bucket is not an outage: no code-written notice (1339)');
+});
+
+// 10 Nov 2026: the company brief's live reads and the route's primary (fn_ai_route) were two database trips one after another
+// before the first model call (~0.25 s each from a worker outside ap-southeast-1). They start together now. Fails on 67e7bccdb.
+Deno.test('the brief and the route are read together before the first call, not one after another', async () => {
+  const log: string[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null), embed: () => Promise.resolve(null),
+    llm: () => Promise.resolve({ content: A('Thank you for your message. Our suppliers cover tiling across the UAE.'), model: 'stub' } as LlmReply),
+    // a fresh rpc object: the brief's per-client read cache (company_brief.ts liveSources) cannot answer it from an earlier test
+    rpc: async (fn: string) => { log.push('start:' + fn); await new Promise((r) => setTimeout(r, 40)); log.push('end:' + fn);
+      return { data: fn === 'fn_company_context' ? { block: COMPANY } : fn === 'fn_ai_route' ? { model: ROUTE_PRIMARY } : null, error: null }; },
+  } as unknown as ThinkDeps;
+  const r = await aiReply(deps, { ...req, blocks: ['ZZ DEMO parallel read ' + crypto.randomUUID()] });
+  assert(r.reply, r.attempts.join(' | '));
+  const i = (e: string) => log.indexOf(e);
+  assert(i('start:fn_ai_route') >= 0 && i('start:fn_company_context') >= 0, log.join(' '));
+  assert(i('start:fn_ai_route') < i('end:fn_company_context'), 'the route waited for the brief: ' + log.join(' '));
 });

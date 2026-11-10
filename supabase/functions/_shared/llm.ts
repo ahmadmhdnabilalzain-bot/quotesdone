@@ -24,6 +24,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { errorText } from './error_text.ts';
 import { platformRefused } from './not_reached.ts';
+import { inDbRegion } from './db_region.ts';
 
 // The client is made on first use, not at import (29 Sep 2026). Made at import, it threw "supabaseUrl is
 // required" out of every module that merely IMPORTS this one wherever SUPABASE_URL is unset (the CI Deno
@@ -33,7 +34,9 @@ import { platformRefused } from './not_reached.ts';
 const mk = (u: string, k: string) => createClient(u, k);
 let _client: ReturnType<typeof mk> | null = null;
 const _admin = () => (_client ??= mk(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!));
-const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
+// The gateway runs in the DATABASE's region, not the caller's (_shared/db_region.ts, 10 Nov 2026): its dozen database trips
+// before the provider call were p50 3.3 s from us-east-1 and 0.36 s from ap-southeast-1.
+const GATEWAY = inDbRegion(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway');
 
 export async function sec(k: string) {
   const { data } = await _admin().from('app_secrets').select('value').eq('key', k).maybeSingle();

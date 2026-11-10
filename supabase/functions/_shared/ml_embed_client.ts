@@ -8,6 +8,7 @@
 // The credential is cred_fn_ai, the fn.ai context whose scope includes embed_ml; 'fn' names the caller in the audit.
 import { errorText } from './error_text.ts';
 import { notReached } from './not_reached.ts';
+import { inDbRegion } from './db_region.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
@@ -70,7 +71,8 @@ async function embedRemote(admin: Admin, text: string, caller: string, timeoutMs
       cred = { v: String(data.value), at: Date.now() };
     }
     const signal = AbortSignal.timeout(timeoutMs);
-    const ask = () => fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/embed_ml', {
+    // in the database's region (_shared/db_region.ts): p50 916 ms and every 546 of the walks' hour in us-east-1, 170 ms there
+    const ask = () => fetch(inDbRegion(Deno.env.get('SUPABASE_URL') + '/functions/v1/embed_ml'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: cred!.v, fn: caller, action: space === 'ml' ? 'query' : 'gte', text: t }),
       signal: signal,

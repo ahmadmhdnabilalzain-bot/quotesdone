@@ -13,7 +13,7 @@ import { taxonomyOf, tradeBlock, tradeContext } from '../_shared/inquiry_trades.
 import { readInquiry, readingPatch } from '../_shared/inquiry_reading.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
-import { laneMust, STATUS_CLASS, STATUS_HISTORY_TURNS, STATUS_RULES } from './status_lane.ts';
+import { laneMust, STATUS_CLASS, STATUS_EFFORT, STATUS_HISTORY_TURNS, STATUS_RULES } from './status_lane.ts';
 import { admin, itFinding, sec } from './shared.ts';
 import { sendWa } from './replies.ts';
 import type { WaTurn } from './turn.ts';
@@ -52,8 +52,8 @@ export function makeSay(t: WaTurn): void {
     // reply is asked, never awaited by it, and only for the real reply (not a speculative draft).
     const customerSide = aud === 'customer' || aud === 'visitor';
     const expertP = customerSide ? (async () => {
-      const st = await readState(admin, whatsappKey(From));
-      const tax = await taxonomyOf(admin);
+      // the number's state and the taxonomy are read together (two database trips that read nothing of each other; 10 Nov 2026)
+      const [st, tax] = await Promise.all([readState(admin, whatsappKey(From)), taxonomyOf(admin)]);
       const ctx = await tradeContext(admin, st?.trade_codes ?? [], lang, tax);
       const problems = problemsFor({ codes: ctx?.codes ?? [], held: heldProblem(st) });
       const job = !!(ctx?.codes.length || problems.length || st?.options_offered?.length);
@@ -73,7 +73,7 @@ export function makeSay(t: WaTurn): void {
     if (lane) must = [...new Set([...(must ?? []), ...laneMustCarry])];
     return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
       conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : conv, forbidden: await t.forbidden,
-      ...(lane ? { taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES } : {}),
+      ...(lane ? { taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, effort: STATUS_EFFORT } : {}),
       budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
       // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
       // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
