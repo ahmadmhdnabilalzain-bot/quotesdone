@@ -7,7 +7,7 @@
 // took 121 ms for two 40 ms waves and failed a test that had nothing wrong with it. No
 // network, no environment, no real row — nothing here can reach a person.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, NOTICE_TAB, type Supplier } from './overview.ts';
+import { agreementSigning, buildAlerts, buildDashboard, buildEligibility, buildNotifications, NOTICE_TAB, supplierCard, type Supplier } from './overview.ts';
 
 const DELAY = 40;
 type Answer = { data?: unknown; count?: number | null; error?: unknown };
@@ -155,4 +155,16 @@ Deno.test('the wave counter itself: three reads in a row are three waves, three 
   const chained = fakeAdmin();
   await Promise.all([chained.rpc('a').then(() => chained.rpc('b')), chained.rpc('c')]);
   assertEquals(chained.waves(), 2);
+});
+
+// 10 Nov 2026: an accepted Supplier Agreement whose certificate has not landed is "being signed", never "action required".
+Deno.test('agreement_signing: accepted with no certificate for that acceptance is signing; signed after it, or never accepted, is not', () => {
+  const acc = '2026-11-10T09:00:00Z';
+  assertEquals(agreementSigning({ accepted_terms_at: acc, signed_terms_at: null }), true);
+  assertEquals(agreementSigning({ accepted_terms_at: acc, signed_terms_at: '2026-11-10T09:00:20Z' }), false);
+  assertEquals(agreementSigning({ accepted_terms_at: acc, signed_terms_at: '2026-10-01T00:00:00Z' }), true, 'a certificate of an EARLIER acceptance does not sign this one');
+  assertEquals(agreementSigning({ accepted_terms_at: null, signed_terms_at: null }), false);
+  const card = supplierCard({ id: 1, company_name: 'ZZ DEMO', approval_status: 'action_required', registration_status: null, license_expiry: null,
+    name_corrected_from: null, licence_gate_reason: 'reg_terms', accepted_terms_at: acc, signed_terms_at: null } as Supplier);
+  assertEquals((card as Record<string, unknown>).agreement_signing, true, 'the card the portal renders carries it');
 });
