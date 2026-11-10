@@ -2,29 +2,19 @@
 // function: the service-role client, the ai_gateway URL, the empty Twilio answer, the app_secrets reader, the
 // IT-engineer finding, the agent_runs logger and the throttled founder alert. Moved out of index.ts unchanged
 // (9 Nov 2026, customer_support: index.ts was one 1,589-line file); nothing here reads a request.
-import { AsyncLocalStorage } from 'node:async_hooks';
+import { perTurn, withTurnCache } from '../_shared/turn_cache.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { inDbRegion } from '../_shared/db_region.ts';
 export const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 // run in the database's region, not the caller's (_shared/db_region.ts: ~3 s of gateway work per call in us-east-1, ~0.4 s there)
 export const GATEWAY = inDbRegion(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway');
 export const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
-// ONE READ OF EACH SETTING PER TURN (it_engineer, 10 Nov 2026, channels audit R7). sec() was a database trip on every call, and
-// one turn asks the same keys again and again (wa_autoreply_enabled from the classification, the speculation, the menu and the
-// send; twilio_wa_from for every row): each ~0.2 s from a worker outside the database's region. Inside a turn (withTurnSecrets,
-// index.ts) each key is read once and the answer shared; outside one (a module-level caller) it is read as before. Per turn and
-// never across turns, so a changed setting is seen by the next message.
+// ONE READ OF EACH SETTING PER TURN (it_engineer, 10 Nov 2026, channels audit R7): inside a turn (withTurnSecrets, index.ts)
+// each key is read once and shared (_shared/turn_cache.ts); outside one it is read as before.
 // prevented by: wa_inbound/a_turn_reads_each_setting_once_and_a_forgery_claims_nothing.test.ts
-const turnSecrets = new AsyncLocalStorage<Map<string, Promise<string>>>();
-export function withTurnSecrets<T>(work: () => Promise<T>): Promise<T> { return turnSecrets.run(new Map(), work); }
-async function readSecret(k: string): Promise<string> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
-export async function sec(k: string): Promise<string> {
-  const seen = turnSecrets.getStore();
-  if (!seen) return await readSecret(k);
-  let p = seen.get(k);
-  if (!p) { p = readSecret(k); seen.set(k, p); p.catch(() => seen.delete(k)); }
-  return await p;
-}
+const readSetting = async (k: string) => { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; };
+export const sec = perTurn(readSetting);
+export const withTurnSecrets = withTurnCache;
 // AN INTERNAL FAULT IS THE IT ENGINEER'S, NEVER THE CUSTOMER'S (22 Sep 2026). The person gets the
 // courteous fallback; the real error goes here, deduplicated on its key, customer_facing because a
 // WhatsApp answer was lost to it. Best effort: a failed finding must not cost the reply.
