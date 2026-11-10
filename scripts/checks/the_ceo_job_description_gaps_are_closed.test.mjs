@@ -78,7 +78,7 @@ test('static: pinned, revoked, policed, owned, and pending XOR MANIFEST', () => 
     assert.match(door, new RegExp(`when '${fam}'`), `the door lost the ${fam} family`);
   }
   // the board pack carries the whole month report of #923, not a shortened copy
-  const pack = read(FILES[3]);
+  const pack = read(FILES.find((f) => f.endsWith('/the_ceo_monthly_report_is_a_board_pack.sql')));   // by name: the list grows
   for (const line of ['1. close last month\'s directives', '2. the founder\'s monthly report', '3. this month\'s directive per seat']) {
     assert.ok(pack.includes(line), `fn_ceo_month_plan lost: ${line}`);
   }

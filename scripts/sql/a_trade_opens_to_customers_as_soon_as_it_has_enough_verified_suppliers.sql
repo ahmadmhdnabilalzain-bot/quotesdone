@@ -278,7 +278,15 @@ declare r public.trade_opening_rule; v_opened int := 0; v_closed int := 0; v_tol
   v_email text; v_sent jsonb; v_link text; v_base text := coalesce((select value from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com');
 begin
   select * into r from public.trade_opening_rule where id = 1;
-  with n as (select t.code, public.fn_trade_verified_suppliers(t.code) v from public.taxonomy_trade t where t.active)
+  -- one pass over the suppliers for all 223 trades (the per-trade routine made a tick ~5 s; this is the same predicate,
+  -- fn_trade_verified_suppliers', set-based, with the same probe seam)
+  with s as materialized (
+    select sc.supplier_id, sc.trades from public.supplier_capabilities sc join public.leads l on l.id = sc.supplier_id
+     where sc.confirmed_at is not null and not coalesce(l.is_demo, false)
+       and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)),
+  n as (select t.code, coalesce((nullif(current_setting('qd.trade_opening_fixture_counts', true), '')::jsonb ->> t.code)::int,
+                                (select count(distinct s.supplier_id) from s where t.code = any(s.trades)))::int v
+          from public.taxonomy_trade t where t.active)
   insert into public.trade_customer_opening as o (trade, verified_suppliers, open_at, is_open, opened_at, measured_at)
   select n.code, n.v, r.open_at_suppliers, n.v >= r.open_at_suppliers, case when n.v >= r.open_at_suppliers then now() end, now() from n
   on conflict (trade) do update set verified_suppliers = excluded.verified_suppliers, open_at = excluded.open_at, measured_at = now(),
