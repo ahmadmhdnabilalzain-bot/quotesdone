@@ -20,6 +20,7 @@ the list below that is not, move it into `archive/` and say so in the same commi
 
 | where | what |
 |---|---|
+| `architecture/` | the maps: the database by business area (generated, checked for drift), and where the code is organised |
 | `CUSTOMER_PORTAL.md` | customer portal — complete reference |
 | `SUPPLIER_PORTAL.md` | supplier portal — complete reference |
 | `WEBSITE.md` | the public website |

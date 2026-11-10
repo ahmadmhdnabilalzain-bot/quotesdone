@@ -15,6 +15,10 @@ Operational procedures are in [../runbooks/](../runbooks/README.md).
 `ARCHITECTURE.md` at the repository root, section 1 ("Where each kind of thing lives"), is the answer. This
 page does not restate it.
 
+### Finding things
+The database, by business area: `docs/architecture/database/README.md` (generated, drift-checked). The index of maps
+is `docs/architecture/README.md`.
+
 ### How to run things
 | Need | Command |
 |---|---|
