@@ -223,13 +223,14 @@
         "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
         "https://www.etihadwe.ae/en",
         "https://www.rta.ae/links/rail-noc.pdf",
-        "https://www.sewa.gov.ae/en/gas"
+        "https://www.sewa.gov.ae/en/gas",
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=315"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: RTA requires an eNOC for any excavation in the right of way and runs the eNOC system (RTA right-of-way permit page and rail NOC guideline); the Abu Dhabi Emirate Guideline for Infrastructure Services Standards covers right of way and utility disposition and the utility NOC programme; ADDC requires a notice of intent, a conflict check and design and construction NOCs; SEWA handles electricity, water and gas connections; EtihadWE serves the northern emirates. Not confirmed on any reachable page: that the RTA NOC collects all service authorities' approvals, the trial-trench NOC for general works and the Trakhees infrastructure NOC. Host(s) that could not be reached: pcfc.ae (Trakhees; blocked, and www.trakhees.ae redirects there)."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: RTA 'Construction NOC for Infrastructure Work' (serviceId 315): the final NOC is issued through the eNOC system once all listed service authorities approve; RTA rail NOC guidelines include a trial-trenches NOC; Trakhees Infrastructure NOC application form (pcfc.ae); ADDC NOC requirements; Sharjah supporting departments; EtihadWE coverage. Not confirmed on any page that opened: a trial-trench NOC for general (non-rail) works, and the Abu Dhabi infrastructure services guideline (its PDF did not load). Hosts that failed: www.dmt.gov.ae infrastructure-standards PDF (no response to curl or Playwright)."
     },
     {
       "id": "infrastructure_utilities:quote-red-flags",
@@ -367,6 +368,21 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: infrastructure_utilities:approvals-per-emirate re-checked against official pages opened through the session network (7 URL(s) read, 9 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "infrastructure_utilities:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=315",
+        "https://pcfc.ae/en/Service%20Documents/TRK-CED-PS-CF15a,%20Infrastructure%20NOC%20Application%20Form.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

@@ -624,8 +624,8 @@
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE was established in 2020 under Federal Decree-Law No. 31, replacing FEWA, serves Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah, and offers new service connections by consumption category and connection type, with a drawing approval service (etihadwe.ae, u.ae). Not confirmed on any reachable page: municipal approval of MEP drawings, civil defence approval and free-zone approvals. Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt)."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE was established in 2020 under Federal Decree-Law No. 31, replacing FEWA, serves Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah, and offers new service connections by consumption category and connection type, with a drawing approval service (etihadwe.ae, u.ae). Not confirmed on any reachable page: municipal approval of MEP drawings, civil defence approval and free-zone approvals. Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt). Second page read 2026-11-10 (ledger 1597): No further official page opened on the unconfirmed items (municipal MEP drawing approval in the four emirates, civil defence approval, free-zone approvals): www.dcd.gov.ae resets every connection and moei.gov.ae resets the TLS handshake."
     },
     {
       "id": "mep_general:compare-quotes-cost-to-value",
@@ -782,6 +782,18 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: mep_general:approvals-northern-emirates re-checked against official pages opened through the session network (3 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "mep_general:approvals-northern-emirates"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

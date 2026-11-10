@@ -227,19 +227,19 @@
       "body_en": "Dubai: Dubai Municipality's technical guideline for the approval of swimming pool plans requires registration on the DM e-service and submission through the Dubai Building Permits System for areas under DM, with the pool category stated; DM also publishes safety guidelines for private pools and for public pools (supervision, barriers, water quality). In DDA, Trakhees or free-zone areas those authorities issue the permit, and communities need the master developer's NOC. Abu Dhabi, Sharjah and the northern emirates: a municipal permit is required for a new pool; the exact steps were not confirmed in this session. Weekly maintenance of an existing private pool needs no approval. Who obtains: the pool contractor or consultant, with the owner's developer NOC.",
       "body_ar": "في دبي: يشترط الدليل الفني لبلدية دبي لاعتماد مخططات المسابح التسجيل في الخدمة الإلكترونية للبلدية والتقديم عبر نظام دبي لتراخيص البناء للمناطق التابعة للبلدية مع ذكر فئة المسبح، وتنشر البلدية أيضاً أدلة سلامة للمسابح الخاصة والعامة (الإشراف والحواجز وجودة المياه). وفي مناطق سلطة دبي للتطوير أو تراخيص أو المناطق الحرة تصدر تلك الجهات الترخيص، وتحتاج المجمعات إلى عدم ممانعة من المطوّر الرئيسي. في أبوظبي والشارقة والإمارات الشمالية: يلزم ترخيص بلدي للمسبح الجديد، ولم يُتحقق من الخطوات الدقيقة في هذه الجلسة. والصيانة الأسبوعية لمسبح خاص قائم لا تحتاج إلى اعتماد. من يحصل عليها: مقاول المسابح أو الاستشاري، مع عدم ممانعة المطوّر للمالك.",
       "sources": [
-        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU34-ASPP2_Technical-Guidelines-for-Approval-of-Swimming-Pool-Plans_V4.pdf",
         "https://dmpmedia.dm.gov.ae/uploads/2022/03/DM-HSD-GU80_PRSPS2_Private-Swimming-Pools-Safety-Guidelines_V1-1.pdf",
         "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU81-PSPS2_Public-Swimming-Pools-Safety-Guidelines_V3-26-04-2024-003.pdf",
         "https://www.dm.gov.ae/dubai-municipality-services/",
         "https://www.dm.gov.ae/documents/hsd-gu34/",
         "https://www.dm.gov.ae/documents/hsd-gu80/",
-        "https://www.dm.gov.ae/documents/hsd-gu81/"
+        "https://www.dm.gov.ae/documents/hsd-gu81/",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU34-ASPP2_Technical-Guidelines-for-Approval-of-Swimming-Pool-Plans_V4.pdf"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM approves private and public pool drawings before construction and publishes Technical Guidelines 34 (approval of pool plans, dated 25 Jul 2024), 80 (private pools safety) and 81 (public pools safety). Not confirmed on any reachable page: the content of the guidelines (DM e-service registration, Dubai Building Permits System, pool category) and the DDA/Trakhees permits. Host(s) that could not be reached: dmpmedia.dm.gov.ae (Dubai Municipality's PDF host; blocked, and the cited www.dm.gov.ae/wp-content PDF links now redirect to the home page)."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM Technical Guideline 34 for approval of swimming pool plans (V4, on dmpmedia.dm.gov.ae): registration with the DM e-service, submission through the Dubai Building Permits System for areas under DM, and the pool category stated; DM Guidelines 80 (private pools) and 81 (public pools) on safety. Not confirmed on any page that opened: the DDA and Trakhees pool permits, the master-developer NOC, and the Abu Dhabi, Sharjah and northern-emirate steps."
     },
     {
       "id": "swimming_pools:quote-red-flags",
@@ -384,6 +384,22 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: swimming_pools:approvals-per-emirate re-checked against official pages opened through the session network (4 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "swimming_pools:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU34-ASPP2_Technical-Guidelines-for-Approval-of-Swimming-Pool-Plans_V4.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2022/03/DM-HSD-GU80_PRSPS2_Private-Swimming-Pools-Safety-Guidelines_V1-1.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU81-PSPS2_Public-Swimming-Pools-Safety-Guidelines_V3-26-04-2024-003.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }
