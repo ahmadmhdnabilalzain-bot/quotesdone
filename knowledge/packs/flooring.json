@@ -285,13 +285,14 @@
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
-        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e6ea"
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e6ea",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Sharjah's interior design (fit-out) permit requires Civil Defense approval according to the activity. Not confirmed on any reachable page: the DDA fit-out permit, the fire classification of finishes and the MoIAT list. Host(s) that could not be reached: dda.gov.ae (blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt); moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection); portal.shjmun.gov.ae (blocked by the session network)."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DDA fit-out permit (dda.gov.ae); MoIAT's sheet of regulated products and their requirements (cad-regulated-sheet, moiat.gov.ae) lists no floor-finish category, which supports 'most floor finishes are not on it'. Not confirmed on any page that opened: civil defence fire classification of floor finishes in escape routes and the northern-emirate permits. Hosts that failed: www.dcd.gov.ae (connection reset by the site, curl and Playwright)."
     },
     {
       "id": "flooring:quote-red-flags",
@@ -484,6 +485,21 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: flooring:approvals-per-emirate re-checked against official pages opened through the session network (1 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "flooring:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

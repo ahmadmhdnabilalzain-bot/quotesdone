@@ -228,13 +228,15 @@
         "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
         "https://www.etihadwe.ae/en",
         "https://www.dm.gov.ae/municipality-business/buildings-regulation-permits-agency/",
-        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704"
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs",
+        "https://pcfc.ae/en/Service%20Documents/PCFC-TRK-CED-PS-CP-01,%20Client%20procedure%20for%20Obtaining%20Building%20Permits.pdf"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM lists Local Order No. 3 of 1999 and Executive Council Resolution No. 28 of 2022; RTA eNOC and Resolution No. 54 of 2021; Abu Dhabi City Municipality Circular 04/2022; Sharjah plans are submitted by a licensed consultant with approvals of electricity, water and gas, planning and Civil Defense as supporting departments; EtihadWE coverage. Not confirmed on any reachable page: Law No. 3 of 2026, the Trakhees, DDA and free-zone areas, DEWA connection and the Abu Dhabi occupancy approvals. Host(s) that could not be reached: dlp.dubai.gov.ae (blocked by the session network); pcfc.ae (Trakhees; blocked, and www.trakhees.ae redirects there); dda.gov.ae (blocked by the session network); www.dewa.gov.ae (HTTP 403 from the site; dewa.gov.ae blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt). Corrected in body_en and body_ar to what the opened page says."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Local Order No. 3 of 1999, Executive Council Resolution No. 28 of 2022 and Law No. 3 of 2026 (dlp.dubai.gov.ae); Trakhees approves building permits within its jurisdiction (PCFC-TRK-CED-PS-CP-01 on pcfc.ae); DDA issues construction permits in its zones (dda.gov.ae); RTA eNOC and Resolution No. 54 of 2021; Circular 04/2022; Sharjah supporting-department approvals; EtihadWE coverage. Not confirmed on any page that opened: DEWA connection and Dubai Civil Defence approval as completion steps, other free-zone authorities, the Abu Dhabi e-permitting system and the Abu Dhabi occupancy approvals. Hosts that failed: www.dcd.gov.ae (connection reset by the site); www.dewa.gov.ae (HTTP 403 from the site's firewall)."
     },
     {
       "id": "general_contracting:quote-red-flags",
@@ -374,6 +376,20 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: general_contracting:approvals-per-emirate re-checked against official pages opened through the session network (8 URL(s) read, 12 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "general_contracting:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

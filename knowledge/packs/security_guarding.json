@@ -186,13 +186,15 @@
       "body_ar": "في دبي: مؤسسة تنظيم الصناعة الأمنية هي الجهة المختصة، وتحتاج شركة الحراسة إلى ترخيص منها ويحتاج كل حارس إلى بطاقة حارس صادرة عنها. في أبوظبي: ترخّص شرطة أبوظبي شركات الأمن الخاصة. في الشارقة والإمارات الشمالية: تنطبق متطلبات شرطة كل إمارة والقانون الاتحادي للأمن الخاص؛ والقانون الاتحادي رقم 37 لسنة 2006 هو المدرج في بوابة التشريعات، ولم يُتحقق في هذه الجلسة مما إذا كان مرسوم بقانون صادر في 2023 قد حل محله. والحارس المرخّص في إمارة يحتاج عموماً إلى موافقات إمارة أخرى للعمل فيها. من يحصل عليه: شركة الحراسة.",
       "sources": [
         "https://www.sira.gov.ae/en/services/noc-security-license",
-        "https://uaelegislation.gov.ae/en/legislations/1985"
+        "https://uaelegislation.gov.ae/en/legislations/1985",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2016/Law%20No.%20(12)%20of%202016.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2018/Resolution%20No.%20(1)%20of%202018.html"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Not confirmed on any reachable page: the SIRA licence and guard card, Abu Dhabi Police licensing and Federal Law No. 37 of 2006. Host(s) that could not be reached: www.sira.gov.ae (blocked by the session network); uaelegislation.gov.ae (blocked by the session network)."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Dubai Law No. 12 of 2016: SIRA is the competent authority and no one may provide security services in Dubai without a SIRA licence; Resolution No. 1 of 2018: an individual whose licence is approved is entered in SIRA's register and issued an identification card, which he must carry on duty (dlp.dubai.gov.ae). Not confirmed on any page that opened: Abu Dhabi Police licensing, Federal Law No. 37 of 2006 and the cross-emirate approvals. Hosts that failed: www.sira.gov.ae (refused by the session network); uaelegislation.gov.ae (Cloudflare block page, HTTP 403)."
     },
     {
       "id": "security_guarding:quote-red-flags",
@@ -329,6 +331,21 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: security_guarding:approvals-per-emirate re-checked against official pages opened through the session network (0 URL(s) read, 5 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "security_guarding:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2016/Law%20No.%20(12)%20of%202016.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2018/Resolution%20No.%20(1)%20of%202018.html"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

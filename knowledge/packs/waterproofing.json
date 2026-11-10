@@ -188,11 +188,14 @@
       "body_en": "In Abu Dhabi the equivalent framework is Estidama, administered by the Department of Municipalities and Transport, with the Pearl Building Rating System and the Pearl Villa Rating System. All new developments have been required since 2010 to achieve at least 1 Pearl, and government buildings 2 Pearls, and the envelope thermal performance is assessed through U-values for walls, roofs and floors, supported by an official villa U-value calculator. Search results in this research indicated roof and wall U-value limits of a similar order to Dubai's, but the official DMT pages could not be opened and the exact current figures are therefore not established in this pack. For a sales engineer the practical rule is the same as in Dubai: roof and wall insulation are selected to meet the U-value demanded by the project's Estidama compliance calculation, which the consultant prepares; the supplier contributes certified lambda values, thicknesses and fire classifications. Buyers on Abu Dhabi projects should state the Pearl rating target and the required U-values from their consultant, and suppliers should not quote a U-value for their product in isolation. Before relying on any number, obtain the current Pearl Villa or Building rating manual and U-value calculator directly from DMT. This entry should be upgraded once the official figures are verified from the DMT document.",
       "body_ar": "في أبوظبي يقابل ذلك إطار \"استدامة\" الذي تديره دائرة البلديات والنقل، ويضم نظام التقييم بدرجات اللؤلؤ للمباني ونظام التقييم للفلل. ويُشترط منذ 2010 أن تحقق جميع المشاريع الجديدة لؤلؤة واحدة على الأقل، والمباني الحكومية لؤلؤتين، ويُقيَّم الأداء الحراري للغلاف عبر قيم U للجدران والأسطح والأرضيات بالاستعانة بحاسبة رسمية لقيم U للفلل. وقد أشارت نتائج البحث إلى حدود لقيم U للأسطح والجدران قريبة في مستواها من حدود دبي، لكن تعذّر فتح صفحات الدائرة الرسمية، فالأرقام الحالية الدقيقة غير ثابتة في هذه الحزمة. والقاعدة العملية لمهندس المبيعات هي نفسها في دبي: يُختار عزل السطح والجدران لتحقيق قيمة U التي يتطلبها حساب الامتثال لاستدامة الذي يعدّه الاستشاري، ويقدم المورد قيم لامدا المعتمدة والسماكات وتصنيفات الحريق. على المشترين في مشاريع أبوظبي تحديد مستوى اللؤلؤ المستهدف وقيم U المطلوبة من استشاريهم، ولا ينبغي للمورد أن يعلن قيمة U لمنتجه منفرداً. وقبل الاعتماد على أي رقم يجب الحصول على دليل التقييم الحالي وحاسبة قيم U مباشرة من الدائرة. وينبغي تحديث هذا المدخل بعد التحقق من الأرقام الرسمية من وثيقة الدائرة.",
       "sources": [
-        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)"
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)",
+        "https://www.dmt.gov.ae/en/adm/Media-Centre/News/08Jan2025"
       ],
       "confidence": "low",
       "as_of": "2026-09-23",
-      "gap_kind": "technical"
+      "gap_kind": "technical",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Abu Dhabi City Municipality (DMT, 8 January 2025): its Sustainable Buildings Section applies the Estidama Pearl Rating System to buildings and villas; government-funded projects need at least two pearls and privately funded projects at least one, and meeting this is essential for the building permit; ratings combine mandatory and optional credits. Not confirmed on any page that opened: the 2010 start date of the mandate, the villa U-value calculator and the U-value figures (the entry already says the figures are not established).",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)"
     },
     {
       "id": "waterproofing:spray-pu-foam",
@@ -901,13 +904,15 @@
         "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
         "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
-        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e702"
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e702",
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf",
+        "https://www.dmt.gov.ae/en/adm/Media-Centre/News/08Jan2025"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Al Sa'fat is mandatory for all new buildings in Dubai since 19 October 2020 (DM); Sharjah Building Material Approval covers water and thermal insulation materials. Not confirmed on any reachable page: the Al Sa'fat U-values (the document is on a blocked host), Estidama and civil defence approval of facade insulation. Host(s) that could not be reached: moei.gov.ae (blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt); portal.shjmun.gov.ae (blocked by the session network). Corrected in body_en and body_ar to what the opened page says."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Al Sa'fat 2nd edition section 501.01: roof U-value 0.3 W/m2K and external wall 0.57 (Silver) or 0.42 (Golden and Platinum) for new air-conditioned buildings; Abu Dhabi City Municipality: Estidama Pearl rating needed for the building permit; Sharjah Building Material Approval certificate for waterproofing and thermal insulation. Not confirmed on any page that opened: civil defence fire classification of facade insulation and the Trakhees and DDA checks of envelope values. Hosts that failed: www.dcd.gov.ae (connection reset by the site)."
     },
     {
       "id": "waterproofing:compare-quotes-cost-to-value",
@@ -1037,6 +1042,22 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: waterproofing:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 6 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "waterproofing:approvals-per-emirate",
+        "waterproofing:abu-dhabi-estidama-envelope"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf",
+        "https://www.dmt.gov.ae/en/adm/Media-Centre/News/08Jan2025"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

@@ -915,13 +915,14 @@
         "https://www.dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
         "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
         "https://pcfc.ae/en/Service%20Documents/PCFC-TRK-CED-PS-CP-01,%20Client%20procedure%20for%20Obtaining%20Building%20Permits.pdf",
-        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704"
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Sharjah Municipality's new-project drawing approval lists Civil Defense among the supporting departments (shjmun.gov.ae service directory); DMT's occupancy-certificate programme (Administrative Decision No. 1 of 2024) makes fire safety an essential standard. Not confirmed on any reachable page: the fire-code classification, Dubai Civil Defence product and installer registration, and that an Abu Dhabi occupancy certificate needs civil defence clearance (the DMT news does not say so). Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt); pcfc.ae (Trakhees; blocked, and www.trakhees.ae redirects there); www.adcd.gov.ae (empty reply)."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Trakhees reviews and approves building permits within its jurisdiction (PCFC-TRK-CED-PS-CP-01 on pcfc.ae); DDA issues construction permits in its zones (dda.gov.ae); Sharjah Municipality permits with Civil Defense as a supporting department (shjmun.gov.ae). Not confirmed on any page that opened: the fire-code facade classification, Dubai Civil Defence product approval and supplier and installer registration, the Abu Dhabi Civil Defence Authority role and civil defence clearance for Abu Dhabi occupancy (DMT's occupancy programme names fire safety, not a civil defence clearance), and community NOCs. Hosts that failed: www.dcd.gov.ae (connection reset by the site, curl and Playwright)."
     },
     {
       "id": "aluminium:compare-quotes-cost-to-value",
@@ -1052,6 +1053,20 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: aluminium:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 8 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "aluminium:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

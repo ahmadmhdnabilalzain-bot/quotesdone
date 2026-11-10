@@ -752,13 +752,14 @@
         "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit",
         "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
         "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
-        "https://www.dm.gov.ae/municipality-business/product-certification/"
+        "https://www.dm.gov.ae/municipality-business/product-certification/",
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Al Sa'fat is mandatory for all new buildings in Dubai; Dubai Central Laboratory certifies low-emitting adhesives. Not confirmed on any reachable page: the fire classification of wall finishes, the DDA fit-out permit and the Al Sa'fat VOC limit for adhesives. Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt); dda.gov.ae (blocked by the session network); moei.gov.ae (blocked by the session network)."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Al Sa'fat 2nd edition section 404.02: adhesives and sealants in all buildings must not exceed DM's VOC limits, certified by Dubai Central Laboratory or a DM-approved laboratory; DDA fit-out permit. Not confirmed on any page that opened: the fire classification of wall finishes under the UAE Fire and Life Safety Code and the civil defence approvals. Hosts that failed: www.dcd.gov.ae (connection reset by the site)."
     },
     {
       "id": "wallpaper:compare-quotes-cost-to-value",
@@ -957,6 +958,20 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: wallpaper:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 5 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "wallpaper:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

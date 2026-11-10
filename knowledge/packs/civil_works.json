@@ -923,13 +923,14 @@
         "https://www.dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
         "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
         "https://www.dm.gov.ae/municipality-business/buildings-regulation-permits-agency/",
-        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704"
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM lists Local Order No. 3 of 1999 and Executive Council Resolution No. 28 of 2022 (insurance of construction works permits); RTA requires an eNOC for excavation and links right-of-way permits to Executive Council Resolution No. 54 of 2021; Abu Dhabi City Municipality Circular 04/2022; Sharjah plan approval through licensed consultants with supporting departments; EtihadWE coverage. Not confirmed on any reachable page: the three-month permit lapse in Local Order No. 3 of 1999, Law No. 3 of 2026, the Trakhees and DDA areas, the Abu Dhabi e-permitting system and civil defence occupancy approval. Host(s) that could not be reached: dlp.dubai.gov.ae (blocked by the session network); pcfc.ae (Trakhees; blocked, and www.trakhees.ae redirects there); dda.gov.ae (blocked by the session network). Corrected in body_en and body_ar to what the opened page says."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Local Order No. 3 of 1999 bars construction, demolition and maintenance works without a permit and voids a permit when works have not started within three months (dlp.dubai.gov.ae); Executive Council Resolution No. 28 of 2022 on construction insurance and Law No. 3 of 2026 on the quality and safety of buildings (dlp.dubai.gov.ae); Trakhees reviews and approves building permits within its jurisdiction (PCFC-TRK-CED-PS-CP-01, Rev. 03, January 2023, on pcfc.ae); DDA issues excavation, shoring, piling, building, fit-out and right-of-way permits in its zones (dda.gov.ae); RTA eNOC and Resolution No. 54 of 2021; Abu Dhabi City Municipality Circular 04/2022; Sharjah plan approval with supporting departments; EtihadWE coverage. Not confirmed on any page that opened: that Nakheel and Dubai Maritime City are Trakhees areas (the Trakhees procedure does not list areas), the Abu Dhabi municipal e-permitting system, and civil defence approval for occupancy in Abu Dhabi (DMT's occupancy programme names fire safety, not a civil defence approval). Hosts that failed: www.dcd.gov.ae (connection reset by the site)."
     },
     {
       "id": "civil_works:compare-quotes-cost-to-value",
@@ -1083,6 +1084,23 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: civil_works:approvals-per-emirate re-checked against official pages opened through the session network (8 URL(s) read, 12 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "civil_works:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/1999/Local%20Order%20No.%20(3)%20of%201999%20Regulating%20Construction%20Works.pdf",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2026/Law%20No.%20(3)%20of%202026%20Concerning%20the%20Quality%20and%20Safety%20of%20Buildings.html",
+        "https://pcfc.ae/en/Service%20Documents/PCFC-TRK-CED-PS-CP-01,%20Client%20procedure%20for%20Obtaining%20Building%20Permits.pdf",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

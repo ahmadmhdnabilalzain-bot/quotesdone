@@ -1030,13 +1030,16 @@
         "https://www.sira.gov.ae/en/services/security-equipment-and-devices-certification-29917987",
         "https://www.sira.gov.ae/en/services/security-system-certification",
         "https://www.sira.gov.ae/assets/4768cdc/Administrative%20Resolution%20No.%2013%20of%202025%20Approving%20the%20Preventive%20System%20Manual_638911154861069357.pdf.aspx",
-        "https://www.sira.gov.ae/assets/1554846d/Standard%20and%20Technical%20Specifications%20of%20the%20Security%20Systems.pdf.aspx"
+        "https://www.sira.gov.ae/assets/1554846d/Standard%20and%20Technical%20Specifications%20of%20the%20Security%20Systems.pdf.aspx",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2016/Law%20No.%20(12)%20of%202016.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2018/Resolution%20No.%20(1)%20of%202018.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(13)%20of%202025%20System%20Manual.html"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Not confirmed on any reachable page: all SIRA licensing, device approval, system certification and the Preventive Systems Manual. Host(s) that could not be reached: www.sira.gov.ae (blocked by the session network)."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Dubai Law No. 12 of 2016 establishes SIRA, which licenses security service providers (including selling and installing security equipment and systems) and licenses the security devices and equipment set by the bylaw; Resolution No. 1 of 2018 is the implementing bylaw and bars security devices in private places except private residences for documenting offences; Administrative Resolution No. 13 of 2025 approves the Preventive Systems Manual with camera and recording rules (all on dlp.dubai.gov.ae). Not confirmed on any page that opened: the minimum SIRA-registered technical team, SIRA certification of an establishment's system, Abu Dhabi Law No. 5 of 2011 and the Monitoring and Control Centre, and Abu Dhabi Police licensing. Hosts that failed: www.sira.gov.ae (refused by the session network)."
     },
     {
       "id": "security_systems:compare-quotes-cost-to-value",
@@ -1181,6 +1184,22 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: security_systems:approvals-per-emirate re-checked against official pages opened through the session network (0 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "security_systems:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2016/Law%20No.%20(12)%20of%202016.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2018/Resolution%20No.%20(1)%20of%202018.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(13)%20of%202025%20System%20Manual.html"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }
