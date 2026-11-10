@@ -144,3 +144,9 @@ results, full-walk answer capture; `be0dfe6ed` full walk e/f and the opt-in Node
 - The portal fix (F2) reaches production when the branch merges and Vercel deploys it; until then, on production, a
   PDF quote's hold appears only after a reload.
 - The QD Demo corpus states no services, so general matching cannot route a service-naming demo request to it.
+
+
+## Update, 10 Nov evening
+
+- **F5 fixed** in `75c276fb5` (sales_engineer): a refresh or re-submit carries the answers the supplier already gave in the hold panel (`supplier_api/submit_review.ts` `heldAnswersOf` / `carryHeldAnswers`); an answered hold item is never asked again, a new missing item still holds, answers never cross jobs, suppliers, quotes or options. `supplier_api/an_answered_hold_item_is_never_asked_again.test.ts` 9/9; supplier_api + line_specs suites 218/218.
+- The 9 Arabic lines of `two_customer_support_duties_read_only_their_own_kind_of_row.sql` (#1885) were read against the register and recorded; `every_arabic_message_is_written_not_translated` 10/10 on main again.
