@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionModuleSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -20,7 +21,7 @@ const SQL = read('scripts/sql/marketing_watches_trends_audits_answer_engines_and
 const code = (t) => t.split('\n').filter((l) => !/^\s*(\/\/|--)/.test(l)).join('\n');
 
 test('trend relevance is reasoned by think(), and the plan reads the trends', () => {
-  const d = code(read('supabase/functions/marketing/duties.ts'));
+  const d = code(functionModuleSource('marketing/duties'));
   assert.ok(d.includes("surface: 'marketing.trend_relevance'") && d.includes('await think(deps'), 'trend relevance is not asked of think()');
   assert.ok(/profileText, trendWatch, geoAudit, reviews,/.test(d), 'a new duty is missing from DUTIES');
   assert.ok(code(read('supabase/functions/_shared/marketing_judgement.ts')).includes("rpc('fn_marketing_trends_for_plan'"), 'the plan no longer reads trends');

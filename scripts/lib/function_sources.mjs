@@ -42,29 +42,36 @@ export function functionSource(fn) {
   return functionFiles(fn).map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n');
 }
 
-/**
- * Repo-relative paths of a SHARED module that was split into a barrel and a folder (supabase/functions/_shared/<name>.ts and
- * _shared/<name>/**.ts): the barrel first, then the runtime files of the folder in path order. Tests, offline checks and
- * fixtures are left out, exactly as in functionFiles. A shared module that is one file is that one file.
- */
-export function sharedModuleFiles(name) {
-  const shared = join(FUNCTIONS, '_shared');
-  const barrel = `supabase/functions/_shared/${name}.ts`;
+// ── A SPLIT MODULE (a barrel plus a folder of the same name) ─────────────────────────────────────────────
+// `_shared/document_expiry.ts` is a barrel re-exporting `_shared/document_expiry/*.ts`; likewise
+// `marketing/duties.ts` and `marketing/duties/`. A check that reads such a module as text reads the barrel
+// first, then every runtime .ts under the folder in path order. `relName` is relative to supabase/functions.
+export function functionModuleFiles(relName) {
+  const barrel = `supabase/functions/${relName}.ts`;
   if (!existsSync(join(REPO, barrel))) throw new Error(`function_sources: ${barrel} does not exist`);
   const out = [];
   const walk = (dir) => {
-    for (const entry of readdirSync(dir).sort()) {
-      if (NOT_RUNTIME(entry)) continue;
-      const p = join(dir, entry);
+    for (const name of readdirSync(dir).sort()) {
+      if (NOT_RUNTIME(name)) continue;
+      const p = join(dir, name);
       if (statSync(p).isDirectory()) walk(p);
-      else if (entry.endsWith('.ts') || entry.endsWith('.tsx')) out.push(relative(REPO, p).split('\\').join('/'));
+      else if (name.endsWith('.ts') || name.endsWith('.tsx')) out.push(relative(REPO, p).split('\\').join('/'));
     }
   };
-  if (existsSync(join(shared, name))) walk(join(shared, name));
+  const folder = join(FUNCTIONS, relName);
+  if (existsSync(folder)) walk(folder);
   return [barrel, ...out];
 }
 
-/** A shared module's runtime source as one string (the barrel first, then its folder). */
+/** A split module's runtime source as one string (barrel first). */
+export function functionModuleSource(relName) {
+  return functionModuleFiles(relName).map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n');
+}
+
+/** `_shared/<name>`: the barrel `_shared/<name>.ts` and the runtime files under `_shared/<name>/`. */
+export function sharedModuleFiles(name) {
+  return functionModuleFiles(`_shared/${name}`);
+}
 export function sharedModuleSource(name) {
-  return sharedModuleFiles(name).map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n');
+  return functionModuleSource(`_shared/${name}`);
 }

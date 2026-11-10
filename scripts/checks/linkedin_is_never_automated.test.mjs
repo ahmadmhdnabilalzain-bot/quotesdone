@@ -18,6 +18,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionModuleSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (f) => readFileSync(join(REPO, f), 'utf8');
@@ -86,7 +87,7 @@ test('the morning list and the article cadence read the switch before acting', (
 // Instructions 919-920: the page id is pinned (app_secrets.linkedin_organization_id) and proved at connect time;
 // the duty reads only that page and every reply's actor is that organization URN, never a member.
 test('LinkedIn comments are read and answered only as the pinned company page', () => {
-  const duty = read('supabase/functions/marketing/duties.ts');
+  const duty = functionModuleSource('marketing/duties');
   assert.match(duty, /linkedinComments\(timedFetch, t\.access_token, t\.account_id, since\)/, 'the duty reads only the connected page');
   const lib = read('supabase/functions/_shared/marketing_social_comments.ts');
   assert.match(lib, /const org = 'urn:li:organization:' \+ orgId;/);

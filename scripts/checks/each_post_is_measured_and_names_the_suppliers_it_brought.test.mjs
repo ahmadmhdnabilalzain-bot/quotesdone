@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readSupplierPortal } from '../lib/portal_sources.mjs';
-import { functionSource } from '../lib/function_sources.mjs';
+import { functionModuleSource, functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => (existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), 'utf8') : '');
@@ -22,7 +22,7 @@ const SQL_FILE = 'scripts/sql/each_post_is_measured_and_names_the_suppliers_it_b
 const SQL = R(SQL_FILE);
 
 test('the marketing duty list runs post_results and scorecard, each owned by marketing', () => {
-  const duties = R('supabase/functions/marketing/duties.ts');
+  const duties = functionModuleSource('marketing/duties');
   // other duties (platform_spec_freshness, #873) may follow in the same list; these two must be in it
   const list = (duties.match(/export const DUTIES: Duty\[\] = \[([^\]]*)\]/) || [])[1] || '';
   for (const d of ['POST_RESULTS', 'SCORECARD']) assert.ok(list.split(',').map((s) => s.trim()).includes(d), `DUTIES does not run ${d}`);

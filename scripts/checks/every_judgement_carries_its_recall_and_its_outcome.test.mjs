@@ -76,7 +76,7 @@ test('no think() caller runs another engine, and every reasoning seat routes thr
   const offenders = [];
   for (const f of walk(join(REPO, 'supabase', 'functions'))) {
     const src = readFileSync(f, 'utf8');
-    if (/(^|[^.\w])think\(deps|await think\(/.test(src) && !/from '(\.\/|\.\.\/|\.\.\/_shared\/)think\.ts'/.test(src) && !f.endsWith('think.ts') && !f.includes('/_shared/think/')) offenders.push(f);
+    if (/(^|[^.\w])think\(deps|await think\(/.test(src) && !/from '(\.\/|(\.\.\/)+|(\.\.\/)+_shared\/)think\.ts'/.test(src) && !f.endsWith('think.ts') && !f.includes('/_shared/think/')) offenders.push(f);
   }
   assert.deepEqual(offenders, []);
 });
