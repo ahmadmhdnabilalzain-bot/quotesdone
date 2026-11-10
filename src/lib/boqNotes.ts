@@ -116,6 +116,18 @@ const RULES: Rule[] = [
   // zip.ts's two error lines name a FILE then the reader's own error; anchored on a file name so no
   // other sentence with a colon is ever read as one of them.
   R(/^([^\s:]+\.[A-Za-z0-9]{1,5}): (.+)$/, (m) => `${m[1]}: تعذّرت قراءته (${m[2]})`),
+  // drawing_boq/quotation_parties.ts, linear_services.ts, region_takeoff.ts, boq_from_document.ts (10 Nov 2026)
+  R(/^This is another supplier's priced quotation, rebuilt as our inquiry: items, quantities, units and specifications only - no rate, price, amount, total or VAT, and no party name, contact or project name was read\.$/, () => 'هذا عرض أسعار من مورّد آخر أُعيد بناؤه كطلب تسعير لدينا: البنود والكميات والوحدات والمواصفات فقط — دون أي سعر أو مبلغ أو إجمالي أو ضريبة، ودون اسم أي طرف أو بيانات اتصال أو اسم مشروع.'),
+  R(/^Duct, pipe, cable tray and conduit lengths are measured in plan along the drawn centreline in the drawing's own unit and grouped by the printed size; risers and drops not drawn in plan, fittings \(measured through\) and wastage are not added\.$/, () => 'أطوال مجاري الهواء والأنابيب وحوامل الكابلات والمواسير مقيسة على المسقط على امتداد المحور المرسوم بوحدة المخطط نفسه ومجمّعة حسب المقاس المكتوب؛ ولا تُضاف الصواعد والنوازل غير المرسومة على المسقط ولا القطع (تُقاس ضمن الطول) ولا نسب الهدر.'),
+  R(/^(.+?) m of (.+?) has no size label within reach on the drawing; its size is to be confirmed\.$/, (m) => `${m[1]} م من (${m[2]}) لا يقابلها مقاس مكتوب قريب على المخطط؛ ويُؤكَّد مقاسها.`),
+  R(/^(.+?) m of duct and tray linework that does not pair into a run \(end caps, transitions, fittings\) was not counted as length\.$/, (m) => `${m[1]} م من خطوط مجاري الهواء والحوامل لا تشكّل مسارًا مزدوجًا (نهايات وتحويلات وقطع) ولم تُحسب ضمن الأطوال.`),
+  R(/^No ceiling height is written for (.+?) room\(s\); their wall areas use (.+?) m as an assumption and are marked to confirm\.$/, (m) => `لم يُكتب ارتفاع السقف لعدد ${m[1]} من الغرف؛ فاستُخدم ارتفاع ${m[2]} م افتراضًا لمساحات جدرانها، وهي بانتظار التأكيد.`),
+  R(/^Where a door or window height is not in a schedule or its block name, 2\.1 m \(door\) and 1\.2 m \(window\) are assumed for the opening deducted from the wall area\.$/, () => 'حيث لا يرد ارتفاع الباب أو النافذة في جدول أو في اسم الرمز، يُفترض 2.1 م للباب و1.2 م للنافذة عند خصم الفتحة من مساحة الجدار.'),
+  R(/^No room layer is drawn: a room is a closed outline holding exactly one room name\.$/, () => 'لا توجد طبقة للغرف في المخطط: الغرفة هي حدّ مغلق يحوي اسم غرفة واحدًا فقط.'),
+  R(/^No pool depth is written on the drawing: the pool volume and internal wall area use an average depth of 1\.4 m as an assumption and are marked to confirm\.$/, () => 'لم يُكتب عمق حوض السباحة على المخطط: استُخدم متوسط عمق 1.4 م افتراضًا لحجم المياه ومساحة الجدران الداخلية، وهما بانتظار التأكيد.'),
+  R(/^The lift notes do not state: (.+?)\. They are asked of the customer before suppliers price the lift\.$/, (m) => `لا تذكر ملاحظات المصعد: ${m[1]}. ونسأل العميل عنها قبل أن يسعّر المورّدون المصعد.`),
+  R(/^The drawing is larger than one reading measures; the rooms and runs above are from the part that was read\.$/, () => 'المخطط أكبر مما تقيسه قراءة واحدة؛ والغرف والمسارات أعلاه من الجزء الذي قُرئ.'),
+  R(/^(.+?) block type\(s\) on the drawing are not in our drawing vocabulary; each is listed by its block name with its exact count, and what it is must be confirmed before suppliers price it\.$/, (m) => `عدد أنواع الرموز في المخطط غير الموجودة في مفرداتنا: ${m[1]}؛ أُدرج كل منها باسم رمزه وعدده الدقيق، ويجب تأكيد ماهيته قبل أن يسعّره المورّدون.`),
 ];
 
 /** The Arabic for one reader sentence, or null when there is none. */

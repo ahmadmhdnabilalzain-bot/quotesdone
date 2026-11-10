@@ -121,6 +121,18 @@ Deno.test('the lengths are a second call: the first read carries no layers, the 
   assert(failed.missing_info[0].includes('could not be measured on this upload'), 'and says so');
 });
 
+Deno.test('after the model reads the set (cross_check), its own unmeasured "26x18 duct" line gives way to the measured length', async () => {
+  // 10 Nov 2026: since 3 Nov the model's lines join code's before the lengths call; its "Supply ductwork 26x18" with no
+  // length stayed beside the measurement, so the customer saw the size without metres.
+  const bytes = layeredSetPdf();
+  const first = boqFromDrawingSet(await pdfPages(bytes, undefined, { layers: false }))!;
+  const model = { section: 'HVAC', item: 'Supply ductwork 26x18', description: 'Supply ductwork 26 x 18 galvanised', qty: null, unit: 'm', basis: 'the drawing reading', confidence: 'low', type: '' } as any;
+  const other = { section: 'HVAC', item: 'Ductwork 30x20', description: 'Ductwork 30x20', qty: 12, unit: 'm', basis: 'the drawing reading', confidence: 'low', type: '' } as any;
+  const merged = mergeLengths({ ...first, boq: [...first.boq, model, other] }, lengthsForSet(await pdfPages(bytes)));
+  assertEquals(merged.boq.filter((l) => /26\s*x\s*18/.test(l.description)).map((l) => [l.type, l.qty]), [['duct:26x18', 15.2]]);
+  assert(merged.boq.includes(other), 'a size code did not measure stays as the model read it');
+});
+
 Deno.test('take-off: lengths become lines; bubbles count only inside an outline; different notes stay apart', () => {
   const { lines } = takeoff(pages);
   const q = (type: string) => lines.find((l) => l.type === type);
