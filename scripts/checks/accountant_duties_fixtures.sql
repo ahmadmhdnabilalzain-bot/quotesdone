@@ -131,6 +131,7 @@ end $f$;
 do $zz$
 declare
   r jsonb := '{}'::jsonb; v jsonb; h bigint; v_refused boolean; h2 bigint; t uuid; t2 uuid; t3 uuid; l bigint; d bigint; v_m date; v_n bigint;
+  v_no_statement boolean := exists (select 1 from public.company_policy_decision where decision_key = 'no_bank_statement_reconciliation');
   v_start bigint := (select coalesce(max(id), 0) from public.notifications);
 begin
   perform set_config('app.qd_stub_founder_notify', 'on', true);
@@ -442,13 +443,24 @@ begin
   perform pg_temp.zz_assert(position('Cash in the bank, runway' in (v->'blocks')::text) > 0 and position('cash,runway_months,' in v->>'csv') > 0,
     'cash: the close document has no cash and runway section');
   update public.bank_statement_intake set closing_balance_aed = null, balance_on = null where account = 'mashreq';
-  perform public.fn_accountant_bank_balance_tick();
-  perform pg_temp.zz_assert(pg_temp.zz_open('acct:bank_balance:bank_balance:' || to_char(v_m, 'YYYY-MM')), 'cash: a closed month with no Mashreq balance raised no finding');
-  h := pg_temp.zz_loop_opens('acct:bank_balance:bank_balance:' || to_char(v_m, 'YYYY-MM'), 'accountant');
+  v := public.fn_accountant_bank_balance_tick();
+  -- Founder ruling 1559 (10 Nov 2026, company_policy_decision no_bank_statement_reconciliation): while it stands, a missing
+  -- closing balance is the accountant's waiting item and asks nobody, so no finding and no loop. Without it, the old rule.
+  if v_no_statement then
+    perform pg_temp.zz_assert(not pg_temp.zz_open('acct:bank_balance:bank_balance:' || to_char(v_m, 'YYYY-MM'))
+                              and jsonb_array_length(v #> '{findings,waiting}') = 1,
+      'cash: a missing Mashreq balance raised a finding although ruling 1559 holds it as waiting');
+    h := null;
+  else
+    perform pg_temp.zz_assert(pg_temp.zz_open('acct:bank_balance:bank_balance:' || to_char(v_m, 'YYYY-MM')), 'cash: a closed month with no Mashreq balance raised no finding');
+    h := pg_temp.zz_loop_opens('acct:bank_balance:bank_balance:' || to_char(v_m, 'YYYY-MM'), 'accountant');
+  end if;
   insert into public.bank_statement_intake (source_ref, account, statement_month, state, lines) values ('zz_probe_mashreq_balance', 'mashreq', v_m, 'parsed', 0);
   perform public.fn_accountant_bank_balance_record('zz_probe_mashreq_balance', 12000, (v_m + interval '1 month')::date - 1);
   perform public.fn_accountant_bank_balance_tick();
-  perform pg_temp.zz_loop_closes('acct:bank_balance:bank_balance:' || to_char(v_m, 'YYYY-MM'), h);
+  if not v_no_statement then
+    perform pg_temp.zz_loop_closes('acct:bank_balance:bank_balance:' || to_char(v_m, 'YYYY-MM'), h);
+  end if;
   v := public.fn_accountant_cash_position(v_m, 1000);
   perform pg_temp.zz_assert((v#>>'{cash_in_bank,aed}')::numeric = 12000 and (v#>>'{runway,months}') is not null,
     'cash: the recorded balance gave no cash figure or no runway: ' || v::text);
