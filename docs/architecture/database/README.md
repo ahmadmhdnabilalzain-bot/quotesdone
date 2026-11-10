@@ -16,7 +16,7 @@ override list in the areas file), so a routine is found by its subject even thou
 | [Messaging, outbox and WhatsApp](messaging.md) | 127 | 48 | 1 | 2 | 20 |
 | [Suppliers and registration](suppliers-registration.md) | 257 | 77 | 10 | 18 | 9 |
 | [Customers and inquiries](customers-inquiries.md) | 192 | 87 | 11 | 17 | 17 |
-| [Accounting](accounting.md) | 175 | 50 | 19 | 10 | 1 |
+| [Accounting](accounting.md) | 175 | 51 | 19 | 10 | 1 |
 | [Marketing](marketing.md) | 173 | 75 | 4 | 9 | 7 |
 | [Knowledge](knowledge.md) | 127 | 69 | 8 | 2 | 3 |
 | [IT, operations and monitoring](it-ops-monitoring.md) | 370 | 116 | 16 | 21 | 6 |
@@ -45,7 +45,3 @@ taken); they are not listed here.
 
 Matching itself is mostly not SQL: the supplier choice runs in `supabase/functions/customer_api/lib/matching.ts`, which
 is why the Matching area holds few routines.
-
-## UNMAPPED
-
-- `break_even_basis`
