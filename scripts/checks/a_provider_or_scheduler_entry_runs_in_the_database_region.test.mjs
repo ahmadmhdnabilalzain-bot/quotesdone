@@ -28,3 +28,7 @@ function pinned(file, slug) {
 test('the Vercel cron calls resilience_ping in the database region (it drains the outbox and the WhatsApp queue)', () => {
   pinned('src/app/api/resilience-ping/route.ts', 'resilience_ping');
 });
+
+test('a licence sent on WhatsApp is read in the database region (the supplier waits on that reply)', () => {
+  pinned('supabase/functions/wa_inbound/media.ts', 'license_extract');
+});
