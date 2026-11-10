@@ -28,8 +28,8 @@
       "topic": "Toys wholesale: makes, brands, distributors and origins in the UAE",
       "topic_ar": "جملة ألعاب أطفال: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the toy retailers and major toy brands in the UAE, such as Toys\"R\"Us, Hamleys, LEGO and Mattel, and where toy wholesale is concentrated. Confirmed retailers and major toy brands: Al-Futtaim (Toys\"R\"Us), Hamleys, Babyshop (Landmark Group), LEGO, Mattel, Hasbro, Spin Master, VTech, Playmobil. The brands' UAE distributors were not checked. Wholesale is concentrated in Deira (Al Ras, Murshid Bazaar), Dragon Mart and Sharjah, with heavy re-export.",
-      "body_ar": "من متاجر الألعاب والعلامات الكبرى في الإمارات Toys\"R\"Us وHamleys وLEGO وMattel، مع بيان المناطق التي تتركز فيها تجارة الألعاب بالجملة. تجار التجزئة المؤكدون وكبرى علامات الألعاب: Al-Futtaim (Toys\"R\"Us)، Hamleys، Babyshop (Landmark Group)، LEGO، Mattel، Hasbro، Spin Master، VTech، Playmobil. ولم يُتحقق من موزعي العلامات في الإمارات. وتتركز تجارة الجملة في ديرة (الراس، وسوق المرشد) ودراغون مارت والشارقة، مع إعادة تصدير كبيرة.",
+      "body_en": "This entry lists the toy retailers and major toy brands in the UAE, such as Toys\"R\"Us, Hamleys, LEGO and Mattel, and where toy wholesale is concentrated. Confirmed retailers and major toy brands: Al-Futtaim (Toys\"R\"Us), Hamleys, Babyshop (Landmark Group), LEGO, Mattel, Hasbro, Spin Master, VTech, Playmobil. The brands' UAE distributors were not checked. Wholesale is concentrated in Deira (Al Ras, Murshid Bazaar), Dragon Mart and Sharjah, with heavy re-export.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Al-Futtaim (Toys\"R\"Us) = a UAE trading or retail name; Hamleys = a British trading name; Babyshop (Landmark Group) = a UAE trading or retail name; LEGO = a premium Danish brand; Mattel = a mid-tier American brand; Hasbro = a mid-tier American brand; Spin Master = a mid-tier Canadian brand; VTech = a mid-tier Hong Kong brand; Playmobil = a premium German brand.",
+      "body_ar": "من متاجر الألعاب والعلامات الكبرى في الإمارات Toys\"R\"Us وHamleys وLEGO وMattel، مع بيان المناطق التي تتركز فيها تجارة الألعاب بالجملة. تجار التجزئة المؤكدون وكبرى علامات الألعاب: Al-Futtaim (Toys\"R\"Us)، Hamleys، Babyshop (Landmark Group)، LEGO، Mattel، Hasbro، Spin Master، VTech، Playmobil. ولم يُتحقق من موزعي العلامات في الإمارات. وتتركز تجارة الجملة في ديرة (الراس، وسوق المرشد) ودراغون مارت والشارقة، مع إعادة تصدير كبيرة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Al-Futtaim (Toys\"R\"Us) = اسم تجاري لتاجر أو موزع في الإمارات؛ Hamleys = اسم تجاري بريطانية؛ Babyshop (Landmark Group) = اسم تجاري لتاجر أو موزع في الإمارات؛ LEGO = علامة دنماركية من الفئة الممتازة؛ Mattel = علامة أمريكية من الفئة المتوسطة؛ Hasbro = علامة أمريكية من الفئة المتوسطة؛ Spin Master = علامة كندية من الفئة المتوسطة؛ VTech = علامة من هونغ كونغ من الفئة المتوسطة؛ Playmobil = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://graflo.toys/toy-safety-certifications-uae/",
         "https://www.alfuttaim.com/our-brands/toys-r-us/",
@@ -40,7 +40,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Toys must carry ECAS conformity from an MoIAT notified body; tests cover mechanical, chemical, flammability and electrical safety (ISO 8124, EN 71) -> confirmed | Al-Futtaim operates Toys\"R\"Us in the UAE (since 1995); Hamleys is at Dubai Mall; Babyshop is a Landmark Group brand -> confirmed | Hamleys franchise partner -> removed: operator not confirmed. Not checked: Current franchise holders for Toys R Us and Hamleys in the UAE and the latest edition of the toy regulation were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Toys must carry ECAS conformity from an MoIAT notified body; tests cover mechanical, chemical, flammability and electrical safety (ISO 8124, EN 71) -> confirmed | Al-Futtaim operates Toys\"R\"Us in the UAE (since 1995); Hamleys is at Dubai Mall; Babyshop is a Landmark Group brand -> confirmed | Hamleys franchise partner -> removed: operator not confirmed. Not checked: Current franchise holders for Toys R Us and Hamleys in the UAE and the latest edition of the toy regulation were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "Al-Futtaim (Toys\"R\"Us)",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Hamleys",
+          "origin_country": "UK",
+          "tier": "dealer",
+          "generic_en": "a British trading name",
+          "generic_ar": "اسم تجاري بريطانية"
+        },
+        {
+          "brand": "Babyshop (Landmark Group)",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "LEGO",
+          "origin_country": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mattel",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Hasbro",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Spin Master",
+          "origin_country": "Canada",
+          "tier": "mid",
+          "generic_en": "a mid-tier Canadian brand",
+          "generic_ar": "علامة كندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "VTech",
+          "origin_country": "Hong Kong",
+          "tier": "mid",
+          "generic_en": "a mid-tier Hong Kong brand",
+          "generic_ar": "علامة من هونغ كونغ من الفئة المتوسطة"
+        },
+        {
+          "brand": "Playmobil",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "toys_wholesale:uae-market-sizes",

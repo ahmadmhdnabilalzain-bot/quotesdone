@@ -28,8 +28,8 @@
       "topic": "Cosmetics wholesale: makes, brands, distributors and origins in the UAE",
       "topic_ar": "جملة مستحضرات تجميل: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Cosmetics in the UAE are handled by groups and brands such as Chalhoub Group, Sephora Middle East, Faces, Huda Beauty, L'Oréal and Nivea, with wholesale traders in Deira, Karama and Dragon Mart. Confirmed regional distributor and retail concepts, and multinational brand owners: Chalhoub Group, Sephora Middle East, Faces, Huda Beauty, L'Oréal, Estée Lauder, Unilever, P&G, Beiersdorf (Nivea). The multinationals' UAE distributor appointments were not checked. Wholesale traders cluster in Deira (Al Ras, Naif), Karama and Dragon Mart, and private-label makers operate in Sharjah, Ajman, RAK and Jebel Ali.",
-      "body_ar": "تتولى مستحضرات التجميل في الإمارات مجموعات وعلامات مثل مجموعة شلهوب وسيفورا الشرق الأوسط وفيسز وهدى بيوتي ولوريال ونيفيا، ويتواجد تجار الجملة في ديرة والكرامة ودراغون مارت. الموزع الإقليمي ومفاهيم التجزئة المؤكدة، والشركات متعددة الجنسيات المالكة للعلامات: Chalhoub Group، Sephora Middle East، Faces، Huda Beauty، L'Oréal، Estée Lauder، Unilever، P&G، Beiersdorf (Nivea). ولم يُتحقق من تعيينات موزعي الشركات متعددة الجنسيات في الإمارات. ويتجمع تجار الجملة في ديرة (الراس، نايف) والكرامة ودراغون مارت، ويعمل مصنعو العلامات الخاصة في الشارقة وعجمان ورأس الخيمة وجبل علي.",
+      "body_en": "Cosmetics in the UAE are handled by groups and brands such as Chalhoub Group, Sephora Middle East, Faces, Huda Beauty, L'Oréal and Nivea, with wholesale traders in Deira, Karama and Dragon Mart. Confirmed regional distributor and retail concepts, and multinational brand owners: Chalhoub Group, Sephora Middle East, Faces, Huda Beauty, L'Oréal, Estée Lauder, Unilever, P&G, Beiersdorf (Nivea). The multinationals' UAE distributor appointments were not checked. Wholesale traders cluster in Deira (Al Ras, Naif), Karama and Dragon Mart, and private-label makers operate in Sharjah, Ajman, RAK and Jebel Ali.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Chalhoub Group = a UAE trading or retail name; Sephora Middle East = a UAE trading or retail name; Faces = a UAE trading or retail name; Huda Beauty = a premium UAE brand; L'Oréal = a premium French brand; Estée Lauder = a luxury American brand; Unilever = a mid-tier British brand; P&G = a mid-tier American brand; Beiersdorf (Nivea) = a mid-tier German brand.",
+      "body_ar": "تتولى مستحضرات التجميل في الإمارات مجموعات وعلامات مثل مجموعة شلهوب وسيفورا الشرق الأوسط وفيسز وهدى بيوتي ولوريال ونيفيا، ويتواجد تجار الجملة في ديرة والكرامة ودراغون مارت. الموزع الإقليمي ومفاهيم التجزئة المؤكدة، والشركات متعددة الجنسيات المالكة للعلامات: Chalhoub Group، Sephora Middle East، Faces، Huda Beauty، L'Oréal، Estée Lauder، Unilever، P&G، Beiersdorf (Nivea). ولم يُتحقق من تعيينات موزعي الشركات متعددة الجنسيات في الإمارات. ويتجمع تجار الجملة في ديرة (الراس، نايف) والكرامة ودراغون مارت، ويعمل مصنعو العلامات الخاصة في الشارقة وعجمان ورأس الخيمة وجبل علي.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Chalhoub Group = اسم تجاري لتاجر أو موزع في الإمارات؛ Sephora Middle East = اسم تجاري لتاجر أو موزع في الإمارات؛ Faces = اسم تجاري لتاجر أو موزع في الإمارات؛ Huda Beauty = علامة إماراتية من الفئة الممتازة؛ L'Oréal = علامة فرنسية من الفئة الممتازة؛ Estée Lauder = علامة أمريكية من الفئة الفاخرة؛ Unilever = علامة بريطانية من الفئة المتوسطة؛ P&G = علامة أمريكية من الفئة المتوسطة؛ Beiersdorf (Nivea) = علامة ألمانية من الفئة المتوسطة.",
       "sources": [
         "https://thecorpbridge.com/uae-cosmetic-product-registration-guide/",
         "https://en.wikipedia.org/wiki/Chalhoub_Group",
@@ -40,7 +40,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Cosmetics need Dubai Municipality Montaji registration and a federal ECAS certificate of conformity from an MoIAT notified body -> confirmed | Chalhoub Group is the region's largest luxury and beauty distributor and runs Sephora Middle East (JV) and Faces; Huda Beauty was founded in Dubai -> confirmed | Al Tayer, Boots, Watsons as cosmetics channels -> removed: not checked. Not checked: Current distributor for each named brand, exact regulation number of the UAE cosmetics technical regulation, and registration fees were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Cosmetics need Dubai Municipality Montaji registration and a federal ECAS certificate of conformity from an MoIAT notified body -> confirmed | Chalhoub Group is the region's largest luxury and beauty distributor and runs Sephora Middle East (JV) and Faces; Huda Beauty was founded in Dubai -> confirmed | Al Tayer, Boots, Watsons as cosmetics channels -> removed: not checked. Not checked: Current distributor for each named brand, exact regulation number of the UAE cosmetics technical regulation, and registration fees were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "Chalhoub Group",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Sephora Middle East",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Faces",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Huda Beauty",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "L'Oréal",
+          "origin_country": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Estée Lauder",
+          "origin_country": "USA",
+          "tier": "luxury",
+          "generic_en": "a luxury American brand",
+          "generic_ar": "علامة أمريكية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Unilever",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "P&G",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Beiersdorf (Nivea)",
+          "origin_country": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "cosmetics_wholesale:uae-market-sizes",

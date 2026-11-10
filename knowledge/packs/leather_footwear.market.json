@@ -28,8 +28,8 @@
       "topic": "Leather Goods & Footwear: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المنتجات الجلدية والأحذية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names retail groups and footwear brands sold in the UAE, such as Apparel Group, Landmark Group, Bata, Skechers and Caterpillar, and where wholesale traders cluster. Confirmed retail groups and brands sold: Apparel Group, Landmark Group (Shoemart), Bata, Clarks, Skechers, ALDO, Nike, Adidas, Puma, Caterpillar, Safety Jogger, Uvex. Apart from Skechers and ALDO (Apparel Group), the brands' UAE distributors were not checked. Wholesale and components traders cluster in Deira (Murshid Bazaar, Naif), Sharjah and Dragon Mart.",
-      "body_ar": "من مجموعات التجزئة وماركات الأحذية المباعة في الإمارات Apparel Group وLandmark Group وBata وSkechers وCaterpillar، مع بيان أماكن تجمع تجار الجملة. مجموعات التجزئة والماركات المؤكدة: Apparel Group، وLandmark Group (Shoemart)، وBata، وClarks، وSkechers، وALDO، وNike، وAdidas، وPuma، وCaterpillar، وSafety Jogger، وUvex. وباستثناء Skechers وALDO (لدى Apparel Group) لم نتحقق من موزعي الماركات في الإمارات. ويتجمع تجار الجملة والمستلزمات في ديرة (سوق المرشد ونايف) والشارقة ودراغون مارت.",
+      "body_en": "This entry names retail groups and footwear brands sold in the UAE, such as Apparel Group, Landmark Group, Bata, Skechers and Caterpillar, and where wholesale traders cluster. Confirmed retail groups and brands sold: Apparel Group, Landmark Group (Shoemart), Bata, Clarks, Skechers, ALDO, Nike, Adidas, Puma, Caterpillar, Safety Jogger, Uvex. Apart from Skechers and ALDO (Apparel Group), the brands' UAE distributors were not checked. Wholesale and components traders cluster in Deira (Murshid Bazaar, Naif), Sharjah and Dragon Mart.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Apparel Group = a UAE trading or retail name; Landmark Group (Shoemart) = a UAE trading or retail name; Bata = an economy Swiss brand; Clarks = a mid-tier British brand; Skechers = a mid-tier American brand; ALDO = a mid-tier Canadian brand; Nike = a premium American brand; Adidas = a premium German brand; Puma = a mid-tier German brand; Caterpillar = a mid-tier American brand; Safety Jogger = a mid-tier Belgian brand; Uvex = a premium German brand.",
+      "body_ar": "من مجموعات التجزئة وماركات الأحذية المباعة في الإمارات Apparel Group وLandmark Group وBata وSkechers وCaterpillar، مع بيان أماكن تجمع تجار الجملة. مجموعات التجزئة والماركات المؤكدة: Apparel Group، وLandmark Group (Shoemart)، وBata، وClarks، وSkechers، وALDO، وNike، وAdidas، وPuma، وCaterpillar، وSafety Jogger، وUvex. وباستثناء Skechers وALDO (لدى Apparel Group) لم نتحقق من موزعي الماركات في الإمارات. ويتجمع تجار الجملة والمستلزمات في ديرة (سوق المرشد ونايف) والشارقة ودراغون مارت.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Apparel Group = اسم تجاري لتاجر أو موزع في الإمارات؛ Landmark Group (Shoemart) = اسم تجاري لتاجر أو موزع في الإمارات؛ Bata = علامة سويسرية من الفئة الاقتصادية؛ Clarks = علامة بريطانية من الفئة المتوسطة؛ Skechers = علامة أمريكية من الفئة المتوسطة؛ ALDO = علامة كندية من الفئة المتوسطة؛ Nike = علامة أمريكية من الفئة الممتازة؛ Adidas = علامة ألمانية من الفئة الممتازة؛ Puma = علامة ألمانية من الفئة المتوسطة؛ Caterpillar = علامة أمريكية من الفئة المتوسطة؛ Safety Jogger = علامة بلجيكية من الفئة المتوسطة؛ Uvex = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://www.sirsafety.com/en-iso-20345",
         "https://www.apparelgroup.com/en/about-us/",
@@ -40,7 +40,93 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20345 classes: S1P adds puncture resistance to S1; S3 adds water-repellent upper, puncture resistance and cleated sole -> confirmed | Apparel Group runs Skechers and ALDO in the UAE; Shoemart (Landmark Group) is the region's largest footwear retailer -> confirmed | Al Futtaim and Chalhoub as footwear distributors -> removed: not checked for footwear. Not checked: Whether a specific UAE technical regulation on restricted substances in footwear is currently mandatory, and distributor assignments per brand, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20345 classes: S1P adds puncture resistance to S1; S3 adds water-repellent upper, puncture resistance and cleated sole -> confirmed | Apparel Group runs Skechers and ALDO in the UAE; Shoemart (Landmark Group) is the region's largest footwear retailer -> confirmed | Al Futtaim and Chalhoub as footwear distributors -> removed: not checked for footwear. Not checked: Whether a specific UAE technical regulation on restricted substances in footwear is currently mandatory, and distributor assignments per brand, were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "Apparel Group",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Landmark Group (Shoemart)",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Bata",
+          "origin_country": "Switzerland",
+          "tier": "economy",
+          "generic_en": "an economy Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Clarks",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Skechers",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "ALDO",
+          "origin_country": "Canada",
+          "tier": "mid",
+          "generic_en": "a mid-tier Canadian brand",
+          "generic_ar": "علامة كندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Nike",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Adidas",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Puma",
+          "origin_country": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Caterpillar",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Safety Jogger",
+          "origin_country": "Belgium",
+          "tier": "mid",
+          "generic_en": "a mid-tier Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Uvex",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "leather_footwear:uae-market-sizes",

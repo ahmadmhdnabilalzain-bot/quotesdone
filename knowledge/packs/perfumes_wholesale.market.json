@@ -28,8 +28,8 @@
       "topic": "Perfumes & oud wholesale: makes, brands, distributors and origins in the UAE",
       "topic_ar": "جملة عطور وعود: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the UAE perfume houses, such as Ajmal, Rasasi, Swiss Arabian and Lattafa, the distributor Chalhoub Group, the fragrance oil houses, and where wholesale trade clusters. Confirmed UAE perfume houses, the regional designer-fragrance distributor, and fragrance oil houses: Ajmal, Rasasi, Swiss Arabian, Lattafa (Sharjah), Chalhoub Group, Givaudan, dsm-firmenich, IFF, Symrise. Other regional houses and the oil houses' UAE agents were not checked. Wholesale trade clusters in Deira (Al Ras, Naif), Sharjah and Ajman.",
-      "body_ar": "من دور العطور الإماراتية أجمل والرصاصي والعربية السويسرية ولطافة، ومن الموزعين مجموعة شلهوب، إضافة إلى دور الزيوت العطرية وأماكن تجمع تجارة الجملة. دور العطور المؤكدة في الإمارات، والموزع الإقليمي لعطور المصممين، ودور الزيوت العطرية: Ajmal، Rasasi، Swiss Arabian، Lattafa (Sharjah)، Chalhoub Group، Givaudan، dsm-firmenich، IFF، Symrise. ولم يُتحقق من الدور الإقليمية الأخرى ولا من وكلاء دور الزيوت في الإمارات. وتتجمع تجارة الجملة في ديرة (الراس، ونايف) والشارقة وعجمان.",
+      "body_en": "This lists the UAE perfume houses, such as Ajmal, Rasasi, Swiss Arabian and Lattafa, the distributor Chalhoub Group, the fragrance oil houses, and where wholesale trade clusters. Confirmed UAE perfume houses, the regional designer-fragrance distributor, and fragrance oil houses: Ajmal, Rasasi, Swiss Arabian, Lattafa (Sharjah), Chalhoub Group, Givaudan, dsm-firmenich, IFF, Symrise. Other regional houses and the oil houses' UAE agents were not checked. Wholesale trade clusters in Deira (Al Ras, Naif), Sharjah and Ajman.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Ajmal = a premium UAE brand; Rasasi = a mid-tier UAE brand; Swiss Arabian = a mid-tier UAE brand; Lattafa = an economy UAE brand; Chalhoub Group = a UAE trading or retail name; Givaudan = a premium Swiss brand; dsm-firmenich = a premium Swiss brand; IFF = a premium American brand; Symrise = a premium German brand.",
+      "body_ar": "من دور العطور الإماراتية أجمل والرصاصي والعربية السويسرية ولطافة، ومن الموزعين مجموعة شلهوب، إضافة إلى دور الزيوت العطرية وأماكن تجمع تجارة الجملة. دور العطور المؤكدة في الإمارات، والموزع الإقليمي لعطور المصممين، ودور الزيوت العطرية: Ajmal، Rasasi، Swiss Arabian، Lattafa (Sharjah)، Chalhoub Group، Givaudan، dsm-firmenich، IFF، Symrise. ولم يُتحقق من الدور الإقليمية الأخرى ولا من وكلاء دور الزيوت في الإمارات. وتتجمع تجارة الجملة في ديرة (الراس، ونايف) والشارقة وعجمان.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Ajmal = علامة إماراتية من الفئة الممتازة؛ Rasasi = علامة إماراتية من الفئة المتوسطة؛ Swiss Arabian = علامة إماراتية من الفئة المتوسطة؛ Lattafa = علامة إماراتية من الفئة الاقتصادية؛ Chalhoub Group = اسم تجاري لتاجر أو موزع في الإمارات؛ Givaudan = علامة سويسرية من الفئة الممتازة؛ dsm-firmenich = علامة سويسرية من الفئة الممتازة؛ IFF = علامة أمريكية من الفئة الممتازة؛ Symrise = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU117-FP2_Technical-Guidelines-for-Fragrance-Products_V2.0.pdf",
         "https://www.6wresearch.com/market-takeaways-view/top-perfume-companies-in-dubai",
@@ -40,7 +40,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Perfumes must be registered with Dubai Municipality via Montaji and carry an IFRA certificate; MoIAT handles ECAS conformity -> confirmed | Ajmal, Rasasi and Swiss Arabian are Dubai-based perfume houses; Lattafa is in Sharjah -> confirmed: Lattafa corrected to Sharjah | A tola is 11.66 g and is sold as about 12 ml -> confirmed. Not checked: Tola conversion varies slightly by trader; official distributor status for designer brands and current registration fees were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Perfumes must be registered with Dubai Municipality via Montaji and carry an IFRA certificate; MoIAT handles ECAS conformity -> confirmed | Ajmal, Rasasi and Swiss Arabian are Dubai-based perfume houses; Lattafa is in Sharjah -> confirmed: Lattafa corrected to Sharjah | A tola is 11.66 g and is sold as about 12 ml -> confirmed. Not checked: Tola conversion varies slightly by trader; official distributor status for designer brands and current registration fees were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "Ajmal",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Rasasi",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Swiss Arabian",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Lattafa",
+          "origin_country": "UAE",
+          "tier": "economy",
+          "generic_en": "an economy UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Chalhoub Group",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Givaudan",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "dsm-firmenich",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "IFF",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Symrise",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "perfumes_wholesale:uae-market-sizes",

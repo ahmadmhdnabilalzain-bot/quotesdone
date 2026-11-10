@@ -5,8 +5,8 @@
       "id": "jewellery_supplies:spec-checklist",
       "topic": "Jewellery supplies - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For jewellery supplies (trade code jewellery_supplies only), every quoted line must state: Item and material; Metal purity or karat; Weight and dimensions; Stone type, size and grade; Hallmark or assay certificate; Packing and security; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط مستلزمات المجوهرات (رمز النشاط jewellery_supplies فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الصنف ومادته؛ نقاء المعدن أو العيار؛ الوزن والأبعاد؛ نوع الحجر وحجمه ودرجته؛ الدمغة أو شهادة الفحص؛ التغليف والتأمين؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For jewellery supplies (trade code jewellery_supplies only), every quoted line must state: Item and material; Metal purity or karat; Weight and dimensions; Stone type, size and grade; Hallmark or assay certificate; Packing and security; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item and material; Metal purity or karat; Weight and dimensions; Stone type, size and grade; Hallmark or assay certificate; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Weight and dimensions: Ask whether price is metal at fixing plus making charge; Stone type, size and grade: Lab-grown vs natural must be stated. Before a firm price: gold and silver are priced against the metal rate at the time of fixing plus a making charge, so a firm price needs purity, weight and the fixing method; stones need grading reports, and a new design needs a sample.",
+      "body_ar": "في نشاط مستلزمات المجوهرات (رمز النشاط jewellery_supplies فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الصنف ومادته؛ نقاء المعدن أو العيار؛ الوزن والأبعاد؛ نوع الحجر وحجمه ودرجته؛ الدمغة أو شهادة الفحص؛ التغليف والتأمين؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الصنف والمعدن، والعيار، والوزن، ونوع الحجر ودرجته، والدمغة أو شهادة الفحص، والكمية، وشروط التسليم والتأمين. أسئلة المتابعة: يُسأل هل السعر سعر المعدن عند التثبيت مضافاً إليه أجرة المصنعية، ويجب التصريح بالحجر المصنّع مخبرياً أو الطبيعي. يُسعّر الذهب والفضة على سعر المعدن وقت التثبيت مع أجرة المصنعية، والأحجار تحتاج تقارير تصنيف، والتصميم الجديد يحتاج عيّنة.",
       "required_specs": [
         "Item and material",
         "Metal purity or karat",
@@ -26,7 +26,110 @@
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Item and material",
+        "Metal purity or karat",
+        "Weight and dimensions",
+        "Stone type, size and grade",
+        "Hallmark or assay certificate",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Item and material",
+          "blocking": true,
+          "why_it_prices": "The item and metal define the product.",
+          "uae_options": "ring; chain; bangle; bar; findings; watch parts; tools",
+          "follow_up": ""
+        },
+        {
+          "spec": "Metal purity or karat",
+          "blocking": true,
+          "why_it_prices": "Purity sets the metal value.",
+          "uae_options": "18K, 21K, 22K, 24K gold; 925 silver; platinum 950",
+          "follow_up": ""
+        },
+        {
+          "spec": "Weight and dimensions",
+          "blocking": true,
+          "why_it_prices": "Weight is the basis of gold pricing (metal plus making charge).",
+          "uae_options": "grams; dimensions",
+          "follow_up": "Ask whether price is metal at fixing plus making charge."
+        },
+        {
+          "spec": "Stone type, size and grade",
+          "blocking": true,
+          "why_it_prices": "Stone type and grade drive price.",
+          "uae_options": "diamond 4Cs; coloured stones; lab-grown or natural",
+          "follow_up": "Lab-grown vs natural must be stated."
+        },
+        {
+          "spec": "Hallmark or assay certificate",
+          "blocking": true,
+          "why_it_prices": "Hallmark or assay is required for sale.",
+          "uae_options": "UAE hallmark or recognised foreign hallmark; grading report (GIA, IGI)",
+          "follow_up": ""
+        },
+        {
+          "spec": "Packing and security",
+          "blocking": false,
+          "why_it_prices": "Secure packing and insured transport.",
+          "uae_options": "insured courier",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Quantity.",
+          "uae_options": "pieces; grams",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "Test reports.",
+          "uae_options": "assay; grading",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "Dealer registration and AML.",
+          "uae_options": "Ministry of Economy AML registration",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivery terms and insurance.",
+          "uae_options": "DMCC vault; hand delivery",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "Defect policy.",
+          "uae_options": "terms",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "Lead time.",
+          "uae_options": "stock; making",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "VAT on gold where applicable; insurance",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "gold and silver are priced against the metal rate at the time of fixing plus a making charge, so a firm price needs purity, weight and the fixing method; stones need grading reports, and a new design needs a sample."
     },
     {
       "id": "jewellery_supplies:uae-standards-and-approvals",
@@ -83,6 +186,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "jewellery_supplies:authority-approvals",
+      "topic": "Jewellery & watch trade supplies: licences, permits and approvals by emirate",
+      "topic_ar": "مستلزمات تجارة المجوهرات والساعات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Federal Law No. 11 of 2015 on the control of trade in precious metals and stones prohibits selling wrought articles unless stamped with the official hallmark or a recognised foreign hallmark, and defines accredited hallmarking bodies; the law text names the ministry responsible for standards (now MoIAT). Secondary guides say Dubai Central Laboratory (Dubai Municipality) hallmarks gold sold in Dubai, though sources conflict on the day-to-day body. Dealers in precious metals and stones are designated non-financial businesses that must register with the Ministry of Economy for anti-money-laundering supervision. DMCC licenses many bullion and diamond traders in its free zone. The seller obtains hallmarks and registrations; a buyer should ask for the hallmark and, for diamonds, an independent grading report.",
+      "body_ar": "يحظر القانون الاتحادي رقم 11 لسنة 2015 في شأن تنظيم الرقابة على تجارة المعادن الثمينة والأحجار ذات القيمة بيع المشغولات ما لم تكن مدموغة بالدمغة الرسمية أو بدمغة أجنبية معترف بها، ويعرّف جهات الدمغ المعتمدة، ويسمي نص القانون الوزارة المختصة بالمواصفات (وهي الآن وزارة الصناعة والتكنولوجيا المتقدمة). وتذكر أدلة ثانوية أن مختبر دبي المركزي (بلدية دبي) يدمغ الذهب المبيع في دبي، مع تضارب المصادر بشأن الجهة اليومية. وتجار المعادن الثمينة والأحجار أعمال غير مالية محددة يجب تسجيلها لدى وزارة الاقتصاد للرقابة على مكافحة غسل الأموال. ويرخّص مركز دبي للسلع المتعددة كثيراً من تجار السبائك والألماس في منطقته الحرة. ويستخرج البائع الدمغة والتسجيلات، وينبغي للمشتري طلب الدمغة، وللألماس تقرير تصنيف مستقل.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/1055/download",
+        "https://gulfnews.com/business/retail/buying-gold-in-the-uae-heres-what-hallmarking-rules-mean-for-shoppers-1.500210288",
+        "https://uaecabinet.ae/en/news/sheikh-khalifa-issues-federal-law-on-precious-metals-and-stones-trade"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "jewellery_supplies:quote-red-flags",
+      "topic": "Jewellery & watch trade supplies: red flags in supplier quotations",
+      "topic_ar": "مستلزمات تجارة المجوهرات والساعات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a lower karat than stated, weight including stones in a gold price, making charge hidden in a \"per gram\" rate, lab-grown diamonds not disclosed, grading reports from unrecognised labs, no hallmark, and price not tied to a stated fixing time.",
+      "body_ar": "انتبه إلى عيار أقل من المذكور، وإدراج وزن الأحجار ضمن سعر الذهب، وإخفاء أجرة المصنعية في سعر \"للغرام\"، وعدم الإفصاح عن الألماس المصنّع مخبرياً، وتقارير تصنيف من مختبرات غير معترف بها، وغياب الدمغة، وسعر غير مرتبط بوقت تثبيت محدد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "jewellery_supplies:buyer-mistakes",
+      "topic": "Jewellery & watch trade supplies: common buyer mistakes",
+      "topic_ar": "مستلزمات تجارة المجوهرات والساعات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers compare per-gram prices without separating metal and making charges, accept stones without independent grading, and do not fix the metal price before production.",
+      "body_ar": "يقارن المشترون أسعار الغرام دون فصل المعدن عن المصنعية، ويقبلون الأحجار دون تصنيف مستقل، ولا يثبتون سعر المعدن قبل الإنتاج.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "jewellery_supplies:price-drivers",
+      "topic": "Jewellery & watch trade supplies: what makes prices differ legitimately",
+      "topic_ar": "مستلزمات تجارة المجوهرات والساعات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: metal price at fixing, purity, making charge (design complexity, handmade versus machine), stone quality, brand, hallmarking and certification, insurance and security.",
+      "body_ar": "العوامل: سعر المعدن عند التثبيت، والعيار، وأجرة المصنعية (تعقيد التصميم والصنع اليدوي أو الآلي)، وجودة الأحجار، والعلامة، والدمغ والشهادات، والتأمين والأمن.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "jewellery_supplies:compare-quotes-cost-to-value",
+      "topic": "Jewellery & watch trade supplies: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "مستلزمات تجارة المجوهرات والساعات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare on the same purity and net metal weight at the same fixing time, then compare making charges and stone grades from independent reports. Recommend three hallmarked offers with the lowest making charge for the same quality.",
+      "body_ar": "قارن على العيار نفسه ووزن المعدن الصافي عند وقت التثبيت نفسه، ثم قارن أجرة المصنعية ودرجات الأحجار من تقارير مستقلة. أوصِ بثلاثة عروض مدموغة بأقل مصنعية للجودة نفسها.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -124,7 +296,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "jewellery_supplies:spec-checklist"
+      "jewellery_supplies:spec-checklist",
+      "jewellery_supplies:authority-approvals"
     ],
     "added": [
       "jewellery_supplies:spec-checklist",
@@ -155,6 +328,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "jewellery_supplies:quote-red-flags",
+      "jewellery_supplies:buyer-mistakes",
+      "jewellery_supplies:price-drivers",
+      "jewellery_supplies:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

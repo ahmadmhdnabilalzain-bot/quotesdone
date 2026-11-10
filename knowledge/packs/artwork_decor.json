@@ -6,8 +6,8 @@
       "topic": "Artwork, framing & decor - what the buyer must state",
       "topic_ar": "الأعمال الفنية والبراويز والديكور: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For artwork, framing & decor (trade code artwork_decor only), every quoted line must state: Artwork type (original, print, commissioned); Size; Medium and substrate; Framing: moulding, mat and glazing; Mounting and hanging method; Quantity; Edition and certificate for prints; Installation; Packaging and delivery; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الأعمال الفنية والبراويز والديكور (رمز النشاط artwork_decor فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع العمل الفني (أصلي، مطبوع، حسب الطلب)؛ المقاس؛ الوسيط والسطح؛ البرواز: الإطار والحافة والزجاج؛ طريقة التثبيت والتعليق؛ الكمية؛ الإصدار والشهادة للمطبوعات؛ التركيب؛ التغليف والتسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For artwork, framing & decor (trade code artwork_decor only), every quoted line must state: Artwork type (original, print, commissioned); Size; Medium and substrate; Framing: moulding, mat and glazing; Mounting and hanging method; Quantity; Edition and certificate for prints; Installation; Packaging and delivery; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Artwork type (original, print, commissioned); Size; Medium and substrate; Framing: moulding, mat and glazing; Quantity. Follow-up questions the answers trigger: Artwork type (original, print, commissioned): Commission: ask the brief and budget. Before a firm price: prints and framing can be priced from size and materials; a commissioned piece needs a brief, and usually a concept or sketch approval, before a firm price.",
+      "body_ar": "في نشاط الأعمال الفنية والبراويز والديكور (رمز النشاط artwork_decor فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع العمل الفني (أصلي، مطبوع، حسب الطلب)؛ المقاس؛ الوسيط والسطح؛ البرواز: الإطار والحافة والزجاج؛ طريقة التثبيت والتعليق؛ الكمية؛ الإصدار والشهادة للمطبوعات؛ التركيب؛ التغليف والتسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العمل الفني، والمقاس، والوسيط والسطح، ومواد التأطير، والكمية. القطع المطبوعة والتأطير تُسعّر من المقاس والمواد، أما العمل المفوَّض فيحتاج موجزاً وغالباً اعتماد فكرة أو رسم أولي قبل السعر النهائي.",
       "required_specs": [
         "Artwork type (original, print, commissioned)",
         "Size",
@@ -26,7 +26,87 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: glazing with a UV filter; mats and backing boards protect artwork."
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: glazing with a UV filter; mats and backing boards protect artwork.",
+      "blocking": [
+        "Artwork type (original, print, commissioned)",
+        "Size",
+        "Medium and substrate",
+        "Framing: moulding, mat and glazing",
+        "Quantity"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Artwork type (original, print, commissioned)",
+          "blocking": true,
+          "why_it_prices": "Original, print and commission are priced on different bases.",
+          "uae_options": "original; limited print; open print; commission",
+          "follow_up": "Commission: ask the brief and budget."
+        },
+        {
+          "spec": "Size",
+          "blocking": true,
+          "why_it_prices": "Size drives price.",
+          "uae_options": "cm",
+          "follow_up": ""
+        },
+        {
+          "spec": "Medium and substrate",
+          "blocking": true,
+          "why_it_prices": "Medium and substrate.",
+          "uae_options": "canvas; paper; metal; acrylic",
+          "follow_up": ""
+        },
+        {
+          "spec": "Framing: moulding, mat and glazing",
+          "blocking": true,
+          "why_it_prices": "Framing materials are a large share.",
+          "uae_options": "moulding; mat; glass or acrylic; museum glass",
+          "follow_up": ""
+        },
+        {
+          "spec": "Mounting and hanging method",
+          "blocking": false,
+          "why_it_prices": "Hanging system.",
+          "uae_options": "cleats; wire; security fixings",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity",
+          "blocking": true,
+          "why_it_prices": "Quantity.",
+          "uae_options": "pieces",
+          "follow_up": ""
+        },
+        {
+          "spec": "Edition and certificate for prints",
+          "blocking": false,
+          "why_it_prices": "Edition and certificate for prints.",
+          "uae_options": "edition number; certificate",
+          "follow_up": ""
+        },
+        {
+          "spec": "Installation",
+          "blocking": false,
+          "why_it_prices": "Installation.",
+          "uae_options": "install; height plan",
+          "follow_up": ""
+        },
+        {
+          "spec": "Packaging and delivery",
+          "blocking": false,
+          "why_it_prices": "Packaging and delivery.",
+          "uae_options": "crate; delivery",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "Lead time.",
+          "uae_options": "stock; commission time",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "prints and framing can be priced from size and materials; a commissioned piece needs a brief, and usually a concept or sketch approval, before a firm price."
     },
     {
       "id": "artwork_decor:product-distinctions",
@@ -57,6 +137,73 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "artwork_decor:authority-approvals",
+      "topic": "Artwork, framing & decor: licences, permits and approvals by emirate",
+      "topic_ar": "الأعمال الفنية والتأطير والديكور: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Artwork and decor need no UAE product approval. Printed or published images with content are media content within the UAE Media Council's remit, and imported artworks clear customs. Works placed in public spaces may need the approval of the owner or the cultural authority of the emirate; this was not verified in this session. Framing glass and decorative items in commercial buildings follow fit-out and fire rules.",
+      "body_ar": "لا تحتاج الأعمال الفنية والديكور إلى اعتماد منتج في الإمارات. والصور المطبوعة أو المنشورة ذات المحتوى تقع ضمن اختصاص مجلس الإمارات للإعلام، والأعمال المستوردة تمر بالتخليص الجمركي. وقد تحتاج الأعمال الموضوعة في الأماكن العامة إلى موافقة المالك أو الجهة الثقافية في الإمارة، ولم يُتحقق من ذلك في هذه الجلسة. ويتبع زجاج التأطير والقطع الزخرفية في المباني التجارية قواعد التجهيز والحريق.",
+      "sources": [
+        "https://www.wam.ae/en/article/bkttnkc-uae-media-council-board-reviews-2025-performance"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "artwork_decor:quote-red-flags",
+      "topic": "Artwork, framing & decor: red flags in supplier quotations",
+      "topic_ar": "الأعمال الفنية والتأطير والديكور: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for open prints sold as limited editions, no certificate of authenticity, cheaper moulding or glass, no installation, and reproduction rights not cleared for prints of other artists' work.",
+      "body_ar": "انتبه إلى مطبوعات مفتوحة تُباع كإصدارات محدودة، وغياب شهادة الأصالة، وإطارات أو زجاج أرخص، وعدم شمول التركيب، وعدم تسوية حقوق النسخ لطباعة أعمال فنانين آخرين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "artwork_decor:buyer-mistakes",
+      "topic": "Artwork, framing & decor: common buyer mistakes",
+      "topic_ar": "الأعمال الفنية والتأطير والديكور: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers forget glare and UV protection, choose sizes without the wall plan, and buy prints without reproduction rights.",
+      "body_ar": "ينسى المشترون الحماية من الانعكاس والأشعة، ويختارون المقاسات دون مخطط الجدران، ويشترون مطبوعات دون حقوق النسخ.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "artwork_decor:price-drivers",
+      "topic": "Artwork, framing & decor: what makes prices differ legitimately",
+      "topic_ar": "الأعمال الفنية والتأطير والديكور: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: artist and originality, size, medium, edition size, framing materials, installation and freight.",
+      "body_ar": "العوامل: الفنان والأصالة، والمقاس، والوسيط، وحجم الإصدار، ومواد التأطير، والتركيب، والشحن.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "artwork_decor:compare-quotes-cost-to-value",
+      "topic": "Artwork, framing & decor: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الأعمال الفنية والتأطير والديكور: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same size, medium, edition and framing, installed. Recommend three with clear authenticity and rights.",
+      "body_ar": "قارن المقاس والوسيط والإصدار والتأطير نفسها مع التركيب. أوصِ بثلاثة عروض واضحة الأصالة والحقوق.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -90,6 +237,26 @@
       903,
       1198,
       1209
-    ]
+    ],
+    "still_unverified": [
+      "artwork_decor:authority-approvals"
+    ],
+    "expert_authored_unsourced": [
+      "artwork_decor:quote-red-flags",
+      "artwork_decor:buyer-mistakes",
+      "artwork_decor:price-drivers",
+      "artwork_decor:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    }
   }
 }

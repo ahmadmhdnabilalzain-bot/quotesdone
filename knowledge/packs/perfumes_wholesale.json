@@ -5,8 +5,8 @@
       "id": "perfumes_wholesale:spec-checklist",
       "topic": "Perfumes wholesale - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For perfumes wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) brand, product name and SKU; (2) concentration type (parfum, EDP, EDT, oil); (3) volume per unit in ml; (4) quantity in units and cartons; (5) genuine or inspired/private label; (6) batch number and production/expiry date; (7) Arabic/English labelling and ingredient list; (8) UAE product registration or conformity certificate; (9) packaging (tester, gift set, retail box); (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the perfumes_wholesale trade.",
-      "body_ar": "لكي تُقارن عروض تجارة العطور بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) العلامة التجارية واسم المنتج ورمز الصنف؛ (2) نوع التركيز (عطر، أو دو بارفان، أو دو تواليت، أو زيت)؛ (3) الحجم لكل وحدة بالمليلتر؛ (4) الكمية بالوحدات والكراتين؛ (5) أصلي أو مستوحى أو علامة خاصة؛ (6) رقم الدفعة وتاريخ الإنتاج أو الانتهاء؛ (7) الملصق بالعربية والإنجليزية وقائمة المكونات؛ (8) تسجيل المنتج أو شهادة المطابقة في الإمارات؛ (9) التغليف (عينة اختبار، أو طقم هدايا، أو علبة بيع)؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة perfumes_wholesale فقط.",
+      "body_en": "For perfumes wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) brand, product name and SKU; (2) concentration type (parfum, EDP, EDT, oil); (3) volume per unit in ml; (4) quantity in units and cartons; (5) genuine or inspired/private label; (6) batch number and production/expiry date; (7) Arabic/English labelling and ingredient list; (8) UAE product registration or conformity certificate; (9) packaging (tester, gift set, retail box); (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the perfumes_wholesale trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): brand, product name and SKU; concentration type (parfum, EDP, EDT, oil); volume per unit in ml; quantity in units and cartons; genuine or inspired/private label; batch number and production/expiry date; UAE product registration or conformity certificate; delivery terms and location. Follow-up questions the answers trigger: genuine or inspired/private label: Inspired: ask that no trademark is copied. Before a firm price: stock SKUs can be priced firm from SKU, volume and quantity; private label perfume needs the fragrance sample approved, the bottle and packaging chosen and a MOQ agreed before a firm price.",
+      "body_ar": "لكي تُقارن عروض تجارة العطور بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) العلامة التجارية واسم المنتج ورمز الصنف؛ (2) نوع التركيز (عطر، أو دو بارفان، أو دو تواليت، أو زيت)؛ (3) الحجم لكل وحدة بالمليلتر؛ (4) الكمية بالوحدات والكراتين؛ (5) أصلي أو مستوحى أو علامة خاصة؛ (6) رقم الدفعة وتاريخ الإنتاج أو الانتهاء؛ (7) الملصق بالعربية والإنجليزية وقائمة المكونات؛ (8) تسجيل المنتج أو شهادة المطابقة في الإمارات؛ (9) التغليف (عينة اختبار، أو طقم هدايا، أو علبة بيع)؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة perfumes_wholesale فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: العلامة واسم المنتج ورمزه، ونوع التركيز، والحجم، والكمية، والأصلي أو المستوحى أو العلامة الخاصة، والتشغيلة والتاريخ، والتسجيل أو شهادة المطابقة، والتسليم. أسئلة المتابعة: العطور المستوحاة تستلزم التأكد من عدم نسخ أي علامة تجارية. العلامة الخاصة تحتاج اعتماد عيّنة العطر واختيار الزجاجة والتغليف والاتفاق على الحد الأدنى للطلب قبل السعر النهائي.",
       "required_specs": [
         "brand, product name and SKU",
         "concentration type (parfum, EDP, EDT, oil)",
@@ -27,7 +27,111 @@
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "brand, product name and SKU",
+        "concentration type (parfum, EDP, EDT, oil)",
+        "volume per unit in ml",
+        "quantity in units and cartons",
+        "genuine or inspired/private label",
+        "batch number and production/expiry date",
+        "UAE product registration or conformity certificate",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "brand, product name and SKU",
+          "blocking": true,
+          "why_it_prices": "Each SKU has its own price; designer and Arabian houses differ widely.",
+          "uae_options": "brand; product; SKU; barcode",
+          "follow_up": ""
+        },
+        {
+          "spec": "concentration type (parfum, EDP, EDT, oil)",
+          "blocking": true,
+          "why_it_prices": "Concentration changes oil content and price.",
+          "uae_options": "parfum; EDP; EDT; concentrated oil; oud",
+          "follow_up": ""
+        },
+        {
+          "spec": "volume per unit in ml",
+          "blocking": true,
+          "why_it_prices": "Volume per unit sets unit price.",
+          "uae_options": "30; 50; 100 ml; tola for oils",
+          "follow_up": ""
+        },
+        {
+          "spec": "quantity in units and cartons",
+          "blocking": true,
+          "why_it_prices": "Quantity and carton packing set the break.",
+          "uae_options": "units; cartons",
+          "follow_up": ""
+        },
+        {
+          "spec": "genuine or inspired/private label",
+          "blocking": true,
+          "why_it_prices": "Genuine versus inspired or private label is a different product and legal position.",
+          "uae_options": "genuine brand; inspired; private label",
+          "follow_up": "Inspired: ask that no trademark is copied."
+        },
+        {
+          "spec": "batch number and production/expiry date",
+          "blocking": true,
+          "why_it_prices": "Batch and date confirm freshness.",
+          "uae_options": "batch code; production date",
+          "follow_up": ""
+        },
+        {
+          "spec": "Arabic/English labelling and ingredient list",
+          "blocking": false,
+          "why_it_prices": "Labelling with ingredients and Arabic is required.",
+          "uae_options": "Arabic/English label; ingredients",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE product registration or conformity certificate",
+          "blocking": true,
+          "why_it_prices": "Registration or conformity must exist for sale.",
+          "uae_options": "Dubai Municipality registration; MoIAT conformity",
+          "follow_up": ""
+        },
+        {
+          "spec": "packaging (tester, gift set, retail box)",
+          "blocking": false,
+          "why_it_prices": "Packaging type changes price.",
+          "uae_options": "retail box; tester; gift set",
+          "follow_up": ""
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivery terms.",
+          "uae_options": "free zone; mainland DDP",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "Lead time.",
+          "uae_options": "stock; production",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_it_prices": "Returns of leaking or damaged units.",
+          "uae_options": "terms",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "testers; displays",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "stock SKUs can be priced firm from SKU, volume and quantity; private label perfume needs the fragrance sample approved, the bottle and packaging chosen and a MOQ agreed before a firm price."
     },
     {
       "id": "perfumes_wholesale:uae-standards-and-approvals",
@@ -86,6 +190,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "perfumes_wholesale:authority-approvals",
+      "topic": "Perfumes & oud wholesale: licences, permits and approvals by emirate",
+      "topic_ar": "جملة عطور وعود: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Perfumes are cosmetic products in UAE regulation: they need Dubai Municipality registration (Montaji) to be sold in Dubai and fall under MoIAT's cosmetics conformity requirements federally; consultancy sources list perfumes and fragrances within the cosmetic registration categories. Alcohol-based fragrances are dangerous goods for transport (flammable), which affects shipping and warehouse storage approvals under civil defence rules. Trademark law protects brand names and packaging: \"inspired\" products that copy a protected mark or trade dress are counterfeit, and the Ministry of Economy and the emirates' economic departments act on counterfeit goods. The brand owner or importer registers.",
+      "body_ar": "العطور مستحضرات تجميل في التنظيم الإماراتي: تحتاج تسجيلاً لدى بلدية دبي (منتجي) لبيعها في دبي، وتخضع اتحادياً لمتطلبات المطابقة لمستحضرات التجميل لدى وزارة الصناعة والتكنولوجيا المتقدمة، وتدرج المصادر الاستشارية العطور ضمن فئات تسجيل مستحضرات التجميل. والعطور الكحولية بضائع خطرة في النقل (قابلة للاشتعال)، ما يؤثر في الشحن واعتمادات تخزين المستودعات وفق قواعد الدفاع المدني. ويحمي قانون العلامات التجارية الأسماء والتغليف: فالمنتجات \"المستوحاة\" التي تنسخ علامة محمية أو شكلها التجاري مقلدة، وتتخذ وزارة الاقتصاد والدوائر الاقتصادية في الإمارات إجراءات ضد السلع المقلدة. ويتولى مالك العلامة أو المستورد التسجيل.",
+      "sources": [
+        "https://www.freyrsolutions.com/cosmetics/cosmetic-regulatory-services-in-the-uae",
+        "https://cosmetic.chemlinked.com/cosmepedia/united-arab-emirates-uae-cosmetic-regulation",
+        "https://www.meydanfz.ae/how-to-get-your-products-registered-with-dubai-municipality/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "perfumes_wholesale:quote-red-flags",
+      "topic": "Perfumes & oud wholesale: red flags in supplier quotations",
+      "topic_ar": "جملة عطور وعود: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Look for testers or unboxed units sold as retail, old batches, refilled or diluted stock, counterfeit designer perfume at implausible prices, inspired products copying a protected bottle or name, missing registration, and leaking caps. Oud oils: ask the origin and whether it is pure or blended.",
+      "body_ar": "ابحث عن عينات تجربة أو وحدات دون علب تُباع على أنها للتجزئة، وتشغيلات قديمة، ومخزون معاد تعبئته أو مخفف، وعطور مصممين مقلدة بأسعار غير معقولة، ومنتجات مستوحاة تنسخ زجاجة أو اسماً محمياً، وغياب التسجيل، وأغطية تسرّب. وفي زيوت العود اسأل عن المنشأ وهل هو صافٍ أم مخلوط.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "perfumes_wholesale:buyer-mistakes",
+      "topic": "Perfumes & oud wholesale: common buyer mistakes",
+      "topic_ar": "جملة عطور وعود: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers chase price on designer perfume and end up with counterfeit or grey stock, and order private label without stability testing of the fragrance in UAE heat.",
+      "body_ar": "يلاحق المشترون السعر في عطور المصممين فينتهون بمخزون مقلد أو موازٍ، ويطلبون علامة خاصة دون اختبار ثبات العطر في حرارة الإمارات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "perfumes_wholesale:price-drivers",
+      "topic": "Perfumes & oud wholesale: what makes prices differ legitimately",
+      "topic_ar": "جملة عطور وعود: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand, concentration, oil quality (natural oud versus synthetic), bottle and packaging, volume, channel, shelf age and freight as dangerous goods.",
+      "body_ar": "العوامل: العلامة، والتركيز، وجودة الزيت (عود طبيعي أم صناعي)، والزجاجة والتغليف، والحجم، والقناة، وعمر المخزون، والشحن كبضائع خطرة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "perfumes_wholesale:compare-quotes-cost-to-value",
+      "topic": "Perfumes & oud wholesale: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "جملة عطور وعود: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same SKUs from authorised channels, with batch dates and registration. For private label compare per finished unit at the same oil concentration and packaging. Recommend three genuine, registered offers.",
+      "body_ar": "قارن المنتجات نفسها من قنوات معتمدة مع تواريخ التشغيل والتسجيل. وفي العلامة الخاصة قارن لكل وحدة نهائية بالتركيز والتغليف نفسيهما. أوصِ بثلاثة عروض أصلية ومسجلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -128,7 +301,8 @@
     "removed": [],
     "still_unverified": [
       "perfumes_wholesale:spec-checklist",
-      "perfumes_wholesale:uae-standards-and-approvals"
+      "perfumes_wholesale:uae-standards-and-approvals",
+      "perfumes_wholesale:authority-approvals"
     ],
     "added": [
       "perfumes_wholesale:spec-checklist",
@@ -159,6 +333,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "perfumes_wholesale:quote-red-flags",
+      "perfumes_wholesale:buyer-mistakes",
+      "perfumes_wholesale:price-drivers",
+      "perfumes_wholesale:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }
