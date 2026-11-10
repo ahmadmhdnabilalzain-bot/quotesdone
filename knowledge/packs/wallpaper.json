@@ -65,8 +65,8 @@
       "id": "wallpaper:wallpaper-spec-checklist",
       "topic": "Wallpaper / wallcovering — what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "State: product (brand, collection, design code and colourway, or custom design file); type (paper, non-woven, vinyl type/category, fabric, natural); width and roll length; pattern repeat and match; wall dimensions, heights and openings per room (or drawings); substrate (new gypsum board, plaster, existing paint, existing wallpaper to be removed, tiles, MDF); substrate preparation scope (skim coat, sanding, primer/sizing, stain blocking, mould treatment); adhesive type (ready-mixed, clay-based for heavy vinyl, mould-inhibiting); fire classification required and test report; washability/scrubbability class; lighting conditions (grazing light shows seams); ceiling or corners/niches; removal of existing wallcovering; furniture moving; working hours and building rules; lead time; spare rolls; and warranty. For commercial projects also ask for mould and moisture guidance on exterior walls and for data sheets from the manufacturer.",
-      "body_ar": "يُحدد: المنتج (العلامة، المجموعة، رمز التصميم واللون، أو ملف تصميم خاص)؛ والنوع (ورقي، غير منسوج، نوع أو فئة الفينيل، قماشي، طبيعي)؛ والعرض وطول اللفة؛ وتكرار النقش ونوع المطابقة؛ وأبعاد الجدران وارتفاعاتها والفتحات لكل غرفة (أو المخططات)؛ والسطح القائم (جبس جديد، لياسة، دهان قائم، ورق قديم يُزال، بلاط، MDF)؛ ونطاق تحضير السطح (معجون، صنفرة، أساس، مانع بقع، معالجة العفن)؛ ونوع الغراء (جاهز، طيني للفينيل الثقيل، مانع للعفن)؛ وتصنيف الحريق المطلوب وتقرير الاختبار؛ وفئة قابلية الغسل والفرك؛ وظروف الإضاءة (الضوء المائل يُظهر الوصلات)؛ والأسقف أو الأركان والتجاويف؛ وإزالة الغطاء القائم؛ ونقل الأثاث؛ وساعات العمل وقواعد المبنى؛ ومدة التوريد؛ واللفائف الاحتياطية؛ والضمان. وفي المشاريع التجارية يُطلب أيضاً إرشاد حول العفن والرطوبة على الجدران الخارجية والنشرات الفنية من المصنّع.",
+      "body_en": "State: product (brand, collection, design code and colourway, or custom design file); type (paper, non-woven, vinyl type/category, fabric, natural); width and roll length; pattern repeat and match; wall dimensions, heights and openings per room (or drawings); substrate (new gypsum board, plaster, existing paint, existing wallpaper to be removed, tiles, MDF); substrate preparation scope (skim coat, sanding, primer/sizing, stain blocking, mould treatment); adhesive type (ready-mixed, clay-based for heavy vinyl, mould-inhibiting); fire classification required and test report; washability/scrubbability class; lighting conditions (grazing light shows seams); ceiling or corners/niches; removal of existing wallcovering; furniture moving; working hours and building rules; lead time; spare rolls; and warranty. For commercial projects also ask for mould and moisture guidance on exterior walls and for data sheets from the manufacturer.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): product, type, wall dimensions, repeat and preparation scope. Supplier ask-back review (2026-11-10): the inquiry now also states Site location and emirate (quote-blocking); Supply only or supply and install (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: product / design code / colourway; wallcovering type or category; pattern repeat and match; wall dimensions, heights, openings; surface preparation scope; Site location and emirate; Supply only or supply and install.",
+      "body_ar": "يُحدد: المنتج (العلامة، المجموعة، رمز التصميم واللون، أو ملف تصميم خاص)؛ والنوع (ورقي، غير منسوج، نوع أو فئة الفينيل، قماشي، طبيعي)؛ والعرض وطول اللفة؛ وتكرار النقش ونوع المطابقة؛ وأبعاد الجدران وارتفاعاتها والفتحات لكل غرفة (أو المخططات)؛ والسطح القائم (جبس جديد، لياسة، دهان قائم، ورق قديم يُزال، بلاط، MDF)؛ ونطاق تحضير السطح (معجون، صنفرة، أساس، مانع بقع، معالجة العفن)؛ ونوع الغراء (جاهز، طيني للفينيل الثقيل، مانع للعفن)؛ وتصنيف الحريق المطلوب وتقرير الاختبار؛ وفئة قابلية الغسل والفرك؛ وظروف الإضاءة (الضوء المائل يُظهر الوصلات)؛ والأسقف أو الأركان والتجاويف؛ وإزالة الغطاء القائم؛ ونقل الأثاث؛ وساعات العمل وقواعد المبنى؛ ومدة التوريد؛ واللفائف الاحتياطية؛ والضمان. وفي المشاريع التجارية يُطلب أيضاً إرشاد حول العفن والرطوبة على الجدران الخارجية والنشرات الفنية من المصنّع.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المنتج، والنوع، وأبعاد الجدران، وتكرار النقشة، ونطاق التحضير. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع العمل والإمارة (مانع للتسعير)؛ توريد فقط أو توريد وتركيب (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "product / design code / colourway",
         "wallcovering type or category",
@@ -86,7 +86,10 @@
         "spare rolls",
         "warranty",
         "gypsum board finish level (GA-214)",
-        "breathable / microvented requirement on exterior walls"
+        "breathable / microvented requirement on exterior walls",
+        "Site location and emirate",
+        "Supply only or supply and install",
+        "Payment terms"
       ],
       "sources": [
         "https://materialcalculator.co.uk/wallpaper-calculator",
@@ -95,7 +98,174 @@
         "https://www.certainteed.com/inspiration/how-tos/what-are-recommended-levels-finish"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "product / design code / colourway",
+        "wallcovering type or category",
+        "pattern repeat and match",
+        "wall dimensions, heights, openings",
+        "surface preparation scope",
+        "Site location and emirate",
+        "Supply only or supply and install"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product / design code / colourway",
+          "why_needed_to_price": "Price per roll is set by the collection.",
+          "uae_options": "design code from the sample book",
+          "follow_up_if": "No product chosen: ask for budget per roll and a style.",
+          "blocking": true
+        },
+        {
+          "spec": "wallcovering type or category",
+          "why_needed_to_price": "Non-woven, vinyl, fabric, grasscloth and murals differ in material and hanging labour.",
+          "uae_options": "non-woven; vinyl; fabric; natural fibre; mural",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "width and roll length",
+          "why_needed_to_price": "Width and roll length decide quantity.",
+          "uae_options": "0.53 m or 1.06 m; roll length.",
+          "follow_up_if": "If the inquiry is silent on width and roll length, each supplier prices its own default; ask the buyer so every quote rests on the same width and roll length.",
+          "blocking": false
+        },
+        {
+          "spec": "pattern repeat and match",
+          "why_needed_to_price": "Large repeats increase rolls needed.",
+          "uae_options": "from product data",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "wall dimensions, heights, openings",
+          "why_needed_to_price": "Quantity of rolls follows wall area and repeat.",
+          "uae_options": "measured walls",
+          "follow_up_if": "No measurements: a site visit is needed.",
+          "blocking": true
+        },
+        {
+          "spec": "substrate type",
+          "why_needed_to_price": "Substrate decides preparation.",
+          "uae_options": "Gypsum; plaster; old paper.",
+          "follow_up_if": "If the inquiry is silent on substrate type, each supplier prices its own default; ask the buyer so every quote rests on the same substrate type.",
+          "blocking": false
+        },
+        {
+          "spec": "surface preparation scope",
+          "why_needed_to_price": "Skim coat and primer can cost as much as hanging.",
+          "uae_options": "primer only; skim coat; repair",
+          "follow_up_if": "Damp or uneven walls: site visit needed.",
+          "blocking": true
+        },
+        {
+          "spec": "adhesive type",
+          "why_needed_to_price": "Adhesive type decides compatibility.",
+          "uae_options": "Paste; ready-mixed adhesive.",
+          "follow_up_if": "If the inquiry is silent on adhesive type, each supplier prices its own default; ask the buyer so every quote rests on the same adhesive type.",
+          "blocking": false
+        },
+        {
+          "spec": "fire classification and test report",
+          "why_needed_to_price": "Fire classification is needed for commercial areas.",
+          "uae_options": "Fire class and test report.",
+          "follow_up_if": "If commercial, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "washability / scrubbability class",
+          "why_needed_to_price": "Washability classes decide product.",
+          "uae_options": "Washable; scrubbable class.",
+          "follow_up_if": "If high traffic, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "lighting conditions",
+          "why_needed_to_price": "Lighting reveals defects.",
+          "uae_options": "Grazing light.",
+          "follow_up_if": "If grazing light, ask for higher finish.",
+          "blocking": false
+        },
+        {
+          "spec": "removal of existing wallcovering",
+          "why_needed_to_price": "Removal is labour and may damage the wall.",
+          "uae_options": "none; remove",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "furniture moving",
+          "why_needed_to_price": "Furniture moving adds labour.",
+          "uae_options": "Moving furniture.",
+          "follow_up_if": "If occupied, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "working hours and building rules",
+          "why_needed_to_price": "Building rules limit hours.",
+          "uae_options": "Working hours.",
+          "follow_up_if": "If restricted, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Lead time decides programme.",
+          "uae_options": "Stock or indent.",
+          "follow_up_if": "If indent, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "spare rolls",
+          "why_needed_to_price": "Spare rolls avoid batch issues.",
+          "uae_options": "Spare rolls.",
+          "follow_up_if": "If the inquiry is silent on spare rolls, each supplier prices its own default; ask the buyer so every quote rests on the same spare rolls.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty",
+          "why_needed_to_price": "Warranty changes price.",
+          "uae_options": "Product and installation.",
+          "follow_up_if": "If the inquiry is silent on warranty, each supplier prices its own default; ask the buyer so every quote rests on the same warranty.",
+          "blocking": false
+        },
+        {
+          "spec": "gypsum board finish level (GA-214)",
+          "why_needed_to_price": "Gypsum finish level decides preparation.",
+          "uae_options": "GA-214 levels.",
+          "follow_up_if": "If the inquiry is silent on gypsum board finish level (ga-214), each supplier prices its own default; ask the buyer so every quote rests on the same gypsum board finish level (ga-214).",
+          "blocking": false
+        },
+        {
+          "spec": "breathable / microvented requirement on exterior walls",
+          "why_needed_to_price": "Exterior walls need breathable products.",
+          "uae_options": "Microvented vinyl.",
+          "follow_up_if": "If exterior walls, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "Site location and emirate",
+          "why_needed_to_price": "Mobilisation, travel, labour transport and the authority whose rules apply all follow the site, so the same scope is priced differently in Dubai, Abu Dhabi, the northern emirates or a remote site.",
+          "uae_options": "A named emirate and area or community; city, industrial area or remote site; one site or several.",
+          "follow_up_if": "If the site is in a free zone, port, airport or developer community with its own access rules, ask which passes or NOCs apply.",
+          "blocking": true
+        },
+        {
+          "spec": "Supply only or supply and install",
+          "why_needed_to_price": "Material supplied to site and material hung by the supplier's installers are different prices; installation labour, preparation and waste are a large part of an installed price.",
+          "uae_options": "Supply only; supply and install; installation only with material by others.",
+          "follow_up_if": "If installed, ask whether walls are ready (primed, finish level) or need preparation.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site visit is needed when walls have not been measured or their condition (damp, unevenness, old paper) is unknown.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "wallpaper:substrate-preparation",
@@ -424,8 +594,8 @@
       "id": "wallpaper:commercial-vinyl-spec-checklist",
       "topic": "What to state when buying commercial vinyl for a hotel, office or hospital",
       "kind": "spec_checklist",
-      "body_en": "Commercial wallcovering quotes go wrong when the buyer names only a pattern. A complete request for a hotel, office, school or hospital should state: the product (manufacturer, collection, pattern and colour codes) or an 'or equal' performance spec; the duty class (ASTM F793 Category IV/V/VI, i.e. Type I/II/III) or EN 233 scrub class, with the test report; weight per linear yard or per m² only as a secondary check; width (usually 52-54 in) and bolt length; backing (osnaburg, scrim, non-woven); fire performance and its standard (ASTM E84 class, EN 13501-1 Euroclass, UAE Certificate of Conformity where required) tested on the actual substrate and adhesive; permeability, meaning solid or perforated/microvented for the room side of exterior walls in humid climates; stain, cleanability and disinfectant resistance for healthcare; light-fastness; quantities by area and elevation with repeat and match; a single batch per area and the number of spare bolts; adhesive type (clay or clear premixed) and primer; the gypsum finish level required; seam method (butt or double-cut) and whether reverse hanging is required; installation hours and building rules; lead time and whether stock or indent; and warranty terms from both manufacturer and installer. Where the buyer cannot give a duty or fire class, the sales engineer should propose sensible defaults (for example Type II in corridors, Type I in rooms) and flag them as assumptions for the consultant to confirm.",
-      "body_ar": "تتعثر عروض أغطية الجدران التجارية عندما يكتفي المشتري بذكر النقش. الطلب الكامل لفندق أو مكتب أو مدرسة أو مستشفى يجب أن يحدد: المنتج (المصنّع، المجموعة، رموز النقش واللون) أو مواصفة أداء 'أو ما يعادله'؛ فئة المتانة (ASTM F793 الفئة الرابعة أو الخامسة أو السادسة، أي النوع الأول أو الثاني أو الثالث) أو فئة الفرك وفق EN 233 مع تقرير الاختبار؛ الوزن لكل ياردة طولية أو متر مربع كتحقق ثانوي فقط؛ العرض (عادةً 52-54 إنشاً) وطول البكرة؛ القاعدة (قماش أوزنابرغ، شبكية، غير منسوجة)؛ أداء الحريق ومعياره (فئة ASTM E84، أو فئة EN 13501-1، أو شهادة المطابقة الإماراتية عند اللزوم) مختبراً على السطح والغراء الفعليين؛ النفاذية: مصمت أو مثقّب بثقوب دقيقة للجهة الداخلية للجدران الخارجية في المناخ الرطب؛ مقاومة البقع والتنظيف والمطهرات للمنشآت الصحية؛ ثبات اللون أمام الضوء؛ الكميات حسب المساحة والواجهات مع التكرار والمطابقة؛ دفعة واحدة لكل منطقة وعدد البكرات الاحتياطية؛ نوع الغراء (طيني أو شفاف جاهز) والبرايمر؛ مستوى تشطيب الجبس المطلوب؛ طريقة الوصلات (تلاصق أو قص مزدوج) وهل يلزم التركيب المعكوس؛ ساعات العمل وقواعد المبنى؛ مدة التوريد وهل هو من المخزون أو بطلب خاص؛ وشروط الضمان من المصنّع والمركّب. وإذا لم يستطع المشتري تحديد فئة المتانة أو الحريق فعلى مهندس المبيعات اقتراح قيم افتراضية معقولة (مثل النوع الثاني للممرات والأول للغرف) ووضعها كافتراضات يؤكدها الاستشاري.",
+      "body_en": "Commercial wallcovering quotes go wrong when the buyer names only a pattern. A complete request for a hotel, office, school or hospital should state: the product (manufacturer, collection, pattern and colour codes) or an 'or equal' performance spec; the duty class (ASTM F793 Category IV/V/VI, i.e. Type I/II/III) or EN 233 scrub class, with the test report; weight per linear yard or per m² only as a secondary check; width (usually 52-54 in) and bolt length; backing (osnaburg, scrim, non-woven); fire performance and its standard (ASTM E84 class, EN 13501-1 Euroclass, UAE Certificate of Conformity where required) tested on the actual substrate and adhesive; permeability, meaning solid or perforated/microvented for the room side of exterior walls in humid climates; stain, cleanability and disinfectant resistance for healthcare; light-fastness; quantities by area and elevation with repeat and match; a single batch per area and the number of spare bolts; adhesive type (clay or clear premixed) and primer; the gypsum finish level required; seam method (butt or double-cut) and whether reverse hanging is required; installation hours and building rules; lead time and whether stock or indent; and warranty terms from both manufacturer and installer. Where the buyer cannot give a duty or fire class, the sales engineer should propose sensible defaults (for example Type II in corridors, Type I in rooms) and flag them as assumptions for the consultant to confirm.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): commercial category, fire class with UAE compliance, and quantities. Supplier ask-back review (2026-11-10): the inquiry now also states Site location and emirate (quote-blocking); Supply only or supply and install (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: ASTM F793 category or EN 233 class + test report; fire class, standard and UAE CoC; quantities by elevation, repeat, match; Site location and emirate; Supply only or supply and install.",
+      "body_ar": "تتعثر عروض أغطية الجدران التجارية عندما يكتفي المشتري بذكر النقش. الطلب الكامل لفندق أو مكتب أو مدرسة أو مستشفى يجب أن يحدد: المنتج (المصنّع، المجموعة، رموز النقش واللون) أو مواصفة أداء 'أو ما يعادله'؛ فئة المتانة (ASTM F793 الفئة الرابعة أو الخامسة أو السادسة، أي النوع الأول أو الثاني أو الثالث) أو فئة الفرك وفق EN 233 مع تقرير الاختبار؛ الوزن لكل ياردة طولية أو متر مربع كتحقق ثانوي فقط؛ العرض (عادةً 52-54 إنشاً) وطول البكرة؛ القاعدة (قماش أوزنابرغ، شبكية، غير منسوجة)؛ أداء الحريق ومعياره (فئة ASTM E84، أو فئة EN 13501-1، أو شهادة المطابقة الإماراتية عند اللزوم) مختبراً على السطح والغراء الفعليين؛ النفاذية: مصمت أو مثقّب بثقوب دقيقة للجهة الداخلية للجدران الخارجية في المناخ الرطب؛ مقاومة البقع والتنظيف والمطهرات للمنشآت الصحية؛ ثبات اللون أمام الضوء؛ الكميات حسب المساحة والواجهات مع التكرار والمطابقة؛ دفعة واحدة لكل منطقة وعدد البكرات الاحتياطية؛ نوع الغراء (طيني أو شفاف جاهز) والبرايمر؛ مستوى تشطيب الجبس المطلوب؛ طريقة الوصلات (تلاصق أو قص مزدوج) وهل يلزم التركيب المعكوس؛ ساعات العمل وقواعد المبنى؛ مدة التوريد وهل هو من المخزون أو بطلب خاص؛ وشروط الضمان من المصنّع والمركّب. وإذا لم يستطع المشتري تحديد فئة المتانة أو الحريق فعلى مهندس المبيعات اقتراح قيم افتراضية معقولة (مثل النوع الثاني للممرات والأول للغرف) ووضعها كافتراضات يؤكدها الاستشاري.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الفئة التجارية، وتصنيف الحريق مع المطابقة في الإمارات، والكميات. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع العمل والإمارة (مانع للتسعير)؛ توريد فقط أو توريد وتركيب (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "product / pattern / colour codes or performance spec",
         "ASTM F793 category or EN 233 class + test report",
@@ -443,7 +613,10 @@
         "seam method and reverse hanging",
         "working hours and site rules",
         "lead time (stock / indent)",
-        "manufacturer and installer warranty"
+        "manufacturer and installer warranty",
+        "Site location and emirate",
+        "Supply only or supply and install",
+        "Payment terms"
       ],
       "sources": [
         "https://www.thewallpapercompany.com/post/wallcovering-101-your-essential-guide-to-specifying-high-performance-wallcoverings",
@@ -453,7 +626,158 @@
         "https://www.certainteed.com/inspiration/how-tos/what-are-recommended-levels-finish"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "ASTM F793 category or EN 233 class + test report",
+        "fire class, standard and UAE CoC",
+        "quantities by elevation, repeat, match",
+        "Site location and emirate",
+        "Supply only or supply and install"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product / pattern / colour codes or performance spec",
+          "why_needed_to_price": "Product codes or a performance spec decide price.",
+          "uae_options": "Pattern and colour codes; spec.",
+          "follow_up_if": "If the inquiry is silent on product / pattern / colour codes or performance spec, each supplier prices its own default; ask the buyer so every quote rests on the same product / pattern / colour codes or performance spec.",
+          "blocking": false
+        },
+        {
+          "spec": "ASTM F793 category or EN 233 class + test report",
+          "why_needed_to_price": "Commercial category sets weight and price.",
+          "uae_options": "Type I/II; category IV-VI",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "weight per linear yard or m²",
+          "why_needed_to_price": "Weight decides durability.",
+          "uae_options": "oz per linear yard; g/m2.",
+          "follow_up_if": "If high traffic, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "width and bolt length",
+          "why_needed_to_price": "Width and bolt length decide quantity.",
+          "uae_options": "54 inch; bolt length.",
+          "follow_up_if": "If the inquiry is silent on width and bolt length, each supplier prices its own default; ask the buyer so every quote rests on the same width and bolt length.",
+          "blocking": false
+        },
+        {
+          "spec": "backing type",
+          "why_needed_to_price": "Backing decides strength.",
+          "uae_options": "Fabric backing.",
+          "follow_up_if": "If the inquiry is silent on backing type, each supplier prices its own default; ask the buyer so every quote rests on the same backing type.",
+          "blocking": false
+        },
+        {
+          "spec": "fire class, standard and UAE CoC",
+          "why_needed_to_price": "Hotels and offices need a fire-classified wallcovering approved by civil defence.",
+          "uae_options": "Class A / EN 13501-1 B-s1,d0",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "permeability (solid / microvented)",
+          "why_needed_to_price": "Permeability matters on exterior walls.",
+          "uae_options": "Solid or microvented.",
+          "follow_up_if": "If exterior walls, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "stain and disinfectant resistance",
+          "why_needed_to_price": "Stain and disinfectant resistance are needed in hospitals.",
+          "uae_options": "Resistance ratings.",
+          "follow_up_if": "If hospital, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "light-fastness",
+          "why_needed_to_price": "Light-fastness matters near windows.",
+          "uae_options": "Light-fastness rating.",
+          "follow_up_if": "If sunny, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "quantities by elevation, repeat, match",
+          "why_needed_to_price": "Bolts needed follow elevation area.",
+          "uae_options": "measured",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "single batch and spare bolts",
+          "why_needed_to_price": "Single batch and spares avoid mismatch.",
+          "uae_options": "Single batch; spare bolts.",
+          "follow_up_if": "If the inquiry is silent on single batch and spare bolts, each supplier prices its own default; ask the buyer so every quote rests on the same single batch and spare bolts.",
+          "blocking": false
+        },
+        {
+          "spec": "adhesive and primer",
+          "why_needed_to_price": "Adhesive and primer add cost.",
+          "uae_options": "Adhesive; primer.",
+          "follow_up_if": "If the inquiry is silent on adhesive and primer, each supplier prices its own default; ask the buyer so every quote rests on the same adhesive and primer.",
+          "blocking": false
+        },
+        {
+          "spec": "gypsum finish level",
+          "why_needed_to_price": "Gypsum finish level decides preparation.",
+          "uae_options": "Level 4 or 5.",
+          "follow_up_if": "If the inquiry is silent on gypsum finish level, each supplier prices its own default; ask the buyer so every quote rests on the same gypsum finish level.",
+          "blocking": false
+        },
+        {
+          "spec": "seam method and reverse hanging",
+          "why_needed_to_price": "Seam method affects appearance.",
+          "uae_options": "Seams; reverse hanging.",
+          "follow_up_if": "If the inquiry is silent on seam method and reverse hanging, each supplier prices its own default; ask the buyer so every quote rests on the same seam method and reverse hanging.",
+          "blocking": false
+        },
+        {
+          "spec": "working hours and site rules",
+          "why_needed_to_price": "Site rules limit hours.",
+          "uae_options": "Hours; rules.",
+          "follow_up_if": "If restricted, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time (stock / indent)",
+          "why_needed_to_price": "Lead time decides programme.",
+          "uae_options": "Stock or indent.",
+          "follow_up_if": "If indent, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "manufacturer and installer warranty",
+          "why_needed_to_price": "Warranties change price.",
+          "uae_options": "Maker and installer.",
+          "follow_up_if": "If the inquiry is silent on manufacturer and installer warranty, each supplier prices its own default; ask the buyer so every quote rests on the same manufacturer and installer warranty.",
+          "blocking": false
+        },
+        {
+          "spec": "Site location and emirate",
+          "why_needed_to_price": "Mobilisation, travel, labour transport and the authority whose rules apply all follow the site, so the same scope is priced differently in Dubai, Abu Dhabi, the northern emirates or a remote site.",
+          "uae_options": "A named emirate and area or community; city, industrial area or remote site; one site or several.",
+          "follow_up_if": "If the site is in a free zone, port, airport or developer community with its own access rules, ask which passes or NOCs apply.",
+          "blocking": true
+        },
+        {
+          "spec": "Supply only or supply and install",
+          "why_needed_to_price": "Material supplied to site and material hung by the supplier's installers are different prices; installation labour, preparation and waste are a large part of an installed price.",
+          "uae_options": "Supply only; supply and install; installation only with material by others.",
+          "follow_up_if": "If installed, ask whether walls are ready (primed, finish level) or need preparation.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "wallpaper:fire-finish-classes-2018",
@@ -467,6 +791,40 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "wallpaper:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Wallpaper: approvals per emirate",
+      "topic_ar": "ورق الجدران: الاعتمادات في كل إمارة",
+      "body_en": "Wallpaper in a private home needs no approval. In commercial premises, hotels and public buildings, wall finishes must meet the fire classification of the UAE Fire and Life Safety Code: Dubai Civil Defence in Dubai, the Abu Dhabi Civil Defence Authority in Abu Dhabi, and the civil defence of Sharjah and the northern emirates; the wallcovering is part of the fit-out permit (Dubai Municipality or DDA/Trakhees/free zone; DMT municipalities; Sharjah Municipality). In Dubai, Al Sa'fat limits VOC in adhesives on permitted projects. Who obtains: the fit-out contractor; the supplier provides fire test reports and certificates.",
+      "body_ar": "لا يحتاج ورق الجدران في منزل خاص إلى اعتماد. أما في المنشآت التجارية والفنادق والمباني العامة فيجب أن تحقق تشطيبات الجدران تصنيف الحريق في كود الإمارات للحماية من الحرائق: الدفاع المدني بدبي في دبي، وهيئة أبوظبي للدفاع المدني في أبوظبي، والدفاع المدني في الشارقة والإمارات الشمالية؛ ويكون ورق الجدران جزءاً من رخصة التجهيز الداخلي (بلدية دبي أو سلطة دبي للتطوير أو تراخيص أو المنطقة الحرة، وبلديات دائرة البلديات والنقل، وبلدية الشارقة). وفي دبي يحد نظام السعفات من المركبات العضوية المتطايرة في المواد اللاصقة للمشاريع المرخّصة. من يحصل عليها: مقاول التجهيز، ويقدم المورد تقارير اختبار الحريق والشهادات.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit",
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
+        "https://www.dm.gov.ae/municipality-business/product-certification/",
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Al Sa'fat 2nd edition section 404.02: adhesives and sealants in all buildings must not exceed DM's VOC limits, certified by Dubai Central Laboratory or a DM-approved laboratory; DDA fit-out permit. Not confirmed on any page that opened: the fire classification of wall finishes under the UAE Fire and Life Safety Code and the civil defence approvals. Hosts that failed: www.dcd.gov.ae (connection reset by the site)."
+    },
+    {
+      "id": "wallpaper:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing wallpaper quotes like for like",
+      "topic_ar": "مقارنة عروض ورق الجدران على أساس متكافئ",
+      "body_en": "Compare the same design code and collection, the same number of rolls (check each supplier's calculation with the repeat), preparation and primer, removal, and hanging labour. A \"similar design\" from another collection is a substitution, not an equal. Value beyond price: one batch for all rolls, spare rolls, and a hanger experienced with the material type.",
+      "body_ar": "قارن رمز التصميم والمجموعة نفسيهما، وعدد اللفات نفسه (تحقق من حساب كل مورد مع تكرار النقشة)، والتحضير والبرايمر، والإزالة، وأجرة التركيب. و«التصميم المشابه» من مجموعة أخرى استبدال وليس معادلاً. القيمة إلى جانب السعر: دفعة واحدة لكل اللفات، ولفات احتياطية، وفني تركيب متمرس بنوع المادة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -609,8 +967,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 29,
-    "claims_checked": 118,
+    "fetched_urls": 31,
+    "claims_checked": 123,
     "corrected": [
       "wallpaper:commercial-vinyl-types",
       "wallpaper:fire-classification-wallcoverings",
@@ -635,14 +993,37 @@
       "wallpaper:wallpaper-lead-times",
       "wallpaper:wallpaper-warranty",
       "wallpaper:wallpaper-price-drivers",
-      "wallpaper:fabric-wall-upholstery"
+      "wallpaper:fabric-wall-upholstery",
+      "wallpaper:approvals-per-emirate"
     ],
     "added": [
       "wallpaper:textile-expanded-vinyl-fire-rule",
       "wallpaper:acoustic-ratings-alphaw-vs-nrc",
       "wallpaper:low-voc-al-safat",
-      "wallpaper:commercial-vinyl-spec-checklist"
+      "wallpaper:commercial-vinyl-spec-checklist",
+      "wallpaper:approvals-per-emirate",
+      "wallpaper:compare-quotes-cost-to-value"
     ],
-    "as_of": "2026-09-23"
+    "as_of": "2026-09-23",
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: wallpaper:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 5 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "wallpaper:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

@@ -29,8 +29,8 @@
       "topic": "Fuel & diesel supply: makes, brands, distributors and origins in the UAE",
       "topic_ar": "توريد ديزل ووقود: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Fuel suppliers in the UAE include ADNOC Distribution, ENOC, Emarat, Neutral Fuels, Monjasa, BP and Shell, plus licensed private diesel distributors and Fujairah bunker suppliers, with fuel from UAE refineries and imports. Suppliers: ADNOC Distribution, ENOC, Emarat, Neutral Fuels, Monjasa, Bunker One, Peninsula, BP, Shell, plus licensed private diesel distributors in Sharjah, Hamriyah and Jebel Ali and bunker suppliers licensed by the Port of Fujairah. Bunker and aviation suppliers other than ADNOC were not individually checked. Fuel comes from UAE refineries (Ruwais, Jebel Ali) and imports.",
-      "body_ar": "من موردي الوقود في الإمارات أدنوك للتوزيع وإينوك وإمارات وNeutral Fuels وMonjasa وBP وShell، إضافة إلى موزعي ديزل خاصين مرخصين وموردي وقود السفن في الفجيرة، ويأتي الوقود من مصافي الدولة ومن الاستيراد. الموردون: ADNOC Distribution، ENOC، Emarat، Neutral Fuels، Monjasa، Bunker One، Peninsula، BP، Shell، إضافة إلى موزعي ديزل خاصين مرخصين في الشارقة والحمرية وجبل علي، وموردي وقود السفن المرخصين من ميناء الفجيرة، ولم يُتحقق فردياً من موردي وقود السفن والطيران عدا ADNOC. والوقود من مصافي الإمارات (الرويس وجبل علي) والاستيراد.",
+      "body_en": "Fuel suppliers in the UAE include ADNOC Distribution, ENOC, Emarat, Neutral Fuels, Monjasa, BP and Shell, plus licensed private diesel distributors and Fujairah bunker suppliers, with fuel from UAE refineries and imports. Suppliers: ADNOC Distribution, ENOC, Emarat, Neutral Fuels, Monjasa, Bunker One, Peninsula, BP, Shell, plus licensed private diesel distributors in Sharjah, Hamriyah and Jebel Ali and bunker suppliers licensed by the Port of Fujairah. Bunker and aviation suppliers other than ADNOC were not individually checked. Fuel comes from UAE refineries (Ruwais, Jebel Ali) and imports.\n\nOrigin and tier, for describing a quoted brand without naming it: ADNOC Distribution - premium, UAE; ENOC - premium, UAE; Emarat - mid, UAE; Neutral Fuels - mid, UAE; Monjasa - mid, Denmark; BP - premium, UK; Shell - premium, UK.",
+      "body_ar": "من موردي الوقود في الإمارات أدنوك للتوزيع وإينوك وإمارات وNeutral Fuels وMonjasa وBP وShell، إضافة إلى موزعي ديزل خاصين مرخصين وموردي وقود السفن في الفجيرة، ويأتي الوقود من مصافي الدولة ومن الاستيراد. الموردون: ADNOC Distribution، ENOC، Emarat، Neutral Fuels، Monjasa، Bunker One، Peninsula، BP، Shell، إضافة إلى موزعي ديزل خاصين مرخصين في الشارقة والحمرية وجبل علي، وموردي وقود السفن المرخصين من ميناء الفجيرة، ولم يُتحقق فردياً من موردي وقود السفن والطيران عدا ADNOC. والوقود من مصافي الإمارات (الرويس وجبل علي) والاستيراد.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: ADNOC Distribution: فئة ممتازة، الإمارات؛ ENOC: فئة ممتازة، الإمارات؛ Emarat: فئة متوسطة، الإمارات؛ Neutral Fuels: فئة متوسطة، الإمارات؛ Monjasa: فئة متوسطة، الدنمارك؛ BP: فئة ممتازة، المملكة المتحدة؛ Shell: فئة ممتازة، المملكة المتحدة.",
       "sources": [
         "https://u.ae/en/information-and-services/environment-and-energy/water-and-energy/energy-and-fuel-prices",
         "https://www.adnocdistribution.ae/en/business/delivery-services",
@@ -42,7 +42,58 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: UAE Fuel Price Committee sets retail prices monthly -> confirmed | ADNOC Distribution supplies bulk diesel to businesses -> confirmed | Neutral Fuels makes biodiesel from used cooking oil in Dubai -> confirmed. Not checked: The current monthly fuel prices and each named private distributor's licence status were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE Fuel Price Committee sets retail prices monthly -> confirmed | ADNOC Distribution supplies bulk diesel to businesses -> confirmed | Neutral Fuels makes biodiesel from used cooking oil in Dubai -> confirmed. Not checked: The current monthly fuel prices and each named private distributor's licence status were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "ADNOC Distribution",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "ENOC",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "Emarat",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "Neutral Fuels",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "Monjasa",
+          "origin": "Denmark",
+          "tier": "mid",
+          "generic_en": "a mid brand from Denmark",
+          "generic_ar": "علامة متوسطة من الدنمارك"
+        },
+        {
+          "brand": "BP",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium brand from UK",
+          "generic_ar": "علامة ممتازة من المملكة المتحدة"
+        },
+        {
+          "brand": "Shell",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium brand from UK",
+          "generic_ar": "علامة ممتازة من المملكة المتحدة"
+        }
+      ]
     },
     {
       "id": "fuel_diesel:uae-market-sizes",

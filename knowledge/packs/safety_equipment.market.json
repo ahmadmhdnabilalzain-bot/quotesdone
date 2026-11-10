@@ -28,8 +28,8 @@
       "topic": "Safety Equipment & PPE: makes, brands, distributors and origins in the UAE",
       "topic_ar": "معدات السلامة والوقاية الشخصية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the UAE maker NAFFCO, PPE suppliers AKH Safety and Safety Supply UAE, and brands they stock such as 3M, Honeywell, MSA, Dräger, Uvex, Delta Plus, Ansell, Portwest and Petzl. Confirmed UAE maker and PPE suppliers, and brands they stock: NAFFCO, AKH Safety, Safety Supply UAE, 3M, Honeywell, MSA, Dräger, Uvex, Delta Plus, Ansell, Portwest, Petzl. The brands' official UAE distributors were not checked. PPE traders cluster in Deira, Al Quoz, Al Qusais, Jebel Ali, the Sharjah Industrial Areas and Musaffah.",
-      "body_ar": "من المصنعين المحليين NAFFCO، ومن موردي معدات الوقاية الشخصية AKH Safety وSafety Supply UAE، ومن الماركات التي يوفرونها 3M وHoneywell وMSA وDräger وUvex وDelta Plus وAnsell وPortwest وPetzl. المصنع الإماراتي وموردو معدات الوقاية المؤكدون، والعلامات التي يحملونها: NAFFCO، AKH Safety، Safety Supply UAE، 3M، Honeywell، MSA، Dräger، Uvex، Delta Plus، Ansell، Portwest، Petzl. ولم يُتحقق من الموزعين الرسميين للعلامات في الإمارات. ويتجمع تجار معدات الوقاية في ديرة والقوز والقصيص وجبل علي والمناطق الصناعية بالشارقة ومصفح.",
+      "body_en": "This entry names the UAE maker NAFFCO, PPE suppliers AKH Safety and Safety Supply UAE, and brands they stock such as 3M, Honeywell, MSA, Dräger, Uvex, Delta Plus, Ansell, Portwest and Petzl. Confirmed UAE maker and PPE suppliers, and brands they stock: NAFFCO, AKH Safety, Safety Supply UAE, 3M, Honeywell, MSA, Dräger, Uvex, Delta Plus, Ansell, Portwest, Petzl. The brands' official UAE distributors were not checked. PPE traders cluster in Deira, Al Quoz, Al Qusais, Jebel Ali, the Sharjah Industrial Areas and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): NAFFCO = a mid-tier UAE brand; AKH Safety = a UAE trading or retail name; Safety Supply UAE = a UAE trading or retail name; 3M = a premium American brand; Honeywell = a premium American brand; MSA = a premium American brand; Dräger = a premium German brand; Uvex = a premium German brand; Delta Plus = a mid-tier French brand; Ansell = a premium Australian brand; Portwest = a mid-tier Irish brand; Petzl = a premium French brand.",
+      "body_ar": "من المصنعين المحليين NAFFCO، ومن موردي معدات الوقاية الشخصية AKH Safety وSafety Supply UAE، ومن الماركات التي يوفرونها 3M وHoneywell وMSA وDräger وUvex وDelta Plus وAnsell وPortwest وPetzl. المصنع الإماراتي وموردو معدات الوقاية المؤكدون، والعلامات التي يحملونها: NAFFCO، AKH Safety، Safety Supply UAE، 3M، Honeywell، MSA، Dräger، Uvex، Delta Plus، Ansell، Portwest، Petzl. ولم يُتحقق من الموزعين الرسميين للعلامات في الإمارات. ويتجمع تجار معدات الوقاية في ديرة والقوز والقصيص وجبل علي والمناطق الصناعية بالشارقة ومصفح.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): NAFFCO = علامة إماراتية من الفئة المتوسطة؛ AKH Safety = اسم تجاري لتاجر أو موزع في الإمارات؛ Safety Supply UAE = اسم تجاري لتاجر أو موزع في الإمارات؛ 3M = علامة أمريكية من الفئة الممتازة؛ Honeywell = علامة أمريكية من الفئة الممتازة؛ MSA = علامة أمريكية من الفئة الممتازة؛ Dräger = علامة ألمانية من الفئة الممتازة؛ Uvex = علامة ألمانية من الفئة الممتازة؛ Delta Plus = علامة فرنسية من الفئة المتوسطة؛ Ansell = علامة أسترالية من الفئة الممتازة؛ Portwest = علامة أيرلندية من الفئة المتوسطة؛ Petzl = علامة فرنسية من الفئة الممتازة.",
       "sources": [
         "https://www.naffco.com/",
         "https://www.adphc.gov.ae",
@@ -40,7 +40,93 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Fire safety products need Civil Defence approval; NAFFCO makes Civil Defence approved extinguishers in Dubai -> confirmed | OSHAD-SF applies in Abu Dhabi (Abu Dhabi Public Health Centre) -> confirmed: site reachable, framework named on OSHAD pages | Dubai PPE suppliers AKH Safety and Safety Supply UAE stock 3M, Honeywell and MSA -> confirmed. Not checked: Current Civil Defence listing of specific extinguisher brands per emirate and OSHAD-SF applicability per sector were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Fire safety products need Civil Defence approval; NAFFCO makes Civil Defence approved extinguishers in Dubai -> confirmed | OSHAD-SF applies in Abu Dhabi (Abu Dhabi Public Health Centre) -> confirmed: site reachable, framework named on OSHAD pages | Dubai PPE suppliers AKH Safety and Safety Supply UAE stock 3M, Honeywell and MSA -> confirmed. Not checked: Current Civil Defence listing of specific extinguisher brands per emirate and OSHAD-SF applicability per sector were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "NAFFCO",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "AKH Safety",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Safety Supply UAE",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "3M",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Honeywell",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "MSA",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Dräger",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Uvex",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Delta Plus",
+          "origin": "France",
+          "tier": "mid",
+          "generic_en": "a mid-tier French brand",
+          "generic_ar": "علامة فرنسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Ansell",
+          "origin": "Australia",
+          "tier": "premium",
+          "generic_en": "a premium Australian brand",
+          "generic_ar": "علامة أسترالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Portwest",
+          "origin": "Ireland",
+          "tier": "mid",
+          "generic_en": "a mid-tier Irish brand",
+          "generic_ar": "علامة أيرلندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Petzl",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "safety_equipment:uae-market-sizes",

@@ -5,8 +5,8 @@
       "id": "outdoor_furniture:spec-checklist",
       "topic": "Outdoor furniture - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For outdoor furniture (trade code outdoor_furniture only), every quoted line must state: Item and model; Frame material and coating; Weave, fabric or cushion material; UV and heat resistance; Dimensions; Stackability and covers; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الأثاث الخارجي (رمز النشاط outdoor_furniture فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الصنف والطراز؛ مادة الهيكل وطلاؤه؛ مادة النسيج أو القماش أو الوسائد؛ مقاومة الأشعة فوق البنفسجية والحرارة؛ الأبعاد؛ قابلية التكديس والأغطية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For outdoor furniture (trade code outdoor_furniture only), every quoted line must state: Item and model; Frame material and coating; Weave, fabric or cushion material; UV and heat resistance; Dimensions; Stackability and covers; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item and model; Frame material and coating; Weave, fabric or cushion material; Dimensions; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Item and model: Ask for a list per area: pool, terrace, beach; Frame material and coating: Beachfront: ask distance from the sea; Weave, fabric or cushion material: Ask whether cushions stay outdoors or are stored. Before a firm price: a firm price needs models or a defined grade, quantities and the exposure (pool, rooftop, beachfront); custom sizes or finishes need a sample or shop drawing approval first. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Item and model; Frame material and coating; Weave, fabric or cushion material; Dimensions; Quantity and unit of measure; Delivery terms and location.",
+      "body_ar": "في نشاط الأثاث الخارجي (رمز النشاط outdoor_furniture فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الصنف والطراز؛ مادة الهيكل وطلاؤه؛ مادة النسيج أو القماش أو الوسائد؛ مقاومة الأشعة فوق البنفسجية والحرارة؛ الأبعاد؛ قابلية التكديس والأغطية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الصنف والطراز، ومادة الهيكل وطلاؤه، ومادة النسيج أو القماش أو الوسائد، والمقاسات، والكمية، وشروط التسليم والتجميع. أسئلة المتابعة: المواقع المطلة على البحر تستلزم معرفة البعد عن البحر لاختيار الألمنيوم المطلي أو الفولاذ 316، والوسائد تستلزم معرفة هل تبقى في الخارج أم تُخزن. لا يُعطى سعر نهائي دون الطراز أو الدرجة والكمية ودرجة التعرض، والمقاسات أو التشطيبات الخاصة تحتاج اعتماد عيّنة أو رسم تنفيذي أولاً. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Item and model",
         "Frame material and coating",
@@ -20,13 +20,124 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Item and model",
+        "Frame material and coating",
+        "Weave, fabric or cushion material",
+        "Dimensions",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Item and model",
+          "why_needed_to_price": "Each model has its own frame and fabric bill.",
+          "uae_options": "lounger; dining chair; sofa set; table; umbrella; daybed",
+          "follow_up_if": "Ask for a list per area: pool, terrace, beach.",
+          "blocking": true
+        },
+        {
+          "spec": "Frame material and coating",
+          "why_needed_to_price": "Frame material is the main driver of price and life in UAE sun and salt air.",
+          "uae_options": "powder-coated aluminium; marine-grade stainless 316; teak; HDPE; galvanised steel",
+          "follow_up_if": "Beachfront: ask distance from the sea.",
+          "blocking": true
+        },
+        {
+          "spec": "Weave, fabric or cushion material",
+          "why_needed_to_price": "Weave and fabric grade set UV life.",
+          "uae_options": "HDPE resin wicker; rope; textilene sling; solution-dyed acrylic cushion fabric; quick-dry foam",
+          "follow_up_if": "Ask whether cushions stay outdoors or are stored.",
+          "blocking": true
+        },
+        {
+          "spec": "UV and heat resistance",
+          "why_needed_to_price": "UV and heat ratings decide fading and brittleness.",
+          "uae_options": "UV-stabilised HDPE; fabric lightfastness grade",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Dimensions",
+          "why_needed_to_price": "Size sets material quantity.",
+          "uae_options": "catalogue size or custom",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Stackability and covers",
+          "why_needed_to_price": "Stacking and covers matter for hotels and beach clubs.",
+          "uae_options": "stackable; covers included",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "Price breaks depend on quantity.",
+          "uae_options": "per piece; per set",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "Contract use may ask for strength tests.",
+          "uae_options": "EN 581 outdoor furniture; BIFMA for contract",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "No UAE product approval is generally needed.",
+          "uae_options": "none for furniture",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Delivery and assembly at hotel or villa change cost.",
+          "uae_options": "DDP site; assembly on site",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "Warranty differs for frame, weave and fabric.",
+          "uae_options": "frame; weave; fabric fading",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Imported collections need months.",
+          "uae_options": "ex-stock; made to order",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions shift cost.",
+          "uae_options": "umbrella bases; covers; cushions; installation",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs models or a defined grade, quantities and the exposure (pool, rooftop, beachfront); custom sizes or finishes need a sample or shop drawing approval first.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "outdoor_furniture:uae-standards-and-approvals",
@@ -83,6 +194,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "outdoor_furniture:authority-approvals",
+      "topic": "Outdoor furniture: licences, permits and approvals by emirate",
+      "topic_ar": "أثاث خارجي: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Outdoor furniture needs no UAE product registration or type approval. Requirements come from where it is placed: furniture on hotel terraces, pool decks and beaches is part of the hotel's fit-out and operating approvals; cushions and umbrellas in covered public areas may be asked for fire test evidence under the UAE Fire and Life Safety Code; and furniture placed on public land or a public beach needs the land owner's or municipality's permission, obtained by the operator, not the supplier. Electrical items sold with outdoor furniture (heaters, lighting, misting fans) are electrical equipment that may need a MoIAT conformity certificate held by the importer.",
+      "body_ar": "لا يحتاج الأثاث الخارجي إلى تسجيل منتج أو اعتماد نوعي في الإمارات. وتنشأ المتطلبات من مكان وضعه: فالأثاث على شرفات الفنادق وأسطح المسابح والشواطئ جزء من اعتمادات التجهيز والتشغيل للفندق، وقد يُطلب للوسائد والمظلات في المناطق العامة المسقوفة دليل اختبار حريق وفق كود الإمارات للحماية من الحرائق، والأثاث الموضوع على أرض عامة أو شاطئ عام يحتاج إذن مالك الأرض أو البلدية ويستخرجه المشغّل لا المورد. والأجهزة الكهربائية المورّدة مع الأثاث الخارجي (المدافئ والإنارة ومراوح الرذاذ) معدات كهربائية قد تحتاج شهادة مطابقة من وزارة الصناعة والتكنولوجيا المتقدمة يحوزها المستورد.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection. Second page read 2026-11-10 (ledger 1597): MoIAT's regulated-products sheet lists no furniture category. Still not confirmed: the fire-test evidence for cushions and umbrellas (www.dcd.gov.ae resets every connection, so the UAE Fire and Life Safety Code text was not read) and municipal permission for public land."
+    },
+    {
+      "id": "outdoor_furniture:quote-red-flags",
+      "topic": "Outdoor furniture: red flags in supplier quotations",
+      "topic_ar": "أثاث خارجي: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Common substitutions: PE or PVC wicker instead of UV-stabilised HDPE (it cracks in UAE sun); steel frames described as \"metal\" instead of aluminium; stainless 201 or 304 instead of 316 near the sea; polyester cushion fabric instead of solution-dyed acrylic; ordinary foam instead of quick-dry; and teak grade or origin not stated. Also check that cushions, covers and umbrella bases are priced, that the warranty covers fading and weave, not only the frame, and that \"imported from Europe\" is not a European design made elsewhere.",
+      "body_ar": "من الاستبدالات الشائعة: خيزران من PE أو PVC بدل HDPE المثبت ضد الأشعة فوق البنفسجية (يتشقق تحت شمس الإمارات)، وهياكل فولاذية توصف بأنها \"معدن\" بدل الألمنيوم، وفولاذ 201 أو 304 بدل 316 قرب البحر، وقماش بوليستر للوسائد بدل الأكريليك المصبوغ في المحلول، وإسفنج عادي بدل سريع الجفاف، وعدم ذكر درجة خشب الساج أو منشئه. وتأكد أيضاً من تسعير الوسائد والأغطية وقواعد المظلات، ومن أن الضمان يغطي بهتان اللون والنسيج لا الهيكل وحده، وأن عبارة \"مستورد من أوروبا\" لا تعني تصميماً أوروبياً مصنوعاً في مكان آخر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "outdoor_furniture:buyer-mistakes",
+      "topic": "Outdoor furniture: common buyer mistakes",
+      "topic_ar": "أثاث خارجي: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers often buy indoor-grade or low-grade wicker for full sun, choose dark cushions that fade and overheat, forget storage for cushions in the summer and windy season, and do not ask for the frame material near the sea. Another mistake is comparing a set price where one quote includes cushions and covers and another does not.",
+      "body_ar": "كثيراً ما يشتري المشترون خيزراناً مخصصاً للداخل أو منخفض الجودة للتعرض الكامل للشمس، ويختارون وسائد داكنة تبهت وتسخن، وينسون تخزين الوسائد في الصيف وموسم الرياح، ولا يسألون عن مادة الهيكل قرب البحر. ومن الأخطاء كذلك مقارنة سعر طقم يشمل في عرض الوسائد والأغطية ولا يشملها في آخر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "outdoor_furniture:price-drivers",
+      "topic": "Outdoor furniture: what makes prices differ legitimately",
+      "topic_ar": "أثاث خارجي: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Prices differ with frame material and wall thickness, coating quality, HDPE grade and weave density, teak grade, cushion fabric and foam, design brand and origin, custom sizes or colours, quantity, packing and freight, and the length and scope of warranty.",
+      "body_ar": "تختلف الأسعار باختلاف مادة الهيكل وسماكة جداره، وجودة الطلاء، ودرجة HDPE وكثافة النسيج، ودرجة خشب الساج، وقماش الوسائد وإسفنجها، والعلامة والمنشأ، والمقاسات أو الألوان الخاصة، والكمية، والتغليف والشحن، ومدة الضمان ونطاقه.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "outdoor_furniture:compare-quotes-cost-to-value",
+      "topic": "Outdoor furniture: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "أثاث خارجي: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare like-for-like on the same frame material, weave or fabric grade, cushions and covers, quantity and delivery. Value in this climate is mostly life: a frame and fabric that last several seasons at the pool or beach outweigh a lower first price. Ask each supplier for material data (HDPE, aluminium alloy and coating, fabric type) and the warranty on fading, then recommend the three offering full compliance with the longest credible warranty for the price.",
+      "body_ar": "قارن العروض بالمثل على مادة الهيكل نفسها ودرجة النسيج أو القماش والوسائد والأغطية والكمية والتسليم. والقيمة في هذا المناخ هي العمر في الغالب: فهيكل وقماش يصمدان عدة مواسم عند المسبح أو الشاطئ يفوقان سعراً أولياً أقل. اطلب من كل مورد بيانات المواد (HDPE، وسبيكة الألمنيوم وطلاؤها، ونوع القماش) والضمان على بهتان اللون، ثم أوصِ بالعروض الثلاثة المطابقة بالكامل وذات الضمان الأطول الموثوق مقابل السعر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -124,7 +305,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "outdoor_furniture:spec-checklist"
+      "outdoor_furniture:spec-checklist",
+      "outdoor_furniture:authority-approvals"
     ],
     "added": [
       "outdoor_furniture:spec-checklist",
@@ -155,6 +337,37 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "outdoor_furniture:quote-red-flags",
+      "outdoor_furniture:buyer-mistakes",
+      "outdoor_furniture:price-drivers",
+      "outdoor_furniture:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "outdoor_furniture:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

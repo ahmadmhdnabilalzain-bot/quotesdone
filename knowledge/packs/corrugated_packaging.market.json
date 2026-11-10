@@ -27,8 +27,8 @@
       "topic": "Corrugated boxes & cartons: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الكرتون المموج والصناديق الكرتونية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names corrugated packaging makers and board and paper sources in the market, such as Falcon Pack, MEPCO and Mondi, and where corrugators operate. Many corrugators operate in Sharjah, Ajman, Umm Al Quwain, RAK, Jebel Ali and Dubai Investments Park, and only one of them was checked by name. Names in the market: Falcon Pack, MEPCO, Mondi, Smurfit Westrock, Nine Dragons; the last four are board and paper sources. Paper comes from regional mills, such as MEPCO in Saudi Arabia, and imports from Europe, India and China.",
-      "body_ar": "من أبرز مصنعي الكرتون المموج ومصادر الورق والكرتون في السوق Falcon Pack وMEPCO وMondi، مع بيان أماكن عمل مصانع الكرتون المموج. تعمل مصانع كرتون مضلع كثيرة في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي ومجمع دبي للاستثمار، ولم يُتحقق بالاسم إلا من أحدها. الأسماء في السوق: Falcon Pack، MEPCO، Mondi، Smurfit Westrock، Nine Dragons، والأربعة الأخيرة مصادر للكرتون والورق. ويأتي الورق من مصانع إقليمية مثل MEPCO في السعودية ومن الاستيراد من أوروبا والهند والصين.",
+      "body_en": "This entry names corrugated packaging makers and board and paper sources in the market, such as Falcon Pack, MEPCO and Mondi, and where corrugators operate. Many corrugators operate in Sharjah, Ajman, Umm Al Quwain, RAK, Jebel Ali and Dubai Investments Park, and only one of them was checked by name. Names in the market: Falcon Pack, MEPCO, Mondi, Smurfit Westrock, Nine Dragons; the last four are board and paper sources. Paper comes from regional mills, such as MEPCO in Saudi Arabia, and imports from Europe, India and China.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Falcon Pack = a mid-tier UAE brand; MEPCO = a mid-tier Saudi brand; Mondi = a premium British brand; Smurfit Westrock = a premium Irish brand; Nine Dragons = a economy Chinese brand.",
+      "body_ar": "من أبرز مصنعي الكرتون المموج ومصادر الورق والكرتون في السوق Falcon Pack وMEPCO وMondi، مع بيان أماكن عمل مصانع الكرتون المموج. تعمل مصانع كرتون مضلع كثيرة في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي ومجمع دبي للاستثمار، ولم يُتحقق بالاسم إلا من أحدها. الأسماء في السوق: Falcon Pack، MEPCO، Mondi، Smurfit Westrock، Nine Dragons، والأربعة الأخيرة مصادر للكرتون والورق. ويأتي الورق من مصانع إقليمية مثل MEPCO في السعودية ومن الاستيراد من أوروبا والهند والصين.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Falcon Pack = علامة إماراتية من الفئة المتوسطة؛ MEPCO = علامة سعودية من الفئة المتوسطة؛ Mondi = علامة بريطانية من الفئة الممتازة؛ Smurfit Westrock = علامة أيرلندية من الفئة الممتازة؛ Nine Dragons = علامة صينية من الفئة الاقتصادية.",
       "sources": [
         "https://www.mep.co/Website/En/",
         "https://falconpack.com/",
@@ -38,7 +38,44 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO (Saudi) makes containerboard -> confirmed | Falcon Pack is a UAE packaging maker -> confirmed | Union Paper Mills -> removed: the site did not answer; Hotpack removed (connection refused). Not checked: Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO (Saudi) makes containerboard -> confirmed | Falcon Pack is a UAE packaging maker -> confirmed | Union Paper Mills -> removed: the site did not answer; Hotpack removed (connection refused). Not checked: Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Falcon Pack",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "MEPCO",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Mondi",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Smurfit Westrock",
+          "origin": "Ireland",
+          "tier": "premium",
+          "generic_en": "a premium Irish brand",
+          "generic_ar": "علامة أيرلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Nine Dragons",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        }
+      ]
     },
     {
       "id": "corrugated_packaging:uae-market-sizes",

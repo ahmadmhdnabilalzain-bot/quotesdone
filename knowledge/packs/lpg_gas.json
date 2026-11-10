@@ -5,8 +5,8 @@
       "id": "lpg_gas:spec-checklist",
       "topic": "LPG gas supply - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For lpg gas supply (trade code lpg_gas only), every quoted line must state: Supply mode; Monthly consumption; Tank or cylinder size; Pipework and regulator scope; Gas leak detection; Civil defence approval of the installation; Supplier licence; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط توريد غاز البترول المسال (رمز النشاط lpg_gas فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: طريقة التوريد؛ الاستهلاك الشهري؛ حجم الخزان أو الأسطوانة؛ نطاق التمديدات والمنظم؛ كشف تسرب الغاز؛ موافقة الدفاع المدني على التركيب؛ ترخيص المورد؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For lpg gas supply (trade code lpg_gas only), every quoted line must state: Supply mode; Monthly consumption; Tank or cylinder size; Pipework and regulator scope; Gas leak detection; Civil defence approval of the installation; Supplier licence; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): supply mode, consumption, size and the pipework scope. New installations need a site visit. Supplier ask-back review (2026-11-10): the inquiry now also states Cylinder or tank ownership; Premises type and use; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Supply mode; Monthly consumption; Tank or cylinder size; Pipework and regulator scope.",
+      "body_ar": "في نشاط توريد غاز البترول المسال (رمز النشاط lpg_gas فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: طريقة التوريد؛ الاستهلاك الشهري؛ حجم الخزان أو الأسطوانة؛ نطاق التمديدات والمنظم؛ كشف تسرب الغاز؛ موافقة الدفاع المدني على التركيب؛ ترخيص المورد؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: طريقة التوريد، والاستهلاك، والحجم، ونطاق التمديدات. والتمديدات الجديدة تحتاج إلى زيارة الموقع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً ملكية الأسطوانات أو الخزان؛ نوع المنشأة والاستخدام؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Supply mode",
         "Monthly consumption",
@@ -22,13 +22,152 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Cylinder or tank ownership",
+        "Premises type and use",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dcd.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Supply mode",
+        "Monthly consumption",
+        "Tank or cylinder size",
+        "Pipework and regulator scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Supply mode",
+          "why_needed_to_price": "Cylinders, a bulk tank and a central piped system are priced differently.",
+          "uae_options": "cylinders; bulk tank; central gas system; metered supply",
+          "follow_up_if": "Restaurant or building: ask whether a central system exists.",
+          "blocking": true
+        },
+        {
+          "spec": "Monthly consumption",
+          "why_needed_to_price": "Consumption sets the tank or cylinder count.",
+          "uae_options": "kg per month",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Tank or cylinder size",
+          "why_needed_to_price": "Sizes change price and approval.",
+          "uae_options": "cylinder kg; tank m3",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Pipework and regulator scope",
+          "why_needed_to_price": "New pipework is a separate installation.",
+          "uae_options": "existing; new",
+          "follow_up_if": "New installation: a site visit and civil defence drawings are needed.",
+          "blocking": true
+        },
+        {
+          "spec": "Gas leak detection",
+          "why_needed_to_price": "Gas leak detection is required in kitchens and adds sensors and shut-off valves.",
+          "uae_options": "Gas detectors with solenoid shut-off linked to alarm.",
+          "follow_up_if": "If the kitchen is commercial, ask for detection and shut-off.",
+          "blocking": false
+        },
+        {
+          "spec": "Civil defence approval of the installation",
+          "why_needed_to_price": "No supply to an unapproved installation.",
+          "uae_options": "approved; to be approved",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Supplier licence",
+          "why_needed_to_price": "Only licensed gas suppliers may supply and install.",
+          "uae_options": "Gas supplier licence from the authority.",
+          "follow_up_if": "If the licence is not shown, the offer cannot be accepted.",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "Quantity and unit decide the price.",
+          "uae_options": "Cylinders by size; bulk tank litres; kg.",
+          "follow_up_if": "If consumption is unknown, ask for the kitchen equipment list.",
+          "blocking": false
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "The standard a product is made and tested to defines what is being bought; products to different standards are not like-for-like.",
+          "uae_options": "EN, BS, IEC, ASTM or GSO standards; test reports from an accredited (EIAC or ILAC-recognised) lab.",
+          "follow_up_if": "If no test report to the stated standard is offered, ask for it before comparing prices.",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "A product or service without the approval the emirate requires cannot be used, so the cost and time of approval must be in or out of the price.",
+          "uae_options": "MoIAT conformity for regulated products; civil defence approval for fire-related items; municipality or utility approval.",
+          "follow_up_if": "If the supplier holds no current approval for this exact item, ask who obtains it, how long it takes and who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Freight, unloading and the distance to site are part of the price; a delivered price to Dubai is not the same as one to Al Dhafra.",
+          "uae_options": "Ex-works or ex-warehouse; delivered to site within an emirate; delivered and offloaded; Incoterms for imports.",
+          "follow_up_if": "If the site is remote or has access limits (time windows, small vehicles only), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "why_needed_to_price": "Supply-only and supply-install-commission are different prices; testing and commissioning are often left out silently.",
+          "uae_options": "Supply only; supply and install; install, test and commission with records and training.",
+          "follow_up_if": "If commissioning, testing or training is needed, state it so all quotes include it.",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "The defects period decides how long the provider must return at its own cost, which it prices in.",
+          "uae_options": "12 months defects liability is common on UAE works; longer warranties for specific systems by agreement.",
+          "follow_up_if": "If the buyer needs a longer period, ask for it priced separately.",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "Cylinder or tank ownership",
+          "why_needed_to_price": "Cylinders on deposit, a rented bulk tank and a customer-owned tank carry different upfront and monthly charges, so the refill price alone is not comparable.",
+          "uae_options": "Cylinders on refundable deposit; cylinders already owned; bulk tank rented from the supplier; bulk tank owned by the customer.",
+          "follow_up_if": "If cylinders or a tank are already on site from another supplier, ask how many and whose they are.",
+          "blocking": false
+        },
+        {
+          "spec": "Premises type and use",
+          "why_needed_to_price": "A villa kitchen, a commercial kitchen, a laundry and an industrial burner need different regulators, safety devices and delivery frequency.",
+          "uae_options": "Residential villa or building; restaurant or commercial kitchen; laundry; industrial process; labour accommodation.",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site visit is unavoidable for a new or modified gas installation.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "lpg_gas:uae-standards-and-approvals",
@@ -85,6 +224,78 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "lpg_gas:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "LPG: approvals per emirate",
+      "topic_ar": "الغاز المسال: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: the UAE Fire and Life Safety Code makes LPG cylinder installations subject to civil defence approval after site inspection, and all installations including manifolds and pipework must be approved; Dubai Municipality's LPG cylinder guideline splits roles, with Dubai Civil Defence for bulk storage, manifold and piping systems and residential use, and the municipality for building and warehouse approval. Abu Dhabi: the Department of Energy leads a Gas Safety Committee whose circulars set LPG distribution rules with fines or closure for non-compliance, with the Abu Dhabi Civil Defence Authority taking part. Sharjah: SEWA is the gas authority alongside civil defence. Northern emirates: civil defence. Who obtains: the licensed gas contractor; the supplier delivers only to approved installations.",
+      "body_ar": "في دبي: يجعل كود الإمارات للحماية من الحرائق تركيب أسطوانات الغاز المسال خاضعاً لموافقة الدفاع المدني بعد معاينة الموقع، ويجب اعتماد كل التمديدات بما فيها المجمعات والأنابيب؛ ويوزع دليل بلدية دبي لأسطوانات الغاز المسؤوليات، فيتولى الدفاع المدني بدبي التخزين السائب والمجمعات والأنابيب والاستخدام السكني، وتتولى البلدية اعتماد المباني والمستودعات. في أبوظبي: تقود دائرة الطاقة لجنة السلامة من الغاز التي تحدد تعاميمها قواعد توزيع الغاز المسال مع غرامات أو إغلاق عند المخالفة، وتشارك فيها هيئة أبوظبي للدفاع المدني. في الشارقة: هيئة كهرباء ومياه وغاز الشارقة جهة الغاز إلى جانب الدفاع المدني. في الإمارات الشمالية: الدفاع المدني. من يحصل عليها: مقاول الغاز المرخّص، ولا يورد المزوّد إلا لتمديدات معتمدة.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.doe.gov.ae/en/Media-Centre/News/Abu-Dhabi-Gas-Safety-Committee-and-ADDED-issue-circulars-to-enhance-safe-LPG-distribution",
+        "https://www.dm.gov.ae/documents/hsd-gu53-2020/",
+        "https://www.sewa.gov.ae/en/gas",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/01/DM-HSD-GU53-LPGC2_Technical-Guidelines-for-Liquefied-Petroleum-Gas-Cylinders_V5-26-04-2024.pdf"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM Technical Guideline 53 on LPG cylinders (V5, 30 April 2024): Dubai Civil Defense for bulk storage, manifold and piping systems and residential use, DM Building Department for building and warehouse approval, and storage only by facilities with a valid approval from the concerned Dubai authorities; Abu Dhabi Department of Energy: the Gas Safety Committee of 12 government entities under DoE and ADDED issued LPG circulars with fines and possible closure for violations. Not confirmed on any page that opened: the fire-code requirement for civil defence approval after site inspection, the Abu Dhabi Civil Defence Authority's part in the committee, and SEWA's role for LPG in Sharjah (SEWA's gas page carries no text on it). Hosts that failed: www.dcd.gov.ae (connection reset by the site)."
+    },
+    {
+      "id": "lpg_gas:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in LPG quotes",
+      "topic_ar": "علامات التحذير في عروض الغاز المسال",
+      "body_en": "Watch for: cylinders without valid test dates, an installer not approved by civil defence, leak detection or shut-off valves excluded, deposits on cylinders not stated, and a price per cylinder without the kg.",
+      "body_ar": "انتبه إلى: أسطوانات دون تاريخ فحص ساري، ومركّب غير معتمد من الدفاع المدني، واستثناء كشف التسرب أو صمامات الإغلاق، وعدم ذكر تأمين الأسطوانات، وسعر للأسطوانة دون الوزن بالكيلوغرام.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "lpg_gas:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in LPG",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الغاز المسال",
+      "body_en": "Buyers buy cylinders from unlicensed sellers, add cylinders without approval, and skip leak detection.",
+      "body_ar": "يشتري المشترون أسطوانات من بائعين غير مرخّصين، ويضيفون أسطوانات دون موافقة، ويتجاوزون كشف التسرب.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "lpg_gas:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves LPG prices",
+      "topic_ar": "ما الذي يغيّر أسعار الغاز المسال بشكل مشروع",
+      "body_en": "Prices differ by supply mode, consumption, cylinder or tank size, installation scope and the approved system.",
+      "body_ar": "تختلف الأسعار حسب طريقة التوريد، والاستهلاك، وحجم الأسطوانة أو الخزان، ونطاق التمديد، والنظام المعتمد.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "lpg_gas:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing LPG quotes like for like",
+      "topic_ar": "مقارنة عروض الغاز المسال على أساس متكافئ",
+      "body_en": "Compare on price per kg delivered with the same supply mode, deposits and service. Value beyond price: a licensed supplier, an approved installation and 24-hour emergency service.",
+      "body_ar": "قارن على السعر لكل كيلوغرام مسلّماً بطريقة التوريد والتأمينات والخدمة نفسها. القيمة إلى جانب السعر: مورد مرخّص، وتمديدات معتمدة، وخدمة طوارئ على مدار الساعة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -121,16 +332,22 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
+    "fetched_urls": 4,
+    "claims_checked": 8,
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "lpg_gas:spec-checklist"
+      "lpg_gas:spec-checklist",
+      "lpg_gas:approvals-per-emirate"
     ],
     "added": [
       "lpg_gas:spec-checklist",
-      "lpg_gas:uae-standards-and-approvals"
+      "lpg_gas:uae-standards-and-approvals",
+      "lpg_gas:approvals-per-emirate",
+      "lpg_gas:quote-red-flags",
+      "lpg_gas:buyer-mistakes",
+      "lpg_gas:price-drivers",
+      "lpg_gas:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
@@ -157,6 +374,27 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: lpg_gas:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 7 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "lpg_gas:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2025/01/DM-HSD-GU53-LPGC2_Technical-Guidelines-for-Liquefied-Petroleum-Gas-Cylinders_V5-26-04-2024.pdf",
+        "https://www.doe.gov.ae/en/Media-Centre/News/Abu-Dhabi-Gas-Safety-Committee-and-ADDED-issue-circulars-to-enhance-safe-LPG-distribution"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

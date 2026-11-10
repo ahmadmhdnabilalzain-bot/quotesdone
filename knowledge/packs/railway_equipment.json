@@ -5,8 +5,8 @@
       "id": "railway_equipment:spec-checklist",
       "topic": "Railway equipment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For railway equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) component or system and part number; (2) track gauge and rail profile; (3) applicable standard (EN, IEC, UIC); (4) operator or project and interface requirements; (5) quantity and unit of measure; (6) material certificates and traceability; (7) RAMS or safety case documentation; (8) type approval by the operator or authority; (9) spares and training; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the railway_equipment trade.",
-      "body_ar": "لكي تُقارن عروض معدات السكك الحديدية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) المكوّن أو النظام ورقم القطعة؛ (2) عرض السكة ومقطع القضيب؛ (3) المعيار المطبق (EN أو IEC أو UIC)؛ (4) المشغل أو المشروع ومتطلبات التوافق؛ (5) الكمية ووحدة القياس؛ (6) شهادات المواد وإمكانية التتبع؛ (7) وثائق الاعتمادية والسلامة (RAMS)؛ (8) اعتماد النوع من المشغل أو الجهة المختصة؛ (9) قطع الغيار والتدريب؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة railway_equipment فقط.",
+      "body_en": "For railway equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) component or system and part number; (2) track gauge and rail profile; (3) applicable standard (EN, IEC, UIC); (4) operator or project and interface requirements; (5) quantity and unit of measure; (6) material certificates and traceability; (7) RAMS or safety case documentation; (8) type approval by the operator or authority; (9) spares and training; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the railway_equipment trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): component or system and part number; track gauge and rail profile; applicable standard (EN, IEC, UIC); operator or project and interface requirements; quantity and unit of measure; type approval by the operator or authority. Follow-up questions the answers trigger: operator or project and interface requirements: Ask for the operator's technical specification and interface documents. Before a firm price: systems and rolling-stock items need the operator's specification and interface data; installation needs site access and possession planning. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: component or system and part number; track gauge and rail profile; applicable standard (EN, IEC, UIC); operator or project and interface requirements; quantity and unit of measure; type approval by the operator or authority.",
+      "body_ar": "لكي تُقارن عروض معدات السكك الحديدية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) المكوّن أو النظام ورقم القطعة؛ (2) عرض السكة ومقطع القضيب؛ (3) المعيار المطبق (EN أو IEC أو UIC)؛ (4) المشغل أو المشروع ومتطلبات التوافق؛ (5) الكمية ووحدة القياس؛ (6) شهادات المواد وإمكانية التتبع؛ (7) وثائق الاعتمادية والسلامة (RAMS)؛ (8) اعتماد النوع من المشغل أو الجهة المختصة؛ (9) قطع الغيار والتدريب؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة railway_equipment فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المكون أو النظام ورقم القطعة، وعرض السكة ومقطع القضيب، والمواصفة المطبقة، والمشغل أو المشروع ومتطلبات الربط، والكمية، والاعتماد النوعي لدى المشغل أو الجهة المختصة. أسئلة المتابعة: تُطلب المواصفة الفنية للمشغل ووثائق الربط. الأنظمة وقطع العربات تحتاج مواصفة المشغل وبيانات الربط، والتركيب يحتاج الوصول للموقع وتخطيط فترات الإغلاق. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "component or system and part number",
         "track gauge and rail profile",
@@ -20,13 +20,124 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://www.rta.ae/wps/portal/rta/ae/home"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "component or system and part number",
+        "track gauge and rail profile",
+        "applicable standard (EN, IEC, UIC)",
+        "operator or project and interface requirements",
+        "quantity and unit of measure",
+        "type approval by the operator or authority"
+      ],
+      "spec_guide": [
+        {
+          "spec": "component or system and part number",
+          "blocking": true,
+          "why_needed_to_price": "Rail items are specific to the network and the rolling stock.",
+          "uae_options": "Rail, sleepers, fastenings, turnouts, signalling, OCS, rolling-stock parts; part number.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "track gauge and rail profile",
+          "blocking": true,
+          "why_needed_to_price": "Gauge and profile fix the product.",
+          "uae_options": "Standard gauge 1,435 mm; rail profile (e.g. 60E1/UIC60, 141 lb).",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "applicable standard (EN, IEC, UIC)",
+          "blocking": true,
+          "why_needed_to_price": "Standards and type tests drive cost.",
+          "uae_options": "EN 13674, EN 13230, EN 50126/8/9, IEC 62278.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "operator or project and interface requirements",
+          "blocking": true,
+          "why_needed_to_price": "The operator's specification and interfaces govern acceptance.",
+          "uae_options": "Etihad Rail, metro or tram operator, project EPC.",
+          "follow_up_if": "Ask for the operator's technical specification and interface documents."
+        },
+        {
+          "spec": "quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "Rail is sold per tonne or metre; components per set.",
+          "uae_options": "Tonnes, metres, sets.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "material certificates and traceability",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "EN 10204 3.1/3.2.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "RAMS or safety case documentation",
+          "blocking": false,
+          "why_needed_to_price": "Safety documentation can be a major cost for systems.",
+          "uae_options": "RAMS plan, hazard log, SIL evidence.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "type approval by the operator or authority",
+          "blocking": true,
+          "why_needed_to_price": "Without type approval the item cannot be used; new approval adds cost and time.",
+          "uae_options": "Already approved on the network, approval required.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "spares and training",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "systems and rolling-stock items need the operator's specification and interface data; installation needs site access and possession planning."
     },
     {
       "id": "railway_equipment:uae-standards-and-approvals",
@@ -81,6 +192,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "railway_equipment:authority-approvals",
+      "topic": "Railway equipment: the federal railway regulator and operator approvals",
+      "topic_ar": "معدات السكك الحديدية: الجهة الاتحادية المنظمة واعتمادات المشغل",
+      "kind": "authority_approval",
+      "body_en": "Search results report that Federal Law No. 8 of 2020 designates the Ministry of Energy and Infrastructure as the federal railway regulator, issuing safety permits (approval of an infrastructure manager's or operator's safety management system) under its 2022 executive regulation; before that the Federal Transport Authority granted Etihad Rail its safety approvals. Dubai's metro and tram fall under the RTA. Product acceptance is the operator's: items need the operator's or project's type approval and documentation (RAMS, certificates) before use. How Etihad Rail qualifies suppliers was not established. The supplier obtains type approval with the operator.",
+      "body_ar": "تفيد نتائج البحث بأن القانون الاتحادي رقم 8 لسنة 2020 يحدد وزارة الطاقة والبنية التحتية جهةً اتحادية منظمة للسكك الحديدية، تصدر تصاريح السلامة (اعتماد نظام إدارة السلامة لمدير البنية التحتية أو المشغل) بموجب لائحته التنفيذية لعام 2022؛ وقبل ذلك منحت الهيئة الاتحادية للمواصلات البرية والبحرية قطارات الاتحاد اعتمادات السلامة. ويخضع مترو دبي والترام لهيئة الطرق والمواصلات. وقبول المنتج من اختصاص المشغل: إذ تحتاج الأصناف الاعتماد النوعي من المشغل أو المشروع ووثائقه (RAMS والشهادات) قبل الاستخدام. ولم يثبت كيف تؤهل قطارات الاتحاد مورديها. ويحصل المورد على الاعتماد النوعي لدى المشغل.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/1549/download"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — uaelegislation.gov.ae: not in the allowed network. Second page read 2026-11-10 (ledger 1597): Not confirmed again: Federal Law No. 8 of 2020 sits on uaelegislation.gov.ae (Cloudflare block) and moei.gov.ae resets the TLS handshake; RTA's rail NOC guidelines (rta.ae) confirm the RTA Rail Agency handles works in Dubai rail corridors."
+    },
+    {
+      "id": "railway_equipment:quote-red-flags",
+      "topic": "Red flags in railway equipment quotations",
+      "topic_ar": "علامات التحذير في عروض معدات السكك الحديدية",
+      "kind": "quote_red_flag",
+      "body_en": "Check that the offered item is already type-approved on the network or that the cost and time of approval are included. Watch for a different rail grade or profile, an \"equivalent\" fastening system, standards editions older than the specification, RAMS and safety documentation excluded, origin changed from the approved source, spares and training priced separately, and warranty starting at delivery rather than acceptance.",
+      "body_ar": "تحقق من أن الصنف المعروض معتمد نوعياً على الشبكة أو أن تكلفة الاعتماد ومدته مشمولتان. وانتبه إلى: درجة أو مقطع قضيب مختلف، ونظام تثبيت \"مكافئ\"، وإصدارات مواصفات أقدم من المحدد، واستثناء وثائق RAMS والسلامة، وتغيير المنشأ عن المصدر المعتمد، وتسعير قطع الغيار والتدريب منفصلة، وضمان يبدأ من التسليم لا من القبول.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "railway_equipment:buyer-mistakes",
+      "topic": "Common buyer mistakes in railway procurement",
+      "topic_ar": "أخطاء شائعة لدى المشترين في مشتريات السكك الحديدية",
+      "kind": "buyer_mistake",
+      "body_en": "Buying a cheaper component that is not approved on the network; issuing an enquiry without the operator's specification; underestimating documentation; and ignoring possession windows for installation. Ask the operator, the specification and the approval status.",
+      "body_ar": "شراء مكون أرخص غير معتمد على الشبكة؛ وإصدار طلب عروض دون مواصفة المشغل؛ والتقليل من حجم التوثيق؛ وتجاهل فترات الإغلاق المتاحة للتركيب. لذا يُسأل عن المشغل والمواصفة وحالة الاعتماد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "railway_equipment:price-drivers",
+      "topic": "What legitimately moves railway equipment prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار معدات السكك الحديدية",
+      "kind": "price_driver",
+      "body_en": "Standards and type approval, safety integrity level, material grade, quantities, documentation and testing, origin and approved sources, freight for heavy rail, and currency.",
+      "body_ar": "المواصفات والاعتماد النوعي، ومستوى سلامة التكامل، ودرجة المادة، والكميات، والتوثيق والاختبار، والمنشأ والمصادر المعتمدة، وشحن القضبان الثقيلة، والعملة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "railway_equipment:compare-quotes",
+      "topic": "Comparing railway equipment quotes like-for-like",
+      "topic_ar": "مقارنة عروض معدات السكك الحديدية على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare only approved (or approval-included) offers against the same specification, with documentation, spares and training priced in. Weigh life-cycle cost and supplier support. Recommend the three compliant offers with the lowest total cost.",
+      "body_ar": "لا تقارن إلا العروض المعتمدة (أو الشاملة للاعتماد) مقابل المواصفة نفسها، مع تسعير التوثيق وقطع الغيار والتدريب. وزن تكلفة دورة الحياة ودعم المورد. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة إجمالية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -123,7 +302,8 @@
     "removed": [],
     "still_unverified": [
       "railway_equipment:spec-checklist",
-      "railway_equipment:uae-standards-and-approvals"
+      "railway_equipment:uae-standards-and-approvals",
+      "railway_equipment:authority-approvals"
     ],
     "added": [
       "railway_equipment:spec-checklist",
@@ -154,6 +334,26 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "railway_equipment:quote-red-flags",
+      "railway_equipment:buyer-mistakes",
+      "railway_equipment:price-drivers",
+      "railway_equipment:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "railway_equipment:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.rta.ae/links/rail-noc.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

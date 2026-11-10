@@ -3,6 +3,8 @@
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,516-line index.ts split into modules, a pure move).
 import { NOT_LIVE_QUOTE_IN } from '../../_shared/quote_live.ts';
 import { defaultDeps } from '../../_shared/think.ts';
+import { ctxOfQuote, generaliseLine, generaliseQuoteTerms } from '../../_shared/quote_generalise.ts';
+import { requestOf, reviewNotes } from '../../_shared/quote_review_notes.ts';
 import { quoteDocument, compareDocument, completenessOf, itemsOfRows, clipCell, quoteRef, jobNoOf, arCategory, arEmirate, enCategory, type Item } from '../../_shared/quote_documents.ts';
 import { portalLink } from '../../_shared/site_origins.ts';
 import { requestDelivery } from '../../_shared/deliver.ts';
@@ -61,8 +63,22 @@ export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   try { const { data: s } = await admin.from('inquiries').select('spec').eq('id', String(q.inquiry_id)).maybeSingle(); inqSpec = s?.spec ?? null; } catch (_e) { /* the checks then apply the trade's standard alone */ }
   const done = completenessOf(q, items, inq?.category ?? null, inqSpec);
   items = done.items;
+  // BEFORE THE REVEAL THE PAGE NAMES NO BRAND, MODEL OR PRODUCT LINE (founder ledger 1589, 10 Nov 2026). specText printed
+  // "Brand: <make> · Model: <code>" for every line and the supplier's own words verbatim; each is generalised now
+  // ("premium German brand", "model stated (shown after reveal)"). The completeness check above ran on the raw lines.
+  let reviewNotesForDoc: { en: string; ar: string; severity: string }[] | null = null;
+  try {
+    const { data: rawLines } = await admin.from('quote_items').select('line_no,description,brand,model,specification,qty,unit,unit_price,amount,country_of_origin,notes,spec').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60);
+    const { data: inqFull } = await admin.from('inquiries').select('summary,spec,boq').eq('id', String(q.inquiry_id)).maybeSingle();
+    reviewNotesForDoc = reviewNotes({ request: requestOf(inqFull || inq), quote: q, lines: rawLines || [] }).map((n) => ({ en: n.en, ar: n.ar, severity: n.severity }));
+  } catch (_e) { reviewNotesForDoc = null; }
+  const unrevealed = !partyName;
+  const pdfCtx = unrevealed ? ctxOfQuote(items.map((it) => ({ brand: it.brand, model: it.model, spec: it.specs })), await supplierIdentities([q.supplier_id])) : {};
+  // generaliseLine reads desc, brand, model, specification and specs: the same keys specText prints.
+  if (unrevealed) items = items.map((it) => generaliseLine(it as unknown as Record<string, unknown>, pdfCtx) as unknown as Item);
   if (!items.length && inq?.boq && Array.isArray((inq.boq as any).boq)) items = (inq.boq as any).boq.map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc).slice(0, 40);
-  const quoteRow = { ...done.quote, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
+  const quoteRow0 = { ...done.quote, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
+  const quoteRow = unrevealed ? generaliseQuoteTerms(quoteRow0, pdfCtx) : quoteRow0;
   const maskNames = partyName ? [] : await supplierIdentities([q.supplier_id]);
   // The Arabic of the supplier's own words is reasoned (decision point trade_glossary_ar); a line not yet
   // translated HOLDS the Arabic document — it is never printed half-translated.
@@ -70,7 +86,7 @@ export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   const rateRead = await readRevealRate(admin);
   if (!rateRead.ok) { await recordRateUnreadable(admin, 'customer_api quotation PDF -> pricing_config', rateRead.error, { quote_id: q.id }); return { j: { ok: false, error: 'reveal_rate_unread' }, ref: quoteRef(inq, letter) }; }
   const revealRate = rateRead.cfg.standard_reveal_rate;
-  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts, revealRate }), { subject: { quote_id: q.id } });
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts, revealRate, reviewNotes: reviewNotesForDoc }), { subject: { quote_id: q.id } });
   if (!doc.doc) return { j: ARABIC_HELD, ref: quoteRef(inq, letter) };
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');

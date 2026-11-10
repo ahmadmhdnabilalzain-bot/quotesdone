@@ -6,8 +6,8 @@
       "topic": "Home furniture & mattresses - what the buyer must state",
       "topic_ar": "أثاث المنازل والمراتب: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For home furniture & mattresses (trade code home_furniture only), every quoted line must state: Item type and room; Dimensions; Frame and carcass material; Upholstery fabric or leather and its grade; Foam density or mattress construction; Finish and colour; Quantity; Assembly and installation; Warranty; Delivery terms and location; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط أثاث المنازل والمراتب (رمز النشاط home_furniture فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع القطعة والغرفة؛ الأبعاد؛ مادة الإطار والهيكل؛ قماش التنجيد أو الجلد ودرجته؛ كثافة الإسفنج أو بنية المرتبة؛ التشطيب واللون؛ الكمية؛ التجميع والتركيب؛ الضمان؛ شروط التسليم وموقعه؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For home furniture & mattresses (trade code home_furniture only), every quoted line must state: Item type and room; Dimensions; Frame and carcass material; Upholstery fabric or leather and its grade; Foam density or mattress construction; Finish and colour; Quantity; Assembly and installation; Warranty; Delivery terms and location; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item type and room; Dimensions; Frame and carcass material; Upholstery fabric or leather and its grade; Foam density or mattress construction; Quantity; Assembly and installation; Delivery terms and location. Before a firm price: stock items can be priced firm by model; custom furniture needs dimensions, materials and a drawing or sample approval. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states payment terms.",
+      "body_ar": "في نشاط أثاث المنازل والمراتب (رمز النشاط home_furniture فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع القطعة والغرفة؛ الأبعاد؛ مادة الإطار والهيكل؛ قماش التنجيد أو الجلد ودرجته؛ كثافة الإسفنج أو بنية المرتبة؛ التشطيب واللون؛ الكمية؛ التجميع والتركيب؛ الضمان؛ شروط التسليم وموقعه؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الصنف، والمقاسات، ومادة الهيكل، ودرجة التنجيد، وكثافة الإسفنج أو بنية المرتبة، والكمية، والتجميع، والتسليم. الأصناف الجاهزة تُسعّر نهائياً بالطراز، والأثاث المفصّل يحتاج المقاسات والمواد ورسماً أو اعتماد عيّنة. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً شروط الدفع.",
       "required_specs": [
         "Item type and room",
         "Dimensions",
@@ -19,7 +19,8 @@
         "Assembly and installation",
         "Warranty",
         "Delivery terms and location",
-        "Lead time"
+        "Lead time",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Mattress"
@@ -27,7 +28,104 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: innerspring including pocket springs, foam including memory foam and latex, and hybrids."
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: innerspring including pocket springs, foam including memory foam and latex, and hybrids. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page.",
+      "blocking": [
+        "Item type and room",
+        "Dimensions",
+        "Frame and carcass material",
+        "Upholstery fabric or leather and its grade",
+        "Foam density or mattress construction",
+        "Quantity",
+        "Assembly and installation",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Item type and room",
+          "why_needed_to_price": "Each item type is a different product.",
+          "uae_options": "sofa; bed; wardrobe; dining; mattress",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Dimensions",
+          "why_needed_to_price": "Size drives material.",
+          "uae_options": "dimensions; mattress size",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Frame and carcass material",
+          "why_needed_to_price": "Frame and carcass material decide quality and price.",
+          "uae_options": "solid wood; plywood; MDF; particle board; metal",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Upholstery fabric or leather and its grade",
+          "why_needed_to_price": "Upholstery grade.",
+          "uae_options": "fabric; leather grade; PU",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Foam density or mattress construction",
+          "why_needed_to_price": "Foam density or mattress construction.",
+          "uae_options": "pocket spring; bonnell; foam density; latex",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Finish and colour",
+          "why_needed_to_price": "Finish and colour.",
+          "uae_options": "veneer; lacquer; melamine",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "pieces",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Assembly and installation",
+          "why_needed_to_price": "Assembly and installation.",
+          "uae_options": "assembled; on-site assembly",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Warranty",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "frame; mattress years",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "floor; lift",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock; made to order",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "site_visit_required_when": "stock items can be priced firm by model; custom furniture needs dimensions, materials and a drawing or sample approval."
     },
     {
       "id": "home_furniture:product-distinctions",
@@ -58,6 +156,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "home_furniture:authority-approvals",
+      "topic": "Home furniture & mattresses: licences, permits and approvals by emirate",
+      "topic_ar": "أثاث المنازل والمراتب: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Home furniture and mattresses need no UAE product registration in normal trade, and no MoIAT listing of furniture or mattresses as regulated products was found in this session. Upholstered furniture placed in hotels, serviced apartments and other non-domestic buildings must meet the fire performance asked under the UAE Fire and Life Safety Code. Electrical recliners and smart beds are electrical equipment that may need a MoIAT conformity certificate. Imported timber may need phytosanitary clearance by the Ministry of Climate Change and Environment.",
+      "body_ar": "لا يحتاج أثاث المنازل والمراتب إلى تسجيل منتج في التجارة المعتادة، ولم يُعثر في هذه الجلسة على إدراج من وزارة الصناعة والتكنولوجيا المتقدمة للأثاث أو المراتب ضمن المنتجات المنظمة. ويجب أن يستوفي الأثاث المنجد الموضوع في الفنادق والشقق الفندقية وغيرها من المباني غير السكنية أداء مقاومة الحريق المطلوب وفق كود الإمارات للحماية من الحرائق. والكراسي القابلة للإمالة كهربائياً والأسرّة الذكية معدات كهربائية قد تحتاج شهادة مطابقة. وقد يحتاج الخشب المستورد إلى تخليص صحة نباتية من وزارة التغير المناخي والبيئة.",
+      "sources": [
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection. Second page read 2026-11-10 (ledger 1597): MoIAT's regulated-products sheet (moiat.gov.ae) lists no furniture or mattress category, which confirms the entry's first sentence, and lists low-voltage electrical products. Still not confirmed: the fire-code rule for upholstery in non-domestic buildings (www.dcd.gov.ae resets every connection, so the UAE Fire and Life Safety Code text was not read) and phytosanitary clearance of timber."
+    },
+    {
+      "id": "home_furniture:quote-red-flags",
+      "topic": "Home furniture & mattresses: red flags in supplier quotations",
+      "topic_ar": "أثاث المنازل والمراتب: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for particle board sold as solid wood, low-density foam, bonnell springs where pocket springs were asked, PU sold as leather, assembly excluded and warranty limited to the frame.",
+      "body_ar": "انتبه إلى ألواح حبيبية تُباع على أنها خشب مصمت، وإسفنج منخفض الكثافة، ونوابض بونيل بدل الجيبية المطلوبة، وجلد صناعي يُباع على أنه طبيعي، واستثناء التجميع، وضمان مقصور على الهيكل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "home_furniture:buyer-mistakes",
+      "topic": "Home furniture & mattresses: common buyer mistakes",
+      "topic_ar": "أثاث المنازل والمراتب: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers do not measure doors and lifts, choose on looks without asking the frame and foam, and forget delivery to upper floors.",
+      "body_ar": "لا يقيس المشترون الأبواب والمصاعد، ويختارون على أساس الشكل دون السؤال عن الهيكل والإسفنج، وينسون التوصيل إلى الطوابق العليا.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "home_furniture:price-drivers",
+      "topic": "Home furniture & mattresses: what makes prices differ legitimately",
+      "topic_ar": "أثاث المنازل والمراتب: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: materials, construction, upholstery, mattress system, brand and origin, custom work, delivery and assembly.",
+      "body_ar": "العوامل: المواد، والتصنيع، والتنجيد، ونظام المرتبة، والعلامة والمنشأ، والتفصيل الخاص، والتسليم والتجميع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "home_furniture:compare-quotes-cost-to-value",
+      "topic": "Home furniture & mattresses: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "أثاث المنازل والمراتب: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same materials and construction, delivered and assembled, with warranty. Recommend three that state frame, foam and spring specifications in writing.",
+      "body_ar": "قارن المواد والتصنيع نفسيهما مع التسليم والتجميع والضمان. أوصِ بثلاثة عروض تذكر مواصفات الهيكل والإسفنج والنوابض كتابة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -91,6 +259,40 @@
       903,
       1198,
       1209
-    ]
+    ],
+    "still_unverified": [
+      "home_furniture:authority-approvals"
+    ],
+    "expert_authored_unsourced": [
+      "home_furniture:quote-red-flags",
+      "home_furniture:buyer-mistakes",
+      "home_furniture:price-drivers",
+      "home_furniture:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "home_furniture:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

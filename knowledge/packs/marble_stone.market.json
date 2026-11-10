@@ -28,8 +28,8 @@
       "topic": "Marble, granite & natural stone: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الرخام والجرانيت والحجر الطبيعي: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Stone is supplied by processors and brands such as Rathath Marble, Independent Marble Factory, Caesarstone, Silestone, Dekton and Neolith, imported from countries including Italy, Spain, Turkey and India and processed in UAE factories. Processors, distributors and brands: Rathath Marble, Independent Marble Factory, Glaze, Caesarstone, Silestone, Dekton, Compac, Technistone, Neolith, Laminam, Lapitec. Stone is imported as blocks and slabs from Italy, Spain, Turkey, Greece, India, China, Egypt, Iran, Oman, Portugal and Brazil and processed in Sharjah, Ajman, Ras Al Khaimah and Dubai factories; aggregates and local stone come from Khor Khwair (RAK). Only Glaze was checked as a local distributor (for Caesarstone).",
-      "body_ar": "يورِّد الحجر مصانع وعلامات مثل رثاث للرخام وIndependent Marble Factory وCaesarstone وSilestone وDekton وNeolith، ويُستورد من دول منها إيطاليا وإسبانيا وتركيا والهند ويُعالَج في مصانع داخل الإمارات. المعالجون والموزعون والعلامات: Rathath Marble، Independent Marble Factory، Glaze، Caesarstone، Silestone، Dekton، Compac، Technistone، Neolith، Laminam، Lapitec. ويُستورد الحجر كتلاً وألواحاً من إيطاليا وإسبانيا وتركيا واليونان والهند والصين ومصر وإيران وعُمان والبرتغال والبرازيل ويُعالج في مصانع الشارقة وعجمان ورأس الخيمة ودبي؛ ويأتي الركام والحجر المحلي من خور خوير (رأس الخيمة). ولم يُتحقق من موزع محلي إلا Glaze (لـCaesarstone).",
+      "body_en": "Stone is supplied by processors and brands such as Rathath Marble, Independent Marble Factory, Caesarstone, Silestone, Dekton and Neolith, imported from countries including Italy, Spain, Turkey and India and processed in UAE factories. Processors, distributors and brands: Rathath Marble, Independent Marble Factory, Glaze, Caesarstone, Silestone, Dekton, Compac, Technistone, Neolith, Laminam, Lapitec. Stone is imported as blocks and slabs from Italy, Spain, Turkey, Greece, India, China, Egypt, Iran, Oman, Portugal and Brazil and processed in Sharjah, Ajman, Ras Al Khaimah and Dubai factories; aggregates and local stone come from Khor Khwair (RAK). Only Glaze was checked as a local distributor (for Caesarstone).\n\nOrigin and tier, for describing a quoted brand without naming it: Caesarstone - premium, Israel; Silestone - premium, Spain; Dekton - premium, Spain; Compac - premium, Spain; Technistone - mid, Czech Republic; Neolith - premium, Spain; Laminam - premium, Italy; Lapitec - premium, Italy.",
+      "body_ar": "يورِّد الحجر مصانع وعلامات مثل رثاث للرخام وIndependent Marble Factory وCaesarstone وSilestone وDekton وNeolith، ويُستورد من دول منها إيطاليا وإسبانيا وتركيا والهند ويُعالَج في مصانع داخل الإمارات. المعالجون والموزعون والعلامات: Rathath Marble، Independent Marble Factory، Glaze، Caesarstone، Silestone، Dekton، Compac، Technistone، Neolith، Laminam، Lapitec. ويُستورد الحجر كتلاً وألواحاً من إيطاليا وإسبانيا وتركيا واليونان والهند والصين ومصر وإيران وعُمان والبرتغال والبرازيل ويُعالج في مصانع الشارقة وعجمان ورأس الخيمة ودبي؛ ويأتي الركام والحجر المحلي من خور خوير (رأس الخيمة). ولم يُتحقق من موزع محلي إلا Glaze (لـCaesarstone).\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Caesarstone: فئة ممتازة، إسرائيل؛ Silestone: فئة ممتازة، إسبانيا؛ Dekton: فئة ممتازة، إسبانيا؛ Compac: فئة ممتازة، إسبانيا؛ Technistone: فئة متوسطة، التشيك؛ Neolith: فئة ممتازة، إسبانيا؛ Laminam: فئة ممتازة، إيطاليا؛ Lapitec: فئة ممتازة، إيطاليا.",
       "sources": [
         "https://rathathmarble.com/",
         "https://en.wikipedia.org/wiki/Khor_Khwair",
@@ -40,7 +40,65 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: stone processing in Sharjah and Ras Al Khaimah -> confirmed (Rathath: Sharjah and Abu Dhabi factories; Independent Marble Factory: Sharjah Industrial Area 15) | RAK quarries -> confirmed (Khor Khwair, Ras Al Khaimah) | Caesarstone distributed in the UAE -> confirmed (Glaze). Not checked: Current quarry availability of specific named stones and the share of each origin in UAE imports were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: stone processing in Sharjah and Ras Al Khaimah -> confirmed (Rathath: Sharjah and Abu Dhabi factories; Independent Marble Factory: Sharjah Industrial Area 15) | RAK quarries -> confirmed (Khor Khwair, Ras Al Khaimah) | Caesarstone distributed in the UAE -> confirmed (Glaze). Not checked: Current quarry availability of specific named stones and the share of each origin in UAE imports were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Caesarstone",
+          "origin": "Israel",
+          "tier": "premium",
+          "generic_en": "a premium brand from Israel",
+          "generic_ar": "علامة ممتازة من إسرائيل"
+        },
+        {
+          "brand": "Silestone",
+          "origin": "Spain",
+          "tier": "premium",
+          "generic_en": "a premium brand from Spain",
+          "generic_ar": "علامة ممتازة من إسبانيا"
+        },
+        {
+          "brand": "Dekton",
+          "origin": "Spain",
+          "tier": "premium",
+          "generic_en": "a premium brand from Spain",
+          "generic_ar": "علامة ممتازة من إسبانيا"
+        },
+        {
+          "brand": "Compac",
+          "origin": "Spain",
+          "tier": "premium",
+          "generic_en": "a premium brand from Spain",
+          "generic_ar": "علامة ممتازة من إسبانيا"
+        },
+        {
+          "brand": "Technistone",
+          "origin": "Czech Republic",
+          "tier": "mid",
+          "generic_en": "a mid brand from Czech Republic",
+          "generic_ar": "علامة متوسطة من التشيك"
+        },
+        {
+          "brand": "Neolith",
+          "origin": "Spain",
+          "tier": "premium",
+          "generic_en": "a premium brand from Spain",
+          "generic_ar": "علامة ممتازة من إسبانيا"
+        },
+        {
+          "brand": "Laminam",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        },
+        {
+          "brand": "Lapitec",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        }
+      ]
     },
     {
       "id": "marble_stone:uae-market-sizes",

@@ -30,8 +30,8 @@
       "topic": "Jewellery & watch trade supplies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "مستلزمات تجارة المجوهرات والساعات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names UAE refiners and jewellers, such as Emirates Gold, Malabar Gold & Diamonds and Damas, international bar brands and grading labs, and the main trading centres. Confirmed UAE refiners and jewellers, plus international bar brands and grading labs: Emirates Gold, Al Etihad Gold, Malabar Gold & Diamonds, Joyalukkas, Damas, Valcambi, PAMP, Argor-Heraeus, GIA, IGI. The trade centres on the Dubai Gold Souk, Gold & Diamond Park and DMCC. Tools, findings and machinery come from specialist traders in Deira; their names were not checked.",
-      "body_ar": "من أبرز المصافي ومحلات المجوهرات في الإمارات Emirates Gold وMalabar Gold & Diamonds وDamas، إضافة إلى ماركات السبائك العالمية ومختبرات التقييم ومراكز التداول الرئيسية. المصافي ومحلات المجوهرات المؤكدة في الإمارات، إضافة إلى علامات السبائك الدولية ومختبرات التصنيف: Emirates Gold، Al Etihad Gold، Malabar Gold & Diamonds، Joyalukkas، Damas، Valcambi، PAMP، Argor-Heraeus، GIA، IGI. وتتمركز التجارة في سوق الذهب بدبي وحديقة الذهب والألماس ومركز دبي للسلع المتعددة. وتأتي الأدوات والقطع والآلات من تجار متخصصين في ديرة لم يُتحقق من أسمائهم.",
+      "body_en": "This entry names UAE refiners and jewellers, such as Emirates Gold, Malabar Gold & Diamonds and Damas, international bar brands and grading labs, and the main trading centres. Confirmed UAE refiners and jewellers, plus international bar brands and grading labs: Emirates Gold, Al Etihad Gold, Malabar Gold & Diamonds, Joyalukkas, Damas, Valcambi, PAMP, Argor-Heraeus, GIA, IGI. The trade centres on the Dubai Gold Souk, Gold & Diamond Park and DMCC. Tools, findings and machinery come from specialist traders in Deira; their names were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Emirates Gold = a premium UAE brand; Al Etihad Gold = a mid-tier UAE brand; Malabar Gold & Diamonds = a mid-tier Indian brand; Joyalukkas = a mid-tier Indian brand; Damas = a premium UAE brand; Valcambi = a premium Swiss brand; PAMP = a premium Swiss brand; Argor-Heraeus = a premium Swiss brand.",
+      "body_ar": "من أبرز المصافي ومحلات المجوهرات في الإمارات Emirates Gold وMalabar Gold & Diamonds وDamas، إضافة إلى ماركات السبائك العالمية ومختبرات التقييم ومراكز التداول الرئيسية. المصافي ومحلات المجوهرات المؤكدة في الإمارات، إضافة إلى علامات السبائك الدولية ومختبرات التصنيف: Emirates Gold، Al Etihad Gold، Malabar Gold & Diamonds، Joyalukkas، Damas، Valcambi، PAMP، Argor-Heraeus، GIA، IGI. وتتمركز التجارة في سوق الذهب بدبي وحديقة الذهب والألماس ومركز دبي للسلع المتعددة. وتأتي الأدوات والقطع والآلات من تجار متخصصين في ديرة لم يُتحقق من أسمائهم.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Emirates Gold = علامة إماراتية من الفئة الممتازة؛ Al Etihad Gold = علامة إماراتية من الفئة المتوسطة؛ Malabar Gold & Diamonds = علامة هندية من الفئة المتوسطة؛ Joyalukkas = علامة هندية من الفئة المتوسطة؛ Damas = علامة إماراتية من الفئة الممتازة؛ Valcambi = علامة سويسرية من الفئة الممتازة؛ PAMP = علامة سويسرية من الفئة الممتازة؛ Argor-Heraeus = علامة سويسرية من الفئة الممتازة.",
       "sources": [
         "https://amluae.com/aml-regulations-for-dpms-in-uae/",
         "https://en.wikipedia.org/wiki/Emirates_Gold",
@@ -44,7 +44,65 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: DPMS must file a goAML DPMSR for each cash or wire transaction at or above AED 55,000 (MoE circular 08/AML/2021); supervised by the Ministry of Economy and Tourism; law now Federal Decree-Law 10 of 2025 -> corrected: covers wire as well as cash; law updated | Emirates Gold is a Dubai refinery (1992); Malabar Gold & Diamonds, Joyalukkas and Damas are UAE jewellery retailers; Al Etihad Gold is a DMCC refinery -> confirmed | Dubai Central Laboratory certifies hallmarks; MoIAT accredits assay centres -> confirmed | Kaloti group refinery, Pure Gold, Kanz, Tanishq -> removed: not checked. Not checked: Current refiner accreditation status, the exact hallmarking authority split between MoIAT and Dubai Central Laboratory, and the precise VAT reverse-charge scope were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: DPMS must file a goAML DPMSR for each cash or wire transaction at or above AED 55,000 (MoE circular 08/AML/2021); supervised by the Ministry of Economy and Tourism; law now Federal Decree-Law 10 of 2025 -> corrected: covers wire as well as cash; law updated | Emirates Gold is a Dubai refinery (1992); Malabar Gold & Diamonds, Joyalukkas and Damas are UAE jewellery retailers; Al Etihad Gold is a DMCC refinery -> confirmed | Dubai Central Laboratory certifies hallmarks; MoIAT accredits assay centres -> confirmed | Kaloti group refinery, Pure Gold, Kanz, Tanishq -> removed: not checked. Not checked: Current refiner accreditation status, the exact hallmarking authority split between MoIAT and Dubai Central Laboratory, and the precise VAT reverse-charge scope were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Emirates Gold",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Al Etihad Gold",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Malabar Gold & Diamonds",
+          "origin": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Joyalukkas",
+          "origin": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Damas",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Valcambi",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "PAMP",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Argor-Heraeus",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "jewellery_supplies:uae-market-sizes",

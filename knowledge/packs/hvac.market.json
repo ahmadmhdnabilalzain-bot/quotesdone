@@ -28,8 +28,8 @@
       "topic": "HVAC & air conditioning: makes, brands, distributors and origins in the UAE",
       "topic_ar": "التكييف والتهوية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the air conditioning brands and distributors in the UAE, such as AHI Carrier, SKM, Zamil, Daikin and Mitsubishi Electric, and where the units come from. Makers, distributors and brands: AHI Carrier (Carrier, Toshiba), SKM Air Conditioning, Zamil Air Conditioners, Daikin, Mitsubishi Electric, Mitsubishi Heavy Industries, Trane, York, LG, Samsung, Gree, Midea, Hisense, O General, Hitachi, Panasonic. SKM makes packaged units and AHUs in Sharjah, Zamil makes units in Dammam, Saudi Arabia, and AHI Carrier distributes Carrier and Toshiba. The distributors of the other brands were not checked. Ducts and diffusers come from local factories. Origins: Thailand, Malaysia, China, Japan, Korea, Saudi Arabia, UAE.",
-      "body_ar": "من أشهر ماركات وموزعي أجهزة التكييف في الإمارات AHI Carrier وSKM وZamil وDaikin وMitsubishi Electric، مع بيان منشأ الوحدات. المصنّعون والموزعون والعلامات: AHI Carrier (Carrier, Toshiba)، SKM Air Conditioning، Zamil Air Conditioners، Daikin، Mitsubishi Electric، Mitsubishi Heavy Industries، Trane، York، LG، Samsung، Gree، Midea، Hisense، O General، Hitachi، Panasonic. وتصنع SKM الوحدات المجمعة ووحدات مناولة الهواء في الشارقة، وتصنع Zamil في الدمام بالسعودية، وتوزع AHI Carrier علامتي Carrier وToshiba، ولم يُتحقق من موزعي العلامات الأخرى. والدكت والفتحات من مصانع محلية. المنشأ: تايلاند، ماليزيا، الصين، اليابان، كوريا، السعودية، الإمارات.",
+      "body_en": "This entry lists the air conditioning brands and distributors in the UAE, such as AHI Carrier, SKM, Zamil, Daikin and Mitsubishi Electric, and where the units come from. Makers, distributors and brands: AHI Carrier (Carrier, Toshiba), SKM Air Conditioning, Zamil Air Conditioners, Daikin, Mitsubishi Electric, Mitsubishi Heavy Industries, Trane, York, LG, Samsung, Gree, Midea, Hisense, O General, Hitachi, Panasonic. SKM makes packaged units and AHUs in Sharjah, Zamil makes units in Dammam, Saudi Arabia, and AHI Carrier distributes Carrier and Toshiba. The distributors of the other brands were not checked. Ducts and diffusers come from local factories. Origins: Thailand, Malaysia, China, Japan, Korea, Saudi Arabia, UAE.\n\nOrigin and tier, for describing a quoted brand without naming it: Carrier - premium, USA; Toshiba - premium, Japan; SKM Air Conditioning - mid, UAE; Zamil Air Conditioners - mid, Saudi Arabia; Daikin - premium, Japan; Mitsubishi Electric - premium, Japan; Mitsubishi Heavy Industries - premium, Japan; Trane - premium, USA; York - premium, USA; LG - mid, South Korea; Samsung - mid, South Korea; Gree - economy, China; Midea - economy, China; Hisense - economy, China; O General - mid, Japan; Hitachi - premium, Japan; Panasonic - premium, Japan.",
+      "body_ar": "من أشهر ماركات وموزعي أجهزة التكييف في الإمارات AHI Carrier وSKM وZamil وDaikin وMitsubishi Electric، مع بيان منشأ الوحدات. المصنّعون والموزعون والعلامات: AHI Carrier (Carrier, Toshiba)، SKM Air Conditioning، Zamil Air Conditioners، Daikin، Mitsubishi Electric، Mitsubishi Heavy Industries، Trane، York، LG، Samsung، Gree، Midea، Hisense، O General، Hitachi، Panasonic. وتصنع SKM الوحدات المجمعة ووحدات مناولة الهواء في الشارقة، وتصنع Zamil في الدمام بالسعودية، وتوزع AHI Carrier علامتي Carrier وToshiba، ولم يُتحقق من موزعي العلامات الأخرى. والدكت والفتحات من مصانع محلية. المنشأ: تايلاند، ماليزيا، الصين، اليابان، كوريا، السعودية، الإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Carrier: فئة ممتازة، الولايات المتحدة؛ Toshiba: فئة ممتازة، اليابان؛ SKM Air Conditioning: فئة متوسطة، الإمارات؛ Zamil Air Conditioners: فئة متوسطة، السعودية؛ Daikin: فئة ممتازة، اليابان؛ Mitsubishi Electric: فئة ممتازة، اليابان؛ Mitsubishi Heavy Industries: فئة ممتازة، اليابان؛ Trane: فئة ممتازة، الولايات المتحدة؛ York: فئة ممتازة، الولايات المتحدة؛ LG: فئة متوسطة، كوريا الجنوبية؛ Samsung: فئة متوسطة، كوريا الجنوبية؛ Gree: فئة اقتصادية، الصين؛ Midea: فئة اقتصادية، الصين؛ Hisense: فئة اقتصادية، الصين؛ O General: فئة متوسطة، اليابان؛ Hitachi: فئة ممتازة، اليابان؛ Panasonic: فئة ممتازة، اليابان.",
       "sources": [
         "https://www.ul.com/news/united-arab-emirates-enforcement-new-energy-efficiency-standards-air-conditioners",
         "https://www.ahi-carrier.com/",
@@ -40,7 +40,128 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: ACs must carry the UAE.S 5010 energy label with an ECAS/EQM certificate -> confirmed (star rating from measured EER; enforced from 1 January 2021) | Carrier/Toshiba distributor -> confirmed AHI Carrier (Carrier and Toshiba) | SKM Sharjah; Zamil Saudi -> confirmed SKM (Sharjah Industrial Area 13) and Zamil Air Conditioners (Dammam); Eros, Jumbo, Juma Al Majid, Galadari, Petra and Clima-Tech removed (not checked). Not checked: The current minimum efficiency thresholds under UAE.S 5010 and current distributor appointments per brand were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: ACs must carry the UAE.S 5010 energy label with an ECAS/EQM certificate -> confirmed (star rating from measured EER; enforced from 1 January 2021) | Carrier/Toshiba distributor -> confirmed AHI Carrier (Carrier and Toshiba) | SKM Sharjah; Zamil Saudi -> confirmed SKM (Sharjah Industrial Area 13) and Zamil Air Conditioners (Dammam); Eros, Jumbo, Juma Al Majid, Galadari, Petra and Clima-Tech removed (not checked). Not checked: The current minimum efficiency thresholds under UAE.S 5010 and current distributor appointments per brand were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Carrier",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Toshiba",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "SKM Air Conditioning",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "Zamil Air Conditioners",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Saudi Arabia",
+          "generic_ar": "علامة متوسطة من السعودية"
+        },
+        {
+          "brand": "Daikin",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "Mitsubishi Electric",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "Mitsubishi Heavy Industries",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "Trane",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "York",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "LG",
+          "origin": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid brand from South Korea",
+          "generic_ar": "علامة متوسطة من كوريا الجنوبية"
+        },
+        {
+          "brand": "Samsung",
+          "origin": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid brand from South Korea",
+          "generic_ar": "علامة متوسطة من كوريا الجنوبية"
+        },
+        {
+          "brand": "Gree",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy brand from China",
+          "generic_ar": "علامة اقتصادية من الصين"
+        },
+        {
+          "brand": "Midea",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy brand from China",
+          "generic_ar": "علامة اقتصادية من الصين"
+        },
+        {
+          "brand": "Hisense",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy brand from China",
+          "generic_ar": "علامة اقتصادية من الصين"
+        },
+        {
+          "brand": "O General",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid brand from Japan",
+          "generic_ar": "علامة متوسطة من اليابان"
+        },
+        {
+          "brand": "Hitachi",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "Panasonic",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        }
+      ]
     },
     {
       "id": "hvac:uae-market-sizes",

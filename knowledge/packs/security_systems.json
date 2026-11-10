@@ -66,8 +66,8 @@
       "id": "security_systems:storage-calculation",
       "topic": "Storage and bitrate calculation for CCTV",
       "kind": "spec_checklist",
-      "body_en": "Recorder storage is sized from bitrate, not from camera count. Storage (TB) ≈ total bitrate (Mbps) × 3600 × hours recorded per day × retention days ÷ 8 ÷ 1,000,000. Example: 32 cameras × 4 Mbps constant = 128 Mbps; 128 × 3600 × 24 × 31 ÷ 8 ÷ 10^6 ≈ 42.9 TB before overhead. Add 10–20% for file system and growth, and if RAID 5/6 is used, add the parity disks on top of usable capacity. Bitrate depends on resolution, frame rate, codec (H.264/H.265/'smart' variants), scene complexity, night-time noise and whether recording is continuous or motion/event based. Night IR scenes and busy scenes (trees, traffic) produce much higher bitrates than a quiet corridor, so a supplier using a manufacturer's 'daytime quiet scene' bitrate will under-size storage. For regulated sites the retention period is set by the authority (in Dubai at least 31 days at no less than 10 fps under the SIRA Preventive Systems Manual of 2025, with event-based recording still covering at least 70 percent of each day) and recording must meet the full period at the required frame rate, not just 'up to' it. Ask for the supplier's calculation sheet, the assumed bitrate per camera and the recorder's maximum incoming bandwidth.",
-      "body_ar": "يُحسب حجم التخزين من معدل البت لا من عدد الكاميرات. التخزين بالتيرابايت ≈ إجمالي معدل البت (ميغابت/ثانية) × 3600 × ساعات التسجيل اليومية × أيام الاحتفاظ ÷ 8 ÷ 1,000,000. مثال: 32 كاميرا × 4 ميغابت ثابتة = 128 ميغابت/ثانية، والناتج لـ 31 يوماً على مدار الساعة نحو 42.9 تيرابايت قبل الإضافات. يُضاف 10 إلى 20% لنظام الملفات والتوسع، وإذا استُخدم RAID 5 أو 6 تضاف أقراص التكافؤ فوق السعة الصافية. يعتمد معدل البت على الدقة وعدد الإطارات وصيغة الضغط (H.264/H.265 أو النسخ الذكية) وتعقيد المشهد وضوضاء الليل ونوع التسجيل (مستمر أو عند الحركة). مشاهد الليل بالأشعة تحت الحمراء والمشاهد المزدحمة (أشجار، حركة مرور) تنتج معدلات أعلى بكثير من ممر هادئ، والمورد الذي يعتمد رقم المصنع «لمشهد نهاري هادئ» سيقلل حجم التخزين. في المواقع الخاضعة للتنظيم تحدد الجهة المختصة مدة الاحتفاظ (يُذكر عادة 31 يوماً للمنشآت العامة في دبي وأطول للفئات عالية الخطورة)، ويجب أن يغطي التسجيل كامل المدة بعدد الإطارات المطلوب. اطلب من المورد جدول الحساب، ومعدل البت المفترض لكل كاميرا، وأقصى نطاق وارد للمسجل. وفي دبي يشترط دليل الأنظمة الوقائية الصادر عن سيرا لسنة 2025 الاحتفاظ بالتسجيلات 31 يوماً على الأقل بمعدل لا يقل عن 10 إطارات في الثانية، وإذا كان التسجيل عند الحدث فيجب أن يغطي 70 بالمئة على الأقل من كل يوم.",
+      "body_en": "Recorder storage is sized from bitrate, not from camera count. Storage (TB) ≈ total bitrate (Mbps) × 3600 × hours recorded per day × retention days ÷ 8 ÷ 1,000,000. Example: 32 cameras × 4 Mbps constant = 128 Mbps; 128 × 3600 × 24 × 31 ÷ 8 ÷ 10^6 ≈ 42.9 TB before overhead. Add 10–20% for file system and growth, and if RAID 5/6 is used, add the parity disks on top of usable capacity. Bitrate depends on resolution, frame rate, codec (H.264/H.265/'smart' variants), scene complexity, night-time noise and whether recording is continuous or motion/event based. Night IR scenes and busy scenes (trees, traffic) produce much higher bitrates than a quiet corridor, so a supplier using a manufacturer's 'daytime quiet scene' bitrate will under-size storage. For regulated sites the retention period is set by the authority (in Dubai at least 31 days at no less than 10 fps under the SIRA Preventive Systems Manual of 2025, with event-based recording still covering at least 70 percent of each day) and recording must meet the full period at the required frame rate, not just 'up to' it. Ask for the supplier's calculation sheet, the assumed bitrate per camera and the recorder's maximum incoming bandwidth.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): retention days. Supplier ask-back review (2026-11-10): a supplier can price firm from the required specs; nothing was added. Quote-blocking after this review: retention days required (authority + client).",
+      "body_ar": "يُحسب حجم التخزين من معدل البت لا من عدد الكاميرات. التخزين بالتيرابايت ≈ إجمالي معدل البت (ميغابت/ثانية) × 3600 × ساعات التسجيل اليومية × أيام الاحتفاظ ÷ 8 ÷ 1,000,000. مثال: 32 كاميرا × 4 ميغابت ثابتة = 128 ميغابت/ثانية، والناتج لـ 31 يوماً على مدار الساعة نحو 42.9 تيرابايت قبل الإضافات. يُضاف 10 إلى 20% لنظام الملفات والتوسع، وإذا استُخدم RAID 5 أو 6 تضاف أقراص التكافؤ فوق السعة الصافية. يعتمد معدل البت على الدقة وعدد الإطارات وصيغة الضغط (H.264/H.265 أو النسخ الذكية) وتعقيد المشهد وضوضاء الليل ونوع التسجيل (مستمر أو عند الحركة). مشاهد الليل بالأشعة تحت الحمراء والمشاهد المزدحمة (أشجار، حركة مرور) تنتج معدلات أعلى بكثير من ممر هادئ، والمورد الذي يعتمد رقم المصنع «لمشهد نهاري هادئ» سيقلل حجم التخزين. في المواقع الخاضعة للتنظيم تحدد الجهة المختصة مدة الاحتفاظ (يُذكر عادة 31 يوماً للمنشآت العامة في دبي وأطول للفئات عالية الخطورة)، ويجب أن يغطي التسجيل كامل المدة بعدد الإطارات المطلوب. اطلب من المورد جدول الحساب، ومعدل البت المفترض لكل كاميرا، وأقصى نطاق وارد للمسجل. وفي دبي يشترط دليل الأنظمة الوقائية الصادر عن سيرا لسنة 2025 الاحتفاظ بالتسجيلات 31 يوماً على الأقل بمعدل لا يقل عن 10 إطارات في الثانية، وإذا كان التسجيل عند الحدث فيجب أن يغطي 70 بالمئة على الأقل من كل يوم.\n\nمقابلة الخبير (2026-11-10). المواصفات المانعة للتسعير (لا يُعطى دونها سعر نهائي): عدد أيام الاحتفاظ بالتسجيلات المطلوبة (من الجهة والعميل). مراجعة من منظور المورّد (2026-11-10): يستطيع المورّد التسعير النهائي من المواصفات المطلوبة؛ ولم يُضف شيء.",
       "required_specs": [
         "number of cameras by resolution",
         "frame rate (fps) per camera",
@@ -84,7 +84,77 @@
         "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(13)%20of%202025%20System%20Manual.html"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "retention days required (authority + client)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "number of cameras by resolution",
+          "why_needed_to_price": "Camera count by resolution decides bitrate.",
+          "uae_options": "Count per resolution.",
+          "follow_up_if": "If the inquiry is silent on number of cameras by resolution, each supplier prices its own default; ask the buyer so every quote rests on the same number of cameras by resolution.",
+          "blocking": false
+        },
+        {
+          "spec": "frame rate (fps) per camera",
+          "why_needed_to_price": "Frame rate decides bitrate.",
+          "uae_options": "fps per camera.",
+          "follow_up_if": "If the inquiry is silent on frame rate (fps) per camera, each supplier prices its own default; ask the buyer so every quote rests on the same frame rate (fps) per camera.",
+          "blocking": false
+        },
+        {
+          "spec": "codec (H.264/H.265/smart codec)",
+          "why_needed_to_price": "Codec decides bitrate.",
+          "uae_options": "H.264; H.265; smart codec.",
+          "follow_up_if": "If the inquiry is silent on codec (h.264/h.265/smart codec), each supplier prices its own default; ask the buyer so every quote rests on the same codec (h.264/h.265/smart codec).",
+          "blocking": false
+        },
+        {
+          "spec": "recording mode (continuous / motion / scheduled)",
+          "why_needed_to_price": "Recording mode decides storage.",
+          "uae_options": "Continuous; motion; scheduled.",
+          "follow_up_if": "If the inquiry is silent on recording mode (continuous / motion / scheduled), each supplier prices its own default; ask the buyer so every quote rests on the same recording mode (continuous / motion / scheduled).",
+          "blocking": false
+        },
+        {
+          "spec": "hours recorded per day",
+          "why_needed_to_price": "Hours per day decide storage.",
+          "uae_options": "Hours recorded.",
+          "follow_up_if": "If the inquiry is silent on hours recorded per day, each supplier prices its own default; ask the buyer so every quote rests on the same hours recorded per day.",
+          "blocking": false
+        },
+        {
+          "spec": "retention days required (authority + client)",
+          "why_needed_to_price": "Storage size follows retention.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "assumed bitrate per camera (day/night)",
+          "why_needed_to_price": "Bitrate assumptions decide storage.",
+          "uae_options": "Day and night bitrate.",
+          "follow_up_if": "If the inquiry is silent on assumed bitrate per camera (day/night), each supplier prices its own default; ask the buyer so every quote rests on the same assumed bitrate per camera (day/night).",
+          "blocking": false
+        },
+        {
+          "spec": "RAID level and hot spare",
+          "why_needed_to_price": "RAID and hot spares add disks.",
+          "uae_options": "RAID level; hot spare.",
+          "follow_up_if": "If the inquiry is silent on raid level and hot spare, each supplier prices its own default; ask the buyer so every quote rests on the same raid level and hot spare.",
+          "blocking": false
+        },
+        {
+          "spec": "growth allowance %",
+          "why_needed_to_price": "Growth allowance adds storage.",
+          "uae_options": "Growth %.",
+          "follow_up_if": "If the inquiry is silent on growth allowance %, each supplier prices its own default; ask the buyer so every quote rests on the same growth allowance %.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "security_systems:h264-vs-h265",
@@ -419,8 +489,8 @@
       "id": "security_systems:spec-cctv",
       "topic": "What a buyer must state to get an exact CCTV quote",
       "kind": "spec_checklist",
-      "body_en": "A CCTV request without these details forces suppliers to guess, and quotes then cannot be compared. State the emirate and premises category (this decides SIRA or MCC requirements, retention and whether a licensed installer and approved products are mandatory); new installation, extension or replacement (and existing recorder model/format if extending); camera count by location with purpose (detect/observe/recognise/identify) and indoor/outdoor; preferred technology (IP or HD-analogue) and any brand, origin or NDAA restriction; resolution or pixel density target; retention days and recording mode; whether a VMS, video wall, remote/mobile viewing or monitoring-centre connection is needed; analytics or ANPR needs; cabling responsibility (supplier or other trade), containment availability, ceiling type and mounting heights; network ownership (dedicated or shared IT network); UPS autonomy; drawings or site visit availability; and warranty, AMC and handover documents expected. Attach floor plans with camera positions if available. A supplier should respond with a camera schedule, storage calculation, bill of materials by model number and a statement of approvals it will obtain.",
-      "body_ar": "طلب تسعير كاميرات المراقبة بدون هذه التفاصيل يجبر الموردين على التخمين، فلا تمكن مقارنة العروض. حدد: الإمارة وفئة المنشأة (وهذا يحدد متطلبات سيرا أو مركز المراقبة ومدة الاحتفاظ وإلزامية المركِّب المرخص والمنتجات المعتمدة)، وهل هو تركيب جديد أو توسعة أو استبدال (مع طراز المسجل الحالي وصيغته عند التوسعة)، وعدد الكاميرات حسب الموقع مع الغرض (كشف/مراقبة/تمييز/تعريف) وداخلي أو خارجي، والتقنية المفضلة (IP أو تناظري عالي الدقة) وأي قيود على العلامة أو المنشأ أو NDAA، والدقة أو كثافة البكسل المستهدفة، وأيام الاحتفاظ ونمط التسجيل، والحاجة إلى برنامج إدارة فيديو أو شاشة حائط أو مشاهدة عن بعد أو ربط بمركز مراقبة، ومتطلبات التحليلات أو قراءة اللوحات، ومسؤولية تمديد الكابلات (المورد أو جهة أخرى) وتوفر المجاري ونوع السقف وارتفاعات التركيب، وملكية الشبكة (مخصصة أو مشتركة)، ومدة تشغيل UPS، وتوفر المخططات أو زيارة الموقع، والضمان وعقد الصيانة ومستندات التسليم المتوقعة. أرفق مخططات الطوابق بمواقع الكاميرات إن وجدت. يجب أن يرد المورد بجدول كاميرات، وحساب تخزين، وقائمة مواد بأرقام الطرازات، وبيان بالموافقات التي سيستخرجها.",
+      "body_en": "A CCTV request without these details forces suppliers to guess, and quotes then cannot be compared. State the emirate and premises category (this decides SIRA or MCC requirements, retention and whether a licensed installer and approved products are mandatory); new installation, extension or replacement (and existing recorder model/format if extending); camera count by location with purpose (detect/observe/recognise/identify) and indoor/outdoor; preferred technology (IP or HD-analogue) and any brand, origin or NDAA restriction; resolution or pixel density target; retention days and recording mode; whether a VMS, video wall, remote/mobile viewing or monitoring-centre connection is needed; analytics or ANPR needs; cabling responsibility (supplier or other trade), containment availability, ceiling type and mounting heights; network ownership (dedicated or shared IT network); UPS autonomy; drawings or site visit availability; and warranty, AMC and handover documents expected. Attach floor plans with camera positions if available. A supplier should respond with a camera schedule, storage calculation, bill of materials by model number and a statement of approvals it will obtain.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): regulator and premises category, camera counts by type, retention and new or extension. A site survey is needed without a layout. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: emirate and premises category (regulator: SIRA / MCC / other); new / extension / replacement; existing recorder model and format; camera count per location with purpose (DORI) and indoor/outdoor; retention days and recording mode (continuous/motion).",
+      "body_ar": "طلب تسعير كاميرات المراقبة بدون هذه التفاصيل يجبر الموردين على التخمين، فلا تمكن مقارنة العروض. حدد: الإمارة وفئة المنشأة (وهذا يحدد متطلبات سيرا أو مركز المراقبة ومدة الاحتفاظ وإلزامية المركِّب المرخص والمنتجات المعتمدة)، وهل هو تركيب جديد أو توسعة أو استبدال (مع طراز المسجل الحالي وصيغته عند التوسعة)، وعدد الكاميرات حسب الموقع مع الغرض (كشف/مراقبة/تمييز/تعريف) وداخلي أو خارجي، والتقنية المفضلة (IP أو تناظري عالي الدقة) وأي قيود على العلامة أو المنشأ أو NDAA، والدقة أو كثافة البكسل المستهدفة، وأيام الاحتفاظ ونمط التسجيل، والحاجة إلى برنامج إدارة فيديو أو شاشة حائط أو مشاهدة عن بعد أو ربط بمركز مراقبة، ومتطلبات التحليلات أو قراءة اللوحات، ومسؤولية تمديد الكابلات (المورد أو جهة أخرى) وتوفر المجاري ونوع السقف وارتفاعات التركيب، وملكية الشبكة (مخصصة أو مشتركة)، ومدة تشغيل UPS، وتوفر المخططات أو زيارة الموقع، والضمان وعقد الصيانة ومستندات التسليم المتوقعة. أرفق مخططات الطوابق بمواقع الكاميرات إن وجدت. يجب أن يرد المورد بجدول كاميرات، وحساب تخزين، وقائمة مواد بأرقام الطرازات، وبيان بالموافقات التي سيستخرجها.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الجهة المنظمة وفئة المنشأة، وأعداد الكاميرات حسب النوع، ومدة الاحتفاظ، ونظام جديد أو توسعة. ويلزم مسح للموقع في غياب مخطط. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "emirate and premises category (regulator: SIRA / MCC / other)",
         "new / extension / replacement; existing recorder model and format",
@@ -435,7 +505,8 @@
         "network: dedicated or shared, who owns switches",
         "UPS autonomy (minutes/hours)",
         "drawings / site visit availability",
-        "warranty years, AMC, handover documents, authority approval responsibility"
+        "warranty years, AMC, handover documents, authority approval responsibility",
+        "Payment terms"
       ],
       "sources": [
         "https://www.kewsolutions.com/sira-regulations-for-cctv-installation-dubai/",
@@ -443,14 +514,129 @@
         "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(13)%20of%202025%20System%20Manual.html"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "emirate and premises category (regulator: SIRA / MCC / other)",
+        "new / extension / replacement; existing recorder model and format",
+        "camera count per location with purpose (DORI) and indoor/outdoor",
+        "retention days and recording mode (continuous/motion)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "emirate and premises category (regulator: SIRA / MCC / other)",
+          "why_needed_to_price": "The regulator and premises category decide camera counts, retention and approved products.",
+          "uae_options": "Dubai SIRA; Abu Dhabi MCC; other emirates police",
+          "follow_up_if": "Dubai: ask the premises category; SIRA rules change camera placement and retention.",
+          "blocking": true
+        },
+        {
+          "spec": "new / extension / replacement; existing recorder model and format",
+          "why_needed_to_price": "Extensions must match the existing system.",
+          "uae_options": "new; extension; replacement",
+          "follow_up_if": "Extension: ask the existing brand and model.",
+          "blocking": true
+        },
+        {
+          "spec": "camera count per location with purpose (DORI) and indoor/outdoor",
+          "why_needed_to_price": "Cameras are priced per unit by type.",
+          "uae_options": "counts per zone",
+          "follow_up_if": "No layout: a site survey is needed.",
+          "blocking": true
+        },
+        {
+          "spec": "technology (IP / HD-analogue) and brand/origin/NDAA constraints",
+          "why_needed_to_price": "IP and HD-analogue systems differ in price; NDAA constraints exclude some brands.",
+          "uae_options": "IP or HD-analogue; brand; origin.",
+          "follow_up_if": "If NDAA compliance is needed, state it.",
+          "blocking": false
+        },
+        {
+          "spec": "resolution or px/m target",
+          "why_needed_to_price": "Resolution or pixel density decides cameras.",
+          "uae_options": "Megapixels; px/m target.",
+          "follow_up_if": "If the inquiry is silent on resolution or px/m target, each supplier prices its own default; ask the buyer so every quote rests on the same resolution or px/m target.",
+          "blocking": false
+        },
+        {
+          "spec": "retention days and recording mode (continuous/motion)",
+          "why_needed_to_price": "Storage size and NVR cost follow retention.",
+          "uae_options": "per regulator minimum and client need",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "frame rate",
+          "why_needed_to_price": "Frame rate decides storage.",
+          "uae_options": "fps.",
+          "follow_up_if": "If the inquiry is silent on frame rate, each supplier prices its own default; ask the buyer so every quote rests on the same frame rate.",
+          "blocking": false
+        },
+        {
+          "spec": "VMS / video wall / mobile / monitoring-centre connection",
+          "why_needed_to_price": "VMS and video walls add cost.",
+          "uae_options": "VMS; video wall; mobile; monitoring centre.",
+          "follow_up_if": "If the inquiry is silent on vms / video wall / mobile / monitoring-centre connection, each supplier prices its own default; ask the buyer so every quote rests on the same vms / video wall / mobile / monitoring-centre connection.",
+          "blocking": false
+        },
+        {
+          "spec": "analytics or ANPR requirements",
+          "why_needed_to_price": "Analytics and ANPR add licences.",
+          "uae_options": "Analytics; ANPR.",
+          "follow_up_if": "If the buyer wants it, ask each supplier to price it as a separate line.",
+          "blocking": false
+        },
+        {
+          "spec": "cabling scope, containment, mounting heights, ceiling type",
+          "why_needed_to_price": "Cabling and mounting decide labour.",
+          "uae_options": "Cabling; containment; heights; ceilings.",
+          "follow_up_if": "If the inquiry is silent on cabling scope, containment, mounting heights, ceiling type, each supplier prices its own default; ask the buyer so every quote rests on the same cabling scope, containment, mounting heights, ceiling type.",
+          "blocking": false
+        },
+        {
+          "spec": "network: dedicated or shared, who owns switches",
+          "why_needed_to_price": "Network ownership decides scope.",
+          "uae_options": "Dedicated or shared.",
+          "follow_up_if": "If shared, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "UPS autonomy (minutes/hours)",
+          "why_needed_to_price": "UPS autonomy adds cost.",
+          "uae_options": "Minutes or hours.",
+          "follow_up_if": "If the inquiry is silent on ups autonomy (minutes/hours), each supplier prices its own default; ask the buyer so every quote rests on the same ups autonomy (minutes/hours).",
+          "blocking": false
+        },
+        {
+          "spec": "drawings / site visit availability",
+          "why_needed_to_price": "Drawings or a site visit are needed.",
+          "uae_options": "Drawings; site visit.",
+          "follow_up_if": "If none, ask for a site visit.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty years, AMC, handover documents, authority approval responsibility",
+          "why_needed_to_price": "Warranty, AMC and approvals add cost.",
+          "uae_options": "Warranty; AMC; approvals.",
+          "follow_up_if": "If the inquiry is silent on warranty years, amc, handover documents, authority approval responsibility, each supplier prices its own default; ask the buyer so every quote rests on the same warranty years, amc, handover documents, authority approval responsibility.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site survey is genuinely needed for any CCTV layout not already designed, to place cameras, measure cable runs and check the network.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "security_systems:spec-access-control",
       "topic": "What a buyer must state to get an exact access control quote",
       "kind": "spec_checklist",
-      "body_en": "For access control, suppliers need per-door information, not just a door count. For each door or gate state: door type and material (timber, glass frameless, aluminium, steel, fire-rated and rating), single or double leaf, swing direction and whether it is an escape route; lock type preference (maglock, strike, electromechanical) or ask the supplier to recommend per door; reading on entry only or entry and exit; credential technology (existing cards to be reused? 125 kHz, DESFire, mobile, PIN, face/fingerprint); request-to-exit device and emergency break-glass; door contact and door-held/forced alarms. System-wide: number of users, sites and doors now and in future; lift control floors; turnstiles or barriers; visitor management; time attendance or HR/payroll integration; CCTV, fire alarm and intercom integration; server on-premises or cloud and who hosts; reader protocol (OSDP Secure Channel preferred); cabling and containment responsibility; UPS/battery autonomy; and authority requirements for the premises category. Ask for a door schedule in the reply listing every component per door by model. OSDP is standardised as IEC 60839-11-5 and, unlike Wiegand, is bidirectional and supports encryption.",
-      "body_ar": "في التحكم بالدخول يحتاج الموردون معلومات لكل باب، لا مجرد عدد الأبواب. لكل باب أو بوابة حدد: نوع الباب ومادته (خشب، زجاج بدون إطار، ألمنيوم، حديد، مقاوم للحريق ودرجته)، ودرفة واحدة أو مزدوجة، واتجاه الفتح وهل هو مسار هروب، ونوع القفل المفضل (مغناطيسي، لسان كهربائي، كهروميكانيكي) أو اطلب من المورد التوصية لكل باب، والقراءة عند الدخول فقط أو الدخول والخروج، وتقنية التعريف (هل ستُستخدم البطاقات الحالية؟ 125 كيلوهرتز، DESFire، جوال، رمز، وجه أو بصمة)، وزر طلب الخروج وزجاج الطوارئ، وحساس الباب وإنذارات ترك الباب مفتوحاً أو فتحه بالقوة. وعلى مستوى النظام: عدد المستخدمين والمواقع والأبواب حالياً ومستقبلاً، وطوابق التحكم بالمصاعد، والبوابات الدوارة أو الحواجز، وإدارة الزوار، والحضور والانصراف أو الربط مع الموارد البشرية والرواتب، والتكامل مع الكاميرات وإنذار الحريق والإنتركم، والخادم محلي أم سحابي ومن يستضيفه، وبروتوكول القارئ (يفضل OSDP Secure Channel)، ومسؤولية الكابلات والمجاري، ومدة البطارية الاحتياطية، ومتطلبات الجهة المختصة لفئة المنشأة. اطلب في الرد جدول أبواب يوضح كل مكون لكل باب بالطراز. وOSDP معتمد كمواصفة IEC 60839-11-5، وخلافاً لـWiegand فهو ثنائي الاتجاه ويدعم التشفير.",
+      "body_en": "For access control, suppliers need per-door information, not just a door count. For each door or gate state: door type and material (timber, glass frameless, aluminium, steel, fire-rated and rating), single or double leaf, swing direction and whether it is an escape route; lock type preference (maglock, strike, electromechanical) or ask the supplier to recommend per door; reading on entry only or entry and exit; credential technology (existing cards to be reused? 125 kHz, DESFire, mobile, PIN, face/fingerprint); request-to-exit device and emergency break-glass; door contact and door-held/forced alarms. System-wide: number of users, sites and doors now and in future; lift control floors; turnstiles or barriers; visitor management; time attendance or HR/payroll integration; CCTV, fire alarm and intercom integration; server on-premises or cloud and who hosts; reader protocol (OSDP Secure Channel preferred); cabling and containment responsibility; UPS/battery autonomy; and authority requirements for the premises category. Ask for a door schedule in the reply listing every component per door by model. OSDP is standardised as IEC 60839-11-5 and, unlike Wiegand, is bidirectional and supports encryption.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): door schedule, lock type per door and credential technology. Supplier ask-back review (2026-11-10): the inquiry now also states Site location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: door schedule: door type/material, fire rating, single/double leaf, swing, escape route yes/no; lock type per door; credential technology and whether existing cards are reused; Site location and emirate.",
+      "body_ar": "في التحكم بالدخول يحتاج الموردون معلومات لكل باب، لا مجرد عدد الأبواب. لكل باب أو بوابة حدد: نوع الباب ومادته (خشب، زجاج بدون إطار، ألمنيوم، حديد، مقاوم للحريق ودرجته)، ودرفة واحدة أو مزدوجة، واتجاه الفتح وهل هو مسار هروب، ونوع القفل المفضل (مغناطيسي، لسان كهربائي، كهروميكانيكي) أو اطلب من المورد التوصية لكل باب، والقراءة عند الدخول فقط أو الدخول والخروج، وتقنية التعريف (هل ستُستخدم البطاقات الحالية؟ 125 كيلوهرتز، DESFire، جوال، رمز، وجه أو بصمة)، وزر طلب الخروج وزجاج الطوارئ، وحساس الباب وإنذارات ترك الباب مفتوحاً أو فتحه بالقوة. وعلى مستوى النظام: عدد المستخدمين والمواقع والأبواب حالياً ومستقبلاً، وطوابق التحكم بالمصاعد، والبوابات الدوارة أو الحواجز، وإدارة الزوار، والحضور والانصراف أو الربط مع الموارد البشرية والرواتب، والتكامل مع الكاميرات وإنذار الحريق والإنتركم، والخادم محلي أم سحابي ومن يستضيفه، وبروتوكول القارئ (يفضل OSDP Secure Channel)، ومسؤولية الكابلات والمجاري، ومدة البطارية الاحتياطية، ومتطلبات الجهة المختصة لفئة المنشأة. اطلب في الرد جدول أبواب يوضح كل مكون لكل باب بالطراز. وOSDP معتمد كمواصفة IEC 60839-11-5، وخلافاً لـWiegand فهو ثنائي الاتجاه ويدعم التشفير.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: جدول الأبواب، ونوع القفل لكل باب، وتقنية بطاقات الدخول. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع العمل والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "door schedule: door type/material, fire rating, single/double leaf, swing, escape route yes/no",
         "lock type per door",
@@ -466,21 +652,152 @@
         "reader protocol (OSDP Secure Channel / Wiegand)",
         "cabling and containment scope",
         "battery/UPS autonomy",
-        "authority requirements for premises category"
+        "authority requirements for premises category",
+        "Site location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://blog.hidglobal.com/why-osdp-has-become-access-controls-international-communication-standard",
         "https://idighardware.com/2017/07/decoded-access-controlled-egress-doors-august-2017/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "door schedule: door type/material, fire rating, single/double leaf, swing, escape route yes/no",
+        "lock type per door",
+        "credential technology and whether existing cards are reused",
+        "Site location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "door schedule: door type/material, fire rating, single/double leaf, swing, escape route yes/no",
+          "why_needed_to_price": "Lock and hardware per door follow the door type and escape rules.",
+          "uae_options": "door schedule",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "lock type per door",
+          "why_needed_to_price": "Maglocks, strikes and motor locks differ.",
+          "uae_options": "maglock; strike; motor lock",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "read in only / in and out",
+          "why_needed_to_price": "In-and-out reading doubles readers.",
+          "uae_options": "In only; in and out.",
+          "follow_up_if": "If anti-passback, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "credential technology and whether existing cards are reused",
+          "why_needed_to_price": "Reader and card technology set cost.",
+          "uae_options": "card; mobile; biometric",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "REX, break-glass, door contact per door",
+          "why_needed_to_price": "Door hardware per door adds cost.",
+          "uae_options": "REX; break-glass; door contact.",
+          "follow_up_if": "If the inquiry is silent on rex, break-glass, door contact per door, each supplier prices its own default; ask the buyer so every quote rests on the same rex, break-glass, door contact per door.",
+          "blocking": false
+        },
+        {
+          "spec": "number of users, doors, sites (now and future)",
+          "why_needed_to_price": "Users, doors and sites decide licences.",
+          "uae_options": "Counts now and future.",
+          "follow_up_if": "If the inquiry is silent on number of users, doors, sites (now and future), each supplier prices its own default; ask the buyer so every quote rests on the same number of users, doors, sites (now and future).",
+          "blocking": false
+        },
+        {
+          "spec": "lift control floors",
+          "why_needed_to_price": "Lift control adds hardware.",
+          "uae_options": "Floors controlled.",
+          "follow_up_if": "If the inquiry is silent on lift control floors, each supplier prices its own default; ask the buyer so every quote rests on the same lift control floors.",
+          "blocking": false
+        },
+        {
+          "spec": "turnstiles/barriers",
+          "why_needed_to_price": "Turnstiles and barriers are large items.",
+          "uae_options": "Turnstiles; barriers.",
+          "follow_up_if": "If the inquiry is silent on turnstiles/barriers, each supplier prices its own default; ask the buyer so every quote rests on the same turnstiles/barriers.",
+          "blocking": false
+        },
+        {
+          "spec": "visitor management, time attendance, HR integration",
+          "why_needed_to_price": "Integrations add licences.",
+          "uae_options": "Visitor; time attendance; HR.",
+          "follow_up_if": "If the inquiry is silent on visitor management, time attendance, hr integration, each supplier prices its own default; ask the buyer so every quote rests on the same visitor management, time attendance, hr integration.",
+          "blocking": false
+        },
+        {
+          "spec": "CCTV / fire alarm / intercom integration",
+          "why_needed_to_price": "Integrations with CCTV and fire alarm add cost.",
+          "uae_options": "CCTV; fire alarm; intercom.",
+          "follow_up_if": "If the inquiry is silent on cctv / fire alarm / intercom integration, each supplier prices its own default; ask the buyer so every quote rests on the same cctv / fire alarm / intercom integration.",
+          "blocking": false
+        },
+        {
+          "spec": "server on-premises or cloud",
+          "why_needed_to_price": "Server or cloud decides licensing.",
+          "uae_options": "On-premises or cloud.",
+          "follow_up_if": "If the inquiry is silent on server on-premises or cloud, each supplier prices its own default; ask the buyer so every quote rests on the same server on-premises or cloud.",
+          "blocking": false
+        },
+        {
+          "spec": "reader protocol (OSDP Secure Channel / Wiegand)",
+          "why_needed_to_price": "OSDP Secure Channel costs more than Wiegand.",
+          "uae_options": "OSDP; Wiegand.",
+          "follow_up_if": "If security is high, ask for OSDP.",
+          "blocking": false
+        },
+        {
+          "spec": "cabling and containment scope",
+          "why_needed_to_price": "Cabling scope decides labour.",
+          "uae_options": "Cabling; containment.",
+          "follow_up_if": "If the inquiry is silent on cabling and containment scope, each supplier prices its own default; ask the buyer so every quote rests on the same cabling and containment scope.",
+          "blocking": false
+        },
+        {
+          "spec": "battery/UPS autonomy",
+          "why_needed_to_price": "Battery autonomy adds cost.",
+          "uae_options": "Hours.",
+          "follow_up_if": "If the inquiry is silent on battery/ups autonomy, each supplier prices its own default; ask the buyer so every quote rests on the same battery/ups autonomy.",
+          "blocking": false
+        },
+        {
+          "spec": "authority requirements for premises category",
+          "why_needed_to_price": "Authority requirements vary by premises.",
+          "uae_options": "SIRA category.",
+          "follow_up_if": "If Dubai, ask the category.",
+          "blocking": false
+        },
+        {
+          "spec": "Site location and emirate",
+          "why_needed_to_price": "Mobilisation, travel, labour transport and the authority whose rules apply all follow the site, so the same scope is priced differently in Dubai, Abu Dhabi, the northern emirates or a remote site.",
+          "uae_options": "A named emirate and area or community; city, industrial area or remote site; one site or several.",
+          "follow_up_if": "If the site is in a free zone, port, airport or developer community with its own access rules, ask which passes or NOCs apply.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "security_systems:spec-intrusion-intercom",
       "topic": "What a buyer must state for intrusion alarm and intercom quotes",
       "kind": "spec_checklist",
-      "body_en": "Intrusion alarm: premises type and risk (villa, shop, jeweller, warehouse, bank branch), required grade (EN 50131 grade 2/3/4 or authority category requirement), areas to be protected and partitions that arm separately, detector types per room (PIR, dual-tech, contacts, glass-break, seismic for safes, outdoor beams/perimeter), panic/hold-up buttons and duress codes, sounders internal/external, wired or wireless, communicator paths (IP, 4G, dual path), whether monitoring by a licensed ARC is required and by whom, integration with CCTV for alarm verification, and battery autonomy. Intercom: villa or multi-tenant; number of apartments/units and entrances; entrance panel type (buttons, directory, touchscreen, card/face reader); indoor monitor type and size; concierge or guard station count; mobile-app calling and its subscription; lift integration; SIP/PBX integration; existing cabling to be reused (2-wire) or new IP network; outdoor IP/IK ratings; and door release hardware. For both, state who does cabling and containment, whether drawings are available, and required warranty and maintenance terms. Verification note (23 Sep 2026): The intrusion grade items follow EN 50131; the intercom checklist items are practical buyer points, not established from a fetched source.",
-      "body_ar": "الإنذار ضد السرقة: نوع المنشأة ودرجة خطورتها (فيلا، محل، مجوهرات، مستودع، فرع بنك)، والدرجة المطلوبة (EN 50131 الدرجة 2 أو 3 أو 4 أو متطلبات فئة الجهة المختصة)، والمناطق المراد حمايتها والأقسام التي تُفعّل منفصلة، ونوع الكواشف لكل غرفة (حركة، مزدوجة التقنية، مفاتيح مغناطيسية، كسر زجاج، اهتزاز للخزائن، حواجز خارجية)، وأزرار الذعر ورموز الإكراه، والصفارات الداخلية والخارجية، وسلكي أم لاسلكي، ومسارات الاتصال (IP، 4G، مزدوج)، وهل المراقبة من مركز مرخص مطلوبة ومن سيقدمها، والتكامل مع الكاميرات للتحقق، ومدة البطارية. الإنتركم: فيلا أم مبنى متعدد السكان، وعدد الشقق والمداخل، ونوع لوحة المدخل (أزرار، دليل، شاشة لمس، قارئ بطاقة أو وجه)، ونوع الشاشة الداخلية وحجمها، وعدد محطات الحراسة أو الاستقبال، والاتصال عبر التطبيق واشتراكه، والربط مع المصاعد، والربط مع مقسم الهاتف SIP، وإعادة استخدام الكابلات الثنائية القائمة أو شبكة IP جديدة، وتصنيفات IP وIK للخارج، وأجهزة فتح الباب. وفي الحالتين حدد من يتولى الكابلات والمجاري، وتوفر المخططات، وشروط الضمان والصيانة المطلوبة. ملاحظة تحقق (23 سبتمبر 2026): بنود درجة الإنذار مبنية على EN 50131؛ أما بنود الإنتركم فنقاط عملية للمشتري غير مثبتة من مصدر مفحوص.",
+      "body_en": "Intrusion alarm: premises type and risk (villa, shop, jeweller, warehouse, bank branch), required grade (EN 50131 grade 2/3/4 or authority category requirement), areas to be protected and partitions that arm separately, detector types per room (PIR, dual-tech, contacts, glass-break, seismic for safes, outdoor beams/perimeter), panic/hold-up buttons and duress codes, sounders internal/external, wired or wireless, communicator paths (IP, 4G, dual path), whether monitoring by a licensed ARC is required and by whom, integration with CCTV for alarm verification, and battery autonomy. Intercom: villa or multi-tenant; number of apartments/units and entrances; entrance panel type (buttons, directory, touchscreen, card/face reader); indoor monitor type and size; concierge or guard station count; mobile-app calling and its subscription; lift integration; SIP/PBX integration; existing cabling to be reused (2-wire) or new IP network; outdoor IP/IK ratings; and door release hardware. For both, state who does cabling and containment, whether drawings are available, and required warranty and maintenance terms. Verification note (23 Sep 2026): The intrusion grade items follow EN 50131; the intercom checklist items are practical buyer points, not established from a fetched source.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): premises type and grade, and the intercom configuration. Supplier ask-back review (2026-11-10): the inquiry now also states Site location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: premises type and risk / required grade; intercom: villa or multi-tenant, units and entrances; Site location and emirate.",
+      "body_ar": "الإنذار ضد السرقة: نوع المنشأة ودرجة خطورتها (فيلا، محل، مجوهرات، مستودع، فرع بنك)، والدرجة المطلوبة (EN 50131 الدرجة 2 أو 3 أو 4 أو متطلبات فئة الجهة المختصة)، والمناطق المراد حمايتها والأقسام التي تُفعّل منفصلة، ونوع الكواشف لكل غرفة (حركة، مزدوجة التقنية، مفاتيح مغناطيسية، كسر زجاج، اهتزاز للخزائن، حواجز خارجية)، وأزرار الذعر ورموز الإكراه، والصفارات الداخلية والخارجية، وسلكي أم لاسلكي، ومسارات الاتصال (IP، 4G، مزدوج)، وهل المراقبة من مركز مرخص مطلوبة ومن سيقدمها، والتكامل مع الكاميرات للتحقق، ومدة البطارية. الإنتركم: فيلا أم مبنى متعدد السكان، وعدد الشقق والمداخل، ونوع لوحة المدخل (أزرار، دليل، شاشة لمس، قارئ بطاقة أو وجه)، ونوع الشاشة الداخلية وحجمها، وعدد محطات الحراسة أو الاستقبال، والاتصال عبر التطبيق واشتراكه، والربط مع المصاعد، والربط مع مقسم الهاتف SIP، وإعادة استخدام الكابلات الثنائية القائمة أو شبكة IP جديدة، وتصنيفات IP وIK للخارج، وأجهزة فتح الباب. وفي الحالتين حدد من يتولى الكابلات والمجاري، وتوفر المخططات، وشروط الضمان والصيانة المطلوبة. ملاحظة تحقق (23 سبتمبر 2026): بنود درجة الإنذار مبنية على EN 50131؛ أما بنود الإنتركم فنقاط عملية للمشتري غير مثبتة من مصدر مفحوص.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع المنشأة ودرجتها، وتهيئة نظام الاتصال الداخلي. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع العمل والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "premises type and risk / required grade",
         "protected areas and partitions",
@@ -494,13 +811,129 @@
         "guard stations, mobile app, lift and SIP integration",
         "reuse existing 2-wire or new IP cabling",
         "outdoor IP/IK ratings",
-        "cabling scope, warranty and maintenance terms"
+        "cabling scope, warranty and maintenance terms",
+        "Site location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://www.alertsystems.co.uk/about/industry-standards/bs-en-intruder-alarm/en-50131/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "premises type and risk / required grade",
+        "intercom: villa or multi-tenant, units and entrances",
+        "Site location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "premises type and risk / required grade",
+          "why_needed_to_price": "Grade sets detectors and panel.",
+          "uae_options": "villa; shop; warehouse",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "protected areas and partitions",
+          "why_needed_to_price": "Areas and partitions decide panel size.",
+          "uae_options": "Areas; partitions.",
+          "follow_up_if": "If the inquiry is silent on protected areas and partitions, each supplier prices its own default; ask the buyer so every quote rests on the same protected areas and partitions.",
+          "blocking": false
+        },
+        {
+          "spec": "detector types per room",
+          "why_needed_to_price": "Detector types decide cost.",
+          "uae_options": "PIR; dual-tech; glass break.",
+          "follow_up_if": "If the inquiry is silent on detector types per room, each supplier prices its own default; ask the buyer so every quote rests on the same detector types per room.",
+          "blocking": false
+        },
+        {
+          "spec": "panic/hold-up and duress",
+          "why_needed_to_price": "Panic buttons add devices.",
+          "uae_options": "Panic; hold-up; duress.",
+          "follow_up_if": "If the inquiry is silent on panic/hold-up and duress, each supplier prices its own default; ask the buyer so every quote rests on the same panic/hold-up and duress.",
+          "blocking": false
+        },
+        {
+          "spec": "wired / wireless",
+          "why_needed_to_price": "Wired and wireless differ in cost.",
+          "uae_options": "Wired or wireless.",
+          "follow_up_if": "If the inquiry is silent on wired / wireless, each supplier prices its own default; ask the buyer so every quote rests on the same wired / wireless.",
+          "blocking": false
+        },
+        {
+          "spec": "communicator paths and monitoring requirement",
+          "why_needed_to_price": "Communicators and monitoring add fees.",
+          "uae_options": "IP; GSM; monitoring.",
+          "follow_up_if": "If monitoring, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "CCTV verification integration",
+          "why_needed_to_price": "CCTV verification adds integration.",
+          "uae_options": "Video verification.",
+          "follow_up_if": "If the inquiry is silent on cctv verification integration, each supplier prices its own default; ask the buyer so every quote rests on the same cctv verification integration.",
+          "blocking": false
+        },
+        {
+          "spec": "intercom: villa or multi-tenant, units and entrances",
+          "why_needed_to_price": "Multi-tenant systems are priced per unit and entrance.",
+          "uae_options": "villa; building",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "entrance panel and indoor monitor type",
+          "why_needed_to_price": "Panel and monitor types decide cost.",
+          "uae_options": "Entrance panel; monitors.",
+          "follow_up_if": "If the inquiry is silent on entrance panel and indoor monitor type, each supplier prices its own default; ask the buyer so every quote rests on the same entrance panel and indoor monitor type.",
+          "blocking": false
+        },
+        {
+          "spec": "guard stations, mobile app, lift and SIP integration",
+          "why_needed_to_price": "Integrations add cost.",
+          "uae_options": "Guard stations; app; lift; SIP.",
+          "follow_up_if": "If the inquiry is silent on guard stations, mobile app, lift and sip integration, each supplier prices its own default; ask the buyer so every quote rests on the same guard stations, mobile app, lift and sip integration.",
+          "blocking": false
+        },
+        {
+          "spec": "reuse existing 2-wire or new IP cabling",
+          "why_needed_to_price": "Reuse or new cabling changes cost.",
+          "uae_options": "2-wire or IP.",
+          "follow_up_if": "If the inquiry is silent on reuse existing 2-wire or new ip cabling, each supplier prices its own default; ask the buyer so every quote rests on the same reuse existing 2-wire or new ip cabling.",
+          "blocking": false
+        },
+        {
+          "spec": "outdoor IP/IK ratings",
+          "why_needed_to_price": "Outdoor ratings are needed.",
+          "uae_options": "IP and IK ratings.",
+          "follow_up_if": "If outdoor, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "cabling scope, warranty and maintenance terms",
+          "why_needed_to_price": "Cabling, warranty and maintenance add cost.",
+          "uae_options": "Cabling; warranty; maintenance.",
+          "follow_up_if": "If the inquiry is silent on cabling scope, warranty and maintenance terms, each supplier prices its own default; ask the buyer so every quote rests on the same cabling scope, warranty and maintenance terms.",
+          "blocking": false
+        },
+        {
+          "spec": "Site location and emirate",
+          "why_needed_to_price": "Mobilisation, travel, labour transport and the authority whose rules apply all follow the site, so the same scope is priced differently in Dubai, Abu Dhabi, the northern emirates or a remote site.",
+          "uae_options": "A named emirate and area or community; city, industrial area or remote site; one site or several.",
+          "follow_up_if": "If the site is in a free zone, port, airport or developer community with its own access rules, ask which passes or NOCs apply.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "security_systems:fire-alarm-interface",
@@ -626,6 +1059,42 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "security_systems:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Security systems: approvals per emirate",
+      "topic_ar": "أنظمة الأمن: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: the Security Industry Regulatory Agency (SIRA) licenses security-systems installers (the trade licence must include installation and maintenance of security systems, with a minimum technical team registered with SIRA), approves equipment device by device, certifies the system of an establishment, and publishes a Preventive Systems Manual, updated by Administrative Resolution No. 13 of 2025, setting camera, recording and retention rules. Abu Dhabi: the Monitoring and Control Centre under Abu Dhabi Law No. 5 of 2011 governs monitoring systems and their approval, and security companies are licensed by Abu Dhabi Police. Sharjah and the northern emirates: the police of each emirate and the federal private-security framework apply; details were not confirmed in this session. A camera inside a private villa is subject to privacy rules; whether SIRA certification applies to private villas was not confirmed. Who obtains: the licensed installer.",
+      "body_ar": "في دبي: تمنح مؤسسة تنظيم الصناعة الأمنية تراخيص شركات تركيب الأنظمة الأمنية (يجب أن تتضمن الرخصة التجارية نشاط تركيب وصيانة الأنظمة الأمنية مع فريق فني أدنى مسجل لدى المؤسسة)، وتعتمد الأجهزة جهازاً جهازاً، وتصدر شهادة نظام المنشأة، وتنشر دليل الأنظمة الوقائية المحدّث بالقرار الإداري رقم 13 لسنة 2025 الذي يحدد قواعد الكاميرات والتسجيل ومدة الاحتفاظ. في أبوظبي: يتولى مركز المراقبة والتحكم وفق قانون أبوظبي رقم 5 لسنة 2011 تنظيم أنظمة المراقبة واعتمادها، وترخّص شرطة أبوظبي شركات الأمن. في الشارقة والإمارات الشمالية: تنطبق متطلبات الشرطة في كل إمارة والإطار الاتحادي للأمن الخاص، ولم يُتحقق من التفاصيل في هذه الجلسة. والكاميرا داخل فيلا خاصة تخضع لقواعد الخصوصية، ولم يُتحقق من انطباق شهادة المؤسسة على الفلل الخاصة. من يحصل عليها: شركة التركيب المرخّصة.",
+      "sources": [
+        "https://www.sira.gov.ae/en/services/noc-security-license",
+        "https://www.sira.gov.ae/en/services/security-equipment-and-devices-certification-29917987",
+        "https://www.sira.gov.ae/en/services/security-system-certification",
+        "https://www.sira.gov.ae/assets/4768cdc/Administrative%20Resolution%20No.%2013%20of%202025%20Approving%20the%20Preventive%20System%20Manual_638911154861069357.pdf.aspx",
+        "https://www.sira.gov.ae/assets/1554846d/Standard%20and%20Technical%20Specifications%20of%20the%20Security%20Systems.pdf.aspx",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2016/Law%20No.%20(12)%20of%202016.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2018/Resolution%20No.%20(1)%20of%202018.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(13)%20of%202025%20System%20Manual.html"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Dubai Law No. 12 of 2016 establishes SIRA, which licenses security service providers (including selling and installing security equipment and systems) and licenses the security devices and equipment set by the bylaw; Resolution No. 1 of 2018 is the implementing bylaw and bars security devices in private places except private residences for documenting offences; Administrative Resolution No. 13 of 2025 approves the Preventive Systems Manual with camera and recording rules (all on dlp.dubai.gov.ae). Not confirmed on any page that opened: the minimum SIRA-registered technical team, SIRA certification of an establishment's system, Abu Dhabi Law No. 5 of 2011 and the Monitoring and Control Centre, and Abu Dhabi Police licensing. Hosts that failed: www.sira.gov.ae (refused by the session network)."
+    },
+    {
+      "id": "security_systems:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing security systems quotes like for like",
+      "topic_ar": "مقارنة عروض أنظمة الأمن على أساس متكافئ",
+      "body_en": "Compare on the same camera counts and types, resolution, retention and storage, the same VMS and licences, and the same installation, cabling and SIRA or MCC certification scope. Brand origin matters: some projects restrict camera origins, so check each quote names the brand and model. Value beyond price: a licensed installer, regulator-approved products, and a maintenance contract.",
+      "body_ar": "قارن على أعداد الكاميرات وأنواعها ودقتها ومدة الاحتفاظ والتخزين نفسها، وعلى برنامج إدارة الفيديو والتراخيص نفسها، ونطاق التركيب والتمديدات واعتماد مؤسسة تنظيم الصناعة الأمنية أو مركز المراقبة نفسه. ومنشأ العلامة مهم: فبعض المشاريع تقيّد منشأ الكاميرات، فتحقق من أن كل عرض يذكر العلامة والطراز. القيمة إلى جانب السعر: شركة تركيب مرخّصة، ومنتجات معتمدة من الجهة المنظمة، وعقد صيانة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -723,7 +1192,7 @@
   ],
   "verified": {
     "fetched_urls": 33,
-    "claims_checked": 215,
+    "claims_checked": 221,
     "corrected": [
       "security_systems:resolution-dori",
       "security_systems:storage-calculation",
@@ -735,7 +1204,9 @@
       "security_systems:fire-alarm-interface"
     ],
     "removed": [],
-    "still_unverified": [],
+    "still_unverified": [
+      "security_systems:approvals-per-emirate"
+    ],
     "not_established_marked": [
       "security_systems:hd-analog-tvi-ahd-cvi",
       "security_systems:ir-wdr-lowlight",
@@ -745,6 +1216,32 @@
       "security_systems:fire-alarm-interface"
     ],
     "passes": "A3 + A3b (23 Sep 2026)",
-    "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf)."
+    "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf).",
+    "added": [
+      "security_systems:approvals-per-emirate",
+      "security_systems:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: security_systems:approvals-per-emirate re-checked against official pages opened through the session network (0 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "security_systems:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2016/Law%20No.%20(12)%20of%202016.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2018/Resolution%20No.%20(1)%20of%202018.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(13)%20of%202025%20System%20Manual.html"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

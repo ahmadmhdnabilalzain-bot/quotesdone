@@ -28,8 +28,8 @@
       "topic": "Promotional & corporate gifts: makes, brands, distributors and origins in the UAE",
       "topic_ar": "هدايا دعائية وهدايا شركات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Dubai gift suppliers include Jasani, Shass Corporate Gifts and Notebook Advertising, using blank brands such as Moleskine, Parker, Cross, Stanley and Gildan imported from China, Turkey and India. Confirmed Dubai gift suppliers and common blank brands: Jasani, Shass Corporate Gifts, Notebook Advertising, Moleskine, Parker, Cross, Stanley, Gildan, Fruit of the Loom. The brands' UAE distributors were not checked. Printing and embroidery workshops cluster in Al Quoz, Karama and the Sharjah Industrial Area, and blanks are imported from China, Turkey and India.",
-      "body_ar": "من موردي الهدايا في دبي Jasani وShass Corporate Gifts وNotebook Advertising، ويستخدمون منتجات سادة من علامات مثل Moleskine وParker وCross وStanley وGildan مستوردة من الصين وتركيا والهند. موردو الهدايا المؤكدون في دبي والعلامات الشائعة للمنتجات غير المطبوعة: Jasani، Shass Corporate Gifts، Notebook Advertising، Moleskine، Parker، Cross، Stanley، Gildan، Fruit of the Loom. ولم يُتحقق من موزعي العلامات في الإمارات. وتتجمع ورش الطباعة والتطريز في القوز والكرامة والمنطقة الصناعية بالشارقة، وتُستورد المنتجات من الصين وتركيا والهند.",
+      "body_en": "Dubai gift suppliers include Jasani, Shass Corporate Gifts and Notebook Advertising, using blank brands such as Moleskine, Parker, Cross, Stanley and Gildan imported from China, Turkey and India. Confirmed Dubai gift suppliers and common blank brands: Jasani, Shass Corporate Gifts, Notebook Advertising, Moleskine, Parker, Cross, Stanley, Gildan, Fruit of the Loom. The brands' UAE distributors were not checked. Printing and embroidery workshops cluster in Al Quoz, Karama and the Sharjah Industrial Area, and blanks are imported from China, Turkey and India.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Jasani = a UAE trading or retail name; Shass Corporate Gifts = a UAE trading or retail name; Notebook Advertising = a UAE trading or retail name; Moleskine = a premium Italian brand; Parker = a premium British brand; Cross = a premium American brand; Stanley = a mid-tier American brand; Gildan = an economy Canadian brand; Fruit of the Loom = an economy American brand.",
+      "body_ar": "من موردي الهدايا في دبي Jasani وShass Corporate Gifts وNotebook Advertising، ويستخدمون منتجات سادة من علامات مثل Moleskine وParker وCross وStanley وGildan مستوردة من الصين وتركيا والهند. موردو الهدايا المؤكدون في دبي والعلامات الشائعة للمنتجات غير المطبوعة: Jasani، Shass Corporate Gifts، Notebook Advertising، Moleskine، Parker، Cross، Stanley، Gildan، Fruit of the Loom. ولم يُتحقق من موزعي العلامات في الإمارات. وتتجمع ورش الطباعة والتطريز في القوز والكرامة والمنطقة الصناعية بالشارقة، وتُستورد المنتجات من الصين وتركيا والهند.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Jasani = اسم تجاري لتاجر أو موزع في الإمارات؛ Shass Corporate Gifts = اسم تجاري لتاجر أو موزع في الإمارات؛ Notebook Advertising = اسم تجاري لتاجر أو موزع في الإمارات؛ Moleskine = علامة إيطالية من الفئة الممتازة؛ Parker = علامة بريطانية من الفئة الممتازة؛ Cross = علامة أمريكية من الفئة الممتازة؛ Stanley = علامة أمريكية من الفئة المتوسطة؛ Gildan = علامة كندية من الفئة الاقتصادية؛ Fruit of the Loom = علامة أمريكية من الفئة الاقتصادية.",
       "sources": [
         "https://www.intertek.com/government/product-conformity/ecas/",
         "https://www.jasani.ae/",
@@ -40,7 +40,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Chargers and power adapters need an ECAS certificate of conformity; wireless devices need TDRA type approval -> confirmed | Corporate gift suppliers in Dubai include Jasani, Shass Corporate Gifts and Notebook Advertising -> confirmed | Xindao, Stricker catalogues sold via UAE suppliers -> removed: not checked. Not checked: Which named brands have authorised UAE distributors and current typical lead times were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Chargers and power adapters need an ECAS certificate of conformity; wireless devices need TDRA type approval -> confirmed | Corporate gift suppliers in Dubai include Jasani, Shass Corporate Gifts and Notebook Advertising -> confirmed | Xindao, Stricker catalogues sold via UAE suppliers -> removed: not checked. Not checked: Which named brands have authorised UAE distributors and current typical lead times were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Jasani",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Shass Corporate Gifts",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Notebook Advertising",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Moleskine",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Parker",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Cross",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Stanley",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Gildan",
+          "origin": "Canada",
+          "tier": "economy",
+          "generic_en": "an economy Canadian brand",
+          "generic_ar": "علامة كندية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Fruit of the Loom",
+          "origin": "USA",
+          "tier": "economy",
+          "generic_en": "an economy American brand",
+          "generic_ar": "علامة أمريكية من الفئة الاقتصادية"
+        }
+      ]
     },
     {
       "id": "promotional_gifts:uae-market-sizes",

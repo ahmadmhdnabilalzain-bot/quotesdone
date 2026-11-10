@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-10T14:08:37.595Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-10T15:02:10.494Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -8118,7 +8118,9 @@ CREATE TABLE IF NOT EXISTS public.quotes (
   extracted_by_model text,
   gross_amount numeric,
   discount_amount numeric,
-  discount_label text
+  discount_label text,
+  review_notes jsonb,
+  review_notes_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
@@ -12701,6 +12703,7 @@ ALTER TABLE public.quotes ADD CONSTRAINT quotes_option_no_range CHECK (((option_
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_price_ex_vat_positive CHECK (((price_ex_vat IS NULL) OR (price_ex_vat > (0)::numeric)));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_check CHECK ((quote_amount > (0)::numeric));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_scale_ck CHECK ((quote_amount = round(quote_amount, 2)));
+ALTER TABLE public.quotes ADD CONSTRAINT quotes_review_notes_shape CHECK (fn_quote_review_notes_are_valid(review_notes));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_supplier_trn_shape CHECK (((supplier_trn IS NULL) OR (supplier_trn ~ '^100[0-9]{12}$'::text)));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_vat_amount_money_ck CHECK (((vat_amount >= (0)::numeric) AND (vat_amount = round(vat_amount, 2))));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_vat_treatment_known CHECK (((vat_treatment IS NULL) OR (vat_treatment = ANY (ARRAY['exclusive'::text, 'inclusive'::text, 'not_registered'::text, 'not_stated'::text, 'confirmed_on_portal'::text]))));
@@ -13742,6 +13745,7 @@ CREATE INDEX lead_subcategory_domain_idx ON public.lead_subcategory USING btree 
 CREATE UNIQUE INDEX lead_subcategory_primary_uidx ON public.lead_subcategory USING btree (lead_id) WHERE is_primary;
 CREATE INDEX lead_subcategory_sub_idx ON public.lead_subcategory USING btree (sub_slug);
 CREATE INDEX lead_trade_class_trade_idx ON public.lead_trade_class USING btree (trade_code);
+CREATE INDEX leads_accepted_unsigned_idx ON public.leads USING btree (accepted_terms_at) WHERE ((accepted_terms_at IS NOT NULL) AND ((signed_terms_path IS NULL) OR (signed_terms_at IS NULL) OR (signed_terms_at < accepted_terms_at)));
 CREATE UNIQUE INDEX leads_claim_token_key ON public.leads USING btree (claim_token);
 CREATE INDEX leads_claimed_by_idx ON public.leads USING btree (claimed_by);
 CREATE UNIQUE INDEX leads_claimed_by_lower_uidx ON public.leads USING btree (lower(btrim(claimed_by))) WHERE ((claimed_by IS NOT NULL) AND (btrim(claimed_by) <> ''::text));
@@ -13760,6 +13764,8 @@ CREATE INDEX leads_lifecycle_stage_idx ON public.leads USING btree (lifecycle_st
 CREATE INDEX leads_phone_tail9_idx ON public.leads USING btree ("right"(regexp_replace(COALESCE(phone, ''::text), '[^0-9]'::text, ''::text, 'g'::text), 9));
 CREATE UNIQUE INDEX leads_place_id_uidx ON public.leads USING btree (place_id) WHERE (place_id IS NOT NULL);
 CREATE INDEX leads_sector_idx ON public.leads USING btree (sector);
+CREATE INDEX leads_services_unconfirmed_idx ON public.leads USING btree (id) WHERE (licence_gate_reason = 'services_unconfirmed'::text);
+CREATE INDEX leads_unranked_verified_idx ON public.leads USING btree (id) WHERE (verified AND (founding_rank IS NULL));
 CREATE INDEX leads_whatsapp_phone_tail9_idx ON public.leads USING btree ("right"(regexp_replace(COALESCE(whatsapp_phone, ''::text), '[^0-9]'::text, ''::text, 'g'::text), 9));
 CREATE UNIQUE INDEX legal_kpi_snap_day ON public.legal_kpi_snapshots USING btree (snapshot_date);
 CREATE INDEX licence_renewal_ask_open ON public.licence_renewal_ask USING btree (lead_id, asked_at DESC) WHERE (answered_at IS NULL);

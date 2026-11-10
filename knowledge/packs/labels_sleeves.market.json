@@ -25,8 +25,8 @@
       "topic": "Labels & shrink sleeves: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الملصقات والأغلفة الانكماشية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names GS1 UAE for barcodes and label material, printer and ribbon brands such as Avery Dennison, UPM Raflatac, Zebra and SATO, and where label converters are. Barcode registration is through GS1 UAE. Material, printer and ribbon brands: GS1 UAE, Avery Dennison, UPM Raflatac, Herma, Bonset, Klöckner Pentaplast, Zebra, Honeywell, TSC, SATO, Armor, Ricoh. Label converters are numerous in Sharjah, Ajman, Dubai (Al Quoz, DIP, JAFZA) and Abu Dhabi and were not checked by name. Origins: Europe, US brands, Asia, local conversion.",
-      "body_ar": "تصدر أرقام الباركود للملصقات والسليفات عن GS1 UAE، ومن ماركات خامات الملصقات والطابعات والأشرطة (الريبون) Avery Dennison وUPM Raflatac وZebra وSATO، مع بيان أماكن مصانع تحويل الملصقات. يتم تسجيل الباركود عن طريق GS1 UAE. ماركات الخامات والطابعات والأشرطة: GS1 UAE، Avery Dennison، UPM Raflatac، Herma، Bonset، Klöckner Pentaplast، Zebra، Honeywell، TSC، SATO، Armor، Ricoh. ومصانع تحويل الملصقات كثيرة في الشارقة وعجمان ودبي (القوز وDIP وJAFZA) وأبوظبي، ولم نتحقق منها بالاسم. المنشأ: أوروبا، وماركات أمريكية، وآسيا، والتحويل المحلي.",
+      "body_en": "This entry names GS1 UAE for barcodes and label material, printer and ribbon brands such as Avery Dennison, UPM Raflatac, Zebra and SATO, and where label converters are. Barcode registration is through GS1 UAE. Material, printer and ribbon brands: GS1 UAE, Avery Dennison, UPM Raflatac, Herma, Bonset, Klöckner Pentaplast, Zebra, Honeywell, TSC, SATO, Armor, Ricoh. Label converters are numerous in Sharjah, Ajman, Dubai (Al Quoz, DIP, JAFZA) and Abu Dhabi and were not checked by name. Origins: Europe, US brands, Asia, local conversion.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Avery Dennison = a premium American brand; UPM Raflatac = a premium Finnish brand; Herma = a premium German brand; Bonset = a mid-tier Japanese brand; Klöckner Pentaplast = a premium German brand; Zebra = a premium American brand; Honeywell = a premium American brand; TSC = a mid-tier Taiwanese brand; SATO = a premium Japanese brand; Armor = a mid-tier French brand; Ricoh = a mid-tier Japanese brand.",
+      "body_ar": "تصدر أرقام الباركود للملصقات والسليفات عن GS1 UAE، ومن ماركات خامات الملصقات والطابعات والأشرطة (الريبون) Avery Dennison وUPM Raflatac وZebra وSATO، مع بيان أماكن مصانع تحويل الملصقات. يتم تسجيل الباركود عن طريق GS1 UAE. ماركات الخامات والطابعات والأشرطة: GS1 UAE، Avery Dennison، UPM Raflatac، Herma، Bonset، Klöckner Pentaplast، Zebra، Honeywell، TSC، SATO، Armor، Ricoh. ومصانع تحويل الملصقات كثيرة في الشارقة وعجمان ودبي (القوز وDIP وJAFZA) وأبوظبي، ولم نتحقق منها بالاسم. المنشأ: أوروبا، وماركات أمريكية، وآسيا، والتحويل المحلي.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Avery Dennison = علامة أمريكية من الفئة الممتازة؛ UPM Raflatac = علامة فنلندية من الفئة الممتازة؛ Herma = علامة ألمانية من الفئة الممتازة؛ Bonset = علامة يابانية من الفئة المتوسطة؛ Klöckner Pentaplast = علامة ألمانية من الفئة الممتازة؛ Zebra = علامة أمريكية من الفئة الممتازة؛ Honeywell = علامة أمريكية من الفئة الممتازة؛ TSC = علامة تايوانية من الفئة المتوسطة؛ SATO = علامة يابانية من الفئة الممتازة؛ Armor = علامة فرنسية من الفئة المتوسطة؛ Ricoh = علامة يابانية من الفئة المتوسطة.",
       "sources": [
         "https://www.gs1ae.org",
         "https://www.averydennison.com",
@@ -34,7 +34,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: GS1 UAE issues barcodes -> confirmed | Avery Dennison label materials -> confirmed. Not checked: The GS1 UAE website address and current Arabic-labelling requirements per product class were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: GS1 UAE issues barcodes -> confirmed | Avery Dennison label materials -> confirmed. Not checked: The GS1 UAE website address and current Arabic-labelling requirements per product class were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Avery Dennison",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "UPM Raflatac",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Herma",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bonset",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Klöckner Pentaplast",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Zebra",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Honeywell",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "TSC",
+          "origin": "Taiwan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Taiwanese brand",
+          "generic_ar": "علامة تايوانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "SATO",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Armor",
+          "origin": "France",
+          "tier": "mid",
+          "generic_en": "a mid-tier French brand",
+          "generic_ar": "علامة فرنسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Ricoh",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "labels_sleeves:uae-market-sizes",

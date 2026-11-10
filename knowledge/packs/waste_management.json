@@ -5,8 +5,8 @@
       "id": "waste_management:spec-checklist",
       "topic": "Waste management - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For waste management quotes to be compared like-for-like, every quoted line (services) must state: (1) waste streams (general, recyclable, construction, hazardous, medical); (2) estimated volume per week; (3) bin or skip sizes and number; (4) collection frequency; (5) disposal site and tipping fees; (6) licensed waste transporter; (7) manifests and disposal certificates; (8) recycling reporting; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the waste_management trade.",
-      "body_ar": "لكي تُقارن عروض إدارة النفايات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) أنواع النفايات (عامة، أو قابلة للتدوير، أو إنشائية، أو خطرة، أو طبية)؛ (2) الحجم التقديري أسبوعياً؛ (3) أحجام الحاويات وعددها؛ (4) تكرار الجمع؛ (5) موقع التخلص ورسوم الإلقاء؛ (6) ناقل نفايات مرخص؛ (7) بيانات الشحن وشهادات التخلص؛ (8) تقارير إعادة التدوير؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة waste_management فقط.",
+      "body_en": "For waste management quotes to be compared like-for-like, every quoted line (services) must state: (1) waste streams (general, recyclable, construction, hazardous, medical); (2) estimated volume per week; (3) bin or skip sizes and number; (4) collection frequency; (5) disposal site and tipping fees; (6) licensed waste transporter; (7) manifests and disposal certificates; (8) recycling reporting; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the waste_management trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): waste streams, volume, container sizes and collection frequency. Supplier ask-back review (2026-11-10): the inquiry now also states Service location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: waste streams (general, recyclable, construction, hazardous, medical); estimated volume per week; bin or skip sizes and number; collection frequency; Service location and emirate.",
+      "body_ar": "لكي تُقارن عروض إدارة النفايات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) أنواع النفايات (عامة، أو قابلة للتدوير، أو إنشائية، أو خطرة، أو طبية)؛ (2) الحجم التقديري أسبوعياً؛ (3) أحجام الحاويات وعددها؛ (4) تكرار الجمع؛ (5) موقع التخلص ورسوم الإلقاء؛ (6) ناقل نفايات مرخص؛ (7) بيانات الشحن وشهادات التخلص؛ (8) تقارير إعادة التدوير؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة waste_management فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: أنواع النفايات، والكمية، وأحجام الحاويات، وتكرار الجمع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع تقديم الخدمة والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "waste streams (general, recyclable, construction, hazardous, medical)",
         "estimated volume per week",
@@ -18,13 +18,117 @@
         "recycling reporting",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Service location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "waste streams (general, recyclable, construction, hazardous, medical)",
+        "estimated volume per week",
+        "bin or skip sizes and number",
+        "collection frequency",
+        "Service location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "waste streams (general, recyclable, construction, hazardous, medical)",
+          "why_needed_to_price": "Each stream needs its own licence, container and disposal fee.",
+          "uae_options": "general; recyclable; C&D; hazardous; medical; food",
+          "follow_up_if": "Hazardous or medical: a specialist licensed operator is needed.",
+          "blocking": true
+        },
+        {
+          "spec": "estimated volume per week",
+          "why_needed_to_price": "Volume sets bin size and trips.",
+          "uae_options": "m3 or tonnes per week",
+          "follow_up_if": "Unknown: a site visit or photos of current bins.",
+          "blocking": true
+        },
+        {
+          "spec": "bin or skip sizes and number",
+          "why_needed_to_price": "Container rental is part of the price.",
+          "uae_options": "240 L bins; 1.1 m3; 6-20 m3 skips",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "collection frequency",
+          "why_needed_to_price": "Trips drive cost.",
+          "uae_options": "daily; weekly; on call",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "disposal site and tipping fees",
+          "why_needed_to_price": "Tipping fees can be included or passed through.",
+          "uae_options": "included; at cost",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licensed waste transporter",
+          "why_needed_to_price": "Only licensed transporters may carry waste.",
+          "uae_options": "Licensed waste transporter.",
+          "follow_up_if": "If not shown, the offer cannot be accepted.",
+          "blocking": false
+        },
+        {
+          "spec": "manifests and disposal certificates",
+          "why_needed_to_price": "Sites and auditors require proof of legal disposal.",
+          "uae_options": "per load",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "recycling reporting",
+          "why_needed_to_price": "Recycling reports add admin.",
+          "uae_options": "Monthly reports.",
+          "follow_up_if": "If green-building reporting is needed, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "A one-off job, a monthly fee and a multi-year contract carry different overheads and discounts; the unit of price must match to compare.",
+          "uae_options": "One-off lump sum; monthly or annual fee; per visit, per hour, per unit or per square metre; 1-3 year terms with renewal.",
+          "follow_up_if": "If the buyer is unsure of the term, ask for prices for one year and for a longer term, with any escalation stated.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Response and fix times decide how many staff, vehicles and spares the provider must keep ready, which is most of a service price.",
+          "uae_options": "Emergency response 2-4 hours in the same city; urgent next day; routine within agreed days; 24/7 or business hours.",
+          "follow_up_if": "If the buyer needs 24/7 cover or penalties for missed response, say so: it is priced differently.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "Service location and emirate",
+          "why_needed_to_price": "Collection rounds, the haul distance to the approved disposal site and the municipality whose fees apply all follow the premises and its emirate.",
+          "uae_options": "Dubai, Abu Dhabi, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah or Fujairah; mainland or free zone; one site or several; city, industrial area or remote site.",
+          "follow_up_if": "If there is more than one site, ask the address and the volume or headcount at each.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "waste_management:uae-standards-and-approvals",
@@ -81,6 +185,79 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "waste_management:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Waste collection: approvals per emirate",
+      "topic_ar": "جمع النفايات: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: waste collection and transport need a Dubai Municipality permit, and waste goes to municipality-approved sites. Abu Dhabi: waste licensing moved from Tadweer to the Environment Agency - Abu Dhabi (EAD), which also tracks waste leaving the emirate and the transport of hazardous waste; Tadweer runs landfills and issues landfill-entry permits to service providers' vehicles. Sharjah: Bee'ah is the waste management company. Northern emirates: municipal waste departments. Federal: moving hazardous waste within the UAE by land, sea or air needs written permission from the federal ministry. Who obtains: the collector must hold the permit for the emirate and stream; the buyer should keep disposal records.",
+      "body_ar": "في دبي: يحتاج جمع النفايات ونقلها إلى تصريح من بلدية دبي، وتذهب النفايات إلى مواقع تعتمدها البلدية. في أبوظبي: انتقل ترخيص إدارة النفايات من مجموعة تدوير إلى هيئة البيئة - أبوظبي التي تتابع أيضاً نقل النفايات خارج الإمارة ونقل النفايات الخطرة، وتدير تدوير المكبات وتصدر تصاريح دخول المكبات لمركبات مزودي الخدمات. في الشارقة: شركة بيئة هي جهة إدارة النفايات. في الإمارات الشمالية: إدارات النفايات في البلديات. اتحادياً: يحتاج نقل النفايات الخطرة داخل الدولة براً أو بحراً أو جواً إلى إذن كتابي من الوزارة الاتحادية. من يحصل عليه: يجب أن يحمل الجامع تصريح الإمارة ونوع النفايات، وعلى المشتري الاحتفاظ بسجلات التخلص.",
+      "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.mediaoffice.abudhabi/en/environment/environment-agency-abu-dhabi-expands-licensing-and-permitting-services-to-include-waste-licensing-and-inspection-management-activities/",
+        "https://www.wam.ae/en/article/13xw0mp-waste-management-licensing-services-transferred",
+        "https://beta.government.ae/en/information-and-services/environment-and-energy/waste-management/hazardous-waste-permits",
+        "https://u.ae/en/information-and-services/environment-and-energy/waste-management",
+        "https://www.dm.gov.ae/municipality-business/waste-department-technical-guidelines-2/"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: WAM (30 May 2024): Abu Dhabi waste licensing and permitting moved from Tadweer to EAD, which also tracks waste leaving the emirate and the transport of hazardous waste; MOCCAE's written permission for hazardous-waste movement and Beeah in Sharjah (u.ae); DM permits for waste collection, transport and disposal-site access. Not confirmed on any page that opened: Tadweer landfill-entry permits and the northern-emirate municipal waste departments. Hosts that failed: www.mediaoffice.abudhabi and beta.government.ae (refused by the session network)."
+    },
+    {
+      "id": "waste_management:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in waste collection quotes",
+      "topic_ar": "علامات التحذير في عروض جمع النفايات",
+      "body_en": "Watch for: tipping fees \"at cost\" with no estimate, container rental charged separately, extra-lift charges for overflow, no disposal manifests, a collector not licensed for the stream or the emirate, and minimum monthly charges.",
+      "body_ar": "انتبه إلى: رسوم طمر «بالتكلفة» دون تقدير، واحتساب إيجار الحاويات بشكل منفصل، ورسوم رفع إضافي عند الامتلاء، وغياب سجلات التخلص، وجامع غير مرخّص لنوع النفايات أو للإمارة، ورسوم حد أدنى شهرية.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "waste_management:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in waste collection",
+      "topic_ar": "أخطاء شائعة لدى المشترين في جمع النفايات",
+      "body_en": "Buyers mix hazardous or construction waste with general waste, under-size bins, and cannot prove legal disposal at inspection.",
+      "body_ar": "يخلط المشترون النفايات الخطرة أو نفايات البناء مع النفايات العامة، ويختارون حاويات أصغر من اللازم، ولا يستطيعون إثبات التخلص القانوني عند التفتيش.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "waste_management:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves waste collection prices",
+      "topic_ar": "ما الذي يغيّر أسعار جمع النفايات بشكل مشروع",
+      "body_en": "Prices differ by stream, volume, container type, frequency, distance to the disposal site, tipping fees and recycling credits.",
+      "body_ar": "تختلف الأسعار حسب نوع النفايات، والكمية، ونوع الحاوية، والتكرار، والمسافة إلى موقع التخلص، ورسوم الطمر، وعوائد إعادة التدوير.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "waste_management:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing waste collection quotes like for like",
+      "topic_ar": "مقارنة عروض جمع النفايات على أساس متكافئ",
+      "body_en": "Compare on monthly cost for the same streams, containers and frequency with tipping fees included, and manifests provided. Value beyond price: a licensed collector, recycling reports and reliable collection times.",
+      "body_ar": "قارن على التكلفة الشهرية لأنواع النفايات والحاويات والتكرار نفسها مع شمول رسوم الطمر وتقديم السجلات. القيمة إلى جانب السعر: جامع مرخّص، وتقارير إعادة التدوير، ومواعيد جمع منتظمة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -117,17 +294,23 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
+    "fetched_urls": 4,
+    "claims_checked": 9,
     "corrected": [],
     "removed": [],
     "still_unverified": [
       "waste_management:spec-checklist",
-      "waste_management:uae-standards-and-approvals"
+      "waste_management:uae-standards-and-approvals",
+      "waste_management:approvals-per-emirate"
     ],
     "added": [
       "waste_management:spec-checklist",
-      "waste_management:uae-standards-and-approvals"
+      "waste_management:uae-standards-and-approvals",
+      "waste_management:approvals-per-emirate",
+      "waste_management:quote-red-flags",
+      "waste_management:buyer-mistakes",
+      "waste_management:price-drivers",
+      "waste_management:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -154,6 +337,26 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: waste_management:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 8 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "waste_management:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.wam.ae/en/article/13xw0mp-waste-management-licensing-services-transferred"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

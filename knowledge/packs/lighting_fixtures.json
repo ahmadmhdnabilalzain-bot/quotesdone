@@ -5,8 +5,8 @@
       "id": "lighting_fixtures:spec-checklist",
       "topic": "Lighting fixtures - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For lighting fixtures (trade code lighting_fixtures only), every quoted line must state: Fixture type and code; Wattage and lumen output; Colour temperature and CRI; Beam angle and optics; IP and IK rating; Driver and dimming protocol; Emergency version; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط وحدات الإنارة (رمز النشاط lighting_fixtures فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الوحدة ورمزها؛ القدرة والتدفق الضوئي؛ درجة حرارة اللون ومؤشر تجسيد اللون؛ زاوية الشعاع والبصريات؛ تصنيف IP و IK؛ المشغّل وبروتوكول التعتيم؛ النسخة الطارئة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For lighting fixtures (trade code lighting_fixtures only), every quoted line must state: Fixture type and code; Wattage and lumen output; Colour temperature and CRI; Beam angle and optics; IP and IK rating; Driver and dimming protocol; Emergency version; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): type or code, lumen output, IP rating, dimming and quantity. A lighting design may be needed to fix quantities. Supplier ask-back review (2026-11-10): the inquiry now also states Mounting type and ceiling; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Fixture type and code; Wattage and lumen output; IP and IK rating; Driver and dimming protocol; Quantity and unit of measure.",
+      "body_ar": "في نشاط وحدات الإنارة (رمز النشاط lighting_fixtures فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الوحدة ورمزها؛ القدرة والتدفق الضوئي؛ درجة حرارة اللون ومؤشر تجسيد اللون؛ زاوية الشعاع والبصريات؛ تصنيف IP و IK؛ المشغّل وبروتوكول التعتيم؛ النسخة الطارئة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: النوع أو الرمز، والتدفق الضوئي، ودرجة الحماية، والتعتيم، والكمية. وقد يلزم تصميم إنارة لتحديد الكميات. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً طريقة التركيب ونوع السقف؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Fixture type and code",
         "Wattage and lumen output",
@@ -22,7 +22,9 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Mounting type and ceiling",
+        "Payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
@@ -30,7 +32,137 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Fixture type and code",
+        "Wattage and lumen output",
+        "IP and IK rating",
+        "Driver and dimming protocol",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Fixture type and code",
+          "why_needed_to_price": "A code or a full description fixes the product.",
+          "uae_options": "downlight; panel; linear; high-bay; track; outdoor; decorative",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Wattage and lumen output",
+          "why_needed_to_price": "Lumens decide how many fittings are needed; wattage alone misleads.",
+          "uae_options": "lm and W",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Colour temperature and CRI",
+          "why_needed_to_price": "CRI 90 and tunable white cost more.",
+          "uae_options": "2700-6500 K; CRI 80/90",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Beam angle and optics",
+          "why_needed_to_price": "Beam angle and optics decide fitting choice and price.",
+          "uae_options": "Narrow, medium or wide beam; lenses and reflectors.",
+          "follow_up_if": "If the lighting design is not done, ask for the lux targets and mounting height.",
+          "blocking": false
+        },
+        {
+          "spec": "IP and IK rating",
+          "why_needed_to_price": "Outdoor and wet areas need higher ratings.",
+          "uae_options": "IP20-IP67",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Driver and dimming protocol",
+          "why_needed_to_price": "Dimming drivers cost more.",
+          "uae_options": "non-dim; phase; 0-10V; DALI",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Emergency version",
+          "why_needed_to_price": "Emergency fittings need batteries and civil defence acceptance.",
+          "uae_options": "none; maintained; non-maintained",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "Quantity sets price breaks.",
+          "uae_options": "pieces; metres for linear",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "The standard a product is made and tested to defines what is being bought; products to different standards are not like-for-like.",
+          "uae_options": "EN, BS, IEC, ASTM or GSO standards; test reports from an accredited (EIAC or ILAC-recognised) lab.",
+          "follow_up_if": "If no test report to the stated standard is offered, ask for it before comparing prices.",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "A product or service without the approval the emirate requires cannot be used, so the cost and time of approval must be in or out of the price.",
+          "uae_options": "MoIAT conformity for regulated products; civil defence approval for fire-related items; municipality or utility approval.",
+          "follow_up_if": "If the supplier holds no current approval for this exact item, ask who obtains it, how long it takes and who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Freight, unloading and the distance to site are part of the price; a delivered price to Dubai is not the same as one to Al Dhafra.",
+          "uae_options": "Ex-works or ex-warehouse; delivered to site within an emirate; delivered and offloaded; Incoterms for imports.",
+          "follow_up_if": "If the site is remote or has access limits (time windows, small vehicles only), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "why_needed_to_price": "Supply-only and supply-install-commission are different prices; testing and commissioning are often left out silently.",
+          "uae_options": "Supply only; supply and install; install, test and commission with records and training.",
+          "follow_up_if": "If commissioning, testing or training is needed, state it so all quotes include it.",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "The defects period decides how long the provider must return at its own cost, which it prices in.",
+          "uae_options": "12 months defects liability is common on UAE works; longer warranties for specific systems by agreement.",
+          "follow_up_if": "If the buyer needs a longer period, ask for it priced separately.",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "Mounting type and ceiling",
+          "why_needed_to_price": "Recessed, surface, suspended and track versions of the same fitting are different products, and the ceiling type (gypsum, grid, open concrete) sets the cut-out, the fixing kit and suspension accessories.",
+          "uae_options": "Recessed in gypsum or grid ceiling (state cut-out if fixed); surface on concrete; suspended at a stated drop; track on a named system; wall, pole or ground mounted outdoors.",
+          "follow_up_if": "If no fixture code is given, ask the mounting height as well, because it decides lumen output and beam angle.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "lighting_fixtures:uae-standards-and-approvals",
@@ -89,6 +221,78 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "lighting_fixtures:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Lighting fixtures: approvals per emirate",
+      "topic_ar": "وحدات الإنارة: الاعتمادات في كل إمارة",
+      "body_en": "Lighting products on MoIAT's regulated list (for example many lamps and LED products) need a conformity certificate before sale anywhere in the UAE. Emergency and exit lighting must meet the UAE Fire and Life Safety Code and be accepted by the emirate's civil defence. On permitted projects, lighting power and controls support green-building compliance (Al Sa'fat in Dubai, Estidama in Abu Dhabi). Replacing fittings in a private home needs no approval. Who obtains: the importer holds the conformity certificate; the contractor submits emergency lighting to civil defence.",
+      "body_ar": "تحتاج منتجات الإنارة المدرجة ضمن المنتجات الخاضعة للرقابة لدى وزارة الصناعة والتكنولوجيا المتقدمة (مثل كثير من المصابيح ومنتجات LED) إلى شهادة مطابقة قبل بيعها في أي مكان في الدولة. ويجب أن تحقق إنارة الطوارئ ولافتات الخروج كود الإمارات للحماية من الحرائق وأن يقبلها الدفاع المدني في الإمارة. وفي المشاريع المرخّصة تدعم قدرة الإنارة وأنظمة التحكم الامتثال للمباني الخضراء (السعفات في دبي واستدامة في أبوظبي). واستبدال الوحدات في منزل خاص لا يحتاج إلى اعتماد. من يحصل عليها: المستورد يحمل شهادة المطابقة، والمقاول يقدم إنارة الطوارئ للدفاع المدني.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet lists 'Lighting products' (Cabinet Decision No. 34 of 2013: IEC CB test reports, packaging per the decision, RoHS test report) as needing a conformity certificate; Al Sa'fat 2nd edition is DM's green-building system for permitted projects; Estidama applies in Abu Dhabi (Abu Dhabi City Municipality, January 2025). Not confirmed on any page that opened: civil defence acceptance of emergency and exit lighting, and the specific Al Sa'fat lighting-power rules. Hosts that failed: www.dcd.gov.ae (connection reset by the site); moei.gov.ae (connection reset by the site)."
+    },
+    {
+      "id": "lighting_fixtures:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in lighting quotes",
+      "topic_ar": "علامات التحذير في عروض الإنارة",
+      "body_en": "Watch for: wattage quoted without lumens, a different chip or driver than the datasheet, CRI or colour consistency not stated, IP rating lower than asked, \"5-year warranty\" from an unknown OEM with no local agent, no conformity certificate, and emergency versions offered without the battery duration.",
+      "body_ar": "انتبه إلى: ذكر القدرة بالواط دون التدفق الضوئي، وشريحة أو مشغّل مختلف عن النشرة الفنية، وعدم ذكر مؤشر تجسيد الألوان أو ثبات اللون، ودرجة حماية أقل من المطلوب، و«ضمان 5 سنوات» من مصنّع غير معروف دون وكيل محلي، وغياب شهادة المطابقة، وعرض وحدات طوارئ دون مدة البطارية.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "lighting_fixtures:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in lighting",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الإنارة",
+      "body_en": "Buyers compare by watts, buy cheap drivers that flicker or fail in heat, and ignore heat in UAE ceilings that shortens LED life.",
+      "body_ar": "يقارن المشترون بالواط، ويشترون مشغّلات رخيصة تومض أو تتعطل في الحرارة، ويتجاهلون حرارة الأسقف في الإمارات التي تقصّر عمر LED.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "lighting_fixtures:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves lighting prices",
+      "topic_ar": "ما الذي يغيّر أسعار الإنارة بشكل مشروع",
+      "body_en": "Prices differ legitimately by brand and origin, optics and glare control, CRI, driver quality and dimming, IP rating, finish and custom lengths, and warranty backed by a local agent.",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب العلامة والمنشأ، والبصريات والتحكم في الوهج، ومؤشر تجسيد الألوان، وجودة المشغّل والتعتيم، ودرجة الحماية، والتشطيب والأطوال الخاصة، والضمان المدعوم من وكيل محلي.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "lighting_fixtures:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing lighting quotes like for like",
+      "topic_ar": "مقارنة عروض الإنارة على أساس متكافئ",
+      "body_en": "Compare on lumens per fitting and per AED, the same CRI, CCT, beam and IP, the same driver and dimming, and the warranty with its local backing. Value beyond price: photometric files, a known driver brand, and local stock for replacements.",
+      "body_ar": "قارن على التدفق الضوئي لكل وحدة ولكل درهم، وبمؤشر تجسيد الألوان ودرجة اللون وزاوية الحزمة ودرجة الحماية نفسها، وبالمشغّل والتعتيم نفسيهما، والضمان مع دعمه المحلي. القيمة إلى جانب السعر: ملفات قياس ضوئي، ومشغّل من علامة معروفة، ومخزون محلي للاستبدال.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -126,16 +330,22 @@
   ],
   "verified": {
     "fetched_urls": 3,
-    "claims_checked": 3,
+    "claims_checked": 7,
     "corrected": [],
     "removed": [],
     "still_unverified": [
       "lighting_fixtures:spec-checklist",
-      "lighting_fixtures:uae-standards-and-approvals"
+      "lighting_fixtures:uae-standards-and-approvals",
+      "lighting_fixtures:approvals-per-emirate"
     ],
     "added": [
       "lighting_fixtures:spec-checklist",
-      "lighting_fixtures:uae-standards-and-approvals"
+      "lighting_fixtures:uae-standards-and-approvals",
+      "lighting_fixtures:approvals-per-emirate",
+      "lighting_fixtures:quote-red-flags",
+      "lighting_fixtures:buyer-mistakes",
+      "lighting_fixtures:price-drivers",
+      "lighting_fixtures:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
@@ -162,6 +372,26 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: lighting_fixtures:approvals-per-emirate re-checked against official pages opened through the session network (0 URL(s) read, 4 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "lighting_fixtures:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

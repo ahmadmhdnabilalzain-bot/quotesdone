@@ -5,8 +5,8 @@
       "id": "castings_forgings:spec-checklist",
       "topic": "Castings and forgings - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for castings and forgings must state: part drawing and revision; material grade and standard; process; weight and quantity; heat treatment; machining scope; non-destructive testing; mill or inspection certificate type; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المسبوكات والمطروقات: رسم القطعة ومراجعته؛ درجة المادة ومعيارها؛ العملية؛ الوزن والكمية؛ المعالجة الحرارية؛ نطاق التشغيل الآلي؛ الاختبارات غير الإتلافية؛ نوع شهادة المصنع أو الفحص؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for castings and forgings must state: part drawing and revision; material grade and standard; process; weight and quantity; heat treatment; machining scope; non-destructive testing; mill or inspection certificate type; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): part drawing and revision; material grade and standard; process; weight and quantity; machining scope. Follow-up questions the answers trigger: part drawing and revision: No drawing brings a sample part for reverse engineering. process: Closed-die forging and die casting bring tooling cost and minimum quantities. Before a firm price: a casting or forging always needs the drawing (or a sample part) and the material grade before a firm price. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate and site; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المسبوكات والمطروقات: رسم القطعة ومراجعته؛ درجة المادة ومعيارها؛ العملية؛ الوزن والكمية؛ المعالجة الحرارية؛ نطاق التشغيل الآلي؛ الاختبارات غير الإتلافية؛ نوع شهادة المصنع أو الفحص؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: رسم القطعة ومراجعته، ودرجة المادة ومواصفتها، وطريقة التصنيع، والوزن والكمية، ونطاق التشغيل الآلي. أسئلة المتابعة: إذا لم يتوفر رسم تُطلب قطعة عينة للهندسة العكسية، والسباكة بالقوالب والطرق المغلق يستلزمان كلفة قوالب وحداً أدنى للكمية. القطعة المسبوكة أو المطروقة تحتاج دائماً الرسم أو عينة ودرجة المادة قبل السعر النهائي. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "part drawing and revision",
         "material grade and standard",
@@ -20,14 +20,140 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "pattern or tooling ownership",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "part drawing and revision",
+        "material grade and standard",
+        "process",
+        "weight and quantity",
+        "machining scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "part drawing and revision",
+          "blocking": true,
+          "why_needed_to_price": "A made-to-drawing part cannot be priced without the drawing.",
+          "uae_options": "PDF and 3D model, revision letter.",
+          "follow_up_if": "No drawing brings a sample part for reverse engineering."
+        },
+        {
+          "spec": "material grade and standard",
+          "blocking": true,
+          "why_needed_to_price": "Grade sets alloy cost and melting route.",
+          "uae_options": "ASTM A216 WCB, A351 CF8M, EN-GJS-500-7, A105, F316L, 42CrMo4.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "process",
+          "blocking": true,
+          "why_needed_to_price": "Sand casting, investment casting, die casting and open or closed-die forging differ in tooling and unit price.",
+          "uae_options": "Sand, shell, investment, die casting; open-die, closed-die, ring rolling.",
+          "follow_up_if": "Closed-die forging and die casting bring tooling cost and minimum quantities."
+        },
+        {
+          "spec": "weight and quantity",
+          "blocking": true,
+          "why_needed_to_price": "Castings are priced per kg and per piece; tooling is spread over quantity.",
+          "uae_options": "Weight per piece; quantity per batch and annual.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "heat treatment",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Normalised, quenched and tempered, solution annealed.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "machining scope",
+          "blocking": true,
+          "why_needed_to_price": "As-cast vs finish-machined changes price a lot.",
+          "uae_options": "Rough, finish-machined, to drawing tolerances.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "non-destructive testing",
+          "blocking": false,
+          "why_needed_to_price": "RT, UT, MT and PT add cost per piece.",
+          "uae_options": "Visual, MT/PT, UT, RT to a stated acceptance level.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "mill or inspection certificate type",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "EN 10204 3.1 or 3.2.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery and installation scope",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_needed_to_price": "Pattern or die making adds weeks.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "warranty",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Patterns, dies and testing are often quoted separately.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "pattern or tooling ownership",
+          "blocking": false,
+          "why_needed_to_price": "Tooling cost and who owns it matter for repeat orders.",
+          "uae_options": "Buyer-owned, supplier-owned, amortised.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "site_visit_required_when": "a casting or forging always needs the drawing (or a sample part) and the material grade before a firm price."
     },
     {
       "id": "castings_forgings:uae-standards-and-approvals",
@@ -86,6 +212,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "castings_forgings:authority-approvals",
+      "topic": "Castings and forgings: approvals that apply",
+      "topic_ar": "المسبوكات والمطروقات: الموافقات المطبقة",
+      "kind": "authority_approval",
+      "body_en": "No UAE product licence or conformity scheme applies to made-to-drawing castings and forgings: the controls are contractual. The buyer's drawing, material standard and inspection requirements govern, and the end user may add its own approved-vendor or approved-manufacturer list (ADNOC group companies, for example, register vendors and score the In-Country Value certificate in tenders). Parts for regulated sectors follow those sectors: aircraft parts need aviation release documents, pressure parts follow the pressure-equipment code named in the order. Goods produced in a free zone and delivered to the mainland pass customs at that point. This is the state as far as could be established by search.",
+      "body_ar": "لا يلزم ترخيص منتج أو نظام مطابقة في الإمارات لـالمسبوكات والمطروقات المصنوعة حسب الرسم، فالضوابط تعاقدية: يحكمها رسم المشتري ومواصفة المادة ومتطلبات الفحص، وقد يضيف المستخدم النهائي قائمة موردين أو مصنّعين معتمدين (فشركات مجموعة أدنوك مثلاً تسجل الموردين وتقيّم شهادة القيمة المحلية المضافة في المناقصات). وتتبع قطع القطاعات المنظمة أنظمة قطاعاتها: فقطع الطائرات تحتاج وثائق إفراج جوية، وقطع الضغط تتبع كود معدات الضغط المذكور في الطلب. والبضائع المنتجة في منطقة حرة والمسلّمة إلى البر الرئيسي تمر بالجمارك عند ذلك. هذا ما أمكن التثبت منه بالبحث.",
+      "sources": [
+        "https://www.adnoc.ae/en/incountry-value/unified-certification-process",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.adnoc.ae: not in the allowed network. Second page read 2026-11-10 (ledger 1597): Not confirmed again: www.adnoc.ae is refused by the session network, so ADNOC's ICV page was not read; MoIAT's regulated-products sheet lists no category for made-to-drawing parts."
+    },
+    {
+      "id": "castings_forgings:quote-red-flags",
+      "topic": "Red flags in casting and forging quotations",
+      "topic_ar": "علامات التحذير في عروض المسبوكات والمطروقات",
+      "kind": "quote_red_flag",
+      "body_en": "Check that the quote names the exact grade and standard, the process, the drawing revision and the inspection. Watch for a casting offered where a forging was specified, a different alloy \"equivalent\", a sand casting where investment was needed for tolerance, tooling hidden in the piece price or excluded, as-cast prices beside machined ones, NDT not priced, 3.1 certificates from an unnamed mill, and a foreign origin when the buyer asked for local manufacture (or the reverse).",
+      "body_ar": "تحقق من أن العرض يذكر الدرجة والمواصفة الدقيقتين وطريقة التصنيع ومراجعة الرسم والفحص. وانتبه إلى: عرض قطعة مسبوكة حيث طُلبت مطروقة، وسبيكة \"مكافئة\" مختلفة، وسباكة رملية حيث يلزم الصب الدقيق للتفاوتات، وإخفاء كلفة القوالب في سعر القطعة أو استثنائها، وأسعار قطع خام بجانب قطع مشغّلة، وعدم تسعير الفحص غير الإتلافي، وشهادات 3.1 من مصنع غير مسمى، ومنشأ أجنبي حين طلب المشتري تصنيعاً محلياً (أو العكس).",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "castings_forgings:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying castings and forgings",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء المسبوكات والمطروقات",
+      "kind": "buyer_mistake",
+      "body_en": "Sending a drawing without material, quantity or inspection level; asking for a single piece of a part that needs costly tooling; not saying whether the part must be machined; and forgetting that a casting and a forging of the same shape are not interchangeable in pressure or fatigue service. Ask the service conditions and the annual quantity.",
+      "body_ar": "إرسال رسم دون المادة أو الكمية أو مستوى الفحص؛ وطلب قطعة واحدة من جزء يحتاج قوالب مكلفة؛ وعدم ذكر هل يجب تشغيل القطعة آلياً؛ ونسيان أن القطعة المسبوكة والمطروقة بالشكل نفسه لا تتبادلان في خدمة الضغط أو الإجهاد المتكرر. لذا يُسأل عن ظروف الخدمة والكمية السنوية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "castings_forgings:price-drivers",
+      "topic": "What legitimately moves casting and forging prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار المسبوكات والمطروقات",
+      "kind": "price_driver",
+      "body_en": "Alloy and its market price (nickel, chromium, molybdenum), weight, process and tooling, complexity and tolerances, heat treatment, machining, NDT and certification level, quantity and repeat volume, and origin.",
+      "body_ar": "السبيكة وسعرها في السوق (النيكل والكروم والموليبدنوم)، والوزن، وطريقة التصنيع والقوالب، والتعقيد والتفاوتات، والمعالجة الحرارية، والتشغيل الآلي، ومستوى الفحص غير الإتلافي والشهادات، والكمية وتكرار الطلب، والمنشأ.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "castings_forgings:compare-quotes",
+      "topic": "Comparing casting and forging quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض المسبوكات والمطروقات من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Separate tooling from piece price and spread tooling over the expected total quantity. Compare the same process, grade, machining state, NDT and certificates, delivered. Weigh the foundry's rejection rate and lead time. Recommend the three compliant offers with the lowest total cost for the programme quantity.",
+      "body_ar": "افصل كلفة القوالب عن سعر القطعة ووزّعها على الكمية الإجمالية المتوقعة. وقارن طريقة التصنيع والدرجة وحالة التشغيل والفحص والشهادات نفسها، مسلّمة. وزن نسبة الرفض لدى المسبك ومدة التوريد. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة إجمالية لكمية البرنامج.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +322,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "castings_forgings:spec-checklist"
+      "castings_forgings:spec-checklist",
+      "castings_forgings:authority-approvals"
     ],
     "added": [
       "castings_forgings:spec-checklist",
@@ -158,6 +354,26 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "castings_forgings:quote-red-flags",
+      "castings_forgings:buyer-mistakes",
+      "castings_forgings:price-drivers",
+      "castings_forgings:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "castings_forgings:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

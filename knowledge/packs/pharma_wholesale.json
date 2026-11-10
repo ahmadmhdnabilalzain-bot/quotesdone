@@ -5,8 +5,8 @@
       "id": "pharma_wholesale:spec-checklist",
       "topic": "Pharmaceutical wholesale - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For pharmaceutical wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, strength and dosage form; (2) manufacturer and country of origin; (3) UAE registration number; (4) pack size; (5) quantity in packs; (6) minimum remaining shelf life; (7) storage and cold-chain requirements; (8) licensed distributor or warehouse; (9) batch and certificate of analysis; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pharma_wholesale trade.",
-      "body_ar": "لكي تُقارن عروض تجارة الأدوية بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وتركيزه وشكله الصيدلاني؛ (2) الشركة المصنعة وبلد المنشأ؛ (3) رقم التسجيل في الإمارات؛ (4) حجم العبوة؛ (5) الكمية بالعبوات؛ (6) الحد الأدنى للصلاحية المتبقية؛ (7) متطلبات التخزين وسلسلة التبريد؛ (8) الموزع أو المستودع المرخص؛ (9) الدفعة وشهادة التحليل؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pharma_wholesale فقط.",
+      "body_en": "For pharmaceutical wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, strength and dosage form; (2) manufacturer and country of origin; (3) UAE registration number; (4) pack size; (5) quantity in packs; (6) minimum remaining shelf life; (7) storage and cold-chain requirements; (8) licensed distributor or warehouse; (9) batch and certificate of analysis; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pharma_wholesale trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product name, strength and dosage form; manufacturer and country of origin; UAE registration number; pack size; quantity in packs; minimum remaining shelf life; delivery terms and location. Before a firm price: a firm price needs product, strength, form, registration, pack size, quantity and minimum shelf life; prices of registered medicines follow the approved price where one is set. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: product name, strength and dosage form; manufacturer and country of origin; UAE registration number; pack size; quantity in packs; minimum remaining shelf life; delivery terms and location.",
+      "body_ar": "لكي تُقارن عروض تجارة الأدوية بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وتركيزه وشكله الصيدلاني؛ (2) الشركة المصنعة وبلد المنشأ؛ (3) رقم التسجيل في الإمارات؛ (4) حجم العبوة؛ (5) الكمية بالعبوات؛ (6) الحد الأدنى للصلاحية المتبقية؛ (7) متطلبات التخزين وسلسلة التبريد؛ (8) الموزع أو المستودع المرخص؛ (9) الدفعة وشهادة التحليل؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pharma_wholesale فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج وتركيزه وشكله، والمصنّع والمنشأ، ورقم التسجيل، وحجم العبوة، والكمية، والصلاحية المتبقية، والتسليم. تتبع أسعار الأدوية المسجلة السعر المعتمد حيث يوجد. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "product name, strength and dosage form",
         "manufacturer and country of origin",
@@ -20,13 +20,125 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://www.mohap.gov.ae/en/services"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "product name, strength and dosage form",
+        "manufacturer and country of origin",
+        "UAE registration number",
+        "pack size",
+        "quantity in packs",
+        "minimum remaining shelf life",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product name, strength and dosage form",
+          "why_needed_to_price": "Product, strength and form identify the medicine.",
+          "uae_options": "name; strength; dosage form",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "manufacturer and country of origin",
+          "why_needed_to_price": "Manufacturer and origin decide price and registration.",
+          "uae_options": "manufacturer; country",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "UAE registration number",
+          "why_needed_to_price": "Only registered medicines can be sold.",
+          "uae_options": "UAE registration number",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pack size",
+          "why_needed_to_price": "Pack size.",
+          "uae_options": "units per pack",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quantity in packs",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "packs",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "minimum remaining shelf life",
+          "why_needed_to_price": "Remaining shelf life.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "storage and cold-chain requirements",
+          "why_needed_to_price": "Storage and cold chain.",
+          "uae_options": "2-8 C; controlled room temperature",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licensed distributor or warehouse",
+          "why_needed_to_price": "Licensed distributor or warehouse.",
+          "uae_options": "licence",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "batch and certificate of analysis",
+          "why_needed_to_price": "Batch and CoA.",
+          "uae_options": "documents",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "warehouse; pharmacy",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock; import",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "Returns.",
+          "uae_options": "expiry returns",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "cold-chain surcharge",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs product, strength, form, registration, pack size, quantity and minimum shelf life; prices of registered medicines follow the approved price where one is set.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "pharma_wholesale:uae-standards-and-approvals",
@@ -70,6 +182,80 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "pharma_wholesale:authority-approvals",
+      "topic": "Pharmaceuticals wholesale: licences, permits and approvals by emirate",
+      "topic_ar": "تجارة أدوية بالجملة: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Medicines may be imported, stored and distributed only when registered for the UAE and handled by licensed pharmaceutical establishments. The Emirates Drug Establishment, established in September 2023, is the federal authority for medical products, and Federal Decree-Law No. 38 of 2024 governs medical products, pharmacists and pharmaceutical establishments; EDE is taking over drug registration and related services from MOHAP from 29 December 2025 according to a MOHAP notice; a DHA manual of 2026 also refers to EDE approval and GMP certificates for compounding pharmacies. Pharmacies and drug stores are licensed by DHA in Dubai, the Department of Health in Abu Dhabi and MOHAP or EDE elsewhere. Controlled and narcotic drugs carry extra permits. Ask for the registration number and the distributor's licence.",
+      "body_ar": "لا يجوز استيراد الأدوية وتخزينها وتوزيعها إلا إذا كانت مسجلة في الدولة وتتعامل معها منشآت صيدلانية مرخصة. ومؤسسة الإمارات للدواء، التي أُنشئت في سبتمبر 2023، هي الجهة الاتحادية للمنتجات الطبية، وينظم المرسوم بقانون اتحادي رقم 38 لسنة 2024 المنتجات الطبية ومهنة الصيدلة والمنشآت الصيدلانية، والمؤسسة متسلمة تسجيل الأدوية والخدمات المرتبطة من وزارة الصحة ووقاية المجتمع اعتباراً من 29 ديسمبر 2025 وفق إشعار للوزارة؛ ويشير دليل لهيئة الصحة بدبي لعام 2026 أيضاً إلى موافقة المؤسسة وشهادات ممارسات التصنيع الجيدة لصيدليات التركيب. وتُرخَّص الصيدليات ومستودعات الأدوية من هيئة الصحة بدبي ودائرة الصحة في أبوظبي والوزارة أو المؤسسة في الإمارات الأخرى. وللأدوية المراقبة والمخدرة تصاريح إضافية. اطلب رقم التسجيل وترخيص الموزع.",
+      "sources": [
+        "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licesning%20Health%20Facility-202420241233143.pdf",
+        "https://mohap.gov.ae/Handlers/DownloadPDF.ashx?id=29939",
+        "https://www.pureglobal.com/markets/uae",
+        "https://uppersetup.com/en/article/registering-medicines-and-medical-devices-in-the-uae-2026",
+        "https://www.ede.gov.ae/en/home",
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-drug-or-biopharmaceutical-product",
+        "https://www.ede.gov.ae/en/web/ede/w/import-permit-for-medical-materials-and-products"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: EDE: established 29 September 2023; Federal Decree-Law No. 38 of 2024 governs medical products, pharmacists and pharmaceutical establishments; marketing authorisation of a drug or biopharmaceutical product for import and trade, applicant an EDE-licensed medical warehouse, local manufacturer or marketing office, marketing authorisation holder registered first; the import permit needs the product's marketing authorisation and, for narcotic, controlled or semi-controlled items, an import permit from the bodies regulating them (EDE pages); the 2024 DHA health-facility licensing manual (dha.gov.ae). Not confirmed on any page that opened: the MOHAP notice dated 29 December 2025, the in-force date of 2 January 2025, and the DHA 2026 manual on compounding pharmacies. Hosts that failed: mohap.gov.ae (refused by the session network). Corrected: the 2024 Decree-Law governs medical products, pharmacists and pharmaceutical establishments; EDE itself dates from September 2023."
+    },
+    {
+      "id": "pharma_wholesale:quote-red-flags",
+      "topic": "Pharmaceuticals wholesale: red flags in supplier quotations",
+      "topic_ar": "تجارة أدوية بالجملة: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for unregistered or parallel-imported products, short shelf life, broken cold chain, unlicensed sellers, and prices above the approved price.",
+      "body_ar": "انتبه إلى منتجات غير مسجلة أو مستوردة استيراداً موازياً، وصلاحية قصيرة، وانقطاع سلسلة التبريد، وبائعين غير مرخصين، وأسعار تتجاوز السعر المعتمد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "pharma_wholesale:buyer-mistakes",
+      "topic": "Pharmaceuticals wholesale: common buyer mistakes",
+      "topic_ar": "تجارة أدوية بالجملة: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers accept short-dated stock and do not check registration of the exact pack and strength.",
+      "body_ar": "يقبل المشترون مخزوناً قصير الصلاحية ولا يتحققون من تسجيل العبوة والتركيز بالتحديد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "pharma_wholesale:price-drivers",
+      "topic": "Pharmaceuticals wholesale: what makes prices differ legitimately",
+      "topic_ar": "تجارة أدوية بالجملة: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand or generic, approved price, pack, volume, shelf life and cold chain.",
+      "body_ar": "العوامل: الدواء الأصلي أو الجنيس، والسعر المعتمد، والعبوة، والكمية، والصلاحية، وسلسلة التبريد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "pharma_wholesale:compare-quotes-cost-to-value",
+      "topic": "Pharmaceuticals wholesale: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "تجارة أدوية بالجملة: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare registered products at the same strength and pack, with shelf life and cold-chain proof. Recommend three licensed distributors.",
+      "body_ar": "قارن المنتجات المسجلة بالتركيز والعبوة نفسيهما مع إثبات الصلاحية وسلسلة التبريد. أوصِ بثلاثة موزعين مرخصين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -108,11 +294,14 @@
   "verified": {
     "fetched_urls": 1,
     "claims_checked": 1,
-    "corrected": [],
+    "corrected": [
+      "pharma_wholesale:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "pharma_wholesale:spec-checklist",
-      "pharma_wholesale:uae-standards-and-approvals"
+      "pharma_wholesale:uae-standards-and-approvals",
+      "pharma_wholesale:authority-approvals"
     ],
     "added": [
       "pharma_wholesale:spec-checklist",
@@ -140,6 +329,42 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "pharma_wholesale:quote-red-flags",
+      "pharma_wholesale:buyer-mistakes",
+      "pharma_wholesale:price-drivers",
+      "pharma_wholesale:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "k3_pages_opened": [
+      "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licesning%20Health%20Facility-202420241233143.pdf"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "pharma_wholesale:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "pharma_wholesale:authority-approvals"
+      ],
+      "urls_read": [
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-drug-or-biopharmaceutical-product"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

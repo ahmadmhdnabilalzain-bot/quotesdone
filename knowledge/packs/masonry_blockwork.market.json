@@ -27,8 +27,8 @@
       "topic": "Masonry, blockwork & plastering: makes, brands, distributors and origins in the UAE",
       "topic_ar": "أعمال البناء بالطابوق واللياسة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This explains who supplies masonry: many local block factories such as Emirates Blocks, dry-mortar and plaster brands such as Weber, Mapei and Sika, and blockwork subcontractors. Blocks are made locally by many factories across Dubai, Sharjah, Ajman, Umm Al Quwain and Abu Dhabi; the one named here is Emirates Blocks (EMSTEEL), Weber, Mapei, Fosroc, Sika, Thomsit, the rest of the list being dry-mortar and plaster brands. AAC blocks come from local, Saudi and Omani producers. Labour is supplied by blockwork subcontractors. Origin is almost entirely UAE.",
-      "body_ar": "يورّد مواد البناء بالطابوق كثير من مصانع الطابوق المحلية مثل Emirates Blocks، وعلامات المونة الجاهزة واللياسة مثل Weber وMapei وSika، إلى جانب مقاولي الباطن لأعمال الطابوق. يُصنع الطابوق محلياً في مصانع كثيرة في دبي والشارقة وعجمان وأم القيوين وأبوظبي؛ والأسماء: Emirates Blocks (EMSTEEL)، Weber، Mapei، Fosroc، Sika، Thomsit، والبقية بعد الأول علامات مونة جافة ولياسة. ويأتي طابوق AAC من منتجين محليين وسعوديين وعُمانيين. ويوفر العمالة مقاولو الطابوق من الباطن. والمنشأ محلي بالكامل تقريباً.",
+      "body_en": "This explains who supplies masonry: many local block factories such as Emirates Blocks, dry-mortar and plaster brands such as Weber, Mapei and Sika, and blockwork subcontractors. Blocks are made locally by many factories across Dubai, Sharjah, Ajman, Umm Al Quwain and Abu Dhabi; the one named here is Emirates Blocks (EMSTEEL), Weber, Mapei, Fosroc, Sika, Thomsit, the rest of the list being dry-mortar and plaster brands. AAC blocks come from local, Saudi and Omani producers. Labour is supplied by blockwork subcontractors. Origin is almost entirely UAE.\n\nOrigin and tier, for describing a quoted brand without naming it: Emirates Blocks - mid, UAE; Weber - mid, France; Mapei - premium, Italy; Fosroc - mid, UK; Sika - premium, Switzerland; Thomsit - mid, Germany.",
+      "body_ar": "يورّد مواد البناء بالطابوق كثير من مصانع الطابوق المحلية مثل Emirates Blocks، وعلامات المونة الجاهزة واللياسة مثل Weber وMapei وSika، إلى جانب مقاولي الباطن لأعمال الطابوق. يُصنع الطابوق محلياً في مصانع كثيرة في دبي والشارقة وعجمان وأم القيوين وأبوظبي؛ والأسماء: Emirates Blocks (EMSTEEL)، Weber، Mapei، Fosroc، Sika، Thomsit، والبقية بعد الأول علامات مونة جافة ولياسة. ويأتي طابوق AAC من منتجين محليين وسعوديين وعُمانيين. ويوفر العمالة مقاولو الطابوق من الباطن. والمنشأ محلي بالكامل تقريباً.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Emirates Blocks: فئة متوسطة، الإمارات؛ Weber: فئة متوسطة، فرنسا؛ Mapei: فئة ممتازة، إيطاليا؛ Fosroc: فئة متوسطة، المملكة المتحدة؛ Sika: فئة ممتازة، سويسرا؛ Thomsit: فئة متوسطة، ألمانيا.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2018/01/05_ENG_DCL_LawsLegislation_EngineeringSection_GreenBuildingRegulation.pdf",
         "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
@@ -38,7 +38,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai thermal requirement for walls -> confirmed and made specific: external walls U at most 0.57 W/m2K; private villas may use 200 mm thermal blocks of at most 0.5 W/m2K | Emirates Blocks is a UAE block maker -> confirmed (EMSTEEL group). Not checked: Named block factories' current approvals and exact compressive strength classes required by each municipality were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai thermal requirement for walls -> confirmed and made specific: external walls U at most 0.57 W/m2K; private villas may use 200 mm thermal blocks of at most 0.5 W/m2K | Emirates Blocks is a UAE block maker -> confirmed (EMSTEEL group). Not checked: Named block factories' current approvals and exact compressive strength classes required by each municipality were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Emirates Blocks",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "Weber",
+          "origin": "France",
+          "tier": "mid",
+          "generic_en": "a mid brand from France",
+          "generic_ar": "علامة متوسطة من فرنسا"
+        },
+        {
+          "brand": "Mapei",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        },
+        {
+          "brand": "Fosroc",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Sika",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Switzerland",
+          "generic_ar": "علامة ممتازة من سويسرا"
+        },
+        {
+          "brand": "Thomsit",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        }
+      ]
     },
     {
       "id": "masonry_blockwork:uae-market-sizes",

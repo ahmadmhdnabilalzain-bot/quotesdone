@@ -9,8 +9,8 @@
       "topic": "Staff transport & bus rental: brands and makers in this category",
       "topic_ar": "نقل الموظفين وتأجير الحافلات: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Ashok Leyland (India) builds trucks, buses and engines. The Toyota Coaster (Japan) is a single-deck minibus for about 8-30 passengers. King Long (China) makes minibuses, coaches and light vans. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Ashok Leyland (الهند) تصنع الشاحنات والحافلات والمحركات. Toyota Coaster (اليابان) حافلة صغيرة بطابق واحد تتسع لنحو 8-30 راكباً. King Long (الصين) تصنع الحافلات الصغيرة والكبيرة والفانات الخفيفة. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Ashok Leyland (India) builds trucks, buses and engines. The Toyota Coaster (Japan) is a single-deck minibus for about 8-30 passengers. King Long (China) makes minibuses, coaches and light vans. Which local distributor carries each make was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Ashok Leyland = a mid-tier Indian brand; Toyota Coaster = a premium Japanese brand; King Long = a economy Chinese brand.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Ashok Leyland (الهند) تصنع الشاحنات والحافلات والمحركات. Toyota Coaster (اليابان) حافلة صغيرة بطابق واحد تتسع لنحو 8-30 راكباً. King Long (الصين) تصنع الحافلات الصغيرة والكبيرة والفانات الخفيفة. ولم يُتحقق من الموزع المحلي لكل علامة.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Ashok Leyland = علامة هندية من الفئة المتوسطة؛ Toyota Coaster = علامة يابانية من الفئة الممتازة؛ King Long = علامة صينية من الفئة الاقتصادية.",
       "sources": [
         "https://en.wikipedia.org/wiki/Ashok_Leyland",
         "https://en.wikipedia.org/wiki/Toyota_Coaster",
@@ -19,7 +19,30 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
-      "source_note": "Ashok Leyland: https://en.wikipedia.org/wiki/Ashok_Leyland | Toyota Coaster: https://en.wikipedia.org/wiki/Toyota_Coaster | King Long: https://en.wikipedia.org/wiki/King_Long"
+      "source_note": "Ashok Leyland: https://en.wikipedia.org/wiki/Ashok_Leyland | Toyota Coaster: https://en.wikipedia.org/wiki/Toyota_Coaster | King Long: https://en.wikipedia.org/wiki/King_Long brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Ashok Leyland",
+          "origin": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Toyota Coaster",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "King Long",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        }
+      ]
     },
     {
       "id": "staff_transport:uae-market-presence",

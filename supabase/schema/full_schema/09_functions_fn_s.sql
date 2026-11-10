@@ -2163,6 +2163,52 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_reruns_held_verifications()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+ SET lock_timeout TO '5s'
+AS $function$
+declare r record; v jsonb; v_ranked int := 0; v_unranked_left int := 0; v_rerun int := 0; v_approved int := 0; v_busy int := 0;
+begin
+  -- Rank each verified supplier the rank trigger skipped because the lock was busy, oldest approval first. The no-op
+  -- write fires trg_assign_founding_rank, which ranks it (or skips it again while the lock is still held elsewhere).
+  for r in select l.id from public.leads l
+            where l.verified and l.founding_rank is null and not coalesce(l.banned, false)
+              and coalesce(l.approval_status, '') not in ('rejected', 'action_required')
+            order by l.approved_at nulls last, l.id limit 50 loop
+    begin
+      update public.leads set verified = verified where id = r.id;
+      if exists (select 1 from public.leads where id = r.id and founding_rank is not null) then v_ranked := v_ranked + 1;
+      else v_unranked_left := v_unranked_left + 1; end if;
+    exception when lock_not_available then v_busy := v_busy + 1;
+    end;
+  end loop;
+
+  -- A supplier held only because his services were unconfirmed, whose confirmation is on file for the current version:
+  -- the confirm's own gate run did not finish (timeout, queued, lost). The same predicate fn_sales_engineer_verifies_supplier uses.
+  for r in select l.id from public.leads l
+            where l.approval_status = 'pending' and l.licence_gate_reason = 'services_unconfirmed'
+              and exists (select 1 from public.supplier_capabilities c
+                           where c.supplier_id = l.id and c.confirmed_at is not null
+                             and coalesce(c.confirmed_version, 0) >= coalesce((select max(k.version) from public.supplier_capability_confirmation k
+                                                                               where k.supplier_id = l.id), 0))
+            order by l.id limit 50 loop
+    begin
+      v := public.fn_sales_engineer_verifies_supplier(r.id, 'services_confirmed_rerun');
+      v_rerun := v_rerun + 1;
+      if v ->> 'decision' = 'approved' then v_approved := v_approved + 1; end if;
+    exception when lock_not_available then v_busy := v_busy + 1;
+    end;
+  end loop;
+
+  return jsonb_build_object('ok', true, 'ranked', v_ranked, 'unranked_left', v_unranked_left, 'rerun', v_rerun,
+                            'approved', v_approved, 'busy', v_busy);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_rescue_pool(p_trades text[], p_emirate text)
  RETURNS integer
  LANGUAGE sql
@@ -2174,6 +2220,65 @@ AS $function$
    where l.id in (select e.id from public.fn_supplier_invite_eligible_ids() e(id))
      and l.invite_trades && coalesce(p_trades, '{}'::text[])
      and (p_emirate is null or p_emirate = 'UAE' or l.emirate = p_emirate)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_resigns_unsigned_agreements(p_lead_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v_secret text; v_ref text; v_prior int; v_last timestamptz; v_posted int := 0; v_waiting int := 0; v_escalated int := 0;
+begin
+  select value into v_secret from public.app_secrets where key = 'cred_db_internal';
+  begin v_ref := public.qd_project_ref(); exception when others then v_ref := null; end;
+  if v_ref is null or coalesce(v_secret, '') = '' then
+    return jsonb_build_object('ok', false, 'error', 'no project ref or internal credential: nothing can be posted');
+  end if;
+
+  for r in select l.id, l.claimed_by, l.company_name, l.accepted_terms_at
+             from public.leads l
+            where l.accepted_terms_at is not null and l.claimed_by is not null and not coalesce(l.banned, false)
+              and (p_lead_id is null or l.id = p_lead_id)   -- one lead: the probe's own fixture, never anyone else
+              and (l.signed_terms_path is null or l.signed_terms_at is null or l.signed_terms_at < l.accepted_terms_at)
+              and l.accepted_terms_at < now() - interval '5 minutes'
+            order by l.accepted_terms_at limit 20 loop
+    select count(*), max(a.created_at) into v_prior, v_last
+      from public.agent_actions a
+     where a.agent = 'sales_engineer' and a.kind = 'supplier_agreement_resign' and a.target_id = r.id::text
+       and (a.detail ->> 'accepted_terms_at')::timestamptz = r.accepted_terms_at and a.status = 'auto_done';
+    if v_prior >= 3 then
+      -- Three re-signs did not land: one row for a person, once per acceptance.
+      if not exists (select 1 from public.agent_actions a
+                      where a.agent = 'sales_engineer' and a.kind = 'supplier_agreement_resign' and a.target_id = r.id::text
+                        and (a.detail ->> 'accepted_terms_at')::timestamptz = r.accepted_terms_at and a.status = 'needs_review') then
+        insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+        values ('sales_engineer', 'supplier_agreement_resign', 'needs_review', 'medium',
+                'Supplier Agreement still unsigned after 3 re-signs — ' || left(coalesce(r.company_name, 'supplier #' || r.id), 120),
+                'The supplier accepted the Supplier Agreement and the signed certificate never landed after the first post and 3 re-signs. Read the compliance_archive agent_runs rows for this supplier (cert_render_failed / cert_record_failed) and the pdf_native logs; once the cause is fixed the next re-sign is posted by hand: select net.http_post(... ''sign'' ...) as qd_sign_supplier does.',
+                jsonb_build_object('supplier_id', r.id, 'accepted_terms_at', r.accepted_terms_at, 'attempts', v_prior),
+                'leads', r.id::text);
+        v_escalated := v_escalated + 1;
+      end if;
+      continue;
+    end if;
+    if v_last is not null and v_last > now() - interval '5 minutes' then v_waiting := v_waiting + 1; continue; end if;
+
+    perform net.http_post(
+      'https://' || v_ref || '.supabase.co/functions/v1/compliance_archive',
+      jsonb_build_object('__secret', v_secret, 'action', 'sign', 'kind', 'supplier', 'email', r.claimed_by),
+      '{}'::jsonb, '{"Content-Type":"application/json"}'::jsonb, 60000);
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+    values ('sales_engineer', 'supplier_agreement_resign', 'auto_done', 'low',
+            'Supplier Agreement signed again (attempt ' || (v_prior + 1) || ' of 3) — ' || left(coalesce(r.company_name, 'supplier #' || r.id), 120),
+            'No action required. The supplier accepted the Supplier Agreement more than 5 minutes ago and no signed certificate had landed for that acceptance, so the sign request was posted again. compliance_archive returns the existing certificate if one has since landed.',
+            jsonb_build_object('supplier_id', r.id, 'accepted_terms_at', r.accepted_terms_at, 'attempt', v_prior + 1),
+            'leads', r.id::text);
+    v_posted := v_posted + 1;
+  end loop;
+  return jsonb_build_object('ok', true, 'posted', v_posted, 'waiting', v_waiting, 'escalated', v_escalated);
+end
 $function$
 
 
@@ -3437,6 +3542,29 @@ begin
                             'licence_expired', v_expired, 'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
                             'reason', v_reason, 'auto_approve', v_auto);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_verifies_supplier_now(p_lead_id bigint, p_source text DEFAULT 'services_confirmed'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+ SET lock_timeout TO '3s'
+AS $function$
+declare v jsonb; l record;
+begin
+  begin
+    v := public.fn_sales_engineer_verifies_supplier(p_lead_id, p_source);
+    return v || jsonb_build_object('queued', false);
+  exception when lock_not_available then
+    -- Another transaction holds this supplier's row. Nothing was written (the block rolled back). The tick re-runs the
+    -- gate within the minute from the supplier's own state; the caller tells the supplier so.
+    select approval_status, licence_gate_reason into l from public.leads where id = p_lead_id;
+    return jsonb_build_object('ok', true, 'queued', true, 'decision', 'queued', 'approval_status', l.approval_status,
+                              'reason', l.licence_gate_reason, 'rerun_by', 'fn_sales_engineer_reruns_held_verifications');
+  end;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_weekly_quality_review(p_include_demo boolean DEFAULT false)

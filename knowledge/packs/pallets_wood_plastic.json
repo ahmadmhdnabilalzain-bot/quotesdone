@@ -5,8 +5,8 @@
       "id": "pallets_wood_plastic:spec-checklist",
       "topic": "Pallets, wood and plastic - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For pallets, wood and plastic (trade code pallets_wood_plastic only), every quoted line must state: Pallet material; Dimensions and entry; Static and dynamic load; Racking load; Heat treatment for export; New or recycled; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط المنصات الخشبية والبلاستيكية (رمز النشاط pallets_wood_plastic فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: مادة المنصة؛ الأبعاد وجهات الدخول؛ الحمولة الثابتة والمتحركة؛ حمولة الرفوف؛ المعالجة الحرارية للتصدير؛ جديدة أو معاد تدويرها؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For pallets, wood and plastic (trade code pallets_wood_plastic only), every quoted line must state: Pallet material; Dimensions and entry; Static and dynamic load; Racking load; Heat treatment for export; New or recycled; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Pallet material; Dimensions and entry; Static and dynamic load; Racking load; Heat treatment for export; New or recycled; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Pallet material: Plastic brings virgin vs recycled resin and food-grade colour; wood brings timber species and moisture. Dimensions and entry: Custom sizes bring the product footprint and overhang allowed. Racking load: If racked, ask the beam span and racking type. Heat treatment for export: Ask the destination countries; mixed export and domestic use needs one rule for all. Quantity and unit of measure: Repeat supply brings the monthly volume and delivery frequency. Delivery terms and location: Ask whether the site can receive a full trailer and has a forklift. Hygiene or food/pharma use: Food or pharma use brings the customer's audit standard. Before a firm price: a custom pallet needs a drawing or a sample pallet and the product load; a standard size needs none. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Pallet material; Dimensions and entry; Static and dynamic load; Racking load; Heat treatment for export; New or recycled; Quantity and unit of measure; Delivery terms and location.",
+      "body_ar": "في نشاط المنصات الخشبية والبلاستيكية (رمز النشاط pallets_wood_plastic فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: مادة المنصة؛ الأبعاد وجهات الدخول؛ الحمولة الثابتة والمتحركة؛ حمولة الرفوف؛ المعالجة الحرارية للتصدير؛ جديدة أو معاد تدويرها؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: مادة المنصة، والأبعاد واتجاهات الدخول، والحمل الساكن والمتحرك، وحمل الرفوف، والمعالجة الحرارية للتصدير، وجديدة أم مستعملة، والكمية ووحدة القياس، وموقع التسليم. أسئلة المتابعة: إذا وُضعت المنصات على رفوف يُسأل عن بُعد العوارض ونوع الرفوف، وإذا كانت للتصدير يُسأل عن دول الوجهة لتطبيق معيار ISPM 15، وإذا كانت بلاستيكية يُسأل عن المادة الخام بكر أم معاد تدويرها. المنصة ذات المقاس الخاص تحتاج رسماً أو عينة قبل السعر النهائي. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Pallet material",
         "Dimensions and entry",
@@ -20,13 +20,134 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Hygiene or food/pharma use",
+        "Payment terms"
       ],
       "sources": [
         "https://www.moccae.gov.ae/en/home.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Pallet material",
+        "Dimensions and entry",
+        "Static and dynamic load",
+        "Racking load",
+        "Heat treatment for export",
+        "New or recycled",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Pallet material",
+          "blocking": true,
+          "why_needed_to_price": "Wood, plastic, presswood and metal differ several-fold in unit cost.",
+          "uae_options": "Pine or local hardwood, HDPE/PP plastic, presswood, steel or aluminium.",
+          "follow_up_if": "Plastic brings virgin vs recycled resin and food-grade colour; wood brings timber species and moisture."
+        },
+        {
+          "spec": "Dimensions and entry",
+          "blocking": true,
+          "why_needed_to_price": "Size and 2-way/4-way entry set the timber or mould used.",
+          "uae_options": "1200x1000 (common in the GCC), 1200x800 Euro, 1100x1100, custom.",
+          "follow_up_if": "Custom sizes bring the product footprint and overhang allowed."
+        },
+        {
+          "spec": "Static and dynamic load",
+          "blocking": true,
+          "why_needed_to_price": "Load decides board thickness and block count.",
+          "uae_options": "Static, dynamic (on forklift) and racking loads stated in kg.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Racking load",
+          "blocking": true,
+          "why_needed_to_price": "A racked pallet spans beams unsupported and needs a stronger design.",
+          "uae_options": "Edge-racked, drive-in, or floor-stacked only.",
+          "follow_up_if": "If racked, ask the beam span and racking type."
+        },
+        {
+          "spec": "Heat treatment for export",
+          "blocking": true,
+          "why_needed_to_price": "ISPM 15 treatment and marking add a process and a stamp.",
+          "uae_options": "Heat treated and stamped (HT), or untreated for domestic use; plastic and presswood are outside ISPM 15.",
+          "follow_up_if": "Ask the destination countries; mixed export and domestic use needs one rule for all."
+        },
+        {
+          "spec": "New or recycled",
+          "blocking": true,
+          "why_needed_to_price": "Used and repaired pallets are much cheaper and less uniform.",
+          "uae_options": "New, grade A used, grade B used, repaired.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "Monthly call-off volumes change the price per piece.",
+          "uae_options": "Per piece, per load, monthly call-off.",
+          "follow_up_if": "Repeat supply brings the monthly volume and delivery frequency."
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_needed_to_price": "A design tested to a standard costs more than a \"standard\" pallet.",
+          "uae_options": "ISO 8611 load tests; EPAL licence for Euro pallets.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_needed_to_price": "Only export treatment marking is normally relevant.",
+          "uae_options": "ISPM 15 mark from a registered treatment provider.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_needed_to_price": "Pallets are bulky; freight per trip is a big share of price.",
+          "uae_options": "Delivered per truckload to the site, or collected.",
+          "follow_up_if": "Ask whether the site can receive a full trailer and has a forklift."
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_needed_to_price": "Plastic pallets often carry a defects period; wood rarely.",
+          "uae_options": "None for wood; manufacturer's period for plastic.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "Large heat-treated or imported plastic orders take longer.",
+          "uae_options": "Days for stock wood; weeks for custom or imported plastic.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Stretch wrap, corner boards and buy-back are often excluded.",
+          "uae_options": "Buy-back or exchange scheme, collection of old pallets.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Hygiene or food/pharma use",
+          "blocking": false,
+          "why_needed_to_price": "Food and pharma users often need plastic or treated, clean pallets.",
+          "uae_options": "Food-grade plastic, washable, no bark, kiln-dried.",
+          "follow_up_if": "Food or pharma use brings the customer's audit standard."
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "a custom pallet needs a drawing or a sample pallet and the product load; a standard size needs none."
     },
     {
       "id": "pallets_wood_plastic:uae-standards-and-approvals",
@@ -71,6 +192,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "pallets_wood_plastic:authority-ispm15-export",
+      "topic": "Pallets: ISPM 15 for wooden pallets crossing borders, and what applies inside the UAE",
+      "topic_ar": "المنصات: معيار ISPM 15 للمنصات الخشبية العابرة للحدود وما ينطبق داخل الإمارات",
+      "kind": "authority_approval",
+      "body_en": "No UAE product licence applies to pallets used inside the country. ISPM 15 is the international standard for wood packaging material in trade: solid wood pallets are treated (heat treatment, HT, is the common method) and stamped with the IPPC mark, a two-letter country code, the treatment provider's registration number and the treatment code; search results note that importing countries enforcing it accept the mark, not a separate certificate, in its place. It is the importing country that enforces it, so the rule follows the destination. Plastic, presswood and metal pallets are outside ISPM 15. In the UAE the plant-protection function sits with MOCCAE; the buyer should ask for the treatment provider's registration and the stamp on every pallet. The supplier obtains treatment and marking.",
+      "body_ar": "لا يلزم ترخيص منتج في الإمارات للمنصات المستخدمة داخل الدولة. ومعيار ISPM 15 هو المعيار الدولي لمواد التعبئة الخشبية في التجارة: تُعالج المنصات الخشبية الصلبة (والمعالجة الحرارية HT هي الطريقة الشائعة) وتُختم بعلامة الاتفاقية الدولية لوقاية النباتات ورمز البلد المكون من حرفين ورقم تسجيل مقدم المعالجة ورمز المعالجة، وتشير نتائج البحث إلى أن الدول التي تطبقه تعتمد العلامة نفسها ولا تقبل شهادة منفصلة بديلاً عنها. والدولة المستوردة هي التي تطبقه، لذا يتبع الشرط بلد الوجهة. ولا يشمل المعيار المنصات البلاستيكية والخشب المضغوط والمعدنية. وفي الإمارات تتولى وزارة التغير المناخي والبيئة مهام وقاية النباتات، وعلى المشتري طلب رقم تسجيل مقدم المعالجة والختم على كل منصة. والمورد هو من يتولى المعالجة والختم.",
+      "sources": [
+        "https://www.ippc.int/en/core-activities/standards-setting/ispms/",
+        "https://www.moccae.gov.ae/en/services.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.ippc.int: not in the allowed network; www.moccae.gov.ae: allowed but the site answers \"Request Rejected\" to this session. Second page read 2026-11-10 (ledger 1597): Not confirmed again: www.ippc.int is refused by the session network and MOCCAE's services page returns page-not-found."
+    },
+    {
+      "id": "pallets_wood_plastic:quote-red-flags",
+      "topic": "Red flags in pallet quotations",
+      "topic_ar": "علامات التحذير في عروض أسعار المنصات",
+      "kind": "quote_red_flag",
+      "body_en": "Check that the quote states the actual size, entry type and the three loads (static, dynamic, racking) rather than \"standard pallet\". Watch for used or repaired pallets priced against a request for new; recycled plastic offered where virgin was asked; a lighter board thickness or fewer blocks than the design needs; \"HT\" claimed without the ISPM 15 stamp details; timber that is not kiln-dried and will grow mould in a container; delivery charged per trip but not stated; a minimum order that is a full truckload; and plastic pallet weight not stated (weight indicates resin content). A pallet quoted far below others usually differs in timber, thickness or grade.",
+      "body_ar": "تأكد من أن العرض يذكر المقاس الفعلي واتجاهات الدخول والأحمال الثلاثة (الساكن والمتحرك وحمل الرفوف) لا عبارة \"منصة قياسية\". وانتبه إلى: منصات مستعملة أو مصلحة مسعّرة مقابل طلب منصات جديدة؛ وبلاستيك معاد تدويره بدل البلاستيك البكر المطلوب؛ وألواح أرق أو قواعد أقل مما يحتاجه التصميم؛ وادعاء المعالجة الحرارية دون تفاصيل ختم ISPM 15؛ وخشب غير مجفف في الفرن يتعفن داخل الحاويات؛ وأجرة نقل لكل رحلة غير مذكورة؛ وحد أدنى للطلب يساوي شاحنة كاملة؛ وعدم ذكر وزن المنصة البلاستيكية (فالوزن مؤشر على كمية الراتنج). والمنصة المسعّرة بأقل كثيراً من غيرها تختلف عادة في الخشب أو السماكة أو الدرجة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "pallets_wood_plastic:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying pallets",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء المنصات",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers often ask for \"a 1200x1000 pallet\" without the load, then receive a light pallet that breaks in racking. Others forget that exports need ISPM 15 stamps on every pallet, and the shipment is held at destination. Mixing new and used in one order without saying which loads go where; ordering plastic pallets without checking the forklift and pallet truck entry; and buying by unit price without counting delivery trips and the life of the pallet are the other frequent mistakes. Ask the buyer what goes on the pallet, how high it is stacked, whether it is racked, and where it ships.",
+      "body_ar": "كثيراً ما يطلب المشترون \"منصة 1200×1000\" دون ذكر الحمل، فتصلهم منصة خفيفة تنكسر على الرفوف. ويغفل آخرون أن التصدير يتطلب ختم ISPM 15 على كل منصة فتُحتجز الشحنة في بلد الوصول. ومن الأخطاء الشائعة أيضاً خلط المنصات الجديدة والمستعملة في طلب واحد دون بيان استخدام كل منها، وطلب منصات بلاستيكية دون التحقق من ملاءمة مداخلها للرافعة الشوكية وعربة المنصات، والشراء بسعر الوحدة دون احتساب رحلات التوصيل وعمر المنصة. لذا يُسأل المشتري عما يوضع على المنصة، وارتفاع التكديس، وهل توضع على رفوف، وإلى أين تُشحن.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "pallets_wood_plastic:price-drivers",
+      "topic": "What legitimately moves pallet prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار المنصات",
+      "kind": "price_driver",
+      "body_en": "Material and grade (new kiln-dried timber vs used; virgin vs recycled plastic resin); the design (board thickness, number of blocks, top and bottom deck coverage) which follows the load and racking requirement; heat treatment and stamping; custom sizes that waste timber; quantity and whether it is a one-off or a monthly call-off; delivery distance and trips; and imported timber and resin costs, which move with freight and commodity prices. Plastic pallets cost more up front but can last longer and be washed, so a pooling or buy-back arrangement may beat buying.",
+      "body_ar": "المادة والدرجة (خشب جديد مجفف في الفرن أو مستعمل، وراتنج بلاستيكي بكر أو معاد تدويره)؛ والتصميم (سماكة الألواح وعدد القواعد ومساحة تغطية السطح العلوي والسفلي) وهو تابع للحمل ومتطلبات الرفوف؛ والمعالجة الحرارية والختم؛ والمقاسات الخاصة التي تهدر الخشب؛ والكمية وكونها طلباً لمرة واحدة أو توريداً شهرياً؛ ومسافة التوصيل وعدد الرحلات؛ وتكلفة الخشب والراتنج المستوردين التي تتغير مع أسعار الشحن والسلع. والمنصات البلاستيكية أغلى في البداية لكنها قد تعيش أطول وتقبل الغسل، وقد يكون نظام التأجير المشترك أو إعادة الشراء أوفر من الشراء.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "pallets_wood_plastic:compare-quotes",
+      "topic": "Comparing pallet quotes like-for-like",
+      "topic_ar": "مقارنة عروض المنصات على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Normalise to the same size, entry, load ratings, condition (new or used grade), treatment and delivered price per piece including all trips. Then compare cost per trip of life: a cheaper pallet that breaks after a few cycles costs more per use than a stronger one. For plastic, compare weight and resin type. Note who carries breakage risk and whether the supplier buys back old pallets. Recommend the three compliant offers with the lowest delivered cost per use, and list any that changed timber, thickness or condition as deviations.",
+      "body_ar": "وحّد العروض على المقاس نفسه واتجاهات الدخول وتصنيفات الحمل والحالة (جديدة أو درجة المستعمل) والمعالجة وسعر القطعة شاملاً جميع رحلات التوصيل. ثم قارن التكلفة لكل استخدام على مدى العمر: فالمنصة الأرخص التي تنكسر بعد دورات قليلة أغلى لكل استخدام من منصة أمتن. وفي البلاستيك قارن الوزن ونوع الراتنج. وبيّن من يتحمل خطر الكسر وهل يعيد المورد شراء المنصات القديمة. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة تسليم لكل استخدام، مع إدراج العروض التي غيّرت الخشب أو السماكة أو الحالة على أنها انحرافات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -113,7 +303,8 @@
     "removed": [],
     "still_unverified": [
       "pallets_wood_plastic:spec-checklist",
-      "pallets_wood_plastic:uae-standards-and-approvals"
+      "pallets_wood_plastic:uae-standards-and-approvals",
+      "pallets_wood_plastic:authority-ispm15-export"
     ],
     "added": [
       "pallets_wood_plastic:spec-checklist",
@@ -141,6 +332,24 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "pallets_wood_plastic:quote-red-flags",
+      "pallets_wood_plastic:buyer-mistakes",
+      "pallets_wood_plastic:price-drivers",
+      "pallets_wood_plastic:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "pallets_wood_plastic:authority-ispm15-export"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

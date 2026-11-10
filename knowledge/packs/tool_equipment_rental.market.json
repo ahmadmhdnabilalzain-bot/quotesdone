@@ -27,8 +27,8 @@
       "topic": "Tools & light equipment rental: makes, brands, distributors and origins in the UAE",
       "topic_ar": "تأجير العدد والمعدات الخفيفة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the rental companies and equipment fleet brands in the UAE, such as Aggreko, Atlas Copco and Hilti, and where SME rental shops operate. Rental companies and fleet brands: Aggreko, Atlas Copco, Hilti, Makita, Bosch, Honda, Wacker Neuson, Genie, JLG. Aggreko rents power and cooling, and Hilti offers fleet management. Numerous SME rental shops operate in Al Quoz, Sharjah Industrial Area and Musaffah and were not checked by name.",
-      "body_ar": "من شركات التأجير وماركات المعدات في أساطيلها بالإمارات Aggreko وAtlas Copco وHilti، مع بيان أماكن عمل محلات التأجير الصغيرة والمتوسطة. شركات التأجير وعلامات الأساطيل: Aggreko، Atlas Copco، Hilti، Makita، Bosch، Honda، Wacker Neuson، Genie، JLG. وتؤجر Aggreko الطاقة والتبريد، وتقدم Hilti إدارة الأساطيل، وتعمل محلات تأجير صغيرة ومتوسطة كثيرة في القوز والمنطقة الصناعية بالشارقة ومصفح ولم يُتحقق منها بالاسم.",
+      "body_en": "This entry lists the rental companies and equipment fleet brands in the UAE, such as Aggreko, Atlas Copco and Hilti, and where SME rental shops operate. Rental companies and fleet brands: Aggreko, Atlas Copco, Hilti, Makita, Bosch, Honda, Wacker Neuson, Genie, JLG. Aggreko rents power and cooling, and Hilti offers fleet management. Numerous SME rental shops operate in Al Quoz, Sharjah Industrial Area and Musaffah and were not checked by name.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Aggreko = a premium British supplier; Atlas Copco = a premium Swedish brand; Hilti = a premium Liechtenstein brand; Makita = a premium Japanese brand; Bosch = a premium German brand; Honda = a premium Japanese brand; Wacker Neuson = a premium German brand; Genie = a premium American brand; JLG = a premium American brand.",
+      "body_ar": "من شركات التأجير وماركات المعدات في أساطيلها بالإمارات Aggreko وAtlas Copco وHilti، مع بيان أماكن عمل محلات التأجير الصغيرة والمتوسطة. شركات التأجير وعلامات الأساطيل: Aggreko، Atlas Copco، Hilti، Makita، Bosch، Honda، Wacker Neuson، Genie، JLG. وتؤجر Aggreko الطاقة والتبريد، وتقدم Hilti إدارة الأساطيل، وتعمل محلات تأجير صغيرة ومتوسطة كثيرة في القوز والمنطقة الصناعية بالشارقة ومصفح ولم يُتحقق منها بالاسم.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Aggreko = شركة توريد بريطانية من الفئة الممتازة؛ Atlas Copco = علامة سويدية من الفئة الممتازة؛ Hilti = علامة ليختنشتاينية من الفئة الممتازة؛ Makita = علامة يابانية من الفئة الممتازة؛ Bosch = علامة ألمانية من الفئة الممتازة؛ Honda = علامة يابانية من الفئة الممتازة؛ Wacker Neuson = علامة ألمانية من الفئة الممتازة؛ Genie = علامة أمريكية من الفئة الممتازة؛ JLG = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.aggreko.com/en-ae/sectors/construction",
         "https://www.hilti.ae",
@@ -38,7 +38,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Aggreko rents power and temperature control in the UAE -> confirmed | Hilti fleet management in the UAE -> confirmed. Not checked: Named rental companies' current UAE operations were not verified; the weekly and monthly rate ratios are typical market practice, not measured."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Aggreko rents power and temperature control in the UAE -> confirmed | Hilti fleet management in the UAE -> confirmed. Not checked: Named rental companies' current UAE operations were not verified; the weekly and monthly rate ratios are typical market practice, not measured. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Aggreko",
+          "origin": "UK",
+          "tier": "supplier",
+          "generic_en": "a premium British supplier",
+          "generic_ar": "شركة توريد بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Atlas Copco",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hilti",
+          "origin": "Liechtenstein",
+          "tier": "premium",
+          "generic_en": "a premium Liechtenstein brand",
+          "generic_ar": "علامة ليختنشتاينية من الفئة الممتازة"
+        },
+        {
+          "brand": "Makita",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bosch",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Honda",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Wacker Neuson",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Genie",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "JLG",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "tool_equipment_rental:uae-market-sizes",

@@ -215,8 +215,8 @@
       "id": "signage:spec-checklist",
       "topic": "What a buyer must state to get an exact signage quote",
       "kind": "spec_checklist",
-      "body_en": "A signage RFQ is only quotable exactly when every variable that changes cost is fixed. For 3D letters and fascia signs, give the text and logo artwork (vector), overall width and letter height, material and grade for face, returns and back, finish and colour, illumination type and LED colour, mounting surface and height above ground, and site photos with measurements. For lightboxes and panels, add depth, single or double-sided and face material. For printed work, give substrate, size, quantity, lamination and finishing. For freestanding signs, add foundation responsibility and site conditions. For every job state: indoor or outdoor, whether installation is included and at what height (ladder, scaffold, boom lift or rope access), who brings power to the sign, who obtains the advertising permit and landlord NOC and pays the fees, removal and disposal of the old sign, required delivery date, working-hour restrictions at the site (malls often allow installation only at night), warranty expected on structure, LEDs and drivers, and payment terms. Missing any of these usually produces quotes that cannot be compared and variation claims later.",
-      "body_ar": "لا يمكن تسعير طلب عرض لوحات بدقة إلا إذا ثُبّت كل متغير يؤثر في التكلفة. للحروف ثلاثية الأبعاد ولوحات الواجهات: قدّم النص والشعار بصيغة فيكتور، والعرض الكلي وارتفاع الحرف، والمادة ودرجتها للوجه والجوانب والظهر، والتشطيب واللون، ونوع الإضاءة ولون الـLED، وسطح التثبيت والارتفاع عن الأرض، وصور الموقع مع القياسات. لصناديق الإضاءة والألواح أضف العمق، ووجهاً أم وجهين، ومادة الوجه. للطباعة: الخامة والمقاس والكمية والتغليف والتشطيب. للوحات القائمة بذاتها: مسؤولية الأساسات وظروف الموقع. ولكل عمل حدّد: داخلي أم خارجي، وهل التركيب مشمول وعلى أي ارتفاع (سلم أو سقالة أو رافعة أو حبال)، ومن يوصل الكهرباء إلى اللوحة، ومن يستخرج تصريح الإعلان وعدم ممانعة المالك ويدفع الرسوم، وإزالة اللوحة القديمة والتخلص منها، وموعد التسليم، وقيود ساعات العمل في الموقع (فالمولات غالباً تسمح بالتركيب ليلاً فقط)، والضمان المطلوب على الهيكل والـLED والمحوّلات، وشروط الدفع. نقص أي من هذه البنود ينتج عروضاً غير قابلة للمقارنة ومطالبات تغيير لاحقاً.",
+      "body_en": "A signage RFQ is only quotable exactly when every variable that changes cost is fixed. For 3D letters and fascia signs, give the text and logo artwork (vector), overall width and letter height, material and grade for face, returns and back, finish and colour, illumination type and LED colour, mounting surface and height above ground, and site photos with measurements. For lightboxes and panels, add depth, single or double-sided and face material. For printed work, give substrate, size, quantity, lamination and finishing. For freestanding signs, add foundation responsibility and site conditions. For every job state: indoor or outdoor, whether installation is included and at what height (ladder, scaffold, boom lift or rope access), who brings power to the sign, who obtains the advertising permit and landlord NOC and pays the fees, removal and disposal of the old sign, required delivery date, working-hour restrictions at the site (malls often allow installation only at night), warranty expected on structure, LEDs and drivers, and payment terms. Missing any of these usually produces quotes that cannot be compared and variation claims later.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): sign type (3D letters / lightbox / panel / pylon / print / digital); artwork file (vector) and text in Arabic and English; overall dimensions and letter height; materials and grades (face, returns, back); illumination type and LED colour temperature; indoor or outdoor; mounting surface and height; site photos; quantity; installation included and access method. Follow-up questions the answers trigger: artwork file (vector) and text in Arabic and English: No artwork: design is an extra line; mounting surface and height; site photos: No photos: site survey needed. Before a firm price: a firm price needs vector artwork, sizes, materials, illumination and the mounting location; outdoor or high-level signs need site photos or a site survey for fixing and access before a firm price. Supplier ask-back review (2026-11-10): the inquiry now also states Site location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: sign type (3D letters / lightbox / panel / pylon / print / digital); artwork file (vector) and text in Arabic and English; overall dimensions and letter height; materials and grades (face, returns, back); illumination type and LED colour temperature; indoor or outdoor; mounting surface and height; site photos; quantity; installation included and access method; Site location and emirate.",
+      "body_ar": "لا يمكن تسعير طلب عرض لوحات بدقة إلا إذا ثُبّت كل متغير يؤثر في التكلفة. للحروف ثلاثية الأبعاد ولوحات الواجهات: قدّم النص والشعار بصيغة فيكتور، والعرض الكلي وارتفاع الحرف، والمادة ودرجتها للوجه والجوانب والظهر، والتشطيب واللون، ونوع الإضاءة ولون الـLED، وسطح التثبيت والارتفاع عن الأرض، وصور الموقع مع القياسات. لصناديق الإضاءة والألواح أضف العمق، ووجهاً أم وجهين، ومادة الوجه. للطباعة: الخامة والمقاس والكمية والتغليف والتشطيب. للوحات القائمة بذاتها: مسؤولية الأساسات وظروف الموقع. ولكل عمل حدّد: داخلي أم خارجي، وهل التركيب مشمول وعلى أي ارتفاع (سلم أو سقالة أو رافعة أو حبال)، ومن يوصل الكهرباء إلى اللوحة، ومن يستخرج تصريح الإعلان وعدم ممانعة المالك ويدفع الرسوم، وإزالة اللوحة القديمة والتخلص منها، وموعد التسليم، وقيود ساعات العمل في الموقع (فالمولات غالباً تسمح بالتركيب ليلاً فقط)، والضمان المطلوب على الهيكل والـLED والمحوّلات، وشروط الدفع. نقص أي من هذه البنود ينتج عروضاً غير قابلة للمقارنة ومطالبات تغيير لاحقاً.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع اللافتة، وملف التصميم المتجه بالنص العربي والإنجليزي، والمقاسات وارتفاع الحروف، والمواد، ونوع الإضاءة، والاستخدام الداخلي أو الخارجي، وسطح التركيب والارتفاع، والكمية، والتركيب ووسيلة الوصول. اللافتات الخارجية أو المرتفعة تحتاج صوراً للموقع أو زيارة مسح للتثبيت والوصول. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع العمل والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "sign type (3D letters / lightbox / panel / pylon / print / digital)",
         "artwork file (vector) and text in Arabic and English",
@@ -232,14 +232,151 @@
         "advertising permit and landlord NOC responsibility and fees",
         "old sign removal",
         "delivery date and site working hours",
-        "warranty on structure, LEDs, drivers"
+        "warranty on structure, LEDs, drivers",
+        "Site location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://dda.gov.ae/-/media/Project/TECOM/Media/DDA/General/DDA_PDF/PD_PDF/04-Advertising-and-Event/Advertising/A-01-ADVERTISING-PERMIT/ZA-DC-F-24-Advertising-Permit-Application.pdf",
         "https://www.dmt.gov.ae/-/media/Project/DMT/DMT/E-Library/10-22/Commercial-Signage-Regulations---Version-5.pdf"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "sign type (3D letters / lightbox / panel / pylon / print / digital)",
+        "artwork file (vector) and text in Arabic and English",
+        "overall dimensions and letter height",
+        "materials and grades (face, returns, back)",
+        "illumination type and LED colour temperature",
+        "indoor or outdoor",
+        "mounting surface and height; site photos",
+        "quantity",
+        "installation included and access method",
+        "Site location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "sign type (3D letters / lightbox / panel / pylon / print / digital)",
+          "why_needed_to_price": "Each sign type is a different fabrication and price.",
+          "uae_options": "3D letters; lightbox; flex face; ACP panel; pylon; vinyl; digital",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "artwork file (vector) and text in Arabic and English",
+          "why_needed_to_price": "Vector artwork with Arabic and English text fixes the letter count and shapes.",
+          "uae_options": "AI/PDF vector; bilingual text",
+          "follow_up_if": "No artwork: design is an extra line.",
+          "blocking": true
+        },
+        {
+          "spec": "overall dimensions and letter height",
+          "why_needed_to_price": "Size and letter height drive material and labour.",
+          "uae_options": "overall W x H; letter height mm",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "materials and grades (face, returns, back)",
+          "why_needed_to_price": "Materials set durability and cost.",
+          "uae_options": "acrylic; stainless; aluminium returns; ACP; PVC",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "finish and colours (Pantone/RAL)",
+          "why_needed_to_price": "Finish and colours.",
+          "uae_options": "Pantone/RAL; mirror or brushed",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "illumination type and LED colour temperature",
+          "why_needed_to_price": "Illumination type changes LEDs, drivers and power.",
+          "uae_options": "front-lit; back-lit (halo); non-lit; LED colour temperature",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "indoor or outdoor",
+          "why_needed_to_price": "Indoor or outdoor changes IP rating and materials.",
+          "uae_options": "indoor; outdoor",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "mounting surface and height; site photos",
+          "why_needed_to_price": "Mounting surface and height decide fixing and access.",
+          "uae_options": "glass; block; cladding; height; site photos",
+          "follow_up_if": "No photos: site survey needed.",
+          "blocking": true
+        },
+        {
+          "spec": "quantity",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "number of signs",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "installation included and access method",
+          "why_needed_to_price": "Installation and access equipment add cost.",
+          "uae_options": "ladder; scaffold; cherry picker; rope access",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "power supply responsibility",
+          "why_needed_to_price": "Power supply.",
+          "uae_options": "by client to point; by supplier",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "advertising permit and landlord NOC responsibility and fees",
+          "why_needed_to_price": "Permit and landlord NOC responsibility and fees.",
+          "uae_options": "by sign maker; by client",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "old sign removal",
+          "why_needed_to_price": "Old sign removal.",
+          "uae_options": "included; excluded",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery date and site working hours",
+          "why_needed_to_price": "Delivery date and site hours.",
+          "uae_options": "night work in malls",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty on structure, LEDs, drivers",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "structure; LEDs; drivers",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Site location and emirate",
+          "why_needed_to_price": "Mobilisation, travel, labour transport and the authority whose rules apply all follow the site, so the same scope is priced differently in Dubai, Abu Dhabi, the northern emirates or a remote site.",
+          "uae_options": "A named emirate and area or community; city, industrial area or remote site; one site or several.",
+          "follow_up_if": "If the site is in a free zone, port, airport or developer community with its own access rules, ask which passes or NOCs apply.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs vector artwork, sizes, materials, illumination and the mounting location; outdoor or high-level signs need site photos or a site survey for fixing and access before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "signage:red-flags",
@@ -406,8 +543,8 @@
       "id": "signage:digital-spec-checklist",
       "topic": "What to specify for an LED screen or digital signage RFQ",
       "kind": "spec_checklist",
-      "body_en": "A digital signage quote is only comparable when the buyer fixes the variables that drive cost. Start with where and how it is viewed: indoor, window-facing, semi-outdoor or full sun, and the closest and typical viewing distances. Pixel pitch follows from the closest viewer; a common manufacturer rule is roughly one metre of minimum viewing distance per millimetre of pitch, so a lobby wall viewed from 2.5 m suits about 2.5 mm, while a roadside screen viewed from 20 m can use a much coarser pitch. Brightness follows from the ambient light: typical guidance is 250-500 nits indoors, 500-700 near windows, 700-1,500 semi-outdoors and 2,500 nits or more in direct sun, with outdoor LED billboards commonly higher; night dimming or a light sensor should be included because authorities control brightness near roads. For outdoor cabinets, state the IP rating front and rear, the cooling approach for UAE summer temperatures and the steel structure. Then fix the active area (width by height in metres or panel count), resolution, operating hours per day, the content management system, media players, network connection, licence term and who produces and updates content. Ask for power consumption (typical and maximum), spare modules supplied, warranty on panels and power supplies, on-site response time, and whether the structure, permit and electrical connection are included. An outdoor advertising screen normally needs an advertising permit like any other sign.",
-      "body_ar": "لا يمكن مقارنة عروض اللوحات الرقمية إلا إذا حدد المشتري العوامل المؤثرة في التكلفة. ابدأ بمكان وطريقة المشاهدة: داخلي، أو مواجه لنافذة، أو شبه مكشوف، أو تحت الشمس المباشرة، مع أقرب مسافة مشاهدة والمسافة المعتادة. وتُستنتج مسافة البكسل من أقرب مشاهد؛ فالقاعدة الشائعة لدى المصنّعين متر تقريباً لكل مليمتر، فجدار ردهة يُشاهد من 2.5 م يناسبه نحو 2.5 مم، بينما شاشة طريق تُرى من 20 م تقبل مسافة أكبر بكثير. ويُستنتج السطوع من الإضاءة المحيطة: الإرشادات المعتادة 250-500 شمعة/م2 داخلياً، و500-700 قرب النوافذ، و700-1,500 في الأماكن شبه المكشوفة، و2,500 فأكثر تحت الشمس، والشاشات الإعلانية الخارجية أعلى عادة؛ ويجب تضمين التعتيم الليلي أو حساس الإضاءة لأن الجهات تضبط السطوع قرب الطرق. وللخزائن الخارجية حدّد درجة الحماية IP للوجه والخلف، وطريقة التبريد لحرارة الصيف، والهيكل الحديدي. ثم حدّد المساحة الفعالة (العرض × الارتفاع أو عدد الوحدات)، والدقة، وساعات التشغيل اليومية، ونظام إدارة المحتوى، ومشغلات الوسائط، والاتصال الشبكي، ومدة الترخيص، ومن ينتج المحتوى ويحدّثه. واطلب استهلاك الطاقة (المعتاد والأقصى)، والوحدات الاحتياطية، والضمان على الوحدات ومزودات الطاقة، ومدة الاستجابة في الموقع، وهل الهيكل والتصريح والتوصيل الكهربائي مشمولة. والشاشة الإعلانية الخارجية تحتاج عادة تصريح إعلان كأي لوحة أخرى.",
+      "body_en": "A digital signage quote is only comparable when the buyer fixes the variables that drive cost. Start with where and how it is viewed: indoor, window-facing, semi-outdoor or full sun, and the closest and typical viewing distances. Pixel pitch follows from the closest viewer; a common manufacturer rule is roughly one metre of minimum viewing distance per millimetre of pitch, so a lobby wall viewed from 2.5 m suits about 2.5 mm, while a roadside screen viewed from 20 m can use a much coarser pitch. Brightness follows from the ambient light: typical guidance is 250-500 nits indoors, 500-700 near windows, 700-1,500 semi-outdoors and 2,500 nits or more in direct sun, with outdoor LED billboards commonly higher; night dimming or a light sensor should be included because authorities control brightness near roads. For outdoor cabinets, state the IP rating front and rear, the cooling approach for UAE summer temperatures and the steel structure. Then fix the active area (width by height in metres or panel count), resolution, operating hours per day, the content management system, media players, network connection, licence term and who produces and updates content. Ask for power consumption (typical and maximum), spare modules supplied, warranty on panels and power supplies, on-site response time, and whether the structure, permit and electrical connection are included. An outdoor advertising screen normally needs an advertising permit like any other sign.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): indoor / window / semi-outdoor / direct sun; closest and typical viewing distance; pixel pitch or resolution; active area (m) or panel count; structure, permit and power connection included or not. Follow-up questions the answers trigger: structure, permit and power connection included or not: Outdoor: structure and permit by whom. Before a firm price: a firm price needs environment, viewing distance or pixel pitch, active area and the structure and permit scope; outdoor screens need a site survey and structural design first. Supplier ask-back review (2026-11-10): the inquiry now also states Number of screens (quote-blocking); Site location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: indoor / window / semi-outdoor / direct sun; closest and typical viewing distance; pixel pitch or resolution; active area (m) or panel count; structure, permit and power connection included or not; Number of screens; Site location and emirate.",
+      "body_ar": "لا يمكن مقارنة عروض اللوحات الرقمية إلا إذا حدد المشتري العوامل المؤثرة في التكلفة. ابدأ بمكان وطريقة المشاهدة: داخلي، أو مواجه لنافذة، أو شبه مكشوف، أو تحت الشمس المباشرة، مع أقرب مسافة مشاهدة والمسافة المعتادة. وتُستنتج مسافة البكسل من أقرب مشاهد؛ فالقاعدة الشائعة لدى المصنّعين متر تقريباً لكل مليمتر، فجدار ردهة يُشاهد من 2.5 م يناسبه نحو 2.5 مم، بينما شاشة طريق تُرى من 20 م تقبل مسافة أكبر بكثير. ويُستنتج السطوع من الإضاءة المحيطة: الإرشادات المعتادة 250-500 شمعة/م2 داخلياً، و500-700 قرب النوافذ، و700-1,500 في الأماكن شبه المكشوفة، و2,500 فأكثر تحت الشمس، والشاشات الإعلانية الخارجية أعلى عادة؛ ويجب تضمين التعتيم الليلي أو حساس الإضاءة لأن الجهات تضبط السطوع قرب الطرق. وللخزائن الخارجية حدّد درجة الحماية IP للوجه والخلف، وطريقة التبريد لحرارة الصيف، والهيكل الحديدي. ثم حدّد المساحة الفعالة (العرض × الارتفاع أو عدد الوحدات)، والدقة، وساعات التشغيل اليومية، ونظام إدارة المحتوى، ومشغلات الوسائط، والاتصال الشبكي، ومدة الترخيص، ومن ينتج المحتوى ويحدّثه. واطلب استهلاك الطاقة (المعتاد والأقصى)، والوحدات الاحتياطية، والضمان على الوحدات ومزودات الطاقة، ومدة الاستجابة في الموقع، وهل الهيكل والتصريح والتوصيل الكهربائي مشمولة. والشاشة الإعلانية الخارجية تحتاج عادة تصريح إعلان كأي لوحة أخرى.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: بيئة التركيب، ومسافة المشاهدة، ودقة البكسل، والمساحة الفعالة، والهيكل والتصريح وتوصيل الكهرباء. الشاشات الخارجية تحتاج مسحاً للموقع وتصميماً إنشائياً أولاً. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً عدد الشاشات (مانع للتسعير)؛ موقع العمل والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "indoor / window / semi-outdoor / direct sun",
         "closest and typical viewing distance",
@@ -421,7 +558,10 @@
         "power consumption typical and max",
         "spare modules",
         "warranty and on-site response time",
-        "structure, permit and power connection included or not"
+        "structure, permit and power connection included or not",
+        "Number of screens",
+        "Site location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://www.christiedigital.com/spotlight/understanding-pixel-pitch-led-video-wall/",
@@ -429,7 +569,132 @@
         "https://clarionuk.com/resources/ip-ratings/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "indoor / window / semi-outdoor / direct sun",
+        "closest and typical viewing distance",
+        "pixel pitch or resolution",
+        "active area (m) or panel count",
+        "structure, permit and power connection included or not",
+        "Number of screens",
+        "Site location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "indoor / window / semi-outdoor / direct sun",
+          "why_needed_to_price": "Environment decides brightness and IP rating.",
+          "uae_options": "indoor; window; semi-outdoor; direct sun",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "closest and typical viewing distance",
+          "why_needed_to_price": "Viewing distance sets pixel pitch.",
+          "uae_options": "metres",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pixel pitch or resolution",
+          "why_needed_to_price": "Pixel pitch or resolution is the main price driver of LED screens.",
+          "uae_options": "P1.5-P10; resolution",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "active area (m) or panel count",
+          "why_needed_to_price": "Active area or panel count sets the quantity.",
+          "uae_options": "m2; panels",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "brightness (nits) and night dimming",
+          "why_needed_to_price": "Brightness and dimming.",
+          "uae_options": "nits; night dimming",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "IP rating front and rear (outdoor)",
+          "why_needed_to_price": "IP rating front and rear.",
+          "uae_options": "IP65 front",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "operating hours per day",
+          "why_needed_to_price": "Hours of operation affect lifetime and power.",
+          "uae_options": "hours per day",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "CMS, media player, network, licence term",
+          "why_needed_to_price": "CMS and player licence term.",
+          "uae_options": "cloud CMS; licence years",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "content creation and update responsibility",
+          "why_needed_to_price": "Content responsibility.",
+          "uae_options": "client; supplier",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "power consumption typical and max",
+          "why_needed_to_price": "Power consumption.",
+          "uae_options": "typical; max",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "spare modules",
+          "why_needed_to_price": "Spare modules.",
+          "uae_options": "% spare",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty and on-site response time",
+          "why_needed_to_price": "Warranty and response.",
+          "uae_options": "years; hours",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "structure, permit and power connection included or not",
+          "why_needed_to_price": "Structure, permit and power connection.",
+          "uae_options": "included; excluded",
+          "follow_up_if": "Outdoor: structure and permit by whom.",
+          "blocking": true
+        },
+        {
+          "spec": "Number of screens",
+          "why_needed_to_price": "Each screen needs its own controller, structure, permit and power point, so two screens of the same total area cost more than one.",
+          "uae_options": "One screen; a stated number of screens with the size of each.",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Site location and emirate",
+          "why_needed_to_price": "Mobilisation, travel, labour transport and the authority whose rules apply all follow the site, so the same scope is priced differently in Dubai, Abu Dhabi, the northern emirates or a remote site.",
+          "uae_options": "A named emirate and area or community; city, industrial area or remote site; one site or several.",
+          "follow_up_if": "If the site is in a free zone, port, airport or developer community with its own access rules, ask which passes or NOCs apply.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs environment, viewing distance or pixel pitch, active area and the structure and permit scope; outdoor screens need a site survey and structural design first.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     }
   ],
   "eval": [
@@ -608,6 +873,18 @@
       "signage:warranty",
       "signage:exhibition-display",
       "signage:price-drivers"
-    ]
+    ],
+    "expert_authored_unsourced": [],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    }
   }
 }

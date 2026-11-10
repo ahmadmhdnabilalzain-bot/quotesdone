@@ -5,8 +5,8 @@
       "id": "tool_equipment_rental:spec-checklist",
       "topic": "Tool and equipment rental - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For tool and equipment rental quotes to be compared like-for-like, every quoted line (services) must state: (1) equipment type, model and capacity; (2) rental period and start date; (3) rate basis (daily, weekly, monthly); (4) with or without operator; (5) delivery and collection; (6) fuel and consumables; (7) third-party inspection certificate for lifting equipment; (8) insurance and damage liability; (9) breakdown replacement; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tool_equipment_rental trade.",
-      "body_ar": "لكي تُقارن عروض تأجير الأدوات والمعدات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المعدات وطرازها وقدرتها؛ (2) مدة الإيجار وتاريخ البدء؛ (3) أساس السعر (يومي، أو أسبوعي، أو شهري)؛ (4) مع مشغل أو بدونه؛ (5) التسليم والاستلام؛ (6) الوقود والمستهلكات؛ (7) شهادة فحص من طرف ثالث لمعدات الرفع؛ (8) التأمين والمسؤولية عن الأضرار؛ (9) الاستبدال عند العطل؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tool_equipment_rental فقط.",
+      "body_en": "For tool and equipment rental quotes to be compared like-for-like, every quoted line (services) must state: (1) equipment type, model and capacity; (2) rental period and start date; (3) rate basis (daily, weekly, monthly); (4) with or without operator; (5) delivery and collection; (6) fuel and consumables; (7) third-party inspection certificate for lifting equipment; (8) insurance and damage liability; (9) breakdown replacement; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tool_equipment_rental trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): equipment type, model and capacity; rental period and start date; rate basis (daily, weekly, monthly); with or without operator; delivery and collection; fuel and consumables; third-party inspection certificate for lifting equipment; site location and access. Follow-up questions the answers trigger: equipment type, model and capacity: Generators bring the load profile and fuel tank size. rate basis (daily, weekly, monthly): Ask the hours per day and whether it runs nights. with or without operator: With operator brings the operator's licence/certificate, hours and overtime. Before a firm price: none; a firm rate is possible from the specs. Generator sizing for a new load may need the load list. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. third-party inspection certificate for lifting equipment is no longer quote-blocking: the certificate is the supplier's to provide with the unit; the customer only states that one is required, which it always is for lifting equipment. Quote-blocking after this review: equipment type, model and capacity; rental period and start date; rate basis (daily, weekly, monthly); with or without operator; delivery and collection; fuel and consumables; site location and access.",
+      "body_ar": "لكي تُقارن عروض تأجير الأدوات والمعدات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المعدات وطرازها وقدرتها؛ (2) مدة الإيجار وتاريخ البدء؛ (3) أساس السعر (يومي، أو أسبوعي، أو شهري)؛ (4) مع مشغل أو بدونه؛ (5) التسليم والاستلام؛ (6) الوقود والمستهلكات؛ (7) شهادة فحص من طرف ثالث لمعدات الرفع؛ (8) التأمين والمسؤولية عن الأضرار؛ (9) الاستبدال عند العطل؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tool_equipment_rental فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المعدة وطرازها وقدرتها، ومدة الإيجار وتاريخ البدء، وأساس السعر، ومع مشغل أم دونه، والتوصيل والاستلام، والوقود والمستهلكات، وشهادة الفحص من طرف ثالث لمعدات الرفع، وموقع العمل والوصول إليه. أسئلة المتابعة: المولدات تستلزم بيان الأحمال وسعة خزان الوقود، ويُسأل عن ساعات العمل اليومية والعمل الليلي، والإيجار مع مشغل يستلزم رخصة المشغل أو شهادته وساعاته والعمل الإضافي. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «شهادة فحص طرف ثالث لمعدات الرفع» مانعاً للتسعير: الشهادة يقدّمها المورّد مع المعدة؛ ويكفي أن يذكر العميل أنها مطلوبة، وهي مطلوبة دائماً لمعدات الرفع.",
       "required_specs": [
         "equipment type, model and capacity",
         "rental period and start date",
@@ -19,13 +19,126 @@
         "breakdown replacement",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "site location and access",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "equipment type, model and capacity",
+        "rental period and start date",
+        "rate basis (daily, weekly, monthly)",
+        "with or without operator",
+        "delivery and collection",
+        "fuel and consumables",
+        "site location and access"
+      ],
+      "spec_guide": [
+        {
+          "spec": "equipment type, model and capacity",
+          "blocking": true,
+          "why_needed_to_price": "Rates are per machine class.",
+          "uae_options": "Generator kVA, compressor cfm, MEWP height, crane tonnage, light tower, pump size.",
+          "follow_up_if": "Generators bring the load profile and fuel tank size."
+        },
+        {
+          "spec": "rental period and start date",
+          "blocking": true,
+          "why_needed_to_price": "Longer hire gets lower rates; short notice may cost more.",
+          "uae_options": "Days, weeks, months; start and end dates.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "rate basis (daily, weekly, monthly)",
+          "blocking": true,
+          "why_needed_to_price": "Daily, weekly and monthly rates and hour limits are not comparable directly.",
+          "uae_options": "Day, week, month; 8 or 10-hour shift; overtime hours.",
+          "follow_up_if": "Ask the hours per day and whether it runs nights."
+        },
+        {
+          "spec": "with or without operator",
+          "blocking": true,
+          "why_needed_to_price": "An operator adds wages, visa cost, accommodation and transport.",
+          "uae_options": "Bare (dry) hire or with operator (wet hire).",
+          "follow_up_if": "With operator brings the operator's licence/certificate, hours and overtime."
+        },
+        {
+          "spec": "delivery and collection",
+          "blocking": true,
+          "why_needed_to_price": "Mobilisation and demobilisation are charged separately.",
+          "uae_options": "Included, one-way, two-way.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "fuel and consumables",
+          "blocking": true,
+          "why_needed_to_price": "Fuel can exceed the rental cost on generators.",
+          "uae_options": "Fuel by hirer, fuel by supplier with refill service.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "third-party inspection certificate for lifting equipment",
+          "blocking": false,
+          "why_needed_to_price": "Lifting equipment cannot be used without a valid certificate.",
+          "uae_options": "Valid EIAC-accredited TPI certificate supplied with the unit.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "insurance and damage liability",
+          "blocking": false,
+          "why_needed_to_price": "Who bears damage changes the effective price.",
+          "uae_options": "Supplier's insurance, hirer's responsibility, damage waiver.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "breakdown replacement",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Replacement within hours, repair on site.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "service levels and response times",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Service visits per running hours.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Cables, distribution boards, hoses and accessories are often extra.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "site location and access",
+          "blocking": true,
+          "why_needed_to_price": "Location sets transport cost and permits.",
+          "uae_options": "Emirate and area; access restrictions; free zone gate passes.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": null
     },
     {
       "id": "tool_equipment_rental:uae-standards-and-approvals",
@@ -82,6 +195,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "tool_equipment_rental:authority-approvals",
+      "topic": "Tool and equipment rental: certificates and licences by emirate",
+      "topic_ar": "تأجير العدد والمعدات: الشهادات والرخص حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Rented lifting equipment (cranes, hoists, MEWPs, telehandlers) must carry a valid third-party examination certificate: in Dubai, Dubai Municipality's guideline requires certification by an EIAC-accredited third party every 12 months; Abu Dhabi applies ADOSH-SF, formerly OSHAD, and Trakhees covers PCFC zones. Operators of forklifts and similar equipment in Dubai need an RTA licence under the RTA forklift handbook. Mobile plant that travels on public roads needs RTA (or the emirate's traffic authority) registration. Generators and fuel storage on site fall under civil defence and the site's permit system. The rental company provides the certificates; the hirer or contractor provides licensed operators unless wet hire is agreed.",
+      "body_ar": "يجب أن تحمل معدات الرفع المؤجرة (الرافعات والروافع ومنصات العمل المتحركة والرافعات التلسكوبية) شهادة فحص سارية من طرف ثالث: ففي دبي يشترط دليل بلدية دبي اعتمادها من جهة ثالثة معتمدة من مركز الإمارات للاعتماد كل 12 شهراً، وتطبق أبوظبي ADOSH-SF، أوشاد سابقاً،، وتغطي تراخيص مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة. ويحتاج مشغلو الرافعات الشوكية والمعدات المماثلة في دبي رخصة من هيئة الطرق والمواصلات وفق دليلها. والمعدات المتنقلة التي تسير على الطرق العامة تحتاج تسجيلاً لدى الهيئة (أو جهة المرور في الإمارة). والمولدات وتخزين الوقود في الموقع تخضع للدفاع المدني ونظام التصاريح في الموقع. وتقدم شركة التأجير الشهادات، ويوفر المستأجر أو المقاول مشغلين مرخصين ما لم يُتفق على الإيجار مع مشغل.",
+      "sources": [
+        "https://www.rta.ae/wpsv5/eservices/PDF_Catalog/Forklift_Handbook_EN.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM Guideline 48: lifting equipment, forklifts included, certified every 12 months by an EIAC-accredited third party; RTA's forklift handbook licences light and heavy forklifts. Not confirmed on any page that opened: RTA registration of road-going mobile plant and civil defence for site generators and fuel. Corrected: renamed OSHAD to ADOSH-SF, formerly OSHAD."
+    },
+    {
+      "id": "tool_equipment_rental:quote-red-flags",
+      "topic": "Red flags in rental quotations",
+      "topic_ar": "علامات التحذير في عروض التأجير",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a low daily rate with mobilisation, demobilisation, fuel, cables and hoses charged separately; hour caps (e.g. a shift limit) with expensive overtime; a smaller or older unit than asked; lifting equipment without a current TPI certificate; damage and insurance clauses that make the hirer liable for full replacement; minimum hire periods; operators without the licence or certificate; and breakdown response not committed.",
+      "body_ar": "انتبه إلى: سعر يومي منخفض مع احتساب التعبئة والإعادة والوقود والكابلات والخراطيم منفصلة؛ وسقوف ساعات (مثل حد للوردية) مع عمل إضافي مكلف؛ ووحدة أصغر أو أقدم من المطلوبة؛ ومعدات رفع دون شهادة فحص سارية؛ وبنود تلف وتأمين تحمّل المستأجر كلفة الاستبدال كاملة؛ وحد أدنى لمدة الإيجار؛ ومشغلين دون رخصة أو شهادة؛ وعدم الالتزام بزمن الاستجابة للأعطال.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "tool_equipment_rental:buyer-mistakes",
+      "topic": "Common buyer mistakes when renting equipment",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند استئجار المعدات",
+      "kind": "buyer_mistake",
+      "body_en": "Comparing daily rates when the job runs for months (monthly rates are much lower); forgetting fuel and transport; oversizing generators, which then run lightly loaded and waste fuel; accepting lifting equipment without checking the certificate date; and not agreeing who insures the machine. Ask the duration, hours per day, location and whether an operator is needed.",
+      "body_ar": "مقارنة الأسعار اليومية بينما يمتد العمل أشهراً (الأسعار الشهرية أقل كثيراً)؛ ونسيان الوقود والنقل؛ وتكبير المولدات فتعمل بحمل خفيف وتهدر الوقود؛ وقبول معدات رفع دون التحقق من تاريخ الشهادة؛ وعدم الاتفاق على من يؤمن المعدة. لذا يُسأل عن المدة وساعات العمل اليومية والموقع وهل يلزم مشغل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "tool_equipment_rental:price-drivers",
+      "topic": "What legitimately moves rental prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار التأجير",
+      "kind": "price_driver",
+      "body_en": "Equipment class and age, hire duration, hours per day, with or without operator, mobilisation distance, fuel arrangement, insurance and damage waiver, accessories, demand peaks, and service and breakdown cover.",
+      "body_ar": "فئة المعدة وعمرها، ومدة الإيجار، وساعات العمل اليومية، ومع مشغل أم دونه، ومسافة التعبئة، وترتيب الوقود، والتأمين والإعفاء من الأضرار، والملحقات، وذروات الطلب، وتغطية الصيانة والأعطال.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "tool_equipment_rental:compare-quotes",
+      "topic": "Comparing rental quotes on total hire cost",
+      "topic_ar": "مقارنة عروض التأجير على أساس التكلفة الإجمالية",
+      "kind": "comparison",
+      "body_en": "Compute total cost for the planned period: rate times duration, plus mobilisation and demobilisation, fuel, operator, accessories, insurance and expected overtime. Compare units of the same class and age with valid certificates. Recommend the three with the lowest total cost and the firmest breakdown commitment.",
+      "body_ar": "احسب التكلفة الإجمالية للمدة المخططة: السعر مضروباً في المدة، مضافاً إليه التعبئة والإعادة والوقود والمشغل والملحقات والتأمين والعمل الإضافي المتوقع. وقارن وحدات من الفئة والعمر نفسيهما بشهادات سارية. ويوصى بأفضل ثلاثة عروض بأقل تكلفة إجمالية وأقوى التزام بالاستجابة للأعطال.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -120,11 +302,14 @@
   "verified": {
     "fetched_urls": 1,
     "claims_checked": 1,
-    "corrected": [],
+    "corrected": [
+      "tool_equipment_rental:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "tool_equipment_rental:spec-checklist",
-      "tool_equipment_rental:uae-standards-and-approvals"
+      "tool_equipment_rental:uae-standards-and-approvals",
+      "tool_equipment_rental:authority-approvals"
     ],
     "added": [
       "tool_equipment_rental:spec-checklist",
@@ -155,6 +340,28 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "tool_equipment_rental:quote-red-flags",
+      "tool_equipment_rental:buyer-mistakes",
+      "tool_equipment_rental:price-drivers",
+      "tool_equipment_rental:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "tool_equipment_rental:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "tool_equipment_rental:authority-approvals"
+      ],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

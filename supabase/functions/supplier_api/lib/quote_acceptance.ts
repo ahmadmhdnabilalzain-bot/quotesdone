@@ -4,6 +4,7 @@ import { SUPPLIER_LOCALE } from '../../_shared/registered_locale.ts';
 import type { MissingItem } from '../../_shared/line_specs/assess.ts';
 import { requestDelivery } from '../../_shared/deliver.ts';
 import { SUPA_URL, admin, secretVal } from '../context.ts';
+import { requestOf, reviewNotes } from '../../_shared/quote_review_notes.ts';
 
 export async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
 
@@ -22,6 +23,26 @@ export async function acceptRule(qid: string) {
   const priced = (qi || []).filter((r: { unit_price: number | null; amount: number | null }) => (Number(r.unit_price) || 0) > 0 || (Number(r.amount) || 0) > 0).length;
   const formComplete = priced >= 1 && !!q?.validity && !!q?.warranty && !!q?.lead_time;
   return { accept: submittable || formComplete || !requireStructured, submittable, formComplete, requireStructured, priced, score };
+}
+// THE NOTES ARE STORED WITH THE QUOTE (founder ledger 1588, 10 Nov 2026). When a quote goes live the sales engineer's
+// review of it against the request is written beside it — the record of what the customer was told. The surfaces that
+// show it (my_inquiries, quote_compare, the quotation PDF) recompute it from the same rows, so an edit to the request
+// is reflected at once; this is the record, never the only copy. The column is added by
+// scripts/sql/a_quote_carries_the_sales_engineers_review_notes.sql (pending): until it is applied the update is
+// refused and nothing else changes — the quote is live either way.
+export async function storeReviewNotes(qid: string, inquiryId: string): Promise<number | null> {
+  try {
+    const [{ data: inq }, { data: q }, { data: lines }] = await Promise.all([
+      admin.from('inquiries').select('summary,spec,boq').eq('id', inquiryId).maybeSingle(),
+      admin.from('quotes').select('supplier_id,lead_time,warranty,scope,exclusions,conditions,notes,terms_spec').eq('id', qid).maybeSingle(),
+      admin.from('quote_items').select('line_no,description,brand,model,specification,qty,unit,unit_price,amount,country_of_origin,notes,spec').eq('quote_id', qid).order('line_no', { ascending: true }).limit(80),
+    ]);
+    if (!inq || !q) return null;
+    const { data: l } = q.supplier_id != null ? await admin.from('leads').select('company_name').eq('id', q.supplier_id).maybeSingle() : { data: null };
+    const notes = reviewNotes({ request: requestOf(inq), quote: q, lines: lines || [], supplierNames: l?.company_name ? [String(l.company_name)] : [] });
+    const { error } = await admin.from('quotes').update({ review_notes: notes, review_notes_at: new Date().toISOString() }).eq('id', qid);
+    return error ? null : notes.length;
+  } catch (_e) { return null; }
 }
 export async function notifyNewQuote(inquiryId: string) {
   try {

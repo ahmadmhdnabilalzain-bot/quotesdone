@@ -5,8 +5,8 @@
       "id": "bulk_bags_sacks:spec-checklist",
       "topic": "Bulk bags and sacks - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for bulk bags and sacks must state: bag type; dimensions; safe working load; safety factor; fabric weight and material; standard such as ISO 21898; filling and discharge spout; liner and coating; UV stabilisation; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الأكياس السائبة والأجولة: نوع الكيس؛ الأبعاد؛ حمل التشغيل الآمن؛ معامل الأمان؛ وزن القماش ومادته؛ معيار مثل ISO 21898؛ فتحة التعبئة والتفريغ؛ البطانة والطلاء؛ التثبيت ضد الأشعة فوق البنفسجية؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for bulk bags and sacks must state: bag type; dimensions; safe working load; safety factor; fabric weight and material; standard such as ISO 21898; filling and discharge spout; liner and coating; UV stabilisation; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): bag type; dimensions; safe working load; safety factor; fabric weight and material; filling and discharge spout; quantity. Follow-up questions the answers trigger: bag type: FIBCs bring the electrostatic type (A, B, C, D) for flammable atmospheres. standard such as ISO 21898: Dangerous goods bring UN-certified FIBCs. liner and coating: Food use brings food-grade production and documents. Before a firm price: none; a firm price is possible from the specs. A new FIBC design for hazardous or food products benefits from a test sample. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate and site; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الأكياس السائبة والأجولة: نوع الكيس؛ الأبعاد؛ حمل التشغيل الآمن؛ معامل الأمان؛ وزن القماش ومادته؛ معيار مثل ISO 21898؛ فتحة التعبئة والتفريغ؛ البطانة والطلاء؛ التثبيت ضد الأشعة فوق البنفسجية؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الكيس، والأبعاد، والحمل الآمن، ومعامل الأمان، ووزن القماش ومادته، وفتحة التعبئة والتفريغ، والكمية. أسئلة المتابعة: الأكياس الكبيرة في الأجواء القابلة للاشتعال تستلزم النوع الكهروستاتيكي (A أو B أو C أو D)، والبضائع الخطرة تستلزم أكياساً معتمدة من الأمم المتحدة، والاستخدام الغذائي يستلزم إنتاجاً بدرجة غذائية ووثائقه. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "bag type",
         "dimensions",
@@ -22,14 +22,156 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "printing",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "bag type",
+        "dimensions",
+        "safe working load",
+        "safety factor",
+        "fabric weight and material",
+        "filling and discharge spout",
+        "quantity"
+      ],
+      "spec_guide": [
+        {
+          "spec": "bag type",
+          "blocking": true,
+          "why_needed_to_price": "FIBC, woven PP sack, paper multiwall and leno bags are different products.",
+          "uae_options": "FIBC (U-panel, circular, baffle), woven PP sack, BOPP-laminated sack, multiwall paper, leno mesh.",
+          "follow_up_if": "FIBCs bring the electrostatic type (A, B, C, D) for flammable atmospheres."
+        },
+        {
+          "spec": "dimensions",
+          "blocking": true,
+          "why_needed_to_price": "Size sets fabric area and the volume carried.",
+          "uae_options": "FIBC base and height; sack width x length.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "safe working load",
+          "blocking": true,
+          "why_needed_to_price": "SWL decides fabric and loops.",
+          "uae_options": "500-2,000 kg for FIBCs; 25-50 kg sacks.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "safety factor",
+          "blocking": true,
+          "why_needed_to_price": "Single-trip 5:1 vs multi-trip 6:1 bags differ.",
+          "uae_options": "5:1 single trip, 6:1 multi-trip.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "fabric weight and material",
+          "blocking": true,
+          "why_needed_to_price": "Fabric gsm is the main cost and sets strength.",
+          "uae_options": "gsm; PP, coated or uncoated.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "standard such as ISO 21898",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "ISO 21898 for FIBCs; UN-certified bags for dangerous goods.",
+          "follow_up_if": "Dangerous goods bring UN-certified FIBCs."
+        },
+        {
+          "spec": "filling and discharge spout",
+          "blocking": true,
+          "why_needed_to_price": "Spouts and open tops change construction.",
+          "uae_options": "Duffle top, filling spout, flat bottom, discharge spout.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "liner and coating",
+          "blocking": false,
+          "why_needed_to_price": "Liners and food-grade production add cost.",
+          "uae_options": "Loose or form-fit PE liner; food-grade cleanroom production.",
+          "follow_up_if": "Food use brings food-grade production and documents."
+        },
+        {
+          "spec": "UV stabilisation",
+          "blocking": false,
+          "why_needed_to_price": "Outdoor storage needs UV-stabilised fabric.",
+          "uae_options": "Hours of UV resistance.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "quantity",
+          "blocking": true,
+          "why_needed_to_price": "Annual contracts and container loads lower unit price.",
+          "uae_options": "Pieces; annual volume.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery and installation scope",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "warranty",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "printing",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "1-4 colours, sides printed.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "site_visit_required_when": null
     },
     {
       "id": "bulk_bags_sacks:uae-standards-and-approvals",
@@ -88,6 +230,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "bulk_bags_sacks:authority-approvals",
+      "topic": "Bulk bags and sacks: UN bags, food-contact and single-use rules",
+      "topic_ar": "الأكياس الكبيرة والأكياس: أكياس الأمم المتحدة وملامسة الغذاء وقواعد الاستخدام الواحد",
+      "kind": "authority_approval",
+      "body_en": "Food-contact packaging is the regulated case. Search results report that food-contact materials are certified under MoIAT's conformity scheme (ECAS) against Cabinet Resolution No. 20 of 2015, for plastic, glass, ceramic, silicone, paper, metal and wood materials, through a MoIAT-notified body, with the certificate obtained by the manufacturer or importer, not the buyer; a 2023 MoIAT workshop on recycled plastic food packaging described quality-system documentation and migration tests at an accredited UAE laboratory. Dubai Municipality and ADAFSA in Abu Dhabi inspect food businesses, including their packaging. FIBCs and sacks used for dangerous goods must be UN-certified designs, tested and marked by the maker. ",
+      "body_ar": "التغليف الملامس للغذاء هو الحالة الخاضعة للتنظيم. إذ تفيد نتائج البحث بأن المواد الملامسة للغذاء تُعتمد ضمن نظام المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وفق قرار مجلس الوزراء رقم 20 لسنة 2015، للمواد البلاستيكية والزجاجية والخزفية والسيليكونية والورقية والمعدنية والخشبية، عبر جهة مخطرة لدى الوزارة، ويحصل على الشهادة المصنع أو المستورد لا المشتري؛ وتناولت ورشة عمل للوزارة عام 2023 حول تغليف الأغذية من البلاستيك المعاد تدويره توثيق نظام الجودة واختبارات الانتقال في مختبر إماراتي معتمد. وتفتش بلدية دبي وهيئة أبوظبي للزراعة والسلامة الغذائية منشآت الأغذية بما في ذلك تغليفها. والأكياس الكبيرة والأكياس المستخدمة للبضائع الخطرة يجب أن تكون بتصاميم معتمدة من الأمم المتحدة، مختبرة ومعلّمة من الصانع.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists food-contact material as a regulated product under Cabinet Resolution No. 20 of 2015, applied for by the holder of a UAE trade or industry licence with a test report from an accredited laboratory per Annex 1, the label per Annex 2, GMP compliance and an electronic declaration of conformity; MoIAT's news of 17 August 2023 on recycled plastic food packaging confirms quality-system documentation and migration tests at an accredited UAE laboratory; DM Guideline 100 lists food-contact materials among the consumer products DM registers before sale in Dubai. Not confirmed on any page that opened: the list of seven materials, the 'MoIAT-notified body' route, and ADAFSA's inspection of food businesses (www.adafsa.gov.ae is not on the session network) and the UN certification of FIBCs and sacks for dangerous goods (an international transport rule, not read on a UAE page)"
+    },
+    {
+      "id": "bulk_bags_sacks:quote-red-flags",
+      "topic": "Red flags in bulk bag and sack quotations",
+      "topic_ar": "علامات التحذير في عروض الأكياس الكبيرة والأكياس",
+      "kind": "quote_red_flag",
+      "body_en": "Check SWL and safety factor: a 5:1 bag offered for multi-trip use, lighter fabric gsm, or Type A bags for flammable powders are unsafe substitutions. Watch for no test certificate, UV stabilisation not stated for outdoor storage, liners excluded, recycled resin, and printing or spouts added later.",
+      "body_ar": "افحص الحمل الآمن ومعامل الأمان: فعرض كيس 5:1 لاستخدام متعدد، أو قماش أخف وزناً، أو أكياس النوع A لمساحيق قابلة للاشتعال، استبدالات غير آمنة. وانتبه إلى: غياب شهادة الاختبار، وعدم ذكر مقاومة الأشعة للتخزين الخارجي، واستثناء البطانات، والراتنج المعاد تدويره، وإضافة الطباعة أو الفتحات لاحقاً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "bulk_bags_sacks:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying bulk bags",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الأكياس الكبيرة",
+      "kind": "buyer_mistake",
+      "body_en": "Reusing single-trip bags; ignoring electrostatic type for powders; storing bags outdoors without UV stabilisation in UAE sun; and choosing on price per bag without SWL. Ask the product, its density, how it is filled and discharged, and storage.",
+      "body_ar": "إعادة استخدام أكياس الاستخدام الواحد؛ وتجاهل النوع الكهروستاتيكي للمساحيق؛ وتخزين الأكياس في الخارج دون مقاومة للأشعة تحت شمس الإمارات؛ والاختيار بسعر الكيس دون الحمل الآمن. لذا يُسأل عن المنتج وكثافته وطريقة تعبئته وتفريغه والتخزين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "bulk_bags_sacks:price-drivers",
+      "topic": "What legitimately moves bulk bag and sack prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الأكياس الكبيرة والأكياس",
+      "kind": "price_driver",
+      "body_en": "PP resin prices, fabric gsm and coating, SWL and safety factor, construction (baffles, spouts), liners, electrostatic type, food-grade production, printing, quantity and origin (local vs imported).",
+      "body_ar": "أسعار راتنج البولي بروبيلين، ووزن القماش وطلاؤه، والحمل الآمن ومعامل الأمان، والتركيب (الحواجز والفتحات)، والبطانات، والنوع الكهروستاتيكي، والإنتاج بدرجة غذائية، والطباعة، والكمية، والمنشأ (محلي أم مستورد).",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "bulk_bags_sacks:compare-quotes",
+      "topic": "Comparing bulk bag quotes like-for-like",
+      "topic_ar": "مقارنة عروض الأكياس الكبيرة على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare bags with the same SWL, safety factor, type, fabric, spouts and liner, with test certificates, delivered. Recommend the three compliant offers with the lowest cost per tonne of product carried.",
+      "body_ar": "قارن أكياساً بالحمل الآمن ومعامل الأمان والنوع والقماش والفتحات والبطانة نفسها، مع شهادات الاختبار، مسلّمة. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة لكل طن من المنتج المنقول.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -129,7 +342,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "bulk_bags_sacks:spec-checklist"
+      "bulk_bags_sacks:spec-checklist",
+      "bulk_bags_sacks:authority-approvals"
     ],
     "added": [
       "bulk_bags_sacks:spec-checklist",
@@ -160,6 +374,28 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "bulk_bags_sacks:quote-red-flags",
+      "bulk_bags_sacks:buyer-mistakes",
+      "bulk_bags_sacks:price-drivers",
+      "bulk_bags_sacks:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "bulk_bags_sacks:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

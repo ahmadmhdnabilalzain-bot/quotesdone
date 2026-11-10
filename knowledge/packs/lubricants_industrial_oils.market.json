@@ -26,8 +26,8 @@
       "topic": "Lubricants & industrial oils: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الزيوت ومواد التشحيم: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names the lubricant brands in the UAE, such as ADNOC, ENOC, Shell, Mobil and Castrol, plus local private-label blenders in Hamriyah and Sharjah. Brands: ADNOC, ENOC, Emarat, Shell, Mobil, Castrol, TotalEnergies, Fuchs, Petronas, Chevron, Valvoline, Motul, Liqui Moly, Klüber, Quaker Houghton, plus many local private-label blenders in Hamriyah and Sharjah, which is a large export hub to Africa and Asia. ADNOC Distribution sells lubricants for automotive, industrial and marine use. The other brands' UAE channels were not checked. Origins: UAE blending plants, Europe, Asia.",
-      "body_ar": "من أشهر ماركات الزيوت في الإمارات ADNOC وENOC وShell وMobil وCastrol، إضافة إلى مصانع خلط محلية تنتج علامات خاصة في الحمرية والشارقة. العلامات: ADNOC، ENOC، Emarat، Shell، Mobil، Castrol، TotalEnergies، Fuchs، Petronas، Chevron، Valvoline، Motul، Liqui Moly، Klüber، Quaker Houghton، إضافة إلى خلاطين محليين كثيرين بعلامات خاصة في الحمرية والشارقة (مركز تصدير كبير لأفريقيا وآسيا). وتبيع ADNOC Distribution زيوت السيارات والصناعة والبحرية، ولم يُتحقق من قنوات بقية العلامات في الإمارات. المنشأ: مصانع خلط إماراتية، أوروبا، آسيا.",
+      "body_en": "This names the lubricant brands in the UAE, such as ADNOC, ENOC, Shell, Mobil and Castrol, plus local private-label blenders in Hamriyah and Sharjah. Brands: ADNOC, ENOC, Emarat, Shell, Mobil, Castrol, TotalEnergies, Fuchs, Petronas, Chevron, Valvoline, Motul, Liqui Moly, Klüber, Quaker Houghton, plus many local private-label blenders in Hamriyah and Sharjah, which is a large export hub to Africa and Asia. ADNOC Distribution sells lubricants for automotive, industrial and marine use. The other brands' UAE channels were not checked. Origins: UAE blending plants, Europe, Asia.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): ADNOC = a premium UAE brand; ENOC = a mid-tier UAE brand; Emarat = a mid-tier UAE brand; Shell = a premium British brand; Mobil = a premium American brand; Castrol = a premium British brand; TotalEnergies = a premium French brand; Fuchs = a premium German brand; Petronas = a mid-tier Malaysian brand; Chevron = a premium American brand; Valvoline = a mid-tier American brand; Motul = a premium French brand; Liqui Moly = a premium German brand; Klüber = a premium German brand; Quaker Houghton = a premium American brand.",
+      "body_ar": "من أشهر ماركات الزيوت في الإمارات ADNOC وENOC وShell وMobil وCastrol، إضافة إلى مصانع خلط محلية تنتج علامات خاصة في الحمرية والشارقة. العلامات: ADNOC، ENOC، Emarat، Shell، Mobil، Castrol، TotalEnergies، Fuchs، Petronas، Chevron، Valvoline، Motul، Liqui Moly، Klüber، Quaker Houghton، إضافة إلى خلاطين محليين كثيرين بعلامات خاصة في الحمرية والشارقة (مركز تصدير كبير لأفريقيا وآسيا). وتبيع ADNOC Distribution زيوت السيارات والصناعة والبحرية، ولم يُتحقق من قنوات بقية العلامات في الإمارات. المنشأ: مصانع خلط إماراتية، أوروبا، آسيا.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): ADNOC = علامة إماراتية من الفئة الممتازة؛ ENOC = علامة إماراتية من الفئة المتوسطة؛ Emarat = علامة إماراتية من الفئة المتوسطة؛ Shell = علامة بريطانية من الفئة الممتازة؛ Mobil = علامة أمريكية من الفئة الممتازة؛ Castrol = علامة بريطانية من الفئة الممتازة؛ TotalEnergies = علامة فرنسية من الفئة الممتازة؛ Fuchs = علامة ألمانية من الفئة الممتازة؛ Petronas = علامة ماليزية من الفئة المتوسطة؛ Chevron = علامة أمريكية من الفئة الممتازة؛ Valvoline = علامة أمريكية من الفئة المتوسطة؛ Motul = علامة فرنسية من الفئة الممتازة؛ Liqui Moly = علامة ألمانية من الفئة الممتازة؛ Klüber = علامة ألمانية من الفئة الممتازة؛ Quaker Houghton = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.adnocdistribution.ae/en/business/lubricants",
         "https://moiat.gov.ae",
@@ -36,7 +36,114 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: ADNOC Distribution sells automotive, industrial and marine lubricants -> confirmed. Not checked: Current MoIAT lubricant scheme details and brand ownership changes were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: ADNOC Distribution sells automotive, industrial and marine lubricants -> confirmed. Not checked: Current MoIAT lubricant scheme details and brand ownership changes were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "ADNOC",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "ENOC",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Emarat",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Shell",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mobil",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Castrol",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "TotalEnergies",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Fuchs",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Petronas",
+          "origin": "Malaysia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Malaysian brand",
+          "generic_ar": "علامة ماليزية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Chevron",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Valvoline",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Motul",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Liqui Moly",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Klüber",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Quaker Houghton",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "lubricants_industrial_oils:uae-market-sizes",

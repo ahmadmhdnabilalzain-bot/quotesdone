@@ -22,20 +22,9 @@ import { accountKey, loadTranscript } from '../_shared/chat_history.ts';
 import { capRule, capStage, carriedTurns, carryState, intakeKey, mergeState, openPortalEpisode, readState, registerPatch, saysDontKnow,
   stateSummary, statusOfStage, type Dialect, type InquiryState, type StatePatch } from '../_shared/inquiry_state.ts';
 import { ADVISE_RULE, heldProblem, problemIndex, problemsFor, readSolution, serviceKeysOfChoice, solutionPatch, solutionsBlock, solutionStateText, stateServiceKeys } from '../_shared/solution_catalogue.ts';
-import { CHECKLIST_REQUIRED, checklistFields, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, validCodes, validServiceKeys, type TradeContext } from '../_shared/inquiry_trades.ts';
-
-// A trade's spec checklist joined to the slug's (ledger 1586; _shared/inquiry_trades.ts checklistFields): required under a
-// generic or missing slug, optional expert questions under a real one; a key the slug already has is not added twice.
-const GENERIC_SLUGS = new Set(['general', 'general-services-other']);
-// deno-lint-ignore no-explicit-any
-export function withPack(base: any[], ctx: TradeContext | null, category: string | null): any[] {
-  const code = ctx?.codes[0];
-  const specs = code ? ctx!.specs[code] ?? [] : [];
-  if (!specs.length) return base;
-  const generic = !category || GENERIC_SLUGS.has(category) || !base.length;
-  const have = new Set(base.map((f) => String(f?.key)));
-  return [...base, ...checklistFields(specs, generic ? CHECKLIST_REQUIRED : 0).filter((f) => !have.has(f.key))];
-}
+import { adviseUnknown, packFields, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
+  type TradeContext } from '../_shared/inquiry_trades.ts';
+import { blockingGate, briefConditions, withPack } from './blocking_gate.ts';
 
 export async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -268,7 +257,9 @@ export async function handle(req: Request): Promise<Response> {
     // Only once a slug is stored: with none yet (turn 1, or a carried portal job), the model's slug loads its checklist below
     // first and the pack joins it there, so a pack can never stand in for the slug's own dispatch keys.
     let tradeCtx = await ctxP;
-    if (category) checklist = withPack(checklist, tradeCtx, category);
+    // The checklist(s) of the placed trades this job is (the model names them in "checklist_topics"; held on the brief).
+    const prevTopics: string[] = validTopics((draft.brief as any)?.checklist_topics, tradeCtx);
+    if (category) checklist = withPack(checklist, tradeCtx, category, prevTopics);
     // 6 Aug 2026. THE ORDERED INTERVIEW. category_specs.fields is a FLAT list with a required flag
     // and no sequence, so the model chose its own order every turn. The corpus carries the spec's
     // "Inquiry Qualification Logic": 16,588 questions, 4,117 distinct, 7,079 mandatory, each with an
@@ -383,7 +374,7 @@ export async function handle(req: Request): Promise<Response> {
     const taxonomy = await taxP;
     const refProblems = problemsFor({ slug: category && category !== 'general' ? category : null, codes: st?.trade_codes ?? [], held: heldProblem(st) });
     const solutionsText = refProblems.length ? solutionsBlock(refProblems, ar ? 'ar' : 'en') : problemIndex();
-    const tradeText = tradeBlock(tradeCtx, ar ? 'ar' : 'en');
+    const tradeText = tradeBlock(tradeCtx, ar ? 'ar' : 'en', prevTopics);
     const taxonomyText = taxonomy && !(st?.trade_codes?.length) ? taxonomyBlock(taxonomy) : '';
     const solutionState = solutionStateText(st, ar ? 'ar' : 'en');
     const stageRule = capRule(stage, replyNo);
@@ -424,10 +415,11 @@ RULES:
 8. URGENCY: set \"urgency\" to \"emergency\" (safety risk / active damage — gas leak, flooding, no power), \"urgent\" (needs attention within ~48h), or \"normal\".
 9. PLAUSIBILITY: in \"plausibility\", set budget_ok=false if a stated budget is clearly unrealistic for the scope (else true or null if none), timeline_ok=false if the deadline is clearly impossible (else true or null), and a short \"note\" explaining any concern (empty if none). Do NOT reject on this — just flag it.
 10. PROVENANCE: in \"provenance\", for each brief field that has a value, mark \"stated\" if the customer explicitly gave it or \"inferred\" if you deduced it.
-11. DOES NOT KNOW: in \"unknown_keys\" put the key of every checklist item the customer said they do not know or cannot say, in any wording or dialect (\"mesh 3aref\", \"ma ba3ref\", \"madri\"). Never ask about one of those again; our sales engineer settles it with them.
+11. DOES NOT KNOW: in \"unknown_keys\" put the key of every checklist item the customer said they do not know or cannot say, in any wording or dialect (\"mesh 3aref\", \"ma ba3ref\", \"madri\"). Never ask about one of those again. A BLOCKING spec they do not know goes to the suppliers as \"supplier to advise\" (it counts as answered); any other item our sales engineer settles with them.
 12. DIALECT: in \"dialect\" name the variety the customer writes in (gulf, egyptian, levantine, msa for Modern Standard Arabic, english, arabizi for Arabic in Latin letters, mixed).
 13. ${ADVISE_RULE} Record it: \"condition\" holds their own words for the thing and its state; \"problem\" the REFERENCE situation key that applies (\"\" when none); \"options_offered\" the option keys (problem/option) THIS reply puts to them, or a few words each for an option outside the reference; \"chosen_option\" the option their messages chose (key or a few words; \"\" when none); \"budget\" only a budget they stated.
 14. TRADES IN THE WHOLE TAXONOMY: in \"trade_codes\" put the one to four taxonomy codes that do this job (from THE TRADE TAXONOMY, or the codes already held), most central first; \"category\" stays the closest listed slug (\"general\" when none fits). In \"service_keys\" put the service keys (trade.service) of THE TRADES THIS CONVERSATION IS PLACED IN that this job needs, only when clear. Ask for whatever the trade's checklist and its location rules need that the customer can tell you (the emirate decides the authority).
+15. ONE INTERVIEW, COMPLETE (founder ledger 1587): every supplier must be able to quote from what this conversation settles, without asking anything. Ask the BLOCKING specs of THE CHECKLIST FOR THIS JOB first, using each one's why, UAE options and what to ask next; \"ready\" only when each is answered or recorded in \"unknown_keys\". In \"checklist_topics\" put the id of each checklist (THE CHECKLIST FOR THIS JOB or one of the trade's OTHER CHECKLISTS) this job is. In \"site_visit\" put the code of each trade whose SITE VISIT condition applies to this job, and say plainly that a final price needs a visit first.
 
 Return STRICT JSON only, no prose, with this shape:
 {
@@ -447,6 +439,8 @@ Return STRICT JSON only, no prose, with this shape:
   \"dialect\": \"gulf\" | \"egyptian\" | \"levantine\" | \"msa\" | \"english\" | \"arabizi\" | \"mixed\",
   \"trade_codes\": [\"<taxonomy code>\"],
   \"service_keys\": [\"<trade.service>\"],
+  \"checklist_topics\": [\"<checklist id>\"],
+  \"site_visit\": [\"<trade code whose site-visit condition applies>\"],
   \"condition\": { \"object\": \"\", \"material\": \"\", \"condition\": \"\", \"location\": \"\", \"use\": \"\", \"constraint\": \"\" },
   \"problem\": \"<reference situation key or empty>\",
   \"options_offered\": [\"<problem/option>\"],
@@ -590,7 +584,12 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     const modelCodes = out && llmParseOk ? validCodes(out.trade_codes, taxonomy) : [];
     const codesNow = modelCodes.length ? modelCodes : (st?.trade_codes ?? []);
     if (modelCodes.length && modelCodes.join() !== (tradeCtx?.codes ?? []).join()) tradeCtx = (await tradeContext(admin, modelCodes, ar ? 'ar' : 'en', taxonomy)) ?? tradeCtx;
-    checklist = withPack(checklist, tradeCtx, String((out && out.category) || category || ''));
+    // The job's checklist(s): the ones the model named this turn, else the ones held from an earlier turn, else each trade's first.
+    const modelTopics = out && llmParseOk ? validTopics(out.checklist_topics, tradeCtx) : [];
+    const topicsNow: string[] = modelTopics.length ? modelTopics : validTopics(prevTopics, tradeCtx);
+    // The trades whose site-visit condition the model judged applies to this job (a known condition on the brief).
+    const siteVisitNow: string[] = out && llmParseOk && Array.isArray(out.site_visit) ? out.site_visit.map(String).filter((c: string) => (tradeCtx?.codes ?? []).includes(c)) : [];
+    checklist = withPack(checklist, tradeCtx, String((out && out.category) || category || ''), topicsNow);
     // What the model put to them and what they chose (rule 13), and the services of their trades it named.
     const solution = out && llmParseOk ? readSolution(out) : null;
     const modelServiceKeys = out && llmParseOk ? validServiceKeys(out.service_keys, tradeCtx?.services) : [];
@@ -607,7 +606,10 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       for (const k of modelUnknown) if (!(k in unknownNow)) unknownNow[k] = text.slice(0, 200);
       const unknownKeys = new Set([...Object.keys(st?.unknown ?? {}), ...Object.keys(unknownNow)]);
       for (const k of unknownKeys) slotUnknown.add(k);   // a key filled after all is not open, so it is never held for this
-      const settled = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), openTurnsByKey(turns), slotUnknown);
+      // A pack spec of the job they do not know is ANSWERED as "supplier to advise" (ledger 1587), so it is never held for.
+      const packNow = packFields(tradeCtx, topicsNow);
+      const prevDetAdvised = adviseUnknown(withUniversal(prevDet, packNow, universalAnswers({ specs: { ...(st?.specs ?? {}), ...prevDet }, emirate })), packNow, unknownKeys);
+      const settled = settleModelTurn(checklist, prevDetAdvised, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), openTurnsByKey(turns), slotUnknown);
       slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
       // The state's first askable question and its key: when that is the question asked, the key goes with it.
       slotAsk = slotAskOf(settled);
@@ -637,9 +639,13 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       // an actual interview (./interview.ts): one plain question at a time, each answer parsed into
       // its canonical key, state kept in brief.details, 'ready' when every required key is filled.
       const lang = ar ? 'ar' : 'en';
-      const prevState = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object')
+      const prevState0 = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object')
         ? { details: draft.brief.details as Record<string, string>, asked_key: (draft.brief.asked_key as string) || null }
         : { details: {}, asked_key: null };
+      // the same "supplier to advise" for a pack spec they do not know, on the interview's own state
+      const packNow = packFields(tradeCtx, topicsNow);
+      const prevState = { ...prevState0, details: adviseUnknown(withUniversal(prevState0.details, packNow, universalAnswers({ specs: { ...(st?.specs ?? {}), ...prevState0.details }, emirate })),
+        packNow, [...Object.keys(st?.unknown ?? {}), ...Object.keys(unknownNow)]) as Record<string, string> };
       const step = category && checklist.length ? interviewStep(checklist, prevState, text, allText, lang, askOrder) : null;
       interview = step ? { details: step.details, asked_key: step.next ? step.next.key : null } : null;
       nextQuestion = step?.next ? { key: step.next.key, text: step.next.text, options: step.next.options } : null;
@@ -812,6 +818,29 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       }
     }
 
+    // ── THE BLOCKING SPECS OF EVERY PLACED TRADE (10 Nov 2026, founder ledger 1587) ──────────────────────────────────
+    // "The interview happens ONCE ... complete enough that every supplier can quote without asking for a missing detail."
+    // After the slug's canonical keys, the trades' own rule: every blocking spec of the job's checklist(s) answered, in the
+    // state's specs or this turn's details, or recorded as "does not know" (sent as "supplier to advise"). On the model path
+    // and the deterministic interview alike, so neither the model nor the slots can call a request ready without them.
+    const specsHeld: Record<string, unknown> = { ...(st?.specs ?? {}), ...(slotDetails || {}), ...((interview && interview.details) || {}),
+      ...((out.brief && typeof out.brief === 'object' && out.brief.details && typeof out.brief.details === 'object') ? out.brief.details : {}) };
+    // The universal fields (payment terms, location and emirate, needed by, budget) are ONE answer for the whole request,
+    // whichever trades list them: the held key, the emirate the conversation states, the four questions' date, the budget.
+    const reqHeld: any = (draft.brief && typeof draft.brief === 'object' && draft.brief.req_answers) || {};
+    const reqBy = reqHeld.required_by?.text ?? reqHeld.required_by?.date ?? (out && llmParseOk && category ? requirementsFromModel(category, out.requirements).required_by?.text : null) ?? null;
+    const universalNow = universalAnswers({ specs: specsHeld, emirate: emirate || (out.brief && out.brief.emirate) || null, required_by: reqBy ? String(reqBy) : null,
+      budget: st?.budget?.value ?? (typeof out?.brief?.budget === 'string' ? out.brief.budget : null) });
+    const gate = blockingGate(status, tradeCtx, topicsNow, specsHeld, [...slotUnknown, ...Object.keys(st?.unknown ?? {}), ...Object.keys(unknownNow)], siteVisitNow, universalNow);
+    if (gate.status !== status) {
+      status = gate.status; out.status = gate.status;
+      out.missing = gate.verdict.open.map((o) => o.question);
+      out.questions = gate.questions;
+      out.readiness = Math.min(Number(out.readiness) || 0, 80);
+      out.assistant_message = replyFromState('needs_info', gate.questions[0] || null, slotLang);
+      requiredGate = { category: String(category || 'general'), missing_keys: gate.verdict.open.map((o) => o.key) };
+    }
+
     // ── THE SALES ENGINEER'S FOUR QUESTIONS (founder, 14 Sep 2026) ─────────────────────────────────
     // "do you require a warranty? do you require installation? do you have specific material in mind
     // ... maybe he doesnt even care, but our job is to ask." A request that has every field its
@@ -909,6 +938,10 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       brief.requirements = toStored(category, reqAnswers, new Date());
       brief.requirement_questions = forCard(category, reqAnswers, reqLang);
       brief.recorded_by = ACTOR;
+      // What the suppliers must advise and the known conditions (a site visit before a final price), on the brief and in
+      // its details, which create_inquiry copies onto inquiries.spec (ledger 1587: nothing a supplier needs is hidden).
+      briefConditions(brief, gate.verdict);
+      brief.checklist_topics = topicsNow;
 
       // ── §3 THE TWO THINGS THE SPEC'S ASSISTANT SAYS BEFORE THE CUSTOMER PRESSES SEND ───────────
       // The spec's §3 panel is: "Required Documents: ✓ Technical specs ✓ Delivery timeline
@@ -989,7 +1022,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     const drawingState = { ...(boqCheck ? { boq_check: boqCheck } : {}), boq_asked: boqAsked, cad_asked: cadAsked };
     const briefToSave = brief
       ? { ...brief, req_answers: reqAnswers, ...drawingState }
-      : { details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
+      : { details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, checklist_topics: topicsNow, ...drawingState };
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;
@@ -1087,7 +1120,8 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // came from (the SQL keeps the first), what they do not know, the spec it asks now, the count, the register and the
     // stage. No model call: these are what the turn already read. Written beside the QA line and the run log.
     const statePatch: StatePatch & { specs: Record<string, string> } = { turn: userTexts().length, intake_id: String(draft.id), message_count: turns.length,
-      specs: Object.fromEntries(Object.entries((briefToSave as any).details || {}).filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '')
+      // details.site_visit is our known condition, not something they said: it stays on the brief, never in the state's specs
+      specs: Object.fromEntries(Object.entries((briefToSave as any).details || {}).filter(([k, v]) => k !== 'site_visit' && v !== undefined && v !== null && String(v).trim() !== '')
         .map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : String(v)])),
       unknown: unknownNow, asked: nextQuestion?.key ? [String(nextQuestion.key)] : [],
       ...(category && category !== 'general' ? { trade: String(category) } : {}), status: statusOfStage(stage),
@@ -1113,6 +1147,9 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       // harness answered hvac "system_type" and plumbing "fixture_count" with its whole sheet three times,
       // slots.ts held the intake for unanswered specs, and the run printed "held (held)" with no reason.
       missing_keys: missingKeys,
+      // THE PRICE-BLOCKING DETAILS (ledger 1587): which blocking specs of the job are still open, which go to the suppliers as
+      // "supplier to advise", and every site-visit condition, so the portal shows what stands between this and a firm price.
+      blocking: { open: gate.verdict.open.map((o) => o.key), advised: gate.verdict.advised.map((o) => o.key), site_visits: gate.verdict.site_visits.map((v) => v.text) },
       ...(carry ? { carried: true, carried_turns: carry.turns.length } : {}), ...(stage !== 'normal' ? { stage } : {}),
       reply_by: replyBy,   // who wrote assistant_message: the model, or the code draft because OpenRouter was down (1339)
       pending: reaskTid !== null, ...(reaskTid ? { reask_turn_id: reaskTid } : {}),   // filed for the re-ask: the portal waits for it

@@ -5,8 +5,8 @@
       "id": "facilities_management:spec-checklist",
       "topic": "Facilities management - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for facilities management must state: property type and area; services in scope; asset register; planned maintenance standard; staffing and shifts; response and resolution times; helpdesk and CAFM system; key performance indicators; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة إدارة المرافق: نوع العقار ومساحته؛ الخدمات ضمن النطاق؛ سجل الأصول؛ معيار الصيانة المخططة؛ الموظفون والورديات؛ أزمنة الاستجابة والحل؛ مكتب المساعدة ونظام إدارة المرافق؛ مؤشرات الأداء الرئيسية؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for facilities management must state: property type and area; services in scope; asset register; planned maintenance standard; staffing and shifts; response and resolution times; helpdesk and CAFM system; key performance indicators; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): property locations and emirates; property and area, services in scope, asset register, staffing and the pricing basis. A site survey is unavoidable. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states property locations and emirates.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة إدارة المرافق: نوع العقار ومساحته؛ الخدمات ضمن النطاق؛ سجل الأصول؛ معيار الصيانة المخططة؛ الموظفون والورديات؛ أزمنة الاستجابة والحل؛ مكتب المساعدة ونظام إدارة المرافق؛ مؤشرات الأداء الرئيسية؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، والعقار ومساحته، والخدمات المشمولة، وسجل الأصول، والتوظيف، وأساس التسعير. ومسح الموقع ضروري. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة.",
       "required_specs": [
         "property type and area",
         "services in scope",
@@ -20,14 +20,126 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "property locations and emirates"
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits",
         "https://www.dcd.gov.ae/portal/en/home.jsp"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "property type and area",
+        "services in scope",
+        "asset register",
+        "staffing and shifts",
+        "contract duration",
+        "property locations and emirates"
+      ],
+      "spec_guide": [
+        {
+          "spec": "property type and area",
+          "why_needed_to_price": "Scope and staffing follow the building.",
+          "uae_options": "tower; villa community; mall; school; m2",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "services in scope",
+          "why_needed_to_price": "Hard services (MEP maintenance) and soft services (cleaning, security) are priced separately.",
+          "uae_options": "hard; soft; integrated",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "asset register",
+          "why_needed_to_price": "Planned maintenance is priced per asset.",
+          "uae_options": "existing register; to be surveyed",
+          "follow_up_if": "No register: an asset survey is needed before a firm price.",
+          "blocking": true
+        },
+        {
+          "spec": "planned maintenance standard",
+          "why_needed_to_price": "The maintenance standard sets the task list and frequency.",
+          "uae_options": "SFG20 or manufacturer schedules; PPM calendar.",
+          "follow_up_if": "If no standard is named, ask the provider which it will use.",
+          "blocking": false
+        },
+        {
+          "spec": "staffing and shifts",
+          "why_needed_to_price": "Resident technicians and shifts set most of the cost.",
+          "uae_options": "resident; mobile team; 24 h",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "response and resolution times",
+          "why_needed_to_price": "Faster response needs more staff.",
+          "uae_options": "per priority level",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "helpdesk and CAFM system",
+          "why_needed_to_price": "A helpdesk and CAFM system add staff and licence costs.",
+          "uae_options": "24/7 helpdesk; CAFM software with reports.",
+          "follow_up_if": "If the buyer has its own CAFM, ask whether the provider will use it.",
+          "blocking": false
+        },
+        {
+          "spec": "key performance indicators",
+          "why_needed_to_price": "KPIs with penalties shift risk to the provider.",
+          "uae_options": "Response, completion and PPM compliance KPIs.",
+          "follow_up_if": "If KPIs are linked to payment, state them so all bidders price the same risk.",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and unlicensed offers are often cheaper for that reason.",
+          "uae_options": "Trade licence for the activity in the emirate or free zone; authority approvals or registrations where the trade requires them.",
+          "follow_up_if": "If the licence does not name the activity or the emirate of the site, the offer cannot be accepted until it does.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels set the staffing, frequency and standby the provider must carry, and so most of the price.",
+          "uae_options": "Defined frequency, response time, attendance hours and measurable KPIs; penalties or service credits by agreement.",
+          "follow_up_if": "If no level is stated, ask the buyer for frequency and response expectations before comparing quotes.",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Lump sum, cost-plus and schedule-of-rates contracts carry different risk.",
+          "uae_options": "lump sum; cost plus; schedule of rates",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "property locations and emirates",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        }
+      ],
+      "site_visit_required_when": "A site visit and asset survey are unavoidable before a firm FM price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "facilities_management:uae-standards-and-approvals",
@@ -87,6 +199,81 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "facilities_management:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Facilities management: the approvals inside an FM contract",
+      "topic_ar": "إدارة المرافق: الاعتمادات داخل عقد إدارة المرافق",
+      "body_en": "There is no single FM licence; each service inside the contract carries its own approval. Fire systems must be maintained by a company approved by the emirate's civil defence (Dubai Civil Defence approves fire-system installation and maintenance companies). Lifts and BMUs need third-party examination (in Dubai under the Dubai Municipality lifting-equipment guideline, by an EIAC-accredited body). Security systems and guards fall under SIRA in Dubai and the Monitoring and Control Centre and Abu Dhabi Police in Abu Dhabi. Pest control needs a municipality-approved company. Water tank cleaning in Dubai follows Dubai Municipality rules. Who obtains: the FM company for each service, or its approved subcontractors.",
+      "body_ar": "لا يوجد ترخيص واحد لإدارة المرافق؛ فلكل خدمة داخل العقد اعتمادها الخاص. يجب أن تصون أنظمة الحريق شركة معتمدة من الدفاع المدني في الإمارة (يعتمد الدفاع المدني بدبي شركات تركيب أنظمة الحريق وصيانتها). وتحتاج المصاعد ووحدات صيانة المباني إلى فحص من طرف ثالث (في دبي وفق دليل بلدية دبي لمعدات الرفع ومن جهة معتمدة من مركز الإمارات الدولي للاعتماد). وتخضع أنظمة الأمن والحراس لمؤسسة تنظيم الصناعة الأمنية في دبي ولمركز المراقبة والتحكم وشرطة أبوظبي في أبوظبي. وتحتاج مكافحة الآفات إلى شركة معتمدة من البلدية. ويتبع تنظيف خزانات المياه في دبي قواعد بلدية دبي. من يحصل عليها: شركة إدارة المرافق لكل خدمة أو مقاولو الباطن المعتمدون لديها.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/en/e-services/company-approval-services",
+        "https://www.dm.gov.ae/wp-content/uploads/2025/02/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V5.pdf",
+        "https://www.sira.gov.ae/en/services/noc-security-license",
+        "https://www.dm.gov.ae/wp-content/uploads/2025/12/قائمة-شركات-مكافحة-الحشرات-المصرح-لها-بالعمل-نوفمبر2025.pdf",
+        "https://www.dm.gov.ae/municipality-business/public-health-pest-control-section/",
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/02/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V5.pdf",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2016/Law%20No.%20(12)%20of%202016.html"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM issues an NOC to pest control companies before the trade licence and lists approved companies; DM approval covers water tank cleaning (DM services, approval for food-related establishments). Not confirmed on any reachable page: civil defence approval of fire maintenance companies, SIRA, and the content of DM Guideline 48. Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt); www.sira.gov.ae (blocked by the session network); dmpmedia.dm.gov.ae (Dubai Municipality's PDF host; blocked, and the cited www.dm.gov.ae/wp-content PDF links now redirect to the home page). Second page read 2026-11-10 (ledger 1597): Now confirmed: DM Guideline 48 (EIAC-accredited third party, every 12 months) for lifts and lifting equipment (dmpmedia.dm.gov.ae); SIRA licenses security service providers under Dubai Law No. 12 of 2016 (dlp.dubai.gov.ae); DM approves companies to clean water tanks (DM services). Still not confirmed: civil defence approval of fire-maintenance companies and the Abu Dhabi Monitoring and Control Centre."
+    },
+    {
+      "id": "facilities_management:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in facilities management quotes",
+      "topic_ar": "علامات التحذير في عروض إدارة المرافق",
+      "body_en": "Watch for: a lump sum without an asset register, reactive repairs and parts excluded or capped, fewer resident staff than the scope needs, subcontracted fire and lift maintenance without the approvals, KPIs without penalties, consumables excluded, and mobilisation or CAFM costs added later.",
+      "body_ar": "انتبه إلى: مبلغ إجمالي دون سجل أصول، واستثناء الإصلاحات الطارئة وقطع الغيار أو وضع سقف لها، وعدد موظفين مقيمين أقل مما يحتاجه النطاق، وتعاقد من الباطن لصيانة الحريق والمصاعد دون الاعتمادات، ومؤشرات أداء دون غرامات، واستثناء المواد الاستهلاكية، وإضافة تكاليف التحريك أو نظام إدارة المرافق لاحقاً.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "facilities_management:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in facilities management",
+      "topic_ar": "أخطاء شائعة لدى المشترين في إدارة المرافق",
+      "body_en": "Buyers tender FM without an asset register, compare lump sums with different staffing, and leave parts and reactive work undefined.",
+      "body_ar": "يطرح المشترون عقود إدارة المرافق دون سجل أصول، ويقارنون مبالغ إجمالية بتوظيف مختلف، ويتركون قطع الغيار والأعمال الطارئة دون تعريف.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "facilities_management:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves facilities management prices",
+      "topic_ar": "ما الذي يغيّر أسعار إدارة المرافق بشكل مشروع",
+      "body_en": "Prices differ by staffing levels and skills, service scope, asset count and age, response times, parts inclusion, and contract model.",
+      "body_ar": "تختلف الأسعار حسب مستويات التوظيف والمهارات، ونطاق الخدمات، وعدد الأصول وعمرها، وأزمنة الاستجابة، وشمول قطع الغيار، ونموذج العقد.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "facilities_management:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing facilities management quotes like for like",
+      "topic_ar": "مقارنة عروض إدارة المرافق على أساس متكافئ",
+      "body_en": "Compare on the same asset register, staffing schedule, response times and parts basis, with each service's approvals confirmed. Value beyond price: in-house approved teams for fire and MEP, a CAFM system with reporting, and KPIs with penalties.",
+      "body_ar": "قارن على سجل الأصول وجدول التوظيف وأزمنة الاستجابة وأساس قطع الغيار نفسها، مع التأكد من اعتمادات كل خدمة. القيمة إلى جانب السعر: فرق داخلية معتمدة للحريق والأعمال الكهروميكانيكية، ونظام لإدارة المرافق مع التقارير، ومؤشرات أداء بغرامات.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -123,17 +310,23 @@
     }
   ],
   "verified": {
-    "fetched_urls": 0,
-    "claims_checked": 0,
+    "fetched_urls": 3,
+    "claims_checked": 6,
     "corrected": [],
     "removed": [],
     "still_unverified": [
       "facilities_management:spec-checklist",
-      "facilities_management:uae-standards-and-approvals"
+      "facilities_management:uae-standards-and-approvals",
+      "facilities_management:approvals-per-emirate"
     ],
     "added": [
       "facilities_management:spec-checklist",
-      "facilities_management:uae-standards-and-approvals"
+      "facilities_management:uae-standards-and-approvals",
+      "facilities_management:approvals-per-emirate",
+      "facilities_management:quote-red-flags",
+      "facilities_management:buyer-mistakes",
+      "facilities_management:price-drivers",
+      "facilities_management:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
@@ -160,6 +353,26 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: facilities_management:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "facilities_management:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2016/Law%20No.%20(12)%20of%202016.html"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

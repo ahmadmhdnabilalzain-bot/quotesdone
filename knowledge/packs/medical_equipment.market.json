@@ -29,8 +29,8 @@
       "topic": "Medical equipment: makes, brands, distributors and origins in the UAE",
       "topic_ar": "أجهزة ومعدات طبية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names UAE medical equipment distributors, such as Al Zahrawi Medical and Gulf Drug, and global manufacturers such as Siemens Healthineers, GE HealthCare and Philips. Confirmed UAE distributors and global manufacturers: Al Zahrawi Medical, Gulf Drug, AMICO, Al Maqam, Al Shirawi Healthcare, Siemens Healthineers, GE HealthCare, Philips, Canon Medical, Mindray, Dräger, Medtronic, Stryker, Getinge, Olympus. Which distributor holds each manufacturer's agency was not checked; several manufacturers also sell direct from Dubai regional offices. Arab Health in Dubai is the main exhibition.",
-      "body_ar": "من أبرز موزعي الأجهزة الطبية في الإمارات Al Zahrawi Medical وGulf Drug، ومن المصنعين العالميين Siemens Healthineers وGE HealthCare وPhilips. الموزعون المؤكدون في الإمارات والشركات المصنعة العالمية: Al Zahrawi Medical، Gulf Drug، AMICO، Al Maqam، Al Shirawi Healthcare، Siemens Healthineers، GE HealthCare، Philips، Canon Medical، Mindray، Dräger، Medtronic، Stryker، Getinge، Olympus. ولم يُتحقق من الموزع الذي يحمل وكالة كل شركة مصنعة؛ ويبيع عدد من الشركات المصنعة أيضاً مباشرة من مكاتبها الإقليمية في دبي. ويُعد معرض الصحة العربي في دبي المعرض الرئيسي.",
+      "body_en": "This names UAE medical equipment distributors, such as Al Zahrawi Medical and Gulf Drug, and global manufacturers such as Siemens Healthineers, GE HealthCare and Philips. Confirmed UAE distributors and global manufacturers: Al Zahrawi Medical, Gulf Drug, AMICO, Al Maqam, Al Shirawi Healthcare, Siemens Healthineers, GE HealthCare, Philips, Canon Medical, Mindray, Dräger, Medtronic, Stryker, Getinge, Olympus. Which distributor holds each manufacturer's agency was not checked; several manufacturers also sell direct from Dubai regional offices. Arab Health in Dubai is the main exhibition.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Al Zahrawi Medical = a UAE trading or retail name; Gulf Drug = a UAE trading or retail name; AMICO = a UAE trading or retail name; Al Maqam = a UAE trading or retail name; Al Shirawi Healthcare = a UAE trading or retail name; Siemens Healthineers = a premium German brand; GE HealthCare = a premium American brand; Philips = a premium Dutch brand; Canon Medical = a premium Japanese brand; Mindray = a mid-tier Chinese brand; Dräger = a premium German brand; Medtronic = a premium Irish brand; Stryker = a premium American brand; Getinge = a premium Swedish brand; Olympus = a premium Japanese brand.",
+      "body_ar": "من أبرز موزعي الأجهزة الطبية في الإمارات Al Zahrawi Medical وGulf Drug، ومن المصنعين العالميين Siemens Healthineers وGE HealthCare وPhilips. الموزعون المؤكدون في الإمارات والشركات المصنعة العالمية: Al Zahrawi Medical، Gulf Drug، AMICO، Al Maqam، Al Shirawi Healthcare، Siemens Healthineers، GE HealthCare، Philips، Canon Medical، Mindray، Dräger، Medtronic، Stryker، Getinge، Olympus. ولم يُتحقق من الموزع الذي يحمل وكالة كل شركة مصنعة؛ ويبيع عدد من الشركات المصنعة أيضاً مباشرة من مكاتبها الإقليمية في دبي. ويُعد معرض الصحة العربي في دبي المعرض الرئيسي.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Al Zahrawi Medical = اسم تجاري لتاجر أو موزع في الإمارات؛ Gulf Drug = اسم تجاري لتاجر أو موزع في الإمارات؛ AMICO = اسم تجاري لتاجر أو موزع في الإمارات؛ Al Maqam = اسم تجاري لتاجر أو موزع في الإمارات؛ Al Shirawi Healthcare = اسم تجاري لتاجر أو موزع في الإمارات؛ Siemens Healthineers = علامة ألمانية من الفئة الممتازة؛ GE HealthCare = علامة أمريكية من الفئة الممتازة؛ Philips = علامة هولندية من الفئة الممتازة؛ Canon Medical = علامة يابانية من الفئة الممتازة؛ Mindray = علامة صينية من الفئة المتوسطة؛ Dräger = علامة ألمانية من الفئة الممتازة؛ Medtronic = علامة أيرلندية من الفئة الممتازة؛ Stryker = علامة أمريكية من الفئة الممتازة؛ Getinge = علامة سويدية من الفئة الممتازة؛ Olympus = علامة يابانية من الفئة الممتازة.",
       "sources": [
         "https://www.ede.gov.ae/en/home",
         "https://www.bionixus.com/medical-device-companies-uae",
@@ -42,7 +42,114 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EDE is the federal regulator for medical devices (since 29 Sep 2023); radiation equipment needs FANR licensing -> confirmed | Al Zahrawi Medical, Gulf Drug, AMICO and Al Maqam are main UAE medical equipment distributors; global makers run Middle East headquarters in Dubai -> confirmed | Al Shirawi Healthcare Solutions supplies medical equipment -> confirmed. Not checked: Which distributor currently holds each brand's agency in the UAE and the 10-year spare parts tender norm were not verified; distributor examples are generic."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE is the federal regulator for medical devices (since 29 Sep 2023); radiation equipment needs FANR licensing -> confirmed | Al Zahrawi Medical, Gulf Drug, AMICO and Al Maqam are main UAE medical equipment distributors; global makers run Middle East headquarters in Dubai -> confirmed | Al Shirawi Healthcare Solutions supplies medical equipment -> confirmed. Not checked: Which distributor currently holds each brand's agency in the UAE and the 10-year spare parts tender norm were not verified; distributor examples are generic. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Al Zahrawi Medical",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Gulf Drug",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "AMICO",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Al Maqam",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Al Shirawi Healthcare",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Siemens Healthineers",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "GE HealthCare",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Philips",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium Dutch brand",
+          "generic_ar": "علامة هولندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Canon Medical",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mindray",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Dräger",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Medtronic",
+          "origin": "Ireland",
+          "tier": "premium",
+          "generic_en": "a premium Irish brand",
+          "generic_ar": "علامة أيرلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Stryker",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Getinge",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Olympus",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "medical_equipment:uae-market-sizes",

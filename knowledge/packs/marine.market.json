@@ -28,8 +28,8 @@
       "topic": "Marine & Offshore Supplies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المستلزمات والأعمال البحرية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names a UAE boat builder, Gulf Craft, and common marine engine, electronics and coating brands such as Yamaha, Mercury, Garmin and Jotun. Confirmed UAE builder and common engine, electronics and coating brands: Gulf Craft, Yamaha, Mercury, Volvo Penta, Garmin, Raymarine, Furuno, Jotun. The brands' UAE dealers were not checked.",
-      "body_ar": "من مصنعي القوارب في الإمارات Gulf Craft، ومن الماركات الشائعة للمحركات البحرية والإلكترونيات والدهانات Yamaha وMercury وGarmin وJotun. والمصنّع الإماراتي المؤكد والماركات الشائعة للمحركات والإلكترونيات والدهانات: Gulf Craft وYamaha وMercury وVolvo Penta وGarmin وRaymarine وFuruno وJotun. ولم نتحقق من وكلاء هذه الماركات في الإمارات.",
+      "body_en": "This names a UAE boat builder, Gulf Craft, and common marine engine, electronics and coating brands such as Yamaha, Mercury, Garmin and Jotun. Confirmed UAE builder and common engine, electronics and coating brands: Gulf Craft, Yamaha, Mercury, Volvo Penta, Garmin, Raymarine, Furuno, Jotun. The brands' UAE dealers were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Gulf Craft = a luxury UAE brand; Yamaha = a premium Japanese brand; Mercury = a premium American brand; Volvo Penta = a premium Swedish brand; Garmin = a premium American brand; Raymarine = a mid-tier British brand; Furuno = a premium Japanese brand; Jotun = a premium Norwegian brand.",
+      "body_ar": "من مصنعي القوارب في الإمارات Gulf Craft، ومن الماركات الشائعة للمحركات البحرية والإلكترونيات والدهانات Yamaha وMercury وGarmin وJotun. والمصنّع الإماراتي المؤكد والماركات الشائعة للمحركات والإلكترونيات والدهانات: Gulf Craft وYamaha وMercury وVolvo Penta وGarmin وRaymarine وFuruno وJotun. ولم نتحقق من وكلاء هذه الماركات في الإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Gulf Craft = علامة إماراتية من الفئة الفاخرة؛ Yamaha = علامة يابانية من الفئة الممتازة؛ Mercury = علامة أمريكية من الفئة الممتازة؛ Volvo Penta = علامة سويدية من الفئة الممتازة؛ Garmin = علامة أمريكية من الفئة الممتازة؛ Raymarine = علامة بريطانية من الفئة المتوسطة؛ Furuno = علامة يابانية من الفئة الممتازة؛ Jotun = علامة نرويجية من الفئة الممتازة.",
       "sources": [
         "https://eservices.dmca.ae/en/",
         "https://gulfcraftgroup.com/news",
@@ -40,7 +40,65 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Maritime Authority registers and licenses marine vessels (eservices.dmca.ae) -> corrected: authority URL | Gulf Craft is a UAE boat builder -> confirmed. Not checked: The Dubai Maritime Authority URL, the current federal maritime registry body, and marine dealer appointments were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Maritime Authority registers and licenses marine vessels (eservices.dmca.ae) -> corrected: authority URL | Gulf Craft is a UAE boat builder -> confirmed. Not checked: The Dubai Maritime Authority URL, the current federal maritime registry body, and marine dealer appointments were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Gulf Craft",
+          "origin": "UAE",
+          "tier": "luxury",
+          "generic_en": "a luxury UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Yamaha",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mercury",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Volvo Penta",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Garmin",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Raymarine",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Furuno",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Jotun",
+          "origin": "Norway",
+          "tier": "premium",
+          "generic_en": "a premium Norwegian brand",
+          "generic_ar": "علامة نرويجية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "marine:uae-market-sizes",

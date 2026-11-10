@@ -28,8 +28,8 @@
       "topic": "Hotel & FF&E furniture: makes, brands, distributors and origins in the UAE",
       "topic_ar": "أثاث الفنادق وتجهيزاتها (FF&E): الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Hotel furniture makers in the UAE, such as Intermetal in Dubai Investments Park, joinery factories in Jebel Ali, Al Quoz, Sharjah and RAK, imports from Turkey, China and Asia, and hardware from Blum, Hettich and Grass. Confirmed UAE maker and common hardware brands: Intermetal (Dubai Investments Park), Blum, Hettich, Grass. Hotel furniture is also made by joinery and FF&E factories in Jebel Ali, Al Quoz, Sharjah and RAK and imported from Turkey, China, Vietnam, Malaysia, Indonesia, India and Italy; hardware distributors were not checked.",
-      "body_ar": "مصنعو أثاث الفنادق في الإمارات، مثل Intermetal في مجمع دبي للاستثمار ومناجر في جبل علي والقوز والشارقة ورأس الخيمة، مع واردات من تركيا والصين وآسيا وإكسسوارات من Blum وHettich وGrass. والمصنّع الإماراتي المؤكد وعلامات الإكسسوارات الشائعة: Intermetal (مجمع دبي للاستثمار) وBlum وHettich وGrass. ويُصنع أثاث الفنادق كذلك في مناجر ومصانع الأثاث والتجهيزات والمعدات (FF&E) في جبل علي والقوز والشارقة ورأس الخيمة، ويُستورد من تركيا والصين وفيتنام وماليزيا وإندونيسيا والهند وإيطاليا، ولم نتحقق من موزعي الإكسسوارات.",
+      "body_en": "Hotel furniture makers in the UAE, such as Intermetal in Dubai Investments Park, joinery factories in Jebel Ali, Al Quoz, Sharjah and RAK, imports from Turkey, China and Asia, and hardware from Blum, Hettich and Grass. Confirmed UAE maker and common hardware brands: Intermetal (Dubai Investments Park), Blum, Hettich, Grass. Hotel furniture is also made by joinery and FF&E factories in Jebel Ali, Al Quoz, Sharjah and RAK and imported from Turkey, China, Vietnam, Malaysia, Indonesia, India and Italy; hardware distributors were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Intermetal = a mid-tier UAE brand; Blum = a premium Austrian brand; Hettich = a premium German brand; Grass = a premium Austrian brand.",
+      "body_ar": "مصنعو أثاث الفنادق في الإمارات، مثل Intermetal في مجمع دبي للاستثمار ومناجر في جبل علي والقوز والشارقة ورأس الخيمة، مع واردات من تركيا والصين وآسيا وإكسسوارات من Blum وHettich وGrass. والمصنّع الإماراتي المؤكد وعلامات الإكسسوارات الشائعة: Intermetal (مجمع دبي للاستثمار) وBlum وHettich وGrass. ويُصنع أثاث الفنادق كذلك في مناجر ومصانع الأثاث والتجهيزات والمعدات (FF&E) في جبل علي والقوز والشارقة ورأس الخيمة، ويُستورد من تركيا والصين وفيتنام وماليزيا وإندونيسيا والهند وإيطاليا، ولم نتحقق من موزعي الإكسسوارات.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Intermetal = علامة إماراتية من الفئة المتوسطة؛ Blum = علامة نمساوية من الفئة الممتازة؛ Hettich = علامة ألمانية من الفئة الممتازة؛ Grass = علامة نمساوية من الفئة الممتازة.",
       "sources": [
         "https://arcedior.com/blog/e1-e0-formaldehyde-board-standards",
         "https://www.pakitchen.com/top-10-hotel-furniture-manufacturers-uae/",
@@ -40,7 +40,37 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: E1 and E0 are formaldehyde emission classes for wood-based panels under EN 13986 -> confirmed | Intermetal is a contract furniture maker at Dubai Investments Park (founded 1989) serving hotels -> confirmed | Sedar, Depa, Al Shafar Interiors, Al Huzaifa contract divisions -> removed: not confirmed. Not checked: Named UAE joinery companies are given as market examples; their current capacity and hotel project lists were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: E1 and E0 are formaldehyde emission classes for wood-based panels under EN 13986 -> confirmed | Intermetal is a contract furniture maker at Dubai Investments Park (founded 1989) serving hotels -> confirmed | Sedar, Depa, Al Shafar Interiors, Al Huzaifa contract divisions -> removed: not confirmed. Not checked: Named UAE joinery companies are given as market examples; their current capacity and hotel project lists were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Intermetal",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Blum",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium Austrian brand",
+          "generic_ar": "علامة نمساوية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hettich",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Grass",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium Austrian brand",
+          "generic_ar": "علامة نمساوية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "hotel_furniture:uae-market-sizes",
