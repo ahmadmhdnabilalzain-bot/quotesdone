@@ -24,6 +24,7 @@ import { requestOf, reviewNotes, type ReviewNote } from '../../_shared/quote_rev
 import { verifiedBadges } from '../../_shared/verified_badges.ts';
 import { scrubIdentity } from '../../supplier_api/identity_scrub.ts';
 import { type ActionCtx, J, admin } from '../context.ts';
+import { isClosedRequest } from '../../_shared/request_closed.ts';
 import { EDIT_WINDOW_MS, supplierLabel } from '../lib/inquiry_rules.ts';
 import { signedDrawing } from '../lib/storage.ts';
 import { buyerNameOf, matchAndNotify, notifyLosers } from '../lib/matching.ts';
@@ -94,7 +95,8 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       if (!iid || raw.length < 2) return J({ error: 'text_required' }, 400);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status').eq('id', iid).maybeSingle();
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'not_your_inquiry' }, 403);
-      if (['cancelled', 'closed', 'completed'].includes(String(inq.status))) return J({ error: 'inquiry_closed' }, 409);
+      // expired and lost too (_shared/request_closed.ts): a note on an expired request was mailed to every matched supplier.
+      if (isClosedRequest(inq.status)) return J({ error: 'inquiry_closed' }, 409);
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
       const { count: recentNotes } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('inquiry_id', iid).eq('kind', 'note').gte('asked_at', hourAgo);
       if ((recentNotes || 0) >= 10) return J({ error: 'too_many_notes' }, 429);

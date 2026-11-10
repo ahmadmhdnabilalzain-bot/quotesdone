@@ -21,6 +21,7 @@ import { buildSupplierMailbox } from './mailbox.ts';
 import { stripContact } from './strip_contact.ts';
 import { sanctionedLead } from '../_shared/sanctioned.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
+import { isClosedRequest } from '../_shared/request_closed.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -168,7 +169,7 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
   if (action === 'clarify_ask') {
     if (!isMatched) return R(403, { error: 'not_matched' });
     if (supLead.banned === true) return R(403, { error: 'suspended' });
-    if (['cancelled', 'closed', 'completed'].includes(String(inq.status))) return R(409, { error: 'inquiry_closed' });
+    if (isClosedRequest(inq.status)) return R(409, { error: 'inquiry_closed' });
     const text = stripContact(b.text, [supLead.company_name]);
     if (text.replace(/\[removed\]/g, '').trim().length < 3) return R(400, { error: 'text_required' });
     // Five a day per supplier per request: enough to scope a job, too few to turn it into a chat.

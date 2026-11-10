@@ -3,6 +3,7 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { isClosedRequest } from '../requestStatus';
 
 // ── STAT TILE ──────────────────────────────────────────────────────────────────────────────────
 // The old Kpi was a bare number over a caption in a flat box, six across. This gives each number a
@@ -46,7 +47,8 @@ export const RFQ_STATE = {
 // Derived from facts the row already carries, never from the clock.
 export function rfqState(inq, quotes) {
   const n = (quotes || []).length;
-  if (['completed', 'closed', 'cancelled'].includes(String(inq && inq.status))) return 'closed';
+  // expired and lost are closed too (../requestStatus.ts): an expired request read "Matching".
+  if (isClosedRequest(inq && inq.status)) return 'closed';
   if ((quotes || []).some((q) => q.revealed) || (inq && inq.hired_supplier_id)) return 'revealed';
   if (n >= 2) return 'quotes_in';
   if (n >= 1) return 'quoting';
