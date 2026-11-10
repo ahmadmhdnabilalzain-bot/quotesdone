@@ -27,8 +27,8 @@
       "topic": "Logistics, Movers & Storage: makes, brands, distributors and origins in the UAE",
       "topic_ar": "النقل والتخزين والخدمات اللوجستية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names the major logistics providers in the UAE, such as Aramex, DP World and DHL. Confirmed logistics provider and other major logistics names: Aramex, DP World, DHL, Kuehne+Nagel, DSV, AD Ports Group. Only Aramex was confirmed on an opened page.",
-      "body_ar": "من كبرى شركات الخدمات اللوجستية في الإمارات Aramex وDP World وDHL. مزود الخدمات اللوجستية المؤكد وأسماء لوجستية كبرى أخرى: Aramex، DP World، DHL، Kuehne+Nagel، DSV، AD Ports Group. ولم يُؤكد عبر صفحة مفتوحة إلا أرامكس.",
+      "body_en": "This names the major logistics providers in the UAE, such as Aramex, DP World and DHL. Confirmed logistics provider and other major logistics names: Aramex, DP World, DHL, Kuehne+Nagel, DSV, AD Ports Group. Only Aramex was confirmed on an opened page.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Aramex = a premium UAE supplier; DP World = a premium UAE supplier; DHL = a premium German supplier; Kuehne+Nagel = a premium Swiss supplier; DSV = a premium Danish supplier; AD Ports Group = a premium UAE supplier.",
+      "body_ar": "من كبرى شركات الخدمات اللوجستية في الإمارات Aramex وDP World وDHL. مزود الخدمات اللوجستية المؤكد وأسماء لوجستية كبرى أخرى: Aramex، DP World، DHL، Kuehne+Nagel، DSV، AD Ports Group. ولم يُؤكد عبر صفحة مفتوحة إلا أرامكس.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Aramex = شركة توريد إماراتية من الفئة الممتازة؛ DP World = شركة توريد إماراتية من الفئة الممتازة؛ DHL = شركة توريد ألمانية من الفئة الممتازة؛ Kuehne+Nagel = شركة توريد سويسرية من الفئة الممتازة؛ DSV = شركة توريد دنماركية من الفئة الممتازة؛ AD Ports Group = شركة توريد إماراتية من الفئة الممتازة.",
       "sources": [
         "https://www.dubaicustoms.gov.ae",
         "https://www.aramex.com/ae/en",
@@ -38,7 +38,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Customs handles clearance (Mirsal) -> confirmed | Aramex offers freight, logistics and warehousing -> confirmed | DP World Jebel Ali logistics -> unconfirmed: page loaded without matching text. Not checked: Duty exemptions per commodity, current Abu Dhabi clearance platform name, and the ownership status of named groups were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Customs handles clearance (Mirsal) -> confirmed | Aramex offers freight, logistics and warehousing -> confirmed | DP World Jebel Ali logistics -> unconfirmed: page loaded without matching text. Not checked: Duty exemptions per commodity, current Abu Dhabi clearance platform name, and the ownership status of named groups were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Aramex",
+          "origin_country": "UAE",
+          "tier": "supplier",
+          "generic_en": "a premium UAE supplier",
+          "generic_ar": "شركة توريد إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "DP World",
+          "origin_country": "UAE",
+          "tier": "supplier",
+          "generic_en": "a premium UAE supplier",
+          "generic_ar": "شركة توريد إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "DHL",
+          "origin_country": "Germany",
+          "tier": "supplier",
+          "generic_en": "a premium German supplier",
+          "generic_ar": "شركة توريد ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Kuehne+Nagel",
+          "origin_country": "Switzerland",
+          "tier": "supplier",
+          "generic_en": "a premium Swiss supplier",
+          "generic_ar": "شركة توريد سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "DSV",
+          "origin_country": "Denmark",
+          "tier": "supplier",
+          "generic_en": "a premium Danish supplier",
+          "generic_ar": "شركة توريد دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "AD Ports Group",
+          "origin_country": "UAE",
+          "tier": "supplier",
+          "generic_en": "a premium UAE supplier",
+          "generic_ar": "شركة توريد إماراتية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "logistics_moving:uae-market-sizes",

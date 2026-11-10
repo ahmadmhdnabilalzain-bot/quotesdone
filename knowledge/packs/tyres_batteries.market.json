@@ -27,8 +27,8 @@
       "topic": "Tyres & batteries: makes, brands, distributors and origins in the UAE",
       "topic_ar": "إطارات وبطاريات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the tyre and battery brands sold in the UAE, such as Michelin, Bridgestone, Varta and Bosch, and where wholesalers cluster. Tyre and battery brands sold: Michelin, Bridgestone, Continental, Pirelli, Goodyear, Yokohama, Dunlop, Hankook, Varta, Bosch, Exide, Amaron. Their UAE distributors were not checked. Wholesalers cluster in Deira Al Ras, Al Quoz, the Sharjah Industrial Areas and Musaffah.",
-      "body_ar": "من علامات الإطارات والبطاريات المباعة في الإمارات Michelin وBridgestone وVarta وBosch، مع بيان أماكن تجمع تجار الجملة. علامات الإطارات والبطاريات المباعة: Michelin، Bridgestone، Continental، Pirelli، Goodyear، Yokohama، Dunlop، Hankook، Varta، Bosch، Exide، Amaron. ولم يُتحقق من موزعيها في الإمارات. ويتجمع تجار الجملة في الراس بديرة والقوز والمناطق الصناعية بالشارقة ومصفح.",
+      "body_en": "This entry lists the tyre and battery brands sold in the UAE, such as Michelin, Bridgestone, Varta and Bosch, and where wholesalers cluster. Tyre and battery brands sold: Michelin, Bridgestone, Continental, Pirelli, Goodyear, Yokohama, Dunlop, Hankook, Varta, Bosch, Exide, Amaron. Their UAE distributors were not checked. Wholesalers cluster in Deira Al Ras, Al Quoz, the Sharjah Industrial Areas and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Michelin = a premium French brand; Bridgestone = a premium Japanese brand; Continental = a premium German brand; Pirelli = a premium Italian brand; Goodyear = a premium American brand; Yokohama = a mid-tier Japanese brand; Dunlop = a mid-tier Japanese brand; Hankook = a mid-tier South Korean brand; Varta = a premium German brand; Bosch = a premium German brand; Exide = a mid-tier Indian brand; Amaron = a mid-tier Indian brand.",
+      "body_ar": "من علامات الإطارات والبطاريات المباعة في الإمارات Michelin وBridgestone وVarta وBosch، مع بيان أماكن تجمع تجار الجملة. علامات الإطارات والبطاريات المباعة: Michelin، Bridgestone، Continental، Pirelli، Goodyear، Yokohama، Dunlop، Hankook، Varta، Bosch، Exide، Amaron. ولم يُتحقق من موزعيها في الإمارات. ويتجمع تجار الجملة في الراس بديرة والقوز والمناطق الصناعية بالشارقة ومصفح.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Michelin = علامة فرنسية من الفئة الممتازة؛ Bridgestone = علامة يابانية من الفئة الممتازة؛ Continental = علامة ألمانية من الفئة الممتازة؛ Pirelli = علامة إيطالية من الفئة الممتازة؛ Goodyear = علامة أمريكية من الفئة الممتازة؛ Yokohama = علامة يابانية من الفئة المتوسطة؛ Dunlop = علامة يابانية من الفئة المتوسطة؛ Hankook = علامة كورية جنوبية من الفئة المتوسطة؛ Varta = علامة ألمانية من الفئة الممتازة؛ Bosch = علامة ألمانية من الفئة الممتازة؛ Exide = علامة هندية من الفئة المتوسطة؛ Amaron = علامة هندية من الفئة المتوسطة.",
       "sources": [
         "https://www.pitstoparabia.com/en/faqs/dot.html",
         "https://gulfnews.com/uae/transport/what-the-law-says-on-tyres-1.1206769",
@@ -38,7 +38,93 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Tyres older than 5 years from production cannot be used (retailer statement of an ESMA rule) -> removed: contradicted by a Gulf News summary of the tyre law and no primary text found | UAE tyre law requires the manufacturing date to be shown and sets tread wear limits -> confirmed | Michelin as a brand -> confirmed_domain_only. Not checked: The exact maximum tyre age rule in the current UAE tyre regulation is uncertain and must be checked; distributor brand assignments listed with 'type' were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Tyres older than 5 years from production cannot be used (retailer statement of an ESMA rule) -> removed: contradicted by a Gulf News summary of the tyre law and no primary text found | UAE tyre law requires the manufacturing date to be shown and sets tread wear limits -> confirmed | Michelin as a brand -> confirmed_domain_only. Not checked: The exact maximum tyre age rule in the current UAE tyre regulation is uncertain and must be checked; distributor brand assignments listed with 'type' were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Michelin",
+          "origin_country": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bridgestone",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Continental",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Pirelli",
+          "origin_country": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Goodyear",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Yokohama",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Dunlop",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Hankook",
+          "origin_country": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid-tier South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Varta",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bosch",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Exide",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Amaron",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "tyres_batteries:uae-market-sizes",

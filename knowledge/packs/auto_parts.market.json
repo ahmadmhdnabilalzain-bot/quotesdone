@@ -26,8 +26,8 @@
       "topic": "Auto spare parts: makes, brands, distributors and origins in the UAE",
       "topic_ar": "قطع غيار سيارات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names a franchise dealer and common aftermarket parts and lubricant brands in the UAE, such as Bosch, Denso and Mobil, and the main parts markets. Confirmed franchise dealer and common aftermarket brands: Al-Futtaim (Toyota), Bosch, Denso, NGK, Valeo, Mahle, Mann-Filter, ZF, Brembo, Mobil, Shell, ENOC. Other franchise dealers and the aftermarket brands' UAE distributors were not checked. Parts markets include Deira, Al Quoz, Ras Al Khor, the Sharjah Industrial Areas and Musaffah.",
-      "body_ar": "تشمل قطع غيار السيارات في الإمارات وكيلًا معتمدًا وماركات شائعة لقطع الغيار التجارية والزيوت مثل Bosch وDenso وMobil، إضافة إلى أسواق قطع الغيار الرئيسية. الوكيل المؤكد وعلامات القطع البديلة الشائعة: Al-Futtaim (Toyota)، Bosch، Denso، NGK، Valeo، Mahle، Mann-Filter، ZF، Brembo، Mobil، Shell، ENOC. ولم يُتحقق من الوكلاء الآخرين ولا من موزعي العلامات البديلة في الإمارات. وتشمل أسواق القطع ديرة والقوز ورأس الخور والمناطق الصناعية بالشارقة ومصفح.",
+      "body_en": "This entry names a franchise dealer and common aftermarket parts and lubricant brands in the UAE, such as Bosch, Denso and Mobil, and the main parts markets. Confirmed franchise dealer and common aftermarket brands: Al-Futtaim (Toyota), Bosch, Denso, NGK, Valeo, Mahle, Mann-Filter, ZF, Brembo, Mobil, Shell, ENOC. Other franchise dealers and the aftermarket brands' UAE distributors were not checked. Parts markets include Deira, Al Quoz, Ras Al Khor, the Sharjah Industrial Areas and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Al-Futtaim = an authorised dealer or distributor based in the UAE; Bosch = a premium German brand; Denso = a premium Japanese brand; NGK = a premium Japanese brand; Valeo = a premium French brand; Mahle = a premium German brand; Mann-Filter = a premium German brand; ZF = a premium German brand; Brembo = a premium Italian brand; Mobil = a premium American brand; Shell = a premium British brand; ENOC = a mid-tier UAE brand.",
+      "body_ar": "تشمل قطع غيار السيارات في الإمارات وكيلًا معتمدًا وماركات شائعة لقطع الغيار التجارية والزيوت مثل Bosch وDenso وMobil، إضافة إلى أسواق قطع الغيار الرئيسية. الوكيل المؤكد وعلامات القطع البديلة الشائعة: Al-Futtaim (Toyota)، Bosch، Denso، NGK، Valeo، Mahle، Mann-Filter، ZF، Brembo، Mobil، Shell، ENOC. ولم يُتحقق من الوكلاء الآخرين ولا من موزعي العلامات البديلة في الإمارات. وتشمل أسواق القطع ديرة والقوز ورأس الخور والمناطق الصناعية بالشارقة ومصفح.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Al-Futtaim = وكيل أو موزع معتمد مقره الإمارات؛ Bosch = علامة ألمانية من الفئة الممتازة؛ Denso = علامة يابانية من الفئة الممتازة؛ NGK = علامة يابانية من الفئة الممتازة؛ Valeo = علامة فرنسية من الفئة الممتازة؛ Mahle = علامة ألمانية من الفئة الممتازة؛ Mann-Filter = علامة ألمانية من الفئة الممتازة؛ ZF = علامة ألمانية من الفئة الممتازة؛ Brembo = علامة إيطالية من الفئة الممتازة؛ Mobil = علامة أمريكية من الفئة الممتازة؛ Shell = علامة بريطانية من الفئة الممتازة؛ ENOC = علامة إماراتية من الفئة المتوسطة.",
       "sources": [
         "https://www.alfuttaim.com/en/our-brands/toyota/",
         "https://www.boschaftermarket.com",
@@ -36,7 +36,93 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner -> confirmed | Bosch supplies aftermarket parts -> confirmed | Other franchise dealer assignments -> removed: generic wording kept. Not checked: Franchise assignments change (e.g. Mazda, Honda, Nissan Abu Dhabi); the list reflects widely known holders but current appointments were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner -> confirmed | Bosch supplies aftermarket parts -> confirmed | Other franchise dealer assignments -> removed: generic wording kept. Not checked: Franchise assignments change (e.g. Mazda, Honda, Nissan Abu Dhabi); the list reflects widely known holders but current appointments were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Al-Futtaim",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "an authorised dealer or distributor based in the UAE",
+          "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
+        },
+        {
+          "brand": "Bosch",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Denso",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "NGK",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Valeo",
+          "origin_country": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mahle",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mann-Filter",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "ZF",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Brembo",
+          "origin_country": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mobil",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Shell",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "ENOC",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "auto_parts:uae-market-sizes",

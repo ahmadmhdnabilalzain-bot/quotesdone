@@ -26,8 +26,8 @@
       "topic": "Vehicles & fleet sales: makes, brands, distributors and origins in the UAE",
       "topic_ar": "سيارات ومبيعات أساطيل: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the confirmed dealer and common fleet makes in the UAE, such as Al-Futtaim (Toyota), Nissan, Mitsubishi, Isuzu and Hino. Confirmed dealer and common fleet makes: Al-Futtaim (Toyota), Nissan, Mitsubishi, Hyundai, Kia, Isuzu, Hino, Mercedes-Benz, BYD. Other makes' current UAE dealers were not checked; confirm on the manufacturer's UAE website before quoting.",
-      "body_ar": "الوكيل المؤكد وأشهر علامات سيارات الأساطيل في الإمارات هي الفطيم (تويوتا) ونيسان وميتسوبيشي وإيسوزو وهينو. الوكيل المؤكد وماركات الأساطيل الشائعة: Al-Futtaim (Toyota)، Nissan، Mitsubishi، Hyundai، Kia، Isuzu، Hino، Mercedes-Benz، BYD. ولم يُتحقق من الوكلاء الحاليين للماركات الأخرى في الإمارات؛ ويجب التأكد عبر موقع الشركة المصنعة في الإمارات قبل التسعير.",
+      "body_en": "This entry lists the confirmed dealer and common fleet makes in the UAE, such as Al-Futtaim (Toyota), Nissan, Mitsubishi, Isuzu and Hino. Confirmed dealer and common fleet makes: Al-Futtaim (Toyota), Nissan, Mitsubishi, Hyundai, Kia, Isuzu, Hino, Mercedes-Benz, BYD. Other makes' current UAE dealers were not checked; confirm on the manufacturer's UAE website before quoting.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Al-Futtaim = an authorised dealer or distributor based in the UAE; Nissan = a mid-tier Japanese brand; Mitsubishi = a mid-tier Japanese brand; Hyundai = a mid-tier South Korean brand; Kia = a mid-tier South Korean brand; Isuzu = a mid-tier Japanese brand; Hino = a mid-tier Japanese brand; Mercedes-Benz = a luxury German brand; BYD = a mid-tier Chinese brand.",
+      "body_ar": "الوكيل المؤكد وأشهر علامات سيارات الأساطيل في الإمارات هي الفطيم (تويوتا) ونيسان وميتسوبيشي وإيسوزو وهينو. الوكيل المؤكد وماركات الأساطيل الشائعة: Al-Futtaim (Toyota)، Nissan، Mitsubishi، Hyundai، Kia، Isuzu، Hino، Mercedes-Benz، BYD. ولم يُتحقق من الوكلاء الحاليين للماركات الأخرى في الإمارات؛ ويجب التأكد عبر موقع الشركة المصنعة في الإمارات قبل التسعير.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Al-Futtaim = وكيل أو موزع معتمد مقره الإمارات؛ Nissan = علامة يابانية من الفئة المتوسطة؛ Mitsubishi = علامة يابانية من الفئة المتوسطة؛ Hyundai = علامة كورية جنوبية من الفئة المتوسطة؛ Kia = علامة كورية جنوبية من الفئة المتوسطة؛ Isuzu = علامة يابانية من الفئة المتوسطة؛ Hino = علامة يابانية من الفئة المتوسطة؛ Mercedes-Benz = علامة ألمانية من الفئة الفاخرة؛ BYD = علامة صينية من الفئة المتوسطة.",
       "sources": [
         "https://www.alfuttaim.com/en/our-brands/toyota/",
         "https://moiat.gov.ae",
@@ -36,7 +36,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner -> confirmed | Vehicles must meet GCC/UAE specifications (MoIAT conformity) -> confirmed_domain_only | Other franchise dealer assignments -> removed: generic wording kept. Not checked: Franchise assignments change often (Mitsubishi Dubai, Mazda, MG, Isuzu, Chinese brands); entries marked 'type' are uncertain and all dealer appointments must be confirmed before quoting."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner -> confirmed | Vehicles must meet GCC/UAE specifications (MoIAT conformity) -> confirmed_domain_only | Other franchise dealer assignments -> removed: generic wording kept. Not checked: Franchise assignments change often (Mitsubishi Dubai, Mazda, MG, Isuzu, Chinese brands); entries marked 'type' are uncertain and all dealer appointments must be confirmed before quoting. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Al-Futtaim",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "an authorised dealer or distributor based in the UAE",
+          "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
+        },
+        {
+          "brand": "Nissan",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Mitsubishi",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Hyundai",
+          "origin_country": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid-tier South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Kia",
+          "origin_country": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid-tier South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Isuzu",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Hino",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Mercedes-Benz",
+          "origin_country": "Germany",
+          "tier": "luxury",
+          "generic_en": "a luxury German brand",
+          "generic_ar": "علامة ألمانية من الفئة الفاخرة"
+        },
+        {
+          "brand": "BYD",
+          "origin_country": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "vehicles_fleet:uae-market-sizes",

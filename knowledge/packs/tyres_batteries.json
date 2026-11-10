@@ -5,8 +5,8 @@
       "id": "tyres_batteries:spec-checklist",
       "topic": "Tyres and batteries - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For tyres and batteries quotes to be compared like-for-like, every quoted line (goods) must state: (1) tyre size and load/speed index; (2) battery type, voltage, capacity (Ah) and CCA; (3) brand and model; (4) manufacturing date (DOT code) limit; (5) vehicle application; (6) UAE conformity certificate; (7) fitting, balancing and disposal of old units; (8) quantity per size; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tyres_batteries trade.",
-      "body_ar": "لكي تُقارن عروض الإطارات والبطاريات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) مقاس الإطار ومؤشر الحمل والسرعة؛ (2) نوع البطارية وجهدها وسعتها (أمبير ساعة) وتيار التشغيل البارد؛ (3) العلامة التجارية والطراز؛ (4) حد تاريخ الصنع (رمز DOT)؛ (5) المركبة المستخدمة؛ (6) شهادة المطابقة الإماراتية؛ (7) التركيب والموازنة والتخلص من القديم؛ (8) الكمية لكل مقاس؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tyres_batteries فقط.",
+      "body_en": "For tyres and batteries quotes to be compared like-for-like, every quoted line (goods) must state: (1) tyre size and load/speed index; (2) battery type, voltage, capacity (Ah) and CCA; (3) brand and model; (4) manufacturing date (DOT code) limit; (5) vehicle application; (6) UAE conformity certificate; (7) fitting, balancing and disposal of old units; (8) quantity per size; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tyres_batteries trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): tyre size and load/speed index; battery type, voltage, capacity (Ah) and CCA; brand and model; manufacturing date (DOT code) limit; fitting, balancing and disposal of old units; quantity per size. Follow-up questions the answers trigger: tyre size and load/speed index: Commercial vehicles bring load index and ply rating. battery type, voltage, capacity (Ah) and CCA: Start-stop vehicles bring EFB or AGM. brand and model: If open, ask premium or economy. origin of manufacture: If the buyer named an origin, any other is a deviation. Before a firm price: none; a firm price is possible from the specs.",
+      "body_ar": "لكي تُقارن عروض الإطارات والبطاريات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) مقاس الإطار ومؤشر الحمل والسرعة؛ (2) نوع البطارية وجهدها وسعتها (أمبير ساعة) وتيار التشغيل البارد؛ (3) العلامة التجارية والطراز؛ (4) حد تاريخ الصنع (رمز DOT)؛ (5) المركبة المستخدمة؛ (6) شهادة المطابقة الإماراتية؛ (7) التركيب والموازنة والتخلص من القديم؛ (8) الكمية لكل مقاس؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tyres_batteries فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: مقاس الإطار ومؤشرا الحمل والسرعة، ونوع البطارية وجهدها وسعتها وتيار التشغيل البارد، والعلامة والطراز، وحد تاريخ التصنيع، والتركيب والموازنة والتخلص من القديم، والكمية لكل مقاس. أسئلة المتابعة: المركبات التجارية تستلزم مؤشر الحمل وعدد الطبقات، والمركبات بنظام التوقف والتشغيل تستلزم بطاريات EFB أو AGM، وإذا تُركت العلامة مفتوحة يُسأل هل يريد المشتري الفئة الممتازة أم الاقتصادية.",
       "required_specs": [
         "tyre size and load/speed index",
         "battery type, voltage, capacity (Ah) and CCA",
@@ -19,13 +19,117 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "origin of manufacture"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "tyre size and load/speed index",
+        "battery type, voltage, capacity (Ah) and CCA",
+        "brand and model",
+        "manufacturing date (DOT code) limit",
+        "fitting, balancing and disposal of old units",
+        "quantity per size"
+      ],
+      "spec_guide": [
+        {
+          "spec": "tyre size and load/speed index",
+          "blocking": true,
+          "why_it_prices": "Size and indices fix the product.",
+          "uae_options": "e.g. 265/65 R17 112H; LT and commercial ply ratings.",
+          "follow_up": "Commercial vehicles bring load index and ply rating."
+        },
+        {
+          "spec": "battery type, voltage, capacity (Ah) and CCA",
+          "blocking": true,
+          "why_it_prices": "Battery spec fixes the product.",
+          "uae_options": "Flooded, EFB, AGM, lithium; 12/24 V; Ah; CCA; group size.",
+          "follow_up": "Start-stop vehicles bring EFB or AGM."
+        },
+        {
+          "spec": "brand and model",
+          "blocking": true,
+          "why_it_prices": "Brand tier is the main price driver.",
+          "uae_options": "Named brand and tread pattern or battery series.",
+          "follow_up": "If open, ask premium or economy."
+        },
+        {
+          "spec": "manufacturing date (DOT code) limit",
+          "blocking": true,
+          "why_it_prices": "Old stock is cheaper; the UAE scheme limits tyre age.",
+          "uae_options": "Manufactured within the last N months.",
+          "follow_up": ""
+        },
+        {
+          "spec": "vehicle application",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Car, SUV, van, truck, forklift.",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity certificate",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "GSO/ECAS certificate held by the importer.",
+          "follow_up": ""
+        },
+        {
+          "spec": "fitting, balancing and disposal of old units",
+          "blocking": true,
+          "why_it_prices": "Fitting, balancing, valves and disposal are separate charges.",
+          "uae_options": "Supply only, fitted, mobile fitting; old-unit disposal.",
+          "follow_up": ""
+        },
+        {
+          "spec": "quantity per size",
+          "blocking": true,
+          "why_it_prices": "Sets per size change price; tyres are sold in fours or axle sets.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Tyre manufacturing-defect warranty; battery months.",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "origin of manufacture",
+          "blocking": false,
+          "why_it_prices": "Premium brands make tyres in several countries; buyers may specify.",
+          "uae_options": "As specified.",
+          "follow_up": "If the buyer named an origin, any other is a deviation."
+        }
+      ],
+      "firm_price_condition": "none; a firm price is possible from the specs.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "tyres_batteries:uae-standards-and-approvals",
@@ -82,6 +186,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "tyres_batteries:authority-approvals",
+      "topic": "Tyres and batteries: UAE conformity, tyre age and disposal",
+      "topic_ar": "الإطارات والبطاريات: المطابقة الإماراتية وعمر الإطار والتخلص",
+      "kind": "authority_approval",
+      "body_en": "Tyres are regulated products: MoIAT attests GSO conformity certificates for tyres under Gulf technical regulations, and this pack's tyre-age entry records the UAE tyre scheme (effective September 2018) requiring tyres five years from manufacture to be disposed of; secondary sources say tyre age is checked at vehicle inspection. The importer or distributor holds the conformity certificate. Whether automotive batteries need ECAS was not established. Used tyres and lead-acid batteries are wastes that must go to licensed recyclers; the supplier usually takes them back.",
+      "body_ar": "الإطارات منتجات خاضعة للتنظيم: إذ تصادق وزارة الصناعة والتكنولوجيا المتقدمة على شهادات المطابقة الخليجية للإطارات ضمن اللوائح الفنية الخليجية، ويسجل مدخل عمر الإطارات في هذه الحزمة نظام الإطارات الإماراتي (النافذ منذ سبتمبر 2018) الذي يقضي بالتخلص من الإطارات التي يبلغ عمرها خمس سنوات من التصنيع؛ وتذكر مصادر ثانوية أن عمر الإطار يُفحص عند فحص المركبة. ويحمل المستورد أو الموزع شهادة المطابقة. ولم يثبت هل تحتاج بطاريات المركبات شهادة ECAS. والإطارات المستعملة وبطاريات الرصاص الحمضية نفايات يجب تسليمها لجهات تدوير مرخصة، ويستعيدها المورد عادة.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "tyres_batteries:quote-red-flags",
+      "topic": "Red flags in tyre and battery quotations",
+      "topic_ar": "علامات التحذير في عروض الإطارات والبطاريات",
+      "kind": "quote_red_flag",
+      "body_en": "Check the DOT date and the exact pattern: old stock, a lower load or speed index, an economy pattern from a premium brand's second line, or a different plant origin are substitutions. For batteries, watch for lower Ah or CCA, flooded batteries offered for AGM start-stop vehicles, and \"maintenance-free\" without the series. Fitting, balancing, valves and disposal are frequently excluded; grey-import tyres may lack the local warranty.",
+      "body_ar": "افحص تاريخ DOT والنقشة الدقيقة: فالمخزون القديم، أو مؤشر حمل أو سرعة أقل، أو نقشة اقتصادية من الخط الثاني لعلامة ممتازة، أو منشأ مصنع مختلف، كلها استبدالات. وفي البطاريات انتبه إلى سعة أو تيار تشغيل بارد أقل، وعرض بطاريات سائلة لمركبات التوقف والتشغيل التي تحتاج AGM، ووصف \"لا تحتاج صيانة\" دون ذكر السلسلة. وكثيراً ما تُستثنى خدمات التركيب والموازنة والصمامات والتخلص، وقد تفتقر إطارات السوق الموازية إلى الضمان المحلي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "tyres_batteries:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying tyres and batteries",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الإطارات والبطاريات",
+      "kind": "buyer_mistake",
+      "body_en": "Buying cheap old stock that must be replaced soon under the age rule; choosing passenger tyres for loaded vans; ignoring UAE heat when selecting battery technology; and comparing supply-only and fitted prices. Ask the vehicle, the load and whether fitting is needed.",
+      "body_ar": "شراء مخزون قديم رخيص يجب تبديله قريباً بموجب قاعدة العمر؛ واختيار إطارات سيارات ركاب لحافلات محملة؛ وتجاهل حرارة الإمارات عند اختيار تقنية البطارية؛ ومقارنة أسعار التوريد فقط بأسعار التوريد مع التركيب. لذا يُسأل عن المركبة والحمل وهل يلزم التركيب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "tyres_batteries:price-drivers",
+      "topic": "What legitimately moves tyre and battery prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الإطارات والبطاريات",
+      "kind": "price_driver",
+      "body_en": "Brand tier, size and indices, pattern (highway, all-terrain, run-flat), manufacture date, plant origin, battery technology and capacity, fitting and disposal services, and quantity.",
+      "body_ar": "فئة العلامة، والمقاس والمؤشرات، والنقشة (للطرق السريعة أو لكل التضاريس أو المقاومة للثقب)، وتاريخ التصنيع، ومنشأ المصنع، وتقنية البطارية وسعتها، وخدمات التركيب والتخلص، والكمية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "tyres_batteries:compare-quotes",
+      "topic": "Comparing tyre and battery quotes on cost per km",
+      "topic_ar": "مقارنة عروض الإطارات والبطاريات على أساس التكلفة لكل كيلومتر",
+      "kind": "comparison",
+      "body_en": "Compare fitted price for the same size, indices, pattern class and manufacture-date window, then weigh expected life (km for tyres, years for batteries): a premium tyre that lasts longer can cost less per km. Recommend the three compliant offers with the lowest cost per km or per year of service.",
+      "body_ar": "قارن سعر التركيب للمقاس والمؤشرات وفئة النقشة ونافذة تاريخ التصنيع نفسها، ثم زن العمر المتوقع (بالكيلومترات للإطارات وبالسنوات للبطاريات): فالإطار الممتاز الذي يدوم أطول قد يكلف أقل لكل كيلومتر. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة لكل كيلومتر أو لكل سنة خدمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -124,7 +296,8 @@
     "removed": [],
     "still_unverified": [
       "tyres_batteries:spec-checklist",
-      "tyres_batteries:uae-standards-and-approvals"
+      "tyres_batteries:uae-standards-and-approvals",
+      "tyres_batteries:authority-approvals"
     ],
     "added": [
       "tyres_batteries:spec-checklist",
@@ -155,6 +328,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "tyres_batteries:quote-red-flags",
+      "tyres_batteries:buyer-mistakes",
+      "tyres_batteries:price-drivers",
+      "tyres_batteries:compare-quotes"
+    ]
   }
 }

@@ -107,8 +107,8 @@
       "id": "vehicles_fleet:spec-passenger-cars",
       "topic": "What to specify when buying passenger cars for a fleet",
       "kind": "spec_checklist",
-      "body_en": "A car dealer or fleet desk can only quote exactly when the request fixes the variables. State: make and model or the class you will accept (compact sedan, mid-size sedan, SUV) with any brand restrictions; model year and \"new, GCC specification, from the authorised UAE distributor\"; exact trim or variant, since one model can span a wide range (for example a compact sedan listed from AED 61,500 for the base trim to AED 81,500 for the top trim); engine and fuel (petrol, hybrid, electric), transmission, and for EVs battery size and charging standard; quantity and delivery schedule; colour per unit; mandatory equipment (airbags, ESC, rear camera, cruise control, telematics provision); window tint within the legal limit; accessories and branding; registration in whose name and in which emirate, insurance, and whether plates, Salik tags and first registration are included; warranty and service package required (years, km, what is covered); delivery location; trade-in or disposal of old units; and payment terms or financing/lease alternative. Also state intended use (pool car, sales, chauffeur, rental), which affects trim and service intervals. For leased fleets, add term, annual mileage, maintenance, replacement vehicle and end-of-term conditions. Without these fields quotes will not be comparable.",
-      "body_ar": "لا يستطيع وكيل السيارات أو قسم الأساطيل التسعير بدقة إلا إذا ثبّت الطلب المتغيرات. حدّد: الطراز أو الفئة المقبولة (سيدان صغيرة أو متوسطة أو مركبة رياضية متعددة الاستخدامات) مع أي قيود على العلامة، وسنة الطراز وعبارة \"جديدة بالمواصفات الخليجية ومن الموزع المعتمد في الدولة\"، والفئة أو النسخة بدقة لأن الطراز الواحد قد يمتد عبر نطاق واسع (مثلاً سيدان صغيرة تبدأ من 61,500 درهم للفئة الأساسية وتصل إلى 81,500 للفئة العليا)، والمحرك والوقود (بنزين أو هجين أو كهرباء) وناقل الحركة، وللكهربائية حجم البطارية ومعيار الشحن، والكمية وجدول التسليم، واللون لكل وحدة، والتجهيزات الإلزامية (الوسائد الهوائية والتحكم الإلكتروني بالثبات والكاميرا الخلفية ومثبت السرعة وتجهيز التتبع)، وتظليل النوافذ ضمن الحد القانوني، والإكسسوارات والشعارات، والتسجيل باسم من وفي أي إمارة والتأمين، وهل تشمل اللوحات وملصقات سالك والتسجيل الأول، والضمان وباقة الصيانة المطلوبة (السنوات والكيلومترات والتغطية)، وموقع التسليم، واستبدال الوحدات القديمة أو التخلص منها، وشروط الدفع أو بديل التمويل أو التأجير. واذكر أيضاً الاستخدام المقصود (سيارة مشتركة أو مبيعات أو سائق أو تأجير) لأنه يؤثر في الفئة وفترات الصيانة. وللأساطيل المؤجرة أضف المدة والمسافة السنوية والصيانة والمركبة البديلة وشروط نهاية العقد. ودون هذه البنود لن تكون العروض قابلة للمقارنة.",
+      "body_en": "A car dealer or fleet desk can only quote exactly when the request fixes the variables. State: make and model or the class you will accept (compact sedan, mid-size sedan, SUV) with any brand restrictions; model year and \"new, GCC specification, from the authorised UAE distributor\"; exact trim or variant, since one model can span a wide range (for example a compact sedan listed from AED 61,500 for the base trim to AED 81,500 for the top trim); engine and fuel (petrol, hybrid, electric), transmission, and for EVs battery size and charging standard; quantity and delivery schedule; colour per unit; mandatory equipment (airbags, ESC, rear camera, cruise control, telematics provision); window tint within the legal limit; accessories and branding; registration in whose name and in which emirate, insurance, and whether plates, Salik tags and first registration are included; warranty and service package required (years, km, what is covered); delivery location; trade-in or disposal of old units; and payment terms or financing/lease alternative. Also state intended use (pool car, sales, chauffeur, rental), which affects trim and service intervals. For leased fleets, add term, annual mileage, maintenance, replacement vehicle and end-of-term conditions. Without these fields quotes will not be comparable.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Make/model or acceptable class; Model year; new; GCC spec; authorised distributor; Exact trim/variant; Engine/fuel/transmission (EV: battery, charging standard); Quantity and delivery schedule; Registration name/emirate, insurance, plates, Salik. Follow-up questions the answers trigger: Make/model or acceptable class: If only a class is given, ask budget band and preferred makes. Engine/fuel/transmission (EV: battery, charging standard): EVs bring charging infrastructure at the depot. Before a firm price: none; a firm price is possible from the specs, valid until allocation is confirmed.",
+      "body_ar": "لا يستطيع وكيل السيارات أو قسم الأساطيل التسعير بدقة إلا إذا ثبّت الطلب المتغيرات. حدّد: الطراز أو الفئة المقبولة (سيدان صغيرة أو متوسطة أو مركبة رياضية متعددة الاستخدامات) مع أي قيود على العلامة، وسنة الطراز وعبارة \"جديدة بالمواصفات الخليجية ومن الموزع المعتمد في الدولة\"، والفئة أو النسخة بدقة لأن الطراز الواحد قد يمتد عبر نطاق واسع (مثلاً سيدان صغيرة تبدأ من 61,500 درهم للفئة الأساسية وتصل إلى 81,500 للفئة العليا)، والمحرك والوقود (بنزين أو هجين أو كهرباء) وناقل الحركة، وللكهربائية حجم البطارية ومعيار الشحن، والكمية وجدول التسليم، واللون لكل وحدة، والتجهيزات الإلزامية (الوسائد الهوائية والتحكم الإلكتروني بالثبات والكاميرا الخلفية ومثبت السرعة وتجهيز التتبع)، وتظليل النوافذ ضمن الحد القانوني، والإكسسوارات والشعارات، والتسجيل باسم من وفي أي إمارة والتأمين، وهل تشمل اللوحات وملصقات سالك والتسجيل الأول، والضمان وباقة الصيانة المطلوبة (السنوات والكيلومترات والتغطية)، وموقع التسليم، واستبدال الوحدات القديمة أو التخلص منها، وشروط الدفع أو بديل التمويل أو التأجير. واذكر أيضاً الاستخدام المقصود (سيارة مشتركة أو مبيعات أو سائق أو تأجير) لأنه يؤثر في الفئة وفترات الصيانة. وللأساطيل المؤجرة أضف المدة والمسافة السنوية والصيانة والمركبة البديلة وشروط نهاية العقد. ودون هذه البنود لن تكون العروض قابلة للمقارنة.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الماركة والطراز أو الفئة المقبولة، وسنة الطراز ومواصفات الخليج والوكيل المعتمد، والفئة الدقيقة، والمحرك والوقود وناقل الحركة، والكمية وجدول التسليم، والتسجيل والتأمين واللوحات وسالك. أسئلة المتابعة: إذا ذُكرت الفئة فقط يُسأل عن نطاق الميزانية والماركات المفضلة، والمركبات الكهربائية تستلزم بنية الشحن في المستودع. أسئلة المتابعة: يُسأل عن الاستخدام وإمارة التسجيل، وهل يلزم محدد سرعة وتتبع للمركبات التجارية، وعن الضمان وباقة الصيانة.",
       "required_specs": [
         "Make/model or acceptable class",
         "Model year; new; GCC spec; authorised distributor",
@@ -131,14 +131,124 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-23",
-      "gap_kind": "commercial"
+      "gap_kind": "commercial",
+      "blocking": [
+        "Make/model or acceptable class",
+        "Model year; new; GCC spec; authorised distributor",
+        "Exact trim/variant",
+        "Engine/fuel/transmission (EV: battery, charging standard)",
+        "Quantity and delivery schedule",
+        "Registration name/emirate, insurance, plates, Salik"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Make/model or acceptable class",
+          "blocking": true,
+          "why_it_prices": "Make and class fix the price band.",
+          "uae_options": "Named model or class (compact sedan, SUV, 7-seater).",
+          "follow_up": "If only a class is given, ask budget band and preferred makes."
+        },
+        {
+          "spec": "Model year; new; GCC spec; authorised distributor",
+          "blocking": true,
+          "why_it_prices": "GCC-spec new cars from the authorised distributor carry the local warranty; imports and grey cars do not.",
+          "uae_options": "Current model year, GCC specification, authorised dealer.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exact trim/variant",
+          "blocking": true,
+          "why_it_prices": "Trim levels differ widely in price.",
+          "uae_options": "Base, mid, top trim.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Engine/fuel/transmission (EV: battery, charging standard)",
+          "blocking": true,
+          "why_it_prices": "Powertrain is a separate variant price; EV battery size changes it most.",
+          "uae_options": "Petrol, hybrid, EV; automatic; battery kWh; charging connector.",
+          "follow_up": "EVs bring charging infrastructure at the depot."
+        },
+        {
+          "spec": "Quantity and delivery schedule",
+          "blocking": true,
+          "why_it_prices": "Fleet volume drives discount and allocation.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Colour per unit",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Mandatory equipment list",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Tint, accessories, branding",
+          "blocking": false,
+          "why_it_prices": "Tint must stay within the legal limit; branding needs a permit in some emirates.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Registration name/emirate, insurance, plates, Salik",
+          "blocking": true,
+          "why_it_prices": "Registration, insurance and Salik tags may or may not be in the price.",
+          "uae_options": "Registered in buyer's name; emirate; insurance type.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty and service package",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Years/km; service contract.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery location",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Trade-in/disposal",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Payment/finance/lease terms",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Intended use",
+          "blocking": false,
+          "why_it_prices": "Use decides spec and whether commercial registration applies.",
+          "uae_options": "Executive, pool, sales, delivery.",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "none; a firm price is possible from the specs, valid until allocation is confirmed.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "vehicles_fleet:spec-pickups-vans",
       "topic": "What to specify when buying pickups and vans",
       "kind": "spec_checklist",
-      "body_en": "Pickups and vans are ordered by payload, cab and body configuration, not by model name alone. Specify: vehicle type (single-cab or double-cab pickup, panel van, high-roof van, commuter/passenger van); engine and fuel (for example a popular pickup range offers 2.7 L four-cylinder and 4.0 L V6 petrol engines, and a common van range lists 2.7 L petrol, 2.8 L diesel and 3.5 L petrol options) and transmission (manual or automatic); 4x2 or 4x4; payload and gross vehicle weight required; seating capacity (for commuter vans, the exact number of passenger seats, for example 13 seats); roof height and cargo dimensions; body additions such as canopy, cargo box, racks, shelving, refrigeration, tipper or crane, and who supplies and certifies them; equipment such as air-conditioning for rear passengers, rear camera, tow bar, speed limiter and GPS for commercial registration; tyre type for sand or road; quantity, colour and branding; registration category (commercial or private) and emirate; warranty and service package; delivery location and date. Published UAE list prices show how much trim matters: one distributor lists a 2.7 L pickup from AED 115,900 and the 4.0 L adventure trim from AED 155,900, and vans from AED 99,900 (2.7 L) to AED 131,900 (3.5 L high-roof). State the variant precisely so quotes match.",
-      "body_ar": "تُطلب مركبات البيك أب والشاحنات الصغيرة (الفان) بحسب الحمولة وتكوين المقصورة والهيكل لا باسم الطراز وحده. حدّد: نوع المركبة (بيك أب بمقصورة مفردة أو مزدوجة، أو فان مغلق، أو فان بسقف مرتفع، أو فان ركاب)، والمحرك والوقود (مثلاً تقدم فئة بيك أب شائعة محركي بنزين 2.7 لتر رباعي الأسطوانات و4.0 لتر V6، وتعرض فئة فان شائعة خيارات بنزين 2.7 لتر وديزل 2.8 لتر وبنزين 3.5 لتر) وناقل الحركة (يدوي أو آلي)، والدفع الثنائي أو الرباعي، والحمولة والوزن الإجمالي المطلوبين، وعدد المقاعد (لفان الركاب العدد الدقيق لمقاعد الركاب مثل 13 مقعداً)، وارتفاع السقف وأبعاد صندوق الحمولة، وإضافات الهيكل مثل الغطاء والصندوق والحوامل والرفوف والتبريد والقلاب أو الرافعة ومن يوردها ويعتمدها، والتجهيزات مثل تكييف الركاب الخلفي والكاميرا الخلفية ووصلة القطر ومحدد السرعة وجهاز التتبع للتسجيل التجاري، ونوع الإطارات للرمل أو الطرق، والكمية واللون والشعارات، وفئة التسجيل (تجاري أو خاص) والإمارة، والضمان وباقة الصيانة، وموقع التسليم وتاريخه. وتُظهر أسعار القوائم المنشورة في الدولة أهمية الفئة: يعرض أحد الموزعين بيك أب 2.7 لتر من 115,900 درهم وفئة المغامرة 4.0 لتر من 155,900 درهم، وفان من 99,900 درهم (2.7 لتر) إلى 131,900 درهم (3.5 لتر بسقف مرتفع). حدّد النسخة بدقة حتى تتطابق العروض.",
+      "body_en": "Pickups and vans are ordered by payload, cab and body configuration, not by model name alone. Specify: vehicle type (single-cab or double-cab pickup, panel van, high-roof van, commuter/passenger van); engine and fuel (for example a popular pickup range offers 2.7 L four-cylinder and 4.0 L V6 petrol engines, and a common van range lists 2.7 L petrol, 2.8 L diesel and 3.5 L petrol options) and transmission (manual or automatic); 4x2 or 4x4; payload and gross vehicle weight required; seating capacity (for commuter vans, the exact number of passenger seats, for example 13 seats); roof height and cargo dimensions; body additions such as canopy, cargo box, racks, shelving, refrigeration, tipper or crane, and who supplies and certifies them; equipment such as air-conditioning for rear passengers, rear camera, tow bar, speed limiter and GPS for commercial registration; tyre type for sand or road; quantity, colour and branding; registration category (commercial or private) and emirate; warranty and service package; delivery location and date. Published UAE list prices show how much trim matters: one distributor lists a 2.7 L pickup from AED 115,900 and the 4.0 L adventure trim from AED 155,900, and vans from AED 99,900 (2.7 L) to AED 131,900 (3.5 L high-roof). State the variant precisely so quotes match.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Vehicle type and cab/body style; Engine, fuel, transmission; 4x2 or 4x4; Payload and GVW; Quantity, colour, branding; Registration category and emirate. Follow-up questions the answers trigger: Seating capacity (vans): Passenger vans for staff bring the passenger transport rules. Before a firm price: none; body additions need the body builder's drawing.",
+      "body_ar": "تُطلب مركبات البيك أب والشاحنات الصغيرة (الفان) بحسب الحمولة وتكوين المقصورة والهيكل لا باسم الطراز وحده. حدّد: نوع المركبة (بيك أب بمقصورة مفردة أو مزدوجة، أو فان مغلق، أو فان بسقف مرتفع، أو فان ركاب)، والمحرك والوقود (مثلاً تقدم فئة بيك أب شائعة محركي بنزين 2.7 لتر رباعي الأسطوانات و4.0 لتر V6، وتعرض فئة فان شائعة خيارات بنزين 2.7 لتر وديزل 2.8 لتر وبنزين 3.5 لتر) وناقل الحركة (يدوي أو آلي)، والدفع الثنائي أو الرباعي، والحمولة والوزن الإجمالي المطلوبين، وعدد المقاعد (لفان الركاب العدد الدقيق لمقاعد الركاب مثل 13 مقعداً)، وارتفاع السقف وأبعاد صندوق الحمولة، وإضافات الهيكل مثل الغطاء والصندوق والحوامل والرفوف والتبريد والقلاب أو الرافعة ومن يوردها ويعتمدها، والتجهيزات مثل تكييف الركاب الخلفي والكاميرا الخلفية ووصلة القطر ومحدد السرعة وجهاز التتبع للتسجيل التجاري، ونوع الإطارات للرمل أو الطرق، والكمية واللون والشعارات، وفئة التسجيل (تجاري أو خاص) والإمارة، والضمان وباقة الصيانة، وموقع التسليم وتاريخه. وتُظهر أسعار القوائم المنشورة في الدولة أهمية الفئة: يعرض أحد الموزعين بيك أب 2.7 لتر من 115,900 درهم وفئة المغامرة 4.0 لتر من 155,900 درهم، وفان من 99,900 درهم (2.7 لتر) إلى 131,900 درهم (3.5 لتر بسقف مرتفع). حدّد النسخة بدقة حتى تتطابق العروض.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المركبة وشكل المقصورة أو الهيكل، والمحرك والوقود وناقل الحركة، والدفع الثنائي أو الرباعي، والحمولة والوزن الإجمالي، والكمية واللون والعلامة، وفئة التسجيل والإمارة. أسئلة المتابعة: الحافلات الصغيرة لنقل الموظفين تستلزم قواعد نقل الركاب، والإضافات على الهيكل تستلزم مورداً معتمداً.",
       "required_specs": [
         "Vehicle type and cab/body style",
         "Engine, fuel, transmission",
@@ -159,14 +269,117 @@
         "https://www.toyota.ae/en/new-cars/hiace/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Vehicle type and cab/body style",
+        "Engine, fuel, transmission",
+        "4x2 or 4x4",
+        "Payload and GVW",
+        "Quantity, colour, branding",
+        "Registration category and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Vehicle type and cab/body style",
+          "blocking": true,
+          "why_it_prices": "Single/double cab, panel van and high-roof differ.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Engine, fuel, transmission",
+          "blocking": true,
+          "why_it_prices": "Engine and transmission choice sets the variant price.",
+          "uae_options": "Petrol, diesel; manual or automatic.",
+          "follow_up": ""
+        },
+        {
+          "spec": "4x2 or 4x4",
+          "blocking": true,
+          "why_it_prices": "4x4 carries a large premium.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Payload and GVW",
+          "blocking": true,
+          "why_it_prices": "Payload must suit the load and the licence category.",
+          "uae_options": "kg payload; GVW.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Seating capacity (vans)",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": "Passenger vans for staff bring the passenger transport rules."
+        },
+        {
+          "spec": "Roof height and cargo dimensions",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Body additions and certifying supplier",
+          "blocking": false,
+          "why_it_prices": "Racks, boxes and liners must be certified for registration.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Equipment incl. speed limiter/GPS for commercial use",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Tyre type",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity, colour, branding",
+          "blocking": true,
+          "why_it_prices": "Fleet volume changes discount.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Registration category and emirate",
+          "blocking": true,
+          "why_it_prices": "Commercial registration changes cost and rules.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty/service package",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery location and date",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "none; body additions need the body builder's drawing.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "vehicles_fleet:spec-buses",
       "topic": "What to specify when buying buses and coaches",
       "kind": "spec_checklist",
-      "body_en": "Bus quotes vary widely with seat count, air-conditioning and body. Specify: application (staff transport, school bus, city bus, tourist coach); seating capacity including driver and attendant (UAE market bodies range from about 26-seat minibuses to 60 to 71-seat full-size buses); air-conditioned or non-air-conditioned, and the required cabin temperature performance for summer; engine emission standard and fuel; transmission; luggage space for coaches; seat type (standard, reclining, padded fire-resistant) and seat belts (two-point or three-point); doors, emergency exits and wheelchair access; safety items: ABS, engine-compartment fire suppression, fire extinguishers, first-aid kit, GPS tracking, CCTV if wanted, reversing camera, speed limiter with certificate; for school buses in Dubai, full compliance with the school transport bylaw (RAL 1018 yellow, bilingual \"School Bus\" markings, stop arm, 80 km/h limit, 24 °C air-conditioning, belts, age limit); overall height with roof A/C against the 4.6 m limit; livery; quantity, delivery schedule and registration; warranty (chassis, body, A/C) and service support location; and spare-parts package. Published UAE listings show for example a 26-seat minibus at AED 139,000 and a 63-seat full-size bus at AED 212,000, which illustrates how capacity and A/C drive price.",
-      "body_ar": "تتفاوت عروض الحافلات كثيراً بحسب عدد المقاعد والتكييف والهيكل. حدّد: الاستخدام (نقل موظفين أو حافلة مدرسية أو حافلة مدينة أو حافلة سياحية)، وعدد المقاعد شاملاً السائق والمرافق (تتراوح الهياكل في سوق الدولة من حافلات صغيرة بنحو 26 مقعداً إلى حافلات كاملة من 60 إلى 71 مقعداً)، ومكيفة أم غير مكيفة وأداء التبريد المطلوب في الصيف، ومعيار الانبعاثات للمحرك والوقود، وناقل الحركة، ومساحة الأمتعة للحافلات السياحية، ونوع المقاعد (عادية أو قابلة للإمالة أو مبطنة مقاومة للحريق) وأحزمة الأمان (بنقطتين أو بثلاث)، والأبواب ومخارج الطوارئ وإمكانية دخول الكراسي المتحركة، وعناصر السلامة: الفرامل المانعة للانغلاق، ونظام إطفاء حريق حجرة المحرك، وطفايات الحريق، وحقيبة الإسعاف، والتتبع بالأقمار الصناعية، وكاميرات المراقبة إن رغبت، وكاميرا الرجوع، ومحدد السرعة مع شهادته، وللحافلات المدرسية في دبي المطابقة الكاملة للائحة النقل المدرسي (اللون الأصفر RAL 1018 وعبارة \"حافلة مدرسية\" بلغتين وذراع التوقف وحد 80 كم/ساعة وتكييف 24 درجة والأحزمة وحد العمر)، والارتفاع الكلي مع التكييف العلوي مقارنة بحد 4.6 متر، والطلاء والشعارات، والكمية وجدول التسليم والتسجيل، والضمان (الشاصي والهيكل والتكييف) وموقع دعم الصيانة، وحزمة قطع الغيار. وتُظهر إعلانات منشورة في الدولة مثلاً حافلة صغيرة 26 مقعداً بسعر 139,000 درهم وحافلة كاملة 63 مقعداً بسعر 212,000 درهم، ما يوضح أثر السعة والتكييف في السعر.",
+      "body_en": "Bus quotes vary widely with seat count, air-conditioning and body. Specify: application (staff transport, school bus, city bus, tourist coach); seating capacity including driver and attendant (UAE market bodies range from about 26-seat minibuses to 60 to 71-seat full-size buses); air-conditioned or non-air-conditioned, and the required cabin temperature performance for summer; engine emission standard and fuel; transmission; luggage space for coaches; seat type (standard, reclining, padded fire-resistant) and seat belts (two-point or three-point); doors, emergency exits and wheelchair access; safety items: ABS, engine-compartment fire suppression, fire extinguishers, first-aid kit, GPS tracking, CCTV if wanted, reversing camera, speed limiter with certificate; for school buses in Dubai, full compliance with the school transport bylaw (RAL 1018 yellow, bilingual \"School Bus\" markings, stop arm, 80 km/h limit, 24 °C air-conditioning, belts, age limit); overall height with roof A/C against the 4.6 m limit; livery; quantity, delivery schedule and registration; warranty (chassis, body, A/C) and service support location; and spare-parts package. Published UAE listings show for example a 26-seat minibus at AED 139,000 and a 63-seat full-size bus at AED 212,000, which illustrates how capacity and A/C drive price.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Application (staff/school/city/coach); Seating capacity incl. driver/attendant; A/C or non-A/C and cooling performance; Safety equipment list (ABS, fire suppression, GPS, CCTV, camera, speed limiter); Livery, quantity, delivery, registration. Follow-up questions the answers trigger: Application (staff/school/city/coach): School buses bring the school-bus bylaw. Safety equipment list (ABS, fire suppression, GPS, CCTV, camera, speed limiter): Abu Dhabi operators bring the ITC tracking requirement. Before a firm price: none; a firm price is possible from the specs.",
+      "body_ar": "تتفاوت عروض الحافلات كثيراً بحسب عدد المقاعد والتكييف والهيكل. حدّد: الاستخدام (نقل موظفين أو حافلة مدرسية أو حافلة مدينة أو حافلة سياحية)، وعدد المقاعد شاملاً السائق والمرافق (تتراوح الهياكل في سوق الدولة من حافلات صغيرة بنحو 26 مقعداً إلى حافلات كاملة من 60 إلى 71 مقعداً)، ومكيفة أم غير مكيفة وأداء التبريد المطلوب في الصيف، ومعيار الانبعاثات للمحرك والوقود، وناقل الحركة، ومساحة الأمتعة للحافلات السياحية، ونوع المقاعد (عادية أو قابلة للإمالة أو مبطنة مقاومة للحريق) وأحزمة الأمان (بنقطتين أو بثلاث)، والأبواب ومخارج الطوارئ وإمكانية دخول الكراسي المتحركة، وعناصر السلامة: الفرامل المانعة للانغلاق، ونظام إطفاء حريق حجرة المحرك، وطفايات الحريق، وحقيبة الإسعاف، والتتبع بالأقمار الصناعية، وكاميرات المراقبة إن رغبت، وكاميرا الرجوع، ومحدد السرعة مع شهادته، وللحافلات المدرسية في دبي المطابقة الكاملة للائحة النقل المدرسي (اللون الأصفر RAL 1018 وعبارة \"حافلة مدرسية\" بلغتين وذراع التوقف وحد 80 كم/ساعة وتكييف 24 درجة والأحزمة وحد العمر)، والارتفاع الكلي مع التكييف العلوي مقارنة بحد 4.6 متر، والطلاء والشعارات، والكمية وجدول التسليم والتسجيل، والضمان (الشاصي والهيكل والتكييف) وموقع دعم الصيانة، وحزمة قطع الغيار. وتُظهر إعلانات منشورة في الدولة مثلاً حافلة صغيرة 26 مقعداً بسعر 139,000 درهم وحافلة كاملة 63 مقعداً بسعر 212,000 درهم، ما يوضح أثر السعة والتكييف في السعر.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الاستخدام (موظفون أو مدارس أو مدينة أو سياحي)، وعدد المقاعد، والتكييف وأداء التبريد، وقائمة معدات السلامة، والطلاء والكمية والتسليم والتسجيل. أسئلة المتابعة: الحافلات المدرسية تستلزم لائحة الحافلات المدرسية، والمشغلون في أبوظبي يستلزمون متطلب التتبع لدى مركز النقل المتكامل.",
       "required_specs": [
         "Application (staff/school/city/coach)",
         "Seating capacity incl. driver/attendant",
@@ -188,14 +401,109 @@
         "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Application (staff/school/city/coach)",
+        "Seating capacity incl. driver/attendant",
+        "A/C or non-A/C and cooling performance",
+        "Safety equipment list (ABS, fire suppression, GPS, CCTV, camera, speed limiter)",
+        "Livery, quantity, delivery, registration"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Application (staff/school/city/coach)",
+          "blocking": true,
+          "why_it_prices": "School and city buses have their own specifications.",
+          "uae_options": "",
+          "follow_up": "School buses bring the school-bus bylaw."
+        },
+        {
+          "spec": "Seating capacity incl. driver/attendant",
+          "blocking": true,
+          "why_it_prices": "Capacity sets the chassis and the permit category.",
+          "uae_options": "14, 26, 30, 50, 67 seats.",
+          "follow_up": ""
+        },
+        {
+          "spec": "A/C or non-A/C and cooling performance",
+          "blocking": true,
+          "why_it_prices": "UAE buses need high-capacity A/C; non-A/C buses are restricted for passenger use in many cases.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Engine emission standard, fuel, transmission",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Euro emission level; diesel or EV.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Seat type and belt type",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Doors, emergency exits, accessibility",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Safety equipment list (ABS, fire suppression, GPS, CCTV, camera, speed limiter)",
+          "blocking": true,
+          "why_it_prices": "Mandated safety and tracking equipment adds cost.",
+          "uae_options": "",
+          "follow_up": "Abu Dhabi operators bring the ITC tracking requirement."
+        },
+        {
+          "spec": "School-bus bylaw compliance (if applicable)",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Overall height vs 4.6 m limit",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Livery, quantity, delivery, registration",
+          "blocking": true,
+          "why_it_prices": "Delivery, livery and registration are priced items.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty coverage and service location",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Spare-parts package",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "none; a firm price is possible from the specs.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "vehicles_fleet:spec-trucks",
       "topic": "What to specify when buying trucks",
       "kind": "spec_checklist",
-      "body_en": "Truck RFQs fail when they name a model but not the duty. Specify: application and body (box, curtain-side, refrigerated, tipper, tanker, flatbed, crane, tractor head); required legal payload and the resulting gross vehicle weight and axle configuration, checked against the federal limits (21 t two axles up to 65 t six axles) and dimension limits (12.5 m rigid, 21 m articulated, 2.6 m wide, 4.6 m high); duty class (light, medium, heavy), for example one brand's light-duty range covers payloads of about 2.8 to 6 tonnes and its medium range about 8 to 13 tonnes; cab type (day, sleeper, single or crew cab); engine power, emission standard and fuel; transmission (manual or automated); wheelbase; tyres and spare; fuel tank capacity; PTO and hydraulics for body equipment; safety and compliance items including speed limiter certificate, reflective markings and GPS; air-conditioning; body builder and certification of the complete vehicle, including multi-stage conformity where the chassis and body come from different makers; quantity, delivery and registration; warranty and service coverage (network locations, mobile service, uptime commitments); and spare-parts stock. Ask each supplier for a weight calculation of the finished vehicle, not only the chassis brochure.",
-      "body_ar": "تفشل طلبات عروض الشاحنات عندما تذكر الطراز دون طبيعة العمل. حدّد: الاستخدام والهيكل (صندوق أو ستائر جانبية أو مبرد أو قلاب أو صهريج أو مسطح أو رافعة أو رأس قاطرة)، والحمولة القانونية المطلوبة وما يترتب عليها من وزن إجمالي وتركيبة محاور مع مقارنتها بالحدود الاتحادية (من 21 طناً للمحورين إلى 65 طناً لستة محاور) وحدود الأبعاد (12.5 متر للشاحنة المفردة و21 متراً للمفصلية وعرض 2.6 متر وارتفاع 4.6 متر)، وفئة العمل (خفيفة أو متوسطة أو ثقيلة)، فمثلاً تغطي الفئة الخفيفة لإحدى العلامات حمولات من نحو 2.8 إلى 6 أطنان والمتوسطة من نحو 8 إلى 13 طناً، ونوع المقصورة (نهارية أو بسرير أو مفردة أو مزدوجة)، وقدرة المحرك ومعيار الانبعاثات والوقود، وناقل الحركة (يدوي أو مؤتمت)، وقاعدة العجلات، والإطارات والاحتياطي، وسعة خزان الوقود، ومأخذ القدرة والهيدروليك لمعدات الهيكل، وعناصر السلامة والامتثال بما فيها شهادة محدد السرعة والعلامات العاكسة والتتبع، والتكييف، ومصنّع الهيكل واعتماد المركبة الكاملة بما في ذلك المطابقة متعددة المراحل عندما يكون الشاصي والهيكل من صانعين مختلفين، والكمية والتسليم والتسجيل، والضمان وتغطية الصيانة (مواقع الشبكة والخدمة المتنقلة والتزامات الجاهزية)، ومخزون قطع الغيار. واطلب من كل مورّد حساب أوزان المركبة المكتملة لا كتيّب الشاصي وحده.",
+      "body_en": "Truck RFQs fail when they name a model but not the duty. Specify: application and body (box, curtain-side, refrigerated, tipper, tanker, flatbed, crane, tractor head); required legal payload and the resulting gross vehicle weight and axle configuration, checked against the federal limits (21 t two axles up to 65 t six axles) and dimension limits (12.5 m rigid, 21 m articulated, 2.6 m wide, 4.6 m high); duty class (light, medium, heavy), for example one brand's light-duty range covers payloads of about 2.8 to 6 tonnes and its medium range about 8 to 13 tonnes; cab type (day, sleeper, single or crew cab); engine power, emission standard and fuel; transmission (manual or automated); wheelbase; tyres and spare; fuel tank capacity; PTO and hydraulics for body equipment; safety and compliance items including speed limiter certificate, reflective markings and GPS; air-conditioning; body builder and certification of the complete vehicle, including multi-stage conformity where the chassis and body come from different makers; quantity, delivery and registration; warranty and service coverage (network locations, mobile service, uptime commitments); and spare-parts stock. Ask each supplier for a weight calculation of the finished vehicle, not only the chassis brochure.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Application and body type; Legal payload, GVW, axle configuration vs federal limits; Engine power, emission standard, fuel; Body builder and multi-stage conformity; Quantity, delivery, registration. Follow-up questions the answers trigger:  Before a firm price: a truck with a special body needs the body builder's drawing before a firm price.",
+      "body_ar": "تفشل طلبات عروض الشاحنات عندما تذكر الطراز دون طبيعة العمل. حدّد: الاستخدام والهيكل (صندوق أو ستائر جانبية أو مبرد أو قلاب أو صهريج أو مسطح أو رافعة أو رأس قاطرة)، والحمولة القانونية المطلوبة وما يترتب عليها من وزن إجمالي وتركيبة محاور مع مقارنتها بالحدود الاتحادية (من 21 طناً للمحورين إلى 65 طناً لستة محاور) وحدود الأبعاد (12.5 متر للشاحنة المفردة و21 متراً للمفصلية وعرض 2.6 متر وارتفاع 4.6 متر)، وفئة العمل (خفيفة أو متوسطة أو ثقيلة)، فمثلاً تغطي الفئة الخفيفة لإحدى العلامات حمولات من نحو 2.8 إلى 6 أطنان والمتوسطة من نحو 8 إلى 13 طناً، ونوع المقصورة (نهارية أو بسرير أو مفردة أو مزدوجة)، وقدرة المحرك ومعيار الانبعاثات والوقود، وناقل الحركة (يدوي أو مؤتمت)، وقاعدة العجلات، والإطارات والاحتياطي، وسعة خزان الوقود، ومأخذ القدرة والهيدروليك لمعدات الهيكل، وعناصر السلامة والامتثال بما فيها شهادة محدد السرعة والعلامات العاكسة والتتبع، والتكييف، ومصنّع الهيكل واعتماد المركبة الكاملة بما في ذلك المطابقة متعددة المراحل عندما يكون الشاصي والهيكل من صانعين مختلفين، والكمية والتسليم والتسجيل، والضمان وتغطية الصيانة (مواقع الشبكة والخدمة المتنقلة والتزامات الجاهزية)، ومخزون قطع الغيار. واطلب من كل مورّد حساب أوزان المركبة المكتملة لا كتيّب الشاصي وحده.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الاستخدام ونوع الهيكل، والحمولة القانونية والوزن الإجمالي وترتيب المحاور مقابل الحدود الاتحادية، وقدرة المحرك ومستوى الانبعاثات والوقود، وصانع الهيكل والمطابقة متعددة المراحل، والكمية والتسليم والتسجيل. الشاحنة ذات الهيكل الخاص تحتاج رسم صانع الهيكل.",
       "required_specs": [
         "Application and body type",
         "Legal payload, GVW, axle configuration vs federal limits",
@@ -222,14 +530,144 @@
         "https://www.mercedes-benz-trucks.com/ae/en/trucks.html"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Application and body type",
+        "Legal payload, GVW, axle configuration vs federal limits",
+        "Engine power, emission standard, fuel",
+        "Body builder and multi-stage conformity",
+        "Quantity, delivery, registration"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Application and body type",
+          "blocking": true,
+          "why_it_prices": "Body type (tipper, cargo box, tanker, reefer, mixer) defines the truck.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Legal payload, GVW, axle configuration vs federal limits",
+          "blocking": true,
+          "why_it_prices": "Axle loads must stay within federal limits; this sets the chassis.",
+          "uae_options": "4x2, 6x4, 8x4; GVW.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Overall dimensions vs limits",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Duty class",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Light, medium, heavy.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Cab type",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Day cab, sleeper.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Engine power, emission standard, fuel",
+          "blocking": true,
+          "why_it_prices": "Engine size and emission level set the chassis price.",
+          "uae_options": "hp, Euro level.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Transmission",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Wheelbase",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Tyres and spare",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Fuel tank capacity",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "PTO/hydraulics",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Speed limiter, markings, GPS",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Air-conditioning",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Body builder and multi-stage conformity",
+          "blocking": true,
+          "why_it_prices": "The body and its conformity are a separate cost and approval.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity, delivery, registration",
+          "blocking": true,
+          "why_it_prices": "Fleet size and registration scope change price.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty and service network",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Spare-parts stock",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a truck with a special body needs the body builder's drawing before a firm price.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "vehicles_fleet:spec-upfitting",
       "topic": "What to specify for vehicle upfitting and conversions",
       "kind": "spec_checklist",
-      "body_en": "Upfitting turns a base chassis or van into a working vehicle: refrigerated boxes, shelving, tool bodies, tippers, cranes, ambulances, mobile workshops, VIP or passenger conversions, school-bus conversions, emergency lighting and fleet branding. Specify: base vehicle make, model, year and whether you supply it or the upfitter does; the exact conversion scope with drawings; materials and dimensions; added weight and the resulting payload and gross weight against legal limits; electrical load and battery or alternator changes; refrigeration temperature range and unit make if relevant; seating changes and seat-belt anchorages for passenger conversions; compliance with the relevant GCC regulations, noting that the GSO list includes a regulation on conformity certificates for vehicles manufactured in multiple stages and general requirements for ambulances; approvals needed before and after the work, since Dubai requires modifications to be done by approved workshops and the vehicle to be re-inspected and its registration updated, which industry sources describe as RTA and ESMA/MoIAT-linked processes; impact on the base manufacturer's warranty; warranty on the conversion itself; lead time and vehicle downtime; and branding content, which as vehicle advertising needs a permit in Dubai. Ask the upfitter to confirm in writing who obtains the post-conversion inspection and updated registration. Detailed RTA modification-approval steps were not confirmed from a primary source here.",
-      "body_ar": "يحوّل التجهيز الشاصي أو الفان الأساسي إلى مركبة عاملة: صناديق مبردة، ورفوف، وهياكل عدد، وقلابات، ورافعات، وسيارات إسعاف، وورش متنقلة، وتحويلات كبار الشخصيات أو الركاب، وتحويل الحافلات المدرسية، وإضاءة الطوارئ، وشعارات الأسطول. حدّد: طراز المركبة الأساسية ونوعها وسنتها وهل تورّدها أنت أم المجهّز، ونطاق التحويل بدقة مع المخططات، والخامات والأبعاد، والوزن المضاف وما يترتب عليه من حمولة ووزن إجمالي مقارنة بالحدود القانونية، والحمل الكهربائي وتعديلات البطارية أو المولد، ومدى حرارة التبريد وعلامة وحدة التبريد عند الحاجة، وتعديلات المقاعد ونقاط تثبيت الأحزمة في تحويلات الركاب، والمطابقة للوائح الخليجية ذات الصلة علماً بأن القائمة الخليجية تتضمن لائحة لشهادات مطابقة المركبات المصنعة على مراحل متعددة ومتطلبات عامة لسيارات الإسعاف، والموافقات المطلوبة قبل العمل وبعده إذ تشترط دبي تنفيذ التعديلات في ورش معتمدة وإعادة فحص المركبة وتحديث تسجيلها، وتصف مصادر القطاع ذلك بإجراءات مرتبطة بهيئة الطرق والجهة الاتحادية للمواصفات، وأثر التحويل على ضمان الصانع الأصلي، والضمان على التحويل نفسه، ومدة التنفيذ وتوقف المركبة، ومحتوى الشعارات الذي يحتاج كإعلان على المركبات إلى تصريح في دبي. واطلب من المجهّز أن يؤكد كتابياً من يستخرج الفحص بعد التحويل والتسجيل المحدث. ولم تُؤكد خطوات موافقة التعديل لدى هيئة الطرق تفصيلاً من مصدر رسمي هنا.",
+      "body_en": "Upfitting turns a base chassis or van into a working vehicle: refrigerated boxes, shelving, tool bodies, tippers, cranes, ambulances, mobile workshops, VIP or passenger conversions, school-bus conversions, emergency lighting and fleet branding. Specify: base vehicle make, model, year and whether you supply it or the upfitter does; the exact conversion scope with drawings; materials and dimensions; added weight and the resulting payload and gross weight against legal limits; electrical load and battery or alternator changes; refrigeration temperature range and unit make if relevant; seating changes and seat-belt anchorages for passenger conversions; compliance with the relevant GCC regulations, noting that the GSO list includes a regulation on conformity certificates for vehicles manufactured in multiple stages and general requirements for ambulances; approvals needed before and after the work, since Dubai requires modifications to be done by approved workshops and the vehicle to be re-inspected and its registration updated, which industry sources describe as RTA and ESMA/MoIAT-linked processes; impact on the base manufacturer's warranty; warranty on the conversion itself; lead time and vehicle downtime; and branding content, which as vehicle advertising needs a permit in Dubai. Ask the upfitter to confirm in writing who obtains the post-conversion inspection and updated registration. Detailed RTA modification-approval steps were not confirmed from a primary source here.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Base vehicle and who supplies it; Conversion scope and drawings; Materials and dimensions; Added weight, payload, GVW; GCC multi-stage conformity; Pre/post approvals, re-inspection, registration update. Follow-up questions the answers trigger:  Before a firm price: a conversion always needs the drawings and usually an inspection of the base vehicle.",
+      "body_ar": "يحوّل التجهيز الشاصي أو الفان الأساسي إلى مركبة عاملة: صناديق مبردة، ورفوف، وهياكل عدد، وقلابات، ورافعات، وسيارات إسعاف، وورش متنقلة، وتحويلات كبار الشخصيات أو الركاب، وتحويل الحافلات المدرسية، وإضاءة الطوارئ، وشعارات الأسطول. حدّد: طراز المركبة الأساسية ونوعها وسنتها وهل تورّدها أنت أم المجهّز، ونطاق التحويل بدقة مع المخططات، والخامات والأبعاد، والوزن المضاف وما يترتب عليه من حمولة ووزن إجمالي مقارنة بالحدود القانونية، والحمل الكهربائي وتعديلات البطارية أو المولد، ومدى حرارة التبريد وعلامة وحدة التبريد عند الحاجة، وتعديلات المقاعد ونقاط تثبيت الأحزمة في تحويلات الركاب، والمطابقة للوائح الخليجية ذات الصلة علماً بأن القائمة الخليجية تتضمن لائحة لشهادات مطابقة المركبات المصنعة على مراحل متعددة ومتطلبات عامة لسيارات الإسعاف، والموافقات المطلوبة قبل العمل وبعده إذ تشترط دبي تنفيذ التعديلات في ورش معتمدة وإعادة فحص المركبة وتحديث تسجيلها، وتصف مصادر القطاع ذلك بإجراءات مرتبطة بهيئة الطرق والجهة الاتحادية للمواصفات، وأثر التحويل على ضمان الصانع الأصلي، والضمان على التحويل نفسه، ومدة التنفيذ وتوقف المركبة، ومحتوى الشعارات الذي يحتاج كإعلان على المركبات إلى تصريح في دبي. واطلب من المجهّز أن يؤكد كتابياً من يستخرج الفحص بعد التحويل والتسجيل المحدث. ولم تُؤكد خطوات موافقة التعديل لدى هيئة الطرق تفصيلاً من مصدر رسمي هنا.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المركبة الأساسية ومن يوردها، ونطاق التحويل ورسوماته، والمواد والأبعاد، والوزن المضاف والحمولة والوزن الإجمالي، والمطابقة الخليجية متعددة المراحل، والموافقات وإعادة الفحص وتحديث التسجيل. التحويل يحتاج دائماً الرسومات وغالباً فحص المركبة الأساسية.",
       "required_specs": [
         "Base vehicle and who supplies it",
         "Conversion scope and drawings",
@@ -251,7 +689,103 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-23",
-      "gap_kind": "technical"
+      "gap_kind": "technical",
+      "blocking": [
+        "Base vehicle and who supplies it",
+        "Conversion scope and drawings",
+        "Materials and dimensions",
+        "Added weight, payload, GVW",
+        "GCC multi-stage conformity",
+        "Pre/post approvals, re-inspection, registration update"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Base vehicle and who supplies it",
+          "blocking": true,
+          "why_it_prices": "Whether the converter buys the base vehicle changes price and warranty.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Conversion scope and drawings",
+          "blocking": true,
+          "why_it_prices": "Conversions are priced from drawings.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Materials and dimensions",
+          "blocking": true,
+          "why_it_prices": "Material choice sets weight and price.",
+          "uae_options": "Aluminium, GRP, insulated panels.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Added weight, payload, GVW",
+          "blocking": true,
+          "why_it_prices": "Added weight must stay within GVW for registration.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Electrical changes",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Refrigeration range/unit (if any)",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Chilled or frozen; unit brand.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Seating and belt anchorages",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "GCC multi-stage conformity",
+          "blocking": true,
+          "why_it_prices": "A converted vehicle needs conformity for re-registration.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Pre/post approvals, re-inspection, registration update",
+          "blocking": true,
+          "why_it_prices": "Approvals and re-inspection are part of the job.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Effect on base warranty; conversion warranty",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time and downtime",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Branding content and permit",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a conversion always needs the drawings and usually an inspection of the base vehicle.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "vehicles_fleet:buy-vs-lease",
@@ -458,6 +992,19 @@
       "confidence": "medium",
       "as_of": "2026-09-23",
       "gap_kind": "commercial"
+    },
+    {
+      "id": "vehicles_fleet:compare-quotes",
+      "topic": "Comparing fleet vehicle quotes on total cost of ownership",
+      "topic_ar": "مقارنة عروض مركبات الأساطيل على أساس التكلفة الإجمالية للملكية",
+      "kind": "comparison",
+      "body_en": "Compare the same model year, GCC specification, trim and equipment, with registration, insurance, Salik tags and delivery stated the same way. Then compute total cost of ownership over the planned holding period: price, fuel or energy, service package, tyres, insurance and expected resale. A grey import with no local warranty is a different product. Recommend the three dealer offers with the lowest total cost of ownership for the specified use.",
+      "body_ar": "قارن سنة الطراز ومواصفات الخليج والفئة والتجهيزات نفسها، مع ذكر التسجيل والتأمين وبطاقات سالك والتسليم بالطريقة نفسها. ثم احسب التكلفة الإجمالية للملكية خلال مدة الاحتفاظ المخططة: السعر والوقود أو الطاقة وباقة الصيانة والإطارات والتأمين وقيمة إعادة البيع المتوقعة. والمركبة المستوردة من السوق الموازية دون ضمان محلي منتج مختلف. ويوصى بأفضل ثلاثة عروض من الوكلاء بأقل تكلفة إجمالية للملكية للاستخدام المحدد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -580,6 +1127,9 @@
       "vehicles_fleet:price-drivers",
       "vehicles_fleet:lead-times",
       "vehicles_fleet:quote-red-flags"
+    ],
+    "expert_authored_unsourced": [
+      "vehicles_fleet:compare-quotes"
     ]
   }
 }

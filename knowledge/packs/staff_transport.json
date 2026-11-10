@@ -5,8 +5,8 @@
       "id": "staff_transport:spec-checklist",
       "topic": "Staff transport - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For staff transport quotes to be compared like-for-like, every quoted line (services) must state: (1) number of passengers and routes; (2) vehicle type and seating capacity; (3) vehicle age and air-conditioning; (4) trips per day and schedule; (5) driver licence and passenger transport permit; (6) fuel, Salik and parking included or excluded; (7) replacement vehicle; (8) passenger insurance; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the staff_transport trade.",
-      "body_ar": "لكي تُقارن عروض نقل الموظفين على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) عدد الركاب والمسارات؛ (2) نوع المركبة وعدد المقاعد؛ (3) عمر المركبة والتكييف؛ (4) عدد الرحلات يومياً والجدول؛ (5) رخصة السائق وتصريح نقل الركاب؛ (6) الوقود وسالك والمواقف مشمولة أو مستثناة؛ (7) المركبة البديلة؛ (8) تأمين الركاب؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة staff_transport فقط.",
+      "body_en": "For staff transport quotes to be compared like-for-like, every quoted line (services) must state: (1) number of passengers and routes; (2) vehicle type and seating capacity; (3) vehicle age and air-conditioning; (4) trips per day and schedule; (5) driver licence and passenger transport permit; (6) fuel, Salik and parking included or excluded; (7) replacement vehicle; (8) passenger insurance; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the staff_transport trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): number of passengers and routes; vehicle type and seating capacity; vehicle age and air-conditioning; trips per day and schedule; driver licence and passenger transport permit; fuel, Salik and parking included or excluded; contract duration and pricing basis. Follow-up questions the answers trigger: number of passengers and routes: Ask the accommodation and site addresses and whether routes cross emirates. trips per day and schedule: Split shifts bring waiting time or extra trips. driver licence and passenger transport permit: Ask whether the service is with driver; with driver brings the driver's permit, hours and replacement driver. fuel, Salik and parking included or excluded: Ask whether Salik and Darb tolls are included. Before a firm price: a route-based contract needs the pick-up and drop-off locations, shift times and passenger counts; a site survey is not normally needed.",
+      "body_ar": "لكي تُقارن عروض نقل الموظفين على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) عدد الركاب والمسارات؛ (2) نوع المركبة وعدد المقاعد؛ (3) عمر المركبة والتكييف؛ (4) عدد الرحلات يومياً والجدول؛ (5) رخصة السائق وتصريح نقل الركاب؛ (6) الوقود وسالك والمواقف مشمولة أو مستثناة؛ (7) المركبة البديلة؛ (8) تأمين الركاب؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة staff_transport فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: عدد الركاب والمسارات، ونوع المركبة وعدد المقاعد، وعمر المركبة والتكييف، وعدد الرحلات اليومية والجدول، ورخصة السائق وتصريح نقل الركاب، وشمول الوقود وسالك والمواقف، ومدة العقد وأساس التسعير. أسئلة المتابعة: يُسأل عن عناوين السكن والمواقع وهل تعبر المسارات بين الإمارات، والورديات المتقطعة تعني وقت انتظار أو رحلات إضافية، والخدمة مع سائق تستلزم تصريح السائق وساعات عمله والسائق البديل، ويُسأل هل رسوم سالك ودرب مشمولة.",
       "required_specs": [
         "number of passengers and routes",
         "vehicle type and seating capacity",
@@ -18,13 +18,111 @@
         "passenger insurance",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "inter-emirate travel"
       ],
       "sources": [
         "https://www.rta.ae/wps/portal/rta/ae/home"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "number of passengers and routes",
+        "vehicle type and seating capacity",
+        "vehicle age and air-conditioning",
+        "trips per day and schedule",
+        "driver licence and passenger transport permit",
+        "fuel, Salik and parking included or excluded",
+        "contract duration and pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "number of passengers and routes",
+          "blocking": true,
+          "why_it_prices": "Passenger count and routes decide vehicles and trips.",
+          "uae_options": "Passengers per shift; pick-up points; destinations; km per route.",
+          "follow_up": "Ask the accommodation and site addresses and whether routes cross emirates."
+        },
+        {
+          "spec": "vehicle type and seating capacity",
+          "blocking": true,
+          "why_it_prices": "Bus size sets the rate.",
+          "uae_options": "14-seat van, 26/30-seat coaster, 50/67-seat bus.",
+          "follow_up": ""
+        },
+        {
+          "spec": "vehicle age and air-conditioning",
+          "blocking": true,
+          "why_it_prices": "Newer A/C buses cost more; many clients require A/C.",
+          "uae_options": "Maximum vehicle age; A/C.",
+          "follow_up": ""
+        },
+        {
+          "spec": "trips per day and schedule",
+          "blocking": true,
+          "why_it_prices": "Shifts and idle time between trips drive cost.",
+          "uae_options": "Trips per day; shift times; days per week; Fridays and holidays.",
+          "follow_up": "Split shifts bring waiting time or extra trips."
+        },
+        {
+          "spec": "driver licence and passenger transport permit",
+          "blocking": true,
+          "why_it_prices": "With-driver service needs the operator's passenger transport permit and permitted drivers.",
+          "uae_options": "Operator's RTA (Dubai) or ITC (Abu Dhabi) permit; driver professional permit.",
+          "follow_up": "Ask whether the service is with driver; with driver brings the driver's permit, hours and replacement driver."
+        },
+        {
+          "spec": "fuel, Salik and parking included or excluded",
+          "blocking": true,
+          "why_it_prices": "Fuel and tolls can be a large share.",
+          "uae_options": "All-inclusive or fuel/Salik recharged.",
+          "follow_up": "Ask whether Salik and Darb tolls are included."
+        },
+        {
+          "spec": "replacement vehicle",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Replacement within a stated time on breakdown.",
+          "follow_up": ""
+        },
+        {
+          "spec": "passenger insurance",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Passenger liability cover.",
+          "follow_up": ""
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "blocking": true,
+          "why_it_prices": "Monthly contracts price lower than daily hire.",
+          "uae_options": "Per trip, per day, per month per bus.",
+          "follow_up": ""
+        },
+        {
+          "spec": "service levels and response times",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "GPS tracking, punctuality, reporting.",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Overtime hours, extra trips and holiday work are often excluded.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "inter-emirate travel",
+          "blocking": false,
+          "why_it_prices": "Crossing emirates may need an additional permit.",
+          "uae_options": "Within one emirate, crossing emirates.",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a route-based contract needs the pick-up and drop-off locations, shift times and passenger counts; a site survey is not normally needed.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "staff_transport:uae-standards-and-approvals",
@@ -84,6 +182,75 @@
       "gap_kind": "commercial",
       "verified": false,
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
+    },
+    {
+      "id": "staff_transport:authority-approvals",
+      "topic": "Staff transport: passenger transport permits by emirate",
+      "topic_ar": "نقل الموظفين: تصاريح نقل الركاب حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Carrying staff by bus for a fee is a licensed passenger transport activity. Dubai: the RTA regulates bus passenger transport; Administrative Resolution No. 201 of 2012 on bus standards states that no person may drive a bus without the relevant permit from the Public Transport Agency in addition to a driving licence for that bus type, and the operator needs an RTA activity permit besides its trade licence (search results note a bus-rental permit does not allow renting with a driver). Abu Dhabi: the Integrated Transport Centre's executive regulation for passenger transport by buses (Resolution No. 33 of 2021) requires an operation permit, an operating licence for each bus and a driver profession permit through the Asateel platform, with vehicles connected to electronic tracking. RTA also issues digital permits for private buses carrying passengers between emirates. Other emirates' transport authorities apply their own permits (not established here). The operator obtains every permit; the buyer should ask to see them.",
+      "body_ar": "نقل الموظفين بالحافلات مقابل أجر نشاط مرخص لنقل الركاب. في دبي تنظم هيئة الطرق والمواصلات نقل الركاب بالحافلات، وينص القرار الإداري رقم 201 لسنة 2012 بشأن معايير الحافلات على أنه لا يجوز لأي شخص قيادة حافلة دون التصريح المختص من مؤسسة المواصلات العامة إضافة إلى رخصة قيادة لذلك النوع، ويحتاج المشغل تصريح نشاط من الهيئة إلى جانب رخصته التجارية (وتشير نتائج البحث إلى أن تصريح تأجير الحافلات لا يسمح بالتأجير مع سائق). وفي أبوظبي تشترط اللائحة التنفيذية لمركز النقل المتكامل لنقل الركاب بالحافلات (القرار رقم 33 لسنة 2021) تصريح تشغيل ورخصة تشغيل لكل حافلة وتصريح مهنة للسائق عبر منصة أساطيل، مع ربط المركبات بالتتبع الإلكتروني. وتصدر هيئة الطرق والمواصلات أيضاً تصاريح رقمية للحافلات الخاصة التي تنقل الركاب بين الإمارات. وتطبق جهات النقل في الإمارات الأخرى تصاريحها (لم يثبت ذلك هنا). ويحصل المشغل على جميع التصاريح، وعلى المشتري طلب الاطلاع عليها.",
+      "sources": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2012/Administrative%20Resolution%20No.%20(201)%20of%202012%20Concerning%20the%20Standards.html",
+        "https://www.itc.gov.ae/-/media/feature/itc-revamp/generic-content/related-documents/asateel/related-doc/passenger-transport-by-buses-regulations-en.pdf",
+        "https://www.mediaoffice.abudhabi/en/transport/the-integrated-transport-centre-announces-the-executive-regulation-for-operating-passengers-transport-services-by-buses-in-ad/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "staff_transport:quote-red-flags",
+      "topic": "Red flags in staff transport quotations",
+      "topic_ar": "علامات التحذير في عروض نقل الموظفين",
+      "kind": "quote_red_flag",
+      "body_en": "Check that the operator holds the passenger transport permit for the emirate(s) served and that drivers have the professional permit; a bus-rental company offering buses \"with driver\" may not be permitted. Watch for older or non-A/C buses than asked, fuel and Salik recharged on top of an \"all-in\" rate, overtime and extra-trip rates not stated, no replacement-vehicle commitment, Friday and public-holiday work excluded, smaller buses than the passenger count, and no passenger insurance.",
+      "body_ar": "تحقق من أن المشغل يحمل تصريح نقل الركاب في الإمارة أو الإمارات المخدومة وأن السائقين يحملون التصريح المهني؛ فشركة تأجير حافلات تعرض حافلات \"مع سائق\" قد لا تكون مصرحاً لها. وانتبه إلى: حافلات أقدم أو غير مكيفة مقارنة بالمطلوب، وإعادة فوترة الوقود وسالك فوق سعر \"شامل\"، وعدم ذكر أسعار العمل الإضافي والرحلات الإضافية، وغياب الالتزام بالمركبة البديلة، واستثناء العمل أيام الجمعة والعطل الرسمية، وحافلات أصغر من عدد الركاب، وغياب تأمين الركاب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "staff_transport:buyer-mistakes",
+      "topic": "Common buyer mistakes in staff transport",
+      "topic_ar": "أخطاء شائعة لدى المشترين في نقل الموظفين",
+      "kind": "buyer_mistake",
+      "body_en": "Hiring a bus-rental company without a passenger transport permit; giving passenger numbers without shift times, so suppliers price different trip counts; forgetting routes that cross emirates; and choosing per-trip pricing when a monthly contract is cheaper. Ask passengers per shift, locations, shift times and days.",
+      "body_ar": "التعاقد مع شركة تأجير حافلات دون تصريح نقل ركاب؛ وإعطاء أعداد الركاب دون أوقات الورديات فيسعّر الموردون أعداد رحلات مختلفة؛ ونسيان المسارات العابرة بين الإمارات؛ واختيار التسعير بالرحلة بينما العقد الشهري أرخص. لذا يُسأل عن الركاب في كل وردية والمواقع وأوقات الورديات والأيام.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "staff_transport:price-drivers",
+      "topic": "What legitimately moves staff transport prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار نقل الموظفين",
+      "kind": "price_driver",
+      "body_en": "Bus size and age, A/C, km per day and number of trips, waiting time between shifts, fuel and tolls, driver costs (wages, permits, accommodation), contract length, replacement-vehicle commitment, insurance and tracking.",
+      "body_ar": "حجم الحافلة وعمرها، والتكييف، والكيلومترات اليومية وعدد الرحلات، ووقت الانتظار بين الورديات، والوقود والرسوم، وتكاليف السائق (الأجور والتصاريح والسكن)، ومدة العقد، والالتزام بالمركبة البديلة، والتأمين والتتبع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "staff_transport:compare-quotes",
+      "topic": "Comparing staff transport quotes on monthly cost",
+      "topic_ar": "مقارنة عروض نقل الموظفين على أساس التكلفة الشهرية",
+      "kind": "comparison",
+      "body_en": "Convert every offer to total monthly cost for the same routes, passengers, trips and days, with fuel, tolls and overtime included at expected levels. Check permits, vehicle age and A/C, and replacement commitment. Recommend the three permitted operators with the lowest total monthly cost.",
+      "body_ar": "حوّل كل عرض إلى التكلفة الشهرية الإجمالية للمسارات والركاب والرحلات والأيام نفسها، مع شمول الوقود والرسوم والعمل الإضافي بالمستويات المتوقعة. وتحقق من التصاريح وعمر المركبات والتكييف والالتزام بالبديل. ويوصى بأفضل ثلاثة مشغلين مصرح لهم بأقل تكلفة شهرية إجمالية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -109,7 +276,8 @@
     "removed": [],
     "still_unverified": [
       "staff_transport:spec-checklist",
-      "staff_transport:uae-standards-and-approvals"
+      "staff_transport:uae-standards-and-approvals",
+      "staff_transport:authority-approvals"
     ],
     "added": [
       "staff_transport:spec-checklist",
@@ -143,6 +311,12 @@
         "staff_transport:lead-times",
         "staff_transport:quotation-requirements"
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "staff_transport:quote-red-flags",
+      "staff_transport:buyer-mistakes",
+      "staff_transport:price-drivers",
+      "staff_transport:compare-quotes"
+    ]
   }
 }
