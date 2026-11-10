@@ -30,7 +30,10 @@ function canonicalBody(fn) {
 test('a failed revision question is asked again under a new key, and the CEO is owed the choice after three', () => {
   const refile = canonicalBody('fn_ceo_revision_refile');
   assert.match(refile, /h\.status not in \('failed', 'expired'\)/, 'the refile does not look for a failed or expired question');
-  assert.match(refile, /interval '7 days'/, 'the refile does not wait out fn_reason_hold\'s 7-day window');
+  // 10 Nov 2026 (a_revision_the_model_cannot_write_is_asked_on_another_family_then_written_from_the_reasons.sql): no 7-day
+  // wait any more. The failed question is asked again at once, on another family; that is its own check
+  // (a_revision_the_model_cannot_write_is_asked_on_another_family.test.mjs).
+  assert.match(refile, /'other_family_at'/, 'the refile does not ask the failed revision again on another family');
   assert.match(refile, /fn_ceo_decision_owe\(/, 'after the re-filings the CEO is not owed the choice');
   assert.doesNotMatch(refile, /fn_notify_founder|'founder'/, 'the refile addresses the founder');
   assert.match(canonicalBody('fn_seat_revises_for_the_ceo'), /':t' \|\| \(a\.evidence->>'refiles'\)/,

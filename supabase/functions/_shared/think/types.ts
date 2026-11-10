@@ -60,6 +60,11 @@ export interface ThinkRequest {
   // Output ceilings for a caller whose reply is short (the widget: ~70 words). With a verify ceiling the reviewer is
   // also told to return the strict JSON verdict only. A truncated output is a failed pass, never a fragment sent.
   maxTokens?: { synthesise?: number; verify?: number };
+  // ANOTHER MODEL FAMILY WRITES THE ANSWER (ceo, 10 Nov 2026, rulings 1059 / 1574). A held question whose answer the
+  // usual route could not write (fn_ceo_revision_refile re-asks a failed revision once) names the model that failed;
+  // the synthesis then goes to the gateway with it as counterpart_model, so fn_ai_route_review_for picks a model of
+  // another family. It is stored on the held row's request, so the replay carries it. Absent: the class's own route.
+  otherFamilyThan?: string;
   // A READER OF THE PERSON'S OWN TEXT (18 Oct 2026, measured: 10 runs of one ZZ DEMO photographed quotation through the
   // deployed readers). Two rules built for answers dropped WHOLE readings that were right:
   //   - a question asked back ("what sheen?", "confirm the payment terms") refused the draft; the rewrite asked again and

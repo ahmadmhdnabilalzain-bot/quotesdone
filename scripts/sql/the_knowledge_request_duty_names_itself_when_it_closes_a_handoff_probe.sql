@@ -15,5 +15,7 @@ begin
   select count(*) into v_after from public.sales_knowledge_gap g
    where g.status <> 'open' and g.handoff_id is not null and (g.question like 'ZZ DEMO%') = false
      and exists (select 1 from public.agent_actions a where a.id = g.handoff_id and a.status not in ('done', 'failed'));
-  raise exception 'CHK<<%>>', jsonb_build_object('before', v_before, 'closed', v->'closed', 'after', v_after, 'pass', v_after = 0 and (v->>'closed')::int = v_before);
+  -- 10 Nov 2026 (ceo, the seats-act build): the verdict word leads the message, so rehearse_sql.mjs can read it
+  raise exception '% CHK<<%>>', case when v_after = 0 and (v->>'closed')::int = v_before then 'PROBE OK' else 'PROBE FAILED' end,
+    jsonb_build_object('before', v_before, 'closed', v->'closed', 'after', v_after, 'pass', v_after = 0 and (v->>'closed')::int = v_before);
 end $p$;

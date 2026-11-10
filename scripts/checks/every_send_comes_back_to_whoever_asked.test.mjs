@@ -119,7 +119,11 @@ const TRACKING_FILES = new Set(['every_send_comes_back_to_whoever_asked.sql', 't
   // 27 Oct 2026: redefines the watch with a 3 s clock budget on its walk (every ladder tick was cancelled at 8 s); its
   // one marking step is the watch's own email retry, carried over unchanged and tracked by the request
   // (retry_notification_id). Asserted below.
-  'the_delivery_watch_returns_results_within_a_time_budget_so_the_ladder_tick_commits.sql']);
+  'the_delivery_watch_returns_results_within_a_time_budget_so_the_ladder_tick_commits.sql',
+  // 10 Nov 2026 (ruling 1574): redefines the digest with one added part (the daily list of what a working session must
+  // fix rides on it); its marking and the closing of every told request with the digest's notification ids are
+  // carried over unchanged.
+  'the_founder_gets_one_daily_list_of_what_a_session_must_fix.sql']);
 const MARK = /set_config\(\s*'app\.qd_delivery_tracked'/;
 test('no SQL routine can switch off the tracking, and every other row is adopted', () => {
   const bypass = []; let writers = 0;
