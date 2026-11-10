@@ -22,7 +22,7 @@ import { statedPrice, storedPrice } from '../../_shared/stated_price.ts';
 import { findTrn } from '../../_shared/identity_numbers.ts';
 import { deriveLineFields, deriveTermsFromScope } from '../../_shared/line_specs/derive.ts';
 import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from '../quote_review.ts';
-import { issueAsMissing, resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from '../submit_review.ts';
+import { carryHeldAnswers, heldAnswersOf, issueAsMissing, optionOfEach, resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit, type HeldAnswers } from '../submit_review.ts';
 import { scrubDeep, scrubIdentity, scrubLine } from '../identity_scrub.ts';
 import { cleanTemplate } from '../quote_template.ts';
 import { newOptionRefusal } from '../new_option.ts';
@@ -279,6 +279,30 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       const origPath = body.original_file_path == null || String(body.original_file_path) === '' ? null : String(body.original_file_path);
       if (origPath && !ownQuoteFile(origPath, Number(sup.id))) return J(NOT_MY_FILE, 400);
 
+      // AN ANSWERED HOLD ITEM IS NEVER ASKED AGAIN (defect F5, production walk of 10 Nov 2026). What the supplier
+      // answered in the hold panel lives on the quote row this submission overwrites (its terms_spec, its lines'
+      // spec, its validity). A price refresh from the form carries none of it, so the review below asked
+      // `installation_included` again with no panel to answer it on. Read only from THIS supplier's rows on THIS
+      // job for the options being written (submit_review.ts heldAnswersOf / carryHeldAnswers). A read that fails
+      // carries nothing: the review then asks, as it did before.
+      const priorIds = ((mine || []) as { id: unknown; option_no: unknown }[]).filter((r) => plan.some((p) => p.option_no === (Number(r.option_no) || 1))).map((r) => String(r.id));
+      const held: HeldAnswers[] = [];
+      if (priorIds.length) {
+        try {
+          const [hq, hl, hh] = await Promise.all([
+            admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,validity,terms_spec').in('id', priorIds).eq('supplier_id', sup.id),
+            admin.from('quote_items').select('quote_id,description,spec,spec_source').in('quote_id', priorIds),
+            admin.from('quote_spec_hold').select('quote_id,supplier_values').in('quote_id', priorIds),
+          ]);
+          if (!hq.error && !hl.error && !hh.error) for (const q of hq.data || []) { const h = heldAnswersOf({ inquiry_id: String(inquiryId), supplier_id: Number(sup.id) }, q, hl.data || [], hh.data || []); if (h) held.push(h); }
+          else logged('submit_quote held answers', hq.error ?? hl.error ?? hh.error);
+        } catch (e) { logged('submit_quote held answers', e); }
+      }
+      const carry = carryHeldAnswers(body, held, optionOfEach(normItems, plan), plan.map((p) => p.option_no));
+      const sent = carry.body;
+      // The stored lines get the carried specs too (plan's lines are these same objects), so the gate reads what the review read.
+      (Array.isArray(sent.items) ? sent.items as ({ spec?: unknown } | null)[] : []).forEach((it, i) => { if (normItems[i] && it && it.spec !== items[i]?.spec) normItems[i].spec = it.spec; });
+
       // ── THE QUOTATION REVIEW RUNS AT EVERY DOOR (audit 22 Sep 2026, finding SP-F-02) ────────────
       // The founder, 15 Sep 2026: the review is "the most important part in the whole supplier portal".
       // Its rules live in quote_review.ts reviewQuotation — every BOQ line priced, quantities and units
@@ -299,13 +323,13 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       // quantity the supplier explained, lives in quote_reviews.working — written by the engineer, not by
       // the caller — so it is read from the row and never from the request body. A supplier posting
       // straight to this endpoint has no such row, and every rule applies to them in full.
-      const confirmedTerms = (() => { const t = sanitizeTermsSpec(body.terms_spec); return t ? scrubDeep(t, sup.company_name, maskHits) as typeof t : t; })();
+      const confirmedTerms = (() => { const t = sanitizeTermsSpec(sent.terms_spec); return t ? scrubDeep(t, sup.company_name, maskHits) as typeof t : t; })();
       const reviewRow = await supabaseReviewRepo(admin).review(inquiryId, Number(sup.id)).catch(() => null);
       const safeInq = await safeInquiryOf(req, jwt, inquiryId);
       if (!safeInq) return J({ error: 'not_found', code: 'not_found' }, 404);
       // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
       const rv = reviewQuotation(safeInq, await readWorking(defaultDeps(admin, 'supplier_api'), safeInq, withResolved(
-        workingFromSubmit(body, { notes: String(sNotes ?? ''), scope: String(sScope ?? ''), conditions: String(sCond ?? ''), exclusions: String(sExcl ?? '') }, confirmedTerms || {}, allMasked, trn),
+        workingFromSubmit(sent, { notes: String(sNotes ?? ''), scope: String(sScope ?? ''), conditions: String(sCond ?? ''), exclusions: String(sExcl ?? '') }, confirmedTerms || {}, allMasked, trn),
         resolvedFrom(reviewRow?.working)), 'review:' + safeInq.id + ':' + sup.id));
       const lang: 'en' | 'ar' = SUPPLIER_LOCALE;
       const reviewIssues = rv.approved ? null : rv.issues.map((i) => ({ code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, en: i.en, ar: i.ar }));
@@ -338,6 +362,11 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
         // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.
         if (confirmedTerms) (det as Record<string, unknown>).terms_spec = confirmedTerms;
+        // A row whose answers were read is written with exactly what this submission states plus the answers carried
+        // (F5): the hold gate reads the row, so it must hold what the review read — no more, no less.
+        const own = carry.options[String(p.option_no)];
+        if (own?.held) { const t = sanitizeTermsSpec(own.terms_spec); (det as Record<string, unknown>).terms_spec = t ? scrubDeep(t, sup.company_name, maskHits) : null; }
+        if (own?.held && !String(body.validity ?? '').trim() && own.validity) det.validity = scrub(own.validity, 200);
         // Capture the status BEFORE the write. A new row is created as a draft, never in the
         // 'submitted' column default: a dry_run preflight or a held quote must not be visible to the
         // customer even for a moment (caught by a demo walkthrough on 21 Jul 2026).
