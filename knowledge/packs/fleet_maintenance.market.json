@@ -64,12 +64,15 @@
       "q_en": "What upkeep and repair jobs can garages here carry out on company vans and cars?",
       "q_ar": "شو أعمال الصيانة والتصليح اللي تقدر الكراجات هنا تسويها لفانات وسيارات الشركة؟",
       "expected_entry_ids": [
-        "fleet_maintenance:uae-market-products"
+        "fleet_maintenance:uae-market-products",
+        "fleet_maintenance:product-distinctions"
       ],
-      "why": "The products entry lists the servicing and repair jobs workshops perform on company fleets.",
+      "why": "The question asks which upkeep and repair jobs garages carry out on company vehicles. The products entry lists fleet services in the UAE; product-distinctions lists the same work types (scheduled servicing, preventive maintenance, mechanical/electrical/AC repairs, tyres, batteries, body and paint, test preparation) and the dealer, independent and mobile workshop models.",
       "written_blind": true,
       "word_overlap_with_entry": 0.111,
-      "word_overlap_after_enrichment": 0.111
+      "word_overlap_after_enrichment": 0.111,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

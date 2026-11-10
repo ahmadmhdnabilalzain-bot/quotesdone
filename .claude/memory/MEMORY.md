@@ -160,6 +160,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Group per class, not in aggregate](group-per-class-not-in-aggregate.md) · [One number, three causes](one-number-three-causes.md) · [A 30-day total is not a run rate](a-30-day-total-is-not-a-run-rate.md)
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
+- [An eval's answer key is a claim too (28 Oct)](an-eval-answer-key-is-a-claim-too.md) — 13 of 34 'failing' market packs returned a right answer the key did not name; read what came back before tuning retrieval or content
 ## State of the build
 - [CHECKPOINT 10 Nov — cleanup merged, Actions OFF, OpenRouter out of credit](checkpoint-10-nov-cleanup-merged-actions-off-credit-out.md) — READ FIRST: #1874 live (DB 3.55 GB, model on HF, uptime monitor); #1876 then #1877 then the PR-drain branch merge in that order, gated and deployed by the session; founder top-up owed; real-AI verification list
 - [CHECKPOINT 9 Nov — code cleanup + Supabase cost forensics](checkpoint-9-nov-cleanup-and-cost.md) — READ FIRST: PR #1874; DB clean-up applies at merge; model egress cause measured, HF switch waits on a write token; proxy-injected + NODE_USE_ENV_PROXY=1

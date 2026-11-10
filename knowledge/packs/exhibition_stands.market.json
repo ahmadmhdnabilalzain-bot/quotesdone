@@ -67,12 +67,15 @@
       "q_en": "Ready-made booth or bespoke: which trade fair setups do builders around here offer?",
       "q_ar": "بوث جاهز ولا تصميم خاص: شو أنواع أجنحة المعارض اللي يقدمها المنفذين هنا؟",
       "expected_entry_ids": [
-        "exhibition_stands:uae-market-products"
+        "exhibition_stands:uae-market-products",
+        "exhibition_stands:product-distinctions"
       ],
-      "why": "The products entry names the stand types offered: custom-built timber stands versus modular/system stands, double-deck and pavilions.",
+      "why": "The question asks ready-made or bespoke, and which setups builders offer. The products entry lists the stand types built in the UAE; product-distinctions answers the same choice: the organiser's shell scheme (ready-made), modular/system stands and custom builds.",
       "written_blind": true,
       "word_overlap_with_entry": 0.111,
-      "word_overlap_after_enrichment": 0.111
+      "word_overlap_after_enrichment": 0.111,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {
