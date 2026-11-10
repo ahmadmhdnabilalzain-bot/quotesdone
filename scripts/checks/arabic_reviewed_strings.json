@@ -7917,5 +7917,27 @@
   "d15e49a7a172",
   "d7576675a31c",
   "d9c823b5151f"
+ ],
+ "scripts/sql/a_request_that_reached_suppliers_ends_expired_lost_or_completed_and_everyone_is_told.sql": [
+  "0a4f9db644b3",
+  "0f73aac5d3bd",
+  "1519ad8026e4",
+  "1e1ca406d600",
+  "2e3ad11392c8",
+  "4db5d074b1b9",
+  "5009ba2593d9",
+  "51d51eb02632",
+  "690a9f9523c0",
+  "7d034e03dc9d",
+  "859798d5f8bb",
+  "8e8bdfd5dc10",
+  "92c51ccb4905",
+  "abd40b38529b",
+  "b2d17ef51ee4",
+  "cb76a6eb29d7",
+  "cd596d6f253a",
+  "e9c7a6a17f14",
+  "fa43e1fb9d03",
+  "fd2084e19687"
  ]
 }
