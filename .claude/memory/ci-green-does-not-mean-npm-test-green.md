@@ -41,3 +41,16 @@ Practical consequences:
 
 Also: `npm test 2>&1 | tail -40` reports the exit code of `tail`, not of `npm`. Redirect to a file
 and echo `$?`, or a failing suite reads as a passing one.
+
+**10 Nov 2026 — the offline gate's `--skip=npm-test` let an unreviewed Arabic line onto main.** #1890 added a
+customer-facing `message_ar` in `customer_api/actions/inquiry_create.ts:193`; the joint gate of #1889+#1890+#1891 passed
+13/13, and main then failed `every_arabic_message_is_written_not_translated` 9/1 until #1894 registered the hash. The full
+`npm test` takes 2 h+ and carries ~36 token/production reds that main shares, which is why releases skip it. **What to do
+instead, per PR, in ~10 minutes:** run every node check that names a changed file, and compare the failure SET with main's,
+not the count:
+
+    F=$(git diff --name-only origin/main...HEAD | xargs -n1 basename | sed 's/\.[^.]*$//' | sort -u | paste -sd'|')
+    T=$(grep -lE "$F" scripts/checks/*.test.mjs | sort -u); node --test $T 2>&1 | grep '^✖' | sed 's/ ([0-9.]*ms)//' | sort -u
+
+Run the same `$T` on origin/main; `comm -23 branch main` must be empty. Always include the Arabic register checks
+(`grep -l arabic_reviewed_strings.json scripts/checks/*.test.mjs`) when a diff adds Arabic anywhere.
