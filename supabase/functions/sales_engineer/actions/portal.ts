@@ -16,7 +16,10 @@ import { preRevealIdentities } from '../../_shared/pre_reveal_identities.ts';
 import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply, plainLanguage, customerSafe } from '../portal_turn.ts';
 import { heldBlock, heldState, replyFilter } from '../portal_conversation.ts';
 import { EXTRACT_BY_MS, episodeStart, extractSlots, isQuestion, isUnsure, planState, sentencesOf, targets } from '../conversation_plan.ts';
-import { capRule, capStage, dialectOf, mergeState, portalKey, registerPatch, statusOfStage } from '../../_shared/inquiry_state.ts';
+import { capRule, capStage, dialectOf, mergeState, portalKey, readState, registerPatch, statusOfStage } from '../../_shared/inquiry_state.ts';
+import { ADVISE_RULE, heldProblem, problemsFor, solutionsBlock, solutionStateText } from '../../_shared/solution_catalogue.ts';
+import { taxonomyOf, tradeBlock, tradeContext } from '../../_shared/inquiry_trades.ts';
+import { gatewayAsk, readInquiry, readingPatch } from '../../_shared/inquiry_reading.ts';
 import { handOffAtCap } from '../lib/inquiry_cap.ts';
 import { checkReadability } from '../../_shared/readability.ts';
 import { REASK_CLAIM, reaskDue } from '../../_shared/reask.ts';
@@ -110,6 +113,27 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       const pExtract = Promise.all([pTurns, pKey]).then(([tr, k]) => k ? extractSlots({ gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: k,
         st: planState(tr, message), lastSeat: [...tr].reverse().find((t) => t.role === 'assistant')?.content ?? '', message, deadline: t0 + EXTRACT_BY_MS }) : null)
         .catch(() => null);
+      // ── THE EXPERT'S HALF (10 Nov 2026, sales_engineer; founder ledger 1572, 1579, 1586) ──────────────────────────────
+      // This job's state (its episode's row of public.inquiry_state: the trades it is placed in, the options already put
+      // and the one chosen), the whole taxonomy, and the packs of the job's trades (the state's taxonomy codes, else the
+      // plan's slug resolved through fn_taxonomy_trades_for as dispatch resolves it). All read beside everything else.
+      const pState = acct ? pTurns.then((tr) => readState(admin, portalKey(acct, episodeStart([...tr, { role: 'user' as const, content: message }])))).catch(() => null) : Promise.resolve(null);
+      const pTax = taxonomyOf(admin);
+      const pCtx = Promise.all([pState, pTurns, pTax]).then(async ([st0, tr, tax]) => {
+        const slug = planState(tr, message).plan?.key ?? null;
+        let codes = st0?.trade_codes ?? [];
+        if (!codes.length && slug) { const { data } = await admin.rpc('fn_taxonomy_trades_for', { p_slugs: [slug] }); codes = Array.isArray(data) ? data.map(String) : []; }
+        return { slug, ctx: await tradeContext(admin, codes, lang, tax) };
+      }).catch(() => ({ slug: null as string | null, ctx: null }));
+      // THE STATE READER (_shared/inquiry_reading.ts): one bounded json_extraction call that reads which trades this job is,
+      // what our last reply offered and what this message chose, for the state the NEXT turn reads. Never awaited by the reply.
+      const pReading = Promise.all([pTurns, pTax, pCtx, pState, pKey]).then(([tr, tax, c, st0, k]) => {
+        if (!k || !tax || caller.kind !== 'customer') return null;
+        const problems = problemsFor({ slug: c.slug, codes: c.ctx?.codes ?? [], held: heldProblem(st0) });
+        return readInquiry(gatewayAsk({ gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: k, fn: 'sales_engineer', agent: 'sales_engineer' }),
+          { taxonomy: tax, problems, services: c.ctx?.services, lastSeat: [...tr].reverse().find((t) => t.role === 'assistant')?.content ?? '', message, heldCodes: st0?.trade_codes ?? [] },
+          t0 + PORTAL_TURN_MS - 5_000);
+      }).catch(() => null);
 
       // ── A QUESTION ABOUT THE CUSTOMER'S OWN QUOTE IS ANSWERED FROM THAT QUOTE (21 Sep 2026) ──
       // No corpus holds this customer's quote; the quotes table does. Their quotes, scoped in SQL to inquiries.customer_id =
@@ -151,7 +175,7 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
         const x = await admin.from(rule.table).select(rule.select).in(rule.key, ids);
         return { data: x.data as Record<string, unknown>[] | null, error: x.error };
       });
-      const [own, convo, brief, key, turns, extract, forbidden] = await Promise.all([pOwn, pConvo, pBrief, pKey, pTurns, pExtract, pForbidden]);
+      const [own, convo, brief, key, turns, extract, forbidden, stE, ce] = await Promise.all([pOwn, pConvo, pBrief, pKey, pTurns, pExtract, pForbidden, pState, pCtx]);
       lap('reads');
       const ownQuote = own?.facts ?? null;
       const convKey = convo.key;
@@ -195,11 +219,19 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       const held = heldState(turns, message, extract?.slots ?? null, stage);
       // a job plan states the stage's rule in its own block (conversation_plan.stateBlock); a conversation with no plan gets it here
       const known_ = [heldBlock(held), held.plan.plan ? '' : capRule(stage, replyNo)].filter(Boolean).join('\n\n');
+      // A JOB CONVERSATION IS THE EXPERT INTERVIEW (ledger 1572/1586): the ADVISE rule, the solution so far, the job's trades
+      // (services, what a supplier needs stated, authority, location rules) and the reference options for its trade, never
+      // chosen by the customer's words (ruling 890). It runs on the interview class, inquiry_qualification_conversation (the
+      // T3 interview class; which model that is, is model_policy's). Outside a job the portal assistant's class answers.
+      const refProblems = problemsFor({ slug: ce.slug, codes: ce.ctx?.codes ?? [], held: heldProblem(stE) });
+      const jobTalk = !!(held.plan.plan || ce.ctx?.codes.length || refProblems.length || stE?.options_offered?.length);
+      // the ADVISE rule rides on every customer turn (a first message about a bus rental has no plan and no trade yet)
+      const expert = caller.kind !== 'customer' ? '' : jobTalk ? [ADVISE_RULE, solutionStateText(stE, lang), tradeBlock(ce.ctx, lang), solutionsBlock(refProblems, lang)].filter(Boolean).join('\n\n') : ADVISE_RULE;
       const emit = EMITTERS.get(req) ?? (() => {});
       const a = key ? await answerFromBrief({
         gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: key, fn: 'sales_engineer', agent: 'sales_engineer',
-        taskClass: 'customer_portal_assistant', brief, sys, max: images.length ? 1200 : 900, images, deadline,
-        input: [...past, { role: 'user', content: (facts ? facts + '\n\n' : '') + (known_ ? known_ + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
+        taskClass: jobTalk ? 'inquiry_qualification_conversation' : 'customer_portal_assistant', brief, sys, max: images.length ? 1200 : 900, images, deadline,
+        input: [...past, { role: 'user', content: (facts ? facts + '\n\n' : '') + (expert ? expert + '\n\n' : '') + (known_ ? known_ + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
         // the hand-off reply asks nothing, so a reply without a question is not sent back for one
         drop: () => { const f = replyFilter(held); return stage === 'handoff' ? Object.assign((x: string) => f(x), { end: () => null }) : f; },
         // the same rules aiReply holds every conversation reply to (figures, policy, reply guard, another party's identity),
@@ -228,8 +260,13 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
         const askedBefore = sentencesOf(lastSeat).filter(isQuestion).flatMap((q) => targets(q, plan.plan));
         const unsure = isUnsure(message) ? askedBefore.filter((id) => plan.toConfirm.has(id)) : [];
         const asked = reply ? [...new Set(sentencesOf(reply).filter(isQuestion).flatMap((q) => targets(q, plan.plan)))] : [];
+        // the reader's answer (started beside the reads; by now normally done), bounded so the turn never waits long for it
+        const reading = await Promise.race([pReading, new Promise<null>((r) => setTimeout(() => r(null), Math.max(0, Math.min(8_000, deadline - Date.now()))))]);
+        const rp = reading ? readingPatch(reading) : {};
         const statePatch = { turn: theirs.length, party_key: acct, episode_from: from, message_count: reply ? replyNo : replyNo - 1,
-          specs: Object.fromEntries([...plan.filled].map(([id, v]) => [id, String(v).slice(0, 300)])),
+          ...rp,
+          specs: { ...Object.fromEntries([...plan.filled].map(([id, v]) => [id, String(v).slice(0, 300)])), ...(rp.specs ?? {}) },
+          ...(reading?.problem ? { condition: { ...(rp.condition ?? {}), problem: reading.problem } } : {}),
           unknown: Object.fromEntries(unsure.map((id) => [id, message.slice(0, 200)])), asked,
           ...(plan.plan ? { trade: plan.plan.key } : {}), status: statusOfStage(stage), ...registerPatch(theirs, lang) };
         await mergeState(admin, episodeKey, 'portal_assistant', statePatch);

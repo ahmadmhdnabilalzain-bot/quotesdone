@@ -7,6 +7,8 @@
 --   a  a portal episode: specs with their turn, a change of mind, a "does not know", asks counted, the count only grows,
 --      the status only moves forward, a model's dialect reading is not replaced by the code's markers
 --   b  the request it is carried into: specs, unknown, count and dialect carried; a: carried
+--   c  phase 2 (ledger 1572/1579/1586): the condition with its turn, options offered once each, the chosen option and a
+--      change of it (changed_from), the budget clearing its "does not know", the service keys under specs, all carried
 do $$
 declare a jsonb; b jsonb; fail text := ''; v_before int; v_after int;
   ka text := 'zz-demo-probe:portal#0'; kb text := 'zz-demo-probe:intake';
@@ -34,7 +36,27 @@ begin
   -- a spec given later clears its does-not-know
   a := public.fn_inquiry_state_merge(ka, 'portal_assistant', jsonb_build_object('turn', 10, 'specs', jsonb_build_object('material', 'PVC panels')));
   if a->'unknown' ? 'material' then fail := fail || 'a spec given later did not clear its does-not-know; '; end if;
-  a := public.fn_inquiry_state_merge(ka, 'portal_assistant', jsonb_build_object('turn', 11, 'unknown', jsonb_build_object('finish', 'ma ba3ref')));
+  a := public.fn_inquiry_state_merge(ka, 'portal_assistant', jsonb_build_object('turn', 11, 'unknown', jsonb_build_object('finish', 'ma ba3ref', 'budget', 'madri')));
+  -- c: phase 2. The condition, three options offered (one twice), a choice and a change of it, the budget given later
+  a := public.fn_inquiry_state_merge(ka, 'portal_assistant', jsonb_build_object('turn', 12,
+         'condition', jsonb_build_object('object', 'small MDF partition', 'constraint', 'kids room'),
+         'options_offered', jsonb_build_array(jsonb_build_object('problem', 'cover_existing_board', 'option', 'pvc_wpc_panels'),
+                                              jsonb_build_object('problem', 'cover_existing_board', 'option', 'architectural_film'),
+                                              jsonb_build_object('problem', 'cover_existing_board', 'option', 'pvc_wpc_panels')),
+         'chosen_option', jsonb_build_object('problem', 'cover_existing_board', 'option', 'pvc_wpc_panels', 'label', 'PVC or WPC decorative wall panels'),
+         'specs', jsonb_build_object('service_keys', 'wallpaper.wall_panels, wallpaper.wall_cladding')));
+  a := public.fn_inquiry_state_merge(ka, 'portal_assistant', jsonb_build_object('turn', 13,
+         'options_offered', jsonb_build_array(jsonb_build_object('problem', 'cover_existing_board', 'option', 'paint_or_laminate')),
+         'chosen_option', jsonb_build_object('problem', 'cover_existing_board', 'option', 'architectural_film'),
+         'condition', jsonb_build_object('object', 'small MDF partition, both faces'), 'budget', 'about 3,000 AED'));
+  if jsonb_array_length(a->'options_offered') <> 3 then fail := fail || 'an option was recorded twice or lost (' || (a->'options_offered')::text || '); '; end if;
+  if a->'chosen_option'->>'option' <> 'architectural_film' or a->'chosen_option'->'changed_from'->>'option' <> 'pvc_wpc_panels' then fail := fail || 'the change of choice is not kept; '; end if;
+  if a->'condition'->'object'->>'value' <> 'small MDF partition, both faces' or a->'condition'->'object'->>'changed_from' <> 'small MDF partition'
+     or (a->'condition'->'constraint'->>'turn')::int <> 12 then fail := fail || 'the condition lost a value, its change or its turn; '; end if;
+  if a->'budget'->>'value' <> 'about 3,000 AED' or a->'unknown' ? 'budget' then fail := fail || 'the budget is not kept or did not clear its does-not-know; '; end if;
+  if a->'specs'->'service_keys'->>'value' <> 'wallpaper.wall_panels, wallpaper.wall_cladding' then fail := fail || 'the service keys are not under specs; '; end if;
+  a := public.fn_inquiry_state_merge(ka, 'portal_assistant', jsonb_build_object('turn', 14, 'unknown', jsonb_build_object('budget', 'not sure')));
+  if a->'unknown' ? 'budget' then fail := fail || 'a held budget was put back to does-not-know; '; end if;
   -- the carry into the request
   b := public.fn_inquiry_state_carry(ka, kb, 'request_chat', null);
   if b is null then fail := fail || 'the carry returned nothing; ';
@@ -43,6 +65,8 @@ begin
     if b->'specs'->'size'->>'value' <> '2.4 x 1.2 m, both faces' or not (b->'unknown' ? 'finish') then fail := fail || 'specs or unknown were not carried; '; end if;
     if (b->>'message_count')::int <> 18 then fail := fail || 'the count was not carried (the limit is per inquiry); '; end if;
     if b->>'surface' <> 'request_chat' or b->>'dialect' <> 'egyptian' then fail := fail || 'surface or dialect wrong after the carry; '; end if;
+    if b->'chosen_option'->>'option' <> 'architectural_film' or jsonb_array_length(b->'options_offered') <> 3 or b->'budget'->>'value' <> 'about 3,000 AED'
+       or b->'condition'->'constraint'->>'value' <> 'kids room' then fail := fail || 'the phase-2 state was not carried; '; end if;
   end if;
   if (select status from public.inquiry_state where conv_key = ka) <> 'carried' then fail := fail || 'the portal episode is not marked carried; '; end if;
   -- an empty key is refused

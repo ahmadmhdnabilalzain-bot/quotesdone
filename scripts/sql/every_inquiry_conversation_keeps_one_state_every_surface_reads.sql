@@ -40,6 +40,20 @@
 --     canonical keys (fn_rfq_required_check, trg_rfq_complete), unchanged.
 --   * no expert solutioning (condition, options offered, solution catalogue): phase 2 adds those columns.
 --
+-- PHASE 2 (10 Nov 2026, sales_engineer; founder ledger 1572, 1579 and 1586: "reason like a real expert staff member" for
+-- EVERY trade, product and service, not only the PVC example). The same table, never a second store. Four columns, each
+-- written only through fn_inquiry_state_merge and carried by fn_inquiry_state_carry:
+--   condition        what the customer told us about the thing itself: key -> {value, turn, changed_from} (object,
+--                    material, state, location, use, constraints such as a wet area or a children's room)
+--   options_offered  the solutions put to them: [{problem, option, turn, src}], each (problem, option) once, at most 60;
+--                    problem and option are the codes of supabase/functions/_shared/solution_catalogue.json
+--   chosen_option    the one they chose: {problem, option, label, turn, src, changed_from}; a change keeps the earlier
+--   budget           {value, turn, changed_from}; a budget given clears a "does not know" on it
+-- The service keys a chosen option names go into specs under 'service_keys' (the same merge, changed_from kept), and the
+-- taxonomy codes the conversation is about into trade_codes, as before. Added with ALTER ... IF NOT EXISTS so the file
+-- applies whether or not phase 1 is already live. What decides WHICH options are offered is not here: the model reasons
+-- it from the catalogue and the trade's packs (_shared/solution_catalogue.ts, _shared/inquiry_trades.ts).
+--
 -- SECURITY: RLS on with a deliberate service-role-only policy, every grant to anon and authenticated revoked; both
 -- routines SECURITY DEFINER with search_path pinned and EXECUTE revoked from public, anon and authenticated (CREATE grants
 -- EXECUTE to PUBLIC; the edge functions call them as service_role).
@@ -72,6 +86,12 @@ create table if not exists public.inquiry_state (
 );
 comment on table public.inquiry_state is
   'One durable state per inquiry conversation, shared by the request chat, the portal assistant, WhatsApp and the widget (founder ledger 1572). Written only through fn_inquiry_state_merge / fn_inquiry_state_carry. scripts/sql/every_inquiry_conversation_keeps_one_state_every_surface_reads.sql';
+
+-- phase 2: the expert's half of the state (see the header)
+alter table public.inquiry_state add column if not exists condition jsonb not null default '{}'::jsonb check (jsonb_typeof(condition) = 'object');
+alter table public.inquiry_state add column if not exists options_offered jsonb not null default '[]'::jsonb check (jsonb_typeof(options_offered) = 'array');
+alter table public.inquiry_state add column if not exists chosen_option jsonb check (chosen_option is null or jsonb_typeof(chosen_option) = 'object');
+alter table public.inquiry_state add column if not exists budget jsonb check (budget is null or jsonb_typeof(budget) = 'object');
 
 create index if not exists inquiry_state_party_recent_idx on public.inquiry_state (party_key, updated_at desc);
 create index if not exists inquiry_state_intake_idx on public.inquiry_state (intake_id) where intake_id is not null;
@@ -131,11 +151,57 @@ begin
   -- unknown: key -> {turn, said}. Only for a spec not held; the first time it was said is kept.
   if jsonb_typeof(v_patch->'unknown') = 'object' then
     for k, v in select e.key, e.value from jsonb_each(v_patch->'unknown') e loop
-      continue when s.specs ? k or s.unknown ? k;
+      continue when s.specs ? k or s.unknown ? k or (k = 'budget' and s.budget is not null);
       s.unknown := s.unknown || jsonb_build_object(k, jsonb_build_object(
         'turn', case when jsonb_typeof(v) = 'object' and (v->>'turn') ~ '^\d+$' then (v->>'turn')::integer else v_turn end,
         'said', left(coalesce(case when jsonb_typeof(v) = 'object' then v->>'said' else v #>> '{}' end, ''), 300), 'src', v_src));
     end loop;
+  end if;
+
+  -- condition: key -> {value, turn}. A different value keeps the earlier one; nothing is removed.
+  if jsonb_typeof(v_patch->'condition') = 'object' then
+    for k, v in select e.key, e.value from jsonb_each(v_patch->'condition') e loop
+      v_val := left(btrim(case when jsonb_typeof(v) = 'object' then v->>'value' else v #>> '{}' end), 300);
+      continue when coalesce(v_val, '') = '' or k !~ '^[a-z_]{1,40}$';
+      old := s.condition->k;
+      if old is null then
+        s.condition := s.condition || jsonb_build_object(k, jsonb_build_object('value', v_val, 'turn', v_turn));
+      elsif old->>'value' is distinct from v_val then
+        s.condition := s.condition || jsonb_build_object(k, jsonb_build_object('value', v_val, 'turn', v_turn, 'changed_from', old->>'value'));
+      end if;
+    end loop;
+  end if;
+
+  -- options_offered: each (problem, option) once, with the turn it was first put to them; at most 60.
+  if jsonb_typeof(v_patch->'options_offered') = 'array' then
+    for v in select x from jsonb_array_elements(v_patch->'options_offered') x loop
+      continue when jsonb_typeof(v) <> 'object' or coalesce(btrim(v->>'option'), '') = '' or jsonb_array_length(s.options_offered) >= 60;
+      continue when exists (select 1 from jsonb_array_elements(s.options_offered) o
+                             where o->>'problem' is not distinct from left(v->>'problem', 60) and o->>'option' = left(v->>'option', 60));
+      s.options_offered := s.options_offered || jsonb_build_array(jsonb_build_object('problem', left(v->>'problem', 60), 'option', left(v->>'option', 60),
+        'turn', v_turn, 'src', v_src));
+    end loop;
+  end if;
+
+  -- chosen_option: the latest choice; a different one keeps the earlier in changed_from.
+  if jsonb_typeof(v_patch->'chosen_option') = 'object' and coalesce(btrim(v_patch->'chosen_option'->>'option'), '') <> '' then
+    if s.chosen_option is null or s.chosen_option->>'option' is distinct from left(v_patch->'chosen_option'->>'option', 60)
+       or s.chosen_option->>'problem' is distinct from left(v_patch->'chosen_option'->>'problem', 60) then
+      s.chosen_option := jsonb_build_object('problem', left(v_patch->'chosen_option'->>'problem', 60), 'option', left(v_patch->'chosen_option'->>'option', 60),
+          'label', left(coalesce(v_patch->'chosen_option'->>'label', ''), 160), 'turn', v_turn, 'src', v_src)
+        || case when s.chosen_option is null then '{}'::jsonb
+                else jsonb_build_object('changed_from', jsonb_build_object('problem', s.chosen_option->>'problem', 'option', s.chosen_option->>'option')) end;
+    end if;
+  end if;
+
+  -- budget: {value, turn}; a change keeps the earlier; a budget given clears its "does not know".
+  v_val := left(btrim(case when jsonb_typeof(v_patch->'budget') = 'object' then v_patch->'budget'->>'value'
+                           when jsonb_typeof(v_patch->'budget') = 'string' then v_patch->>'budget' end), 200);
+  if coalesce(v_val, '') <> '' then
+    if s.budget is null then s.budget := jsonb_build_object('value', v_val, 'turn', v_turn);
+    elsif s.budget->>'value' is distinct from v_val then s.budget := jsonb_build_object('value', v_val, 'turn', v_turn, 'changed_from', s.budget->>'value');
+    end if;
+    s.unknown := s.unknown - 'budget';
   end if;
 
   -- asked: the specs this turn's reply asked -> count + 1 and the turn.
@@ -180,13 +246,14 @@ begin
   update public.inquiry_state set
     party_key = s.party_key, intake_id = s.intake_id, trade = s.trade, trade_codes = s.trade_codes, specs = s.specs,
     unknown = s.unknown, asked = s.asked, language = s.language, dialect = s.dialect, dialect_by = s.dialect_by,
-    script = s.script, message_count = s.message_count, status = s.status, handoff_id = s.handoff_id, updated_at = s.updated_at
+    script = s.script, message_count = s.message_count, status = s.status, handoff_id = s.handoff_id,
+    condition = s.condition, options_offered = s.options_offered, chosen_option = s.chosen_option, budget = s.budget, updated_at = s.updated_at
   where conv_key = p_conv_key;
   return to_jsonb(s);
 end $fn$;
 revoke execute on function public.fn_inquiry_state_merge(text, text, jsonb) from public, anon, authenticated;
 comment on function public.fn_inquiry_state_merge(text, text, jsonb) is
-  'The one writer of public.inquiry_state: merges one surface turn''s patch (specs with their turn, unknown, asked, count, language, dialect, status). scripts/sql/every_inquiry_conversation_keeps_one_state_every_surface_reads.sql';
+  'The one writer of public.inquiry_state: merges one surface turn''s patch (specs with their turn, unknown, asked, count, language, dialect, status; phase 2: condition, options offered, the chosen option, budget). scripts/sql/every_inquiry_conversation_keeps_one_state_every_surface_reads.sql';
 
 create or replace function public.fn_inquiry_state_carry(p_from_key text, p_to_key text, p_surface text, p_intake_id uuid)
 returns jsonb
@@ -200,10 +267,11 @@ begin
   select * into f from public.inquiry_state where conv_key = p_from_key for update;
   if not found then return null; end if;
   insert into public.inquiry_state (conv_key, surface, party_key, intake_id, source_key, trade, trade_codes, specs, unknown, asked,
-                                    language, dialect, dialect_by, script, message_count, status)
+                                    language, dialect, dialect_by, script, message_count, status, condition, options_offered, chosen_option, budget)
   values (p_to_key, p_surface, f.party_key, p_intake_id, f.conv_key, f.trade, f.trade_codes, f.specs, f.unknown, f.asked,
           f.language, f.dialect, f.dialect_by, f.script, f.message_count,
-          case when f.status in ('converging', 'summarising', 'handed_off') then f.status else 'open' end)
+          case when f.status in ('converging', 'summarising', 'handed_off') then f.status else 'open' end,
+          f.condition, f.options_offered, f.chosen_option, f.budget)
   on conflict (conv_key) do update set
     source_key = excluded.source_key,
     intake_id = coalesce(public.inquiry_state.intake_id, excluded.intake_id),
@@ -214,6 +282,11 @@ begin
     language = coalesce(public.inquiry_state.language, excluded.language),
     dialect = coalesce(public.inquiry_state.dialect, excluded.dialect),
     dialect_by = coalesce(public.inquiry_state.dialect_by, excluded.dialect_by),
+    trade_codes = case when cardinality(public.inquiry_state.trade_codes) > 0 then public.inquiry_state.trade_codes else excluded.trade_codes end,
+    condition = excluded.condition || public.inquiry_state.condition,     -- what the request already holds wins
+    options_offered = case when jsonb_array_length(public.inquiry_state.options_offered) > 0 then public.inquiry_state.options_offered else excluded.options_offered end,
+    chosen_option = coalesce(public.inquiry_state.chosen_option, excluded.chosen_option),
+    budget = coalesce(public.inquiry_state.budget, excluded.budget),
     updated_at = now()
   returning * into t;
   update public.inquiry_state set carried_to = p_to_key, intake_id = coalesce(intake_id, p_intake_id), updated_at = now(),

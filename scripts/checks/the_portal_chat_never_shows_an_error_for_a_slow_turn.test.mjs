@@ -102,7 +102,10 @@ test('the turn is one streamed call on the conversation route, inside its clock,
   assert.ok(a > 0 && turn.length > 0);
   assert.match(turn, /const deadline = t0 \+ PORTAL_TURN_MS;/);
   assert.match(turn, /await answerFromBrief\(\{/);
-  assert.match(turn, /taskClass: 'customer_portal_assistant'/, 'the portal reply must stay on the conversation route (ruling 1219)');
+  // one chat route per turn (ruling 1219, 1571): the portal assistant's class, or, in a job conversation, the T3 interview
+  // class inquiry_qualification_conversation (10 Nov 2026, ledger 1572/1586: the job conversation IS the expert interview;
+  // both are single streamed calls, routed by model_policy). Exactly this expression: no third class, no think() chain.
+  assert.match(turn, /taskClass: jobTalk \? 'inquiry_qualification_conversation' : 'customer_portal_assistant'/, 'the portal reply must stay on a conversation route (ruling 1219)');
   assert.match(turn, /images, deadline,/, 'the deadline must reach the model ladder');
   // the streamed words are shown as written: the prompt must ask for plain text (27 Oct: replies read {"answer":"..."})
   assert.match(turn, /rules: portalRules\(\), plainText: true(, dialect)? \}/, 'the portal prompt must ask for plain text, not aiReply\'s JSON');

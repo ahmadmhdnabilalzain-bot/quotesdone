@@ -287,8 +287,18 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
           return list && list.length ? { list, source: 'category_specs', category: cat, attached_at: new Date().toISOString() } : null;
         } catch (_e) { return null; }
       };
+      // THE SERVICES AND TRADES THE CONVERSATION SETTLED (10 Nov 2026, sales_engineer; founder ledger 1572/1586). The request
+      // chat records the services the customer's chosen solution names and the taxonomy trades it placed the job in
+      // (inquiry_intake: brief.service_keys, brief.trade_codes, read from the server-side intake only, each re-checked for
+      // shape here). The keys are stored on the inquiry, so matching gates on them (sales_engineer operator: stored, not
+      // re-derived; a supplier holding none of the named trades' services still passes at trade level). The codes join the
+      // single-trade request's trades (fn_taxonomy_trades_for passes a taxonomy code through), so a bus rental or a packaging
+      // order reaches its own trade instead of 'general'; a split request keeps its slugs.
+      const intakeServiceKeys: string[] = Array.isArray(briefObj?.service_keys) ? [...new Set((briefObj!.service_keys as unknown[]).map((k) => String(k)).filter((k) => /^[a-z0-9_]+\.[a-z0-9_]+$/.test(k)))].slice(0, 12) : [];
+      const intakeTradeCodes: string[] = Array.isArray(briefObj?.trade_codes) ? [...new Set((briefObj!.trade_codes as unknown[]).map((k) => String(k)).filter((k) => /^[a-z0-9_]+$/.test(k)))].slice(0, 4) : [];
       // A repeated request is linked to the one it copies (founder_instruction 1028); read from the server-side intake only.
-      const briefCols = { floor: floorTxt, delivery_window: timelineTxt, required_by: requiredBy, project_id: projectId, ...(briefObj?.repeat_of ? { repeat_of: String(briefObj.repeat_of) } : {}) };
+      const briefCols = { floor: floorTxt, delivery_window: timelineTxt, required_by: requiredBy, project_id: projectId, ...(briefObj?.repeat_of ? { repeat_of: String(briefObj.repeat_of) } : {}),
+        ...(intakeServiceKeys.length ? { service_keys: intakeServiceKeys } : {}) };
 
       if (wantSplit) {
         // ALL OR NOTHING (_shared/inquiry_split.ts; review of #653). Parent and every child are saved
@@ -350,7 +360,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         return J({ ...postedSingle(String(inq!.id), 'turnkey', matches), concierge: await confirmRequest(String(inq!.id)) });
       }
 
-      const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
+      const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length || intakeTradeCodes.length ? [...new Set([...tradesIn, ...intakeTradeCodes])] : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
       if (e1) return J(...inquiryNotSaved(e1));
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';

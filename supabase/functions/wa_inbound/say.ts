@@ -7,7 +7,10 @@ import { turnLang } from '../_shared/chat_answers.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
 import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
 import { waConversation } from '../_shared/wa_history.ts';
-import { dialectOf, mergeState, registerPatch, whatsappKey } from '../_shared/inquiry_state.ts';
+import { dialectOf, mergeState, readState, registerPatch, whatsappKey } from '../_shared/inquiry_state.ts';
+import { ADVISE_RULE, heldProblem, problemsFor, solutionsBlock, solutionStateText } from '../_shared/solution_catalogue.ts';
+import { taxonomyOf, tradeBlock, tradeContext } from '../_shared/inquiry_trades.ts';
+import { readInquiry, readingPatch } from '../_shared/inquiry_reading.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
 import { admin, itFinding, sec } from './shared.ts';
@@ -40,6 +43,29 @@ export function makeSay(t: WaTurn): void {
     const theirs = [...conv.filter((x) => x.role !== 'seat').map((x) => x.text), Body];
     const dialect = aud === 'supplier' || aud === 'founder' ? null : dialectOf(theirs)?.dialect ?? null;
     if (!signal && aud !== 'supplier' && aud !== 'founder') void mergeState(admin, whatsappKey(From), 'whatsapp', { turn: theirs.length, message_count: conv.length + 1, ...registerPatch(theirs, lang) });
+    // THE EXPERT INTERVIEW ON WHATSAPP (10 Nov 2026, ledger 1572/1586; _shared/solution_catalogue.ts, inquiry_trades.ts). A
+    // customer or visitor describing a job is advised the way the portal and the request chat advise: the ADVISE rule always,
+    // and once the number's state holds the job's taxonomy trades (the reader below), their packs, the reference options for
+    // them and the solution so far, on the interview class. Never for a supplier or the founder. The reader runs after the
+    // reply is asked, never awaited by it, and only for the real reply (not a speculative draft).
+    const customerSide = aud === 'customer' || aud === 'visitor';
+    const expertP = customerSide ? (async () => {
+      const st = await readState(admin, whatsappKey(From));
+      const tax = await taxonomyOf(admin);
+      const ctx = await tradeContext(admin, st?.trade_codes ?? [], lang, tax);
+      const problems = problemsFor({ codes: ctx?.codes ?? [], held: heldProblem(st) });
+      const job = !!(ctx?.codes.length || problems.length || st?.options_offered?.length);
+      return { st, tax, ctx, problems, job, text: [ADVISE_RULE, solutionStateText(st, lang), tradeBlock(ctx, lang), solutionsBlock(problems, lang)].filter(Boolean).join('\n\n') };
+    })().catch(() => null) : Promise.resolve(null);
+    const ex = await expertP;
+    if (ex && !signal && ex.tax) {
+      const deps = defaultDeps(admin, 'wa_inbound');
+      const ask = async (sys: string, input: string, ms: number) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'customer_support', max: 400, timeoutMs: ms,
+        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, internal: true })).content ?? null;
+      void readInquiry(ask, { taxonomy: ex.tax, problems: ex.problems, services: ex.ctx?.services, lastSeat: [...conv].reverse().find((x) => x.role === 'seat')?.text ?? '', message: Body, heldCodes: ex.st?.trade_codes ?? [] }, Date.now() + 25_000)
+        .then((r) => r ? mergeState(admin, whatsappKey(From), 'whatsapp', { turn: theirs.length, ...readingPatch(r), ...(r.problem ? { condition: { ...(readingPatch(r).condition ?? {}), problem: r.problem } } : {}) }) : null)
+        .catch(() => null);
+    }
     return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: conv, forbidden: await t.forbidden,
       budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
       // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
@@ -47,7 +73,8 @@ export function makeSay(t: WaTurn): void {
       rateKey: signal ? 'wa-spec:' + From : 'wa:' + From,
       ...(signal ? { signal } : {}), ...(extraCheck ? { extraCheck } : {}),
       subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}),
-      ...(t.factsAnswer && !signal ? { situationAnswers: true } : {}), ...(dialect ? { dialect } : {}) });
+      ...(t.factsAnswer && !signal ? { situationAnswers: true } : {}), ...(dialect ? { dialect } : {}),
+      ...(ex ? { expert: ex.text, ...(ex.job ? { taskClass: 'inquiry_qualification_conversation' } : {}) } : {}) });
   };
   const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
     t.modelEscalate = t.modelEscalate || r.escalate;
