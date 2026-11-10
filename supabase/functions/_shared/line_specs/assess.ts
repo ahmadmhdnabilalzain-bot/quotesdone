@@ -95,6 +95,8 @@ export function customerAnswer(req: Requirements, what: 'installation' | 'warran
 export type MissingItem = {
   scope: 'line' | 'quote'; line_no: number | null; description: string | null; attr: string;
   label_en: string; label_ar: string; type: 'text' | 'number' | 'choice'; unit?: string; unit_ar?: string; options?: string[];
+  /** The words each choice is shown with, when they are not yes / no (a release-review item: the VAT basis). */
+  option_labels?: { value: string; en: string; ar: string }[];
 };
 export type LineResult = {
   line_no: number; description: string; trade: string | null; material: boolean;
@@ -209,6 +211,8 @@ export const SPEC_ATTR: Attr = {
   code: 'specification', en: 'Exact specification (what it is, material, size, make and model)',
   ar: 'المواصفة الدقيقة (النوع، المادة، المقاس، الشركة المصنّعة والموديل)', type: 'text', mandatory: true,
 };
+/** A stated value with at least one letter or digit and two characters (the shape validateLineValue asks). */
+const hasSubstanceText = (v: unknown) => { const s = normText(String(v ?? '')); return s.length >= 2 && /[\p{L}\p{N}]/u.test(s); };
 
 // ---------------------------------------------------------------------------------------------
 // FORMAT readers. A lead time is a number and a unit, or a date; a warranty period is a number of years or
@@ -273,6 +277,21 @@ const TERM_LABEL: Record<string, [string, string, MissingItem['type']]> = {
   // Asked by the hold desk (workflow.ts deskAssess), because the release review (quote_review.ts rule 7) asks it.
   validity: ['How long your prices are valid (e.g. 30 days, or 30 Nov 2026)', 'مدة صلاحية أسعاركم (مثل 30 يومًا أو 30 نوفمبر 2026)', 'text'],
   price_ex_vat: ['Total price excluding VAT', 'السعر الإجمالي غير شامل ضريبة القيمة المضافة', 'number'],
+};
+/** The choices a release-review item is answered with on the hold desk (supplier_api submit_review.ts issueAsMissing). */
+export const RELEASE_CHOICES: Record<'vat' | 'currency', { value: string; en: string; ar: string }[]> = {
+  vat: [
+    { value: 'exclusive', en: 'The total excludes VAT',
+      ar: 'الإجمالي غير شامل ضريبة القيمة المضافة' },
+    { value: 'inclusive', en: 'The total includes VAT',
+      ar: 'الإجمالي شامل ضريبة القيمة المضافة' },
+    { value: 'not_registered', en: 'We are not VAT-registered',
+      ar: 'لسنا مسجّلين في ضريبة القيمة المضافة' },
+  ],
+  currency: [
+    { value: 'aed', en: 'All our prices are in AED',
+      ar: 'جميع أسعارنا بالدرهم الإماراتي' },
+  ],
 };
 export const termItem = (attr: string, label?: [string, string]): MissingItem => {
   const [en, ar, type] = label ? [label[0], label[1], 'text' as const] : TERM_LABEL[attr];
@@ -345,7 +364,10 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
     for (const m of req?.materials ?? []) if (m?.component && material && m.component !== 'main' && componentOnLine(m, l)) named.add(m.component);
     const spec: Record<string, string> = {}; const source: Record<string, Src> = {};
     for (const a of defs) {
-      const v = l.spec?.[a.code];
+      // SPEC_ATTR asks the line's exact specification as one text, and the line's own `specification` column IS that
+      // text, stated by the supplier in a keyed field (a quotation PDF's "Specification" column, or the form's). It
+      // answers it: evidence run of 10 Nov 2026, finding (a), a stated specification must not be asked again.
+      const v = l.spec?.[a.code] || (a.code === SPEC_ATTR.code && hasSubstanceText(l.specification) ? normText(String(l.specification)) : null);
       if (v && String(v).trim()) { spec[a.code] = String(v); source[a.code] = l.spec_source?.[a.code] ?? 'extracted'; }
     }
     // What reasoning read about the line itself travels with it, so persisting the specs never drops it.

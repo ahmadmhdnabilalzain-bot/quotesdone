@@ -14,7 +14,7 @@ import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
-import { approve, deskAssess, fillIn, formSchema, gate, gateInputKey, readAndAssess, supabaseRepo, type Ctx } from '../../_shared/line_specs/workflow.ts';
+import { answersOf, approve, deskAssess, fillIn, formSchema, gate, gateInputKey, openHeld, readAndAssess, supabaseRepo, type Ctx, type Precheck } from '../../_shared/line_specs/workflow.ts';
 import { readQuote } from '../../_shared/reasoned_matching.ts';
 import { requirementsOf } from '../../_shared/line_specs/assess.ts';
 import { optionAmount, splitOptions } from '../../_shared/line_specs/options.ts';
@@ -22,7 +22,7 @@ import { statedPrice, storedPrice } from '../../_shared/stated_price.ts';
 import { findTrn } from '../../_shared/identity_numbers.ts';
 import { deriveLineFields, deriveTermsFromScope } from '../../_shared/line_specs/derive.ts';
 import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from '../quote_review.ts';
-import { carryHeldAnswers, heldAnswersOf, issueAsMissing, optionOfEach, resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit, type HeldAnswers } from '../submit_review.ts';
+import { carryHeldAnswers, heldAnswersOf, issueAsMissing, optionOfEach, resolvedFrom, withDeskAnswers, withResolved, workingFromStoredQuote, workingFromSubmit, type HeldAnswers } from '../submit_review.ts';
 import { scrubDeep, scrubIdentity, scrubLine } from '../identity_scrub.ts';
 import { cleanTemplate } from '../quote_template.ts';
 import { newOptionRefusal } from '../new_option.ts';
@@ -133,50 +133,54 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(spec), ref: jobNo({ id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no }), multiOption: (optCount || 0) > 1,
                     ...(await specChecklist(inqRow?.category ?? null, String(q.id), 'stored')) };
       const signed = async (b?: string | null, p?: string | null) => { if (!b || !p) return null; try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
+      // THE RELEASE CHECK, ONE FUNCTION FOR BOTH DOORS (evidence run of 10 Nov 2026, finding a). spec_fill asks it before
+      // it says complete and spec_approve asks it before it releases, on the row as stored, with the supplier's desk
+      // answers applied; what it asks is put on the hold, and spec_hold shows every open item the hold carries.
+      // THE THIRD DOOR (review of #854, finding SP-F-02): the release depends on the review of the STORED quote — by
+      // then the row, not any request, is the quotation — read through the same scrubbed inbox and with the same
+      // engineer-recorded explanations.
+      const releaseCheck: Precheck = async (row, answers) => {
+        const inqSafe = await safeInquiryOf(req, jwt, String(row.inquiry_id));
+        // A transient inbox failure is NOT an approval and NOT a silent stranding: the desk stays
+        // open with something the supplier can act on (try again), rather than closing on them.
+        if (!inqSafe) return { missing: [{ scope: 'quote' as const, line_no: null, description: null, attr: 'review_unavailable', type: 'text' as const,
+          label_en: 'We could not read this job just now, so we have not sent your quotation. Please confirm your approval again in a moment.',
+          label_ar: 'تعذّر علينا قراءة هذا الطلب الآن، ولذلك لم نرسل عرضكم. يُرجى تأكيد الموافقة مرة أخرى بعد قليل.' }] };
+        const rrow = await supabaseReviewRepo(admin).review(String(row.inquiry_id), Number(sup.id)).catch(() => null);
+        // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
+        const working = withDeskAnswers(withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)), answers);
+        const rvw = reviewQuotation(inqSafe, await readWorking(defaultDeps(admin, 'supplier_api'), inqSafe, working, 'review:' + inqSafe.id + ':' + sup.id));
+        if (rvw.approved) return null;
+        return { missing: rvw.issues.map(issueAsMissing), issues: rvw.issues };
+      };
       if (action === 'spec_hold') {
-        const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
+        const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,supplier_values,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
         const hold = hs?.[0] || null;
         const lines = await repo.lines(qid);
         const a = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity);
-        return J({ ok: true, quote_id: qid, option_no: q.option_no, hold: hold ? { ...hold, pdf_url: await signed(hold.pdf_bucket, hold.pdf_path) } : null, schema: formSchema(a, lines) });
+        // The form is deskAssess's missing plus every open item the hold carries (the release review's included).
+        const extra = hold && hold.state === 'open' ? openHeld(hold.missing, a, lines, answersOf(hold)) : [];
+        const { supplier_values: _sv, ...shown } = hold || {};
+        return J({ ok: true, quote_id: qid, option_no: q.option_no, hold: hold ? { ...shown, pdf_url: await signed(hold.pdf_bucket, hold.pdf_path) } : null, schema: formSchema(a, lines, extra) });
       }
       if (action === 'spec_fill') {
         // The regenerated quotation is the standard quotation (quoteDocument, via workflow.ts pdfBody) in
         // the supplier's own language, under the one alias this supplier carries on this job (the rule
         // quote_pdf above uses). Audit 22 Sep 2026, finding 1: it was a blank page.
         const render = regenRender(q, sup, inqRow);
-        const out = await fillIn(repo, qid, supplierOf(sup, email), body.values && typeof body.values === 'object' ? scrubDeep(body.values, sup.company_name, []) as typeof body.values : {}, ctx, render);
+        const out = await fillIn(repo, qid, supplierOf(sup, email), body.values && typeof body.values === 'object' ? scrubDeep(body.values, sup.company_name, []) as typeof body.values : {}, ctx, render, releaseCheck);
         if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 400);
         if (out.complete) return J({ ...out, pdf_url: await signed(out.pdf?.bucket, out.pdf?.path) });
         return J(out);
       }
-      // THE THIRD DOOR (review of #854, finding SP-F-02). spec_approve RELEASES a held quote to the
-      // customer through approve() -> acceptLive(), so "the review runs at the one door" was not true
-      // while this one skipped it: a quote held for missing specs, filled in through spec_fill and
-      // approved here, went out with rules 1-7 never asked. The release now depends on the review of the
-      // STORED quote — by then the row, not any request, is the quotation — read through the same
-      // scrubbed inbox and with the same engineer-recorded explanations.
-      // IT RUNS AS THE PRECHECK, NOT INSIDE accept (re-review of #854). approve() marks the hold
-      // released before it calls accept, and liveHold() reads only 'open' and 'awaiting_approval', so
-      // a refusal from inside accept left the quote unsent AND the hold desk shut: spec_fill and
-      // spec_approve both answered not_awaiting_approval and the supplier was told only that the quote
-      // "still waits on its commercial terms", naming nothing to do. As a precheck the hold goes back
-      // to 'open' carrying the review's own issues, in the shape the hold surface already renders.
+      // spec_approve RELEASES a held quote to the customer through approve() -> acceptLive(), so the review runs at
+      // this door too (review of #854, finding SP-F-02). IT RUNS AS THE PRECHECK, NOT INSIDE accept (re-review of
+      // #854). approve() marks the hold released before it calls accept, and liveHold() reads only 'open' and
+      // 'awaiting_approval', so a refusal from inside accept left the quote unsent AND the hold desk shut. As a
+      // precheck the hold goes back to 'open' carrying the review's own issues, which spec_hold now shows (finding a).
       const out = await approve(repo, qid, supplierOf(sup, email), email, body.confirm, ctx,
         async (row) => (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted,
-        async (row) => {
-          const inqSafe = await safeInquiryOf(req, jwt, String(row.inquiry_id));
-          // A transient inbox failure is NOT an approval and NOT a silent stranding: the desk stays
-          // open with something the supplier can act on (try again), rather than closing on them.
-          if (!inqSafe) return { missing: [{ scope: 'quote' as const, line_no: null, description: null, attr: 'review_unavailable', type: 'text' as const,
-            label_en: 'We could not read this job just now, so we have not sent your quotation. Please confirm your approval again in a moment.',
-            label_ar: 'تعذّر علينا قراءة هذا الطلب الآن، ولذلك لم نرسل عرضكم. يُرجى تأكيد الموافقة مرة أخرى بعد قليل.' }] };
-          const rrow = await supabaseReviewRepo(admin).review(String(row.inquiry_id), Number(sup.id)).catch(() => null);
-          // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
-          const rvw = reviewQuotation(inqSafe, await readWorking(defaultDeps(admin, 'supplier_api'), inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)), 'review:' + inqSafe.id + ':' + sup.id));
-          if (rvw.approved) return null;
-          return { missing: rvw.issues.map(issueAsMissing), issues: rvw.issues };
-        });
+        releaseCheck);
       if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
       return J(out);
     }

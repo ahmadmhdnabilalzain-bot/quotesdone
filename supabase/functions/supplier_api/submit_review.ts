@@ -15,7 +15,7 @@
 // are therefore passed in from public.quote_reviews.working, which only the sales engineer writes, and
 // never read off the request body: otherwise a supplier posting straight to the endpoint could declare
 // every BOQ line excluded and walk past the whole review.
-import { readDelivery, readInstallation, readWarranty, type MissingItem, type TermsSpec } from '../_shared/line_specs/assess.ts';
+import { readDelivery, readInstallation, readWarranty, RELEASE_CHOICES, termItem, type MissingItem, type TermsSpec } from '../_shared/line_specs/assess.ts';
 import { foreignCurrency, parseQty, sanitizeSpec, sanitizeTermsSpec, type Issue, type WLine, type Working } from './quote_review.ts';
 
 const num = (v: unknown): number | null => { const n = Number(v); return Number.isFinite(n) && String(v ?? '').trim() !== '' ? n : null; };
@@ -81,6 +81,12 @@ export function workingFromStoredQuote(q: any, rows: any[]): Working {
     amount: num(r?.amount) ?? (((num(r?.qty) || 0) * (num(r?.unit_price) || 0)) || null),
     ...(r?.specification ? { specification: String(r.specification) } : {}),
     ...(r?.spec && typeof r.spec === 'object' ? { spec: r.spec as Record<string, string> } : {}),
+    // WHERE EACH VALUE CAME FROM travels with it (evidence run of 10 Nov 2026, finding a). What reasoning read about a
+    // line — which trade it is (_trade), that it carries no material (_not_material) — is honoured only with its source
+    // 'reasoned' (assess.ts READ). Without spec_source the release review read every line of a composite quote as
+    // unread, and asked line 1 ("Removal and disposal of existing PVC wall panels") its exact `specification`, which
+    // the desk, reading the same row WITH its sources, never asked.
+    ...(r?.spec_source && typeof r.spec_source === 'object' ? { spec_source: r.spec_source as WLine['spec_source'] } : {}),
   }));
   return {
     lines, amount: num(q?.quote_amount) ?? num(q?.amount_as_stated), subtotal: null, vat_amount: num(q?.vat_amount),
@@ -108,7 +114,46 @@ export function withResolved(w: Working, r: Resolved): Working {
  * one detail, named, with what to do about it.
  */
 export function issueAsMissing(i: Issue): MissingItem {
-  return { scope: i.line_no ? 'line' : 'quote', line_no: i.line_no, description: null, attr: i.attr || i.code, type: 'text', label_en: i.en, label_ar: i.ar };
+  const base = { description: null, label_en: i.en, label_ar: i.ar };
+  // AN ITEM THE DESK CAN ANSWER (evidence run of 10 Nov 2026, finding a). A release-review item reopens the hold and
+  // is shown on the hold desk's form, so each one is keyed by what answers it. A detail of a line (its specification)
+  // is a field of that line; a BOQ line, a quantity, a unit or a total difference is the supplier's explanation
+  // (the chat records the same as quote_reviews.working boq_excluded / qty_explained); the VAT basis and prices in
+  // AED are choices; a price is a number. Every other issue keeps its own attribute.
+  const quote = (attr: string, x: Partial<MissingItem> = {}): MissingItem => ({ ...base, scope: 'quote', line_no: null, attr, type: 'text', ...x });
+  switch (i.code) {
+    case 'boq_line_not_priced': return i.boq_line ? quote(`boq:${i.boq_line}`) : quote(i.code);
+    case 'qty_mismatch': return i.boq_line ? quote(`boq:${i.boq_line}:qty`) : quote(i.code);
+    case 'unit_mismatch': return i.boq_line ? quote(`boq:${i.boq_line}:unit`) : quote(i.code);
+    case 'line_unpriced': return i.line_no ? quote(`line:${i.line_no}`) : quote(i.code);
+    case 'total_mismatch': return quote('total');
+    case 'currency_not_aed': return quote('currency', { type: 'choice', options: RELEASE_CHOICES.currency.map((c) => c.value), option_labels: RELEASE_CHOICES.currency });
+    case 'vat_basis': return quote('vat', { type: 'choice', options: RELEASE_CHOICES.vat.map((c) => c.value), option_labels: RELEASE_CHOICES.vat });
+    case 'vat_ex_price': { const p = termItem('price_ex_vat'); return quote('price_ex_vat', { type: 'number', unit: p.unit, unit_ar: p.unit_ar }); }
+    default: return { ...base, scope: i.line_no ? 'line' : 'quote', line_no: i.line_no, attr: i.attr || i.code, type: 'text' };
+  }
+}
+
+/**
+ * The supplier's answers on the hold desk, applied to the quotation the release review reads. Only an answer to an
+ * item the hold ASKED is ever here (workflow.ts fillIn accepts a release-review answer only for an item on the hold,
+ * and the hold is written by the sales engineer's desk, never by the caller), so this is the chat's own channel —
+ * "BOQ line 3 excluded — by others" — through the desk's form, not a way past the review.
+ */
+export function withDeskAnswers(w: Working, answers: Record<string, string> | null | undefined): Working {
+  const a = answers ?? {};
+  const out: Working = { ...w, boq_excluded: { ...w.boq_excluded }, qty_explained: { ...w.qty_explained } };
+  for (const [k, v] of Object.entries(a)) {
+    if (!str(v).trim()) continue;
+    let m: RegExpMatchArray | null;
+    if ((m = k.match(/^boq:(\d+)$/))) out.boq_excluded[m[1]] = v;
+    else if ((m = k.match(/^boq:(\d+):qty$/))) out.qty_explained[m[1]] = v;
+    else if ((m = k.match(/^boq:(\d+):unit$/))) out.qty_explained[`${m[1]}:unit`] = v;
+    else if ((m = k.match(/^line:(\d+)$/))) out.qty_explained[`line:${m[1]}`] = v;
+    else if (k === 'total') out.qty_explained.total = v;
+    else if (k === 'currency' && v === 'aed') out.foreign_currency = null;
+  }
+  return out;
 }
 
 /** One quantity reader, so a caller need not import quote_review.ts for it. */
