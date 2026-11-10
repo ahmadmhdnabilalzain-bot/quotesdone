@@ -29,7 +29,8 @@
 //   * The chat's answers come from a per-journey script (FACTS below) matched to the question asked; nothing is
 //     typed by a model on the customer's side.
 //   * A demo supplier the live matcher did not pick is matched by the harness (recorded as such in manifest.json).
-//   * The supplier registration's mobile is the reserved fixture block, recorded verified (no SMS can reach it).
+//   * The supplier registration's mobile is the reserved fixture block, recorded verified (no SMS can reach it), and the
+//     form is loaded again once kyc reads it so (fixture_mobile.mjs: holding the form's read raced its 20 s abort).
 //
 // SAFETY: identities are ZZ DEMO / qd-<tag>-*@example.invalid / +971 50 000 00xx; the one exception is the registration
 // account's e-mail, Resend's own sink delivered+qd-<tag>-...@resend.dev (accepted and dropped by Resend, no inbox).
@@ -45,6 +46,7 @@ import { payHostedTestCheckout } from './stripe_test_checkout.mjs';
 import { sinkAddress, readCode, cleanSink, leftoversSink } from './resend_sink.mjs';
 import { keys, BASE, makeInquiry, internalCred, TRADES } from '../lib/demo_factory.mjs';
 import { demoTradeLicence } from '../lib/demo_pdf.mjs';
+import { recordFixtureMobile } from './fixture_mobile.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -926,23 +928,27 @@ async function registration(run) {
     await slowType(Mn.getByRole('textbox', { name: /Company name/ }).first(), company);
     await Mn.locator('select').first().selectOption('aluminium');
     await shot('company_name_and_trade');
-    let release; const phoneReady = new Promise((r) => { release = r; });
-    await p.route('**/functions/v1/kyc**', async (route) => { if (/"action"\s*:\s*"state"/.test(route.request().postData() || '')) await phoneReady; await route.continue(); });
     await Mn.getByRole('button', { name: /^Create company$/ }).click();
     const lead = await waitFor(async () => (await read(`select id, sector, company_name from public.leads where lower(claimed_by)=lower(${q(email)}) order by id desc limit 1`))[0] || null, { timeoutMs: 40000 });
+    step('company created', !!lead, lead ? `lead ${lead.id}` : 'no lead row');
     if (lead) {
       R.lead_id = lead.id; run.ids.leads.add(String(lead.id));
       await write(`update public.leads set tags = array(select distinct unnest(coalesce(tags,'{}') || ARRAY['qd_demo','qd_run:${run.tag}'])) where id=${Number(lead.id)}`, 'tag the run\'s new lead');
-      // the reserved fixture mobile: refused before any SMS, so it is recorded verified (fixtures.makeDemoSupplier does the same)
-      const sms = await call('kyc', tok, { action: 'send_sms', phone: mobile });
-      R.mobile = { number: mobile, sms_refused: sms.json?.ok !== true };
-      await write(`update public.leads set phone=${q(mobile)}, owner_phone_verified=true where id=${Number(lead.id)}`, 'fixture mobile verified');
-      await call('kyc', tok, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' });
+      // the reserved fixture mobile: refused before any SMS, so it is recorded verified (fixtures.makeDemoSupplier does the
+      // same). No page request is held while this runs; the form is loaded again once kyc says so (fixture_mobile.mjs).
+      const fm = await recordFixtureMobile({
+        sendSms: async () => (await call('kyc', tok, { action: 'send_sms', phone: mobile })).json,
+        markVerified: () => write(`update public.leads set phone=${q(mobile)}, owner_phone_verified=true where id=${Number(lead.id)}`, 'fixture mobile verified'),
+        chooseWhatsapp: () => call('kyc', tok, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' }),
+        kycState: async () => (await call('kyc', tok, { action: 'state' })).json,
+        reloadForm: async () => { await p.reload({ waitUntil: 'domcontentloaded' }); await Mn.getByText(/Emirates you serve/).first().waitFor({ timeout: 40000 }).catch(() => {}); },
+        formShowsVerified: () => Mn.getByText(/^Mobile verified$/).first().waitFor({ timeout: 20000 }).then(() => true).catch(() => false),
+        sleep,
+      });
+      R.mobile = { number: mobile, sms_refused: fm.smsRefused, detail: fm.detail };
+      step('the fixture mobile is refused by kyc, recorded verified, and the form shows it', fm.ok && fm.smsRefused, fm.detail);
     }
-    release();
     await Mn.getByText(/Emirates you serve/).first().waitFor({ timeout: 40000 }).catch(() => {});
-    await p.unroute('**/functions/v1/kyc**');
-    step('company created', !!lead, lead ? `lead ${lead.id}` : 'no lead row');
     await p.waitForTimeout(1200); await shot('registration_form', true);
     const allBox = Mn.getByRole('checkbox', { name: /^All emirates$/ });
     if (await allBox.isVisible().catch(() => false)) await allBox.check();
