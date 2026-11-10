@@ -1,0 +1,1 @@
+Not applied yet: the release applies it (no deploy needed: the triggers are in the database). Apply with node scripts/apply_sql.mjs scripts/sql/a_hold_closes_when_its_request_ends_or_its_quote_is_withdrawn.sql --apply --ddl, then delete this note and append the file to the END of MANIFEST.txt. Seat: sales_engineer (hold desk), delivered by customer_support.
