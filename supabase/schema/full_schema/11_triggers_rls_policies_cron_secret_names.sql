@@ -149,6 +149,8 @@ CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW E
 CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
 CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER z20_routine_repeat_request_enqueue AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_routine_repeat_request_enqueue();
+CREATE TRIGGER z31_request_end_closes_its_holds AFTER UPDATE OF status ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_request_end_closes_its_holds();
+CREATE TRIGGER z32_request_end_counts_unanswered_suppliers AFTER UPDATE OF status ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_request_end_counts_unanswered_suppliers();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF status, outcome, lost_reason, completed_at, pipeline_stage, hired_supplier_id, summary_masked ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_case_memory_inquiry();
 CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF status ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
@@ -297,6 +299,8 @@ CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUT
 CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
 CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
 CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER z31_withdrawn_quote_closes_its_holds AFTER UPDATE OF status ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_withdrawn_quote_closes_its_holds();
+CREATE TRIGGER z32_a_quote_clears_the_strike_run AFTER INSERT ON public.quotes FOR EACH ROW WHEN ((new.supplier_id IS NOT NULL)) EXECUTE FUNCTION trg_a_quote_clears_the_strike_run();
 CREATE TRIGGER z40_quote_quality_gate BEFORE INSERT OR UPDATE OF status ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_quality_gate();
 CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF status ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER lesson_reapproval_lapse_escalates AFTER UPDATE OF status ON public.reasoning_held_question FOR EACH ROW WHEN (((new.surface = 'ceo.lesson_reapproval'::text) AND (old.status IS DISTINCT FROM new.status) AND ((new.status = ANY (ARRAY['expired'::text, 'failed'::text, 'applied'::text])) OR ((new.status = 'reasoned'::text) AND (new.result ? 'apply_error'::text))))) EXECUTE FUNCTION fn_lesson_reapproval_lapse_escalates();
@@ -364,6 +368,7 @@ CREATE TRIGGER trg_supplier_due_paid_records_payment AFTER INSERT OR UPDATE OF p
 CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF first_response_at, closed_at ON public.supplier_response_watch FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER a00_hit_is_never_deleted BEFORE DELETE ON public.supplier_screening_hit FOR EACH ROW EXECUTE FUNCTION fn_screening_record_is_never_deleted();
 CREATE TRIGGER a00_hit_is_never_truncated BEFORE TRUNCATE ON public.supplier_screening_hit FOR EACH STATEMENT EXECUTE FUNCTION fn_screening_record_is_never_deleted();
+CREATE TRIGGER a10_supplier_strike_event_append_only BEFORE DELETE OR UPDATE ON public.supplier_strike_event FOR EACH ROW EXECUTE FUNCTION fn_supplier_strike_event_append_only();
 CREATE TRIGGER a00_supplier_whatsapp_optin_obeys_the_rule BEFORE INSERT OR UPDATE ON public.supplier_whatsapp_optin FOR EACH ROW EXECUTE FUNCTION fn_supplier_whatsapp_optin_obeys_the_rule();
 CREATE TRIGGER a10_support_case_lifecycle BEFORE INSERT OR UPDATE OF state ON public.support_case FOR EACH ROW EXECUTE FUNCTION fn_support_case_lifecycle();
 CREATE TRIGGER a11_support_case_kind_category BEFORE INSERT ON public.support_case FOR EACH ROW EXECUTE FUNCTION fn_support_case_kind_category();
@@ -1134,6 +1139,7 @@ ALTER TABLE public.supplier_response_watch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_score ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_scorecard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_screening_hit ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_strike_event ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_voice_note ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_whatsapp_consent_ask ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_whatsapp_optin ENABLE ROW LEVEL SECURITY;
@@ -1544,6 +1550,7 @@ CREATE POLICY supplier_recruitment_funnel_service_role_only ON public.supplier_r
 CREATE POLICY supplier_reply_followup_service_role_only ON public.supplier_reply_followup AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_scorecard_service_role_only ON public.supplier_scorecard AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supplier_strike_event_service_role_only ON public.supplier_strike_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_voice_note_service_role_only ON public.supplier_voice_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_whatsapp_consent_ask_service_role_only ON public.supplier_whatsapp_consent_ask AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_whatsapp_optin_service_role_only ON public.supplier_whatsapp_optin AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1681,6 +1688,10 @@ select cron.schedule('sales_engineer_verification_rerun','* * * * *',$CRON$set s
 select cron.schedule('sales_engineer_agreement_resign','* * * * *',$CRON$set statement_timeout = '50s'; select public.fn_sales_engineer_resigns_unsigned_agreements();$CRON$);
 select cron.schedule('seat_duty:sales_engineer.request_outcomes','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.request_outcomes');$CRON$);
 select cron.schedule('seat_duty:sales_engineer.abandoned_intakes','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.abandoned_intakes');$CRON$);
+select cron.schedule('seat_duty:ceo.trade_opening','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.trade_opening');$CRON$);
+select cron.schedule('seat_duty:ceo.trade_opening_tune','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.trade_opening_tune');$CRON$);
+select cron.schedule('seat_duty:ceo.break_even','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.break_even');$CRON$);
+select cron.schedule('seat_duty:ceo.month_plan_settle','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.month_plan_settle');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

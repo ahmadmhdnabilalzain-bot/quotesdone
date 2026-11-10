@@ -8656,6 +8656,24 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_a_quote_clears_the_strike_run()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_prev int;
+begin
+  select chat_strikes into v_prev from public.leads where id = NEW.supplier_id;
+  if coalesce(v_prev, 0) > 0 then
+    update public.leads set chat_strikes = 0 where id = NEW.supplier_id;
+    insert into public.supplier_strike_event (lead_id, inquiry_id, kind, strikes_after, detail)
+    values (NEW.supplier_id, NEW.inquiry_id, 'cleared', 0, jsonb_build_object('cleared_from', v_prev, 'quote_id', NEW.id));
+  end if;
+  return NEW;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_accountant_issued_document_is_append_only()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -10658,6 +10676,39 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_request_end_closes_its_holds()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if coalesce(NEW.status, '') in ('completed', 'closed', 'cancelled', 'expired', 'lost')
+     and coalesce(OLD.status, '') not in ('completed', 'closed', 'cancelled', 'expired', 'lost') then
+    perform public.fn_quote_holds_close_without_decision(NEW.id, null, 'request_ended');
+  end if;
+  return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_request_end_counts_unanswered_suppliers()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- expired, lost or completed: the supplier had the request and the window. cancelled is the customer's choice; closed
+  -- is a split parent, whose parts are counted as they end.
+  -- A request still waiting for the customer's details (rfq_ready not true) could not be priced: nobody's silence.
+  if coalesce(NEW.status, '') in ('expired', 'lost', 'completed') and NEW.rfq_ready is true
+     and coalesce(OLD.status, '') not in ('completed', 'closed', 'cancelled', 'expired', 'lost') then
+    perform public.fn_sales_engineer_counts_unanswered_request(NEW.id, now());
+  end if;
+  return NEW;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_reveal_opens_response_watch()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -11195,6 +11246,20 @@ begin
   insert into public.doc_versions(entity_type,entity_id,version,snapshot,checksum,changed_fields)
   values ('rfq', NEW.id::text, public._next_docver('rfq',NEW.id::text), snap, md5(snap::text), chg)
   on conflict do nothing;
+  return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_withdrawn_quote_closes_its_holds()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if NEW.status = 'withdrawn' and OLD.status is distinct from 'withdrawn' then
+    perform public.fn_quote_holds_close_without_decision(null, NEW.id, 'quote_withdrawn');
+  end if;
   return NEW;
 end $function$
 
