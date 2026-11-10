@@ -113,8 +113,8 @@
       "id": "plumbing:spec-pipes-fittings",
       "topic": "Spec checklist: pipes and fittings supply",
       "kind": "spec_checklist",
-      "body_en": "To get exact, comparable quotes for pipes and fittings a buyer must fix every variable that moves the price. Material and grade (PPR / PP-RCT, CPVC, PEX-a/b, HDPE PE100, uPVC, copper, GI). Governing standard (for example DIN 8077/8078, ASTM F441, EN ISO 15875, ISO 4427, EN 1401, EN 1057). Pressure class or wall (PN, SDR, SN stiffness, Table/Type). Diameter list with quantities in metres per size, not a lump sum. Fittings schedule: elbows, tees, reducers, unions, valves, transition fittings with counts per size, or at least a fittings allowance percentage stated explicitly. Colour and marking requirements. Potable approval evidence (WRAS or equivalent, Authority approved-materials list for Dubai or Abu Dhabi). Brand or approved equivalent, and country of origin. Packing (lengths, coils) and delivery location, offloading and site access. Required documents: datasheets, test certificates, warranty letter. Delivery lead time and partial delivery schedule. Without per-size quantities and the pressure class the supplier will guess, and quotes cannot be compared line by line.",
-      "body_ar": "للحصول على عروض دقيقة وقابلة للمقارنة لتوريد الأنابيب والقطع، يجب أن يثبّت المشتري كل متغيّر يؤثر في السعر: المادة والدرجة (PPR/PP-RCT، CPVC، PEX-a/b، HDPE PE100، uPVC، نحاس، حديد مجلفن)؛ المعيار الحاكم (مثل DIN 8077/8078 أو ASTM F441 أو EN ISO 15875 أو ISO 4427 أو EN 1401 أو EN 1057)؛ فئة الضغط أو سماكة الجدار (PN أو SDR أو فئة الصلابة SN أو الجدول/النوع)؛ قائمة الأقطار مع الكميات بالمتر لكل مقاس لا مبلغاً إجمالياً؛ جدول القطع من أكواع وتيهات ومسلوبات ويونيونات ومحابس ووصلات انتقالية بعددها لكل مقاس، أو على الأقل نسبة صريحة لبدل القطع؛ متطلبات اللون والوسم؛ إثبات اعتماد مياه الشرب (WRAS أو ما يعادله، وقائمة المواد المعتمدة في دبي أو أبوظبي)؛ العلامة التجارية أو ما يعادلها وبلد المنشأ؛ التعبئة (أطوال أو لفائف) وموقع التسليم والتنزيل وإمكانية الوصول؛ الوثائق المطلوبة من نشرات فنية وشهادات اختبار وخطاب ضمان؛ مدة التوريد وجدول التسليم الجزئي. بدون كميات لكل مقاس وفئة ضغط سيخمّن المورّد، ولن يمكن مقارنة العروض بنداً بنداً.",
+      "body_en": "To get exact, comparable quotes for pipes and fittings a buyer must fix every variable that moves the price. Material and grade (PPR / PP-RCT, CPVC, PEX-a/b, HDPE PE100, uPVC, copper, GI). Governing standard (for example DIN 8077/8078, ASTM F441, EN ISO 15875, ISO 4427, EN 1401, EN 1057). Pressure class or wall (PN, SDR, SN stiffness, Table/Type). Diameter list with quantities in metres per size, not a lump sum. Fittings schedule: elbows, tees, reducers, unions, valves, transition fittings with counts per size, or at least a fittings allowance percentage stated explicitly. Colour and marking requirements. Potable approval evidence (WRAS or equivalent, Authority approved-materials list for Dubai or Abu Dhabi). Brand or approved equivalent, and country of origin. Packing (lengths, coils) and delivery location, offloading and site access. Required documents: datasheets, test certificates, warranty letter. Delivery lead time and partial delivery schedule. Without per-size quantities and the pressure class the supplier will guess, and quotes cannot be compared line by line.\n\nExpert interview (2026-11-10): Blocking: material, pressure class and the quantities per size.",
+      "body_ar": "للحصول على عروض دقيقة وقابلة للمقارنة لتوريد الأنابيب والقطع، يجب أن يثبّت المشتري كل متغيّر يؤثر في السعر: المادة والدرجة (PPR/PP-RCT، CPVC، PEX-a/b، HDPE PE100، uPVC، نحاس، حديد مجلفن)؛ المعيار الحاكم (مثل DIN 8077/8078 أو ASTM F441 أو EN ISO 15875 أو ISO 4427 أو EN 1401 أو EN 1057)؛ فئة الضغط أو سماكة الجدار (PN أو SDR أو فئة الصلابة SN أو الجدول/النوع)؛ قائمة الأقطار مع الكميات بالمتر لكل مقاس لا مبلغاً إجمالياً؛ جدول القطع من أكواع وتيهات ومسلوبات ويونيونات ومحابس ووصلات انتقالية بعددها لكل مقاس، أو على الأقل نسبة صريحة لبدل القطع؛ متطلبات اللون والوسم؛ إثبات اعتماد مياه الشرب (WRAS أو ما يعادله، وقائمة المواد المعتمدة في دبي أو أبوظبي)؛ العلامة التجارية أو ما يعادلها وبلد المنشأ؛ التعبئة (أطوال أو لفائف) وموقع التسليم والتنزيل وإمكانية الوصول؛ الوثائق المطلوبة من نشرات فنية وشهادات اختبار وخطاب ضمان؛ مدة التوريد وجدول التسليم الجزئي. بدون كميات لكل مقاس وفئة ضغط سيخمّن المورّد، ولن يمكن مقارنة العروض بنداً بنداً.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المادة، وفئة الضغط، والكميات لكل مقاس.",
       "required_specs": [
         "pipe material and grade",
         "governing standard",
@@ -133,7 +133,43 @@
         "https://hdpepipefactory.com/blog/hdpe-pipe-size-chart"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "pipe material and grade",
+        "pressure class PN/SDR or stiffness SN or wall class",
+        "diameter list with metres per size"
+      ],
+      "spec_guide": [
+        {
+          "spec": "pipe material and grade",
+          "why_needed_to_price": "PPR, CPVC, uPVC, HDPE, copper and PEX differ widely.",
+          "uae_options": "PPR; CPVC; uPVC; HDPE; copper; PEX",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pressure class PN/SDR or stiffness SN or wall class",
+          "why_needed_to_price": "Class sets wall thickness and price.",
+          "uae_options": "PN 10/16/20; SN4/8",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "diameter list with metres per size",
+          "why_needed_to_price": "Priced per metre per size.",
+          "uae_options": "metres per size",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "potable approval evidence (WRAS/Authority list)",
+          "why_needed_to_price": "Potable pipes must be approved by the water authority.",
+          "uae_options": "approved list",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "plumbing:water-heater-types",
@@ -182,8 +218,8 @@
       "id": "plumbing:spec-water-heater",
       "topic": "Spec checklist: water heaters",
       "kind": "spec_checklist",
-      "body_en": "A water heater enquiry is only quotable when the following are fixed. Type (electric storage, instantaneous, solar thermosiphon, solar pumped/split, heat pump, central calorifier). Storage capacity in litres and, for central systems, the number of fixtures, occupants or peak demand. Heating element power (kW), voltage and phase. Mounting: vertical or horizontal, wall or floor, indoor or roof. Working pressure rating of the tank and whether a pressure-reducing valve is needed. Tank material and lining (glass/enamel-lined steel, stainless steel) and anode type. For solar: collector type and area, tank volume, backup heater rating, certification and registration of the system, frame and roof fixing method. For heat pump: heating capacity, COP at stated conditions, refrigerant. Safety accessories: temperature and pressure relief valve, expansion vessel, non-return valve, thermostatic mixing valve for Legionella-safe storage temperature with scald protection at outlets. Required UAE energy label or certificate. Warranty terms separated for tank and components. Installation scope: removal of old unit, connection, electrical isolator, commissioning.",
-      "body_ar": "لا يمكن تسعير طلب سخان مياه إلا بعد تثبيت ما يلي: النوع (كهربائي بخزان، فوري، شمسي بالسريان الطبيعي، شمسي بالضخ أو منفصل، مضخة حرارية، سخان مركزي)؛ سعة التخزين باللتر، وللأنظمة المركزية عدد الأدوات الصحية أو الشاغلين أو الطلب الأقصى؛ قدرة العنصر بالكيلوواط والجهد والطور؛ طريقة التركيب رأسي أو أفقي، جداري أو أرضي، داخلي أو على السطح؛ ضغط التشغيل المقنن للخزان وهل يلزم صمام تخفيض ضغط؛ مادة الخزان وبطانته (فولاذ مبطن بالمينا أو ستانلس ستيل) ونوع الأنود؛ وللأنظمة الشمسية نوع المجمّع ومساحته وسعة الخزان وقدرة السخان الاحتياطي وشهادة النظام وتسجيله وطريقة تثبيت الهيكل على السطح؛ وللمضخة الحرارية القدرة الحرارية ومعامل الأداء عند ظروف محددة ونوع غاز التبريد؛ ملحقات السلامة من صمام تنفيس الحرارة والضغط وخزان التمدد وصمام عدم الرجوع وصمام الخلط الحراري للحفاظ على حرارة تخزين آمنة من الليجيونيلا مع الحماية من الحروق عند المخارج؛ بطاقة الطاقة أو الشهادة المطلوبة في الدولة؛ شروط الضمان مفصولة للخزان وللمكونات؛ ونطاق التركيب من فك القديم والتوصيل وعازل كهربائي والتشغيل التجريبي.",
+      "body_en": "A water heater enquiry is only quotable when the following are fixed. Type (electric storage, instantaneous, solar thermosiphon, solar pumped/split, heat pump, central calorifier). Storage capacity in litres and, for central systems, the number of fixtures, occupants or peak demand. Heating element power (kW), voltage and phase. Mounting: vertical or horizontal, wall or floor, indoor or roof. Working pressure rating of the tank and whether a pressure-reducing valve is needed. Tank material and lining (glass/enamel-lined steel, stainless steel) and anode type. For solar: collector type and area, tank volume, backup heater rating, certification and registration of the system, frame and roof fixing method. For heat pump: heating capacity, COP at stated conditions, refrigerant. Safety accessories: temperature and pressure relief valve, expansion vessel, non-return valve, thermostatic mixing valve for Legionella-safe storage temperature with scald protection at outlets. Required UAE energy label or certificate. Warranty terms separated for tank and components. Installation scope: removal of old unit, connection, electrical isolator, commissioning.\n\nExpert interview (2026-11-10): Blocking: type, capacity and installation scope.",
+      "body_ar": "لا يمكن تسعير طلب سخان مياه إلا بعد تثبيت ما يلي: النوع (كهربائي بخزان، فوري، شمسي بالسريان الطبيعي، شمسي بالضخ أو منفصل، مضخة حرارية، سخان مركزي)؛ سعة التخزين باللتر، وللأنظمة المركزية عدد الأدوات الصحية أو الشاغلين أو الطلب الأقصى؛ قدرة العنصر بالكيلوواط والجهد والطور؛ طريقة التركيب رأسي أو أفقي، جداري أو أرضي، داخلي أو على السطح؛ ضغط التشغيل المقنن للخزان وهل يلزم صمام تخفيض ضغط؛ مادة الخزان وبطانته (فولاذ مبطن بالمينا أو ستانلس ستيل) ونوع الأنود؛ وللأنظمة الشمسية نوع المجمّع ومساحته وسعة الخزان وقدرة السخان الاحتياطي وشهادة النظام وتسجيله وطريقة تثبيت الهيكل على السطح؛ وللمضخة الحرارية القدرة الحرارية ومعامل الأداء عند ظروف محددة ونوع غاز التبريد؛ ملحقات السلامة من صمام تنفيس الحرارة والضغط وخزان التمدد وصمام عدم الرجوع وصمام الخلط الحراري للحفاظ على حرارة تخزين آمنة من الليجيونيلا مع الحماية من الحروق عند المخارج؛ بطاقة الطاقة أو الشهادة المطلوبة في الدولة؛ شروط الضمان مفصولة للخزان وللمكونات؛ ونطاق التركيب من فك القديم والتوصيل وعازل كهربائي والتشغيل التجريبي.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: النوع، والسعة، ونطاق التركيب.",
       "required_specs": [
         "heater type",
         "capacity (litres) or demand basis",
@@ -203,7 +239,36 @@
         "https://solarthermalworld.org/news/dubai-no-solar-thermal-system-no-building-permit/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "heater type",
+        "capacity (litres) or demand basis",
+        "installation scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "heater type",
+          "why_needed_to_price": "Electric storage, instantaneous, solar and heat pump are different products.",
+          "uae_options": "electric storage; instant; solar; heat pump",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "capacity (litres) or demand basis",
+          "why_needed_to_price": "Capacity sets price.",
+          "uae_options": "litres",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "installation scope",
+          "why_needed_to_price": "Supply-only versus installed changes price.",
+          "uae_options": "supply; install",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "plumbing:booster-pumps",
@@ -222,8 +287,8 @@
       "id": "plumbing:spec-pumps",
       "topic": "Spec checklist: pumps (booster, transfer, sump/sewage)",
       "kind": "spec_checklist",
-      "body_en": "Pump quotes are meaningless without a duty point. For every pump the buyer must provide: application (domestic booster, transfer from ground tank to roof tank, sump/drainage, sewage lifting, circulation for hot water return, irrigation); liquid (potable, grey water, raw sewage with solids, hot water with temperature); duty flow and total head at the duty point; number of pumps and arrangement (single, duty/standby, duty/assist/standby); pump type (end-suction, vertical multistage, submersible, inline circulator, grinder); materials of casing, impeller and shaft (cast iron, bronze, stainless steel 304/316); motor power, voltage, phase, IP rating and efficiency class (IE2/IE3/IE4); speed control (fixed or VFD); control panel scope (level controls, float switches, alarms, BMS contacts); accessories (pressure vessel, valves, non-return valves, anti-vibration mounts, base frame); for submersibles the solids passage and guide-rail/auto-coupling; site ambient and whether indoor or outdoor; and required approvals, test certificates and warranty. Two quotes with different duty points cannot be compared. For transfer pumps feeding a roof tank, also state the tank levels and the high-level cut-off so the pump stops before overflow; the Abu Dhabi Guide, for example, places the high-level signal at least 50 mm below the roof tank overflow.",
-      "body_ar": "لا معنى لعروض المضخات دون نقطة تشغيل محددة. لكل مضخة يجب أن يقدّم المشتري: الاستخدام (تعزيز منزلي، نقل من خزان أرضي إلى علوي، تصريف بيارات، رفع مياه صرف صحي، تدوير المياه الساخنة الراجعة، ري)؛ نوع السائل (مياه شرب، مياه رمادية، صرف خام بمواد صلبة، مياه ساخنة مع درجة حرارتها)؛ التدفق والرفع الكلي عند نقطة التشغيل؛ عدد المضخات وترتيبها (مفردة، تشغيل واحتياط، تشغيل ومساعدة واحتياط)؛ نوع المضخة (شفط طرفي، رأسية متعددة المراحل، غاطسة، دوارة على الخط، طاحنة)؛ مواد الجسم والدفّاعة والعمود (حديد زهر، برونز، ستانلس 304/316)؛ قدرة المحرك والجهد والطور ودرجة الحماية IP وفئة الكفاءة IE2/IE3/IE4؛ التحكم بالسرعة ثابتة أو محوّل تردد؛ نطاق لوحة التحكم (مفاتيح المستوى، العوامات، الإنذارات، نقاط الربط مع إدارة المبنى)؛ الملحقات (خزان ضغط، محابس، صمامات عدم رجوع، مساند مانعة للاهتزاز، قاعدة)؛ وللمضخات الغاطسة مقاس مرور المواد الصلبة ونظام القضبان والوصلة الآلية؛ حرارة المحيط وهل التركيب داخلي أم خارجي؛ والاعتمادات وشهادات الاختبار والضمان المطلوبة. لا يمكن مقارنة عرضين بنقطتي تشغيل مختلفتين. وفي مضخات النقل التي تغذي خزاناً علوياً، حدّد أيضاً مستويات الخزان ونقطة الإيقاف العليا كي تتوقف المضخة قبل الفائض؛ فدليل أبوظبي مثلاً يضع إشارة المستوى الأعلى على بعد 50 ملم على الأقل تحت أنبوب فائض الخزان العلوي.",
+      "body_en": "Pump quotes are meaningless without a duty point. For every pump the buyer must provide: application (domestic booster, transfer from ground tank to roof tank, sump/drainage, sewage lifting, circulation for hot water return, irrigation); liquid (potable, grey water, raw sewage with solids, hot water with temperature); duty flow and total head at the duty point; number of pumps and arrangement (single, duty/standby, duty/assist/standby); pump type (end-suction, vertical multistage, submersible, inline circulator, grinder); materials of casing, impeller and shaft (cast iron, bronze, stainless steel 304/316); motor power, voltage, phase, IP rating and efficiency class (IE2/IE3/IE4); speed control (fixed or VFD); control panel scope (level controls, float switches, alarms, BMS contacts); accessories (pressure vessel, valves, non-return valves, anti-vibration mounts, base frame); for submersibles the solids passage and guide-rail/auto-coupling; site ambient and whether indoor or outdoor; and required approvals, test certificates and warranty. Two quotes with different duty points cannot be compared. For transfer pumps feeding a roof tank, also state the tank levels and the high-level cut-off so the pump stops before overflow; the Abu Dhabi Guide, for example, places the high-level signal at least 50 mm below the roof tank overflow.\n\nExpert interview (2026-11-10): Blocking: application, flow, head and arrangement.",
+      "body_ar": "لا معنى لعروض المضخات دون نقطة تشغيل محددة. لكل مضخة يجب أن يقدّم المشتري: الاستخدام (تعزيز منزلي، نقل من خزان أرضي إلى علوي، تصريف بيارات، رفع مياه صرف صحي، تدوير المياه الساخنة الراجعة، ري)؛ نوع السائل (مياه شرب، مياه رمادية، صرف خام بمواد صلبة، مياه ساخنة مع درجة حرارتها)؛ التدفق والرفع الكلي عند نقطة التشغيل؛ عدد المضخات وترتيبها (مفردة، تشغيل واحتياط، تشغيل ومساعدة واحتياط)؛ نوع المضخة (شفط طرفي، رأسية متعددة المراحل، غاطسة، دوارة على الخط، طاحنة)؛ مواد الجسم والدفّاعة والعمود (حديد زهر، برونز، ستانلس 304/316)؛ قدرة المحرك والجهد والطور ودرجة الحماية IP وفئة الكفاءة IE2/IE3/IE4؛ التحكم بالسرعة ثابتة أو محوّل تردد؛ نطاق لوحة التحكم (مفاتيح المستوى، العوامات، الإنذارات، نقاط الربط مع إدارة المبنى)؛ الملحقات (خزان ضغط، محابس، صمامات عدم رجوع، مساند مانعة للاهتزاز، قاعدة)؛ وللمضخات الغاطسة مقاس مرور المواد الصلبة ونظام القضبان والوصلة الآلية؛ حرارة المحيط وهل التركيب داخلي أم خارجي؛ والاعتمادات وشهادات الاختبار والضمان المطلوبة. لا يمكن مقارنة عرضين بنقطتي تشغيل مختلفتين. وفي مضخات النقل التي تغذي خزاناً علوياً، حدّد أيضاً مستويات الخزان ونقطة الإيقاف العليا كي تتوقف المضخة قبل الفائض؛ فدليل أبوظبي مثلاً يضع إشارة المستوى الأعلى على بعد 50 ملم على الأقل تحت أنبوب فائض الخزان العلوي.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الاستخدام، والتدفق، والضاغط، وترتيب المضخات.",
       "required_specs": [
         "application",
         "liquid type and temperature",
@@ -244,7 +309,44 @@
         "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "application",
+        "duty flow",
+        "total head at duty",
+        "number of pumps and arrangement"
+      ],
+      "spec_guide": [
+        {
+          "spec": "application",
+          "why_needed_to_price": "Booster, transfer and sewage pumps differ.",
+          "uae_options": "booster; transfer; sump; sewage",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "duty flow",
+          "why_needed_to_price": "Pump selection follows flow.",
+          "uae_options": "m3/h or l/s",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "total head at duty",
+          "why_needed_to_price": "Head sets the pump size.",
+          "uae_options": "m",
+          "follow_up_if": "Unknown: ask building height and fixture count.",
+          "blocking": true
+        },
+        {
+          "spec": "number of pumps and arrangement",
+          "why_needed_to_price": "Duty-standby sets double the pumps.",
+          "uae_options": "single; duty/standby",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "plumbing:sewage-sump-pumps",
@@ -309,8 +411,8 @@
       "id": "plumbing:spec-water-tank",
       "topic": "Spec checklist: water storage tanks",
       "kind": "spec_checklist",
-      "body_en": "To quote a tank exactly, the buyer must state: service (potable domestic, fire reserve, combined, irrigation, grey water, hot water); required effective capacity in litres or m3 (and if gallons, which gallon); material (GRP sectional, PE one-piece, steel sectional, concrete with lining); maximum footprint and height and the access route for delivery (lift size, stair, crane); location (roof, ground, underground, indoor plant room) and base type; insulation requirement (insulated GRP panels, multi-layer PE) given UAE heat; number of compartments and partition for cleaning without shutdown; connections: inlet size with float valve, outlet(s), overflow with air gap, drain, vent with insect screen; internal/external ladder, manhole size and lockable cover; level indicator or level transmitter for BMS; potable certification (WRAS or equivalent) and Authority approval; installation, leak test and disinfection before handover; warranty period on panels and sealants. For replacement jobs add dismantling and disposal of the old tank. In Abu Dhabi, also require the tank nameplate details the DoE Guide lists (capacity, manufacturer, date and potable approval) and access covers that are elevated, lockable and gasketed.",
-      "body_ar": "لتسعير خزان بدقة يجب أن يحدد المشتري: الخدمة (مياه شرب منزلية، احتياطي حريق، مشترك، ري، مياه رمادية، مياه ساخنة)؛ السعة الفعلية المطلوبة باللتر أو المتر المكعب (وإن كانت بالغالون فأي غالون)؛ المادة (فايبرجلاس مقطعي، بولي إيثيلين قطعة واحدة، فولاذ مقطعي، خرسانة مبطنة)؛ أقصى مساحة وارتفاع مسموحين ومسار الوصول للتوريد (مقاس المصعد، الدرج، الرافعة)؛ الموقع (سطح، أرضي، مدفون، غرفة معدات داخلية) ونوع القاعدة؛ متطلبات العزل (ألواح فايبرجلاس معزولة أو بولي إيثيلين متعدد الطبقات) نظراً لحرارة الدولة؛ عدد الأقسام والفاصل للتنظيف دون إيقاف الإمداد؛ التوصيلات: مقاس الدخول مع العوامة، المخارج، الفائض مع فجوة هوائية، التصريف، التهوية مع شبك مانع للحشرات؛ السلالم الداخلية والخارجية ومقاس فتحة التفتيش وغطاء قابل للقفل؛ مؤشر المستوى أو محوّل مستوى للربط مع إدارة المبنى؛ اعتماد مياه الشرب (WRAS أو ما يعادله) وموافقة الجهة المختصة؛ التركيب واختبار التسريب والتعقيم قبل التسليم؛ ومدة الضمان على الألواح ومواد الإحكام. وفي أعمال الاستبدال يُضاف فك الخزان القديم والتخلص منه. وفي أبوظبي اشترط أيضاً بيانات لوحة الخزان التي يوردها دليل دائرة الطاقة (السعة والمصنّع وتاريخ التصنيع واعتماد مياه الشرب)، وأغطية فتحات مرتفعة قابلة للقفل ومزودة بحشوات.",
+      "body_en": "To quote a tank exactly, the buyer must state: service (potable domestic, fire reserve, combined, irrigation, grey water, hot water); required effective capacity in litres or m3 (and if gallons, which gallon); material (GRP sectional, PE one-piece, steel sectional, concrete with lining); maximum footprint and height and the access route for delivery (lift size, stair, crane); location (roof, ground, underground, indoor plant room) and base type; insulation requirement (insulated GRP panels, multi-layer PE) given UAE heat; number of compartments and partition for cleaning without shutdown; connections: inlet size with float valve, outlet(s), overflow with air gap, drain, vent with insect screen; internal/external ladder, manhole size and lockable cover; level indicator or level transmitter for BMS; potable certification (WRAS or equivalent) and Authority approval; installation, leak test and disinfection before handover; warranty period on panels and sealants. For replacement jobs add dismantling and disposal of the old tank. In Abu Dhabi, also require the tank nameplate details the DoE Guide lists (capacity, manufacturer, date and potable approval) and access covers that are elevated, lockable and gasketed.\n\nExpert interview (2026-11-10): Blocking: capacity, material and location.",
+      "body_ar": "لتسعير خزان بدقة يجب أن يحدد المشتري: الخدمة (مياه شرب منزلية، احتياطي حريق، مشترك، ري، مياه رمادية، مياه ساخنة)؛ السعة الفعلية المطلوبة باللتر أو المتر المكعب (وإن كانت بالغالون فأي غالون)؛ المادة (فايبرجلاس مقطعي، بولي إيثيلين قطعة واحدة، فولاذ مقطعي، خرسانة مبطنة)؛ أقصى مساحة وارتفاع مسموحين ومسار الوصول للتوريد (مقاس المصعد، الدرج، الرافعة)؛ الموقع (سطح، أرضي، مدفون، غرفة معدات داخلية) ونوع القاعدة؛ متطلبات العزل (ألواح فايبرجلاس معزولة أو بولي إيثيلين متعدد الطبقات) نظراً لحرارة الدولة؛ عدد الأقسام والفاصل للتنظيف دون إيقاف الإمداد؛ التوصيلات: مقاس الدخول مع العوامة، المخارج، الفائض مع فجوة هوائية، التصريف، التهوية مع شبك مانع للحشرات؛ السلالم الداخلية والخارجية ومقاس فتحة التفتيش وغطاء قابل للقفل؛ مؤشر المستوى أو محوّل مستوى للربط مع إدارة المبنى؛ اعتماد مياه الشرب (WRAS أو ما يعادله) وموافقة الجهة المختصة؛ التركيب واختبار التسريب والتعقيم قبل التسليم؛ ومدة الضمان على الألواح ومواد الإحكام. وفي أعمال الاستبدال يُضاف فك الخزان القديم والتخلص منه. وفي أبوظبي اشترط أيضاً بيانات لوحة الخزان التي يوردها دليل دائرة الطاقة (السعة والمصنّع وتاريخ التصنيع واعتماد مياه الشرب)، وأغطية فتحات مرتفعة قابلة للقفل ومزودة بحشوات.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: السعة، والمادة، والموقع.",
       "required_specs": [
         "service/use",
         "effective capacity in litres or m3 (gallon type if used)",
@@ -334,7 +436,36 @@
         "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "effective capacity in litres or m3 (gallon type if used)",
+        "material",
+        "location and base"
+      ],
+      "spec_guide": [
+        {
+          "spec": "effective capacity in litres or m3 (gallon type if used)",
+          "why_needed_to_price": "Capacity sets price; imperial and US gallons differ.",
+          "uae_options": "litres; m3",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "material",
+          "why_needed_to_price": "GRP, polyethylene, steel and concrete tanks differ.",
+          "uae_options": "GRP panel; PE; steel; concrete",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "location and base",
+          "why_needed_to_price": "Roof, ground or underground changes cost.",
+          "uae_options": "roof; ground; underground",
+          "follow_up_if": "Replacement on a roof: a site visit for access and lifting is needed.",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "plumbing:sanitaryware-materials",
@@ -395,8 +526,8 @@
       "id": "plumbing:spec-sanitaryware",
       "topic": "Spec checklist: sanitaryware and mixers",
       "kind": "spec_checklist",
-      "body_en": "Sanitaryware quotes differ mostly because scope is vague. Fix these items per bathroom type and multiply by quantity: WC type (floor close-coupled, wall-hung, back-to-wall), outlet P or S and set-out, flush volumes, cistern/frame/flush plate model, seat type; basin type (counter-top, under-counter, pedestal, semi-pedestal, wall-hung) and size, overflow yes/no, waste and bottle trap finish; shower: mixer type (single-lever or thermostatic), exposed or concealed with body included, head size, hand shower, rail, drain type (point drain or linear channel and length); bathtub material and size, freestanding or built-in, waste/overflow; shattaf with angle valve; kitchen sink material, bowls and tap; accessories (towel rails, paper holders, mirrors) only if in scope; finish across all brassware; brand or approved equivalent and origin; UAE water-efficiency label; colour; delivery per floor or unit; installation included or supply only; warranty (ceramics often long, cartridges and finishes shorter). A schedule by room type with counts is the minimum a supplier needs.",
-      "body_ar": "تختلف عروض الأدوات الصحية غالباً بسبب غموض النطاق. ثبّت البنود التالية لكل نوع حمام واضربها في الكمية: نوع المرحاض (أرضي متصل، معلق، ملاصق للجدار) والمخرج P أو S والمسافة وأحجام الدفق وطراز الخزان والهيكل ولوحة الدفق ونوع المقعد؛ نوع المغسلة (فوق الكاونتر، تحت الكاونتر، بعمود، بنصف عمود، معلقة) ومقاسها ووجود فتحة فائض وتشطيب الصرف والسيفون؛ الدش: نوع الخلاط (ذراع واحدة أو ثرموستاتي)، مكشوف أو مخفي مع شمول الجسم، مقاس الرأس، الدش اليدوي، القضيب، نوع التصريف (نقطي أو قناة خطية وطولها)؛ مادة حوض الاستحمام ومقاسه، قائم أو مدمج، مع الصرف والفائض؛ الشطاف مع المحبس الزاوي؛ حوض المطبخ ومادته وعدد أحواضه والخلاط؛ الإكسسوارات (حاملات المناشف والورق والمرايا) إن كانت ضمن النطاق؛ التشطيب الموحد لكل الأدوات النحاسية؛ العلامة أو ما يعادلها وبلد المنشأ؛ بطاقة كفاءة المياه الإماراتية؛ اللون؛ التسليم لكل طابق أو وحدة؛ هل يشمل التركيب أم توريد فقط؛ والضمان (طويل غالباً للسيراميك وأقصر للخراطيش والتشطيبات). وجدول حسب نوع الغرفة مع الأعداد هو الحد الأدنى الذي يحتاجه المورّد.",
+      "body_en": "Sanitaryware quotes differ mostly because scope is vague. Fix these items per bathroom type and multiply by quantity: WC type (floor close-coupled, wall-hung, back-to-wall), outlet P or S and set-out, flush volumes, cistern/frame/flush plate model, seat type; basin type (counter-top, under-counter, pedestal, semi-pedestal, wall-hung) and size, overflow yes/no, waste and bottle trap finish; shower: mixer type (single-lever or thermostatic), exposed or concealed with body included, head size, hand shower, rail, drain type (point drain or linear channel and length); bathtub material and size, freestanding or built-in, waste/overflow; shattaf with angle valve; kitchen sink material, bowls and tap; accessories (towel rails, paper holders, mirrors) only if in scope; finish across all brassware; brand or approved equivalent and origin; UAE water-efficiency label; colour; delivery per floor or unit; installation included or supply only; warranty (ceramics often long, cartridges and finishes shorter). A schedule by room type with counts is the minimum a supplier needs.\n\nExpert interview (2026-11-10): Blocking: schedule, brand tier and origin, and the installation scope.",
+      "body_ar": "تختلف عروض الأدوات الصحية غالباً بسبب غموض النطاق. ثبّت البنود التالية لكل نوع حمام واضربها في الكمية: نوع المرحاض (أرضي متصل، معلق، ملاصق للجدار) والمخرج P أو S والمسافة وأحجام الدفق وطراز الخزان والهيكل ولوحة الدفق ونوع المقعد؛ نوع المغسلة (فوق الكاونتر، تحت الكاونتر، بعمود، بنصف عمود، معلقة) ومقاسها ووجود فتحة فائض وتشطيب الصرف والسيفون؛ الدش: نوع الخلاط (ذراع واحدة أو ثرموستاتي)، مكشوف أو مخفي مع شمول الجسم، مقاس الرأس، الدش اليدوي، القضيب، نوع التصريف (نقطي أو قناة خطية وطولها)؛ مادة حوض الاستحمام ومقاسه، قائم أو مدمج، مع الصرف والفائض؛ الشطاف مع المحبس الزاوي؛ حوض المطبخ ومادته وعدد أحواضه والخلاط؛ الإكسسوارات (حاملات المناشف والورق والمرايا) إن كانت ضمن النطاق؛ التشطيب الموحد لكل الأدوات النحاسية؛ العلامة أو ما يعادلها وبلد المنشأ؛ بطاقة كفاءة المياه الإماراتية؛ اللون؛ التسليم لكل طابق أو وحدة؛ هل يشمل التركيب أم توريد فقط؛ والضمان (طويل غالباً للسيراميك وأقصر للخراطيش والتشطيبات). وجدول حسب نوع الغرفة مع الأعداد هو الحد الأدنى الذي يحتاجه المورّد.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الجدول، وفئة العلامة ومنشؤها، ونطاق التركيب.",
       "required_specs": [
         "schedule by room type with counts",
         "WC type, outlet P/S and set-out, flush volumes",
@@ -417,7 +548,36 @@
         "https://www.yidabath.com/bathroom-fixtures-supplier-uae-contractor-guide/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "schedule by room type with counts",
+        "brand or equivalent and origin",
+        "supply only or supply and install"
+      ],
+      "spec_guide": [
+        {
+          "spec": "schedule by room type with counts",
+          "why_needed_to_price": "Priced per set per room.",
+          "uae_options": "schedule",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "brand or equivalent and origin",
+          "why_needed_to_price": "Sanitaryware brands range from economy to luxury.",
+          "uae_options": "brand tier",
+          "follow_up_if": "A named German or Italian brand: ask whether a European equal is acceptable.",
+          "blocking": true
+        },
+        {
+          "spec": "supply only or supply and install",
+          "why_needed_to_price": "Installation is a separate cost.",
+          "uae_options": "supply; install",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "plumbing:water-filtration",
@@ -676,8 +836,8 @@
       "id": "plumbing:spec-installation-works",
       "topic": "Spec checklist: plumbing installation works (supply and install)",
       "kind": "spec_checklist",
-      "body_en": "For a supply-and-install plumbing package the scope, not the pipe price, drives the difference between quotes. The buyer must state: the property type, number of units/bathrooms/kitchens and floors; whether drawings exist (approved IFC drawings or only a sketch) and who produces shop drawings and authority submissions; scope boundaries (from meter or tank outlet to fixtures; soil and waste to first manhole or to municipal connection); pipe materials and classes per service; fixtures supplied by whom (client-supplied or contractor-supplied); water heater, pump and tank scope; testing standard and witnessing; flushing, disinfection and lab testing; insulation and supports; builder's work (chasing, core drilling, sleeves, making good) included or by others; working hours and access restrictions (occupied building, community rules, permits from facilities management); approvals and inspections (Municipality, DEWA/ADDC connection, NOCs); as-built drawings and O&M manuals at handover; defects liability and warranty; payment milestones and retention. Missing boundaries lead to disputes over who connects to the sewer or who breaks the walls.",
-      "body_ar": "في حزم التمديدات الصحية توريداً وتركيباً، يصنع النطاق لا سعر الأنبوب الفارق بين العروض. على المشتري تحديد: نوع العقار وعدد الوحدات والحمامات والمطابخ والأدوار؛ هل توجد مخططات (معتمدة للتنفيذ أو مجرد رسم مبدئي) ومن يعد مخططات الورشة وتقديمات الجهات؛ حدود النطاق (من العداد أو مخرج الخزان حتى الأدوات، والصرف حتى أول غرفة تفتيش أو حتى التوصيل بالشبكة العامة)؛ مواد الأنابيب وفئاتها لكل خدمة؛ من يورّد الأدوات الصحية (العميل أو المقاول)؛ نطاق السخانات والمضخات والخزانات؛ معيار الاختبار ومن يشهده؛ الشطف والتعقيم والفحوص المخبرية؛ العزل والدعامات؛ الأعمال المدنية المساندة (التكسير والتخريم والجلب والترميم) ضمن النطاق أم على غيره؛ ساعات العمل وقيود الوصول (مبنى مسكون، قوانين المجتمع السكني، تصاريح إدارة المرافق)؛ الموافقات والتفتيش (البلدية، توصيل هيئة الكهرباء والمياه أو شركة التوزيع، شهادات عدم الممانعة)؛ المخططات النهائية وأدلة التشغيل والصيانة عند التسليم؛ فترة ضمان العيوب والضمان؛ مراحل الدفع والمحتجزات. وغياب الحدود يقود إلى نزاعات حول من يوصل الصرف أو من يكسر الجدران.",
+      "body_en": "For a supply-and-install plumbing package the scope, not the pipe price, drives the difference between quotes. The buyer must state: the property type, number of units/bathrooms/kitchens and floors; whether drawings exist (approved IFC drawings or only a sketch) and who produces shop drawings and authority submissions; scope boundaries (from meter or tank outlet to fixtures; soil and waste to first manhole or to municipal connection); pipe materials and classes per service; fixtures supplied by whom (client-supplied or contractor-supplied); water heater, pump and tank scope; testing standard and witnessing; flushing, disinfection and lab testing; insulation and supports; builder's work (chasing, core drilling, sleeves, making good) included or by others; working hours and access restrictions (occupied building, community rules, permits from facilities management); approvals and inspections (Municipality, DEWA/ADDC connection, NOCs); as-built drawings and O&M manuals at handover; defects liability and warranty; payment milestones and retention. Missing boundaries lead to disputes over who connects to the sewer or who breaks the walls.\n\nExpert interview (2026-11-10): Blocking: property counts, scope boundaries, materials and who supplies fixtures.",
+      "body_ar": "في حزم التمديدات الصحية توريداً وتركيباً، يصنع النطاق لا سعر الأنبوب الفارق بين العروض. على المشتري تحديد: نوع العقار وعدد الوحدات والحمامات والمطابخ والأدوار؛ هل توجد مخططات (معتمدة للتنفيذ أو مجرد رسم مبدئي) ومن يعد مخططات الورشة وتقديمات الجهات؛ حدود النطاق (من العداد أو مخرج الخزان حتى الأدوات، والصرف حتى أول غرفة تفتيش أو حتى التوصيل بالشبكة العامة)؛ مواد الأنابيب وفئاتها لكل خدمة؛ من يورّد الأدوات الصحية (العميل أو المقاول)؛ نطاق السخانات والمضخات والخزانات؛ معيار الاختبار ومن يشهده؛ الشطف والتعقيم والفحوص المخبرية؛ العزل والدعامات؛ الأعمال المدنية المساندة (التكسير والتخريم والجلب والترميم) ضمن النطاق أم على غيره؛ ساعات العمل وقيود الوصول (مبنى مسكون، قوانين المجتمع السكني، تصاريح إدارة المرافق)؛ الموافقات والتفتيش (البلدية، توصيل هيئة الكهرباء والمياه أو شركة التوزيع، شهادات عدم الممانعة)؛ المخططات النهائية وأدلة التشغيل والصيانة عند التسليم؛ فترة ضمان العيوب والضمان؛ مراحل الدفع والمحتجزات. وغياب الحدود يقود إلى نزاعات حول من يوصل الصرف أو من يكسر الجدران.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: أعداد الوحدات، وحدود النطاق، والمواد، ومن يورد الأدوات الصحية.",
       "required_specs": [
         "property type and counts (units, bathrooms, kitchens, floors)",
         "drawing status and who does shop drawings/submissions",
@@ -699,7 +859,45 @@
         "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "property type and counts (units, bathrooms, kitchens, floors)",
+        "scope boundaries (meter/tank to fixtures; drainage to manhole/connection)",
+        "pipe materials and classes per service",
+        "who supplies fixtures"
+      ],
+      "spec_guide": [
+        {
+          "spec": "property type and counts (units, bathrooms, kitchens, floors)",
+          "why_needed_to_price": "Plumbing is priced by fixture and floor.",
+          "uae_options": "counts",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "scope boundaries (meter/tank to fixtures; drainage to manhole/connection)",
+          "why_needed_to_price": "Boundaries decide what is in.",
+          "uae_options": "defined boundary",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pipe materials and classes per service",
+          "why_needed_to_price": "Materials change price.",
+          "uae_options": "per service",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "who supplies fixtures",
+          "why_needed_to_price": "Fixtures can be the largest cost.",
+          "uae_options": "contractor; client",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "site_visit_required_when": "Repairs and leak-finding in existing buildings need a site visit before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "plumbing:abu-dhabi-tank-design-rules",
@@ -713,6 +911,36 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:approvals-sharjah-northern",
+      "kind": "authority_approval",
+      "topic": "Plumbing approvals in Sharjah and the northern emirates",
+      "topic_ar": "اعتمادات السباكة في الشارقة والإمارات الشمالية",
+      "body_en": "Sharjah: plumbing and drainage are approved with the building or modification permit by Sharjah Municipality, and water connection is through SEWA; the municipality issues an NOC for SEWA connection for dwelling units. Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah: the municipalities approve the drawings and EtihadWE provides water connections. Potable-water materials should be on the water authority's accepted list. Like-for-like repair in a private home needs no permit. Who obtains: the plumbing contractor or consultant.",
+      "body_ar": "في الشارقة: تُعتمد أعمال السباكة والصرف مع رخصة البناء أو التعديل من بلدية الشارقة، ويتم توصيل المياه عبر هيئة كهرباء ومياه وغاز الشارقة، وتصدر البلدية شهادة عدم ممانعة لتوصيل الهيئة للوحدات السكنية. في عجمان وأم القيوين ورأس الخيمة والفجيرة: تعتمد البلديات المخططات ويوفر الاتحاد للماء والكهرباء توصيلات المياه. ويجب أن تكون مواد مياه الشرب ضمن قائمة الجهة المقبولة. والإصلاح بالمثل في منزل خاص لا يحتاج إلى ترخيص. من يحصل عليها: مقاول السباكة أو الاستشاري.",
+      "sources": [
+        "https://shjmun.gov.ae/servicedirectory/subServices/10",
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
+        "https://www.etihadwe.ae/en"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10: each URL is an official page or document named in the search results. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "plumbing:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing plumbing quotes like for like",
+      "topic_ar": "مقارنة عروض السباكة على أساس متكافئ",
+      "body_en": "Compare on the same fixture schedule, pipe material and class per service, scope boundary, and testing and disinfection. For sanitaryware, compare the same brand series, not only the brand, and check origin: a German brand's product may be made in Germany or elsewhere, and the series matters more. Value beyond price: approved materials, a pressure test witnessed, and a warranty that covers leaks from workmanship.",
+      "body_ar": "قارن على جدول الأدوات الصحية نفسه، ومادة الأنابيب وفئتها لكل خدمة، وحدود النطاق، والفحص والتعقيم. وفي الأدوات الصحية قارن السلسلة نفسها لا العلامة فقط، وتحقق من المنشأ: فمنتج علامة ألمانية قد يُصنع في ألمانيا أو في بلد آخر، والسلسلة أهم. القيمة إلى جانب السعر: مواد معتمدة، واختبار ضغط بحضور المشتري، وضمان يغطي التسربات الناتجة عن المصنعية.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -856,7 +1084,18 @@
       "plumbing:water-softeners"
     ],
     "removed": [],
-    "still_unverified": [],
-    "notes": "Sources restricted to URLs retrieved this session (HTTP 200 or WebFetch-read). NFPA/UL landing pages confirm the standard exists, not clause text. Removed dead en-standard.eu/ul.com/dcd.gov.ae links. A2b (2026-09-23): re-sourced plumbing:water-softeners against fetched primary sources (UAE Fire & Life Safety Code 2011 PDF text, manufacturer datasheets/manuals, BSI/NFPA pages); unsupported claims removed or marked \"not established\"."
+    "still_unverified": [
+      "plumbing:approvals-sharjah-northern"
+    ],
+    "notes": "Sources restricted to URLs retrieved this session (HTTP 200 or WebFetch-read). NFPA/UL landing pages confirm the standard exists, not clause text. Removed dead en-standard.eu/ul.com/dcd.gov.ae links. A2b (2026-09-23): re-sourced plumbing:water-softeners against fetched primary sources (UAE Fire & Life Safety Code 2011 PDF text, manufacturer datasheets/manuals, BSI/NFPA pages); unsupported claims removed or marked \"not established\".",
+    "added": [
+      "plumbing:approvals-sharjah-northern",
+      "plumbing:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+    }
   }
 }

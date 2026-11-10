@@ -131,8 +131,8 @@
       "id": "mep_general:mep-spec-checklist",
       "topic": "MEP package specification checklist",
       "kind": "spec_checklist",
-      "body_en": "An MEP contractor can only price exactly when the scope is fixed on paper. The minimum is a clear list of included systems (HVAC, ventilation, fire fighting, fire alarm, electrical, lighting, ELV, plumbing, drainage, gas, BMS), the drawings and specification revision the price is based on, and whether the work is build-only or design-and-build. Area, number of floors or units, building use and location (emirate and regulator) drive approvals and design standards. The buyer should state preferred or approved equipment makes or say that the consultant's approved list applies, since equipment brand is the largest price variable. Scope interfaces must be explicit: who provides the chiller or district cooling connection, the substation, the water tank civil works, the false ceiling access panels, the core drilling and builder's work, and utility connection fees. Programme and phasing, working hours restrictions (malls and occupied buildings often allow night work only) and site logistics affect labour cost. Finally, state what documents are expected: shop drawings, BIM, submittals, T&C with third party, as-builts, O&M manuals, and the warranty and DLP terms. Missing any of these means the quote should be held until clarified.",
-      "body_ar": "لا يستطيع مقاول MEP التسعير بدقة إلا إذا ثُبِّت النطاق كتابةً. الحد الأدنى قائمة واضحة بالأنظمة المشمولة (تكييف، تهوية، مكافحة حريق، إنذار حريق، كهرباء، إنارة، تيار خفيف، تغذية مياه، صرف، غاز، نظام إدارة المبنى)، ورقم مراجعة المخططات والمواصفات التي بُني عليها السعر، وهل العمل تنفيذ فقط أم تصميم وتنفيذ. والمساحة وعدد الطوابق أو الوحدات واستخدام المبنى وموقعه (الإمارة والجهة التنظيمية) تحدد الموافقات ومعايير التصميم. ويجب أن يذكر المشتري ماركات المعدات المفضلة أو المعتمدة أو أن قائمة الاستشاري المعتمدة تنطبق، لأن ماركة المعدات أكبر متغير في السعر. ويجب أن تكون حدود النطاق صريحة: من يوفر المبرد أو توصيل التبريد المركزي، والمحطة الفرعية، والأعمال المدنية لخزانات المياه، وفتحات الوصول في الأسقف، والتخريم وأعمال البناء، ورسوم توصيل الخدمات. والبرنامج الزمني والمراحل وقيود ساعات العمل (المراكز التجارية والمباني المأهولة كثيراً ما تسمح بالعمل الليلي فقط) ولوجستيات الموقع تؤثر في كلفة العمالة. وأخيراً حدد المستندات المتوقعة: مخططات الورشة، BIM، التقديمات، الاختبار والتشغيل مع طرف ثالث، مخططات «كما نُفِّذ»، أدلة التشغيل والصيانة، وشروط الضمان وفترة المسؤولية عن العيوب. أي نقص فيها يعني تعليق العرض حتى الاستيضاح.",
+      "body_en": "An MEP contractor can only price exactly when the scope is fixed on paper. The minimum is a clear list of included systems (HVAC, ventilation, fire fighting, fire alarm, electrical, lighting, ELV, plumbing, drainage, gas, BMS), the drawings and specification revision the price is based on, and whether the work is build-only or design-and-build. Area, number of floors or units, building use and location (emirate and regulator) drive approvals and design standards. The buyer should state preferred or approved equipment makes or say that the consultant's approved list applies, since equipment brand is the largest price variable. Scope interfaces must be explicit: who provides the chiller or district cooling connection, the substation, the water tank civil works, the false ceiling access panels, the core drilling and builder's work, and utility connection fees. Programme and phasing, working hours restrictions (malls and occupied buildings often allow night work only) and site logistics affect labour cost. Finally, state what documents are expected: shop drawings, BIM, submittals, T&C with third party, as-builts, O&M manuals, and the warranty and DLP terms. Missing any of these means the quote should be held until clarified.\n\nExpert interview (2026-11-10): Blocking: systems in scope, drawing revision, build-only or design-and-build, and location with regulator.",
+      "body_ar": "لا يستطيع مقاول MEP التسعير بدقة إلا إذا ثُبِّت النطاق كتابةً. الحد الأدنى قائمة واضحة بالأنظمة المشمولة (تكييف، تهوية، مكافحة حريق، إنذار حريق، كهرباء، إنارة، تيار خفيف، تغذية مياه، صرف، غاز، نظام إدارة المبنى)، ورقم مراجعة المخططات والمواصفات التي بُني عليها السعر، وهل العمل تنفيذ فقط أم تصميم وتنفيذ. والمساحة وعدد الطوابق أو الوحدات واستخدام المبنى وموقعه (الإمارة والجهة التنظيمية) تحدد الموافقات ومعايير التصميم. ويجب أن يذكر المشتري ماركات المعدات المفضلة أو المعتمدة أو أن قائمة الاستشاري المعتمدة تنطبق، لأن ماركة المعدات أكبر متغير في السعر. ويجب أن تكون حدود النطاق صريحة: من يوفر المبرد أو توصيل التبريد المركزي، والمحطة الفرعية، والأعمال المدنية لخزانات المياه، وفتحات الوصول في الأسقف، والتخريم وأعمال البناء، ورسوم توصيل الخدمات. والبرنامج الزمني والمراحل وقيود ساعات العمل (المراكز التجارية والمباني المأهولة كثيراً ما تسمح بالعمل الليلي فقط) ولوجستيات الموقع تؤثر في كلفة العمالة. وأخيراً حدد المستندات المتوقعة: مخططات الورشة، BIM، التقديمات، الاختبار والتشغيل مع طرف ثالث، مخططات «كما نُفِّذ»، أدلة التشغيل والصيانة، وشروط الضمان وفترة المسؤولية عن العيوب. أي نقص فيها يعني تعليق العرض حتى الاستيضاح.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الأنظمة المشمولة، ونسخة المخططات، والتنفيذ فقط أو التصميم والتنفيذ، والموقع مع الجهة المنظمة.",
       "sources": [
         "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
       ],
@@ -149,7 +149,44 @@
         "Programme, phasing and working-hour restrictions",
         "Deliverables: shop drawings, BIM/LOD, submittals, T&C (third party?), as-builts, O&M",
         "Payment terms, retention %, DLP length, warranties per system"
-      ]
+      ],
+      "blocking": [
+        "Systems in scope (HVAC, fire fighting, fire alarm, electrical, lighting, ELV, plumbing, drainage, gas, BMS)",
+        "Drawing/specification set and revision the price is based on",
+        "Build-only or design-and-build",
+        "Location: emirate, zone, regulator and master developer"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Systems in scope (HVAC, fire fighting, fire alarm, electrical, lighting, ELV, plumbing, drainage, gas, BMS)",
+          "why_needed_to_price": "Each system is a priced package.",
+          "uae_options": "list of systems",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Drawing/specification set and revision the price is based on",
+          "why_needed_to_price": "An MEP price is only valid for a named drawing revision.",
+          "uae_options": "IFC; tender",
+          "follow_up_if": "No drawings: design-and-build only.",
+          "blocking": true
+        },
+        {
+          "spec": "Build-only or design-and-build",
+          "why_needed_to_price": "Design adds fees and risk.",
+          "uae_options": "build only; design and build",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Location: emirate, zone, regulator and master developer",
+          "why_needed_to_price": "Authorities and approved-make lists differ by emirate and zone.",
+          "uae_options": "emirate; zone",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "mep_general:boq-vs-lumpsum",
@@ -302,8 +339,8 @@
       "id": "mep_general:submittals-approved-makes",
       "topic": "Material submittals and approved makes",
       "kind": "spec_checklist",
-      "body_en": "Before any MEP material is ordered, the contractor submits it for the consultant's approval. A complete material submittal contains the manufacturer's datasheet with the selected model highlighted, a compliance statement against each clause of the specification, test certificates and third-party listings (for example UL, FM, BSI, CE or ESMA/MoIAT conformity where required), civil defence or utility approval where the item needs it, country of origin, the local agent's authorisation letter, warranty terms, and samples for visible items such as fixtures and diffusers. Many specifications list approved makes, often three per item, and 'or approved equal' substitutions require proof of equivalence in performance, quality and local support. Submittals rejected late delay procurement, so the contractor's quoted makes should already be from the approved list. For the buyer, the approved-makes schedule is also the key to comparing quotes: two prices that name different brands for chillers, switchgear or pumps are not the same offer. A useful practice is to require each tenderer to fill a schedule of proposed makes and origins for every major item as part of the quote, so that later substitution needs formal approval.",
-      "body_ar": "قبل طلب أي مادة لأعمال MEP يقدمها المقاول لاعتماد الاستشاري. التقديم الكامل يتضمن ورقة بيانات المصنّع مع تمييز الطراز المختار، وبيان مطابقة لكل بند من المواصفات، وشهادات الاختبار والإدراج لدى طرف ثالث (مثل UL أو FM أو BSI أو CE أو مطابقة هيئة التقييس ووزارة الصناعة حيث يلزم)، واعتماد الدفاع المدني أو الجهة الموزعة حين يحتاجه البند، وبلد المنشأ، وخطاب تفويض الوكيل المحلي، وشروط الضمان، وعينات للبنود الظاهرة كالتركيبات الصحية وفتحات الهواء. وكثير من المواصفات تسرد ماركات معتمدة، غالباً ثلاثاً لكل بند، والإحلال بعبارة «أو ما يعادله المعتمد» يتطلب إثبات التكافؤ في الأداء والجودة والدعم المحلي. والتقديمات المرفوضة متأخراً تؤخر الشراء، لذا يجب أن تكون الماركات في العرض من القائمة المعتمدة أصلاً. وبالنسبة للمشتري فجدول الماركات المعتمدة هو مفتاح مقارنة العروض: سعران يذكران ماركات مختلفة للمبردات أو اللوحات أو المضخات ليسا العرض نفسه. ومن الممارسات المفيدة أن يُشترط على كل متقدم ملء جدول بالماركات والمنشأ المقترحة لكل بند رئيسي ضمن العرض، بحيث يحتاج أي إحلال لاحق إلى اعتماد رسمي.",
+      "body_en": "Before any MEP material is ordered, the contractor submits it for the consultant's approval. A complete material submittal contains the manufacturer's datasheet with the selected model highlighted, a compliance statement against each clause of the specification, test certificates and third-party listings (for example UL, FM, BSI, CE or ESMA/MoIAT conformity where required), civil defence or utility approval where the item needs it, country of origin, the local agent's authorisation letter, warranty terms, and samples for visible items such as fixtures and diffusers. Many specifications list approved makes, often three per item, and 'or approved equal' substitutions require proof of equivalence in performance, quality and local support. Submittals rejected late delay procurement, so the contractor's quoted makes should already be from the approved list. For the buyer, the approved-makes schedule is also the key to comparing quotes: two prices that name different brands for chillers, switchgear or pumps are not the same offer. A useful practice is to require each tenderer to fill a schedule of proposed makes and origins for every major item as part of the quote, so that later substitution needs formal approval.\n\nExpert interview (2026-11-10): Blocking for review: country of origin per major item.",
+      "body_ar": "قبل طلب أي مادة لأعمال MEP يقدمها المقاول لاعتماد الاستشاري. التقديم الكامل يتضمن ورقة بيانات المصنّع مع تمييز الطراز المختار، وبيان مطابقة لكل بند من المواصفات، وشهادات الاختبار والإدراج لدى طرف ثالث (مثل UL أو FM أو BSI أو CE أو مطابقة هيئة التقييس ووزارة الصناعة حيث يلزم)، واعتماد الدفاع المدني أو الجهة الموزعة حين يحتاجه البند، وبلد المنشأ، وخطاب تفويض الوكيل المحلي، وشروط الضمان، وعينات للبنود الظاهرة كالتركيبات الصحية وفتحات الهواء. وكثير من المواصفات تسرد ماركات معتمدة، غالباً ثلاثاً لكل بند، والإحلال بعبارة «أو ما يعادله المعتمد» يتطلب إثبات التكافؤ في الأداء والجودة والدعم المحلي. والتقديمات المرفوضة متأخراً تؤخر الشراء، لذا يجب أن تكون الماركات في العرض من القائمة المعتمدة أصلاً. وبالنسبة للمشتري فجدول الماركات المعتمدة هو مفتاح مقارنة العروض: سعران يذكران ماركات مختلفة للمبردات أو اللوحات أو المضخات ليسا العرض نفسه. ومن الممارسات المفيدة أن يُشترط على كل متقدم ملء جدول بالماركات والمنشأ المقترحة لكل بند رئيسي ضمن العرض، بحيث يحتاج أي إحلال لاحق إلى اعتماد رسمي.\n\nمقابلة الخبير (2026-11-10): بند مانع عند المراجعة: بلد المنشأ لكل بند رئيسي.",
       "sources": [
         "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
       ],
@@ -318,14 +355,27 @@
         "Local agent authorisation",
         "Warranty terms and start date",
         "Samples for visible items"
-      ]
+      ],
+      "blocking": [
+        "Country of origin"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Country of origin",
+          "why_needed_to_price": "Origin is part of the approved make; a substituted origin is a deviation.",
+          "uae_options": "per approved list",
+          "follow_up_if": "Customer asked for European origin: any Asian-made alternative must be declared.",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "mep_general:handover-docs",
       "topic": "Handover documents: O&M, as-builts, warranties, training",
       "kind": "spec_checklist",
-      "body_en": "Handover is where MEP contracts are frequently closed badly. A complete handover package lets the owner or FM company operate, maintain and later modify the systems without the original contractor. It should contain as-built drawings in native format and PDF, the operation and maintenance manuals organised by system with equipment datasheets, maintenance schedules and spare parts lists, all test and commissioning records including balancing reports and integrated systems test results, authority certificates (civil defence completion, utility energisation and inspection reports), manufacturers' warranty certificates with start dates and the local contact for claims, the asset register with tag numbers matching labels on site, BMS points list, graphics and software licences with passwords, a spare parts and tools handover list, and records of operator training with attendance. Retention release and final payment are usually conditional on acceptance of this package. For fit-outs, the landlord often requires its own handover set before returning the security deposit. Buyers should define the handover content in the contract, not leave it to the end, and should verify that asset tags, warranties and manuals actually correspond to the installed equipment. BSRIA guide BG 79/2020 treats the O&M manual, record drawings, certificates and BIM models as the core handover deliverables.",
-      "body_ar": "التسليم هو المرحلة التي كثيراً ما تُغلق فيها عقود MEP بشكل سيئ. حزمة التسليم الكاملة تمكّن المالك أو شركة إدارة المرافق من تشغيل الأنظمة وصيانتها وتعديلها لاحقاً دون المقاول الأصلي. ويجب أن تتضمن مخططات «كما نُفِّذ» بالصيغة الأصلية وPDF، وأدلة التشغيل والصيانة مرتبة حسب النظام مع أوراق بيانات المعدات وجداول الصيانة وقوائم قطع الغيار، وجميع سجلات الاختبار والتشغيل بما فيها تقارير الموازنة ونتائج اختبار الأنظمة المتكاملة، وشهادات الجهات (إنجاز الدفاع المدني، تقارير توصيل وتفتيش الجهة الموزعة)، وشهادات ضمان المصنعين بتواريخ بدئها وجهة الاتصال المحلية للمطالبات، وسجل الأصول بأرقام ترميز مطابقة للملصقات في الموقع، وقائمة نقاط نظام إدارة المبنى ورسوماته وتراخيص برامجه مع كلمات المرور، وقائمة تسليم قطع الغيار والأدوات، وسجلات تدريب المشغلين مع الحضور. وعادةً يكون الإفراج عن المحتجزات والدفعة النهائية مشروطاً بقبول هذه الحزمة. وفي التشطيبات كثيراً ما يشترط المالك حزمة تسليم خاصة قبل رد التأمين. وعلى المشتري تحديد محتوى التسليم في العقد لا تركه للنهاية، والتحقق من أن الترميز والضمانات والأدلة تطابق المعدات المركبة فعلاً. ويعد دليل BSRIA رقم BG 79/2020 دليل التشغيل والصيانة والمخططات النهائية والشهادات ونماذج BIM أساس مستندات التسليم.",
+      "body_en": "Handover is where MEP contracts are frequently closed badly. A complete handover package lets the owner or FM company operate, maintain and later modify the systems without the original contractor. It should contain as-built drawings in native format and PDF, the operation and maintenance manuals organised by system with equipment datasheets, maintenance schedules and spare parts lists, all test and commissioning records including balancing reports and integrated systems test results, authority certificates (civil defence completion, utility energisation and inspection reports), manufacturers' warranty certificates with start dates and the local contact for claims, the asset register with tag numbers matching labels on site, BMS points list, graphics and software licences with passwords, a spare parts and tools handover list, and records of operator training with attendance. Retention release and final payment are usually conditional on acceptance of this package. For fit-outs, the landlord often requires its own handover set before returning the security deposit. Buyers should define the handover content in the contract, not leave it to the end, and should verify that asset tags, warranties and manuals actually correspond to the installed equipment. BSRIA guide BG 79/2020 treats the O&M manual, record drawings, certificates and BIM models as the core handover deliverables.\n\nExpert interview (2026-11-10): Handover documents do not block a price but must be in scope.",
+      "body_ar": "التسليم هو المرحلة التي كثيراً ما تُغلق فيها عقود MEP بشكل سيئ. حزمة التسليم الكاملة تمكّن المالك أو شركة إدارة المرافق من تشغيل الأنظمة وصيانتها وتعديلها لاحقاً دون المقاول الأصلي. ويجب أن تتضمن مخططات «كما نُفِّذ» بالصيغة الأصلية وPDF، وأدلة التشغيل والصيانة مرتبة حسب النظام مع أوراق بيانات المعدات وجداول الصيانة وقوائم قطع الغيار، وجميع سجلات الاختبار والتشغيل بما فيها تقارير الموازنة ونتائج اختبار الأنظمة المتكاملة، وشهادات الجهات (إنجاز الدفاع المدني، تقارير توصيل وتفتيش الجهة الموزعة)، وشهادات ضمان المصنعين بتواريخ بدئها وجهة الاتصال المحلية للمطالبات، وسجل الأصول بأرقام ترميز مطابقة للملصقات في الموقع، وقائمة نقاط نظام إدارة المبنى ورسوماته وتراخيص برامجه مع كلمات المرور، وقائمة تسليم قطع الغيار والأدوات، وسجلات تدريب المشغلين مع الحضور. وعادةً يكون الإفراج عن المحتجزات والدفعة النهائية مشروطاً بقبول هذه الحزمة. وفي التشطيبات كثيراً ما يشترط المالك حزمة تسليم خاصة قبل رد التأمين. وعلى المشتري تحديد محتوى التسليم في العقد لا تركه للنهاية، والتحقق من أن الترميز والضمانات والأدلة تطابق المعدات المركبة فعلاً. ويعد دليل BSRIA رقم BG 79/2020 دليل التشغيل والصيانة والمخططات النهائية والشهادات ونماذج BIM أساس مستندات التسليم.\n\nمقابلة الخبير (2026-11-10): وثائق التسليم لا تمنع التسعير لكن يجب أن تكون ضمن النطاق.",
       "sources": [
         "https://www.designingbuildings.co.uk/wiki/BSRIA_Handover_Information_and_O&M_Manuals_guidance"
       ],
@@ -341,7 +391,18 @@
         "BMS points list, software and passwords",
         "Spare parts/tools list",
         "Training records"
-      ]
+      ],
+      "blocking": [],
+      "spec_guide": [
+        {
+          "spec": "Authority certificates (DCD, utility)",
+          "why_needed_to_price": "Without them the building cannot be occupied.",
+          "uae_options": "civil defence; utility",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "mep_general:payment-terms",
@@ -393,6 +454,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "mep_general:approvals-northern-emirates",
+      "kind": "authority_approval",
+      "topic": "MEP approvals in Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah",
+      "topic_ar": "اعتمادات الأعمال الكهروميكانيكية في عجمان وأم القيوين ورأس الخيمة والفجيرة",
+      "body_en": "In the four northern emirates, electricity and water connections and load approvals are handled by Etihad Water and Electricity (EtihadWE, formerly FEWA), which took over FEWA's role under Federal Decree-Law No. 31 of 2020 and offers new service connections by consumption category and connection type. Building and MEP drawings are approved by each emirate's municipality (in Ras Al Khaimah, its municipality or public services department), and fire and life safety by civil defence under the UAE Fire and Life Safety Code. Free zones in these emirates approve works in their areas. Who obtains: a registered MEP contractor or consultant.",
+      "body_ar": "في الإمارات الشمالية الأربع تتولى الاتحاد للماء والكهرباء (الهيئة الاتحادية للكهرباء والماء سابقاً) توصيلات الكهرباء والمياه واعتماد الأحمال، وقد تسلمت دور الهيئة الاتحادية بموجب المرسوم بقانون اتحادي رقم 31 لسنة 2020، وتقدم خدمة التوصيل الجديد حسب فئة الاستهلاك ونوع التوصيل. وتعتمد بلدية كل إمارة مخططات المبنى والأعمال الكهروميكانيكية (وفي رأس الخيمة بلديتها أو دائرة الخدمات العامة)، ويعتمد الدفاع المدني متطلبات السلامة وفق كود الإمارات للحماية من الحرائق. وتعتمد المناطق الحرة في هذه الإمارات الأعمال في مناطقها. من يحصل عليها: مقاول أعمال كهروميكانيكية مسجل أو استشاري.",
+      "sources": [
+        "https://etihadwe.ae/en/About/Pages/About-Etihad-WE.aspx",
+        "https://www.etihadwe.ae/en",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10: each URL is an official page or document named in the search results. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "mep_general:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing MEP quotes like for like",
+      "topic_ar": "مقارنة عروض الأعمال الكهروميكانيكية على أساس متكافئ",
+      "body_en": "Compare on the same drawing revision and BOQ, system by system, with the same approved makes and origins, and testing, commissioning, authority fees and handover documents treated alike. Price every exclusion and provisional sum before ranking. Value beyond price: an in-house design and commissioning team, registration with each authority, and named makes with origin declared.",
+      "body_ar": "قارن على نسخة المخططات وجدول الكميات نفسيهما، نظاماً نظاماً، وبالعلامات المعتمدة ومنشئها نفسها، مع معاملة الفحص والتشغيل ورسوم الجهات ووثائق التسليم بالطريقة نفسها. سعّر كل استثناء ومبلغ احتياطي قبل الترتيب. القيمة إلى جانب السعر: فريق تصميم وتشغيل داخلي، وتسجيل لدى كل جهة، وعلامات مسماة مع التصريح بمنشئها.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -510,7 +601,9 @@
       "mep_general:abudhabi-sharjah-approvals"
     ],
     "removed": [],
-    "still_unverified": [],
+    "still_unverified": [
+      "mep_general:approvals-northern-emirates"
+    ],
     "not_established_marked": [
       "mep_general:what-is-mep",
       "mep_general:bms",
@@ -524,6 +617,15 @@
     "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf).",
     "added_2026_10_06": [
       "mep_general:mep-cost-share-benchmark"
-    ]
+    ],
+    "added": [
+      "mep_general:approvals-northern-emirates",
+      "mep_general:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+    }
   }
 }

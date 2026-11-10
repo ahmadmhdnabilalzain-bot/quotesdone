@@ -66,8 +66,8 @@
       "id": "security_systems:storage-calculation",
       "topic": "Storage and bitrate calculation for CCTV",
       "kind": "spec_checklist",
-      "body_en": "Recorder storage is sized from bitrate, not from camera count. Storage (TB) ≈ total bitrate (Mbps) × 3600 × hours recorded per day × retention days ÷ 8 ÷ 1,000,000. Example: 32 cameras × 4 Mbps constant = 128 Mbps; 128 × 3600 × 24 × 31 ÷ 8 ÷ 10^6 ≈ 42.9 TB before overhead. Add 10–20% for file system and growth, and if RAID 5/6 is used, add the parity disks on top of usable capacity. Bitrate depends on resolution, frame rate, codec (H.264/H.265/'smart' variants), scene complexity, night-time noise and whether recording is continuous or motion/event based. Night IR scenes and busy scenes (trees, traffic) produce much higher bitrates than a quiet corridor, so a supplier using a manufacturer's 'daytime quiet scene' bitrate will under-size storage. For regulated sites the retention period is set by the authority (in Dubai at least 31 days at no less than 10 fps under the SIRA Preventive Systems Manual of 2025, with event-based recording still covering at least 70 percent of each day) and recording must meet the full period at the required frame rate, not just 'up to' it. Ask for the supplier's calculation sheet, the assumed bitrate per camera and the recorder's maximum incoming bandwidth.",
-      "body_ar": "يُحسب حجم التخزين من معدل البت لا من عدد الكاميرات. التخزين بالتيرابايت ≈ إجمالي معدل البت (ميغابت/ثانية) × 3600 × ساعات التسجيل اليومية × أيام الاحتفاظ ÷ 8 ÷ 1,000,000. مثال: 32 كاميرا × 4 ميغابت ثابتة = 128 ميغابت/ثانية، والناتج لـ 31 يوماً على مدار الساعة نحو 42.9 تيرابايت قبل الإضافات. يُضاف 10 إلى 20% لنظام الملفات والتوسع، وإذا استُخدم RAID 5 أو 6 تضاف أقراص التكافؤ فوق السعة الصافية. يعتمد معدل البت على الدقة وعدد الإطارات وصيغة الضغط (H.264/H.265 أو النسخ الذكية) وتعقيد المشهد وضوضاء الليل ونوع التسجيل (مستمر أو عند الحركة). مشاهد الليل بالأشعة تحت الحمراء والمشاهد المزدحمة (أشجار، حركة مرور) تنتج معدلات أعلى بكثير من ممر هادئ، والمورد الذي يعتمد رقم المصنع «لمشهد نهاري هادئ» سيقلل حجم التخزين. في المواقع الخاضعة للتنظيم تحدد الجهة المختصة مدة الاحتفاظ (يُذكر عادة 31 يوماً للمنشآت العامة في دبي وأطول للفئات عالية الخطورة)، ويجب أن يغطي التسجيل كامل المدة بعدد الإطارات المطلوب. اطلب من المورد جدول الحساب، ومعدل البت المفترض لكل كاميرا، وأقصى نطاق وارد للمسجل. وفي دبي يشترط دليل الأنظمة الوقائية الصادر عن سيرا لسنة 2025 الاحتفاظ بالتسجيلات 31 يوماً على الأقل بمعدل لا يقل عن 10 إطارات في الثانية، وإذا كان التسجيل عند الحدث فيجب أن يغطي 70 بالمئة على الأقل من كل يوم.",
+      "body_en": "Recorder storage is sized from bitrate, not from camera count. Storage (TB) ≈ total bitrate (Mbps) × 3600 × hours recorded per day × retention days ÷ 8 ÷ 1,000,000. Example: 32 cameras × 4 Mbps constant = 128 Mbps; 128 × 3600 × 24 × 31 ÷ 8 ÷ 10^6 ≈ 42.9 TB before overhead. Add 10–20% for file system and growth, and if RAID 5/6 is used, add the parity disks on top of usable capacity. Bitrate depends on resolution, frame rate, codec (H.264/H.265/'smart' variants), scene complexity, night-time noise and whether recording is continuous or motion/event based. Night IR scenes and busy scenes (trees, traffic) produce much higher bitrates than a quiet corridor, so a supplier using a manufacturer's 'daytime quiet scene' bitrate will under-size storage. For regulated sites the retention period is set by the authority (in Dubai at least 31 days at no less than 10 fps under the SIRA Preventive Systems Manual of 2025, with event-based recording still covering at least 70 percent of each day) and recording must meet the full period at the required frame rate, not just 'up to' it. Ask for the supplier's calculation sheet, the assumed bitrate per camera and the recorder's maximum incoming bandwidth.\n\nExpert interview (2026-11-10): Blocking: retention days.",
+      "body_ar": "يُحسب حجم التخزين من معدل البت لا من عدد الكاميرات. التخزين بالتيرابايت ≈ إجمالي معدل البت (ميغابت/ثانية) × 3600 × ساعات التسجيل اليومية × أيام الاحتفاظ ÷ 8 ÷ 1,000,000. مثال: 32 كاميرا × 4 ميغابت ثابتة = 128 ميغابت/ثانية، والناتج لـ 31 يوماً على مدار الساعة نحو 42.9 تيرابايت قبل الإضافات. يُضاف 10 إلى 20% لنظام الملفات والتوسع، وإذا استُخدم RAID 5 أو 6 تضاف أقراص التكافؤ فوق السعة الصافية. يعتمد معدل البت على الدقة وعدد الإطارات وصيغة الضغط (H.264/H.265 أو النسخ الذكية) وتعقيد المشهد وضوضاء الليل ونوع التسجيل (مستمر أو عند الحركة). مشاهد الليل بالأشعة تحت الحمراء والمشاهد المزدحمة (أشجار، حركة مرور) تنتج معدلات أعلى بكثير من ممر هادئ، والمورد الذي يعتمد رقم المصنع «لمشهد نهاري هادئ» سيقلل حجم التخزين. في المواقع الخاضعة للتنظيم تحدد الجهة المختصة مدة الاحتفاظ (يُذكر عادة 31 يوماً للمنشآت العامة في دبي وأطول للفئات عالية الخطورة)، ويجب أن يغطي التسجيل كامل المدة بعدد الإطارات المطلوب. اطلب من المورد جدول الحساب، ومعدل البت المفترض لكل كاميرا، وأقصى نطاق وارد للمسجل. وفي دبي يشترط دليل الأنظمة الوقائية الصادر عن سيرا لسنة 2025 الاحتفاظ بالتسجيلات 31 يوماً على الأقل بمعدل لا يقل عن 10 إطارات في الثانية، وإذا كان التسجيل عند الحدث فيجب أن يغطي 70 بالمئة على الأقل من كل يوم.\n\nمقابلة الخبير (2026-11-10): البند المانع: عدد أيام الاحتفاظ.",
       "required_specs": [
         "number of cameras by resolution",
         "frame rate (fps) per camera",
@@ -84,7 +84,20 @@
         "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(13)%20of%202025%20System%20Manual.html"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "retention days required (authority + client)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "retention days required (authority + client)",
+          "why_needed_to_price": "Storage size follows retention.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "security_systems:h264-vs-h265",
@@ -419,8 +432,8 @@
       "id": "security_systems:spec-cctv",
       "topic": "What a buyer must state to get an exact CCTV quote",
       "kind": "spec_checklist",
-      "body_en": "A CCTV request without these details forces suppliers to guess, and quotes then cannot be compared. State the emirate and premises category (this decides SIRA or MCC requirements, retention and whether a licensed installer and approved products are mandatory); new installation, extension or replacement (and existing recorder model/format if extending); camera count by location with purpose (detect/observe/recognise/identify) and indoor/outdoor; preferred technology (IP or HD-analogue) and any brand, origin or NDAA restriction; resolution or pixel density target; retention days and recording mode; whether a VMS, video wall, remote/mobile viewing or monitoring-centre connection is needed; analytics or ANPR needs; cabling responsibility (supplier or other trade), containment availability, ceiling type and mounting heights; network ownership (dedicated or shared IT network); UPS autonomy; drawings or site visit availability; and warranty, AMC and handover documents expected. Attach floor plans with camera positions if available. A supplier should respond with a camera schedule, storage calculation, bill of materials by model number and a statement of approvals it will obtain.",
-      "body_ar": "طلب تسعير كاميرات المراقبة بدون هذه التفاصيل يجبر الموردين على التخمين، فلا تمكن مقارنة العروض. حدد: الإمارة وفئة المنشأة (وهذا يحدد متطلبات سيرا أو مركز المراقبة ومدة الاحتفاظ وإلزامية المركِّب المرخص والمنتجات المعتمدة)، وهل هو تركيب جديد أو توسعة أو استبدال (مع طراز المسجل الحالي وصيغته عند التوسعة)، وعدد الكاميرات حسب الموقع مع الغرض (كشف/مراقبة/تمييز/تعريف) وداخلي أو خارجي، والتقنية المفضلة (IP أو تناظري عالي الدقة) وأي قيود على العلامة أو المنشأ أو NDAA، والدقة أو كثافة البكسل المستهدفة، وأيام الاحتفاظ ونمط التسجيل، والحاجة إلى برنامج إدارة فيديو أو شاشة حائط أو مشاهدة عن بعد أو ربط بمركز مراقبة، ومتطلبات التحليلات أو قراءة اللوحات، ومسؤولية تمديد الكابلات (المورد أو جهة أخرى) وتوفر المجاري ونوع السقف وارتفاعات التركيب، وملكية الشبكة (مخصصة أو مشتركة)، ومدة تشغيل UPS، وتوفر المخططات أو زيارة الموقع، والضمان وعقد الصيانة ومستندات التسليم المتوقعة. أرفق مخططات الطوابق بمواقع الكاميرات إن وجدت. يجب أن يرد المورد بجدول كاميرات، وحساب تخزين، وقائمة مواد بأرقام الطرازات، وبيان بالموافقات التي سيستخرجها.",
+      "body_en": "A CCTV request without these details forces suppliers to guess, and quotes then cannot be compared. State the emirate and premises category (this decides SIRA or MCC requirements, retention and whether a licensed installer and approved products are mandatory); new installation, extension or replacement (and existing recorder model/format if extending); camera count by location with purpose (detect/observe/recognise/identify) and indoor/outdoor; preferred technology (IP or HD-analogue) and any brand, origin or NDAA restriction; resolution or pixel density target; retention days and recording mode; whether a VMS, video wall, remote/mobile viewing or monitoring-centre connection is needed; analytics or ANPR needs; cabling responsibility (supplier or other trade), containment availability, ceiling type and mounting heights; network ownership (dedicated or shared IT network); UPS autonomy; drawings or site visit availability; and warranty, AMC and handover documents expected. Attach floor plans with camera positions if available. A supplier should respond with a camera schedule, storage calculation, bill of materials by model number and a statement of approvals it will obtain.\n\nExpert interview (2026-11-10): Blocking: regulator and premises category, camera counts by type, retention and new or extension. A site survey is needed without a layout.",
+      "body_ar": "طلب تسعير كاميرات المراقبة بدون هذه التفاصيل يجبر الموردين على التخمين، فلا تمكن مقارنة العروض. حدد: الإمارة وفئة المنشأة (وهذا يحدد متطلبات سيرا أو مركز المراقبة ومدة الاحتفاظ وإلزامية المركِّب المرخص والمنتجات المعتمدة)، وهل هو تركيب جديد أو توسعة أو استبدال (مع طراز المسجل الحالي وصيغته عند التوسعة)، وعدد الكاميرات حسب الموقع مع الغرض (كشف/مراقبة/تمييز/تعريف) وداخلي أو خارجي، والتقنية المفضلة (IP أو تناظري عالي الدقة) وأي قيود على العلامة أو المنشأ أو NDAA، والدقة أو كثافة البكسل المستهدفة، وأيام الاحتفاظ ونمط التسجيل، والحاجة إلى برنامج إدارة فيديو أو شاشة حائط أو مشاهدة عن بعد أو ربط بمركز مراقبة، ومتطلبات التحليلات أو قراءة اللوحات، ومسؤولية تمديد الكابلات (المورد أو جهة أخرى) وتوفر المجاري ونوع السقف وارتفاعات التركيب، وملكية الشبكة (مخصصة أو مشتركة)، ومدة تشغيل UPS، وتوفر المخططات أو زيارة الموقع، والضمان وعقد الصيانة ومستندات التسليم المتوقعة. أرفق مخططات الطوابق بمواقع الكاميرات إن وجدت. يجب أن يرد المورد بجدول كاميرات، وحساب تخزين، وقائمة مواد بأرقام الطرازات، وبيان بالموافقات التي سيستخرجها.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الجهة المنظمة وفئة المنشأة، وأعداد الكاميرات حسب النوع، ومدة الاحتفاظ، ونظام جديد أو توسعة. ويلزم مسح للموقع في غياب مخطط.",
       "required_specs": [
         "emirate and premises category (regulator: SIRA / MCC / other)",
         "new / extension / replacement; existing recorder model and format",
@@ -443,14 +456,52 @@
         "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(13)%20of%202025%20System%20Manual.html"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "emirate and premises category (regulator: SIRA / MCC / other)",
+        "camera count per location with purpose (DORI) and indoor/outdoor",
+        "retention days and recording mode (continuous/motion)",
+        "new / extension / replacement; existing recorder model and format"
+      ],
+      "spec_guide": [
+        {
+          "spec": "emirate and premises category (regulator: SIRA / MCC / other)",
+          "why_needed_to_price": "The regulator and premises category decide camera counts, retention and approved products.",
+          "uae_options": "Dubai SIRA; Abu Dhabi MCC; other emirates police",
+          "follow_up_if": "Dubai: ask the premises category; SIRA rules change camera placement and retention.",
+          "blocking": true
+        },
+        {
+          "spec": "camera count per location with purpose (DORI) and indoor/outdoor",
+          "why_needed_to_price": "Cameras are priced per unit by type.",
+          "uae_options": "counts per zone",
+          "follow_up_if": "No layout: a site survey is needed.",
+          "blocking": true
+        },
+        {
+          "spec": "retention days and recording mode (continuous/motion)",
+          "why_needed_to_price": "Storage size and NVR cost follow retention.",
+          "uae_options": "per regulator minimum and client need",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "new / extension / replacement; existing recorder model and format",
+          "why_needed_to_price": "Extensions must match the existing system.",
+          "uae_options": "new; extension; replacement",
+          "follow_up_if": "Extension: ask the existing brand and model.",
+          "blocking": true
+        }
+      ],
+      "site_visit_required_when": "A site survey is genuinely needed for any CCTV layout not already designed, to place cameras, measure cable runs and check the network.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "security_systems:spec-access-control",
       "topic": "What a buyer must state to get an exact access control quote",
       "kind": "spec_checklist",
-      "body_en": "For access control, suppliers need per-door information, not just a door count. For each door or gate state: door type and material (timber, glass frameless, aluminium, steel, fire-rated and rating), single or double leaf, swing direction and whether it is an escape route; lock type preference (maglock, strike, electromechanical) or ask the supplier to recommend per door; reading on entry only or entry and exit; credential technology (existing cards to be reused? 125 kHz, DESFire, mobile, PIN, face/fingerprint); request-to-exit device and emergency break-glass; door contact and door-held/forced alarms. System-wide: number of users, sites and doors now and in future; lift control floors; turnstiles or barriers; visitor management; time attendance or HR/payroll integration; CCTV, fire alarm and intercom integration; server on-premises or cloud and who hosts; reader protocol (OSDP Secure Channel preferred); cabling and containment responsibility; UPS/battery autonomy; and authority requirements for the premises category. Ask for a door schedule in the reply listing every component per door by model. OSDP is standardised as IEC 60839-11-5 and, unlike Wiegand, is bidirectional and supports encryption.",
-      "body_ar": "في التحكم بالدخول يحتاج الموردون معلومات لكل باب، لا مجرد عدد الأبواب. لكل باب أو بوابة حدد: نوع الباب ومادته (خشب، زجاج بدون إطار، ألمنيوم، حديد، مقاوم للحريق ودرجته)، ودرفة واحدة أو مزدوجة، واتجاه الفتح وهل هو مسار هروب، ونوع القفل المفضل (مغناطيسي، لسان كهربائي، كهروميكانيكي) أو اطلب من المورد التوصية لكل باب، والقراءة عند الدخول فقط أو الدخول والخروج، وتقنية التعريف (هل ستُستخدم البطاقات الحالية؟ 125 كيلوهرتز، DESFire، جوال، رمز، وجه أو بصمة)، وزر طلب الخروج وزجاج الطوارئ، وحساس الباب وإنذارات ترك الباب مفتوحاً أو فتحه بالقوة. وعلى مستوى النظام: عدد المستخدمين والمواقع والأبواب حالياً ومستقبلاً، وطوابق التحكم بالمصاعد، والبوابات الدوارة أو الحواجز، وإدارة الزوار، والحضور والانصراف أو الربط مع الموارد البشرية والرواتب، والتكامل مع الكاميرات وإنذار الحريق والإنتركم، والخادم محلي أم سحابي ومن يستضيفه، وبروتوكول القارئ (يفضل OSDP Secure Channel)، ومسؤولية الكابلات والمجاري، ومدة البطارية الاحتياطية، ومتطلبات الجهة المختصة لفئة المنشأة. اطلب في الرد جدول أبواب يوضح كل مكون لكل باب بالطراز. وOSDP معتمد كمواصفة IEC 60839-11-5، وخلافاً لـWiegand فهو ثنائي الاتجاه ويدعم التشفير.",
+      "body_en": "For access control, suppliers need per-door information, not just a door count. For each door or gate state: door type and material (timber, glass frameless, aluminium, steel, fire-rated and rating), single or double leaf, swing direction and whether it is an escape route; lock type preference (maglock, strike, electromechanical) or ask the supplier to recommend per door; reading on entry only or entry and exit; credential technology (existing cards to be reused? 125 kHz, DESFire, mobile, PIN, face/fingerprint); request-to-exit device and emergency break-glass; door contact and door-held/forced alarms. System-wide: number of users, sites and doors now and in future; lift control floors; turnstiles or barriers; visitor management; time attendance or HR/payroll integration; CCTV, fire alarm and intercom integration; server on-premises or cloud and who hosts; reader protocol (OSDP Secure Channel preferred); cabling and containment responsibility; UPS/battery autonomy; and authority requirements for the premises category. Ask for a door schedule in the reply listing every component per door by model. OSDP is standardised as IEC 60839-11-5 and, unlike Wiegand, is bidirectional and supports encryption.\n\nExpert interview (2026-11-10): Blocking: door schedule, lock type per door and credential technology.",
+      "body_ar": "في التحكم بالدخول يحتاج الموردون معلومات لكل باب، لا مجرد عدد الأبواب. لكل باب أو بوابة حدد: نوع الباب ومادته (خشب، زجاج بدون إطار، ألمنيوم، حديد، مقاوم للحريق ودرجته)، ودرفة واحدة أو مزدوجة، واتجاه الفتح وهل هو مسار هروب، ونوع القفل المفضل (مغناطيسي، لسان كهربائي، كهروميكانيكي) أو اطلب من المورد التوصية لكل باب، والقراءة عند الدخول فقط أو الدخول والخروج، وتقنية التعريف (هل ستُستخدم البطاقات الحالية؟ 125 كيلوهرتز، DESFire، جوال، رمز، وجه أو بصمة)، وزر طلب الخروج وزجاج الطوارئ، وحساس الباب وإنذارات ترك الباب مفتوحاً أو فتحه بالقوة. وعلى مستوى النظام: عدد المستخدمين والمواقع والأبواب حالياً ومستقبلاً، وطوابق التحكم بالمصاعد، والبوابات الدوارة أو الحواجز، وإدارة الزوار، والحضور والانصراف أو الربط مع الموارد البشرية والرواتب، والتكامل مع الكاميرات وإنذار الحريق والإنتركم، والخادم محلي أم سحابي ومن يستضيفه، وبروتوكول القارئ (يفضل OSDP Secure Channel)، ومسؤولية الكابلات والمجاري، ومدة البطارية الاحتياطية، ومتطلبات الجهة المختصة لفئة المنشأة. اطلب في الرد جدول أبواب يوضح كل مكون لكل باب بالطراز. وOSDP معتمد كمواصفة IEC 60839-11-5، وخلافاً لـWiegand فهو ثنائي الاتجاه ويدعم التشفير.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: جدول الأبواب، ونوع القفل لكل باب، وتقنية بطاقات الدخول.",
       "required_specs": [
         "door schedule: door type/material, fire rating, single/double leaf, swing, escape route yes/no",
         "lock type per door",
@@ -473,14 +524,43 @@
         "https://idighardware.com/2017/07/decoded-access-controlled-egress-doors-august-2017/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "door schedule: door type/material, fire rating, single/double leaf, swing, escape route yes/no",
+        "lock type per door",
+        "credential technology and whether existing cards are reused"
+      ],
+      "spec_guide": [
+        {
+          "spec": "door schedule: door type/material, fire rating, single/double leaf, swing, escape route yes/no",
+          "why_needed_to_price": "Lock and hardware per door follow the door type and escape rules.",
+          "uae_options": "door schedule",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "lock type per door",
+          "why_needed_to_price": "Maglocks, strikes and motor locks differ.",
+          "uae_options": "maglock; strike; motor lock",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "credential technology and whether existing cards are reused",
+          "why_needed_to_price": "Reader and card technology set cost.",
+          "uae_options": "card; mobile; biometric",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "security_systems:spec-intrusion-intercom",
       "topic": "What a buyer must state for intrusion alarm and intercom quotes",
       "kind": "spec_checklist",
-      "body_en": "Intrusion alarm: premises type and risk (villa, shop, jeweller, warehouse, bank branch), required grade (EN 50131 grade 2/3/4 or authority category requirement), areas to be protected and partitions that arm separately, detector types per room (PIR, dual-tech, contacts, glass-break, seismic for safes, outdoor beams/perimeter), panic/hold-up buttons and duress codes, sounders internal/external, wired or wireless, communicator paths (IP, 4G, dual path), whether monitoring by a licensed ARC is required and by whom, integration with CCTV for alarm verification, and battery autonomy. Intercom: villa or multi-tenant; number of apartments/units and entrances; entrance panel type (buttons, directory, touchscreen, card/face reader); indoor monitor type and size; concierge or guard station count; mobile-app calling and its subscription; lift integration; SIP/PBX integration; existing cabling to be reused (2-wire) or new IP network; outdoor IP/IK ratings; and door release hardware. For both, state who does cabling and containment, whether drawings are available, and required warranty and maintenance terms. Verification note (23 Sep 2026): The intrusion grade items follow EN 50131; the intercom checklist items are practical buyer points, not established from a fetched source.",
-      "body_ar": "الإنذار ضد السرقة: نوع المنشأة ودرجة خطورتها (فيلا، محل، مجوهرات، مستودع، فرع بنك)، والدرجة المطلوبة (EN 50131 الدرجة 2 أو 3 أو 4 أو متطلبات فئة الجهة المختصة)، والمناطق المراد حمايتها والأقسام التي تُفعّل منفصلة، ونوع الكواشف لكل غرفة (حركة، مزدوجة التقنية، مفاتيح مغناطيسية، كسر زجاج، اهتزاز للخزائن، حواجز خارجية)، وأزرار الذعر ورموز الإكراه، والصفارات الداخلية والخارجية، وسلكي أم لاسلكي، ومسارات الاتصال (IP، 4G، مزدوج)، وهل المراقبة من مركز مرخص مطلوبة ومن سيقدمها، والتكامل مع الكاميرات للتحقق، ومدة البطارية. الإنتركم: فيلا أم مبنى متعدد السكان، وعدد الشقق والمداخل، ونوع لوحة المدخل (أزرار، دليل، شاشة لمس، قارئ بطاقة أو وجه)، ونوع الشاشة الداخلية وحجمها، وعدد محطات الحراسة أو الاستقبال، والاتصال عبر التطبيق واشتراكه، والربط مع المصاعد، والربط مع مقسم الهاتف SIP، وإعادة استخدام الكابلات الثنائية القائمة أو شبكة IP جديدة، وتصنيفات IP وIK للخارج، وأجهزة فتح الباب. وفي الحالتين حدد من يتولى الكابلات والمجاري، وتوفر المخططات، وشروط الضمان والصيانة المطلوبة. ملاحظة تحقق (23 سبتمبر 2026): بنود درجة الإنذار مبنية على EN 50131؛ أما بنود الإنتركم فنقاط عملية للمشتري غير مثبتة من مصدر مفحوص.",
+      "body_en": "Intrusion alarm: premises type and risk (villa, shop, jeweller, warehouse, bank branch), required grade (EN 50131 grade 2/3/4 or authority category requirement), areas to be protected and partitions that arm separately, detector types per room (PIR, dual-tech, contacts, glass-break, seismic for safes, outdoor beams/perimeter), panic/hold-up buttons and duress codes, sounders internal/external, wired or wireless, communicator paths (IP, 4G, dual path), whether monitoring by a licensed ARC is required and by whom, integration with CCTV for alarm verification, and battery autonomy. Intercom: villa or multi-tenant; number of apartments/units and entrances; entrance panel type (buttons, directory, touchscreen, card/face reader); indoor monitor type and size; concierge or guard station count; mobile-app calling and its subscription; lift integration; SIP/PBX integration; existing cabling to be reused (2-wire) or new IP network; outdoor IP/IK ratings; and door release hardware. For both, state who does cabling and containment, whether drawings are available, and required warranty and maintenance terms. Verification note (23 Sep 2026): The intrusion grade items follow EN 50131; the intercom checklist items are practical buyer points, not established from a fetched source.\n\nExpert interview (2026-11-10): Blocking: premises type and grade, and the intercom configuration.",
+      "body_ar": "الإنذار ضد السرقة: نوع المنشأة ودرجة خطورتها (فيلا، محل، مجوهرات، مستودع، فرع بنك)، والدرجة المطلوبة (EN 50131 الدرجة 2 أو 3 أو 4 أو متطلبات فئة الجهة المختصة)، والمناطق المراد حمايتها والأقسام التي تُفعّل منفصلة، ونوع الكواشف لكل غرفة (حركة، مزدوجة التقنية، مفاتيح مغناطيسية، كسر زجاج، اهتزاز للخزائن، حواجز خارجية)، وأزرار الذعر ورموز الإكراه، والصفارات الداخلية والخارجية، وسلكي أم لاسلكي، ومسارات الاتصال (IP، 4G، مزدوج)، وهل المراقبة من مركز مرخص مطلوبة ومن سيقدمها، والتكامل مع الكاميرات للتحقق، ومدة البطارية. الإنتركم: فيلا أم مبنى متعدد السكان، وعدد الشقق والمداخل، ونوع لوحة المدخل (أزرار، دليل، شاشة لمس، قارئ بطاقة أو وجه)، ونوع الشاشة الداخلية وحجمها، وعدد محطات الحراسة أو الاستقبال، والاتصال عبر التطبيق واشتراكه، والربط مع المصاعد، والربط مع مقسم الهاتف SIP، وإعادة استخدام الكابلات الثنائية القائمة أو شبكة IP جديدة، وتصنيفات IP وIK للخارج، وأجهزة فتح الباب. وفي الحالتين حدد من يتولى الكابلات والمجاري، وتوفر المخططات، وشروط الضمان والصيانة المطلوبة. ملاحظة تحقق (23 سبتمبر 2026): بنود درجة الإنذار مبنية على EN 50131؛ أما بنود الإنتركم فنقاط عملية للمشتري غير مثبتة من مصدر مفحوص.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع المنشأة ودرجتها، وتهيئة نظام الاتصال الداخلي.",
       "required_specs": [
         "premises type and risk / required grade",
         "protected areas and partitions",
@@ -500,7 +580,28 @@
         "https://www.alertsystems.co.uk/about/industry-standards/bs-en-intruder-alarm/en-50131/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "premises type and risk / required grade",
+        "intercom: villa or multi-tenant, units and entrances"
+      ],
+      "spec_guide": [
+        {
+          "spec": "premises type and risk / required grade",
+          "why_needed_to_price": "Grade sets detectors and panel.",
+          "uae_options": "villa; shop; warehouse",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "intercom: villa or multi-tenant, units and entrances",
+          "why_needed_to_price": "Multi-tenant systems are priced per unit and entrance.",
+          "uae_options": "villa; building",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "security_systems:fire-alarm-interface",
@@ -626,6 +727,38 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "security_systems:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Security systems: approvals per emirate",
+      "topic_ar": "أنظمة الأمن: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: the Security Industry Regulatory Agency (SIRA) licenses security-systems installers (the trade licence must include installation and maintenance of security systems, with a minimum technical team registered with SIRA), approves equipment device by device, certifies the system of an establishment, and publishes a Preventive Systems Manual, updated by Administrative Resolution No. 13 of 2025, setting camera, recording and retention rules. Abu Dhabi: the Monitoring and Control Centre under Abu Dhabi Law No. 5 of 2011 governs monitoring systems and their approval, and security companies are licensed by Abu Dhabi Police. Sharjah and the northern emirates: the police of each emirate and the federal private-security framework apply; details were not confirmed in this session. A camera inside a private villa is subject to privacy rules; whether SIRA certification applies to private villas was not confirmed. Who obtains: the licensed installer.",
+      "body_ar": "في دبي: تمنح مؤسسة تنظيم الصناعة الأمنية تراخيص شركات تركيب الأنظمة الأمنية (يجب أن تتضمن الرخصة التجارية نشاط تركيب وصيانة الأنظمة الأمنية مع فريق فني أدنى مسجل لدى المؤسسة)، وتعتمد الأجهزة جهازاً جهازاً، وتصدر شهادة نظام المنشأة، وتنشر دليل الأنظمة الوقائية المحدّث بالقرار الإداري رقم 13 لسنة 2025 الذي يحدد قواعد الكاميرات والتسجيل ومدة الاحتفاظ. في أبوظبي: يتولى مركز المراقبة والتحكم وفق قانون أبوظبي رقم 5 لسنة 2011 تنظيم أنظمة المراقبة واعتمادها، وترخّص شرطة أبوظبي شركات الأمن. في الشارقة والإمارات الشمالية: تنطبق متطلبات الشرطة في كل إمارة والإطار الاتحادي للأمن الخاص، ولم يُتحقق من التفاصيل في هذه الجلسة. والكاميرا داخل فيلا خاصة تخضع لقواعد الخصوصية، ولم يُتحقق من انطباق شهادة المؤسسة على الفلل الخاصة. من يحصل عليها: شركة التركيب المرخّصة.",
+      "sources": [
+        "https://www.sira.gov.ae/en/services/noc-security-license",
+        "https://www.sira.gov.ae/en/services/security-equipment-and-devices-certification-29917987",
+        "https://www.sira.gov.ae/en/services/security-system-certification",
+        "https://www.sira.gov.ae/assets/4768cdc/Administrative%20Resolution%20No.%2013%20of%202025%20Approving%20the%20Preventive%20System%20Manual_638911154861069357.pdf.aspx",
+        "https://www.sira.gov.ae/assets/1554846d/Standard%20and%20Technical%20Specifications%20of%20the%20Security%20Systems.pdf.aspx"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10: each URL is an official page or document named in the search results. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "security_systems:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing security systems quotes like for like",
+      "topic_ar": "مقارنة عروض أنظمة الأمن على أساس متكافئ",
+      "body_en": "Compare on the same camera counts and types, resolution, retention and storage, the same VMS and licences, and the same installation, cabling and SIRA or MCC certification scope. Brand origin matters: some projects restrict camera origins, so check each quote names the brand and model. Value beyond price: a licensed installer, regulator-approved products, and a maintenance contract.",
+      "body_ar": "قارن على أعداد الكاميرات وأنواعها ودقتها ومدة الاحتفاظ والتخزين نفسها، وعلى برنامج إدارة الفيديو والتراخيص نفسها، ونطاق التركيب والتمديدات واعتماد مؤسسة تنظيم الصناعة الأمنية أو مركز المراقبة نفسه. ومنشأ العلامة مهم: فبعض المشاريع تقيّد منشأ الكاميرات، فتحقق من أن كل عرض يذكر العلامة والطراز. القيمة إلى جانب السعر: شركة تركيب مرخّصة، ومنتجات معتمدة من الجهة المنظمة، وعقد صيانة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -735,7 +868,9 @@
       "security_systems:fire-alarm-interface"
     ],
     "removed": [],
-    "still_unverified": [],
+    "still_unverified": [
+      "security_systems:approvals-per-emirate"
+    ],
     "not_established_marked": [
       "security_systems:hd-analog-tvi-ahd-cvi",
       "security_systems:ir-wdr-lowlight",
@@ -745,6 +880,15 @@
       "security_systems:fire-alarm-interface"
     ],
     "passes": "A3 + A3b (23 Sep 2026)",
-    "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf)."
+    "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf).",
+    "added": [
+      "security_systems:approvals-per-emirate",
+      "security_systems:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+    }
   }
 }

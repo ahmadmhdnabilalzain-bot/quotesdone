@@ -146,8 +146,8 @@
       "id": "home_automation:bms-scope-definition",
       "topic": "BMS / BAS scope: what is and is not included",
       "kind": "spec_checklist",
-      "body_en": "A Building Management System (BMS, also BAS) centralises monitoring and control of HVAC, electrical, lighting, shading, and may also monitor security, fire and other systems. It is usually structured in three levels: management (servers, workstations, graphics), automation (DDC controllers) and field (sensors, valves, actuators, meters).\nMost BMS disputes in the UAE come from unclear scope boundaries between the BMS specialist, the MEP contractor and equipment suppliers. Typical grey areas: who supplies control valves and damper actuators, who wires field devices, who provides the chiller or VRF gateway, whether fire alarm and lifts are only monitored (never controlled from BMS), and who provides network switches.\nA buyer asking for a BMS quote must therefore provide an I/O point schedule or at least the equipment list and the sequence of operations, a third-party integration list with protocol per device, and state which items are \"supply only\", \"supply and install\" or \"by others\". Price is driven mostly by point count, number of controllers, integration points, head-end licences and graphics, and commissioning effort. A quote priced as a lump sum with no point schedule cannot be compared with others and should be clarified before award. Verification note (23 Sep 2026): the BMS definition is confirmed; scope boundaries are practice.",
-      "body_ar": "يجمع نظام إدارة المبنى (BMS أو BAS) مراقبة التكييف والكهرباء والإضاءة والتظليل والتحكم فيها مركزياً، وقد يراقب الأمن والحريق وأنظمة أخرى. ويُبنى عادةً على ثلاثة مستويات: الإدارة (خوادم ومحطات عمل ورسومات)، والأتمتة (وحدات تحكم رقمية مباشرة)، والميدان (حساسات وصمامات ومحركات وعدادات).\nمعظم خلافات أنظمة إدارة المباني في الإمارات تنشأ من غموض حدود النطاق بين مختص النظام ومقاول الأعمال الكهروميكانيكية ومورّدي المعدات: من يورّد صمامات التحكم ومحركات الخوانق، ومن يمدّد أسلاك الأجهزة الميدانية، ومن يوفّر بوابة المبرّد أو نظام VRF، وهل الإنذار من الحريق والمصاعد للمراقبة فقط دون تحكم، ومن يوفّر مبدّلات الشبكة.\nلذلك يجب على من يطلب تسعيراً تقديم جدول نقاط الإدخال والإخراج أو على الأقل قائمة المعدات وتسلسل التشغيل، وقائمة الأنظمة الخارجية وبروتوكول كل جهاز، وتحديد البنود \"توريد فقط\" أو \"توريد وتركيب\" أو \"من قبل الغير\". ويتحدد السعر أساساً بعدد النقاط ووحدات التحكم ونقاط التكامل وتراخيص البرنامج الرئيسي والرسومات وجهد التشغيل التجريبي. والعرض المقطوع دون جدول نقاط لا تمكن مقارنته ويجب استيضاحه قبل الترسية. ملاحظة التحقق (23 سبتمبر 2026): تأكد تعريف نظام إدارة المباني؛ وحدود النطاق ممارسة.",
+      "body_en": "A Building Management System (BMS, also BAS) centralises monitoring and control of HVAC, electrical, lighting, shading, and may also monitor security, fire and other systems. It is usually structured in three levels: management (servers, workstations, graphics), automation (DDC controllers) and field (sensors, valves, actuators, meters).\nMost BMS disputes in the UAE come from unclear scope boundaries between the BMS specialist, the MEP contractor and equipment suppliers. Typical grey areas: who supplies control valves and damper actuators, who wires field devices, who provides the chiller or VRF gateway, whether fire alarm and lifts are only monitored (never controlled from BMS), and who provides network switches.\nA buyer asking for a BMS quote must therefore provide an I/O point schedule or at least the equipment list and the sequence of operations, a third-party integration list with protocol per device, and state which items are \"supply only\", \"supply and install\" or \"by others\". Price is driven mostly by point count, number of controllers, integration points, head-end licences and graphics, and commissioning effort. A quote priced as a lump sum with no point schedule cannot be compared with others and should be clarified before award. Verification note (23 Sep 2026): the BMS definition is confirmed; scope boundaries are practice.\n\nExpert interview (2026-11-10): Blocking: the points schedule and the integration list with protocols.",
+      "body_ar": "يجمع نظام إدارة المبنى (BMS أو BAS) مراقبة التكييف والكهرباء والإضاءة والتظليل والتحكم فيها مركزياً، وقد يراقب الأمن والحريق وأنظمة أخرى. ويُبنى عادةً على ثلاثة مستويات: الإدارة (خوادم ومحطات عمل ورسومات)، والأتمتة (وحدات تحكم رقمية مباشرة)، والميدان (حساسات وصمامات ومحركات وعدادات).\nمعظم خلافات أنظمة إدارة المباني في الإمارات تنشأ من غموض حدود النطاق بين مختص النظام ومقاول الأعمال الكهروميكانيكية ومورّدي المعدات: من يورّد صمامات التحكم ومحركات الخوانق، ومن يمدّد أسلاك الأجهزة الميدانية، ومن يوفّر بوابة المبرّد أو نظام VRF، وهل الإنذار من الحريق والمصاعد للمراقبة فقط دون تحكم، ومن يوفّر مبدّلات الشبكة.\nلذلك يجب على من يطلب تسعيراً تقديم جدول نقاط الإدخال والإخراج أو على الأقل قائمة المعدات وتسلسل التشغيل، وقائمة الأنظمة الخارجية وبروتوكول كل جهاز، وتحديد البنود \"توريد فقط\" أو \"توريد وتركيب\" أو \"من قبل الغير\". ويتحدد السعر أساساً بعدد النقاط ووحدات التحكم ونقاط التكامل وتراخيص البرنامج الرئيسي والرسومات وجهد التشغيل التجريبي. والعرض المقطوع دون جدول نقاط لا تمكن مقارنته ويجب استيضاحه قبل الترسية. ملاحظة التحقق (23 سبتمبر 2026): تأكد تعريف نظام إدارة المباني؛ وحدود النطاق ممارسة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: جدول النقاط، وقائمة التكامل مع البروتوكولات.",
       "required_specs": [
         "Building type, floors, gross area",
         "Systems to be monitored vs controlled (chillers, AHUs, FCUs, VAVs, pumps, lighting, lifts, fire, generators, water tanks, leak detection)",
@@ -167,14 +167,35 @@
         "https://en.wikipedia.org/wiki/Building_management_system"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Hard-wired I/O point schedule (AI/AO/DI/DO counts)",
+        "Third-party integration list with protocol per device (BACnet IP/MSTP, Modbus RTU/TCP, KNX, DALI, M-Bus)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Hard-wired I/O point schedule (AI/AO/DI/DO counts)",
+          "why_needed_to_price": "BMS is priced per point.",
+          "uae_options": "points list",
+          "follow_up_if": "No points list: the MEP design must produce one.",
+          "blocking": true
+        },
+        {
+          "spec": "Third-party integration list with protocol per device (BACnet IP/MSTP, Modbus RTU/TCP, KNX, DALI, M-Bus)",
+          "why_needed_to_price": "Each integration needs gateways and engineering time.",
+          "uae_options": "per device",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "home_automation:home-automation-villa-spec",
       "topic": "Villa smart-home RFQ checklist",
       "kind": "spec_checklist",
-      "body_en": "For a villa or apartment, a smart-home supplier cannot quote exactly without a room-by-room definition of what is controlled and how. The biggest price drivers are the number and type of lighting circuits (switched vs dimmed, and the dimming method which must match the actual LED drivers), the number of curtain motors, the keypad range chosen (design ranges with glass or metal finishes can cost several times basic ranges), touch panels, and the programming hours.\nStage matters: wired systems must be designed before first-fix so that bus cables, deeper back-boxes, neutral wires at switch points and panel space in the distribution board are provided. In finished homes, wireless (KNX RF, Zigbee, Z-Wave in the regional 868 MHz band, or Matter-over-Thread) avoids breaking walls but depends on battery devices and radio coverage.\nHVAC control: VRF and ducted-split systems usually need a manufacturer-specific gateway to KNX/BACnet/Modbus; state the AC brand and model series. Lighting: confirm LED fixture drivers are compatible with the chosen dimmer type, otherwise flicker and buzzing follow.\nAlways state who provides the IT network; many smart-home failures are actually Wi-Fi or router problems. Verification note (23 Sep 2026): checklist follows verified entries.",
-      "body_ar": "في الفيلا أو الشقة لا يستطيع مورّد المنزل الذكي التسعير بدقة دون تحديد ما يُتحكم به في كل غرفة وطريقته. أكبر محركات السعر هي عدد دوائر الإضاءة ونوعها (تشغيل فقط أم تعتيم، وطريقة التعتيم التي يجب أن تطابق مشغّلات LED الفعلية)، وعدد محركات الستائر، وفئة لوحات المفاتيح المختارة (فالفئات التصميمية بواجهات زجاج أو معدن قد تكلف أضعاف الفئات الأساسية)، وشاشات اللمس، وساعات البرمجة.\nمرحلة البناء مهمة: الأنظمة السلكية يجب تصميمها قبل التمديدات الأولى لتوفير كابل الناقل وعلب أعمق وسلك التعادل عند المفاتيح ومساحة في لوحة التوزيع. وفي المنازل المنتهية يتجنب اللاسلكي (KNX RF أو Zigbee أو Z-Wave بتردد 868 الإقليمي أو Matter عبر Thread) تكسير الجدران، لكنه يعتمد على البطاريات وتغطية الراديو.\nالتحكم بالتكييف: أنظمة VRF والوحدات المخفية تحتاج غالباً بوابة خاصة بالمصنّع إلى KNX أو BACnet أو Modbus، فاذكر علامة المكيف وسلسلة الطراز. وفي الإضاءة تأكد من توافق مشغّلات وحدات LED مع نوع المعتّم، وإلا ظهر الوميض والطنين.\nحدّد دائماً من يوفّر شبكة المعلومات، فكثير من أعطال المنازل الذكية هي في الحقيقة مشكلات واي فاي أو موجّه. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات متحقق منها.",
+      "body_en": "For a villa or apartment, a smart-home supplier cannot quote exactly without a room-by-room definition of what is controlled and how. The biggest price drivers are the number and type of lighting circuits (switched vs dimmed, and the dimming method which must match the actual LED drivers), the number of curtain motors, the keypad range chosen (design ranges with glass or metal finishes can cost several times basic ranges), touch panels, and the programming hours.\nStage matters: wired systems must be designed before first-fix so that bus cables, deeper back-boxes, neutral wires at switch points and panel space in the distribution board are provided. In finished homes, wireless (KNX RF, Zigbee, Z-Wave in the regional 868 MHz band, or Matter-over-Thread) avoids breaking walls but depends on battery devices and radio coverage.\nHVAC control: VRF and ducted-split systems usually need a manufacturer-specific gateway to KNX/BACnet/Modbus; state the AC brand and model series. Lighting: confirm LED fixture drivers are compatible with the chosen dimmer type, otherwise flicker and buzzing follow.\nAlways state who provides the IT network; many smart-home failures are actually Wi-Fi or router problems. Verification note (23 Sep 2026): checklist follows verified entries.\n\nExpert interview (2026-11-10): Blocking: new build or retrofit, platform, the lighting circuit list and the curtain motor list. Retrofit needs a site visit.",
+      "body_ar": "في الفيلا أو الشقة لا يستطيع مورّد المنزل الذكي التسعير بدقة دون تحديد ما يُتحكم به في كل غرفة وطريقته. أكبر محركات السعر هي عدد دوائر الإضاءة ونوعها (تشغيل فقط أم تعتيم، وطريقة التعتيم التي يجب أن تطابق مشغّلات LED الفعلية)، وعدد محركات الستائر، وفئة لوحات المفاتيح المختارة (فالفئات التصميمية بواجهات زجاج أو معدن قد تكلف أضعاف الفئات الأساسية)، وشاشات اللمس، وساعات البرمجة.\nمرحلة البناء مهمة: الأنظمة السلكية يجب تصميمها قبل التمديدات الأولى لتوفير كابل الناقل وعلب أعمق وسلك التعادل عند المفاتيح ومساحة في لوحة التوزيع. وفي المنازل المنتهية يتجنب اللاسلكي (KNX RF أو Zigbee أو Z-Wave بتردد 868 الإقليمي أو Matter عبر Thread) تكسير الجدران، لكنه يعتمد على البطاريات وتغطية الراديو.\nالتحكم بالتكييف: أنظمة VRF والوحدات المخفية تحتاج غالباً بوابة خاصة بالمصنّع إلى KNX أو BACnet أو Modbus، فاذكر علامة المكيف وسلسلة الطراز. وفي الإضاءة تأكد من توافق مشغّلات وحدات LED مع نوع المعتّم، وإلا ظهر الوميض والطنين.\nحدّد دائماً من يوفّر شبكة المعلومات، فكثير من أعطال المنازل الذكية هي في الحقيقة مشكلات واي فاي أو موجّه. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات متحقق منها.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مبنى جديد أو تعديل لمبنى قائم، والمنصة، وقائمة دوائر الإنارة، وقائمة محركات الستائر. والتعديل يحتاج إلى زيارة الموقع.",
       "required_specs": [
         "New build or retrofit; stage of construction (before first-fix or finished)",
         "Platform/protocol required (KNX TP, KNX RF, Zigbee, Z-Wave EU/868, Matter, Crestron/Control4/Savant) or open to proposal",
@@ -196,7 +217,45 @@
         "https://en.wikipedia.org/wiki/Matter_(standard)"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "New build or retrofit; stage of construction (before first-fix or finished)",
+        "Platform/protocol required (KNX TP, KNX RF, Zigbee, Z-Wave EU/868, Matter, Crestron/Control4/Savant) or open to proposal",
+        "Room-by-room list of lighting circuits: switched, dimmable (phase-cut, 0-10V, DALI, DT8 tunable white)",
+        "Curtain/blind motors: count, type (track/roller/Roman), wired or battery, protocol, track lengths"
+      ],
+      "spec_guide": [
+        {
+          "spec": "New build or retrofit; stage of construction (before first-fix or finished)",
+          "why_needed_to_price": "Wired systems need cabling before first fix; retrofit forces wireless or surface work.",
+          "uae_options": "new build before first fix; renovation; finished home",
+          "follow_up_if": "Finished home: ask whether walls may be opened; otherwise wireless only.",
+          "blocking": true
+        },
+        {
+          "spec": "Platform/protocol required (KNX TP, KNX RF, Zigbee, Z-Wave EU/868, Matter, Crestron/Control4/Savant) or open to proposal",
+          "why_needed_to_price": "Platforms differ several-fold in price and in who can service them later.",
+          "uae_options": "KNX; Zigbee/Z-Wave; Matter; proprietary Crestron/Control4/Savant",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Room-by-room list of lighting circuits: switched, dimmable (phase-cut, 0-10V, DALI, DT8 tunable white)",
+          "why_needed_to_price": "Each circuit and dimming type is a priced channel.",
+          "uae_options": "room list with circuit counts",
+          "follow_up_if": "No list: ask for the electrical drawings.",
+          "blocking": true
+        },
+        {
+          "spec": "Curtain/blind motors: count, type (track/roller/Roman), wired or battery, protocol, track lengths",
+          "why_needed_to_price": "Motors are priced per window and track length.",
+          "uae_options": "count and track lengths",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "site_visit_required_when": "A retrofit needs a site visit to check the existing wiring, back boxes and network coverage before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "home_automation:curtain-motors",
@@ -400,6 +459,37 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Home and building automation: approvals per emirate",
+      "topic_ar": "أتمتة المنازل والمباني: الاعتمادات في كل إمارة",
+      "body_en": "A smart-home system in a private villa needs no authority approval of its own; the wiring must follow the emirate's electrical regulations (DEWA in Dubai, the Department of Energy wiring regulations with ADDC/AADC in Abu Dhabi, SEWA in Sharjah, EtihadWE in the northern emirates). Radio devices (Wi-Fi, Zigbee, Z-Wave) sold in the UAE must be type-approved by TDRA. Interfaces with fire alarm, smoke control or fire doors are approved by civil defence. In commercial buildings BMS supports green-building compliance (Al Sa'fat in Dubai, Estidama in Abu Dhabi). Who obtains: the integrator for TDRA-approved products; the MEP contractor for interfaces.",
+      "body_ar": "لا يحتاج نظام المنزل الذكي في فيلا خاصة إلى اعتماد حكومي خاص به، لكن يجب أن تتبع التمديدات لوائح الكهرباء في الإمارة (هيئة كهرباء ومياه دبي في دبي، ولوائح دائرة الطاقة مع شركتي التوزيع في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة، والاتحاد للماء والكهرباء في الإمارات الشمالية). ويجب أن تكون الأجهزة اللاسلكية (واي فاي وزيغبي وزي-ويف) المباعة في الدولة معتمدة النوع من هيئة تنظيم الاتصالات والحكومة الرقمية. ويعتمد الدفاع المدني الربط مع إنذار الحريق أو التحكم بالدخان أو أبواب الحريق. وفي المباني التجارية يدعم نظام إدارة المبنى الامتثال للمباني الخضراء (السعفات في دبي واستدامة في أبوظبي). من يحصل عليها: المكامل للمنتجات المعتمدة من الهيئة، ومقاول الأعمال الكهروميكانيكية للربط.",
+      "sources": [
+        "https://tdra.gov.ae/en/Services/register-and-approve-telecommunication-equipment",
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.etihadwe.ae/en"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10: each URL is an official page or document named in the search results. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "home_automation:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing home automation quotes like for like",
+      "topic_ar": "مقارنة عروض أتمتة المنازل على أساس متكافئ",
+      "body_en": "Compare on the same platform, the same channel counts (lighting, dimming, curtains, HVAC, AV zones), the same keypads and touch panels, and programming, commissioning and handover of the project file treated alike. Value beyond price: an open platform any certified integrator can service, the programming file handed over, and a support response time.",
+      "body_ar": "قارن على المنصة نفسها، وأعداد القنوات نفسها (الإنارة والتعتيم والستائر والتكييف ومناطق الصوت والصورة)، ولوحات المفاتيح والشاشات نفسها، مع معاملة البرمجة والتشغيل وتسليم ملف المشروع بالطريقة نفسها. القيمة إلى جانب السعر: منصة مفتوحة يمكن لأي مكامل معتمد صيانتها، وتسليم ملف البرمجة، وزمن استجابة للدعم.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -491,7 +581,18 @@
       "home_automation:zigbee-zwave-wifi-matter-thread"
     ],
     "removed": [],
-    "still_unverified": [],
-    "method": "A4b re-pass 2026-09-23: each claim grep-checked against fetched page text; unsupported specifics removed or stated as not established inside the entry (see Verification note)."
+    "still_unverified": [
+      "home_automation:approvals-per-emirate"
+    ],
+    "method": "A4b re-pass 2026-09-23: each claim grep-checked against fetched page text; unsupported specifics removed or stated as not established inside the entry (see Verification note).",
+    "added": [
+      "home_automation:approvals-per-emirate",
+      "home_automation:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+    }
   }
 }
