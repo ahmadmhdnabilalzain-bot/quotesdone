@@ -314,6 +314,18 @@ function profileLines(name, trades, brands, i) {
     'Certifications', '- ISO 9001:2015 quality management', '(QuotesDone synthetic fixture - not a real company)'];
 }
 
+// A company profile of a given format, printing the given company's name. The corpus prints its own fictional company on each
+// profile; stage 2 S21 prints the SUPPLIER's registered name on it (stage-2 run f0b2de8f, 2 Nov 2026: a profile that names another
+// company than the registered one proposes no trade, by design, so a profile of "another company" cannot prove the reading).
+export async function profileBytes(fmt, name, trades, brands, i) {
+  const lines = profileLines(name, trades, brands, i);
+  if (fmt === 'pdf') return { bytes: demoPdfPages([lines.map((l) => [l, l.startsWith('-') ? 10 : 12])]), mime: 'application/pdf' };
+  if (fmt === 'docx') return { bytes: docx(lines), mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+  if (fmt === 'pptx') return { bytes: pptx([lines.slice(0, 3), lines.slice(3)]), mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' };
+  const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1400"><rect width="100%" height="100%" fill="#fff"/>${lines.map((l, k) => `<text x="80" y="${120 + k * 70}" font-family="Arial" font-size="30">${xml(l)}</text>`).join('')}</svg>`);
+  return { bytes: await sharp(svg).png().toBuffer(), mime: 'image/png' };
+}
+
 // ── the corpus ─────────────────────────────────────────────────────────────────────────────────────
 const IMG_VARIANTS = ['scan_pdf', 'png', 'jpg', 'rotated90', 'skewed', 'lowdpi', 'phone'];
 export async function buildCorpus(outDir) {
@@ -376,15 +388,8 @@ export async function buildCorpus(outDir) {
   for (const d of docs.filter((x) => x.pending)) {
     const { trades, brands, fmt, i } = d.pending; delete d.pending;
     const name = `ZZ DEMO ${NAMES[i + 3]} Projects LLC`;
-    const lines = profileLines(name, trades, brands, i);
-    let bytes, mime, ext = fmt;
-    if (fmt === 'pdf') { bytes = demoPdfPages([lines.map((l) => [l, l.startsWith('-') ? 10 : 12])]); mime = 'application/pdf'; }
-    else if (fmt === 'docx') { bytes = docx(lines); mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'; }
-    else if (fmt === 'pptx') { bytes = pptx([lines.slice(0, 3), lines.slice(3)]); mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'; }
-    else {
-      const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1400"><rect width="100%" height="100%" fill="#fff"/>${lines.map((l, k) => `<text x="80" y="${120 + k * 70}" font-family="Arial" font-size="30">${xml(l)}</text>`).join('')}</svg>`);
-      bytes = await sharp(svg).png().toBuffer(); mime = 'image/png';
-    }
+    const { bytes, mime } = await profileBytes(fmt, name, trades, brands, i);
+    const ext = fmt;
     writeFileSync(join(outDir, `${d.id}.${ext}`), bytes);
     Object.assign(d, { file: `${d.id}.${ext}`, mime, kind: 'profile', authority: 'n/a', format: fmt, registered_name: name, truth: { trades: [...trades].sort(), brands }, text_layer: fmt !== 'png' });
   }

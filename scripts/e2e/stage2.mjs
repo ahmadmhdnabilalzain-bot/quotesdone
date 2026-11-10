@@ -315,6 +315,25 @@ async function costSince(from, to) {
   return read(`select task_class, model_used, ok, coalesce(cost_aed,0)::float aed from public.ai_cost_log where id > ${from}${to ? ` and id <= ${to}` : ''} and e2e_run_tag = ${q(RUN_TAG)}`);
 }
 
+// The supplier's own door out of a quote hold (supplier portal "complete your quotation"): spec_hold shows the form,
+// spec_fill answers every missing detail, the sales engineer regenerates the standard quotation and asks for approval,
+// spec_approve releases it. S07 walks it for the aluminium quotes; S10 walks it for the Arabic customer's quote, because a
+// quote that names none of its trade's exact specs is held (exact specs or the quote is held) and is not shown until released.
+const TERM = { delivery: '4 weeks from approval of shop drawings', warranty_period: '12 months', warranty_coverage: 'materials and workmanship',
+  installation_included: 'yes', installation_detail: 'supply and installation on site', validity: '30 days', lead_time: '4 weeks' };
+async function walkSpecHold(s, qid) {
+  const form = await call('supplier_api', s.jwt, { action: 'spec_hold', quote_id: qid });
+  const sch = form.json?.schema || {};
+  // price_ex_vat is a NUMBER (validateTerm): the quote's own amount, as its supplier would confirm it (run 1be65ab2 sent 'standard').
+  const amt = (await read(`select coalesce(price_ex_vat, quote_amount)::float a from public.quotes where id=${q(qid)}`))[0]?.a;
+  const values = { terms: Object.fromEntries((sch.terms || []).map((m) => [m.attr, m.attr === 'price_ex_vat' ? String(amt) : TERM[m.attr] ?? (String(m.attr).startsWith('component:') ? 'standard component' : 'standard')])),
+    lines: Object.fromEntries((sch.lines || []).map((l) => [l.line_no, Object.fromEntries(l.fields.filter((f) => f.missing).map((f) => [f.attr, f.options?.length ? (f.options[0].value ?? f.options[0]) : f.type === 'number' ? 6 : 'standard']))])) };
+  const fill = await call('supplier_api', s.jwt, { action: 'spec_fill', quote_id: qid, values });
+  const appr = await call('supplier_api', s.jwt, { action: 'spec_approve', quote_id: qid, confirm: true });
+  const after = (await read(`select state from public.quote_spec_hold where quote_id=${q(qid)} order by id desc limit 1`))[0];
+  return { fill, appr, after };
+}
+
 // A scenario that cannot run because an EARLIER one produced nothing to work on is SKIPPED with the
 // reason, not crashed: 7 Oct 2026 (run fe7ba9c4) S07, S09, S10 and S11 all died on 'inq.id of
 // undefined' after S04's interviews never reached ready, which buried the one real failure under four
@@ -461,20 +480,7 @@ async function realRun(pre) {
       // the form, spec_fill answers every missing detail, the sales engineer regenerates the standard
       // quotation and asks for approval, spec_approve releases it. Each step sends its own notice
       // (quote_spec_hold / quote_spec_regenerated / quote_spec_released), asserted below in English.
-      const TERM = { delivery: '4 weeks from approval of shop drawings', warranty_period: '12 months', warranty_coverage: 'materials and workmanship',
-        installation_included: 'yes', installation_detail: 'supply and installation on site', validity: '30 days', lead_time: '4 weeks' };
-      const walk = async (s, qid) => {
-        const form = await call('supplier_api', s.jwt, { action: 'spec_hold', quote_id: qid });
-        const sch = form.json?.schema || {};
-        // price_ex_vat is a NUMBER (validateTerm): the quote's own amount, as its supplier would confirm it (run 1be65ab2 sent 'standard').
-        const amt = (await read(`select coalesce(price_ex_vat, quote_amount)::float a from public.quotes where id=${q(qid)}`))[0]?.a;
-        const values = { terms: Object.fromEntries((sch.terms || []).map((m) => [m.attr, m.attr === 'price_ex_vat' ? String(amt) : TERM[m.attr] ?? (String(m.attr).startsWith('component:') ? 'standard component' : 'standard')])),
-          lines: Object.fromEntries((sch.lines || []).map((l) => [l.line_no, Object.fromEntries(l.fields.filter((f) => f.missing).map((f) => [f.attr, f.options?.length ? (f.options[0].value ?? f.options[0]) : f.type === 'number' ? 6 : 'standard']))])) };
-        const fill = await call('supplier_api', s.jwt, { action: 'spec_fill', quote_id: qid, values });
-        const appr = await call('supplier_api', s.jwt, { action: 'spec_approve', quote_id: qid, confirm: true });
-        const after = (await read(`select state from public.quote_spec_hold where quote_id=${q(qid)} order by id desc limit 1`))[0];
-        return { fill, appr, after };
-      };
+      const walk = walkSpecHold;
       // A "complete" form quote still names no glass type, profile system or VAT basis, and the exact-specs
       // rule rightly holds it too (run 1c94fa6a: all three held). Its supplier completes it through the same
       // door, so the comparison and the reveal have submitted quotes to work on.
@@ -598,8 +604,16 @@ async function realRun(pre) {
       if (arInq) {
         run.ids.inquiries.add(String(arInq.id));
         const sq = await call('supplier_api', arSup.jwt, quotePayload(arInq.id, 42000, 'ZZ DEMO quote for the Arabic customer'));
-        const arQ = (await read(`select id, status from public.quotes where inquiry_id=${q(arInq.id)} and supplier_id=${Number(arSup.leadId)} order by created_at desc limit 1`))[0];
+        const arQuoteRow = async () => (await read(`select id, status from public.quotes where inquiry_id=${q(arInq.id)} and supplier_id=${Number(arSup.leadId)} order by created_at desc limit 1`))[0];
+        let arQ = await arQuoteRow();
         if (arQ) run.ids.quotes.add(String(arQ.id));
+        // 2 Nov 2026 (stage 2 run f0b2de8f): this bare quote names none of electrical's exact specs, so it is HELD (draft, hold open;
+        // exact specs or the quote is held) and was never shown to the customer: the product was right and this step expected 'submitted'.
+        // The supplier releases it through its own door, as S07 does; a hold that does not release still fails below.
+        if (arQ?.status === 'draft') {
+          const h = (await read(`select state from public.quote_spec_hold where quote_id=${q(arQ.id)} order by id desc limit 1`))[0];
+          if (h?.state === 'open') { await walkSpecHold(arSup, arQ.id); arQ = await arQuoteRow(); }
+        }
         if (arQ?.status === 'submitted') {
           const t = await ct('pm_card_visa');
           const pq = await call('stripe_checkout', arInq.cu.jwt, { action: 'element_quote', quote_id: arQ.id, confirmation_token: t });
@@ -731,8 +745,15 @@ async function realRun(pre) {
       const ds = await liveDuties(read, functionSource('resilience_ping'));
       const out = [];
       for (const d of ds) {
-        const r = await probeDuty(d, tag);
-        out.push({ duty: d.duty, routine: d.routine, ...r });
+        // TWO RUNS, BOTH ROLLED BACK (run f0b2de8f, 2 Nov 2026). The duty on the LIVE rows is how a defect that only real data reaches is found
+        // (knowledge_request_deadline raised on a real handoff); it may write real rows, because that is its job. The duty in its own FIXTURE
+        // mode is the demo scope the name of the second assertion promises, and it must write no real row (supplier_onboarding's invite
+        // nudges ignored the switch and wrote 20). Before this the one run had no switch on, so every duty with real work "failed" the scope.
+        const live = await probeDuty(d, tag, false);
+        out.push({ duty: d.duty, routine: d.routine, mode: 'live', ...live });
+        A(`duty ${d.duty} runs on the live rows without error (rolled back)`, !live.error, live.error || `${live.ms} ms, result ${String(live.result).slice(0, 120)}`);
+        const r = await probeDuty(d, tag, true);
+        out.push({ duty: d.duty, routine: d.routine, mode: 'fixtures', ...r });
         A(`duty ${d.duty} ran on the demo scope and wrote no real row`, !r.error && r.real === 0,
           r.error || `demo rows written ${r.demo}, real ${r.real}, ${r.ms} ms, result ${String(r.result).slice(0, 120)}`);
       }
@@ -796,18 +817,18 @@ async function realRun(pre) {
       const cred = async (slug) => (await read(`select value from public.app_secrets where key in (${q('cred_fn_' + slug)}, 'cred_db_internal') order by key = ${q('cred_fn_' + slug)} desc limit 1`))[0]?.value;
       const cu = fx.customers[0], su = fx.suppliers[0];
       const plan = [
-        ...['forecast', 'savings', 'supplier_performance'].map((a) => ['customer_intelligence', cu.jwt, { action: a }]),
-        ['customer_intelligence', cu.jwt, { action: 'supplier_relationship', supplier_id: su.leadId }],
+        ...['forecast', 'savings', 'supplier_performance'].map((a) => ['customer_intelligence', 'cu', { action: a }]),
+        ['customer_intelligence', 'cu', { action: 'supplier_relationship', supplier_id: su.leadId }],
         ...['board', 'seats', 'inbox', 'context'].map((a) => ['ceo_agent', null, { action: a, __secret: 'cred' }]),
         ...['health', 'status'].map((a) => ['it_engineer', null, { action: a, __secret: 'cred' }]),
         ['compliance_archive', null, { action: 'ping', __secret: 'cred' }],
         ['embed_ml', null, { action: 'query', text: `ZZ DEMO ${tag} aluminium windows`, __secret: 'cred' }],
         ['site_error_ingest', null, { message: `ZZ DEMO ${tag} harness error probe`, path: '/', lang: 'en' }],
         ['sanctions_screen', null, { name: `ZZ DEMO ${tag} Trading`, __secret: 'cred' }],
-        ['role_guard', cu.jwt, {}],
+        ['role_guard', 'cu', {}],
         // The bodies the portal sends. {} and { dry_run } were 400s, which "any reply" counted as PASS.
-        ['supplier_onboard', su.jwt, { action: 'extract', text: `ZZ DEMO ${tag}: we fabricate and install aluminium windows and curtain walls in Dubai.` }],
-        ['supplier_catalog_ingest', su.jwt, { file_name: `zz_demo_${tag}_catalogue.csv`, content_type: 'text/csv',
+        ['supplier_onboard', 'su', { action: 'extract', text: `ZZ DEMO ${tag}: we fabricate and install aluminium windows and curtain walls in Dubai.` }],
+        ['supplier_catalog_ingest', 'su', { file_name: `zz_demo_${tag}_catalogue.csv`, content_type: 'text/csv',
           data: Buffer.from('product,unit,price_aed\nZZ DEMO casement window,m2,950\n').toString('base64') }],
       ];
       // A SIGNED-IN USER'S CALL passes only on a 2xx that did its job (19 Oct 2026: run 0a717394 logged
@@ -822,8 +843,12 @@ async function realRun(pre) {
           (await read(`select count(*)::int n from public.supplier_catalog where id::text = ${q(String(j.catalog_id))} and supplier_id = ${Number(su.leadId)} and source_document_path is not null`))[0].n === 1,
       };
       const res = [];
-      for (const [slug, jwt, body] of plan) {
+      for (const [slug, who, body] of plan) {
         if (body.__secret === 'cred') body.__secret = await cred(slug);
+        // The token is read at the moment of the call (run f0b2de8f, 2 Nov 2026: the plan held the token STRINGS, so the first call
+        // re-issued the expired token and the next call of the same caller sent the old one: 401 on savings, supplier_performance,
+        // supplier_relationship and supplier_catalog_ingest, each a harness error and not a function that rejected a signed-in caller).
+        const jwt = who === 'cu' ? cu.jwt : who === 'su' ? su.jwt : who;
         const r = await call(slug, jwt, body);
         res.push({ slug, action: body.action || null, status: r.status, body: r.text });
         const key = `${slug}${body.action ? '.' + body.action : ''}`;
@@ -842,7 +867,7 @@ async function realRun(pre) {
     // with a company profile (rotating PDF / DOCX / PPTX / picture) and, for the first, a catalogue. What is
     // asserted is what the supplier's ROW ends with, not what a reader module returns.
     S21: async () => {
-      const { buildCorpus } = await import('./document_intake_corpus.mjs');
+      const { buildCorpus, profileBytes } = await import('./document_intake_corpus.mjs');
       const { judge } = await import('./document_intake_score.mjs');
       const cdir = join(OUT, 'documents', `stage2_${tag}`);
       const docs = await buildCorpus(cdir);
@@ -851,6 +876,15 @@ async function realRun(pre) {
       const profiles = docs.filter((d) => d.kind === 'profile');
       const catalogue = docs.find((d) => d.kind === 'catalogue');
       const b64 = (d) => ({ original_b64: readFileSync(join(cdir, d.file)).toString('base64'), mime: d.mime, filename: `qd-${tag}-${d.file}` });
+      // THE SUPPLIER'S OWN PROFILE (run f0b2de8f, 2 Nov 2026: 16 of 21 shapes proposed none of the profile's trades). The corpus profile
+      // prints a fictional company ("ZZ DEMO Falcon Projects LLC"), but each shape registers the supplier under its licence's company;
+      // a profile that names ANOTHER company than the registered one proposes no trade, by design (supplier_trade_choice: whose work
+      // counts; sales_engineer, #1796). A real supplier uploads its own profile, so each shape's profile now prints the registered
+      // name, with the same trades, brands and format. The pptx profile passed before only because its services slide prints no name.
+      const ownProfile = async (p, name) => {
+        const { bytes, mime } = await profileBytes(p.format, name, p.truth.trades, p.truth.brands, profiles.indexOf(p));
+        return { original_b64: bytes.toString('base64'), mime, filename: `qd-${tag}-${p.file}` };
+      };
       const norm = (s) => String(s ?? '').toLowerCase().replace(/&/g, ' and ').replace(/[.,،'’`()\-]/g, ' ').replace(/\s+/g, ' ').trim();
       const unreadFamily = new Set(['licence_unreadable', 'licence_expiry_unread', 'licence_number_unread']);
       const auto = (await read(`select coalesce(auto_approve_suppliers,false) a from public.pricing_config where id=1`))[0]?.a === true;
@@ -873,7 +907,12 @@ async function realRun(pre) {
         await call('kyc', s.jwt, { action: 'accept_terms', user_kind: 'supplier', email });
         await call('kyc', s.jwt, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' });
         const w0 = await costWatermark();
-        const body = { action: 'process_docs', license: b64(d), company_profile: b64(prof), ...(i === 0 && catalogue ? { catalogs: [b64(catalogue)] } : {}) };
+        // A NAME TAKEN FROM THE LICENCE IS THE NAME ON THE PROFILE (run 4506ead8, 3 Nov 2026: lic_mismatch_scan proposed none of its profile's
+        // trades). A name_autofilled shape registers under a typed name; the licence gate renames the company to the licence's legal name
+        // inside process_docs (supplier_name_from_licence), and the profile, read after the response, printed the superseded typed name -
+        // another company's profile. A real company's profile carries its legal name, so these shapes print the licence's.
+        const profileName = d.expected === 'name_autofilled' ? d.truth.legal_name_en : d.registered_name;
+        const body = { action: 'process_docs', license: b64(d), company_profile: await ownProfile(prof, profileName), ...(i === 0 && catalogue ? { catalogs: [b64(catalogue)] } : {}) };
         const r = await call('supplier_api', s.jwt, body, 240000);
         const route = (await costSince(w0)).map((x) => `${x.task_class}:${x.model_used}`).join(' ');
         // WAIT FOR THE READING TO END, NOT FOR THE FIRST GATE (run 0a717394). process_docs answers before the profile and

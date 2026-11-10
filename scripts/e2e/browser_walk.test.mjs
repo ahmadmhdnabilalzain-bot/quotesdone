@@ -58,7 +58,32 @@ test('the journey opens "New request" before it types or attaches', () => {
 // Run 0a717394 (19 Oct): the quotes step gave up at 20 s; its own screenshot then showed C1's "4 quotes" card.
 test('the quotes step waits long enough for the request cards and names a slow list as slow', () => {
   assert.match(SRC, /export const CARDS_WAIT_MS = 60000, CARDS_SLOW_MS = 10000;/);
+  assert.match(SRC, /request cards on screen: \$\{seen\.length/, 'a failed quotes step names the request cards the page held');
+  assert.match(SRC, /ms: clicked \? Date\.now\(\) - t0 : 0/, 'a blocked press is not reported as a slow load (its 5 s is the click timeout)');
   assert.match(SRC, /await card\.waitFor\(\{ state: 'visible', timeout: CARDS_WAIT_MS \}\)/);
   assert.doesNotMatch(SRC, /await card\.waitFor\(\{ state: 'visible', timeout: 20000 \}\)/);
   assert.match(SRC, /SLOW: the quoted card took \$\{cardsMs\} ms/);
+});
+
+// Run 4506ead8 (3 Nov 2026): C1's quoted card was on screen and the filter never matched it - its textContent reads
+// "...Dubai·3 quotesOpen request..." (no space between elements), and a trailing \b after "quotes" cannot sit between "s" and "O".
+test('the quoted-card filter matches the card text as the page really joins it', () => {
+  const m = SRC.match(/export const QUOTED_CARD = \{ en: \/(.+?)\/, ar:/);
+  assert.ok(m, 'QUOTED_CARD.en is declared');
+  const en = new RegExp(m[1]);
+  assert.match('RevealedAluminium163071Dubai·3 quotesOpen requestSupply and install 20 aluminium windows', en);
+  assert.match('Matching · Plumbing · 1 quote · editable', en);
+  assert.doesNotMatch('MatchingPainting163105Dubai·0 quotes·editable 58mOpen request', en, 'a card with 0 quotes is not the quoted card');
+  assert.doesNotMatch('RevealedAluminium163071Dubai·3 quotesOpen request', /\b[1-9]\d* quotes?\b/, 'known-bad: the old filter missed this card');
+  assert.equal((SRC.match(/hasText: QUOTED_CARD\[/g) || []).length, 2, 'the quotes step and the reveal step use the one filter');
+});
+
+// Run 12eb1c85 (3 Nov 2026): inside the reveal loop `const card = page.locator(...)` shadowed the loop's card NUMBER, so the
+// success step typed a locator into Stripe ("locator.fill: value: expected string, got object") the first time the button was found.
+test('the reveal steps never shadow the card number they pay with', () => {
+  const loop = SRC.slice(SRC.indexOf("for (const [name, card] of [['reveal checkout: test card success'"), SRC.indexOf("// 6. Post-reveal supplier details"));
+  assert.ok(loop.length > 100, 'the reveal loop is found');
+  assert.doesNotMatch(loop, /\b(const|let|var)\s+card\s*=/, 'no inner binding named card');
+  assert.doesNotMatch("for (const [name, card] of x) { const card = page.locator('[id^=\"inq-\"]'); }", /^(?![\s\S]*\b(const|let|var)\s+card\s*=)/, 'known-bad: the old loop body redeclared card');
+  assert.match(loop, /fill\(card\)/);
 });

@@ -1,0 +1,9 @@
+Committed, NOT applied (ported from PR #1784, it_engineer, on 10 Nov 2026; the PR had MANIFEST lines for apply-at-merge,
+replaced here by this note so the founder decides the apply). Replay-safe: one CREATE OR REPLACE of
+fn_sales_engineer_supplier_onboarding (keeps its ACL), the canonical body of a_fenced_seat_duty_keeps_its_fixture_switch.sql
+re-diffed 10 Nov with only the call changed to fn_sales_engineer_nudges_invited_suppliers(p_include_fixtures => v_fx)
+(that parameter exists live). Without it a fixture-mode run of the duty queues invitation reminders to REAL suppliers
+(measured 2 Nov in a rolled-back probe: 20 real rows). Still needed on 10 Nov: the live body lacks the argument. To apply:
+node scripts/apply_sql.mjs scripts/sql/the_supplier_onboarding_duty_passes_its_fixture_switch_to_the_invite_nudges.sql
+--apply --ddl, then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.
+Seat: sales_engineer (the duty's owner).

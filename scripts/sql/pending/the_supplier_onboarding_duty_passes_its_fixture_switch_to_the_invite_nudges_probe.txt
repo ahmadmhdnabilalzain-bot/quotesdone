@@ -1,0 +1,5 @@
+A PROBE (pure, no DDL; it always ends in raise exception 'CHK<<json>>', so every row it writes rolls back). Run it AFTER
+the_supplier_onboarding_duty_passes_its_fixture_switch_to_the_invite_nudges.sql in the same transaction
+(scripts/lib/safe_replay.mjs), or alone once that file is applied. Never applied; kept as the proof named in the PR #1784
+description. Ported 10 Nov 2026 from #1784, which listed it in MANIFEST.txt; a probe is not an apply, so it is held here.
+Seat: it_engineer.

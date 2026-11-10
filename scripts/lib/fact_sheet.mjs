@@ -85,8 +85,12 @@ export function factSheet(trade, { lang = 'en', emirate = 'Dubai', notSure = fal
   // Run 0a717394 (19 Oct 2026): waterproofing has TWO keys, `area` (a select: WHICH part - Roof, Bathroom,
   // Balcony...) and `area_sqm` (how big). Both read the built-up size, which answers area_sqm and never
   // says where, so `area` stayed open three turns and C9 was held 'specs_unanswered: area'. It names a part.
-  const slotOf = (k) => (trade === 'waterproofing' && k === 'area' ? 'wp_part' : SLOT_OF[k]);
+  const slotOf = (k) => (trade === 'waterproofing' && k === 'area' ? 'wp_part' : trade === 'painting' && k === 'scope' ? 'paint_scope' : SLOT_OF[k]);
   if (trade === 'waterproofing') v.wp_part = lang === 'ar' ? 'السطح (Roof)' : 'Roof';
+  // Run f0b2de8f (2 Nov 2026): painting's `scope` is the question "Interior, exterior or both?", and the shared scope fact
+  // ("supply and install, removal of existing items") does not say which, so C8 was asked it 14 times and never reached ready.
+  // The product was right to keep asking. The painting scope fact names the surfaces, as waterproofing's names the part.
+  if (trade === 'painting') v.paint_scope = lang === 'ar' ? 'داخلي وخارجي معاً' : 'Both interior and exterior';
   const whole = () => Object.entries(v).map(([k, x]) => `${k}: ${x}`).join('. ') + '.';
   return {
     trade, lang, notSure, values: v,
