@@ -65,8 +65,17 @@ export const LEGAL = {
 
 const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+// THE DATE IS THE DUBAI DATE (10 Nov 2026, it_engineer, founder ledger 1605). This used to take the first ten
+// characters of whatever it was given, which for a timestamp is the UTC day: an agreement accepted at 22:30 UTC on
+// 14 Sep is 02:30 on 15 Sep in Dubai, and the recovery letter said 14 Sep. A plain date (a due date) has no time and
+// is kept as written; a timestamp is moved to UTC+4 first (the UAE keeps no daylight saving).
+export function dubaiDay(iso: string): string {
+  if (iso.length <= 10) return iso.slice(0, 10);
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? new Date(t + 4 * 3600_000).toISOString().slice(0, 10) : iso.slice(0, 10);
+}
 export function fmtDate(iso: string, lang: Lang): string {
-  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  const [y, m, d] = dubaiDay(iso).split('-').map(Number);
   return `${d} ${(lang === 'ar' ? MONTHS_AR : MONTHS_EN)[m - 1]} ${y}`;
 }
 const pct = (r: number) => (r * 100).toFixed(0) + '%';
