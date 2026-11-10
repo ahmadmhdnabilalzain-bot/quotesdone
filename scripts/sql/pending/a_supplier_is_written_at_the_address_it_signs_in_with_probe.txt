@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. Run in the same rolled-back transaction as a_supplier_is_written_at_the_address_it_signs_in_with.sql (or after it is applied); it must print PROBE OK. This note stays for the life of the file. Seat: customer_support.

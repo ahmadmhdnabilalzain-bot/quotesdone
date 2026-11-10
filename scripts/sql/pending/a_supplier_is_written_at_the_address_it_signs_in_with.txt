@@ -1,0 +1,1 @@
+Not applied yet: the release applies it (no deploy needed for the SQL; customer_api is deployed for the edge half). Apply with node scripts/apply_sql.mjs scripts/sql/a_supplier_is_written_at_the_address_it_signs_in_with.sql --apply --ddl, then delete this note and append the file to the END of MANIFEST.txt. Seat: customer_support.
