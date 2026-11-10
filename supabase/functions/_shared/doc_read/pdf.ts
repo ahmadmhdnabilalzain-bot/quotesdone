@@ -4,11 +4,12 @@
 // used since 14 Sep), and, where a page prints its scale ("SCALE 1:100"), the stroked lengths and
 // closed areas measured by pdf_measure. A PDF with no text layer — a scan, or CAD exported as lines —
 // comes back needs:'ocr' with the reason, never an invented reading.
-import { pdfPages } from '../pdf_text_positions.ts';
+import { pdfPages, type PdfPage } from '../pdf_text_positions.ts';
 import { measurePdf } from '../pdf_measure.ts';
 import { linesOf } from '../../drawing_boq/boq_from_text.ts';
 import { getDocumentProxy } from 'npm:unpdf@0.11.0';
-import { type Qty, type ReadContext, type ReadResult, LIMITS, empty, ok, refuse } from './types.ts';
+import { type Cell, type Qty, type ReadContext, type ReadResult, LIMITS, empty, ok, refuse } from './types.ts';
+import { tablesFromWords } from './word_tables.ts';
 
 // WORDS ONLY, READ BY PDF.JS (13 Oct 2026, it_engineer; ACCURACY_real_profiles.md). A supplier's profile or catalogue
 // (ctx.textOnly) is read for what it says, and the estate's own text reader (pdf_text_positions) is built for drawings:
@@ -111,5 +112,21 @@ export async function readPdf(bytes: Uint8Array, ctx: ReadContext): Promise<Read
   if (!lines.length) {
     return ok({ ...empty('pdf', [...notes, 'This PDF has no text layer (a scan, or CAD exported as lines); its words need OCR.'], 'ocr'), quantities });
   }
-  return ok({ kind: 'pdf', text: lines.map((l) => l.text).join('\n').slice(0, LIMITS.maxTextChars), tables: [], quantities, children: [], needs: null, notes });
+  return ok({ kind: 'pdf', text: lines.map((l) => l.text).join('\n').slice(0, LIMITS.maxTextChars), tables: billTables(pages), quantities, children: [], needs: null, notes });
+}
+
+/** A BILL or a QUOTATION printed as a table (10 Nov 2026): its rows rebuilt from the positioned runs (word_tables.ts),
+ *  kept only when the header names a quantity AND a description or item column - what boqFromRows and
+ *  quoteFromExtracted read. Positions in paper points (normalised x and y have different units on a portrait page). */
+export function billTables(pages: PdfPage[]): Cell[][][] {
+  const out: Cell[][][] = [];
+  for (const p of pages) {
+    const W = p.rotate % 180 ? p.height : p.width, H = p.rotate % 180 ? p.width : p.height;
+    const words = p.runs.filter((r) => !r.vertical).map((r) => ({ s: r.text, x: r.x * W, y: r.y * H, w: r.w * W, h: r.h * H }));
+    for (const t of tablesFromWords(words)) {
+      const head = t[0].map((c) => String(c ?? '').toLowerCase());
+      if (head.some((h) => /qty|quantity|الكمية|menge/.test(h)) && head.some((h) => /desc|particular|scope|item|البيان|الوصف|beschreibung|kurztext/.test(h))) out.push(t);
+    }
+  }
+  return out;
 }

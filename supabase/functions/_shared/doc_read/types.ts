@@ -46,8 +46,31 @@ export type Extracted = {
    * $PROJECTNAME, xref paths, party attributes) reaches a BOQ line. Never serialised to a client.
    */
   dxf_text?: string;
+  /**
+   * CAD readers only (10 Nov 2026): the model-space GEOMETRY behind the per-layer totals, for the take-offs a real
+   * engineer makes from it - rooms from closed outlines and the room names inside them, wall and skirting lengths,
+   * door and window schedules, duct / pipe / tray / conduit runs by size (drawing_boq/architectural.ts,
+   * linear_services.ts). Drawing units; `toM` converts. Never serialised to a client.
+   */
+  cad?: CadGeometry;
   /** A words-only PDF read (doc_read/pdf.ts): the pages read and the pages the file has. read < of is a PARTIAL read. */
   pages?: { read: number; of: number };
+};
+
+/** A CAD drawing's model space, as drawn (paper-space entities - the title block - are left out). */
+export type CadGeometry = {
+  /** Metres per drawing unit, and whether the file states its unit ($INSUNITS) or it was assumed. */
+  toM: number; unitStated: boolean; unitName: string;
+  /** Straight segments per layer as flat [x1, y1, x2, y2, ...]; a polyline's edges and an arc's chords included. */
+  segs: Record<string, number[]>;
+  /** Closed outlines (LWPOLYLINE / POLYLINE with the closed flag): vertices, area and perimeter in drawing units. */
+  closed: { layer: string; pts: [number, number][]; area: number; perim: number }[];
+  /** TEXT, MTEXT and ATTRIB values with their insertion point and height (formatting stripped). */
+  words: { s: string; x: number; y: number; h: number; layer: string }[];
+  /** Block placements (dynamic blocks resolved, legend samples excluded), with the block's own x extent. */
+  inserts: { name: string; x: number; y: number; n: number; layer: string; rot: number; width: number }[];
+  /** True when the reader stopped at a cap: the geometry is partial. */
+  capped: boolean;
 };
 
 export type Refusal = { ok: false; error: string; detail: string };

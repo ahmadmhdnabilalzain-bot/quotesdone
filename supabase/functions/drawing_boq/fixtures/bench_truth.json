@@ -76,5 +76,307 @@
       "+971 4 000 0199",
       "pm@zz-noor.example.invalid"
     ]
+  },
+  "trades": {
+    "_about": "10 Nov 2026, sales_engineer; founder 10 Nov and ruling 1586. Worked by hand from the coordinates in bench_trades.fixtures.ts BEFORE any reader ran. Each line: a regex on the BOQ description, the exact quantity, the unit, and whether the drawing states everything behind it ('read') or an assumption is involved ('to_confirm').",
+    "architectural_finishes": {
+      "source": "archFinishesDxf(): LIVING 6x5, KITCHEN 4x3.5, BEDROOM 1 4x4, BATH 2.5x2 on A-AREA; CLG HT 3000 general, 2700 in BATH; D1 900x2100 x3, D2 800x2100 x1, W1 1500x1200 x2 on the outlines. Walls = perimeter x height less openings on the outline (each opening deducted from every room it opens into); skirting = perimeter less door widths.",
+      "lines": [
+        [
+          "^Floor finish, F1 - PORCELAIN TILE",
+          46.0,
+          "sqm",
+          "read"
+        ],
+        [
+          "^Floor finish, F2 - ANTI-SLIP",
+          19.0,
+          "sqm",
+          "read"
+        ],
+        [
+          "^Skirting, SK1 - PORCELAIN SKIRTING",
+          33.6,
+          "m",
+          "read"
+        ],
+        [
+          "^Skirting, to match F2",
+          22.3,
+          "m",
+          "read"
+        ],
+        [
+          "^Wall finish, W1 - EMULSION PAINT",
+          102.96,
+          "sqm",
+          "read"
+        ],
+        [
+          "^Wall finish, W2 - CERAMIC WALL TILE",
+          63.93,
+          "sqm",
+          "read"
+        ],
+        [
+          "^Ceiling finish, C1 - GYPSUM BOARD CEILING",
+          46.0,
+          "sqm",
+          "read"
+        ],
+        [
+          "^Ceiling finish, C2 - MOISTURE RESISTANT",
+          19.0,
+          "sqm",
+          "read"
+        ],
+        [
+          "^D1 - SOLID CORE TIMBER DOOR, 900 x 2100 mm",
+          3,
+          "nos",
+          "read"
+        ],
+        [
+          "^D2 - FLUSH DOOR WITH LOUVRE, 800 x 2100 mm",
+          1,
+          "nos",
+          "read"
+        ],
+        [
+          "^W1 - ALUMINIUM SLIDING WINDOW, 1500 x 1200 mm",
+          2,
+          "nos",
+          "read"
+        ]
+      ],
+      "rooms": {
+        "LIVING": [
+          30.0,
+          22.0,
+          3.0
+        ],
+        "KITCHEN": [
+          14.0,
+          15.0,
+          3.0
+        ],
+        "BEDROOM 1": [
+          16.0,
+          16.0,
+          3.0
+        ],
+        "BATH": [
+          5.0,
+          9.0,
+          2.7
+        ]
+      }
+    },
+    "hvac_duct_layout": {
+      "source": "hvacDxf(): double-line supply 600 wide 10 m, 400 wide 6 m, a 300 wide branch 6 m, an unlabelled 250 wide 4 m; return 500 wide 8 m; single-line exhaust polyline 6 + 2 m labelled once; CHW 12 m; tray 300 wide 15 m; conduit 20 m; 4 diffusers, 2 grilles, 2 FCUs.",
+      "lines": [
+        [
+          "^Rectangular duct 600x400 mm \\(supply air\\)$",
+          10.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Rectangular duct 400x300 mm \\(supply air\\)$",
+          6.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Rectangular duct 300x250 mm \\(supply air\\)$",
+          6.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Duct 250 mm wide \\(size not labelled\\) \\(supply air\\)$",
+          4.0,
+          "m",
+          "to_confirm"
+        ],
+        [
+          "^Rectangular duct 500x300 mm \\(return air\\)$",
+          8.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Round duct Ø250 mm \\(exhaust air\\)$",
+          8.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Chilled water pipe Ø100 mm$",
+          12.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Cable tray 300x50 mm$",
+          15.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Conduit Ø25 mm$",
+          20.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Supply air diffuser 600$",
+          4,
+          "nos",
+          "read"
+        ],
+        [
+          "^Return / exhaust grille$",
+          2,
+          "nos",
+          "read"
+        ],
+        [
+          "^Fan coil unit$",
+          2,
+          "nos",
+          "read"
+        ]
+      ]
+    },
+    "lift_pool_landscape": {
+      "source": "amenitiesDxf(): two 2000x2200 shafts on A-LIFT-SHAFT with lift notes; a 10x5 m pool on L-POOL with SHALLOW END 1.2 M / DEEP END 1.8 M; planting 8x2, turf 12x6, paving 6x4; 4 pool lights, 2 skimmers, 6 palms.",
+      "lines": [
+        [
+          "^Passenger lift in shaft 2 x 2.2 m \\(630 kg, 8 persons, 1.0 m/s, 5 stops, travel 16 m, pit 1.5 m, overhead 4.2 m\\)$",
+          2,
+          "nos",
+          "read"
+        ],
+        [
+          "^Pool shell / floor finish",
+          50.0,
+          "sqm",
+          "read"
+        ],
+        [
+          "^Pool coping / edge$",
+          30.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Pool internal wall finish \\(perimeter x average depth 1.5 m\\)$",
+          45.0,
+          "sqm",
+          "read"
+        ],
+        [
+          "^Pool water volume \\(average depth 1.5 m\\)$",
+          75.0,
+          "m3",
+          "read"
+        ],
+        [
+          "^Planting bed \\(softscape\\)$",
+          16.0,
+          "sqm",
+          "read"
+        ],
+        [
+          "^Turf / lawn$",
+          72.0,
+          "sqm",
+          "read"
+        ],
+        [
+          "^Paving \\(hardscape\\)$",
+          24.0,
+          "sqm",
+          "read"
+        ],
+        [
+          "^Edging to paving \\(hardscape\\)$",
+          20.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Underwater pool light$",
+          4,
+          "nos",
+          "read"
+        ],
+        [
+          "^Pool skimmer$",
+          2,
+          "nos",
+          "read"
+        ],
+        [
+          "^Palm tree$",
+          6,
+          "nos",
+          "read"
+        ]
+      ]
+    },
+    "structure_scaffolding": {
+      "source": "structureDxf(): 3 x 8 m UB 406x178x60, 2 x 6 m UB 305x165x40, 4 x 10 m IPE 200 on S-BEAM / S-PURL; a 30 + 12 + 30 m scaffold run with SCAFFOLD HEIGHT 18 M.",
+      "lines": [
+        [
+          "^Structural steel member UB 406x178x60$",
+          24.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Structural steel UB 406x178x60 \\(by weight\\)$",
+          1.44,
+          "t",
+          "read"
+        ],
+        [
+          "^Structural steel member UB 305x165x40$",
+          12.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Structural steel UB 305x165x40 \\(by weight\\)$",
+          0.48,
+          "t",
+          "read"
+        ],
+        [
+          "^Structural steel member IPE 200$",
+          40.0,
+          "m",
+          "read"
+        ],
+        [
+          "^Scaffolding, 18 m high$",
+          1296.0,
+          "sqm",
+          "read"
+        ]
+      ]
+    },
+    "identifiers": [
+      "Noor Holdings",
+      "Marina Heights",
+      "MHT-2291",
+      "Khalid Rahman",
+      "+971 4 000 0199",
+      "pm@zz-noor.example.invalid",
+      "zz-noor.example.invalid",
+      "Plot 392-118",
+      "Crescent Design"
+    ]
   }
 }
