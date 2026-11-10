@@ -20,7 +20,11 @@ import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const ACC = 'zz-demo-accountant-credential';      // fn_internal_auth answers context fn.accountant
 const OTHER = 'zz-demo-other-seat-credential';    // a valid credential of a different context
-const FOUNDER_JWT = 'zz-demo-founder-session', STRANGER_JWT = 'zz-demo-stranger-session';
+// Session tokens shaped as Supabase issues them (10 Nov 2026, security audit item 1): the founder's door now reads the
+// `aal` claim through _shared/admin_session.ts, so a founder session must be aal2 to be the founder, and one that
+// passed only the e-mail code (aal1) is refused 403 two_step_required. Unsigned: the stubbed GoTrue below vouches.
+const zzJwt = (sub: string, aal: string) => [{ alg: 'ES256' }, { sub, aal, exp: 4102444800 }].map((o) => btoa(JSON.stringify(o)).replace(/=+$/, '')).join('.') + '.zz-demo-sig';
+const FOUNDER_JWT = zzJwt('zz-u-founder', 'aal2'), FOUNDER_AAL1_JWT = zzJwt('zz-u-founder', 'aal1'), STRANGER_JWT = zzJwt('zz-u-stranger', 'aal2');
 const FOUNDER = 'founder@example.invalid';
 Deno.env.set('SUPABASE_URL', 'http://stub.invalid');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'zz-demo-service-key');
@@ -51,7 +55,7 @@ function route(c: Call): Reply {
   if (c.host !== 'stub.invalid') { const r = world.external(c); return isReply(r) ? r : reply(200, r); }
   if (c.path === '/auth/v1/user') {
     const jwt = (c.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-    if (jwt === FOUNDER_JWT) return reply(200, { id: 'zz-u-founder', aud: 'authenticated', email: FOUNDER });
+    if (jwt === FOUNDER_JWT || jwt === FOUNDER_AAL1_JWT) return reply(200, { id: 'zz-u-founder', aud: 'authenticated', email: FOUNDER, factors: [{ factor_type: 'totp', status: 'verified' }] });
     if (jwt === STRANGER_JWT) return reply(200, { id: 'zz-u-stranger', aud: 'authenticated', email: 'stranger@example.invalid' });
     return reply(401, { code: 401, msg: 'invalid JWT' });
   }
@@ -157,6 +161,12 @@ t('refused: the credential verifier unreachable is a refusal, not a pass', async
 t('the door is checked before the action: an unknown action from nobody is 401, not 400', async () => {
   begin();
   assertEquals((await send({ action: 'zz_nope' })).status, 401);
+});
+
+t('refused: a founder session that passed only the e-mail code (aal1) is 403 two_step_required, naming the step', async () => {
+  begin();
+  const r = await read(await send({ action: 'ledger' }, { Authorization: 'Bearer ' + FOUNDER_AAL1_JWT }));
+  assertEquals([r.status, r.j.error, r.j.step], [403, 'two_step_required', 'challenge']);
 });
 
 t('admitted: the seat credential is the accountant; a wrong credential beside a founder session is the founder', async () => {

@@ -19,12 +19,15 @@ const root = fileURLToPath(new URL('../../supabase/functions/', import.meta.url)
 const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
 
 const NOT_YET_CONVERTED = new Set([
-  'accountant', 'ceo_agent', 'compliance_archive', 'customer_api', 'customer_documents', 'customer_intelligence',
-  'customer_portal', 'extract_text', 'inquiry_intake', 'it_engineer', 'kyc', 'mobile_otp', 'pdf_native',
-  'procurement_api', 'project_api', 'quote_compare', 'refund_flow', 'refunds_api', 'reveal_invoice',
-  'sales_engineer', 'site_assistant', 'stripe_checkout', 'stripe_confirm', 'supplier_api',
+  'customer_api', 'customer_documents', 'customer_intelligence',
+  'customer_portal', 'inquiry_intake', 'kyc', 'mobile_otp',
+  'procurement_api', 'project_api', 'refund_flow', 'reveal_invoice',
+  'site_assistant', 'stripe_checkout', 'stripe_confirm', 'supplier_api',
   // supplier_pay left this list on 22 Sep 2026 (audit finding SP-N-08): a supplier clearing a debt that
   // accrues interest was told "Not signed in" whenever the auth server was the thing that timed out.
+  // accountant, ceo_agent, compliance_archive, extract_text, it_engineer, pdf_native, quote_compare, refunds_api and
+  // sales_engineer left it on 10 Nov 2026 (security audit item 1): their admin door is _shared/admin_session.ts
+  // adminCaller(), which resolves the caller through signedInUser and also requires an aal2 session.
   'supplier_catalog_ingest', 'supplier_onboard', 'transcribe',
 ]);
 

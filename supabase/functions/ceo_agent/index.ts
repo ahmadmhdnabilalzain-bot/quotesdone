@@ -26,6 +26,7 @@
 // recorded first, so under the hold it waits as 'interpreting' instead of being routed on a word.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 import { observe } from '../_shared/observe.ts';
 import { makeLlmRich } from '../_shared/llm.ts';
 import { defaultDeps } from '../_shared/think.ts';
@@ -79,26 +80,26 @@ const SEAT_BY_CREDENTIAL: Record<string, 'founder' | 'ceo'> = {
   'fn.ceo_agent': 'ceo', // the seat acting on its own behalf
 };
 
-async function whoami(req: Request, body: Record<string, unknown>): Promise<'founder' | 'ceo' | null> {
+async function whoami(req: Request, body: Record<string, unknown>): Promise<'founder' | 'ceo' | TwoStepBody | null> {
   if (body?.__secret) {
     const r = await requireInternal(admin, String(body.__secret), 'ceo_agent');
     if (r.ok) return SEAT_BY_CREDENTIAL[r.context] ?? null;
   }
-  const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!jwt) return null;
-  const { data } = await admin.auth.getUser(jwt).catch(() => ({ data: { user: null } } as never));
-  const email = String((data as { user?: { email?: string } })?.user?.email || '').toLowerCase();
-  if (!email) return null;
-  const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  return allow.includes(email) ? 'founder' : null;
+  // The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An
+  // admin whose session has one factor is answered 403 naming the step (security audit 10 Nov 2026, item 1).
+  const a = await adminCaller(admin, sec, req.headers.get('Authorization'));
+  if (a.kind === 'two_step_required') return a.body;
+  return a.kind === 'admin' ? 'founder' : null;
 }
 
 Deno.serve(observe('ceo_agent', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
-    const who = await whoami(req, body);
-    if (!who) return J({ error: 'unauthorized' }, 401);
+    const whoOrStep = await whoami(req, body);
+    if (!whoOrStep) return J({ error: 'unauthorized' }, 401);
+    if (typeof whoOrStep === 'object') return J(whoOrStep, 403);   // an admin with one factor: name the step
+    const who = whoOrStep;
 
     const action = String(body.action || '').trim();
 

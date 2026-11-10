@@ -53,6 +53,7 @@ const plain = observe('sales_engineer', async (req) => {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const caller = await whoami(req, body);
     if (!caller) return J({ error: 'unauthorized' }, 401);
+    if (caller.kind === 'two_step_required') return J(caller.body, 403);   // an admin with one factor: name the step
 
     const action = String(body.action || '').trim();
     if (caller.kind === 'service' && !SERVICE_ACTIONS.has(action)) {

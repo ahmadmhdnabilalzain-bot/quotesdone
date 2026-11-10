@@ -19,7 +19,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
-import { signedInUser } from '../_shared/signed_in_user.ts';
+import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 import { DUTIES, marketingAsk } from './duties.ts';
 import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { recallCases } from '../_shared/case_recall.ts';
@@ -42,18 +42,18 @@ async function sec(k: string): Promise<string | undefined> {
 // The credentials held for this seat alone (rule 641). Read here for presence only.
 const HELD_KEYS = ['meta_access_token', 'meta_ad_account_id', 'postiz_api_key', 'postiz_publish_key', 'postiz_integrations', 'meta_ig_user_id'];
 
-type Caller = { kind: 'marketing' | 'founder' } | null;
+type Caller = { kind: 'marketing' | 'founder' } | { kind: 'two_step_required'; body: TwoStepBody } | null;
 async function whoami(req: Request, body: Record<string, unknown>): Promise<Caller> {
   if (body?.__secret) {
     const r = await requireInternal(admin, String(body.__secret), 'marketing');
     return r.ok && r.context === 'fn.marketing' ? { kind: 'marketing' } : null;
   }
-  // Local refusal first and a bounded auth call (_shared/signed_in_user.ts), never an inline getUser.
-  const who = await signedInUser(admin, req.headers.get('Authorization'));
-  if (!who.ok) return null;
-  const email = String(who.email || '').toLowerCase();
-  const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  return email && allow.includes(email) ? { kind: 'founder' } : null;
+  // Local refusal first and a bounded auth call (adminCaller runs _shared/signed_in_user.ts), never an inline getUser.
+  // The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An
+  // admin whose session has one factor is answered 403 naming the step (security audit 10 Nov 2026, item 1).
+  const a = await adminCaller(admin, sec, req.headers.get('Authorization'));
+  if (a.kind === 'two_step_required') return { kind: 'two_step_required', body: a.body };
+  return a.kind === 'admin' ? { kind: 'founder' } : null;
 }
 
 // Every call leaves a row, so the CEO's board can tell a quiet seat from a dead one.
@@ -105,6 +105,7 @@ Deno.serve(observe('marketing', async (req) => {
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
   const caller = await whoami(req, body);
   if (!caller) return J({ error: 'unauthorized' }, 401);
+  if (caller.kind === 'two_step_required') return J(caller.body, 403);   // an admin with one factor: name the step
   const action = String(body.action || '').trim();
 
   if (action === 'health' || action === 'status') {

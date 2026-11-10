@@ -25,6 +25,7 @@
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 // SheetJS 0.20.3, VENDORED in _shared/vendor (14 Sep 2026). NOT the remote esm.sh copy of xlsx 0.18.5: that npm package
 // stopped at 0.18.5, which carries CVE-2023-30533 (prototype pollution on read), and a remote import makes
 // a third-party CDN a deploy-time dependency of the compliance register. 22 Sep 2026, UNSOLVED-08.
@@ -41,7 +42,9 @@ const DBX_BASE = '/QuotesDone Backup';
 const TENYRS = 10 * 365 * 24 * 3600;
 
 async function sec(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-async function authed(req: Request, body: any) { if ((await requireInternal(admin, body?.__secret, 'compliance_archive')).ok) return true; const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''); const { data: { user } } = await admin.auth.getUser(jwt); const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
+// The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An admin
+// whose session has one factor gets the body naming the step instead of `true` (security audit 10 Nov 2026, item 1).
+async function authed(req: Request, body: any): Promise<true | false | TwoStepBody> { if ((await requireInternal(admin, body?.__secret, 'compliance_archive')).ok) return true; const a = await adminCaller(admin, sec, req.headers.get('Authorization')); return a.kind === 'admin' ? true : a.kind === 'two_step_required' ? a.body : false; }
 function safeName(s: string) { return String(s || '').replace(/[^\w.\- ]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'record'; }
 async function sha256hex(s: string) { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join(''); }
 
@@ -99,7 +102,8 @@ Deno.serve(observe('compliance_archive', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (!(await authed(req, body))) return J({ error: 'forbidden' }, 403);
+    const ok = await authed(req, body);
+    if (ok !== true) return J(ok || { error: 'forbidden' }, 403);
     const action = String(body.action || '');
     try { await admin.storage.createBucket(BUCKET, { public: false }); } catch (_e) { }
 

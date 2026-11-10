@@ -24,12 +24,15 @@ import { siteCors } from '../_shared/site_origins.ts';
 // live on in execute_refunds: money first, bookkeeping second, fail closed, one idempotency key.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 async function sec(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-async function authed(req: Request, body: any) { if (body?.__secret && (await requireInternal(admin, body.__secret, 'refunds_api')).ok) return true; const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''); if (!jwt) return false; const { data: { user } } = await admin.auth.getUser(jwt); const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
+// The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An admin
+// whose session has one factor gets the body naming the step instead of `true` (security audit 10 Nov 2026, item 1).
+async function authed(req: Request, body: any): Promise<true | false | TwoStepBody> { if (body?.__secret && (await requireInternal(admin, body.__secret, 'refunds_api')).ok) return true; const a = await adminCaller(admin, sec, req.headers.get('Authorization')); return a.kind === 'admin' ? true : a.kind === 'two_step_required' ? a.body : false; }
 
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -71,7 +74,8 @@ Deno.serve(siteCors(observe('refunds_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
-    if (!(await authed(req, body))) { await logRun('error', { action: String(body?.action || '') }, 'forbidden: refund API called without valid secret or admin JWT'); return J({ error: 'forbidden' }, 403); }
+    const ok = await authed(req, body);
+    if (ok !== true) { await logRun('error', { action: String(body?.action || ''), two_step_required: ok ? 1 : 0 }, ok ? 'forbidden: refund API called by an admin whose session has not passed the authenticator-app code (two-step sign-in required)' : 'forbidden: refund API called without valid secret or admin JWT'); return J(ok || { error: 'forbidden' }, 403); }
     const action = String(body.action || '');
 
     if (action === 'list_pending') {
