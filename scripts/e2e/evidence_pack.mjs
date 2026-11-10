@@ -369,7 +369,9 @@ function nextAnswer(J, j, given) {
   return null;
 }
 async function intakeTurn(page, action, { timeoutMs = 360000 } = {}) {
-  const first = page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake') && !/poll_turn_id/.test(r.request().postData() || ''), { timeout: timeoutMs });
+  // the composer's mount-time carry_from:'portal' call is not this turn's answer (evidence re-run ea40c830: taking it as one
+  // sent the next line before intake_id existed and opened a stray second intake)
+  const first = page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake') && !/poll_turn_id|carry_from/.test(r.request().postData() || ''), { timeout: timeoutMs });
   await action();
   const res = await first.catch(() => null);
   let j = res ? await res.json().catch(() => ({})) : null;
@@ -401,6 +403,7 @@ async function runChat(J, s, dir, ev) {
   await shot('customer_portal_signed_in');
   await page.getByRole('button', { name: /^New request/ }).first().click({ timeout: 20000 });
   const box = page.locator('#qd-intake-input'); await box.waitFor({ state: 'visible', timeout: 20000 });
+  await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
   await page.waitForTimeout(1500);
   await panelShot('request_chat_opened');
   T.push({ role: 'sales engineer', text: (await page.locator('section[aria-label="New request"]').first().innerText().catch(() => '')).split('\n').find((l) => /QuotesDone sales engineer/.test(l)) || '(greeting)' });
@@ -418,7 +421,7 @@ async function runChat(J, s, dir, ev) {
       T.push({ role: 'customer', text: `(attached ${a.name})` });
       const want = (r) => r.url().includes('/functions/v1/customer_api') && (r.request().postData() || '').includes(a.action);
       const resP = page.waitForResponse(want, { timeout: 420000 }).catch(() => null);
-      const turnP = page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake') && !/poll_turn_id/.test(r.request().postData() || ''), { timeout: 480000 }).catch(() => null);
+      const turnP = page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake') && !/poll_turn_id|carry_from/.test(r.request().postData() || ''), { timeout: 480000 }).catch(() => null);
       await input.setInputFiles(a.path);
       const res = await resP; const rj = res ? await res.json().catch(() => ({})) : {};
       ev.attachments.push({ file: a.name, action: a.action, http: res?.status() ?? 0, boq_lines: rj?.boq?.boq?.length ?? 0, method: rj?.boq?.method ?? null, redaction_complete: rj?.redaction_complete ?? null,
@@ -465,8 +468,24 @@ async function runChat(J, s, dir, ev) {
   T.push({ role: 'customer', text: '(pressed "Send to suppliers")' });
   await page.waitForTimeout(5000);
   await shot('request_sent');
-  ev.create_inquiry = { http: res?.status() ?? 0, inquiry_id: cj.inquiry_id ?? cj.id ?? null, quotable_ids: cj.quotable_ids ?? null, matches: cj.matches ?? null, split: cj.split ?? null, error: cj.error ?? null };
-  return cj.inquiry_id ?? cj.id ?? null;
+  ev.create_inquiry = { http: res?.status() ?? 0, inquiry_id: cj.inquiry_id ?? cj.id ?? null, quotable_ids: cj.quotable_ids ?? null, matches: cj.matches ?? null, split: cj.split ?? null, scope_sent: JSON.parse(res?.request().postData() || '{}').scope_type ?? null, routing: cj.routing ?? null, error: cj.error ?? null };
+  // ONE CONTRACTOR FOUND NOBODY (rulings 1021/1025): the portal asks "separate quotes per trade instead?" and only the
+  // customer's yes re-posts it. The customer says yes, as a customer who wants quotes would.
+  const yes = page.getByRole('button', { name: 'Yes, get separate quotes per trade' }).first();
+  if (await yes.isVisible().catch(() => false)) {
+    await shot('no_single_contractor_ask_separate_quotes');
+    T.push({ role: 'sales engineer', text: (await page.locator('section').filter({ has: yes }).first().innerText().catch(() => '')).slice(0, 800) });
+    const [rr] = await Promise.all([
+      page.waitForResponse((r) => r.url().includes('/functions/v1/customer_api') && (r.request().postData() || '').includes('repeat_inquiry'), { timeout: 180000 }).catch(() => null),
+      yes.click(),
+    ]);
+    const rj = rr ? await rr.json().catch(() => ({})) : {};
+    T.push({ role: 'customer', text: '(pressed "Yes, get separate quotes per trade")' });
+    await page.waitForTimeout(4000); await shot('separate_quotes_sent');
+    ev.create_inquiry.separate = { http: rr?.status() ?? 0, inquiry_id: rj.inquiry_id ?? rj.id ?? null, quotable_ids: rj.quotable_ids ?? null, child_ids: rj.child_ids ?? null, matches: rj.matches ?? null, error: rj.error ?? null };
+    if (rj.inquiry_id ?? rj.id) { ev.create_inquiry.first_inquiry_id = ev.create_inquiry.inquiry_id; ev.create_inquiry.inquiry_id = rj.inquiry_id ?? rj.id; ev.create_inquiry.quotable_ids = rj.quotable_ids ?? rj.child_ids ?? [rj.inquiry_id ?? rj.id]; }
+  }
+  return ev.create_inquiry.inquiry_id;
 }
 
 /** One voice note through the chat's microphone: play it into getUserMedia, stop, wait for transcribe, send. */
@@ -565,7 +584,11 @@ async function journey(run, k) {
   }
   run.ids.inquiries.add(String(inquiryId));
   for (const c of ev.create_inquiry?.quotable_ids || []) run.ids.inquiries.add(String(c));
-  const quotable = String((ev.create_inquiry?.quotable_ids || [])[0] || inquiryId);
+  if (ev.create_inquiry?.first_inquiry_id) run.ids.inquiries.add(String(ev.create_inquiry.first_inquiry_id));
+  // the part of a split request in this journey's trade is the one its five suppliers quote
+  const qids = (ev.create_inquiry?.quotable_ids || []).map(String);
+  let quotable = qids[0] || String(inquiryId);
+  if (qids.length > 1) { const cats = await read(`select id::text id, category, trades from public.inquiries where id::text in (${qids.map(q).join(',')})`); quotable = (cats.find((c) => c.category === J.trade || (c.trades || []).includes(J.trade)) || cats[0] || { id: quotable }).id; ev.split_parts = cats; }
   ev.inquiry_id = inquiryId; ev.quotable_id = quotable;
   const row = (await read(`select id, rfq_no, category, trades, status, scope_type, summary, emirate, boq, spec->'customer_requirements' req, drawing_redacted_paths, public.fn_inquiry_is_demo(id) demo from public.inquiries where id = ${q(quotable)}`))[0] || {};
   ev.inquiry = { rfq_no: row.rfq_no, category: row.category, trades: row.trades, status: row.status, summary: row.summary, emirate: row.emirate, demo: row.demo, boq_lines: (row.boq?.boq || []).length, drawing_pages: (row.drawing_redacted_paths || []).length, requirements: row.req };
@@ -667,6 +690,11 @@ async function journey(run, k) {
           const ap = f1.json?.complete ? await call('supplier_api', sup.jwt, { action: 'spec_approve', quote_id: qid, confirm: true }, 180000) : null;
           const r = { asked, lines: L, terms: Tm, fill: { http: f1.status, complete: f1.json?.complete ?? null, missing: (f1.json?.missing || []).map((m) => m?.attr ?? m), errors: f1.json?.errors ?? f1.json?.error ?? null },
             approve: ap ? { http: ap.status, released: ap.json?.released ?? null, code: ap.json?.code ?? null, missing: (ap.json?.missing || []).map((m) => `${m?.line_no ? 'line ' + m.line_no + ' ' : ''}${m?.attr ?? m}`), review: (ap.json?.review_issues || []).map((x) => x.code) } : null };
+          r.form_fields = (h.json?.schema?.lines || []).map((l) => ({ line: l.line_no, fields: l.fields.map((f) => `${f.attr}${f.options ? '[' + f.options.slice(0, 6).join('/') + ']' : ''}${f.missing ? '*' : ''}`) }));
+          r.hold_missing_before = (h.json?.hold?.missing || []).map((m) => `${m.line_no ? 'line ' + m.line_no + ' ' : ''}${m.attr}`);
+          r.line_specifications = lines.map((l, k) => `line ${k + 1}: ${l.specification}`);
+          const hh = await call('supplier_api', sup.jwt, { action: 'spec_hold', quote_id: qid });
+          r.hold_after = { state: hh.json?.hold?.state ?? null, missing: (hh.json?.hold?.missing || []).map((m) => `${m.line_no ? 'line ' + m.line_no + ' ' : ''}${m.attr}: ${String(m.label_en || '').slice(0, 160)}`) };
           rec.hold_rounds.push(r);
           rec.hold_desk = { asked, complete: r.fill.complete, released: r.approve?.released ?? null };
           if (r.approve?.released) rec.cleared_by = `hold desk, round ${round + 1} (spec_fill + spec_approve)`;
@@ -778,6 +806,10 @@ async function chatQuote(sup, quotable, pdf, fname, sp, rec, reqLines, J, sLines
 function holdValue(J, sp, f, line) {
   const a = `${f.attr} ${f.label_en || ''}`.toLowerCase(), desc = line?.description || '';
   if (/specification/.test(a) && line?.specification) return `${line.specification}`;
+  if (f.options?.length) {   // a field with choices takes one of them: the closest to what his quotation states
+    const want = `${J.hold[f.attr] || ''} ${line?.specification || ''} ${desc}`.toLowerCase();
+    return f.options.find((o) => want.includes(String(o).toLowerCase())) || f.options.find((o) => String(o).toLowerCase().split(/\W+/).some((w) => w.length > 3 && want.includes(w))) || f.options[0];
+  }
   if (J.hold[f.attr] && J.hold[f.attr] !== 'As stated on the line') return J.hold[f.attr];
   for (const [re, v] of J.holdBy || []) if (re.test(a)) return typeof v === 'function' ? v(sp, desc) : v;
   if (/origin/.test(a)) return sp.origin;
@@ -1001,6 +1033,7 @@ async function registration(run) {
       copyFileSync(raw, join(dir, 'supplier_registration_recording.webm'));
       const ff = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', raw, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23', '-movflags', '+faststart', join(dir, 'supplier_registration_recording.mp4')]);
       R.video = ff.status === 0 ? ['supplier_registration_recording.mp4', 'supplier_registration_recording.webm'] : ['supplier_registration_recording.webm'];
+      spawnSync('rm', ['-rf', join(dir, 'raw_video')]);   // the raw recording is copied; disk is tight
     }
   }
   return R;

@@ -144,3 +144,48 @@ composer's preselected default, applied because (b) placed a one-trade job (PVC 
   That supplier goes through the quotation chat and says "BOQ line N excluded — by the client". The customer then
   sees the `scope_excluded` review note. This was measured in dry run 3: "This quote lists 'Removal and disposal of
   existing PVC wall panels' under its exclusions, but it is part of what you asked for. The price does not cover it."
+
+## The re-run after #1896 (tag ea40c830, 19:11-20:01 UTC) and the registration (tag 8120d011, 20:09-20:28 UTC)
+
+Stopped by founder ruling 1608 (a free code audit first) after journey 2. Journey 3 was not started: the harness
+was sent SIGTERM at its first line, and its stop path counted, read the spend and tore down. The partial pack is
+`QuotesDone_journey_evidence.zip`, delivered outside git.
+
+| | USD (ai_cost_log by tag) | notifications counted BEFORE teardown | leftovers |
+|---|---:|---|---|
+| journeys 1-2 | 1.3920 (128 calls) | 53 e-mail + 51 WhatsApp, all `suppressed`, 0 dispatched | 2 notifications written after teardown (a journey-3 supplier's `supplier_approved`, both `suppressed`), removed with `run.mjs --purge-tag`; then 0 |
+| registration | 0.0245 (9 calls) | none | 0, plus 0 on the Resend sink account |
+
+Today's total, including real run 1 (0.5227): USD 1.9392.
+
+**Fixed and seen working:** (b1) the PVC job was placed in `wallpaper`, one trade. (b2) No unrelated answer was recorded
+as a spec. (c) Journey 2 was sent as `scope_type: single`; routing gave need `executes`, fan-out 8, and all five of
+the run's HVAC suppliers were matched by the product.
+
+**Still seen:**
+1. **Journey 1 hold form ≠ release, line 3 material.** Quotes f5b1b5b6, 12266a2e, 080e2091 and a6f89b7f. The form
+   showed line 2 material/roll_size/brand, line 3 roll_size/brand and line 4 material/roll_size/brand. The supplier
+   filled all of them. `spec_fill` answered 200 `complete:false missing ["material"]`, and the hold went to
+   `unresolved_at_decision`, missing `line 3 material` ("state the exact wallpaper type"). Quote 080e2091 was also
+   missing line 4. That line's Specification column ("PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in
+   Germany, Class B-s1,d0") was not taken as the answer. Result: only the quotation-chat quote went live, so there
+   was no comparison. With the fix agent.
+2. **Journey 2's drawing did not reach suppliers.** The PDF drawing came back as an OCR read in the composer, with
+   junk lines ("Stroked line length", "Closed shapes 81") and one line carrying title-block text, the client name
+   misread as "Mir. 22 Demo Owner". `drawing_redacted_paths` was null on the request. The harness saw no
+   `analyze_drawing` answer within 420 s. In the models-off dry run the same file was read from its text layer
+   (12 lines) and redacted 1/1. Not diagnosed.
+3. **Journey 2 Q2 (72b94ebd)** was released through the hold desk (`spec_approve released:true`), but quote_compare
+   listed it as `held` with no rank. Not diagnosed.
+4. **Journey 2 comparison: correct and expert.** The top 3 were Q3 (only full match), Q1 (same tier, made in
+   Thailand) and Q5 (cheapest, Chinese brand, short warranty, late). The review notes named each origin deviation,
+   warranty shortfall and late delivery. This is recorded as working, not as a defect.
+
+**Harness issues, not product:**
+- The composer's mount-time `carry_from:'portal'` call was taken as the opener's reply. The next line was sent
+  before `intake_id` existed, which opened a stray intake (202a03c2). The fix is in the harness.
+- On the quotation chat the harness answered "model / product code: As per the BOQ line", which the engineer
+  rightly refused. A real supplier states a code.
+- The registration's fixture-mobile path (the DB write while the form's kyc `state` read is held) did not register
+  on this run, so Submit stopped at "Still needed: Verified mobile number, your WhatsApp answer". It worked in three
+  dry runs that afternoon. Not diagnosed, and not shown to be a product defect.
