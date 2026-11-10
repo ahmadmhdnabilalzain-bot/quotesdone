@@ -68,6 +68,31 @@ const READY = { id: 7, sector: 'hvac', registration_submitted_at: '2026-09-01', 
 const ready = (lead: Record<string, unknown>, six: string[] = []) => fakeAdmin({
   leads: { data: lead }, supplier_capabilities: { data: { trades: ['hvac'], confirmed_at: '2026-09-02' } }, 'rpc:fn_supplier_mandatory_six_for': { data: six },
 });
+// THE WHOLE MATCH GATE (10 Nov 2026, customer_support; item 9 of #1901's report). fn_match_capability also excludes a supplier
+// who is busy or paused (fn_supplier_available) and one at the no-response strike limit; the panel read neither.
+const readyWith = (lead: Record<string, unknown>, extra: Record<string, Answer>) => fakeAdmin({
+  leads: { data: lead }, supplier_capabilities: { data: { trades: ['hvac'], confirmed_at: '2026-09-02' } }, 'rpc:fn_supplier_mandatory_six_for': { data: [] }, ...extra,
+});
+// deno-lint-ignore no-explicit-any
+const codes = (e: any): string[] => (e.blocking as { code: string }[]).map((b) => b.code);
+Deno.test('eligibility: a supplier who paused new requests is not eligible, and is sent to Settings', async () => {
+  const e = await buildEligibility(readyWith(READY, { supplier_availability: { data: { state: 'paused', busy_until: null } } }), 7);
+  assertEquals(e.eligible, false, 'fn_supplier_available refuses a paused supplier');
+  assertEquals(codes(e), ['availability_paused']);
+  assertEquals((e.blocking[0] as { fix: string }).fix, 'settings');
+});
+Deno.test('eligibility: busy until a future date blocks; a busy date that has come does not (fn_supplier_available)', async () => {
+  const later = await buildEligibility(readyWith(READY, { supplier_availability: { data: { state: 'busy', busy_until: '2999-01-01' } } }), 7);
+  assertEquals(codes(later), ['availability_busy']);
+  const passed = await buildEligibility(readyWith(READY, { supplier_availability: { data: { state: 'busy', busy_until: '2000-01-01' } } }), 7);
+  assertEquals(passed.eligible, true);
+});
+Deno.test('eligibility: a supplier at the no-response strike limit is not eligible; the limit is the database\'s', async () => {
+  const at = await buildEligibility(readyWith({ ...READY, chat_strikes: 3 }, {}), 7);
+  assertEquals(codes(at), ['no_response_strikes'], 'fn_matching_strike_limit defaults to 3');
+  const under = await buildEligibility(readyWith({ ...READY, chat_strikes: 3 }, { 'rpc:fn_matching_strike_limit': { data: 5 } }), 7);
+  assertEquals(under.eligible, true, 'with a limit of 5, three strikes still match');
+});
 Deno.test('eligibility: an approved, verified, confirmed supplier is eligible (control)', async () => {
   const e = await buildEligibility(ready(READY), 7);
   assertEquals(e.blocking, []);
