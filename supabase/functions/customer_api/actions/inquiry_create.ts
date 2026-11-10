@@ -44,6 +44,12 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       const { data: o } = await admin.from('inquiries').select('id,customer_id,parent_inquiry_id,category,emirate,raw_input,spec,summary,budget,scope_type,trades,floor,project_id,lang,created_at').eq('id', String(body.inquiry_id || '')).maybeSingle();
       if (!o || o.customer_id !== cust.id) return J({ error: 'not_found' }, 404);
       if (o.parent_inquiry_id) return J({ error: 'repeat_the_whole_request', message: 'This is one trade of a larger request. Repeat the whole request instead.' }, 409);
+      // THE SEPARATE-QUOTES ANSWER IS GIVEN ONCE (lib/separate_quotes.ts, customer-journey audit 10 Nov 2026): a second yes
+      // to the same request would invite every specialist again with a second per-trade copy. The portal says it is done.
+      if (body.edits && typeof body.edits === 'object' && body.edits.sourcing === 'multi' && body.preview !== true) {
+        const { count: sep } = await admin.from('inquiries').select('id', { count: 'exact', head: true }).eq('customer_id', cust.id).eq('repeat_of', o.id).eq('scope_type', 'multi').is('parent_inquiry_id', null);
+        if ((sep || 0) > 0) return J({ error: 'already_separate', code: 'already_separate', message: 'This request already went out as separate quotes per trade.' }, 409);
+      }
       const now = new Date();
       const cats = [...new Set([o.category, ...(Array.isArray(o.trades) ? o.trades : [])].filter(Boolean).map(String))];
       const { data: cs } = cats.length ? await admin.from('category_specs').select('fields').in('category', cats) : { data: [] };
