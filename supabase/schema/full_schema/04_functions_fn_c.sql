@@ -33,6 +33,7 @@ CREATE OR REPLACE FUNCTION public.fn_cancel_inquiry(p_inquiry uuid, p_customer u
 AS $function$
 declare v inquiries%rowtype; v_paid boolean; v_cnt int; v_warned boolean:=false; v_email text; v_locale text;
         l record; v_told int := 0; v_failed int := 0; v_cust_told boolean := false; v_ar boolean; v_d jsonb;
+        v_close int := public.fn_seat_clock_policy('request_revealed_close_days', 60)::int;
 begin
   -- review of #1844: locked, so a concurrent reveal or a second cancel cannot interleave with the checks below
   select * into v from inquiries where id=p_inquiry for update;
@@ -41,30 +42,43 @@ begin
     return jsonb_build_object('error','not_your_inquiry'); end if;
   if v.status='cancelled' or v.pipeline_stage='cancelled' then
     return jsonb_build_object('ok',true,'already_cancelled',true); end if;
-  select exists(select 1 from transactions where inquiry_id=p_inquiry) into v_paid;
-  if v_paid or v.status in ('revealed','completed') or v.pipeline_stage in ('revealed','won') then
+  -- 10 Nov 2026 (sales_engineer): a request the platform already ended (expired, lost, closed) is not cancelled on top:
+  -- that wrote 'cancelled' over the real end and told its suppliers "the customer cancelled". One list with
+  -- _shared/request_closed.ts (scripts/checks/one_list_says_a_request_is_closed.test.mjs reads this one).
+  if v.status in ('closed','expired','lost') then
+    return jsonb_build_object('error','inquiry_closed','message','This request is already closed.','message_ar','هذا الطلب مغلق.'); end if;
+  -- A split request's parts are the requests suppliers quote: a reveal on any part is a reveal on the request.
+  select exists(select 1 from transactions t join inquiries u on u.id = t.inquiry_id where u.id = p_inquiry or u.parent_inquiry_id = p_inquiry) into v_paid;
+  if v_paid or v.status in ('revealed','completed') or v.pipeline_stage in ('revealed','won')
+     or exists (select 1 from inquiries u where u.parent_inquiry_id = p_inquiry and u.status in ('revealed','completed')) then
+    -- 10 Nov 2026: it pointed the customer at a close action, and no customer close action exists. What there is: Hire,
+    -- and the automatic close of a revealed request with no hire (fn_sales_engineer_request_outcomes, C).
     return jsonb_build_object('error','already_revealed',
-      'message','This request already has an active revealed deal and cannot be cancelled. You can close it instead.'); end if;
+      'message','This request has a revealed supplier, so it cannot be cancelled. When the work is agreed, press "I hired this supplier" on their quote; if no hire is recorded, we close the request ' || v_close || ' days after the reveal.',
+      'message_ar','لهذا الطلب مورّد كشفتَ بياناته، ولذلك لا يمكن إلغاؤه. وعند الاتفاق على العمل اضغط "تعاقدتُ مع هذا المورّد" على عرضه، وإن لم يُسجَّل أي تعاقد أغلقنا الطلب بعد ' || public.fn_ar_days(v_close) || ' من الكشف.'); end if;
 
+  -- 10 Nov 2026: a split request is cancelled with its parts, which carried on as 'sent' while the parent read cancelled.
   update inquiries set status='cancelled', pipeline_stage='cancelled', outcome='cancelled',
       lost_reason=coalesce(p_reason,'customer_cancelled'), completed_at=now(), stage_changed_at=now()
-    where id=p_inquiry;
+    where id=p_inquiry or parent_inquiry_id=p_inquiry;
   insert into inquiry_cancellations(inquiry_id,customer_id,reason) values (p_inquiry, v.customer_id, p_reason);
 
   -- 3 Nov 2026: NOTHING IS ONE-WAY. Every supplier invited to quote is told the job is off (suppliers are written in
   -- English), through customer_support's door, once per request and supplier.
-  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email
-             from inquiry_matches x join leads le on le.id = x.supplier_id
-            where x.inquiry_id = p_inquiry and not coalesce(le.banned, false)
+  -- 10 Nov 2026: the suppliers of every part (a split's suppliers are matched to its parts, never to the parent), each
+  -- told about the part they were invited to, keyed per part and supplier (a single request keeps its old key).
+  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email, u.id as unit, u.category, u.emirate, u.rfq_no
+             from inquiry_matches x join leads le on le.id = x.supplier_id join inquiries u on u.id = x.inquiry_id
+            where (u.id = p_inquiry or u.parent_inquiry_id = p_inquiry) and not coalesce(le.banned, false)
               and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
     v_d := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
       'type', 'rfq_cancelled', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
-      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', p_inquiry, 'lang', 'en',
+      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', l.unit, 'lang', 'en',
       'subject', 'A request you were invited to quote was cancelled',
-      'body', 'The customer cancelled the ' || coalesce(v.category, '') || coalesce(' job in ' || nullif(v.emirate, ''), ' job')
-              || ' (request ' || coalesce(v.rfq_no::text, '') || ') you were invited to quote. No quote is needed for it any more, '
+      'body', 'The customer cancelled the ' || coalesce(l.category, '') || coalesce(' job in ' || nullif(l.emirate, ''), ' job')
+              || ' (request ' || coalesce(l.rfq_no::text, '') || ') you were invited to quote. No quote is needed for it any more, '
               || 'and a quote you already sent will not be used. Thank you for your time.',
-      'dedupe_key', 'rfq_cancelled:' || p_inquiry || ':' || l.id)));
+      'dedupe_key', 'rfq_cancelled:' || l.unit || ':' || l.id)));
     -- counted as told only when the delivery took it (re-review of #1844)
     if coalesce(v_d->0->>'status', '') in ('done', 'demo_captured') then v_told := v_told + 1; else v_failed := v_failed + 1; end if;
   end loop;
@@ -11724,12 +11738,21 @@ begin
   if not found then return jsonb_build_object('held', false, 'finding_suppliers', false, 'reason', 'no such request'); end if;
   v_ar := coalesce(public.fn_inquiry_locale(i.id), (select c.locale from public.customers c where c.id = i.customer_id)) = 'ar';
   v_lang := case when v_ar then 'ar' else 'en' end;
-  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed') then
+  -- 10 Nov 2026: expired and lost are ends too (one list with _shared/request_closed.ts)
+  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed', 'expired', 'lost') then
     return jsonb_build_object('held', false, 'finding_suppliers', false, 'lang', v_lang);
   end if;
   v_units := array(select c.id from public.inquiries c where c.parent_inquiry_id = i.id order by c.created_at);
   v_split := cardinality(v_units) > 0;
   if not v_split then v_units := array[i.id]; end if;
+  -- 10 Nov 2026 (sales_engineer): reached nobody because the MATCHER did not answer is "we are matching it", never
+  -- "we are still registering suppliers" — that trade was never searched. The re-match (customer_api lib/rematch.ts)
+  -- clears matcher_unavailable once the matcher answers; from then the request reads as it would have at posting.
+  if not exists (select 1 from public.inquiry_matches x where x.inquiry_id = any(v_units) or x.inquiry_id = i.id)
+     and exists (select 1 from public.inquiries x where (x.id = any(v_units) or x.id = i.id)
+                    and coalesce((x.routing->>'matcher_unavailable')::boolean, false)) then
+    return jsonb_build_object('held', false, 'finding_suppliers', false, 'matching', true, 'lang', v_lang, 'missing', '[]'::jsonb);
+  end if;
   if not exists (select 1 from public.inquiry_matches x where x.inquiry_id = any(v_units) or x.inquiry_id = i.id) then
     return jsonb_build_object('held', false, 'finding_suppliers', true, 'lang', v_lang, 'missing', '[]'::jsonb);
   end if;
@@ -11775,7 +11798,7 @@ CREATE OR REPLACE FUNCTION public.fn_customer_concierge_message(p_inquiry uuid, 
 AS $function$
 declare
   i public.inquiries; c public.customers; g jsonb; h jsonb; v_ar boolean; v_name text; v_ref text; v_held text := ''; v_find text := '';
-  v_steps text; v_subj text; v_body text; v_link text;
+  v_steps text; v_subj text; v_body text; v_link text; v_match text := '';
 begin
   if p_kind not in ('first_request', 'held_for_specs', 'finding_suppliers') then
     raise exception 'a concierge message is first_request, held_for_specs or finding_suppliers, not %', p_kind;
@@ -11802,6 +11825,12 @@ begin
       then 'ما زلنا نسجّل الموردين في تخصصكم. لا يغطي هذا الطلب أيٌّ من الموردين المسجّلين لدينا اليوم، ولذلك لم يصل إلى أي مورّد، ولا يمكننا أن نعدكم بعرض سعر أو بموعد له، فنرجو ألا تؤخروا عملكم انتظارًا لنا. سنبقي طلبكم مفتوحًا 14 يومًا؛ وإذا لم يصل إلى أي مورّد خلالها أغلقناه وأبلغناكم. لا يلزمكم أي إجراء ولا أي مبلغ.'
       else 'We are still registering suppliers for your trade. No supplier registered with us today covers this request, so it has not reached anyone, and we cannot promise a quote or say when one might come. Please do not hold your work for us. We will keep your request open for 14 days; if it has reached no supplier by then, we will close it and tell you. Nothing is needed from you, and there is nothing to pay.' end;
   end if;
+  -- 10 Nov 2026 (sales_engineer): the matcher did not answer at posting; the request is being matched again.
+  if coalesce((h->>'matching')::boolean, false) then
+    v_match := case when v_ar
+      then 'نعمل على مطابقة طلبكم مع الموردين المختصين فيه، وسنتواصل معكم قريبًا، ولا يلزمكم أي مبلغ.'
+      else 'We are matching your request with the suppliers who cover it. You will hear from us shortly, and there is nothing to pay.' end;
+  end if;
   -- The steps, numbered; only the specs step for a later request (the customer has seen the rest before).
   v_steps := (select string_agg(n || '. ' || (e->>'title') || ': ' || (e->>'body'), chr(10) || chr(10) order by n)
                 from jsonb_array_elements(g->'steps') with ordinality s(e, n)
@@ -11814,6 +11843,7 @@ begin
         || 'شكرًا لطلبكم الأول على QuotesDone، ورقمه ' || v_ref || '.' || chr(10) || chr(10)
         || case when v_held <> '' then 'وقبل أن يتمكّن الموردون من تسعيره، نحتاج منكم إلى التفاصيل التالية:' || chr(10) || v_held || chr(10) || chr(10) else '' end
         || case when v_find <> '' then v_find || chr(10) || chr(10) else '' end
+        || case when v_match <> '' then v_match || chr(10) || chr(10) else '' end
         || 'وللحصول على عروض دقيقة قابلة للمقارنة، إليكم الخطوات:' || chr(10) || chr(10) || v_steps || chr(10) || chr(10)
         || 'ويمكنكم متابعة طلبكم من حسابكم: ' || v_link || chr(10) || chr(10)
         || 'ولأي استفسار، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
@@ -11823,6 +11853,7 @@ begin
         || 'Thank you for your first request on QuotesDone. Its number is ' || v_ref || '.' || chr(10) || chr(10)
         || case when v_held <> '' then 'Before suppliers can price it, we need a few details from you:' || chr(10) || v_held || chr(10) || chr(10) else '' end
         || case when v_find <> '' then v_find || chr(10) || chr(10) else '' end
+        || case when v_match <> '' then v_match || chr(10) || chr(10) else '' end
         || 'Here is how to get exact, comparable quotes, step by step:' || chr(10) || chr(10) || v_steps || chr(10) || chr(10)
         || 'You can follow your request from your account: ' || v_link || chr(10) || chr(10)
         || 'If anything is unclear, reply to this e-mail.' end;
@@ -12200,7 +12231,7 @@ CREATE OR REPLACE FUNCTION public.fn_customer_followup_answer(p_token uuid, p_hi
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare f public.customer_followup; t public.transactions; v_comment text; v_reason text; v_out jsonb := '{}'::jsonb;
+declare f public.customer_followup; t public.transactions; v_comment text; v_reason text; v_out jsonb := '{}'::jsonb; v_won int := 0;
 begin
   if p_hired is null or p_hired not in ('yes', 'no', 'not_yet') then
     raise exception 'hired is yes, no or not_yet' using errcode = '22023';
@@ -12227,8 +12258,21 @@ begin
       v_out := v_out || jsonb_build_object('quote', public.fn_outcome_record('quotes', t.quote_id::text,
         case when p_hired = 'yes' then 'hired' else 'not_hired' end, p_hired = 'yes', v_reason, 'sales_engineer', 'quote', null));
     end if;
+    -- 10 Nov 2026 (sales_engineer): "yes, I hired them" COMPLETES the request, exactly as the portal's Hire does
+    -- (customer_api complete_inquiry: status, outcome, completed_at, hired_supplier_id), and tells the losing suppliers.
+    -- It wrote hired_supplier_id ONLY, so the request stayed 'revealed' for good and nobody was told. The write is the
+    -- lock, as Hire's: only a request not yet completed, and not awarded to another supplier, changes. A Hire pressed
+    -- after this finds the same supplier completed and sends nothing (lib/hire.ts already_completed); a yes after Hire
+    -- changes no row, so the losers are told once whichever door came first.
     if p_hired = 'yes' and t.inquiry_id is not null then
-      update public.inquiries set hired_supplier_id = t.supplier_id where id = t.inquiry_id and hired_supplier_id is null;
+      update public.inquiries
+         set status = 'completed', outcome = 'hired', completed_at = coalesce(completed_at, now()), hired_supplier_id = t.supplier_id
+       where id = t.inquiry_id and (hired_supplier_id is null or hired_supplier_id = t.supplier_id)
+         and coalesce(status, '') <> 'completed';
+      get diagnostics v_won = row_count;
+      if v_won > 0 then
+        v_out := v_out || jsonb_build_object('completed', true, 'losers', public.fn_sales_engineer_tells_losing_suppliers(t.inquiry_id, t.supplier_id));
+      end if;
     end if;
   end if;
 
