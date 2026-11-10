@@ -152,7 +152,7 @@ const adminWith = (flags: Record<string, unknown>) => ({
 });
 const KEYS = new Set(['power_generators.ups', 'office_equipment.printers_mfp']);
 
-Deno.test('the model paths are OFF by default and say so in English and Arabic, without calling anything', async () => {
+Deno.test('an absent switch is OFF, says so in English and Arabic, and calls nothing', async () => {
   let called = 0;
   const stub = async () => { called++; return { content: '{}', error: null }; };
   for (const kind of ['photo', 'text'] as const) {
@@ -161,11 +161,33 @@ Deno.test('the model paths are OFF by default and say so in English and Arabic, 
     if (o.state === 'off') { assertEquals(o.message_en, OFF_MESSAGE[kind].en); assert(/[ء-ي]/.test(o.message_ar)); }
   }
   assertEquals(called, 0);
-  assertEquals(OFF_MESSAGE.photo.en, 'We read the text in this photo; recognising what it shows is waiting on the vision model.');
-  // The seed switches them off, and nothing else in the repository switches them on.
-  const sql = Deno.readTextFileSync(new URL('../../../scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.sql', here));
-  for (const k of [PHOTO_VISION_FLAG, CATALOGUE_MODEL_FLAG]) assert(sql.includes(`'${k}'`), k);
-  assert(sql.includes(`'{"enabled": false}'::jsonb, v.description`));
+});
+
+// 10 Nov 2026 (launch verification, should-fix 2): suppliers were told "Reading the rest is waiting on the language model,
+// which is switched off for now" seven weeks after rulings 1175 and 1260 lifted the hold for good.
+Deno.test('the off line promises nothing about a switch and asks the supplier for his own words (known-bad: "switched off for now")', () => {
+  for (const kind of ['photo', 'text'] as const) {
+    const en = OFF_MESSAGE[kind].en; const ar = OFF_MESSAGE[kind].ar;
+    assert(!/switched off|for now|waiting on|model/i.test(en), `${kind}: "${en}" promises or names a switch`);
+    assert(!/متوقف|تنتظر|تفعيل/.test(ar), `${kind}: the Arabic line still waits on a switch`);
+    assert(/your own words/.test(en) && /بكلمات/.test(ar), `${kind}: the supplier is not asked for his own words`);
+  }
+});
+
+Deno.test('rulings 1175 and 1260: the last SQL to set the two switches turns both ON', () => {
+  const on = Deno.readTextFileSync(new URL('../../../scripts/sql/the_supplier_catalogue_and_photo_readers_follow_the_rulings_that_keep_the_models_on.sql', here));
+  for (const k of [PHOTO_VISION_FLAG, CATALOGUE_MODEL_FLAG]) {
+    assert(new RegExp(`set value = '\\{"enabled": true\\}'::jsonb,[\\s\\S]{0,600}where key = '${k}'`).test(on), `${k} is not switched on`);
+  }
+  const manifest = Deno.readTextFileSync(new URL('../../../scripts/sql/MANIFEST.txt', here)).split('\n').map((l) => l.trim());
+  const seed = manifest.indexOf('scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.sql');
+  const later = manifest.slice(seed + 1).filter((f) => f.endsWith('.sql') && !f.startsWith('#'));
+  for (const f of later) {
+    let t = ''; try { t = Deno.readTextFileSync(new URL('../../../' + f, here)); } catch { continue; }
+    for (const k of [PHOTO_VISION_FLAG, CATALOGUE_MODEL_FLAG]) {
+      assert(!(t.includes(k) && /"enabled": false/.test(t)), `${f} switches ${k} off again after the rulings`);
+    }
+  }
 });
 
 Deno.test('the vision path, switched on, reads a stubbed gateway reply and keeps only real service keys', async () => {

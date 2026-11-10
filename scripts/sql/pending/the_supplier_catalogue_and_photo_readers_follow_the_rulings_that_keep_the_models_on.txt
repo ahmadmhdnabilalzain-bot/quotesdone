@@ -1,0 +1,3 @@
+Applied at merge, never before (docs/runbooks/release-without-ci.md section 2): node scripts/apply_sql.mjs scripts/sql/the_supplier_catalogue_and_photo_readers_follow_the_rulings_that_keep_the_models_on.sql --apply, then delete this note and append the file as the LAST line of MANIFEST.txt. Deploy supplier_api and supplier_catalog_ingest in the same release (the honest off line in _shared/catalogue_model.ts).
+
+Rehearsed on production and rolled back, 10 Nov 2026: both switches read {"enabled": true} after it and no description gives the lifted hold as its reason. Seat: sales_engineer. Rulings 1175 and 1260.
