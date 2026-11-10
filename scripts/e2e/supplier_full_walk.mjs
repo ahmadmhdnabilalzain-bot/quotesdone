@@ -138,7 +138,7 @@ async function releaseHold(page, inquiryId) {
 // database showing a 200 (c: extract_quote 46 s; d: a held draft) and the screen showing neither the read nor the hold,
 // and nothing said which side dropped it. The answer to the browser is now part of the step's detail.
 const answerOf = (page, action, timeout = 300000) => page.waitForResponse((r) => r.url().includes('/functions/v1/supplier_api') && (r.request().postData() || '').includes(`"action":"${action}"`), { timeout })
-  .then(async (r) => { const j = await r.json().catch(() => null); return { http: r.status(), ok: j?.ok ?? null, code: j?.code ?? j?.error ?? null, total: j?.proposal?.total ?? j?.proposal?.amount ?? null, options: Array.isArray(j?.proposal?.options) ? j.proposal.options.length : null, status: j?.status ?? j?.quote?.status ?? null }; })
+  .then(async (r) => { const j = await r.json().catch(() => null); return { http: r.status(), ok: j?.ok ?? null, code: j?.code ?? j?.error ?? null, total: j?.proposal?.total ?? j?.proposal?.amount ?? null, options: Array.isArray(j?.proposal?.options) ? j.proposal.options.length : null, status: j?.status ?? j?.quote?.status ?? null, issues: Array.isArray(j?.review_issues) ? j.review_issues.map((i) => [i.code, i.attr, i.line_no].filter((x) => x != null).join(':')) : undefined }; })
   .catch((e) => ({ browser_got_no_answer: String(e.message).split('\n')[0].slice(0, 100) }));
 
 // The quote rows once they exist; a held one is released through the portal, then read again.
@@ -234,21 +234,31 @@ async function drive(browser, run, s, vp) {
     await scen('e. refresh a quote before reveal', async () => {
       const d = await openJob(page, jobs.typed);
       if (!(await d.getByPlaceholder('Total amount (AED)').isVisible().catch(() => false))) await openForm(page, d);
-      await d.getByPlaceholder('Total amount (AED)').fill('10900');
+      // A REFRESH STILL ADDS UP (10 Nov 2026). This changed the total to 10,900 and left the lines at 450 x 20 + 120 x 18 =
+      // 11,160; the review's rule 4 (the line amounts add up to the total, code total_mismatch) kept it a draft, correctly,
+      // and the walk read that as a refresh that failed. The new price is now stated on the line as well: 120 x 15.
+      await d.getByLabel('Unit price, line 2').fill('15');
+      await d.getByPlaceholder('Total amount (AED)').fill('10800');
+      const told = answerOf(page, 'submit_quote', 120000);
       await d.getByRole('button', { name: 'Submit quote' }).click();
       const qs = await settle(page, supplier.leadId, jobs.typed.id, 1);
-      step('e. refresh a quote before reveal', vp, qs.length === 1 && qs[0].amt === 10900 && qs[0].status === 'submitted', JSON.stringify(qs));
+      step('e. refresh a quote before reveal', vp, qs.length === 1 && qs[0].amt === 10800 && qs[0].status === 'submitted', `submit_quote answered ${JSON.stringify(await told)}; ${JSON.stringify(qs)}`);
       await shot('e_refreshed');
     });
 
     await scen('f. withdraw a quote before reveal', async () => {
       await page.getByRole('button', { name: /Quotations submitted/ }).first().click();
       await page.waitForTimeout(1500);
-      const btn = page.getByRole('button', { name: /withdraw/i });
+      // THE PDF JOB'S OWN CONTROL, AND BOTH PRESSES (10 Nov 2026). Withdraw has asked for a second press ("Confirm
+      // withdraw") since the 19 Oct QA walk, because a withdrawn quotation leaves the customer's comparison; this pressed
+      // the first "Withdraw" on the page (the newest job's, not the PDF job it then checks) and never confirmed.
+      const card = page.locator(`#qd-qt-${jobs.pdf.id}`);
+      const btn = card.getByRole('button', { name: /^Withdraw$/ });
       const n = await btn.count();
       await shot('f_withdraw_control');
-      if (!n) { step('f. withdraw a quote before reveal', vp, false, 'no Withdraw control on Inquiries or Quotations; supplier_api has no withdraw action'); return; }
+      if (!n) { step('f. withdraw a quote before reveal', vp, false, 'no Withdraw control on the PDF job\'s card in Quotations submitted'); return; }
       await btn.first().click();
+      await card.getByRole('button', { name: /^Confirm withdraw$/ }).click({ timeout: 10000 });
       const qs = await waitFor(async () => { const r = await quotesOf(supplier.leadId, jobs.pdf.id); return r[0]?.status === 'withdrawn' ? r : null; }, { timeoutMs: 30000 });
       step('f. withdraw a quote before reveal', vp, !!qs, JSON.stringify(qs));
     });
