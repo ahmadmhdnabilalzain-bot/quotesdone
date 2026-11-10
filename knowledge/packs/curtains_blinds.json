@@ -5,8 +5,8 @@
       "id": "curtains_blinds:spec-checklist",
       "topic": "Curtains and blinds - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for curtains and blinds must state: product type; window sizes and quantity; fabric code and composition; fire rating certificate; blackout or light filtering; operation; track or mechanism; installation substrate; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product type; window sizes and quantity; fabric code and composition; blackout or light filtering; operation; installation substrate; delivery and installation scope. Follow-up questions the answers trigger: window sizes and quantity: No sizes: site measure needed; fire rating certificate: Commercial: ask the consultant's standard; operation: Motorised: power points and automation; installation substrate: Gypsum: backing needed. Before a firm price: a firm price needs measured window sizes; without them a site measure visit is unavoidable, and fabric must be chosen by code or a sample approved.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الستائر: نوع المنتج؛ مقاسات النوافذ وعددها؛ رمز القماش وتركيبه؛ شهادة مقاومة الحريق؛ معتم أو مرشح للضوء؛ طريقة التشغيل؛ المجرى أو الآلية؛ سطح التركيب؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المنتج، ومقاسات النوافذ وعددها، ورمز القماش وتركيبه، والتعتيم أو الترشيح، وطريقة التشغيل، وسطح التثبيت، ونطاق التسليم والتركيب. أسئلة المتابعة: المباني التجارية تستلزم معيار مقاومة الحريق، والتشغيل الآلي يستلزم نقاط الكهرباء، والجبس يستلزم دعامة. دون مقاسات مُقاسة لا بد من زيارة قياس للموقع.",
+      "body_en": "Each quoted product line for curtains and blinds must state: product type; window sizes and quantity; fabric code and composition; fire rating certificate; blackout or light filtering; operation; track or mechanism; installation substrate; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; product type; window sizes and quantity; fabric code and composition; blackout or light filtering; operation; installation substrate; delivery and installation scope. Follow-up questions the answers trigger: window sizes and quantity: No sizes: site measure needed; fire rating certificate: Commercial: ask the consultant's standard; operation: Motorised: power points and automation; installation substrate: Gypsum: backing needed. Before a firm price: a firm price needs measured window sizes; without them a site measure visit is unavoidable, and fabric must be chosen by code or a sample approved. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الستائر: نوع المنتج؛ مقاسات النوافذ وعددها؛ رمز القماش وتركيبه؛ شهادة مقاومة الحريق؛ معتم أو مرشح للضوء؛ طريقة التشغيل؛ المجرى أو الآلية؛ سطح التركيب؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: موقع العمل والإمارة، ونوع المنتج، ومقاسات النوافذ وعددها، ورمز القماش وتركيبه، والتعتيم أو الترشيح، وطريقة التشغيل، وسطح التثبيت، ونطاق التسليم والتركيب. أسئلة المتابعة: المباني التجارية تستلزم معيار مقاومة الحريق، والتشغيل الآلي يستلزم نقاط الكهرباء، والجبس يستلزم دعامة. دون مقاسات مُقاسة لا بد من زيارة قياس للموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وشروط الدفع.",
       "required_specs": [
         "product type",
         "window sizes and quantity",
@@ -20,7 +20,9 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "site location and emirate",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -36,7 +38,8 @@
         "blackout or light filtering",
         "operation",
         "installation substrate",
-        "delivery and installation scope"
+        "delivery and installation scope",
+        "site location and emirate"
       ],
       "spec_guide": [
         {
@@ -129,10 +132,25 @@
           "uae_options": "electrical points; pelmets",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "site location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "a firm price needs measured window sizes; without them a site measure visit is unavoidable, and fabric must be chosen by code or a sample approved.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "curtains_blinds:uae-standards-and-approvals",
