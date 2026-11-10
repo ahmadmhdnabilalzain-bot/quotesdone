@@ -28,8 +28,8 @@
       "topic": "Shipbuilding & Ship Repair: makes, brands, distributors and origins in the UAE",
       "topic_ar": "بناء السفن وإصلاحها: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the UAE yards DP World Drydocks and Gulf Craft and common marine equipment makers Wärtsilä, MAN Energy Solutions and Alfa Laval. Confirmed UAE yards and common marine equipment makers: DP World Drydocks, Gulf Craft, Wärtsilä, MAN Energy Solutions, Alfa Laval. Other yards and the makers' UAE service offices were not checked.",
-      "body_ar": "من أحواض بناء السفن وإصلاحها في الإمارات DP World Drydocks وGulf Craft، ومن مصنعي المعدات البحرية الشائعين Wärtsilä وMAN Energy Solutions وAlfa Laval. والأحواض الإماراتية المؤكدة ومصنعو المعدات البحرية الشائعون: DP World Drydocks وGulf Craft وWärtsilä وMAN Energy Solutions وAlfa Laval. ولم نتحقق من الأحواض الأخرى ولا من مكاتب الخدمة التابعة للمصنعين في الإمارات.",
+      "body_en": "This entry names the UAE yards DP World Drydocks and Gulf Craft and common marine equipment makers Wärtsilä, MAN Energy Solutions and Alfa Laval. Confirmed UAE yards and common marine equipment makers: DP World Drydocks, Gulf Craft, Wärtsilä, MAN Energy Solutions, Alfa Laval. Other yards and the makers' UAE service offices were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): DP World Drydocks = a premium UAE operator; Gulf Craft = a luxury UAE brand; Wärtsilä = a premium Finnish brand; MAN Energy Solutions = a premium German brand; Alfa Laval = a premium Swedish brand.",
+      "body_ar": "من أحواض بناء السفن وإصلاحها في الإمارات DP World Drydocks وGulf Craft، ومن مصنعي المعدات البحرية الشائعين Wärtsilä وMAN Energy Solutions وAlfa Laval. والأحواض الإماراتية المؤكدة ومصنعو المعدات البحرية الشائعون: DP World Drydocks وGulf Craft وWärtsilä وMAN Energy Solutions وAlfa Laval. ولم نتحقق من الأحواض الأخرى ولا من مكاتب الخدمة التابعة للمصنعين في الإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): DP World Drydocks = جهة تشغيل إماراتية من الفئة الممتازة؛ Gulf Craft = علامة إماراتية من الفئة الفاخرة؛ Wärtsilä = علامة فنلندية من الفئة الممتازة؛ MAN Energy Solutions = علامة ألمانية من الفئة الممتازة؛ Alfa Laval = علامة سويدية من الفئة الممتازة.",
       "sources": [
         "https://www.drydocks.gov.ae/",
         "https://www.adsb.ae",
@@ -40,7 +40,44 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: DP World Drydocks operates a Dubai yard with three graving docks and a floating dock -> confirmed | ADSB site -> removed: page blocked | Gulf Craft builds yachts in the UAE -> confirmed. Not checked: The Drydocks World URL, Lamprell's current UAE operations after restructuring, and each yard's current capabilities were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: DP World Drydocks operates a Dubai yard with three graving docks and a floating dock -> confirmed | ADSB site -> removed: page blocked | Gulf Craft builds yachts in the UAE -> confirmed. Not checked: The Drydocks World URL, Lamprell's current UAE operations after restructuring, and each yard's current capabilities were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "DP World Drydocks",
+          "origin_country": "UAE",
+          "tier": "operator",
+          "generic_en": "a premium UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Gulf Craft",
+          "origin_country": "UAE",
+          "tier": "luxury",
+          "generic_en": "a luxury UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Wärtsilä",
+          "origin_country": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "MAN Energy Solutions",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Alfa Laval",
+          "origin_country": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "shipbuilding_repair:uae-market-sizes",

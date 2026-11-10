@@ -27,8 +27,8 @@
       "topic": "Aircraft Parts & MRO: makes, brands, distributors and origins in the UAE",
       "topic_ar": "قطع غيار الطائرات والصيانة والإصلاح والعَمرة (MRO): الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names engine MRO and parts providers in the UAE, such as Sanad, Emirates Engineering and Etihad Engineering, and the free zones where parts traders cluster. Confirmed engine MRO and other MRO and parts names: Sanad, Emirates Engineering, Etihad Engineering, Satair (Airbus), Boeing Global Services, AAR. Only Sanad was confirmed on an opened page. Parts traders cluster in Dubai Airport Free Zone, Dubai South and SAIF Zone.",
-      "body_ar": "من أبرز مزودي صيانة محركات الطائرات وقطع غيارها في الإمارات صند وهندسة طيران الإمارات وهندسة الاتحاد، مع بيان المناطق الحرة التي يتركز فيها تجار القطع. جهة صيانة المحركات المؤكدة وأسماء أخرى للصيانة والقطع: Sanad، Emirates Engineering، Etihad Engineering، Satair (Airbus)، Boeing Global Services، AAR. ولم يُؤكد عبر صفحة مفتوحة إلا سند. ويتجمع تجار القطع في المنطقة الحرة لمطار دبي ودبي الجنوب وسيف زون.",
+      "body_en": "This entry names engine MRO and parts providers in the UAE, such as Sanad, Emirates Engineering and Etihad Engineering, and the free zones where parts traders cluster. Confirmed engine MRO and other MRO and parts names: Sanad, Emirates Engineering, Etihad Engineering, Satair (Airbus), Boeing Global Services, AAR. Only Sanad was confirmed on an opened page. Parts traders cluster in Dubai Airport Free Zone, Dubai South and SAIF Zone.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Sanad = a premium UAE operator; Emirates Engineering = a premium UAE operator; Etihad Engineering = a premium UAE operator; Satair = a premium Danish supplier; Boeing Global Services = a premium American supplier; AAR = a premium American supplier.",
+      "body_ar": "من أبرز مزودي صيانة محركات الطائرات وقطع غيارها في الإمارات صند وهندسة طيران الإمارات وهندسة الاتحاد، مع بيان المناطق الحرة التي يتركز فيها تجار القطع. جهة صيانة المحركات المؤكدة وأسماء أخرى للصيانة والقطع: Sanad، Emirates Engineering، Etihad Engineering، Satair (Airbus)، Boeing Global Services، AAR. ولم يُؤكد عبر صفحة مفتوحة إلا سند. ويتجمع تجار القطع في المنطقة الحرة لمطار دبي ودبي الجنوب وسيف زون.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Sanad = جهة تشغيل إماراتية من الفئة الممتازة؛ Emirates Engineering = جهة تشغيل إماراتية من الفئة الممتازة؛ Etihad Engineering = جهة تشغيل إماراتية من الفئة الممتازة؛ Satair = شركة توريد دنماركية من الفئة الممتازة؛ Boeing Global Services = شركة توريد أمريكية من الفئة الممتازة؛ AAR = شركة توريد أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.sanad.ae/",
         "https://www.gcaa.gov.ae",
@@ -38,7 +38,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Sanad (Mubadala) is the Middle East's largest independent engine MRO -> confirmed | GCAA Part-145 approval for UAE MRO -> unconfirmed: not stated on opened page; kept as general statement | Emirates Engineering site -> removed: site certificate expired | Traders in DAFZ, Dubai South and SAIF Zone -> confirmed_domain_only. Not checked: Names generalised as 'type' were not verified; the current status of GAMCO/Etihad Engineering and the exact UAE CAR-145 naming were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Sanad (Mubadala) is the Middle East's largest independent engine MRO -> confirmed | GCAA Part-145 approval for UAE MRO -> unconfirmed: not stated on opened page; kept as general statement | Emirates Engineering site -> removed: site certificate expired | Traders in DAFZ, Dubai South and SAIF Zone -> confirmed_domain_only. Not checked: Names generalised as 'type' were not verified; the current status of GAMCO/Etihad Engineering and the exact UAE CAR-145 naming were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Sanad",
+          "origin_country": "UAE",
+          "tier": "operator",
+          "generic_en": "a premium UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Emirates Engineering",
+          "origin_country": "UAE",
+          "tier": "operator",
+          "generic_en": "a premium UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Etihad Engineering",
+          "origin_country": "UAE",
+          "tier": "operator",
+          "generic_en": "a premium UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Satair",
+          "origin_country": "Denmark",
+          "tier": "supplier",
+          "generic_en": "a premium Danish supplier",
+          "generic_ar": "شركة توريد دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "Boeing Global Services",
+          "origin_country": "USA",
+          "tier": "supplier",
+          "generic_en": "a premium American supplier",
+          "generic_ar": "شركة توريد أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "AAR",
+          "origin_country": "USA",
+          "tier": "supplier",
+          "generic_en": "a premium American supplier",
+          "generic_ar": "شركة توريد أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "aircraft_parts_mro:uae-market-sizes",

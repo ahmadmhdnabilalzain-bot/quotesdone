@@ -28,8 +28,8 @@
       "topic": "Cold-chain storage & transport (non-food): makes, brands, distributors and origins in the UAE",
       "topic_ar": "التخزين والنقل المبرد: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names a UAE logistics provider, Aramex, and common reefer equipment brands, Carrier Transicold and Thermo King. Confirmed UAE logistics provider and common reefer equipment brands: Aramex, Carrier Transicold, Thermo King. Specialist cold stores and other 3PLs were not checked.",
-      "body_ar": "من مزودي الخدمات اللوجستية في الإمارات Aramex، ومن ماركات وحدات التبريد الشائعة للشاحنات والحاويات Carrier Transicold وThermo King. مزود الخدمات اللوجستية المؤكد في الإمارات وعلامات معدات التبريد الشائعة: Aramex، Carrier Transicold، Thermo King. ولم يُتحقق من مخازن التبريد المتخصصة ولا من مزودي الخدمات اللوجستية الآخرين.",
+      "body_en": "This entry names a UAE logistics provider, Aramex, and common reefer equipment brands, Carrier Transicold and Thermo King. Confirmed UAE logistics provider and common reefer equipment brands: Aramex, Carrier Transicold, Thermo King. Specialist cold stores and other 3PLs were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Aramex = a premium UAE supplier; Carrier Transicold = a premium American brand; Thermo King = a premium American brand.",
+      "body_ar": "من مزودي الخدمات اللوجستية في الإمارات Aramex، ومن ماركات وحدات التبريد الشائعة للشاحنات والحاويات Carrier Transicold وThermo King. مزود الخدمات اللوجستية المؤكد في الإمارات وعلامات معدات التبريد الشائعة: Aramex، Carrier Transicold، Thermo King. ولم يُتحقق من مخازن التبريد المتخصصة ولا من مزودي الخدمات اللوجستية الآخرين.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Aramex = شركة توريد إماراتية من الفئة الممتازة؛ Carrier Transicold = علامة أمريكية من الفئة الممتازة؛ Thermo King = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.ede.gov.ae/en/home",
         "https://www.rsaglobal.com",
@@ -40,7 +40,30 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Pharma warehouses and cold chain fall under EDE licensing for medical products -> confirmed | RSA Global cold chain -> removed: site did not answer | Aramex offers logistics and warehousing in the UAE -> confirmed. Not checked: Which cargo terminals currently hold CEIV Pharma, and the named cold store operators' current capacity, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Pharma warehouses and cold chain fall under EDE licensing for medical products -> confirmed | RSA Global cold chain -> removed: site did not answer | Aramex offers logistics and warehousing in the UAE -> confirmed. Not checked: Which cargo terminals currently hold CEIV Pharma, and the named cold store operators' current capacity, were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Aramex",
+          "origin_country": "UAE",
+          "tier": "supplier",
+          "generic_en": "a premium UAE supplier",
+          "generic_ar": "شركة توريد إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Carrier Transicold",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Thermo King",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "cold_chain_logistics:uae-market-sizes",

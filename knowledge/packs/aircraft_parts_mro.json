@@ -5,8 +5,8 @@
       "id": "aircraft_parts_mro:spec-checklist",
       "topic": "Aircraft parts and MRO - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for aircraft parts and mro must state: aircraft or component part number; aircraft type and registration; part condition; release certificate required; maintenance scope and task cards; CAR-145 approval rating; traceability documents; turnaround time; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة قطع الطائرات والصيانة والإصلاح: رقم القطعة أو المكوّن؛ طراز الطائرة وتسجيلها؛ حالة القطعة؛ شهادة الإفراج المطلوبة؛ نطاق الصيانة وبطاقات المهام؛ تصنيف اعتماد CAR-145؛ وثائق التتبع؛ مدة الإنجاز؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for aircraft parts and mro must state: aircraft or component part number; aircraft type and registration; part condition; release certificate required; maintenance scope and task cards; CAR-145 approval rating; traceability documents; turnaround time; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): aircraft or component part number; aircraft type and registration; part condition; release certificate required; maintenance scope and task cards; CAR-145 approval rating; pricing basis. Follow-up questions the answers trigger: aircraft type and registration: UAE-registered aircraft bring GCAA acceptance of the release document. traceability documents: Life-limited parts bring full back-to-birth records. pricing basis: Exchange brings core return conditions and BER charges. Before a firm price: component repair is quoted as a flat rate or not-to-exceed until teardown; a firm price follows the inspection findings.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة قطع الطائرات والصيانة والإصلاح: رقم القطعة أو المكوّن؛ طراز الطائرة وتسجيلها؛ حالة القطعة؛ شهادة الإفراج المطلوبة؛ نطاق الصيانة وبطاقات المهام؛ تصنيف اعتماد CAR-145؛ وثائق التتبع؛ مدة الإنجاز؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: رقم القطعة للطائرة أو المكون، ونوع الطائرة وتسجيلها، وحالة القطعة، وشهادة الإفراج المطلوبة، ونطاق الصيانة وبطاقات المهام، واعتماد CAR-145 وتصنيفه، وأساس التسعير. أسئلة المتابعة: الطائرات المسجلة في الإمارات تستلزم قبول الهيئة العامة للطيران المدني لوثيقة الإفراج، والقطع محدودة العمر تستلزم سجلات كاملة منذ التصنيع، والاستبدال يستلزم شروط إعادة القطعة القديمة ورسوم عدم الجدوى الاقتصادية للإصلاح. إصلاح المكونات يُسعّر بسعر ثابت أو سقف حتى الفك، والسعر النهائي يتبع نتائج الفحص.",
       "required_specs": [
         "aircraft or component part number",
         "aircraft type and registration",
@@ -26,7 +26,111 @@
         "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/CAR%20V%20-%20AIRWORTHINESS%20REGULATIONS/CAR-145%20-%20APPROVED%20MAINTENANCE%20ORGANISATION%20-%20ISSUE%2009.pdf"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "aircraft or component part number",
+        "aircraft type and registration",
+        "part condition",
+        "release certificate required",
+        "maintenance scope and task cards",
+        "CAR-145 approval rating",
+        "pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "aircraft or component part number",
+          "blocking": true,
+          "why_it_prices": "Part number and dash number fix the product; interchangeability must be shown.",
+          "uae_options": "P/N with dash number; alternate P/N per IPC.",
+          "follow_up": ""
+        },
+        {
+          "spec": "aircraft type and registration",
+          "blocking": true,
+          "why_it_prices": "Registration decides which authority's rules apply.",
+          "uae_options": "Type, MSN, registration (A6 for UAE).",
+          "follow_up": "UAE-registered aircraft bring GCAA acceptance of the release document."
+        },
+        {
+          "spec": "part condition",
+          "blocking": true,
+          "why_it_prices": "New, overhauled, repaired, serviceable and as-removed differ greatly in price.",
+          "uae_options": "NE, NS, OH, RP, SV, AR.",
+          "follow_up": ""
+        },
+        {
+          "spec": "release certificate required",
+          "blocking": true,
+          "why_it_prices": "The release document decides whether the part can be fitted.",
+          "uae_options": "EASA Form 1, FAA 8130-3, GCAA Form 1, dual release.",
+          "follow_up": ""
+        },
+        {
+          "spec": "maintenance scope and task cards",
+          "blocking": true,
+          "why_it_prices": "MRO is priced from the work scope.",
+          "uae_options": "Task cards, check type (A/C check), component shop visit scope.",
+          "follow_up": ""
+        },
+        {
+          "spec": "CAR-145 approval rating",
+          "blocking": true,
+          "why_it_prices": "Only an approved organisation rated for the type can release work.",
+          "uae_options": "GCAA CAR-145 or EASA Part-145 rating for the aircraft or component.",
+          "follow_up": ""
+        },
+        {
+          "spec": "traceability documents",
+          "blocking": false,
+          "why_it_prices": "Back-to-birth or non-incident statements affect value.",
+          "uae_options": "Trace to last operator, non-incident statement, back-to-birth for LLPs.",
+          "follow_up": "Life-limited parts bring full back-to-birth records."
+        },
+        {
+          "spec": "turnaround time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "licences held",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "service levels",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "AOG response.",
+          "follow_up": ""
+        },
+        {
+          "spec": "contract duration",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "pricing basis",
+          "blocking": true,
+          "why_it_prices": "Fixed price, flat rate plus findings, exchange and outright purchase are not comparable directly.",
+          "uae_options": "Outright, exchange with core, flat-rate repair, NTE cap, T&M.",
+          "follow_up": "Exchange brings core return conditions and BER charges."
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Findings beyond scope, BER and freight are frequent.",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "component repair is quoted as a flat rate or not-to-exceed until teardown; a firm price follows the inspection findings.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "aircraft_parts_mro:uae-standards-and-approvals",
@@ -83,6 +187,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "aircraft_parts_mro:authority-approvals",
+      "topic": "Aircraft parts and MRO: GCAA approval and release documents",
+      "topic_ar": "قطع الطائرات والصيانة: اعتماد الهيئة العامة للطيران المدني ووثائق الإفراج",
+      "kind": "authority_approval",
+      "body_en": "Maintenance on UAE-registered aircraft must be performed and released by an organisation approved under GCAA CAR-145 (Issue 09 is on the GCAA e-publications site) and rated for the type or component. Parts are fitted only with an acceptable release document: a consultancy comparison of CAR-145 and EASA Part-145 reports GCAA accepting EASA Form 1, FAA 8130-3, UK CAA Form 1 and TCCA Form One among others, and an FAA memo prepared with the GCAA records that non-critical PMA parts on 8130-3 may be installed on UAE-registered aircraft when the CAMO authorises them and they are specified in approved data. EASA accepts new parts released on FAA 8130-3 under its FAQ conditions. The supplier provides the release document; the operator's CAMO accepts the part.",
+      "body_ar": "يجب أن تُنفذ صيانة الطائرات المسجلة في الإمارات ويُفرج عنها من منظمة معتمدة وفق CAR-145 لدى الهيئة العامة للطيران المدني (الإصدار 09 منشور على موقع المطبوعات الإلكترونية للهيئة) ومصنفة للطراز أو المكون. ولا تُركب القطع إلا بوثيقة إفراج مقبولة: إذ تفيد مقارنة استشارية بين CAR-145 وEASA Part-145 بأن الهيئة تقبل نموذج EASA Form 1 وFAA 8130-3 ونموذج هيئة الطيران المدني البريطانية ونموذج TCCA وغيرها، وتسجل مذكرة لإدارة الطيران الفيدرالية الأمريكية أعدت مع الهيئة أن قطع PMA غير الحرجة الصادرة بنموذج 8130-3 يجوز تركيبها على طائرات مسجلة في الإمارات إذا أذنت بها إدارة استمرارية الصلاحية وكانت محددة في بيانات معتمدة. وتقبل الوكالة الأوروبية القطع الجديدة الصادرة بنموذج 8130-3 وفق شروط أسئلتها الشائعة. ويقدم المورد وثيقة الإفراج، وتقبل إدارة استمرارية الصلاحية لدى المشغل القطعة.",
+      "sources": [
+        "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/CAR%20V%20-%20AIRWORTHINESS%20REGULATIONS/CAR-145%20-%20APPROVED%20MAINTENANCE%20ORGANISATION%20-%20ISSUE%2009.pdf",
+        "https://www.faa.gov/sites/faa.gov/files/aircraft/air_cert/international/working_procedures/UAE_PMA_memo.pdf",
+        "https://www.easa.europa.eu/faq/19058"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "aircraft_parts_mro:quote-red-flags",
+      "topic": "Red flags in aircraft parts and MRO quotations",
+      "topic_ar": "علامات التحذير في عروض قطع الطائرات والصيانة",
+      "kind": "quote_red_flag",
+      "body_en": "Check condition code and release document on every line: SV offered for OH, an 8130-3 export-only tag, a release from a shop not approved for the part, missing trace or non-incident statements, PMA parts where the operator does not accept them, or an alternate part number not shown as interchangeable in the IPC. For MRO, watch for flat rates with open-ended findings, BER charges, exchange fees with tight core-return deadlines, and turnaround that excludes shipping.",
+      "body_ar": "افحص رمز الحالة ووثيقة الإفراج في كل بند: فعرض قطعة صالحة للخدمة بدل قطعة معاد تأهيلها، أو بطاقة 8130-3 للتصدير فقط، أو إفراج من ورشة غير معتمدة للقطعة، أو غياب بيانات التتبع أو إقرار عدم التعرض لحادث، أو قطع PMA لا يقبلها المشغل، أو رقم قطعة بديل غير مبين قابليته للتبادل في كتالوج القطع، كلها مخاطر. وفي الصيانة انتبه إلى أسعار ثابتة مع نتائج فحص مفتوحة، ورسوم عدم الجدوى الاقتصادية، ورسوم استبدال بمهل قصيرة لإعادة القطعة القديمة، ومدة إنجاز تستثني الشحن.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "aircraft_parts_mro:buyer-mistakes",
+      "topic": "Common buyer mistakes in aircraft parts and MRO",
+      "topic_ar": "أخطاء شائعة لدى المشترين في قطع الطائرات والصيانة",
+      "kind": "buyer_mistake",
+      "body_en": "Buying a cheaper part whose paperwork the operator's quality department will reject; comparing exchange and outright prices; ignoring core-return conditions; and choosing an MRO without the right rating. Ask the registration, the acceptable condition codes and release documents, and AOG urgency.",
+      "body_ar": "شراء قطعة أرخص سترفض إدارة الجودة لدى المشغل وثائقها؛ ومقارنة أسعار الاستبدال بأسعار الشراء؛ وتجاهل شروط إعادة القطعة القديمة؛ واختيار ورشة صيانة دون التصنيف المناسب. لذا يُسأل عن التسجيل ورموز الحالة ووثائق الإفراج المقبولة ومدى استعجال حالة توقف الطائرة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "aircraft_parts_mro:price-drivers",
+      "topic": "What legitimately moves aircraft parts and MRO prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار قطع الطائرات والصيانة",
+      "kind": "price_driver",
+      "body_en": "Condition code, release documentation and trace, OEM vs PMA vs used serviceable material, availability (AOG premiums), exchange vs outright, labour hours and findings, approvals of the shop, freight and DG shipping, and currency (mostly USD).",
+      "body_ar": "رمز الحالة، ووثائق الإفراج والتتبع، والقطع الأصلية أو PMA أو المستعملة الصالحة، والتوفر (علاوات حالات توقف الطائرة)، والاستبدال أو الشراء، وساعات العمل ونتائج الفحص، واعتمادات الورشة، والشحن ونقل البضائع الخطرة، والعملة (الدولار غالباً).",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "aircraft_parts_mro:compare-quotes",
+      "topic": "Comparing aircraft parts and MRO quotes like-for-like",
+      "topic_ar": "مقارنة عروض قطع الطائرات والصيانة على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare only offers whose condition and release documents the operator accepts. Convert exchange offers to total cost including core value risk and BER exposure, and repair offers to expected cost including likely findings. Weigh turnaround against aircraft downtime. Recommend the three acceptable offers with the lowest expected total cost.",
+      "body_ar": "لا تقارن إلا العروض التي يقبل المشغل حالتها ووثائق إفراجها. وحوّل عروض الاستبدال إلى التكلفة الإجمالية شاملة مخاطر قيمة القطعة القديمة ورسوم عدم الجدوى، وعروض الإصلاح إلى التكلفة المتوقعة شاملة النتائج المحتملة. وزن مدة الإنجاز مقابل توقف الطائرة. ويوصى بأفضل ثلاثة عروض مقبولة بأقل تكلفة إجمالية متوقعة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -124,7 +297,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "aircraft_parts_mro:spec-checklist"
+      "aircraft_parts_mro:spec-checklist",
+      "aircraft_parts_mro:authority-approvals"
     ],
     "added": [
       "aircraft_parts_mro:spec-checklist",
@@ -155,6 +329,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "aircraft_parts_mro:quote-red-flags",
+      "aircraft_parts_mro:buyer-mistakes",
+      "aircraft_parts_mro:price-drivers",
+      "aircraft_parts_mro:compare-quotes"
+    ]
   }
 }

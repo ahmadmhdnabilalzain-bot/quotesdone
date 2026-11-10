@@ -27,8 +27,8 @@
       "topic": "Fleet maintenance & vehicle workshops: makes, brands, distributors and origins in the UAE",
       "topic_ar": "صيانة الأساطيل وورش المركبات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Fleet maintenance providers in the UAE, such as the Al-Futtaim Toyota dealer and the Bosch Car Service workshop network. Confirmed dealer and a workshop network brand: Al-Futtaim (Toyota), Bosch Car Service. Other dealer service centres, fuel-retailer chains and independent workshops were not checked.",
-      "body_ar": "من مزودي صيانة الأساطيل في الإمارات الفطيم وكيل تويوتا، وشبكة ورش Bosch Car Service. الوكيل المؤكد وعلامة شبكة ورش: Al-Futtaim (Toyota)، Bosch Car Service. ولم يُتحقق من مراكز خدمة الوكلاء الآخرين ولا سلاسل شركات الوقود ولا الورش المستقلة.",
+      "body_en": "Fleet maintenance providers in the UAE, such as the Al-Futtaim Toyota dealer and the Bosch Car Service workshop network. Confirmed dealer and a workshop network brand: Al-Futtaim (Toyota), Bosch Car Service. Other dealer service centres, fuel-retailer chains and independent workshops were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Al-Futtaim = an authorised dealer or distributor based in the UAE; Bosch Car Service = a mid-tier German operator.",
+      "body_ar": "من مزودي صيانة الأساطيل في الإمارات الفطيم وكيل تويوتا، وشبكة ورش Bosch Car Service. الوكيل المؤكد وعلامة شبكة ورش: Al-Futtaim (Toyota)، Bosch Car Service. ولم يُتحقق من مراكز خدمة الوكلاء الآخرين ولا سلاسل شركات الوقود ولا الورش المستقلة.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Al-Futtaim = وكيل أو موزع معتمد مقره الإمارات؛ Bosch Car Service = جهة تشغيل ألمانية من الفئة المتوسطة.",
       "sources": [
         "https://www.alfuttaim.com/en/our-brands/toyota/",
         "https://www.enoc.com",
@@ -38,7 +38,23 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner (dealer service) -> confirmed | ENOC Autopro service chain -> removed: page blocked, not confirmed | RTA annual vehicle testing -> unconfirmed: not stated on opened page. Not checked: Truck franchise assignments listed with 'type' are uncertain and were not verified; the ITC URL was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner (dealer service) -> confirmed | ENOC Autopro service chain -> removed: page blocked, not confirmed | RTA annual vehicle testing -> unconfirmed: not stated on opened page. Not checked: Truck franchise assignments listed with 'type' are uncertain and were not verified; the ITC URL was not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Al-Futtaim",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "an authorised dealer or distributor based in the UAE",
+          "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
+        },
+        {
+          "brand": "Bosch Car Service",
+          "origin_country": "Germany",
+          "tier": "operator",
+          "generic_en": "a mid-tier German operator",
+          "generic_ar": "جهة تشغيل ألمانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "fleet_maintenance:uae-market-sizes",

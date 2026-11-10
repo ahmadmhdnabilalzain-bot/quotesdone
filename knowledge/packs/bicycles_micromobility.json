@@ -6,8 +6,8 @@
       "topic": "Bicycles & e-scooters - what the buyer must state",
       "topic_ar": "الدراجات الهوائية والسكوترات الكهربائية: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For bicycles & e-scooters (trade code bicycles_micromobility only), every quoted line must state: Vehicle type; Make and model; Frame material and size; Motor power and battery capacity (electric); Top speed and range (electric); Wheel size and tyres; Brakes; Rider weight limit; Safety certifications; Accessories included; Warranty and service; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الدراجات الهوائية والسكوترات الكهربائية (رمز النشاط bicycles_micromobility فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المركبة؛ الماركة والموديل؛ مادة الإطار ومقاسه؛ قدرة المحرك وسعة البطارية (الكهربائية)؛ السرعة القصوى والمدى (الكهربائية)؛ مقاس العجلات والإطارات؛ المكابح؛ حد وزن الراكب؛ شهادات السلامة؛ الملحقات المشمولة؛ الضمان والخدمة؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For bicycles & e-scooters (trade code bicycles_micromobility only), every quoted line must state: Vehicle type; Make and model; Frame material and size; Motor power and battery capacity (electric); Top speed and range (electric); Wheel size and tyres; Brakes; Rider weight limit; Safety certifications; Accessories included; Warranty and service; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Vehicle type; Make and model; Frame material and size; Motor power and battery capacity (electric); Quantity. Follow-up questions the answers trigger: Vehicle type: E-scooters for public roads bring the RTA rider rules and riding zones. Motor power and battery capacity (electric): Ask about charging location; battery safety matters in UAE heat. Before a firm price: none; a firm price is possible from the specs.",
+      "body_ar": "في نشاط الدراجات الهوائية والسكوترات الكهربائية (رمز النشاط bicycles_micromobility فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المركبة؛ الماركة والموديل؛ مادة الإطار ومقاسه؛ قدرة المحرك وسعة البطارية (الكهربائية)؛ السرعة القصوى والمدى (الكهربائية)؛ مقاس العجلات والإطارات؛ المكابح؛ حد وزن الراكب؛ شهادات السلامة؛ الملحقات المشمولة؛ الضمان والخدمة؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المركبة، والماركة والطراز، ومادة الإطار ومقاسه، وقدرة المحرك وسعة البطارية (للكهربائية)، والكمية. أسئلة المتابعة: الدراجات الكهربائية للطرق العامة تستلزم قواعد هيئة الطرق والمواصلات للراكبين ومناطق القيادة، ويُسأل عن مكان الشحن لأن سلامة البطارية مهمة في حرارة الإمارات.",
       "required_specs": [
         "Vehicle type",
         "Make and model",
@@ -20,7 +20,8 @@
         "Safety certifications",
         "Accessories included",
         "Warranty and service",
-        "Lead time"
+        "Lead time",
+        "Quantity"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Electric_kick_scooter"
@@ -28,7 +29,108 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: hub motors front or rear; top speeds vary widely by model, with European e-scooters usually limited to 20-25 km/h."
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: hub motors front or rear; top speeds vary widely by model, with European e-scooters usually limited to 20-25 km/h. spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "blocking": [
+        "Vehicle type",
+        "Make and model",
+        "Frame material and size",
+        "Motor power and battery capacity (electric)",
+        "Quantity"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Vehicle type",
+          "blocking": true,
+          "why_it_prices": "Road, mountain, city, e-bike, e-scooter and cargo bike are different products.",
+          "uae_options": "Road, MTB, hybrid, folding, e-bike, e-scooter, cargo bike.",
+          "follow_up": "E-scooters for public roads bring the RTA rider rules and riding zones."
+        },
+        {
+          "spec": "Make and model",
+          "blocking": true,
+          "why_it_prices": "Model fixes components and price tier.",
+          "uae_options": "Named model or class.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Frame material and size",
+          "blocking": true,
+          "why_it_prices": "Aluminium, steel and carbon frames differ widely.",
+          "uae_options": "Steel, aluminium, carbon; frame size by rider height.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Motor power and battery capacity (electric)",
+          "blocking": true,
+          "why_it_prices": "Motor and battery are the main cost of an e-bike or e-scooter.",
+          "uae_options": "W; Wh or Ah at V; removable battery.",
+          "follow_up": "Ask about charging location; battery safety matters in UAE heat."
+        },
+        {
+          "spec": "Top speed and range (electric)",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "km/h; km per charge.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Wheel size and tyres",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Brakes",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Rim, mechanical disc, hydraulic disc.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Rider weight limit",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "kg.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Safety certifications",
+          "blocking": false,
+          "why_it_prices": "Battery and e-bike certifications reduce fire risk.",
+          "uae_options": "EN 15194 e-bikes, EN 17128 e-scooters, UL 2849/2272, battery UN 38.3.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Accessories included",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Lights, lock, helmet, rack.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty and service",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Frame, motor, battery warranty; local service.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity",
+          "blocking": true,
+          "why_it_prices": "Fleet orders for staff or rental change price.",
+          "uae_options": "Units.",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "none; a firm price is possible from the specs."
     },
     {
       "id": "bicycles_micromobility:product-distinctions",
@@ -59,6 +161,73 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "bicycles_micromobility:authority-approvals",
+      "topic": "Bicycles and e-scooters: RTA rider permits and battery safety",
+      "topic_ar": "الدراجات والسكوترات الكهربائية: تصاريح الراكبين من هيئة الطرق وسلامة البطاريات",
+      "kind": "authority_approval",
+      "body_en": "In Dubai, riding an e-scooter requires an RTA riding permit, issued free after an online module and theory test; search results report that holders of a UAE or valid international driving licence are exempt, that riders must keep to designated tracks with speed limits, and that riding without a permit is fined. Sources disagree on the minimum age. The RTA requires scooters with internationally compliant batteries and protective gear. Whether MoIAT requires conformity certification for e-bikes and e-scooters was not established. The rider obtains the permit; the seller should state battery certifications. Rules in other emirates were not established.",
+      "body_ar": "في دبي تتطلب قيادة السكوتر الكهربائي تصريح قيادة من هيئة الطرق والمواصلات يصدر مجاناً بعد وحدة تدريب إلكترونية واختبار نظري؛ وتفيد نتائج البحث بإعفاء حاملي رخصة قيادة إماراتية أو دولية سارية، وبوجوب الالتزام بالمسارات المخصصة وحدود السرعة، وبفرض غرامة على القيادة دون تصريح. وتختلف المصادر في الحد الأدنى للعمر. وتشترط الهيئة سكوترات ببطاريات مطابقة للمعايير الدولية ومعدات حماية. ولم يثبت هل تشترط وزارة الصناعة والتكنولوجيا المتقدمة شهادة مطابقة للدراجات والسكوترات الكهربائية. ويحصل الراكب على التصريح، وعلى البائع بيان شهادات البطارية. ولم تثبت القواعد في الإمارات الأخرى.",
+      "sources": [
+        "https://www.rta.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "bicycles_micromobility:quote-red-flags",
+      "topic": "Red flags in bicycle and e-scooter quotations",
+      "topic_ar": "علامات التحذير في عروض الدراجات والسكوترات الكهربائية",
+      "kind": "quote_red_flag",
+      "body_en": "Check battery capacity in Wh (not just Ah), motor rated vs peak power, battery certification (UN 38.3, UL or EN standards), a brand model number that matches the manufacturer's range, frame size options, local warranty and service, and whether chargers and accessories are included. Unbranded batteries and grey imports are a fire and warranty risk.",
+      "body_ar": "افحص سعة البطارية بالواط ساعة (لا بالأمبير ساعة فقط)، والقدرة المقننة للمحرك مقابل القدرة القصوى، وشهادة البطارية (UN 38.3 أو معايير UL أو EN)، ومطابقة رقم الطراز لتشكيلة الصانع، وخيارات مقاس الإطار، والضمان والخدمة المحليين، وشمول الشواحن والملحقات. والبطاريات مجهولة العلامة والاستيراد الموازي خطر حريق وضمان.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "bicycles_micromobility:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying bicycles and e-scooters",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الدراجات والسكوترات",
+      "kind": "buyer_mistake",
+      "body_en": "Buying e-scooters for staff without checking where they may legally ride; choosing on peak motor power; ignoring battery certification and charging safety; and buying one frame size for a fleet of riders. Ask the riders, the routes and where the units will be charged and stored.",
+      "body_ar": "شراء سكوترات للموظفين دون التحقق من الأماكن المسموح فيها بالقيادة؛ والاختيار بالقدرة القصوى للمحرك؛ وتجاهل شهادة البطارية وسلامة الشحن؛ وشراء مقاس إطار واحد لأسطول من راكبين مختلفين. لذا يُسأل عن الراكبين والمسارات ومكان الشحن والتخزين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "bicycles_micromobility:price-drivers",
+      "topic": "What legitimately moves bicycle and e-scooter prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الدراجات والسكوترات",
+      "kind": "price_driver",
+      "body_en": "Frame material, components (drivetrain, brakes, suspension), motor and battery quality and capacity, certifications, brand tier, local warranty and service, and quantity.",
+      "body_ar": "مادة الإطار، والمكونات (نظام نقل الحركة والفرامل والتعليق)، وجودة المحرك والبطارية وسعتها، والشهادات، وفئة العلامة، والضمان والخدمة المحليان، والكمية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "bicycles_micromobility:compare-quotes",
+      "topic": "Comparing bicycle and e-scooter quotes like-for-like",
+      "topic_ar": "مقارنة عروض الدراجات والسكوترات على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare the same class, frame, components and, for electric units, battery Wh and certification, with local warranty. Weigh service support and spare batteries. Recommend the three compliant offers with the best value.",
+      "body_ar": "قارن الفئة والإطار والمكونات نفسها، وفي الوحدات الكهربائية سعة البطارية بالواط ساعة والشهادة، مع الضمان المحلي. وزن دعم الخدمة والبطاريات الاحتياطية. ويوصى بأفضل ثلاثة عروض مطابقة بأفضل قيمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -92,6 +261,15 @@
       903,
       1198,
       1209
+    ],
+    "still_unverified": [
+      "bicycles_micromobility:authority-approvals"
+    ],
+    "expert_authored_unsourced": [
+      "bicycles_micromobility:quote-red-flags",
+      "bicycles_micromobility:buyer-mistakes",
+      "bicycles_micromobility:price-drivers",
+      "bicycles_micromobility:compare-quotes"
     ]
   }
 }
