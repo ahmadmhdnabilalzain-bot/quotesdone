@@ -28,8 +28,8 @@
       "topic": "Commercial & digital printing: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الطباعة التجارية والرقمية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names large UAE printers such as Al Ghurair and Galadari, the common press brands such as Heidelberg and HP Indigo, and where mid-size presses operate. Confirmed large UAE printers and common press brands: Al Ghurair Printing & Publishing, Galadari Printing and Publishing, Heidelberg, Komori, HP Indigo, Canon, Konica Minolta, Epson, Mimaki. The press brands' UAE dealers were not checked. Many mid-size presses operate in Al Quoz, Deira, Al Qusais, the Sharjah Industrial Areas and Ajman.",
-      "body_ar": "من كبرى المطابع في الإمارات Al Ghurair وGaladari، ومن ماركات المكائن الشائعة Heidelberg وHP Indigo، مع بيان أماكن عمل المطابع المتوسطة. المطابع الإماراتية الكبيرة المؤكدة وعلامات آلات الطباعة الشائعة: Al Ghurair Printing & Publishing، Galadari Printing and Publishing، Heidelberg، Komori، HP Indigo، Canon، Konica Minolta، Epson، Mimaki. ولم يُتحقق من وكلاء علامات الآلات في الإمارات. وتعمل مطابع متوسطة كثيرة في القوز وديرة والقصيص والمناطق الصناعية بالشارقة وعجمان.",
+      "body_en": "This entry names large UAE printers such as Al Ghurair and Galadari, the common press brands such as Heidelberg and HP Indigo, and where mid-size presses operate. Confirmed large UAE printers and common press brands: Al Ghurair Printing & Publishing, Galadari Printing and Publishing, Heidelberg, Komori, HP Indigo, Canon, Konica Minolta, Epson, Mimaki. The press brands' UAE dealers were not checked. Many mid-size presses operate in Al Quoz, Deira, Al Qusais, the Sharjah Industrial Areas and Ajman.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Al Ghurair Printing & Publishing = a UAE trading or retail name; Galadari Printing and Publishing = a UAE trading or retail name; Heidelberg = a premium German brand; Komori = a premium Japanese brand; HP Indigo = a premium American brand; Canon = a premium Japanese brand; Konica Minolta = a mid-tier Japanese brand; Epson = a mid-tier Japanese brand; Mimaki = a mid-tier Japanese brand.",
+      "body_ar": "من كبرى المطابع في الإمارات Al Ghurair وGaladari، ومن ماركات المكائن الشائعة Heidelberg وHP Indigo، مع بيان أماكن عمل المطابع المتوسطة. المطابع الإماراتية الكبيرة المؤكدة وعلامات آلات الطباعة الشائعة: Al Ghurair Printing & Publishing، Galadari Printing and Publishing، Heidelberg، Komori، HP Indigo، Canon، Konica Minolta، Epson، Mimaki. ولم يُتحقق من وكلاء علامات الآلات في الإمارات. وتعمل مطابع متوسطة كثيرة في القوز وديرة والقصيص والمناطق الصناعية بالشارقة وعجمان.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Al Ghurair Printing & Publishing = اسم تجاري لتاجر أو موزع في الإمارات؛ Galadari Printing and Publishing = اسم تجاري لتاجر أو موزع في الإمارات؛ Heidelberg = علامة ألمانية من الفئة الممتازة؛ Komori = علامة يابانية من الفئة الممتازة؛ HP Indigo = علامة أمريكية من الفئة الممتازة؛ Canon = علامة يابانية من الفئة الممتازة؛ Konica Minolta = علامة يابانية من الفئة المتوسطة؛ Epson = علامة يابانية من الفئة المتوسطة؛ Mimaki = علامة يابانية من الفئة المتوسطة.",
       "sources": [
         "https://u.ae/en/media/media-in-the-uae/media-regulation",
         "https://al-ghurair.com/en/our-sectors/ventures/printing-and-publishing/technologies",
@@ -40,7 +40,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Printing is a media activity needing a licence under Federal Decree-Law 55 of 2023 Regulating Media; approvals come from the federal media regulator -> confirmed: regulator is referred to as UAE Media Council and, in some guides, National Media Office; name to be checked at quoting | Al Ghurair Printing & Publishing (1978) has the UAE's largest printing and binding capacity; Galadari Printing and Publishing is Dubai-based -> confirmed | Emirates Printing Press, Masar Printing, United Printing & Publishing -> removed: not checked. Not checked: Current operating status of each named printer and the UAE Media Council URL were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Printing is a media activity needing a licence under Federal Decree-Law 55 of 2023 Regulating Media; approvals come from the federal media regulator -> confirmed: regulator is referred to as UAE Media Council and, in some guides, National Media Office; name to be checked at quoting | Al Ghurair Printing & Publishing (1978) has the UAE's largest printing and binding capacity; Galadari Printing and Publishing is Dubai-based -> confirmed | Emirates Printing Press, Masar Printing, United Printing & Publishing -> removed: not checked. Not checked: Current operating status of each named printer and the UAE Media Council URL were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Al Ghurair Printing & Publishing",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Galadari Printing and Publishing",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Heidelberg",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Komori",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "HP Indigo",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Canon",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Konica Minolta",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Epson",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Mimaki",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "commercial_printing:uae-market-sizes",

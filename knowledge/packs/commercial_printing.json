@@ -5,8 +5,8 @@
       "id": "commercial_printing:spec-checklist",
       "topic": "Commercial printing - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for commercial printing must state: item and finished size; quantity; paper or substrate and weight; colours front and back; print process; finishing; artwork file and proof; content approval where required; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الطباعة التجارية: المادة والمقاس النهائي؛ الكمية؛ الورق أو الخامة ووزنها؛ الألوان للوجه والظهر؛ طريقة الطباعة؛ التشطيب؛ ملف التصميم والبروفة؛ الموافقة على المحتوى عند الحاجة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for commercial printing must state: item and finished size; quantity; paper or substrate and weight; colours front and back; print process; finishing; artwork file and proof; content approval where required; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): item and finished size; quantity; paper or substrate and weight; colours front and back. Before a firm price: a firm price needs item, size, quantity, stock, colours and finishing; packaging and special finishes need a sample or dummy approved.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الطباعة التجارية: المادة والمقاس النهائي؛ الكمية؛ الورق أو الخامة ووزنها؛ الألوان للوجه والظهر؛ طريقة الطباعة؛ التشطيب؛ ملف التصميم والبروفة؛ الموافقة على المحتوى عند الحاجة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الصنف والمقاس النهائي، والكمية، والورق ووزنه، والألوان على الوجهين. التغليف والتشطيبات الخاصة تحتاج عيّنة أو نموذجاً معتمداً.",
       "required_specs": [
         "item and finished size",
         "quantity",
@@ -26,7 +26,108 @@
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "item and finished size",
+        "quantity",
+        "paper or substrate and weight",
+        "colours front and back"
+      ],
+      "spec_guide": [
+        {
+          "spec": "item and finished size",
+          "why_needed_to_price": "Item and finished size.",
+          "uae_options": "brochure; catalogue; box; label; size mm",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quantity",
+          "why_needed_to_price": "Quantity sets the process and unit price.",
+          "uae_options": "copies per version",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "paper or substrate and weight",
+          "why_needed_to_price": "Paper or substrate and weight.",
+          "uae_options": "art paper gsm; board; synthetic",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "colours front and back",
+          "why_needed_to_price": "Colours front and back.",
+          "uae_options": "4/4; 4/0; Pantone",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "print process",
+          "why_needed_to_price": "Print process.",
+          "uae_options": "offset; digital; large format",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "finishing",
+          "why_needed_to_price": "Finishing.",
+          "uae_options": "lamination; UV; foil; die-cut; binding",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "artwork file and proof",
+          "why_needed_to_price": "Artwork and proof.",
+          "uae_options": "PDF; hard proof",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "content approval where required",
+          "why_needed_to_price": "Content approval where required.",
+          "uae_options": "media permit",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "why_needed_to_price": "UAE approvals.",
+          "uae_options": "media content permit for publications",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery and installation scope",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "locations",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "reprint for defects",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "design; storage",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs item, size, quantity, stock, colours and finishing; packaging and special finishes need a sample or dummy approved.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "commercial_printing:uae-standards-and-approvals",
@@ -83,6 +184,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "commercial_printing:authority-approvals",
+      "topic": "Commercial & digital printing: licences, permits and approvals by emirate",
+      "topic_ar": "الطباعة التجارية والرقمية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Printing presses need a licence for the printing activity, and printed publications with content require a permit from the UAE Media Council before they are printed, circulated or brought into the UAE (a 2017 Cabinet media resolution as reported; the Council reports issuing distribution permits). Commercial print such as packaging and labels must follow the labelling rules of the product (for example Arabic labelling of food, cosmetics and textiles). The printer usually checks permits for publications; the client remains responsible for content.",
+      "body_ar": "تحتاج المطابع إلى ترخيص لنشاط الطباعة، وتحتاج المطبوعات ذات المحتوى إلى تصريح من مجلس الإمارات للإعلام قبل طباعتها أو تداولها أو إدخالها إلى الدولة (قرار إعلامي لمجلس الوزراء لعام 2017 بحسب ما أُفيد؛ ويفيد المجلس بإصدار تصاريح تداول). ويجب أن تتبع المطبوعات التجارية كالتغليف والملصقات قواعد بطاقة المنتج (مثل البطاقة العربية للأغذية ومستحضرات التجميل والمنسوجات). ويتحقق المطبعة عادة من تصاريح المطبوعات، ويبقى العميل مسؤولاً عن المحتوى.",
+      "sources": [
+        "https://www.wam.ae/en/article/bkttnkc-uae-media-council-board-reviews-2025-performance",
+        "https://uaefreezonefinder.com/uae-printing-publishing-nmc-license-guide-2026/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "commercial_printing:quote-red-flags",
+      "topic": "Commercial & digital printing: red flags in supplier quotations",
+      "topic_ar": "الطباعة التجارية والرقمية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for lower gsm, digital printing where offset was quoted for colour consistency, no hard proof, colour tolerance not agreed, finishing excluded, overs and unders terms, and delivery to multiple sites extra.",
+      "body_ar": "انتبه إلى وزن ورق أقل، وطباعة رقمية حيث سُعّرت الأوفست لثبات الألوان، وغياب البروفة الورقية، وعدم الاتفاق على تفاوت الألوان، واستثناء التشطيب، وشروط الزيادة والنقص في الكمية، والتسليم لعدة مواقع إضافياً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "commercial_printing:buyer-mistakes",
+      "topic": "Commercial & digital printing: common buyer mistakes",
+      "topic_ar": "الطباعة التجارية والرقمية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers send RGB artwork without bleed, approve on screen, and compare quotes with different stock or finishing.",
+      "body_ar": "يرسل المشترون تصاميم بنظام RGB دون هوامش، ويعتمدون على الشاشة، ويقارنون عروضاً بورق أو تشطيب مختلف.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "commercial_printing:price-drivers",
+      "topic": "Commercial & digital printing: what makes prices differ legitimately",
+      "topic_ar": "الطباعة التجارية والرقمية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: quantity, process, stock, colours, finishing, deadline and delivery.",
+      "body_ar": "العوامل: الكمية، والطريقة، والورق، والألوان، والتشطيب، والموعد، والتسليم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "commercial_printing:compare-quotes-cost-to-value",
+      "topic": "Commercial & digital printing: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الطباعة التجارية والرقمية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same specification and quantity, with proofs and delivery included. Recommend three with sample quality.",
+      "body_ar": "قارن المواصفة والكمية نفسيهما مع البروفات والتسليم. أوصِ بثلاثة عروض بجودة عيّنات جيدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +295,8 @@
     "removed": [],
     "still_unverified": [
       "commercial_printing:spec-checklist",
-      "commercial_printing:uae-standards-and-approvals"
+      "commercial_printing:uae-standards-and-approvals",
+      "commercial_printing:authority-approvals"
     ],
     "added": [
       "commercial_printing:spec-checklist",
@@ -156,6 +327,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "commercial_printing:quote-red-flags",
+      "commercial_printing:buyer-mistakes",
+      "commercial_printing:price-drivers",
+      "commercial_printing:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }
