@@ -20,6 +20,7 @@ import { applyEdits, validateStored, supplierLine } from '../../_shared/intake_r
 import { type ActionCtx, INQUIRY_LIMIT_PER_HOUR, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { inquiryNotSaved, labelize } from '../lib/inquiry_rules.ts';
 import { resolveRedactedPaths } from '../lib/drawings.ts';
+import { ownDrawingPath } from '../drawing_path.ts';
 import { matchAndNotify } from '../lib/matching.ts';
 import { keysOfTrade, serviceKeyCols, stateKeysForIntake } from '../lib/state_service_keys.ts';
 
@@ -187,7 +188,10 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       let keywords = Array.from(new Set([category, ...tradesIn]));
       if (Array.isArray(boqObj?.keywords)) keywords = Array.from(new Set([...keywords, ...boqObj.keywords.map((s: any) => String(s).toLowerCase())]));
       keywords = keywords.slice(0, 30);
-      const drawingPath = drawing?.drawing_file_path ? String(drawing.drawing_file_path) : null;
+      // Only one of this customer's own uploads (../drawing_path.ts, M1 of the 10 Nov 2026 security audit).
+      const own = ownDrawingPath(String(cust.id), drawing?.drawing_file_path);
+      if (!own.ok) return J({ error: 'drawing_not_yours', code: 'drawing_not_yours', message: 'That drawing could not be attached. Please upload it again.', message_ar: 'تعذّر إرفاق هذا المخطط. يُرجى رفعه مرة أخرى.' }, 403);
+      const drawingPath = own.path;
       const drawingName = drawing?.drawing_file_name ? String(drawing.drawing_file_name).slice(0, 180) : null;
       // Never trust drawing.drawing_redacted_paths from the body — see resolveRedactedPaths above.
       const rr = await resolveRedactedPaths(String(cust.id), String(user.id || ''), drawing);

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Sparkles, Search, X, ChevronRight, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { render } from '@/components/ChatWidget';
+import { render } from '@/lib/chatRender';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
 import { lookForStoredAnswer, lookForStoredQuestion, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';

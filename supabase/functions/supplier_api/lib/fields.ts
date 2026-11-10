@@ -10,7 +10,12 @@
 // A file over the 25 MB ceiling (the supplier-docs bucket's file_size_limit) was told its FORMAT was wrong. 3 of 29 real UAE
 // profiles measured on 13 Oct 2026 are larger (30, 38 and 85 MB): the supplier is now told the size, and how to fix it.
 export const TOO_LARGE = (what: string) => `That ${what} is larger than 25 MB. Please upload a smaller copy - most PDF tools can export a compressed or "smallest file size" version.`;
-export const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','trn','egr_doc_path','egr_doc_name','egr_number'];
+// egr_doc_path left this list on 10 Nov 2026 (it_engineer, security checklist audit, M1): save_profile wrote it
+// verbatim, so a supplier could point it at any object in supplier-docs, another supplier's licence included, and
+// supplier_portal would sign that file back as "their" establishment card. The path is written only by the portal's
+// upload (supplier_portal DOC_KINDS.egr, under certs/<supplier id>/), as license_doc_path is. Nothing in src/ sends it
+// here. Prevented by supplier_api/profile_cols.test.ts.
+export const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','trn','egr_doc_name','egr_number'];
 const YEAR_MS = 365 * 864e5;
 export const CONCLUDED = ['completed','closed','cancelled'];
 // EVIDENCE FIX 19 Jul 2026 -----------------------------------------------------------------

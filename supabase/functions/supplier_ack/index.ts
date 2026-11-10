@@ -9,6 +9,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
+import { sameSecret } from '../stripe_setup/webhook_plan.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const NAVY = '#0c2330';
 type Msg = { title: string; msg: string };
@@ -46,10 +47,12 @@ Deno.serve(observe('supplier_ack', async (req) => {
   const token = (url.searchParams.get('token') || '').trim();
   const H = { 'Content-Type': 'text/html; charset=utf-8' };
   const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!tx || !uuidRe.test(token)) return new Response(page('invalid'), { status: 400, headers: H });
+  if (!uuidRe.test(tx) || !uuidRe.test(token)) return new Response(page('invalid'), { status: 400, headers: H });
   try {
     const { data: t } = await admin.from('transactions').select('id,supplier_ack_at,ack_token,inquiry_id').eq('id', tx).maybeSingle();
-    if (!t || String(t.ack_token) !== token) return new Response(page('nomatch'), { status: 404, headers: H });
+    // Constant-time (security checklist audit 10 Nov 2026; the last plain comparison of a token named in the 9 Nov
+    // launch checklist, row 40). Prevented by ./token.test.ts.
+    if (!t || !(await sameSecret(token, String(t.ack_token || '')))) return new Response(page('nomatch'), { status: 404, headers: H });
     if (!t.supplier_ack_at) {
       await admin.from('transactions').update({ supplier_ack_at: new Date().toISOString() }).eq('id', tx);
       try { await requestDelivery(admin, { type:'supplier_ack', to_role:'admin', inquiry_id: t.inquiry_id, subject:'Supplier confirmed they contacted the customer', body:'A supplier clicked the confirmation link for a revealed inquiry, confirming they have contacted the paying customer. No further nudges will be sent for this reveal.' }); } catch(_e) {}
