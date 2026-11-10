@@ -83,6 +83,12 @@ export type MenuDeps = {
 };
 export type MenuInput = { from: string; body: string; listId?: string; buttonPayload?: string; audience: Audience; hasMedia?: boolean };
 
+/** The language a reply is written in. A SUPPLIER is always written to in English, on every channel, whatever language he
+ *  writes in (founder ruling 1008, 28 Sep 2026): until 10 Nov 2026 a known supplier who wrote in Arabic was sent the Arabic
+ *  menu list, its Arabic tail and an Arabic held notice (customer_support, supplier-journey follow-up). Everyone else is
+ *  answered in the language of what they wrote. Prevented by: menu_flow.test.ts ("a supplier writing Arabic is answered in English"). */
+export const replyLang = (inp: MenuInput, body: string, fallback?: Lang): Lang => inp.audience === 'supplier' ? 'en' : langOf(body, fallback);
+
 /** Send `text` (or the interactive `content`, falling back to `fallback`), then record the turn. */
 async function reply(d: MenuDeps, inp: MenuInput, lang: Lang, route: string, text: string, awaitNext: string | null,
                      extra: Record<string, unknown>, content?: Content, fallback?: string) {
@@ -135,16 +141,24 @@ async function answerOf(d: MenuDeps, text: string): Promise<string | null> {
   return cov ?? d.faq(text);
 }
 
+/** What the welcome's opening line is asked to say. Exported so the line can be drafted BESIDE the classification for a short
+ *  first message (classification.ts, it_engineer 10 Nov 2026, latency R4/R5): the draft is used only when the welcome is asked
+ *  with exactly these inputs, and a salam and a hello are asked the same way (the model sees which it was), so one draft
+ *  serves both readings. */
+export function welcomeWrite(inp: Pick<MenuInput, 'body'>, lang: Lang, ctx: Pick<MenuContext, 'audience' | 'name'>, lead: string | null = null, _salam = false) {
+  return { lang, audience: ctx.audience, message: String(inp.body || '').trim(),
+    situation: (lead ?? ('Greet them' + (ctx.name ? ' by name (' + ctx.name + ')' : '') + ', returning the salam if their message is one,'
+      + ' and if they asked something, start answering it.'))
+      + '\nOne or two short sentences only. Our standing introduction and an interactive list of options (new request, follow a request, suppliers, a question, report a problem, talk to a person) are sent right after your words, so do not introduce the company or list the options.' };
+}
+
 async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContext, route: string, lead: string | null,
                         more: Record<string, unknown> = {}, salam = false) {
   const key = contentKey(lang, ctx.audience);
   const sid = await d.contentSid(key);
   // Content body = {{1}} + WELCOME_TAIL, so the text we record is exactly what the list shows.
   // The interactive list is UI and stays; its opening line ({{1}}) is the model's, written from what this turn is.
-  let line = await d.write({ lang, audience: ctx.audience, message: String(inp.body || '').trim(),
-    situation: (lead ?? ('Greet them' + (ctx.name ? ' by name (' + ctx.name + ')' : '') + (salam ? ', returning the salam,' : '')
-      + ', and if they asked something, start answering it.'))
-      + '\nOne or two short sentences only. Our standing introduction and an interactive list of options (new request, follow a request, suppliers, a question, report a problem, talk to a person) are sent right after your words, so do not introduce the company or list the options.' });
+  let line = await d.write(welcomeWrite(inp, lang, ctx, lead, salam));
   if (!line) {
     const h = await d.held({ situation: lead ?? 'They greeted us or asked for the menu.', lang, audience: ctx.audience, route });
     await d.record({ inbound: String(inp.body || '').trim(), reply: h.notice, lang, sent: h.sent, route, await: null,
@@ -223,7 +237,7 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   const awaiting = last?.route?.startsWith('menu_') ? last.await : null;
   const choice = menuChoice({ body, listId: inp.listId, buttonPayload: inp.buttonPayload, numbers: lastWasMenu });
   // A bare number carries no language; the menu it answers does.
-  const lang: Lang = langOf(body, last?.lang || 'en');
+  const lang: Lang = replyLang(inp, body, last?.lang || 'en');
 
   // 0c. A question about our size or volumes, from ANY number, the founder's included (instruction 777):
   //     what we do, never a number. Taken before every other handler so no FAQ row, fn_wa_route intent
@@ -305,7 +319,7 @@ export async function welcomeFirstContact(d: MenuDeps, inp: MenuInput): Promise<
   if (inp.hasMedia || inp.audience === 'founder') return false;
   const body = String(inp.body || '').trim();
   if ((await d.recentTurns(inp.from)).length > 0 || await d.weWroteRecently(inp.from)) return false;
-  const lang = langOf(body);
+  const lang = replyLang(inp, body);
   const ctx = await d.context(inp.from);
   const ans = body ? await answerOf(d, body) : null;
   if (ans) await talk(d, inp, lang, 'menu_first_answer', groundedSituation(ans, lang), null, { audience: ctx.audience, faq: true });
@@ -322,7 +336,7 @@ export async function answerFromFaq(d: MenuDeps, inp: MenuInput): Promise<boolea
   if (!body) return false;
   const ans = await answerOf(d, body);
   if (!ans) return false;
-  const lang = langOf(body);
+  const lang = replyLang(inp, body);
   await talk(d, inp, lang, 'faq_answer', groundedSituation(ans, lang), null, { faq: true, audience: inp.audience });
   return true;
 }
@@ -347,7 +361,7 @@ export async function unanswered(d: MenuDeps, inp: MenuInput, reason: string): P
   const recorded = body ? await d.recordGap(body, reason) : false;
   // Unreasoned (the hold) is not unanswerable: the intent waits in the queue and the replay answers it here.
   if (body && (await d.intent(body)) === null) await d.queueIntent(body);
-  const lang = langOf(body);
+  const lang = replyLang(inp, body);
   await sendMenu(d, inp, lang, { audience: inp.audience, name: null }, 'menu_reoffer',
     'No stored knowledge answered their message' + (recorded ? ' and it has been recorded for the team' : '') + '. Answer what you can from your own expertise and the brief; then say a person can reply here if they choose "Talk to a person" from the options below.',
     { unanswered_reason: reason, gap_recorded: recorded });

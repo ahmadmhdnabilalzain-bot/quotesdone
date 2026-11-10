@@ -79,11 +79,55 @@ export async function acceptArrival(t: WaTurn, req: Request): Promise<Response |
     return TW(200);
   }
 
+  // ---- WEBHOOK AUTHENTICITY (form path only) -----------------------------
+  // Preferred: HMAC signature (cryptographic proof). Fallback: provenance lookup.
+  if (!trusted) {
+    const sig = await verifyTwilioSignature(req, formParams);
+    if (sig.checked && !sig.valid) {
+      try {
+        await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '', lang: 'en', escalated: false, sent: false, meta: { signature_checked: true, signature_valid: false, signature_reason: sig.reason, signature_urls_tried: sig.urls || null, message_sid: MessageSid || null, no_autoreply_reason: 'failed X-Twilio-Signature' } });
+      } catch (_e) { /* */ }
+      await alertThrottled('wa_bad_signature', 'warn', 'A WhatsApp webhook FAILED X-Twilio-Signature validation and was rejected (' + sig.reason + '). Unlike the provenance path this is cryptographic proof of forgery, not an inconclusive lookup. Throttled to one alert per 30 minutes.');
+      await logRun('error', { authorised: 0, path: 'form', signature_checked: 1, signature_valid: 0 }, 'wa_inbound REJECTED a webhook that failed HMAC-SHA1 signature validation: ' + sig.reason + '. No LLM call and no outbound message were made. The payload was stored in wa_messages. A genuine Twilio webhook cannot fail this check, so this is a forgery or a misconfigured auth token.');
+      return TW(403);
+    }
+    if (sig.checked && sig.valid) {
+      trusted = true; signatureVerified = true; // cryptographic proof - stronger than the provenance lookup, skip it
+      // not awaited (R7, 10 Nov 2026): a log row is not on the reply's path; logRun never throws, and waitUntil holds the turn
+      void logRun('ok', { authorised: 1, path: 'form', signature_checked: 1, signature_valid: 1 }, 'wa_inbound accepted a webhook on verified X-Twilio-Signature. The provenance lookup was skipped because the signature is cryptographic proof of origin and does not need a confirming REST call.');
+    }
+  }
+
+  if (!trusted) {
+    const prov = await verifyProvenance(MessageSid, From);
+    if (!prov.verified) {
+      // Preserve the message either way - a real supplier reply must not be lost just because
+      // Twilio's API was unreachable - but do NOT run the LLM and do NOT send anything.
+      try {
+        await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '', lang: 'en', escalated: false, sent: false, meta: { provenance_verified: false, provenance_reason: prov.reason, twilio_api_reachable: prov.apiReachable, message_sid: MessageSid || null, no_autoreply_reason: 'unverified webhook' } });
+      } catch (_e) { /* */ }
+
+      if (prov.apiReachable) {
+        await alertThrottled('wa_forged_webhook', 'warn', 'A WhatsApp webhook could not be verified against Twilio and was ignored (' + prov.reason + '). Someone may be probing the wa_inbound endpoint to use our WhatsApp number as a relay. Throttled to one alert per 30 minutes.');
+        await logRun('error', { authorised: 0, path: 'form', provenance_verified: 0, twilio_api_reachable: 1 }, 'wa_inbound REJECTED an unverifiable WhatsApp webhook: ' + prov.reason + '. No LLM call and no outbound message were made. The payload was stored in wa_messages for inspection. This is the forged-webhook path, NOT a genuine supplier being ignored.');
+      } else {
+        await alertThrottled('wa_verify_unavailable', 'warn', 'WhatsApp auto-reply is paused because Twilio could not be reached to verify inbound webhooks (' + prov.reason + '). Genuine messages are still being SAVED but are not getting an automatic reply - check wa_messages and follow up by hand until this clears.');
+        await logRun('error', { authorised: 0, path: 'form', provenance_verified: 0, twilio_api_reachable: 0 }, 'wa_inbound could not verify a WhatsApp webhook because Twilio was unreachable (' + prov.reason + '), so it saved the message WITHOUT auto-replying. This may well be a REAL supplier message that got no answer - it needs manual follow-up. Silence here is a verification outage, not an absence of inbound messages.');
+      }
+      return TW(200);
+    }
+  }
+
+  // AFTER AUTHENTICITY, NOT BEFORE IT (it_engineer, 10 Nov 2026, channels audit R7). This guard used to run before the
+  // signature check, so ANY caller who knew or guessed a MessageSid could insert it into wa_inbound_seen with a forged
+  // request: the forgery was then refused, but the genuine Twilio delivery of that message arrived to a taken MessageSid,
+  // was read as a redelivery and dropped, answered never. Only an authenticated message claims its MessageSid now.
+  // prevented by: wa_inbound/arrival_is_stored_first.test.ts (a forged post never claims a MessageSid)
   // IDEMPOTENCY. Twilio redelivers a webhook it believes timed out, and until now nothing here
   // remembered a MessageSid: a redelivery meant a second model call, a second WhatsApp reply and
   // a second wa_messages row. The primary key on wa_inbound_seen IS the guard - the second
   // delivery loses the insert and we return 200 having done nothing. This must stay ABOVE the
-  // founder branch below, which deliberately answers after the 15-second wall.
+  // founder branch (founder.ts), which deliberately answers after the 15-second wall.
   // ONLY A UNIQUE VIOLATION IS A REDELIVERY (it_engineer, 3 Nov 2026, failure drill D10). Every error on this insert was
   // read as "already accepted": a 500, a statement timeout or a connection reset on wa_inbound_seen returned 200 here,
   // before the arrival row is written, so the message was stored nowhere, answered never, and agent_runs said 'ok'
@@ -104,44 +148,6 @@ export async function acceptArrival(t: WaTurn, req: Request): Promise<Response |
     if (dupErr) {
       await logRun('ok', { duplicate: 1, message_sid: MessageSid },
         'Twilio redelivered ' + MessageSid + ' which was already accepted; no second reply was sent.');
-      return TW(200);
-    }
-  }
-
-  // ---- WEBHOOK AUTHENTICITY (form path only) -----------------------------
-  // Preferred: HMAC signature (cryptographic proof). Fallback: provenance lookup.
-  if (!trusted) {
-    const sig = await verifyTwilioSignature(req, formParams);
-    if (sig.checked && !sig.valid) {
-      try {
-        await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '', lang: 'en', escalated: false, sent: false, meta: { signature_checked: true, signature_valid: false, signature_reason: sig.reason, signature_urls_tried: sig.urls || null, message_sid: MessageSid || null, no_autoreply_reason: 'failed X-Twilio-Signature' } });
-      } catch (_e) { /* */ }
-      await alertThrottled('wa_bad_signature', 'warn', 'A WhatsApp webhook FAILED X-Twilio-Signature validation and was rejected (' + sig.reason + '). Unlike the provenance path this is cryptographic proof of forgery, not an inconclusive lookup. Throttled to one alert per 30 minutes.');
-      await logRun('error', { authorised: 0, path: 'form', signature_checked: 1, signature_valid: 0 }, 'wa_inbound REJECTED a webhook that failed HMAC-SHA1 signature validation: ' + sig.reason + '. No LLM call and no outbound message were made. The payload was stored in wa_messages. A genuine Twilio webhook cannot fail this check, so this is a forgery or a misconfigured auth token.');
-      return TW(403);
-    }
-    if (sig.checked && sig.valid) {
-      trusted = true; signatureVerified = true; // cryptographic proof - stronger than the provenance lookup, skip it
-      await logRun('ok', { authorised: 1, path: 'form', signature_checked: 1, signature_valid: 1 }, 'wa_inbound accepted a webhook on verified X-Twilio-Signature. The provenance lookup was skipped because the signature is cryptographic proof of origin and does not need a confirming REST call.');
-    }
-  }
-
-  if (!trusted) {
-    const prov = await verifyProvenance(MessageSid, From);
-    if (!prov.verified) {
-      // Preserve the message either way - a real supplier reply must not be lost just because
-      // Twilio's API was unreachable - but do NOT run the LLM and do NOT send anything.
-      try {
-        await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '', lang: 'en', escalated: false, sent: false, meta: { provenance_verified: false, provenance_reason: prov.reason, twilio_api_reachable: prov.apiReachable, message_sid: MessageSid || null, no_autoreply_reason: 'unverified webhook' } });
-      } catch (_e) { /* */ }
-
-      if (prov.apiReachable) {
-        await alertThrottled('wa_forged_webhook', 'warn', 'A WhatsApp webhook could not be verified against Twilio and was ignored (' + prov.reason + '). Someone may be probing the wa_inbound endpoint to use our WhatsApp number as a relay. Throttled to one alert per 30 minutes.');
-        await logRun('error', { authorised: 0, path: 'form', provenance_verified: 0, twilio_api_reachable: 1 }, 'wa_inbound REJECTED an unverifiable WhatsApp webhook: ' + prov.reason + '. No LLM call and no outbound message were made. The payload was stored in wa_messages for inspection. This is the forged-webhook path, NOT a genuine supplier being ignored.');
-      } else {
-        await alertThrottled('wa_verify_unavailable', 'warn', 'WhatsApp auto-reply is paused because Twilio could not be reached to verify inbound webhooks (' + prov.reason + '). Genuine messages are still being SAVED but are not getting an automatic reply - check wa_messages and follow up by hand until this clears.');
-        await logRun('error', { authorised: 0, path: 'form', provenance_verified: 0, twilio_api_reachable: 0 }, 'wa_inbound could not verify a WhatsApp webhook because Twilio was unreachable (' + prov.reason + '), so it saved the message WITHOUT auto-replying. This may well be a REAL supplier message that got no answer - it needs manual follow-up. Silence here is a verification outage, not an absence of inbound messages.');
-      }
       return TW(200);
     }
   }

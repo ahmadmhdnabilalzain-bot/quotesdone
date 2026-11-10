@@ -10,15 +10,20 @@
 // Prevented by cad_dispatch.test.ts and scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
 // deno-lint-ignore-file no-explicit-any
 
+// 10 Nov 2026 (it_engineer, channels audit R3): nothing is dispatched any more. The CAD read routine (lib/drawings.ts
+// CAD_READER_ROUTINE) reads every queued job every CAD_READER_EVERY_MS; a poll only raises the held finding, once a minute at
+// most (the claimed slot below), for a job the routine has not taken within its interval and run time (CAD_READER_GRACE_MS),
+// or one a worker claimed and went silent on.
 export const DISPATCH_EVERY_MS = 60_000;
-export const DISPATCH_FOR_MS = 60 * 60_000;
+export const CAD_READER_EVERY_MS = 2 * 60 * 60_000;   // the routine's cron: 15 */2 * * * (every 2 h, at :15)
+export const CAD_READER_GRACE_MS = 45 * 60_000;       // its run time and a late start
 
-/** What a poll of this job should do: dispatch its worker again, raise the held finding, or nothing. */
-export function cadJobNeedsRedispatch(job: { status: string; created_at: string; claimed_at: string | null }, now = Date.now()): 'dispatch' | 'held' | null {
+/** What a poll of this job should do: raise the held finding, or nothing (the routine reads the queue). */
+export function cadJobNeedsRedispatch(job: { status: string; created_at: string; claimed_at: string | null }, now = Date.now()): 'held' | null {
   const age = (t: string | null) => (t ? now - Date.parse(t) : 0);
-  const stuck = (job.status === 'queued' && age(job.created_at) > 120_000) || (job.status === 'running' && age(job.claimed_at) > 30 * 60_000);
-  if (!stuck) return null;
-  return age(job.created_at) < DISPATCH_FOR_MS ? 'dispatch' : 'held';
+  const missed = job.status === 'queued' && age(job.created_at) > CAD_READER_EVERY_MS + CAD_READER_GRACE_MS;
+  const silent = job.status === 'running' && age(job.claimed_at) > 30 * 60_000;
+  return missed || silent ? 'held' : null;
 }
 
 /** Take the job's dispatch slot: true for at most one caller per minute. A failed claim is false and said, never a dispatch. */

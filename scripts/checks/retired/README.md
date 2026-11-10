@@ -1,12 +1,14 @@
 # Retired checks
 
-Sixty-eight checks whose **subject was deleted**, kept for reading. Nothing runs them: the runner
+Sixty-seven checks whose **subject was deleted**, kept for reading. Nothing runs them: the runner
 (`scripts/checks/run.mjs`) only executes `*.test.mjs` / `*.test.ts`, no workflow names them, and no
 live file imports them. Moved here from `scripts/checks/` on 22 Sep 2026 (founder instruction 642) so
 that the folder of live gates holds only live gates; 3 more that had been retired in place since
 (`a_handoff_waiting_more_than_a_day_is_a_finding`, `the_founder_gets_one_it_digest_per_tick`,
 `the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes`) were moved in on 9 Nov 2026.
-Measured 9 Nov 2026: `ls scripts/checks/retired/*.RETIRED.mjs | wc -l` = 68, and the table has 68 rows. Older documents and SQL comments that cite
+Measured 10 Nov 2026: `ls scripts/checks/retired/*.RETIRED.mjs | wc -l` = 67, and the table has 67 rows
+(`supplier_eligibility_covers_match_gates` came back out on 10 Nov 2026 as `scripts/checks/supplier_eligibility_covers_match_gates.test.mjs`,
+against the rebuilt panel, supplier_portal/overview.ts buildEligibility). Older documents and SQL comments that cite
 `scripts/checks/<name>.RETIRED.mjs` mean the same file in this folder.
 
 The house rule stays: a check retires WITH its subject — renamed `*.RETIRED.mjs` and moved here,
@@ -77,7 +79,6 @@ The reason column is the file's own header, shortened.
 | `reports_have_a_pdf.RETIRED.mjs` | RETIRED 22 Sep 2026 (documents-language audit, DL-13) WITH ITS SUBJECT: the report_pdf edge function is not deployed and the enqueue triggers were dropped. |
 | `scenario_expectation_drift.RETIRED.mjs` | RETIRED 9 SEP 2026 — THE BASELINE, BOTH VIEWS AND THE LEDGER ARE GONE; THERE IS NOTHING TO COMPARE. This file was, by its own account below, only a backstop that noticed if a write-time guard had quietly gone. The guard, the thing it guarded and the baseline it compared against were all dropped with the Phase A–D estate on 9 … |
 | `sql_files_match_live.RETIRED.mjs` | RETIRED 17 Aug 2026 — THIS CHECK CHOSE THE WRONG FILE AND SAID 0. It ranks the files that define a routine by GIT COMMIT TIME and, for a tie inside one commit, accepts live if it matches ANY candidate. The final Phase C acceptance found that certifying operations_assistance_company_reports.sql and … |
-| `supplier_eligibility_covers_match_gates.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: supabase/functions/supplier_portal — Supplier eligibility against the match gates. |
 | `supplier_inbox_identity.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: supplier_api The supplier API surface. Deleted 8 Sep 2026. |
 | `supplier_notification_identity.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: customer_api The customer API surface. Deleted 8 Sep 2026. |
 | `the_enterprise_pipeline_update_carries_a_where.RETIRED.mjs` | RETIRED 30 September 2026 - its subject was deleted. fn_sales_engineer_enterprise_pipeline was dropped with enterprise accounts (founder ruling 30 Sep 2026). |

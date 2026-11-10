@@ -448,7 +448,9 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       const iid = String(body.inquiry_id || '');
       const reason = body.reason ? String(body.reason).slice(0, 300) : null;
       const { data: r } = await admin.rpc('fn_cancel_inquiry', { p_inquiry: iid, p_customer: cust.id, p_reason: reason });
-      if (r?.error) return J({ error: r.message || r.error }, r.error === 'not_your_inquiry' ? 403 : 400);
+      // The refusal's code and both languages go back (10 Nov 2026): only the English sentence did, so the portal, which
+      // maps a code or shows message/message_ar (portalText errText), fell to its generic "could not cancel".
+      if (r?.error) return J({ error: r.message || r.error, code: r.error, ...(r.message ? { message: r.message } : {}), ...(r.message_ar ? { message_ar: r.message_ar } : {}) }, r.error === 'not_your_inquiry' ? 403 : 400);
       return J(r || { ok: true });
     }
 }

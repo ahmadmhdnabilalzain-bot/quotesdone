@@ -21,7 +21,7 @@ import { ratingTick, seatClocksTick, supportCampaignListTick, supportVoiceTick }
 import { backupPruneTick, backupTick, dropboxHealthTick, dropboxVerifyTick, itDetectTick, itDutiesTick, itEngineerAlertTick, itIntegrationsTick, itLaterDutiesTick, itScheduledTick, launchPathTick, orphanTick, tableExportTick, vercelSnapshotTick, waSenderQualityTick, warmPortal, whatsappTick } from './ticks/it_engineer.ts';
 import { marketingChannelsTick, marketingOutreachTick, marketingTick } from './ticks/marketing.ts';
 import { archiveTick, caseMemoryEmbedTick, heldReplayTick, learningDistilTick, learningGroupTick, learningMeasureTick, mlEmbedTick, orgTaskTick, outboxTick, routineJudgementsTick, seatDutiesTick } from './ticks/platform.ts';
-import { deliveryCanaryTick, specOfferTick } from './ticks/sales_engineer.ts';
+import { deliveryCanaryTick, specOfferAndRematchTick } from './ticks/sales_engineer.ts';
 import { DETACHED_MS, J, SERVICE_KEY, admin, kickDetached } from './shared.ts';
 
 // EVERY TICK THIS FUNCTION CAN RUN, BY NAME. The ORDER is not here any more — public.resilience_step
@@ -69,7 +69,8 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   itintegrations: { run: itIntegrationsTick },
   itscheduled: { run: itScheduledTick },
   itlater: { run: () => kickDetached('itlater') },
-  specoffer: { run: specOfferTick },
+  // nested: the spec-offer sweep and the re-match of requests the matcher did not answer (ticks/sales_engineer.ts)
+  specoffer: { run: specOfferAndRematchTick, nested: true },
   marketingOutreach: { run: marketingOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
   seatClocks: { run: seatClocksTick },

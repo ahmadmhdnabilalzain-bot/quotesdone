@@ -34,12 +34,13 @@
 //   compose.ts       the facts the reply is composed from
 //   speculation.ts   the reply and the price-change reading started beside the classification
 //   founder.ts       the founder's command channel
+//   hear.ts          a voice note is heard: its transcript becomes the turn's Body (10 Nov 2026)
 //   media_in.ts      a document arrived
 //   supplier_directive.ts a supplier's price change
 //   general_turn.ts  the database answers first, the model words it, send, record, report
 import { observe } from '../_shared/observe.ts';
 import { ackThenWork, detach } from '../_shared/async_webhook.ts';
-import { admin, TW } from './shared.ts';
+import { admin, TW, withTurnSecrets } from './shared.ts';
 import { newTurn } from './turn.ts';
 import { acceptArrival } from './arrival.ts';
 import { makeSay } from './say.ts';
@@ -49,6 +50,7 @@ import { answerFromTheMenu, startClassification } from './classification.ts';
 import { startSpeculation } from './speculation.ts';
 import { founderTurn } from './founder.ts';
 import { mediaIn } from './media_in.ts';
+import { hearVoiceNote } from './hear.ts';
 import { supplierDirective } from './supplier_directive.ts';
 import { answerTurn } from './general_turn.ts';
 
@@ -62,12 +64,16 @@ Deno.serve(observe('wa_inbound', async (req) => {
   return ackThenWork(TW(200), () => handleInbound(copy), 'wa_inbound');
 }));
 
-async function handleInbound(req: Request): Promise<Response> {
+// every setting is read once per turn (shared.ts withTurnSecrets, R7 10 Nov 2026)
+function handleInbound(req: Request): Promise<Response> { return withTurnSecrets(() => handleTurn(req)); }
+
+async function handleTurn(req: Request): Promise<Response> {
   const t = newTurn();
   const { logRun } = t;
   let crashed = false;
   try {
     const arrived = await acceptArrival(t, req); if (arrived) return arrived;
+    await hearVoiceNote(t);
     makeSay(t);
     const specOffer = await specOfferReply(t); if (specOffer) return specOffer;
     await identify(t);

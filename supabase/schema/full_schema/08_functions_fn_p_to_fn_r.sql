@@ -1972,6 +1972,29 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_quote_reprice(p_quote_id uuid, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_q public.quotes;
+begin
+  if p_amount is null or p_amount <= 0 then return jsonb_build_object('ok', false, 'error', 'not_an_amount'); end if;
+  select * into v_q from public.quotes where id = p_quote_id for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'quote_not_found'); end if;
+  update public.quotes
+     set quote_amount = p_amount,
+         price_ex_vat = p_amount,
+         amount_as_stated = p_amount,
+         vat_amount = case when v_q.vat_amount is not null and coalesce(v_q.quote_amount, 0) > 0
+                           then round(v_q.vat_amount * p_amount / v_q.quote_amount, 2) end,
+         gross_amount = null, discount_amount = null, discount_label = null
+   where id = p_quote_id;
+  return jsonb_build_object('ok', true, 'quote_id', p_quote_id, 'old', v_q.quote_amount, 'new', p_amount);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_quote_review_notes_are_valid(p_notes jsonb)
  RETURNS boolean
  LANGUAGE plpgsql

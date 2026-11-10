@@ -39,7 +39,10 @@ test('every customer_api path asks the sales engineer, and a matcher failure rai
   // no-fuzzy-matcher guard is scripts/checks/supplier_matching_is_exact_or_none.test.mjs.
   const src = functionSource('customer_api');
   assert.doesNotMatch(src, /useRouter/, 'a path that skips the sales engineer is back');
-  assert.match(src, /p_issue_key: 'sales_engineer_match_unavailable'/, 'a matcher failure raises no finding');
+  // 10 Nov 2026: one finding PER REQUEST (customer_api lib/rematch.ts matcherFindingKey): a fixed key collapsed every
+  // outage onto one row whose evidence named only the last request.
+  assert.match(src, /p_issue_key: matcherFindingKey\(inqId\)/, 'a matcher failure raises no finding');
+  assert.match(src, /matcherFindingKey = \(inquiryId: string\) => 'sales_engineer_match_unavailable:' \+ inquiryId/, 'the finding is not keyed per request');
 });
 
 test('a trade outside the list becomes a reviewed proposal, and the ledger records what the documents said', () => {

@@ -8,7 +8,8 @@
 // completed_at never written, the losing suppliers never told; and Hire on a DIFFERENT supplier answered the same ok
 // while nothing changed. Now a hire the follow-up recorded is completed by the same press, and another supplier is
 // refused with the existing already_hired answer.
-// Not changed here: fn_customer_followup_answer itself (SQL, reported) — its yes still leaves the status to this press.
+// 10 Nov 2026: fn_customer_followup_answer's yes now completes the request itself and tells the losers (scripts/sql/
+// a_follow_up_yes_completes_the_request_and_tells_the_losing_suppliers.sql); this press then answers already_completed.
 // prevented by: supabase/functions/customer_api/hire.test.ts
 
 export type HireStep =

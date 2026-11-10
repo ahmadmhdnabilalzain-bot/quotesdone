@@ -12,6 +12,7 @@ import { safeFilename, SAFE_UPLOAD } from '../../_shared/attachment.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { REQUIRED_DOC_KEYS } from '../../_shared/supplier_registration.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
+import { LICENCE_BEING_READ_NOTE, licenceLeftUnread, licenceReadState, modelOutcomeOf, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { afterResponse, ownPath, readProfileByModel, readStoredDocsLater, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
@@ -172,6 +173,10 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             if (!read[kindStr]) read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
           } else read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
+        // WHOSE FAILURE AN UNREAD FIELD IS (10 Nov 2026, customer_support; _shared/licence_read_state.ts): the same rule as
+        // supplier_api process_docs. A model that is off, failed or had nothing to send is OUR failure, never the file's.
+        let licModel: LicenceModelOutcome = 'not_needed';
+        if (kindStr === 'license' && (!licExpiryFromDoc || fieldsLeftUnread)) licModel = !it.original_b64 ? 'not_sent' : !(aiOn && INBOUND_SECRET) ? 'off' : 'failed';
         if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && !(aiOn && INBOUND_SECRET)) {
           read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
@@ -183,6 +188,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
               : { __secret: INBOUND_SECRET, mode: 'license', file_b64: String(it.original_b64), mime: it.mime, filename: it.filename };
             const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const jd = await r.json();
+            licModel = modelOutcomeOf(jd);
             if (jd?.ok && jd.doc) {
               const d = jd.doc;
               if (d.expiry_date && !licExpiryFromDoc) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; read.license = { kind: 'license', expiry: String(d.expiry_date), source: 'ai', needs_confirm: false, typed: null }; }
@@ -198,6 +204,12 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             }
           } catch (_e) { /* fall back to the typed value below */ }
           if (!licExpiryFromDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
+        }
+        if (kindStr === 'license' && stored) {
+          const state = licenceReadState(licenceLeftUnread(upd), licModel);
+          upd.licence_read_state = state; upd.licence_read_at = new Date().toISOString();
+          // the supplier is never asked for a clearer copy of a licence OUR reader failed on
+          if (state === 'ours_failed') read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, being_read: true, message: LICENCE_BEING_READ_NOTE };
         }
         // LICENCE EXPIRY FIX 27 Jul 2026. The fallback above ran whenever extraction had not produced
         // a date - including when NO document was attached at all, since the extraction block requires

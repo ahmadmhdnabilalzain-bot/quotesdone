@@ -35,23 +35,39 @@ export async function recordRevealSale(admin: any, a: SaleArgs): Promise<SaleRes
   const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount').eq('id', a.quoteId).maybeSingle();
   if (!q) return { error: 'quote not found: ' + a.quoteId };
   const { data: inq } = await admin.from('inquiries').select('customer_id').eq('id', q.inquiry_id).maybeSingle();
-  const { data: cfg } = await admin.from('pricing_config').select('refund_window_working_days').eq('id', 1).maybeSingle();
-  const { data: dl } = await admin.rpc('fn_add_working_days', { p_from: new Date().toISOString(), p_days: cfg?.refund_window_working_days ?? 3 });
-  await admin.from('quotes').update({ status: 'revealed' }).eq('id', a.quoteId);
-  await admin.from('inquiries').update({ status: 'revealed' }).eq('id', q.inquiry_id);
+  // THE SALE IS WRITTEN FIRST, THEN THE QUOTE AND THE REQUEST READ REVEALED (sales_engineer, customer-journey follow-up,
+  // 10 Nov 2026). MEASURED on origin/main: both were marked 'revealed' BEFORE the insert, so an insert that failed (any
+  // error but the unique race) left a quote reading revealed with no sale behind it: the portal treated it as paid-for,
+  // nothing to refund, nothing for the accountant. Now a failed insert changes nothing, and a sale whose status writes
+  // did not land is healed by the next delivery of the same payment (sameOrSecond -> markRevealed): the webhook retries.
+  // THE REFUND WINDOW IS THE DATABASE'S: this sent refund_deadline computed with a fallback of 3 working days, while
+  // pricing_config holds 5 (measured on production) and trg_reveal_window already computes the deadline from that row
+  // when none is sent — and also opens refund_status 'window_open', which this path's own deadline skipped. One rule now.
   const { data: tx, error } = await admin.from('transactions').insert({
     quote_id: a.quoteId, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id,
     customer_id: inq?.customer_id || a.customerId || null, quote_amount: Number(q.quote_amount),
     reveal_fee: a.baseFee, app_fee: a.baseFee, processing_fee: a.processingFee, total_charged: a.totalCharged,
     customer_price: Number(q.quote_amount), paid_by: 'customer', payment_ref: a.paymentRef, fee_status: 'paid',
-    revealed_at: new Date().toISOString(), refund_deadline: dl, stripe_invoice_id: inv,
+    revealed_at: new Date().toISOString(), stripe_invoice_id: inv,
   }).select('id').single();
   if (error) {
     // transactions.quote_id is unique: a racing delivery lost the insert, so the row the winner wrote is the answer.
     const { data: again } = await admin.from('transactions').select('id,stripe_invoice_id,payment_ref').eq('quote_id', a.quoteId).maybeSingle();
     return again?.id ? sameOrSecond(admin, again, a, inv) : { error: 'insert failed: ' + error.message };
   }
+  await markRevealed(admin, a.quoteId, q.inquiry_id);
   return { id: String(tx.id), created: true };
+}
+
+// The quote and its request read revealed once the sale exists. Written only when they do not already say so (a repeat
+// delivery writes nothing: one reveal write per quote, stripe_webhook/drill_webhook_replay.test.ts D4), and never a step
+// back: a request already completed (hired) stays completed. Called after the insert and on every later delivery.
+async function markRevealed(admin: any, quoteId: string, inquiryId: string | null | undefined) {
+  const { data: qs } = await admin.from('quotes').select('status').eq('id', quoteId).maybeSingle();
+  if (String(qs?.status ?? '') !== 'revealed') await admin.from('quotes').update({ status: 'revealed' }).eq('id', quoteId);
+  if (!inquiryId) return;
+  const { data: is } = await admin.from('inquiries').select('status').eq('id', inquiryId).maybeSingle();
+  if (!['revealed', 'completed'].includes(String(is?.status ?? ''))) await admin.from('inquiries').update({ status: 'revealed' }).eq('id', inquiryId);
 }
 
 async function sameOrSecond(admin: any, existing: any, a: SaleArgs, inv: string | null): Promise<SaleResult> {
@@ -78,5 +94,8 @@ async function sameOrSecond(admin: any, existing: any, a: SaleArgs, inv: string 
   }
   // Write-once, as fn_transaction_attach_invoice: an empty reference is filled, a set one never replaced.
   if (inv && !existing.stripe_invoice_id) await admin.from('transactions').update({ stripe_invoice_id: inv }).eq('id', id).is('stripe_invoice_id', null);
+  // The same sale delivered again: the statuses its first delivery may not have written are written now.
+  const { data: q } = await admin.from('quotes').select('id,inquiry_id').eq('id', a.quoteId).maybeSingle();
+  if (q) await markRevealed(admin, a.quoteId, q.inquiry_id);
   return { id, created: false };
 }

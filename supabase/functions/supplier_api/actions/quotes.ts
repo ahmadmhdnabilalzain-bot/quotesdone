@@ -210,7 +210,10 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       // human decision "within 3 working days" that nobody would ever make.
       if (sup.approval_status !== 'approved') {
         const why = String(sup.licence_gate_reason || sup.rejection_reason || '').trim();
-        return J({ error: 'Your registration is not verified yet' + (why ? ': ' + why : '') + '. Upload a clear, in-date trade licence from your Profile tab - it is re-checked automatically the moment it is saved, with no admin step.', code: 'not_verified', params: { reason: why || null }, reason: why || null }, 403);
+        // 10 Nov 2026 (customer_support): the hold's reason is a code (licence_number_unread, services_unconfirmed, ...), never
+        // a sentence, and only some of them are a licence to upload (the licence is in Documents, not Profile). The portal words
+        // it from params.reason (serverCopy not_verified); this fallback says where to look instead of printing the code.
+        return J({ error: why ? 'Your registration is not verified yet, so quotations cannot be sent. What is holding it, and what to do about it, is shown at the top of your supplier portal.' : 'Your registration is not verified yet. Upload a clear, in-date trade licence in the Documents tab - it is re-checked automatically the moment it is saved, with no admin step.', code: 'not_verified', params: { reason: why || null }, reason: why || null }, 403);
       }
       // AUDIT 4.2. This gate used to read the stored registration_status, which setRegistration()
       // set to 'due' on every supplier past the (off-by-one) free count regardless of the date -

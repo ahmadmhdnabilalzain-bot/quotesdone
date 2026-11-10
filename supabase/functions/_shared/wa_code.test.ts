@@ -59,7 +59,7 @@ Deno.test('a clean send: the code goes by the login_code template, only its MAC 
   // every Twilio send reports its status (scripts/checks/every_twilio_send_reports_its_status.test.mjs): the code message
   // names the one URL wa_status verifies Twilio's signature against.
   assertEquals(form.get('StatusCallback'), statusCallbackUrl());
-  assert(form.get('StatusCallback')!.endsWith('/functions/v1/wa_status'));
+  assert(form.get('StatusCallback')!.endsWith('/functions/v1/wa_status?forceFunctionRegion=ap-southeast-1'), 'wa_status runs in the database region (R6, 10 Nov 2026)');
   const code = JSON.parse(form.get('ContentVariables')!)['1'];
   assert(/^\d{6}$/.test(code));
   const issue = rpcs.find((x) => x.fn === 'fn_phone_code_issue')!;

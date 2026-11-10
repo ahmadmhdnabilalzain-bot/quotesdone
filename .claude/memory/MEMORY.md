@@ -81,6 +81,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; code first, LLM only where code can't
 - [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
 - [Always name the seat](always-name-the-seat.md) — never say "an agent"; commits signed by the owning seat
+- [A WhatsApp voice note is heard only once a provider is set (10 Nov)](a-whatsapp-voice-note-is-heard-only-once-a-provider-is-set.md) — hear.ts + _shared/speech_to_text.ts; voice_transcription_provider off by default; 'hf' needs hf_inference_token (founder-held, absent), 'gateway' is OpenRouter (held); the live check is in the module header
 - [One inquiry state for every surface; the 100-message cap (10 Nov)](one-inquiry-state-every-surface-and-the-hundred-message-cap.md) — ledger 1572: public.inquiry_state, both sides count, 80/95/100, a does-not-know is never re-asked, New request carries the portal job
 - [The inquiry agent advises like an expert in every trade (10 Nov)](the-inquiry-agent-advises-like-an-expert-in-every-trade.md) — ledger 1572/1579/1586: diagnose -> advise -> qualify on all three surfaces; the whole 223-trade taxonomy and each trade's pack drive the questions; the chosen option names the services
 - [All conversations are kept for sales](all-conversations-are-kept-for-sales.md) — kept while active + 5 years after closure if lawful (6 Oct, ledger 1126), then purged
@@ -117,6 +118,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Upgrade backlog after queue = 0](upgrade-backlog-after-queue-zero.md) — ledger 1019, trimmed 29 Sep; never name suppliers publicly; ask before splitting trades
 - [Round-3 upgrades wait for queue < 20](round-3-upgrades-wait-for-queue-below-20.md) — ledger 1018: stalled-inquiry rescue, quote QC, fraud, concierge, capacity, trade_words fix
 - [Suppliers always English](suppliers-always-english.md) — 28 Sep: never Arabic to suppliers on any channel; customers get their inquiry language
+- [The supplier English check finds pages only by imports (10 Nov)](the-supplier-english-check-finds-pages-only-by-imports.md) — a standalone supplier page (supplier_ack) was invisible to it; name every page reached by URL in its ENTRIES
 - [Blogs: CEO reviews, founder only notified; market topics; 1/week; no blog emails](blogs-ceo-reviews-founder-only-notified.md) — 29 Sep, ledger 1058
 - [A rejection never ends the cycle](a-rejection-never-ends-the-cycle.md) — 29 Sep, ledger 1059: CEO gives reasons; originator revises and resubmits until approved
 - [Open follow-ups 29 Sep](open-follow-ups-29-sep.md) — article email full text, held-specs email, export-list read-back, blog Arabic question

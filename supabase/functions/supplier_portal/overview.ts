@@ -68,11 +68,12 @@ export async function buildAlerts(admin: Admin, supId: number): Promise<Row[]> {
 // and match_suppliers_kw does exclude matching_blocked. Expiry therefore genuinely stops
 // matching - one indirection away - which is why it is reported as blocking below.
 export async function buildEligibility(admin: Admin, supId: number): Promise<Row> {
-  // Five independent reads, together. The two supplier_capabilities reads (the scope gate and the
-  // proposed trades) were two queries against one row; they are one now.
-  const [{ data: l }, capRes, { count: matched }, { count: quoted }, six] = await Promise.all([
+  // Seven independent reads, together. The two supplier_capabilities reads (the scope gate and the
+  // proposed trades) were two queries against one row; they are one now. The availability row and the strike limit are
+  // the two gates of fn_match_capability this panel did not read until 10 Nov 2026 (see THE WHOLE MATCH GATE below).
+  const [{ data: l }, capRes, { count: matched }, { count: quoted }, six, availRes, limitRes] = await Promise.all([
     admin.from('leads')
-      .select('id,company_name,sector,categories,products,services,capability_summary,emirate,service_emirates,permanently_closed,banned,matching_blocked,matching_block_reason,license_expiry,insurance_expiry,registration_submitted_at,source,approval_status,verified,licence_gate_reason,license_doc_path,phone,email,owner_phone_verified,owner_email_verified,trade_license_no,company_profile_doc_path,accepted_terms_at')
+      .select('id,company_name,sector,categories,products,services,capability_summary,emirate,service_emirates,permanently_closed,banned,matching_blocked,matching_block_reason,license_expiry,insurance_expiry,registration_submitted_at,source,approval_status,verified,licence_gate_reason,license_doc_path,phone,email,owner_phone_verified,owner_email_verified,trade_license_no,company_profile_doc_path,accepted_terms_at,chat_strikes')
       .eq('id', supId).maybeSingle(),
     // On a read failure do not invent a green badge: an error leaves the scope unconfirmed.
     Promise.resolve(admin.from('supplier_capabilities').select('trades,proposed_trades,confirmed_at').eq('supplier_id', supId).maybeSingle())
@@ -80,6 +81,8 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
     admin.from('inquiry_matches').select('id', { count: 'exact', head: true }).eq('supplier_id', supId),
     admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', supId),
     mandatorySixMissing(admin, supId),
+    Promise.resolve(admin.from('supplier_availability').select('state,busy_until').eq('supplier_id', supId).maybeSingle()).catch(() => ({ data: null, error: true })),
+    Promise.resolve(admin.rpc('fn_matching_strike_limit')).catch(() => ({ data: null })),
   ]);
   const r = (l || {}) as Row;
   const cap = (capRes && (capRes as Row).data) || null;
@@ -107,6 +110,24 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
         detail: 'This was set by our team rather than automatically. Contact us to have it reviewed.', fix: 'contact' });
     }
   }
+  // THE WHOLE MATCH GATE (10 Nov 2026, customer_support; item 9 of #1901's report). fn_match_capability excludes a supplier
+  // who said he is busy or paused (fn_supplier_available) and one at the no-response strike limit (fn_is_matchable's
+  // chat_strikes < fn_matching_strike_limit()); this panel asked neither, so the badge read "Eligible for matching" while
+  // no request could reach him. The busy rule is fn_supplier_available's: a busy date that has come (Dubai) is available.
+  // Prevented by: scripts/checks/supplier_eligibility_covers_match_gates.test.mjs (every gate in the matcher is named here).
+  const av = ((availRes as Row)?.data || null) as Row | null;
+  const dubaiToday = new Date(Date.now() + 4 * 3600e3).toISOString().slice(0, 10);
+  const avState = String(av?.state || 'available');
+  const available = avState === 'available' || (avState === 'busy' && !!av?.busy_until && String(av.busy_until) <= dubaiToday);
+  if (!available) blocking.push(avState === 'busy'
+    ? { code: 'availability_busy', params: { until: av?.busy_until || null }, title: 'You marked yourself busy',
+        detail: 'No new request is sent to you until ' + (av?.busy_until || 'the date you set') + '. Change it under Availability in Settings.', fix: 'settings' }
+    : { code: 'availability_paused', params: { state: avState }, title: 'You paused new requests',
+        detail: 'No new request is sent to you while your availability is paused. Change it under Availability in Settings.', fix: 'settings' });
+  const strikeLimit = Number.isFinite(Number((limitRes as Row)?.data)) && (limitRes as Row)?.data != null ? Number((limitRes as Row).data) : 3;
+  if (Number(r.chat_strikes || 0) >= strikeLimit) blocking.push({ code: 'no_response_strikes', params: { strikes: Number(r.chat_strikes || 0), limit: strikeLimit },
+    title: 'New requests are paused for your account',
+    detail: 'Requests sent to you went unanswered ' + Number(r.chat_strikes || 0) + ' times, which pauses new requests. Contact us to have it reviewed.', fix: 'contact' });
   const registered = !!r.registration_submitted_at || r.source === 'self_registered' || String(r.approval_status || '') === 'approved';
   if (!registered) blocking.push({ code: 'not_registered', title: 'Your registration is not submitted', detail: 'Only registered suppliers receive requests. Complete your company profile to submit it.', fix: 'profile' });
 
@@ -122,7 +143,8 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
     blocking.push({ code: 'not_approved', params: { reason: reason || null, status: r.approval_status || null },
       title: 'Your registration is not approved yet',
       detail: 'Requests reach approved suppliers only. ' + (reason ? 'What is holding it, and what to do about it, is shown at the top of your portal.' : 'Our sales engineer is reviewing your registration and will e-mail you when it is approved.'),
-      fix: reason.startsWith('licence_') || reason === 'documents_being_read' ? 'documents' : reason === 'services_unconfirmed' ? 'scope' : 'contact' });
+      // licence_being_read is OUR reader's failure (_shared/licence_read_state.ts): nothing for the supplier to upload
+      fix: reason === 'licence_being_read' ? 'contact' : reason.startsWith('licence_') || reason === 'documents_being_read' ? 'documents' : reason === 'services_unconfirmed' ? 'scope' : 'contact' });
   }
 
   // THE GATE THIS PANEL WAS MISSING (13 Aug 2026).

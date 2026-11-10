@@ -1944,7 +1944,8 @@ begin
   if p_customer is not null and v.customer_id is distinct from p_customer then
     return jsonb_build_object('error','not_your_inquiry'); end if;
   select exists(select 1 from transactions where inquiry_id=p_inquiry) into v_paid;
-  if v_paid or v.status in ('revealed','completed','cancelled','closed') or v.pipeline_stage in ('revealed','won','cancelled') then
+  -- 10 Nov 2026: expired and lost are ends too (one list with _shared/request_closed.ts)
+  if v_paid or v.status in ('revealed','completed','cancelled','closed','expired','lost') or v.pipeline_stage in ('revealed','won','cancelled') then
     return jsonb_build_object('error','not_editable','status',v.status,
       'message','This request can no longer be edited.'); end if;
   v_deadline := v.created_at + interval '1 hour';
@@ -2121,6 +2122,20 @@ begin
           public.fn_email_open_ip_class(v_ip), c.classification, c.rule);
   return c.classification;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_email_proven(p_email text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(btrim(p_email), '') <> ''
+     and exists (select 1 from public.email_verifications v
+                  where v.email = lower(btrim(p_email))
+                    and v.purpose in ('login', 'kyc')
+                    and v.verified_at is not null)
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text)

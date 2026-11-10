@@ -16,22 +16,34 @@ export function startSpeculation(t: WaTurn): void {
   // flag or be sent; the only send is the one at the end of the turn. Null (autoreply off, the dry route not applied) = no speculation.
   // A discarded draft is ABORTED (specAbort), so it stops costing; it also runs in its own rate bucket (askModel). A draft that
   // cannot start is never silent: the dry route missing or failing files an IT finding, and the turn takes the normal path.
+  // ADOPTED WHEREVER THE REPLY DID NOT DEPEND ON THE ROUTE (it_engineer, 10 Nov 2026, WhatsApp latency R4/R5). The draft was
+  // adopted only when the classification said exactly (no person, intent 'none'): 0 of 7 real turns in the channels audit. What
+  // the reply is composed from is the situation composeSituation builds from the route; when the real route's situation is
+  // the same text the draft was composed on, the draft answered the same facts, whatever the intent was called. `specFacts`
+  // is that text, known as soon as the dry route is composed (before the draft's model call ends), so general_turn.ts decides
+  // adoption without waiting on a draft it would discard.
   const specAbort = new AbortController();
+  let setFacts: (s: string | null) => void = () => {};
+  const specFacts = new Promise<string | null>((r) => { setFacts = r; });
   const speculative: Promise<Awaited<ReturnType<typeof askModel>> | null> | null = typedQuestion && audience !== 'founder'
     ? (async () => {
-        if ((await sec('wa_autoreply_enabled')) !== 'true') return null;
+        if ((await sec('wa_autoreply_enabled')) !== 'true') { setFacts(null); return null; }
         const { data, error } = await admin.rpc('fn_wa_route_dry', { p_phone: From, p_body: Body.slice(0, 4000), p_needs_person: false, p_intent: 'none' });
         if (error || !data) {
+          setFacts(null);
           await itFinding('wa_inbound:route_dry_unavailable', 'The WhatsApp reply cannot start beside the classification: fn_wa_route_dry failed or is not applied', { error: error?.message ?? 'returned nothing' });
           return null;
         }
         const { situation: s0 } = await composeSituation(t, data as Record<string, unknown>);
+        setFacts(s0);
         return await askModel(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', s0, undefined, undefined, specAbort.signal);
       })().catch(async (e) => {
+        setFacts(null);
         await itFinding('wa_inbound:speculative_reply_threw', 'The speculative WhatsApp reply threw; the turn took the normal path', { error: String((e as Error)?.message || e).slice(0, 300) });
         return null;
       })
     : null;
+  if (!speculative) setFacts(null);
   // THE PRICE-CHANGE READING STARTS BESIDE THE CLASSIFICATION TOO (customer_support, 3 Nov 2026). It reads only the body,
   // yet it was asked after menuTurn had waited for the readings. Measured on the real exchange on main (run 41530397323,
   // ai_cost_log): on 14 of 14 supplier text turns the supplier_directive call started 0.75-0.95 s after the classification
@@ -54,5 +66,5 @@ export function startSpeculation(t: WaTurn): void {
     return cm ? JSON.parse(cm[0]) : null;
   })().catch(() => null));   // a classifier failure must never swallow their message: it reads as "not a change"
   if (supplierDirectiveAllowed({ audience, internalCaller }) && typedQuestion) directiveRead();   // never read for a turn it cannot apply
-  Object.assign(t, { specAbort, speculative, directiveRead });
+  Object.assign(t, { specAbort, speculative, specFacts, directiveRead });
 }

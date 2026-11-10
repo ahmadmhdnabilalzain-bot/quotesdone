@@ -103,7 +103,8 @@ function world(): World {
           return J([]);
         }
       }
-      if (table === 'quotes' && req.method === 'PATCH') { const b = await req.clone().json(); if (b.status === 'revealed') w.reveals++; return J([]); }
+      // the quote keeps the status it was given (10 Nov 2026: recordRevealSale reads it before writing, so a repeat delivery writes none)
+      if (table === 'quotes' && req.method === 'PATCH') { const b = await req.clone().json(); if (b.status === 'revealed') w.reveals++; for (const r of rows.quotes.filter((x) => match(x, u))) Object.assign(r, b); return J([]); }
       if (req.method === 'GET' && rows[table]) return J(rows[table].filter((r) => match(r, u)));
       return undefined;
     },

@@ -9,13 +9,12 @@ import { sanitizeOrMessage, SAFE_AUDIO } from '../_shared/attachment.ts';
 // customer file entering the estate, and it is billed to a model, so it gets the same verdict.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
-import { readTranscript } from '../_shared/provider_signals.ts';
+import { sttConfig, transcribeAudio, STT_KEYS } from '../_shared/speech_to_text.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
-const PROMPT = 'Transcribe the spoken words in this audio EXACTLY as spoken, word for word. The speaker may talk in Arabic, English, or a mix of both (United Arab Emirates). Output ONLY the transcribed words and nothing else. Do NOT translate, summarise, correct, complete, punctuate creatively, or invent anything. Keep numbers, measurements and units as spoken. If the audio contains no clear human speech - for example silence, background noise, music, or a tone - say so in the speech field, and never guess or fabricate any sentence. Reply with ONE JSON object and nothing else: {"speech": true, "text": "<the transcribed words>"} when there is speech, {"speech": false, "text": ""} when there is none.';
 
 Deno.serve(siteCors(observe('transcribe', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -36,28 +35,33 @@ Deno.serve(siteCors(observe('transcribe', async (req) => {
                                           stripMetadata: false,
                                           scan: { source: 'transcribe.voice_note', subject: user.id, filename: 'voice-note' } });
     if (!__san.ok) return J(__san.body, __san.status);
-    const format = __san.result.mime === 'audio/mpeg' ? 'mp3' : 'wav';   // sniffed, not claimed
     if (!b64 || b64.length < 100) return J({ error: 'empty_audio' }, 400);
     if (b64.length > 22_000_000) return J({ error: 'Audio too long. Please keep it under about 2 minutes.' }, 413);
-    const secret = await sec('cred_fn_ai'); if (!secret) return J({ error: 'transcription_not_configured' }, 500);
-
-    const content = [ { type: 'text', text: PROMPT }, { type: 'input_audio', input_audio: { data: b64, format } } ];
+    // ONE HEARING FOR EVERY DOOR (it_engineer, 10 Nov 2026): the provider, the per-call ceiling, the daily ceiling and the
+    // timeout are _shared/speech_to_text.ts's, the same WhatsApp voice notes use (wa_inbound/hear.ts). This door keeps the
+    // route it always had (ai_gateway) while the configured provider is 'off', so the portal and the supplier service note
+    // are not narrowed by a WhatsApp setting. R7 of the channels audit: the gateway fetch had no timeout at all; a stalled
+    // provider held the recorder's spinner until the edge wall-clock killed the function.
+    // prevented by: _shared/speech_to_text.test.ts
+    const cfg0 = await sttConfig(sec);
+    const cfg = { ...cfg0, provider: cfg0.provider === 'off' ? 'gateway' as const : cfg0.provider, maxBytes: 17 * 1024 * 1024 };
+    const since = new Date(Date.now() - 86_400_000).toISOString();
+    const { count: today } = await admin.from('agent_runs').select('id', { count: 'exact', head: true }).eq('agent', 'transcribe').gte('started_at', since);
+    if (today != null && today >= cfg.dailyCap) return J({ ok: false, error: 'transcription_daily_cap', text: '' }, 429);
     let text: string | null = null; let lastErr = ''; let unreadable = false;
     // RULING 1177 (12 Oct 2026): an unreadable answer is asked once more before the user is asked to record again;
-    // the gateway itself falls to the route's second model on a provider failure.
-    for (let attempt = 1; attempt <= 2 && text === null; attempt++) { unreadable = false;
-    try {
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'transcribe', temperature: 0, max: 1024, response_format: { type: 'json_object' }, input: [{ role: 'user', content }] }) });
-      const j = await r.json();
-      if (!r.ok || j?.ok === false) { lastErr = JSON.stringify(j?.detail || j?.error || j).slice(0, 220); }
-      else {
-        // 23 SEP 2026 (founder_instruction 886-903): "was there speech?" is the model's structured answer
-        // ({speech, text}, _shared/provider_signals.ts), never a placeholder regex over its words. A reply that is
-        // not that object is unreadable: the caller is asked to try again rather than handed a guess.
-        const read = readTranscript(j?.content);
-        if (read) text = read.text; else unreadable = true;
-      }
-    } catch (e) { lastErr = String((e as Error)?.message || e); }
+    // a timeout is never asked again (the provider is already slow; the user records again).
+    for (let attempt = 1; attempt <= 2 && text === null; attempt++) {
+      unreadable = false;
+      const heard = await transcribeAudio(__san.result.bytes, __san.result.mime, cfg, {
+        gatewayUrl: GW, gatewaySecret: cfg.provider === 'gateway' ? await sec('cred_fn_ai') : null,
+        hfToken: cfg.provider === 'hf' ? await sec(STT_KEYS.hfToken) : null, subject: { user_id: user.id } });
+      if (heard.ok) text = heard.text;
+      else if (heard.reason === 'silent') text = '';
+      else if (heard.reason === 'too_long') return J({ error: 'Audio too long. Please keep it under about 2 minutes.' }, 413);
+      else if (heard.reason === 'no_key') return J({ error: 'transcription_not_configured' }, 500);
+      else if (heard.reason === 'timeout') { lastErr = 'timeout'; break; }
+      else { lastErr = heard.detail || heard.reason; unreadable = /speech,text/.test(lastErr); }
     }
     // Not the structured answer (a truncated or malformed reply): no guess, the user is simply asked to record again.
     if (unreadable) return J({ ok: false, error: 'transcription_unreadable', text: '', message: String(body.lang || '').toLowerCase().startsWith('ar') ? 'تعذّرت علينا قراءة هذا التسجيل بوضوح. يُرجى تسجيله مرة أخرى في مكان أهدأ.' : 'We could not read that recording clearly. Please record it again, somewhere quieter.' }, 200);
