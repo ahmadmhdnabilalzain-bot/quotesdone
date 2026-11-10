@@ -29,8 +29,8 @@
       "topic": "EV charging installation: makes, brands, distributors and origins in the UAE",
       "topic_ar": "تركيب شواحن السيارات الكهربائية (EV): الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names charging operators such as DEWA EV Green Charger, UAEV and E2GO, and charger brands such as ABB E-mobility, Kempower and Wallbox. Operators and charger brands: DEWA EV Green Charger, UAEV, E2GO, Tesla, ABB E-mobility, Schneider Electric, Siemens, Kempower, Alpitronic, Tritium, Wallbox, Delta, Autel, Star Charge, XCharge, Zaptec, Easee. DEWA runs Dubai's public network. UAEV is the Ministry of Energy and Infrastructure and Etihad WE joint venture, and E2GO belongs to ADNOC Distribution and TAQA. The charger brands' local distributors were not checked. Installers are electrical contractors approved by the utility and specialised EV firms in Dubai and Abu Dhabi.",
-      "body_ar": "من مشغلي شحن السيارات الكهربائية في الإمارات الشاحن الأخضر من هيئة كهرباء ومياه دبي وUAEV وE2GO، ومن علامات الشواحن ABB E-mobility وKempower وWallbox. والمشغلون وعلامات الشواحن: DEWA EV Green Charger وUAEV وE2GO وTesla وABB E-mobility وSchneider Electric وSiemens وKempower وAlpitronic وTritium وWallbox وDelta وAutel وStar Charge وXCharge وZaptec وEasee. وتدير هيئة كهرباء ومياه دبي (DEWA) شبكة الشحن العامة في دبي. وUAEV مشروع مشترك بين وزارة الطاقة والبنية التحتية واتحاد للماء والكهرباء (Etihad WE)، وE2GO مملوكة لأدنوك للتوزيع وطاقة (TAQA). ولم نتحقق من الموزعين المحليين لعلامات الشواحن. ويتولى التركيب مقاولو كهرباء معتمدون لدى هيئة الكهرباء والماء وشركات متخصصة في شحن السيارات الكهربائية في دبي وأبوظبي.",
+      "body_en": "This entry names charging operators such as DEWA EV Green Charger, UAEV and E2GO, and charger brands such as ABB E-mobility, Kempower and Wallbox. Operators and charger brands: DEWA EV Green Charger, UAEV, E2GO, Tesla, ABB E-mobility, Schneider Electric, Siemens, Kempower, Alpitronic, Tritium, Wallbox, Delta, Autel, Star Charge, XCharge, Zaptec, Easee. DEWA runs Dubai's public network. UAEV is the Ministry of Energy and Infrastructure and Etihad WE joint venture, and E2GO belongs to ADNOC Distribution and TAQA. The charger brands' local distributors were not checked. Installers are electrical contractors approved by the utility and specialised EV firms in Dubai and Abu Dhabi.\n\nOrigin and tier, for describing a quoted brand without naming it: Tesla - premium, USA; ABB E-mobility - premium, Switzerland; Schneider Electric - premium, France; Siemens - premium, Germany; Kempower - premium, Finland; Alpitronic - premium, Italy; Tritium - mid, Australia; Wallbox - mid, Spain; Delta - mid, Taiwan; Autel - economy, China.",
+      "body_ar": "من مشغلي شحن السيارات الكهربائية في الإمارات الشاحن الأخضر من هيئة كهرباء ومياه دبي وUAEV وE2GO، ومن علامات الشواحن ABB E-mobility وKempower وWallbox. والمشغلون وعلامات الشواحن: DEWA EV Green Charger وUAEV وE2GO وTesla وABB E-mobility وSchneider Electric وSiemens وKempower وAlpitronic وTritium وWallbox وDelta وAutel وStar Charge وXCharge وZaptec وEasee. وتدير هيئة كهرباء ومياه دبي (DEWA) شبكة الشحن العامة في دبي. وUAEV مشروع مشترك بين وزارة الطاقة والبنية التحتية واتحاد للماء والكهرباء (Etihad WE)، وE2GO مملوكة لأدنوك للتوزيع وطاقة (TAQA). ولم نتحقق من الموزعين المحليين لعلامات الشواحن. ويتولى التركيب مقاولو كهرباء معتمدون لدى هيئة الكهرباء والماء وشركات متخصصة في شحن السيارات الكهربائية في دبي وأبوظبي.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Tesla: فئة ممتازة، الولايات المتحدة؛ ABB E-mobility: فئة ممتازة، سويسرا؛ Schneider Electric: فئة ممتازة، فرنسا؛ Siemens: فئة ممتازة، ألمانيا؛ Kempower: فئة ممتازة، فنلندا؛ Alpitronic: فئة ممتازة، إيطاليا؛ Tritium: فئة متوسطة، أستراليا؛ Wallbox: فئة متوسطة، إسبانيا؛ Delta: فئة متوسطة، تايوان؛ Autel: فئة اقتصادية، الصين.",
       "sources": [
         "https://www.dewa.gov.ae/en/consumer/ev-community/ev-green-charger-instructions/ev-green-chargers-faq",
         "https://gulfbusiness.com/en/2024/uae/uae-energy-ministry-etihad-we-set-up-ev-venture/",
@@ -42,7 +42,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: DEWA public EV tariff -> confirmed and made specific: AED 0.70/kWh AC and AED 1.20/kWh DC plus VAT from 30 September 2024 | UAEV is a MOEI and Etihad WE joint venture -> confirmed (launched May 2024) | E2GO is ADNOC Distribution with TAQA -> confirmed. Not checked: Current DEWA installer approval process, current tariffs and the current operator arrangement of UAEV and E2GO were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: DEWA public EV tariff -> confirmed and made specific: AED 0.70/kWh AC and AED 1.20/kWh DC plus VAT from 30 September 2024 | UAEV is a MOEI and Etihad WE joint venture -> confirmed (launched May 2024) | E2GO is ADNOC Distribution with TAQA -> confirmed. Not checked: Current DEWA installer approval process, current tariffs and the current operator arrangement of UAEV and E2GO were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Tesla",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "ABB E-mobility",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Switzerland",
+          "generic_ar": "علامة ممتازة من سويسرا"
+        },
+        {
+          "brand": "Schneider Electric",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Siemens",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Kempower",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Finland",
+          "generic_ar": "علامة ممتازة من فنلندا"
+        },
+        {
+          "brand": "Alpitronic",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        },
+        {
+          "brand": "Tritium",
+          "origin": "Australia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Australia",
+          "generic_ar": "علامة متوسطة من أستراليا"
+        },
+        {
+          "brand": "Wallbox",
+          "origin": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid brand from Spain",
+          "generic_ar": "علامة متوسطة من إسبانيا"
+        },
+        {
+          "brand": "Delta",
+          "origin": "Taiwan",
+          "tier": "mid",
+          "generic_en": "a mid brand from Taiwan",
+          "generic_ar": "علامة متوسطة من تايوان"
+        },
+        {
+          "brand": "Autel",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy brand from China",
+          "generic_ar": "علامة اقتصادية من الصين"
+        }
+      ]
     },
     {
       "id": "ev_charging:uae-market-sizes",

@@ -5,8 +5,8 @@
       "id": "welding_equipment:spec-checklist",
       "topic": "Welding equipment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For welding equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) process (MMA, MIG/MAG, TIG, plasma cutting); (2) output current range and duty cycle; (3) input power supply (single or three phase, voltage); (4) brand and model; (5) accessories (torch, cables, regulator, wire feeder); (6) consumables (electrodes, wire grade and size); (7) safety standard (IEC 60974-1); (8) conformity certificate; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the welding_equipment trade.",
-      "body_ar": "لكي تُقارن عروض معدات اللحام على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) العملية (لحام بالقوس اليدوي، أو MIG/MAG، أو TIG، أو القطع بالبلازما)؛ (2) نطاق تيار الخرج ودورة العمل؛ (3) مصدر الطاقة (أحادي أو ثلاثي الطور، والجهد)؛ (4) العلامة التجارية والطراز؛ (5) الملحقات (المشعل، والكابلات، ومنظم الغاز، ومغذي السلك)؛ (6) المستهلكات (الأقطاب، ودرجة السلك ومقاسه)؛ (7) معيار السلامة (IEC 60974-1)؛ (8) شهادة المطابقة؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة welding_equipment فقط.",
+      "body_en": "For welding equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) process (MMA, MIG/MAG, TIG, plasma cutting); (2) output current range and duty cycle; (3) input power supply (single or three phase, voltage); (4) brand and model; (5) accessories (torch, cables, regulator, wire feeder); (6) consumables (electrodes, wire grade and size); (7) safety standard (IEC 60974-1); (8) conformity certificate; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the welding_equipment trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): process (MMA, MIG/MAG, TIG, plasma cutting); output current range and duty cycle; input power supply (single or three phase, voltage); accessories (torch, cables, regulator, wire feeder); quantity. Follow-up questions the answers trigger: process (MMA, MIG/MAG, TIG, plasma cutting): Aluminium brings AC/DC TIG or pulsed MIG; site work brings engine-driven or inverter portability. output current range and duty cycle: Ask the thickest plate and continuous welding time; UAE heat lowers effective duty cycle. input power supply (single or three phase, voltage): Running on a site generator brings the generator kVA. accessories (torch, cables, regulator, wire feeder): Water-cooled torches bring a cooling unit. consumables (electrodes, wire grade and size): Code work brings consumable certificates (EN 10204 3.1). Before a firm price: none; a firm price is possible from the specs. Robotic or automated welding cells need the part drawing and a sample weld. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: process (MMA, MIG/MAG, TIG, plasma cutting); output current range and duty cycle; input power supply (single or three phase, voltage); accessories (torch, cables, regulator, wire feeder); quantity.",
+      "body_ar": "لكي تُقارن عروض معدات اللحام على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) العملية (لحام بالقوس اليدوي، أو MIG/MAG، أو TIG، أو القطع بالبلازما)؛ (2) نطاق تيار الخرج ودورة العمل؛ (3) مصدر الطاقة (أحادي أو ثلاثي الطور، والجهد)؛ (4) العلامة التجارية والطراز؛ (5) الملحقات (المشعل، والكابلات، ومنظم الغاز، ومغذي السلك)؛ (6) المستهلكات (الأقطاب، ودرجة السلك ومقاسه)؛ (7) معيار السلامة (IEC 60974-1)؛ (8) شهادة المطابقة؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة welding_equipment فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: طريقة اللحام، ونطاق التيار ودورة التشغيل، والتغذية الكهربائية، والملحقات (المشعل والكابلات والمنظم ووحدة تغذية السلك)، والكمية. أسئلة المتابعة: لحام الألمنيوم يستلزم TIG بتيار متناوب ومستمر أو MIG نبضي، ويُسأل عن أسمك لوح ومدة اللحام المتواصل لأن حرارة الإمارات تقلل دورة التشغيل الفعلية، والتشغيل على مولد يستلزم قدرة المولد. خلايا اللحام الآلية تحتاج رسم القطعة وعينة لحام. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "process (MMA, MIG/MAG, TIG, plasma cutting)",
         "output current range and duty cycle",
@@ -19,13 +19,124 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "quantity",
+        "Payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "process (MMA, MIG/MAG, TIG, plasma cutting)",
+        "output current range and duty cycle",
+        "input power supply (single or three phase, voltage)",
+        "accessories (torch, cables, regulator, wire feeder)",
+        "quantity"
+      ],
+      "spec_guide": [
+        {
+          "spec": "process (MMA, MIG/MAG, TIG, plasma cutting)",
+          "blocking": true,
+          "why_needed_to_price": "MMA, MIG/MAG, TIG and plasma machines are different products.",
+          "uae_options": "MMA (stick), MIG/MAG, pulsed MIG, TIG DC or AC/DC, plasma cutting, multi-process.",
+          "follow_up_if": "Aluminium brings AC/DC TIG or pulsed MIG; site work brings engine-driven or inverter portability."
+        },
+        {
+          "spec": "output current range and duty cycle",
+          "blocking": true,
+          "why_needed_to_price": "Amperage and duty cycle size the power source.",
+          "uae_options": "160-500 A; duty cycle at 40 °C (e.g. 60%).",
+          "follow_up_if": "Ask the thickest plate and continuous welding time; UAE heat lowers effective duty cycle."
+        },
+        {
+          "spec": "input power supply (single or three phase, voltage)",
+          "blocking": true,
+          "why_needed_to_price": "Single-phase 230 V vs three-phase 400 V machines differ; engine drives for sites without power.",
+          "uae_options": "230 V/1 ph, 400 V/3 ph, generator or engine-driven.",
+          "follow_up_if": "Running on a site generator brings the generator kVA."
+        },
+        {
+          "spec": "brand and model",
+          "blocking": false,
+          "why_needed_to_price": "Model fixes features and price.",
+          "uae_options": "Named model or class.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "accessories (torch, cables, regulator, wire feeder)",
+          "blocking": true,
+          "why_needed_to_price": "Torch, cables, regulator and wire feeder are often not in the machine price.",
+          "uae_options": "Torch length and cooling, earth and electrode cables, gas regulator, separate or built-in wire feeder.",
+          "follow_up_if": "Water-cooled torches bring a cooling unit."
+        },
+        {
+          "spec": "consumables (electrodes, wire grade and size)",
+          "blocking": false,
+          "why_needed_to_price": "Consumables are a running cost and must match the process and metal.",
+          "uae_options": "E7018, E6013 electrodes; ER70S-6, ER308L wire; diameter; spool weight.",
+          "follow_up_if": "Code work brings consumable certificates (EN 10204 3.1)."
+        },
+        {
+          "spec": "safety standard (IEC 60974-1)",
+          "blocking": false,
+          "why_needed_to_price": "Compliance with IEC 60974-1 is the safety baseline.",
+          "uae_options": "IEC 60974-1, -10 (EMC).",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "conformity certificate",
+          "blocking": false,
+          "why_needed_to_price": "Electrical equipment may need ECAS at import.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_needed_to_price": "Power sources usually carry a longer warranty than torches.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Gas cylinders and PPE are rarely included.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "quantity",
+          "blocking": true,
+          "why_needed_to_price": "Fleet orders change the price per unit.",
+          "uae_options": "Units.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": null
     },
     {
       "id": "welding_equipment:uae-standards-and-approvals",
@@ -84,6 +195,78 @@
       "gap_kind": "commercial",
       "verified": false,
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
+    },
+    {
+      "id": "welding_equipment:authority-approvals",
+      "topic": "Welding equipment: electrical conformity, gas cylinders and welder qualification",
+      "topic_ar": "معدات اللحام: المطابقة الكهربائية وأسطوانات الغاز وتأهيل اللحامين",
+      "kind": "authority_approval",
+      "body_en": "Mains welding power sources are electrical equipment within the GCC low-voltage regulation adopted by Cabinet Resolution No. 6 of 2019; regulated electrical products need an ECAS certificate from MoIAT, obtained by the importer. Shielding gas and oxy-fuel cylinders are stored and handled under civil defence rules in each emirate, and in Dubai the Municipality and Trakhees publish cylinder storage guidelines (the Trakhees LPG guideline sets separation from oxygen cylinders). Welder qualification (ISO 9606, ASME IX) and procedure qualification are contract requirements set by the client or consultant, not a UAE licence. The supplier holds the ECAS certificate; the user handles cylinder storage.",
+      "body_ar": "مصادر قدرة اللحام العاملة بالكهرباء معدات كهربائية ضمن اللائحة الخليجية للجهد المنخفض المعتمدة بقرار مجلس الوزراء رقم 6 لسنة 2019، والمنتجات الكهربائية الخاضعة للتنظيم تحتاج شهادة ECAS من وزارة الصناعة والتكنولوجيا المتقدمة يحصل عليها المستورد. وأسطوانات غاز الحماية والأكسجين والوقود تُخزن وتُتداول وفق قواعد الدفاع المدني في كل إمارة، وفي دبي تنشر البلدية وتراخيص أدلة لتخزين الأسطوانات (ويحدد دليل تراخيص لأسطوانات الغاز المسال مسافة فصل عن أسطوانات الأكسجين). أما تأهيل اللحامين (ISO 9606 وASME IX) وتأهيل الإجراءات فمتطلبات تعاقدية يحددها العميل أو الاستشاري لا ترخيص إماراتي. ويحمل المورد شهادة ECAS، ويتولى المستخدم تخزين الأسطوانات.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2957",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://pcfc.ae/en/Rules%20and%20Regulations/Trakhees/Civil%20Engineering%20Department/Inspection%20&%20Compliance%20(Construction%20Safety)/Guidelines/PCFC-TRK-CED-CS-G05,%20Guidelines%20-%20Storage%20of%20LPG%20cylinders.pdf",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/01/DM-HSD-GU53-LPGC2_Technical-Guidelines-for-Liquefied-Petroleum-Gas-Cylinders_V5-26-04-2024.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists low-voltage electrical products, with the G-Mark route under the Gulf Technical Regulation for Low Voltage Electrical Equipment and Appliances BD-142004-01 (technical file, manufacturer's declaration, test reports from the maker's lab or a notified body) and a UAE certificate requiring the applicant's trade or industry licence; MoIAT's ECAS service page. Trakhees' LPG-cylinder storage guideline (pcfc.ae) requires LPG cylinders stored apart from other cylinders such as oxygen; DM Guideline 53 on LPG cylinders (dmpmedia.dm.gov.ae). Not confirmed on any page that opened: Cabinet Resolution No. 6 of 2019 as the UAE adoption instrument and the 50-1,000 V scope (uaelegislation.gov.ae serves a Cloudflare block page), and civil defence cylinder rules in each emirate."
+    },
+    {
+      "id": "welding_equipment:quote-red-flags",
+      "topic": "Red flags in welding equipment quotations",
+      "topic_ar": "علامات التحذير في عروض معدات اللحام",
+      "kind": "quote_red_flag",
+      "body_en": "Check duty cycle and the temperature it is rated at: a 60% duty cycle at 20 °C is far less at UAE ambient. Watch for machine-only prices without torch, cables, regulator or feeder; single-phase machines quoted where the work needs three-phase output; \"equivalent\" models with a lower current range; DC-only TIG offered for aluminium; consumables of a different classification or diameter; grey imports without local warranty and spares; and engine-driven sets without the engine brand and hours of warranty.",
+      "body_ar": "تحقق من دورة التشغيل ودرجة الحرارة المقننة لها: فدورة 60٪ عند 20 درجة تكون أقل بكثير في حرارة الإمارات. وانتبه إلى: أسعار الآلة وحدها دون المشعل والكابلات والمنظم ووحدة التغذية؛ وآلات أحادية الطور حيث يتطلب العمل ثلاثية الطور؛ وطرازات \"مكافئة\" بنطاق تيار أقل؛ وعرض TIG بتيار مستمر فقط للحام الألمنيوم؛ ومستهلكات بتصنيف أو قطر مختلف؛ واستيراد موازٍ دون ضمان محلي وقطع غيار؛ ومولدات لحام دون ذكر علامة المحرك ومدة ضمانه.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "welding_equipment:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying welding equipment",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء معدات اللحام",
+      "kind": "buyer_mistake",
+      "body_en": "Buying by amperage alone and ignoring duty cycle in UAE heat; forgetting the accessories, so the machine arrives unusable; choosing a single-process machine when the shop welds stainless, aluminium and carbon steel; and buying consumables that do not match the procedure or code. Ask the metals, thickness, process, power available and whether work is coded.",
+      "body_ar": "الشراء بالتيار وحده وتجاهل دورة التشغيل في حرارة الإمارات؛ ونسيان الملحقات فتصل الآلة غير صالحة للاستخدام؛ واختيار آلة لطريقة واحدة بينما الورشة تلحم الستانلس والألمنيوم والفولاذ الكربوني؛ وشراء مستهلكات لا تطابق الإجراء أو الكود. لذا يُسأل عن المعادن والسماكة والطريقة والكهرباء المتوفرة وهل العمل خاضع لكود.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "welding_equipment:price-drivers",
+      "topic": "What legitimately moves welding equipment prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار معدات اللحام",
+      "kind": "price_driver",
+      "body_en": "Process capability (multi-process and pulsed machines cost more), current range and duty cycle, inverter vs transformer technology, water cooling, included accessories, brand and origin, engine-driven sets, automation, and local service and spares. Consumables price on classification, diameter, spool size and certification.",
+      "body_ar": "قدرات الطريقة (الآلات متعددة الطرق والنبضية أغلى)، ونطاق التيار ودورة التشغيل، وتقنية العاكس مقابل المحول، والتبريد بالماء، والملحقات المشمولة، والعلامة والمنشأ، ومولدات اللحام، والأتمتة، والخدمة المحلية وقطع الغيار. وتُسعّر المستهلكات حسب التصنيف والقطر وحجم البكرة والشهادة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "welding_equipment:compare-quotes",
+      "topic": "Comparing welding equipment quotes like-for-like",
+      "topic_ar": "مقارنة عروض معدات اللحام على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Bring offers to the same process capability, current at the same duty cycle and ambient, and the same accessory set ready to weld. Then compare delivered price, warranty on the power source, local spares and service. Recommend the three best compliant offers and show any that are machine-only separately.",
+      "body_ar": "وحّد العروض على قدرة الطريقة نفسها، والتيار عند دورة التشغيل ودرجة الحرارة نفسها، ومجموعة الملحقات نفسها الجاهزة للحام. ثم قارن سعر التسليم وضمان مصدر القدرة وتوفر القطع والخدمة محلياً. ويوصى بأفضل ثلاثة عروض مطابقة مع عرض العروض التي تشمل الآلة وحدها منفصلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -117,7 +300,8 @@
     "removed": [],
     "still_unverified": [
       "welding_equipment:spec-checklist",
-      "welding_equipment:uae-standards-and-approvals"
+      "welding_equipment:uae-standards-and-approvals",
+      "welding_equipment:authority-approvals"
     ],
     "added": [
       "welding_equipment:spec-checklist",
@@ -152,6 +336,26 @@
         "welding_equipment:lead-times",
         "welding_equipment:quotation-requirements"
       ]
+    },
+    "expert_authored_unsourced": [
+      "welding_equipment:quote-red-flags",
+      "welding_equipment:buyer-mistakes",
+      "welding_equipment:price-drivers",
+      "welding_equipment:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "welding_equipment:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

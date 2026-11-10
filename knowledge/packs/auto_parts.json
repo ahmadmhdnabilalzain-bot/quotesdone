@@ -6,8 +6,8 @@
       "topic": "Auto parts - what the buyer must state",
       "topic_ar": "قطع غيار السيارات: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for auto parts must state: part number and description; vehicle make model and year; OEM or aftermarket; brand and country of origin; conformity certificate for regulated parts; quantity; condition new or used; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة قطع غيار السيارات: رقم القطعة ووصفها؛ ماركة المركبة وطرازها وسنة الصنع؛ أصلي أو بديل؛ العلامة التجارية وبلد المنشأ؛ شهادة المطابقة للقطع الخاضعة للوائح؛ الكمية؛ الحالة جديدة أو مستعملة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for auto parts must state: part number and description; vehicle make model and year; OEM or aftermarket; brand and country of origin; conformity certificate for regulated parts; quantity; condition new or used; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): part number and description; vehicle make model and year; OEM or aftermarket; brand and country of origin; quantity; condition new or used. Follow-up questions the answers trigger: part number and description: If unknown, ask the VIN. vehicle make model and year: GCC-spec vs imported vehicles may use different parts. brand and country of origin: If the buyer named an origin, any other is a deviation. Before a firm price: a part without a number needs the VIN or the old part. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate and site; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة قطع غيار السيارات: رقم القطعة ووصفها؛ ماركة المركبة وطرازها وسنة الصنع؛ أصلي أو بديل؛ العلامة التجارية وبلد المنشأ؛ شهادة المطابقة للقطع الخاضعة للوائح؛ الكمية؛ الحالة جديدة أو مستعملة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: رقم القطعة ووصفها، وماركة المركبة وطرازها وسنتها، وأصلية أم بديلة، والعلامة وبلد المنشأ، والكمية، وجديدة أم مستعملة. أسئلة المتابعة: إذا لم يُعرف الرقم يُطلب رقم الهيكل، والمركبات بمواصفات الخليج قد تختلف قطعها عن المستوردة، وإذا حدد المشتري منشأً فأي منشأ آخر انحراف. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "part number and description",
         "vehicle make model and year",
@@ -20,14 +20,126 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "part number and description",
+        "vehicle make model and year",
+        "OEM or aftermarket",
+        "brand and country of origin",
+        "quantity",
+        "condition new or used"
+      ],
+      "spec_guide": [
+        {
+          "spec": "part number and description",
+          "blocking": true,
+          "why_needed_to_price": "Part number fixes the product.",
+          "uae_options": "OEM part number; aftermarket cross-reference.",
+          "follow_up_if": "If unknown, ask the VIN."
+        },
+        {
+          "spec": "vehicle make model and year",
+          "blocking": true,
+          "why_needed_to_price": "Parts change between model years and markets.",
+          "uae_options": "Make, model, year, engine, VIN.",
+          "follow_up_if": "GCC-spec vs imported vehicles may use different parts."
+        },
+        {
+          "spec": "OEM or aftermarket",
+          "blocking": true,
+          "why_needed_to_price": "Genuine, OES and aftermarket differ widely in price.",
+          "uae_options": "Genuine (dealer), OES brand, aftermarket, used/reconditioned.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "brand and country of origin",
+          "blocking": true,
+          "why_needed_to_price": "Brand and origin are the common substitution.",
+          "uae_options": "Named brand; origin.",
+          "follow_up_if": "If the buyer named an origin, any other is a deviation."
+        },
+        {
+          "spec": "conformity certificate for regulated parts",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "ECAS/GSO certificate where the part is regulated.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "quantity",
+          "blocking": true,
+          "why_needed_to_price": "Quantity changes the dealer or importer discount.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "condition new or used",
+          "blocking": true,
+          "why_needed_to_price": "Used parts are far cheaper and carry little warranty.",
+          "uae_options": "New, used, reconditioned.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery and installation scope",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Supply only, fitted.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "warranty",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "site_visit_required_when": "a part without a number needs the VIN or the old part."
     },
     {
       "id": "auto_parts:uae-standards-and-approvals",
@@ -85,6 +197,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "auto_parts:authority-approvals",
+      "topic": "Auto parts: conformity of regulated vehicle parts",
+      "topic_ar": "قطع غيار المركبات: مطابقة القطع الخاضعة للتنظيم",
+      "kind": "authority_approval",
+      "body_en": "Some vehicle spare parts are regulated products: MoIAT's regulated-products sheet lists automobile spare parts under Cabinet Resolution No. 12 of 2018, which requires a test report from an accredited laboratory, a maker's quality system to ISO/TS 16949 and the trademark owner's authorisation; a part conforms if it carries the EQM or another mark MoIAT recognises, or, for an original part, on the vehicle manufacturer's declaration of conformity. Retreaded tyres and tyre RFID are separate regulated categories, and MoIAT attests GSO conformity certificates for products under Gulf technical regulations. The importer or distributor obtains the certificate; the buyer can ask for it. Fitting must keep the vehicle roadworthy for the emirate's vehicle testing at registration renewal.",
+      "body_ar": "بعض قطع غيار المركبات منتجات خاضعة للتنظيم: إذ تدرج قائمة المنتجات الخاضعة للتنظيم لدى وزارة الصناعة والتكنولوجيا المتقدمة قطع غيار المركبات بموجب قرار مجلس الوزراء رقم 12 لسنة 2018، الذي يشترط تقرير اختبار من مختبر معتمد ونظام جودة لدى المصنّع وفق ISO/TS 16949 وتفويضاً من مالك العلامة التجارية؛ وتُعد القطعة مطابقة إذا حملت علامة الجودة الإماراتية (EQM) أو علامة أخرى تعترف بها الوزارة، أو إذا كانت قطعة أصلية بإقرار مطابقة من صانع المركبة. والإطارات المجددة وبطاقات RFID للإطارات فئتان خاضعتان مستقلتان، وتصادق الوزارة على شهادات المطابقة الخليجية للمنتجات الخاضعة للوائح الفنية الخليجية. ويحصل المستورد أو الموزع على الشهادة، ويمكن للمشتري طلبها. ويجب أن يحافظ التركيب على صلاحية المركبة لفحص المركبات في الإمارة عند تجديد التسجيل.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet lists 'Automobile spare parts' under Cabinet Resolution No. 12 of 2018: a test report from an accredited laboratory, a manufacturer quality system to ISO/TS 16949 and the trademark owner's authorisation, with a part conforming either by carrying the EQM or another MoIAT-recognised mark or, for an original manufacturer part, by the manufacturer's declaration of conformity; retreaded tyres and tyre RFID are separate regulated categories; MoIAT attests GSO conformity certificates (moiat.gov.ae). Not confirmed on any page that opened: the emirate vehicle-testing rule at registration renewal. Corrected: the regulated scope is now read on MoIAT's own sheet (Cabinet Resolution No. 12 of 2018 on automobile spare parts) instead of 'certification bodies list... the exact list was not established'."
+    },
+    {
+      "id": "auto_parts:quote-red-flags",
+      "topic": "Red flags in auto parts quotations",
+      "topic_ar": "علامات التحذير في عروض قطع غيار المركبات",
+      "kind": "quote_red_flag",
+      "body_en": "The classic swaps: aftermarket or OES parts quoted with the genuine part number, a different origin under the same brand, used or reconditioned parts sold as new, counterfeit packaging of well-known brands, parts for non-GCC-spec variants, and missing conformity certificates for regulated parts. Check brand and origin on every line and ask whether the price is from the authorised dealer or a parallel importer.",
+      "body_ar": "الاستبدالات الشائعة: تسعير قطع بديلة أو من مورد المصنّع برقم القطعة الأصلية، ومنشأ مختلف تحت العلامة نفسها، وقطع مستعملة أو مجددة تباع على أنها جديدة، وعبوات مقلدة لعلامات معروفة، وقطع لطرازات غير خليجية، وغياب شهادات المطابقة للقطع الخاضعة للتنظيم. افحص العلامة والمنشأ في كل بند واسأل هل السعر من الوكيل المعتمد أم من مستورد موازٍ.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "auto_parts:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying auto parts",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء قطع غيار المركبات",
+      "kind": "buyer_mistake",
+      "body_en": "Ordering by description without the VIN; comparing genuine and aftermarket prices as equal; buying safety parts (brakes, steering) on price alone; and ignoring warranty voiding when non-genuine parts are fitted in the warranty period. Ask the VIN, whether the vehicle is under warranty, and the acceptable grade.",
+      "body_ar": "الطلب بالوصف دون رقم الهيكل؛ ومقارنة أسعار الأصلي والبديل على أنها متساوية؛ وشراء قطع السلامة (الفرامل والتوجيه) بالسعر وحده؛ وتجاهل إلغاء الضمان عند تركيب قطع غير أصلية خلال فترته. لذا يُسأل عن رقم الهيكل وهل المركبة تحت الضمان والدرجة المقبولة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "auto_parts:price-drivers",
+      "topic": "What legitimately moves auto parts prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار قطع غيار المركبات",
+      "kind": "price_driver",
+      "body_en": "Grade (genuine, OES, aftermarket, used), brand and origin, stock location, vehicle make (premium makes cost more), supply channel (dealer vs parallel importer), and urgency.",
+      "body_ar": "الدرجة (أصلية أو من مورد المصنّع أو بديلة أو مستعملة)، والعلامة والمنشأ، ومكان المخزون، وماركة المركبة (الماركات الفاخرة أغلى)، وقناة التوريد (الوكيل أم المستورد الموازي)، والاستعجال.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "auto_parts:compare-quotes",
+      "topic": "Comparing auto parts quotes like-for-like",
+      "topic_ar": "مقارنة عروض قطع غيار المركبات على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Group offers by grade, then compare the same part number, brand and origin, delivered and with warranty. For fleets, weigh part life and downtime. Recommend the three best within the grade requested, and show cheaper grades separately.",
+      "body_ar": "صنّف العروض حسب الدرجة، ثم قارن رقم القطعة والعلامة والمنشأ نفسها مسلّمة مع الضمان. وفي الأساطيل زن عمر القطعة والتوقف. ويوصى بأفضل ثلاثة عروض ضمن الدرجة المطلوبة مع عرض الدرجات الأرخص منفصلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -123,10 +305,13 @@
   "verified": {
     "fetched_urls": 2,
     "claims_checked": 1,
-    "corrected": [],
+    "corrected": [
+      "auto_parts:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
-      "auto_parts:spec-checklist"
+      "auto_parts:spec-checklist",
+      "auto_parts:authority-approvals"
     ],
     "added": [
       "auto_parts:spec-checklist",
@@ -157,6 +342,29 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "auto_parts:quote-red-flags",
+      "auto_parts:buyer-mistakes",
+      "auto_parts:price-drivers",
+      "auto_parts:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "auto_parts:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "auto_parts:authority-approvals"
+      ],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

@@ -146,8 +146,8 @@
       "id": "home_automation:bms-scope-definition",
       "topic": "BMS / BAS scope: what is and is not included",
       "kind": "spec_checklist",
-      "body_en": "A Building Management System (BMS, also BAS) centralises monitoring and control of HVAC, electrical, lighting, shading, and may also monitor security, fire and other systems. It is usually structured in three levels: management (servers, workstations, graphics), automation (DDC controllers) and field (sensors, valves, actuators, meters).\nMost BMS disputes in the UAE come from unclear scope boundaries between the BMS specialist, the MEP contractor and equipment suppliers. Typical grey areas: who supplies control valves and damper actuators, who wires field devices, who provides the chiller or VRF gateway, whether fire alarm and lifts are only monitored (never controlled from BMS), and who provides network switches.\nA buyer asking for a BMS quote must therefore provide an I/O point schedule or at least the equipment list and the sequence of operations, a third-party integration list with protocol per device, and state which items are \"supply only\", \"supply and install\" or \"by others\". Price is driven mostly by point count, number of controllers, integration points, head-end licences and graphics, and commissioning effort. A quote priced as a lump sum with no point schedule cannot be compared with others and should be clarified before award. Verification note (23 Sep 2026): the BMS definition is confirmed; scope boundaries are practice.",
-      "body_ar": "يجمع نظام إدارة المبنى (BMS أو BAS) مراقبة التكييف والكهرباء والإضاءة والتظليل والتحكم فيها مركزياً، وقد يراقب الأمن والحريق وأنظمة أخرى. ويُبنى عادةً على ثلاثة مستويات: الإدارة (خوادم ومحطات عمل ورسومات)، والأتمتة (وحدات تحكم رقمية مباشرة)، والميدان (حساسات وصمامات ومحركات وعدادات).\nمعظم خلافات أنظمة إدارة المباني في الإمارات تنشأ من غموض حدود النطاق بين مختص النظام ومقاول الأعمال الكهروميكانيكية ومورّدي المعدات: من يورّد صمامات التحكم ومحركات الخوانق، ومن يمدّد أسلاك الأجهزة الميدانية، ومن يوفّر بوابة المبرّد أو نظام VRF، وهل الإنذار من الحريق والمصاعد للمراقبة فقط دون تحكم، ومن يوفّر مبدّلات الشبكة.\nلذلك يجب على من يطلب تسعيراً تقديم جدول نقاط الإدخال والإخراج أو على الأقل قائمة المعدات وتسلسل التشغيل، وقائمة الأنظمة الخارجية وبروتوكول كل جهاز، وتحديد البنود \"توريد فقط\" أو \"توريد وتركيب\" أو \"من قبل الغير\". ويتحدد السعر أساساً بعدد النقاط ووحدات التحكم ونقاط التكامل وتراخيص البرنامج الرئيسي والرسومات وجهد التشغيل التجريبي. والعرض المقطوع دون جدول نقاط لا تمكن مقارنته ويجب استيضاحه قبل الترسية. ملاحظة التحقق (23 سبتمبر 2026): تأكد تعريف نظام إدارة المباني؛ وحدود النطاق ممارسة.",
+      "body_en": "A Building Management System (BMS, also BAS) centralises monitoring and control of HVAC, electrical, lighting, shading, and may also monitor security, fire and other systems. It is usually structured in three levels: management (servers, workstations, graphics), automation (DDC controllers) and field (sensors, valves, actuators, meters).\nMost BMS disputes in the UAE come from unclear scope boundaries between the BMS specialist, the MEP contractor and equipment suppliers. Typical grey areas: who supplies control valves and damper actuators, who wires field devices, who provides the chiller or VRF gateway, whether fire alarm and lifts are only monitored (never controlled from BMS), and who provides network switches.\nA buyer asking for a BMS quote must therefore provide an I/O point schedule or at least the equipment list and the sequence of operations, a third-party integration list with protocol per device, and state which items are \"supply only\", \"supply and install\" or \"by others\". Price is driven mostly by point count, number of controllers, integration points, head-end licences and graphics, and commissioning effort. A quote priced as a lump sum with no point schedule cannot be compared with others and should be clarified before award. Verification note (23 Sep 2026): the BMS definition is confirmed; scope boundaries are practice.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; the points schedule and the integration list with protocols. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; new or existing building; payment terms.",
+      "body_ar": "يجمع نظام إدارة المبنى (BMS أو BAS) مراقبة التكييف والكهرباء والإضاءة والتظليل والتحكم فيها مركزياً، وقد يراقب الأمن والحريق وأنظمة أخرى. ويُبنى عادةً على ثلاثة مستويات: الإدارة (خوادم ومحطات عمل ورسومات)، والأتمتة (وحدات تحكم رقمية مباشرة)، والميدان (حساسات وصمامات ومحركات وعدادات).\nمعظم خلافات أنظمة إدارة المباني في الإمارات تنشأ من غموض حدود النطاق بين مختص النظام ومقاول الأعمال الكهروميكانيكية ومورّدي المعدات: من يورّد صمامات التحكم ومحركات الخوانق، ومن يمدّد أسلاك الأجهزة الميدانية، ومن يوفّر بوابة المبرّد أو نظام VRF، وهل الإنذار من الحريق والمصاعد للمراقبة فقط دون تحكم، ومن يوفّر مبدّلات الشبكة.\nلذلك يجب على من يطلب تسعيراً تقديم جدول نقاط الإدخال والإخراج أو على الأقل قائمة المعدات وتسلسل التشغيل، وقائمة الأنظمة الخارجية وبروتوكول كل جهاز، وتحديد البنود \"توريد فقط\" أو \"توريد وتركيب\" أو \"من قبل الغير\". ويتحدد السعر أساساً بعدد النقاط ووحدات التحكم ونقاط التكامل وتراخيص البرنامج الرئيسي والرسومات وجهد التشغيل التجريبي. والعرض المقطوع دون جدول نقاط لا تمكن مقارنته ويجب استيضاحه قبل الترسية. ملاحظة التحقق (23 سبتمبر 2026): تأكد تعريف نظام إدارة المباني؛ وحدود النطاق ممارسة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، وجدول النقاط، وقائمة التكامل مع البروتوكولات. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، ومبنى جديد أم قائم، وشروط الدفع.",
       "required_specs": [
         "Building type, floors, gross area",
         "Systems to be monitored vs controlled (chillers, AHUs, FCUs, VAVs, pumps, lighting, lifts, fire, generators, water tanks, leak detection)",
@@ -161,20 +161,145 @@
         "Control panels, power supply and cabling responsibility",
         "Network/IT responsibility (switches, VLANs, cyber-security)",
         "Testing, commissioning and training scope; O&M manuals and as-built",
-        "Warranty period and post-warranty maintenance"
+        "Warranty period and post-warranty maintenance",
+        "site location and emirate",
+        "new or existing building",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Building_management_system"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Hard-wired I/O point schedule (AI/AO/DI/DO counts)",
+        "Third-party integration list with protocol per device (BACnet IP/MSTP, Modbus RTU/TCP, KNX, DALI, M-Bus)",
+        "site location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Building type, floors, gross area",
+          "why_needed_to_price": "Building size and floors decide controller count and cabling.",
+          "uae_options": "Building type, number of floors, gross floor area.",
+          "follow_up_if": "If the building is mixed use, ask for areas per use.",
+          "blocking": false
+        },
+        {
+          "spec": "Systems to be monitored vs controlled (chillers, AHUs, FCUs, VAVs, pumps, lighting, lifts, fire, generators, water tanks, leak detection)",
+          "why_needed_to_price": "Each monitored or controlled system adds points and integration.",
+          "uae_options": "Chillers, AHUs, FCUs, VAVs, pumps, lighting, lifts, fire, generators, tanks, leak detection.",
+          "follow_up_if": "If integration to third-party systems is required, ask for their protocols.",
+          "blocking": false
+        },
+        {
+          "spec": "Hard-wired I/O point schedule (AI/AO/DI/DO counts)",
+          "why_needed_to_price": "BMS is priced per point.",
+          "uae_options": "points list",
+          "follow_up_if": "No points list: the MEP design must produce one.",
+          "blocking": true
+        },
+        {
+          "spec": "Third-party integration list with protocol per device (BACnet IP/MSTP, Modbus RTU/TCP, KNX, DALI, M-Bus)",
+          "why_needed_to_price": "Each integration needs gateways and engineering time.",
+          "uae_options": "per device",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Required protocol at management level (e.g. BACnet/IP, BTL listed)",
+          "why_needed_to_price": "BACnet/IP with BTL listing is the common standard and some cheap controllers lack it.",
+          "uae_options": "BACnet/IP BTL-listed; Modbus for some packaged equipment.",
+          "follow_up_if": "If a proprietary protocol is offered, ask how future integration would work.",
+          "blocking": false
+        },
+        {
+          "spec": "Number of workstations/servers, head-end software licences, number of graphics",
+          "why_needed_to_price": "Workstations, servers, licences and graphics are counted cost items.",
+          "uae_options": "Number of workstations, server licences, graphic pages.",
+          "follow_up_if": "If a point-based licence is used, ask for the cost of growth.",
+          "blocking": false
+        },
+        {
+          "spec": "Trend, alarm and reporting requirements; data retention period",
+          "why_needed_to_price": "Trend and alarm requirements decide storage and software.",
+          "uae_options": "Trend intervals; alarm routing; data retention in months.",
+          "follow_up_if": "If long retention is required, ask for the server size.",
+          "blocking": false
+        },
+        {
+          "spec": "Energy metering points and dashboards",
+          "why_needed_to_price": "Energy metering points and dashboards add meters and software.",
+          "uae_options": "Electricity, chilled water and water meters; dashboards.",
+          "follow_up_if": "If green-building compliance is needed, ask which meters are required.",
+          "blocking": false
+        },
+        {
+          "spec": "Field devices included (sensors, valves, actuators, dampers) or by MEP contractor",
+          "why_needed_to_price": "Field devices are a large cost and often by the MEP contractor.",
+          "uae_options": "Sensors, valves, actuators and dampers by BMS or MEP contractor.",
+          "follow_up_if": "If by MEP, ask the BMS contractor to list what it assumes.",
+          "blocking": false
+        },
+        {
+          "spec": "Control panels, power supply and cabling responsibility",
+          "why_needed_to_price": "Control panels, power and cabling are often split between trades.",
+          "uae_options": "Panels and cabling by BMS contractor; power by electrical.",
+          "follow_up_if": "If responsibility is unclear, ask for a responsibility matrix.",
+          "blocking": false
+        },
+        {
+          "spec": "Network/IT responsibility (switches, VLANs, cyber-security)",
+          "why_needed_to_price": "Network and cyber-security responsibility affects cost.",
+          "uae_options": "Dedicated BMS network or IT network; VLANs.",
+          "follow_up_if": "If IT supplies the network, ask for its requirements.",
+          "blocking": false
+        },
+        {
+          "spec": "Testing, commissioning and training scope; O&M manuals and as-built",
+          "why_needed_to_price": "Testing, commissioning and training take engineering time.",
+          "uae_options": "Point-to-point tests; commissioning; training; O&M and as-built.",
+          "follow_up_if": "If integrated systems testing is needed, ask for it.",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty period and post-warranty maintenance",
+          "why_needed_to_price": "Post-warranty maintenance adds annual cost.",
+          "uae_options": "12-24 months warranty; maintenance contract.",
+          "follow_up_if": "If maintenance is wanted, ask for the annual price.",
+          "blocking": false
+        },
+        {
+          "spec": "site location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "new or existing building",
+          "blocking": false,
+          "why_needed_to_price": "Work in an existing or occupied building adds survey, protection, making good and restricted hours.",
+          "uae_options": "New build from drawings; existing and occupied; existing and vacant.",
+          "follow_up_if": "An existing building brings the site visit this trade notes."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for an existing building, to survey the installed equipment and its controllers before a firm integration price.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "home_automation:home-automation-villa-spec",
       "topic": "Villa smart-home RFQ checklist",
       "kind": "spec_checklist",
-      "body_en": "For a villa or apartment, a smart-home supplier cannot quote exactly without a room-by-room definition of what is controlled and how. The biggest price drivers are the number and type of lighting circuits (switched vs dimmed, and the dimming method which must match the actual LED drivers), the number of curtain motors, the keypad range chosen (design ranges with glass or metal finishes can cost several times basic ranges), touch panels, and the programming hours.\nStage matters: wired systems must be designed before first-fix so that bus cables, deeper back-boxes, neutral wires at switch points and panel space in the distribution board are provided. In finished homes, wireless (KNX RF, Zigbee, Z-Wave in the regional 868 MHz band, or Matter-over-Thread) avoids breaking walls but depends on battery devices and radio coverage.\nHVAC control: VRF and ducted-split systems usually need a manufacturer-specific gateway to KNX/BACnet/Modbus; state the AC brand and model series. Lighting: confirm LED fixture drivers are compatible with the chosen dimmer type, otherwise flicker and buzzing follow.\nAlways state who provides the IT network; many smart-home failures are actually Wi-Fi or router problems. Verification note (23 Sep 2026): checklist follows verified entries.",
-      "body_ar": "في الفيلا أو الشقة لا يستطيع مورّد المنزل الذكي التسعير بدقة دون تحديد ما يُتحكم به في كل غرفة وطريقته. أكبر محركات السعر هي عدد دوائر الإضاءة ونوعها (تشغيل فقط أم تعتيم، وطريقة التعتيم التي يجب أن تطابق مشغّلات LED الفعلية)، وعدد محركات الستائر، وفئة لوحات المفاتيح المختارة (فالفئات التصميمية بواجهات زجاج أو معدن قد تكلف أضعاف الفئات الأساسية)، وشاشات اللمس، وساعات البرمجة.\nمرحلة البناء مهمة: الأنظمة السلكية يجب تصميمها قبل التمديدات الأولى لتوفير كابل الناقل وعلب أعمق وسلك التعادل عند المفاتيح ومساحة في لوحة التوزيع. وفي المنازل المنتهية يتجنب اللاسلكي (KNX RF أو Zigbee أو Z-Wave بتردد 868 الإقليمي أو Matter عبر Thread) تكسير الجدران، لكنه يعتمد على البطاريات وتغطية الراديو.\nالتحكم بالتكييف: أنظمة VRF والوحدات المخفية تحتاج غالباً بوابة خاصة بالمصنّع إلى KNX أو BACnet أو Modbus، فاذكر علامة المكيف وسلسلة الطراز. وفي الإضاءة تأكد من توافق مشغّلات وحدات LED مع نوع المعتّم، وإلا ظهر الوميض والطنين.\nحدّد دائماً من يوفّر شبكة المعلومات، فكثير من أعطال المنازل الذكية هي في الحقيقة مشكلات واي فاي أو موجّه. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات متحقق منها.",
+      "body_en": "For a villa or apartment, a smart-home supplier cannot quote exactly without a room-by-room definition of what is controlled and how. The biggest price drivers are the number and type of lighting circuits (switched vs dimmed, and the dimming method which must match the actual LED drivers), the number of curtain motors, the keypad range chosen (design ranges with glass or metal finishes can cost several times basic ranges), touch panels, and the programming hours.\nStage matters: wired systems must be designed before first-fix so that bus cables, deeper back-boxes, neutral wires at switch points and panel space in the distribution board are provided. In finished homes, wireless (KNX RF, Zigbee, Z-Wave in the regional 868 MHz band, or Matter-over-Thread) avoids breaking walls but depends on battery devices and radio coverage.\nHVAC control: VRF and ducted-split systems usually need a manufacturer-specific gateway to KNX/BACnet/Modbus; state the AC brand and model series. Lighting: confirm LED fixture drivers are compatible with the chosen dimmer type, otherwise flicker and buzzing follow.\nAlways state who provides the IT network; many smart-home failures are actually Wi-Fi or router problems. Verification note (23 Sep 2026): checklist follows verified entries.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): new build or retrofit, platform, the lighting circuit list and the curtain motor list. Retrofit needs a site visit. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states villa location and emirate; payment terms.",
+      "body_ar": "في الفيلا أو الشقة لا يستطيع مورّد المنزل الذكي التسعير بدقة دون تحديد ما يُتحكم به في كل غرفة وطريقته. أكبر محركات السعر هي عدد دوائر الإضاءة ونوعها (تشغيل فقط أم تعتيم، وطريقة التعتيم التي يجب أن تطابق مشغّلات LED الفعلية)، وعدد محركات الستائر، وفئة لوحات المفاتيح المختارة (فالفئات التصميمية بواجهات زجاج أو معدن قد تكلف أضعاف الفئات الأساسية)، وشاشات اللمس، وساعات البرمجة.\nمرحلة البناء مهمة: الأنظمة السلكية يجب تصميمها قبل التمديدات الأولى لتوفير كابل الناقل وعلب أعمق وسلك التعادل عند المفاتيح ومساحة في لوحة التوزيع. وفي المنازل المنتهية يتجنب اللاسلكي (KNX RF أو Zigbee أو Z-Wave بتردد 868 الإقليمي أو Matter عبر Thread) تكسير الجدران، لكنه يعتمد على البطاريات وتغطية الراديو.\nالتحكم بالتكييف: أنظمة VRF والوحدات المخفية تحتاج غالباً بوابة خاصة بالمصنّع إلى KNX أو BACnet أو Modbus، فاذكر علامة المكيف وسلسلة الطراز. وفي الإضاءة تأكد من توافق مشغّلات وحدات LED مع نوع المعتّم، وإلا ظهر الوميض والطنين.\nحدّد دائماً من يوفّر شبكة المعلومات، فكثير من أعطال المنازل الذكية هي في الحقيقة مشكلات واي فاي أو موجّه. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات متحقق منها.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مبنى جديد أو تعديل لمبنى قائم، والمنصة، وقائمة دوائر الإنارة، وقائمة محركات الستائر. والتعديل يحتاج إلى زيارة الموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وشروط الدفع.",
       "required_specs": [
         "New build or retrofit; stage of construction (before first-fix or finished)",
         "Platform/protocol required (KNX TP, KNX RF, Zigbee, Z-Wave EU/868, Matter, Crestron/Control4/Savant) or open to proposal",
@@ -187,7 +312,9 @@
         "Energy monitoring points",
         "Network: who supplies router, switches, Wi-Fi access points, rack",
         "Programming, scenes, handover of project files and passwords",
-        "Warranty and maintenance period"
+        "Warranty and maintenance period",
+        "villa location and emirate",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/KNX",
@@ -196,7 +323,116 @@
         "https://en.wikipedia.org/wiki/Matter_(standard)"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "New build or retrofit; stage of construction (before first-fix or finished)",
+        "Platform/protocol required (KNX TP, KNX RF, Zigbee, Z-Wave EU/868, Matter, Crestron/Control4/Savant) or open to proposal",
+        "Room-by-room list of lighting circuits: switched, dimmable (phase-cut, 0-10V, DALI, DT8 tunable white)",
+        "Curtain/blind motors: count, type (track/roller/Roman), wired or battery, protocol, track lengths"
+      ],
+      "spec_guide": [
+        {
+          "spec": "New build or retrofit; stage of construction (before first-fix or finished)",
+          "why_needed_to_price": "Wired systems need cabling before first fix; retrofit forces wireless or surface work.",
+          "uae_options": "new build before first fix; renovation; finished home",
+          "follow_up_if": "Finished home: ask whether walls may be opened; otherwise wireless only.",
+          "blocking": true
+        },
+        {
+          "spec": "Platform/protocol required (KNX TP, KNX RF, Zigbee, Z-Wave EU/868, Matter, Crestron/Control4/Savant) or open to proposal",
+          "why_needed_to_price": "Platforms differ several-fold in price and in who can service them later.",
+          "uae_options": "KNX; Zigbee/Z-Wave; Matter; proprietary Crestron/Control4/Savant",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Room-by-room list of lighting circuits: switched, dimmable (phase-cut, 0-10V, DALI, DT8 tunable white)",
+          "why_needed_to_price": "Each circuit and dimming type is a priced channel.",
+          "uae_options": "room list with circuit counts",
+          "follow_up_if": "No list: ask for the electrical drawings.",
+          "blocking": true
+        },
+        {
+          "spec": "Curtain/blind motors: count, type (track/roller/Roman), wired or battery, protocol, track lengths",
+          "why_needed_to_price": "Motors are priced per window and track length.",
+          "uae_options": "count and track lengths",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "HVAC integration: system type (VRF, ducted split, chilled-water FCU) and interface/gateway",
+          "why_needed_to_price": "Each HVAC system type needs its own gateway.",
+          "uae_options": "VRF, ducted split, chilled-water FCU; gateways.",
+          "follow_up_if": "If the AC brand is known, ask whether a gateway exists for it.",
+          "blocking": false
+        },
+        {
+          "spec": "Keypads/switches: brand range, finish, number of buttons, engraving",
+          "why_needed_to_price": "Keypad range, finish and engraving change cost per room.",
+          "uae_options": "Brand range; finish; buttons; engraving.",
+          "follow_up_if": "If premium finishes are wanted, ask for samples.",
+          "blocking": false
+        },
+        {
+          "spec": "Touch panels, apps, voice assistants required",
+          "why_needed_to_price": "Touch panels, apps and voice assistants add hardware and licences.",
+          "uae_options": "Touch panels; app; Alexa or Google voice.",
+          "follow_up_if": "If voice control is wanted, ask which assistant.",
+          "blocking": false
+        },
+        {
+          "spec": "Audio/video, intercom, CCTV, access control integration",
+          "why_needed_to_price": "Each integrated system adds programming.",
+          "uae_options": "Audio, video, intercom, CCTV, access control.",
+          "follow_up_if": "If systems are from other suppliers, ask for their makes.",
+          "blocking": false
+        },
+        {
+          "spec": "Energy monitoring points",
+          "why_needed_to_price": "Energy monitoring adds meters.",
+          "uae_options": "Circuit-level energy meters.",
+          "follow_up_if": "If wanted, ask for circuits to monitor.",
+          "blocking": false
+        },
+        {
+          "spec": "Network: who supplies router, switches, Wi-Fi access points, rack",
+          "why_needed_to_price": "Network equipment is often excluded.",
+          "uae_options": "Router, switches, Wi-Fi access points, rack.",
+          "follow_up_if": "If by others, ask the integrator for minimum requirements.",
+          "blocking": false
+        },
+        {
+          "spec": "Programming, scenes, handover of project files and passwords",
+          "why_needed_to_price": "Programming and handover of project files avoid lock-in.",
+          "uae_options": "Scenes; handover of files and passwords.",
+          "follow_up_if": "If files are not handed over, ask why.",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty and maintenance period",
+          "why_needed_to_price": "Warranty and maintenance add cost.",
+          "uae_options": "12-24 months; annual maintenance.",
+          "follow_up_if": "If maintenance is wanted, ask for the price.",
+          "blocking": false
+        },
+        {
+          "spec": "villa location and emirate",
+          "blocking": false,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "site_visit_required_when": "A retrofit needs a site visit to check the existing wiring, back boxes and network coverage before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "home_automation:curtain-motors",
@@ -400,6 +636,41 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Home and building automation: approvals per emirate",
+      "topic_ar": "أتمتة المنازل والمباني: الاعتمادات في كل إمارة",
+      "body_en": "A smart-home system in a private villa needs no authority approval of its own; the wiring must follow the emirate's electrical regulations (DEWA in Dubai, the Department of Energy wiring regulations with ADDC/AADC, now merged as TAQA Distribution, in Abu Dhabi, SEWA in Sharjah, EtihadWE in the northern emirates). Radio devices (Wi-Fi, Zigbee, Z-Wave) sold in the UAE must be type-approved by TDRA. Interfaces with fire alarm, smoke control or fire doors are approved by civil defence. In commercial buildings BMS supports green-building compliance (Al Sa'fat in Dubai, Estidama in Abu Dhabi). Who obtains: the integrator for TDRA-approved products; the MEP contractor for interfaces.",
+      "body_ar": "لا يحتاج نظام المنزل الذكي في فيلا خاصة إلى اعتماد حكومي خاص به، لكن يجب أن تتبع التمديدات لوائح الكهرباء في الإمارة (هيئة كهرباء ومياه دبي في دبي، ولوائح دائرة الطاقة مع شركتي التوزيع في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة، والاتحاد للماء والكهرباء في الإمارات الشمالية). ويجب أن تكون الأجهزة اللاسلكية (واي فاي وزيغبي وزي-ويف) المباعة في الدولة معتمدة النوع من هيئة تنظيم الاتصالات والحكومة الرقمية. ويعتمد الدفاع المدني الربط مع إنذار الحريق أو التحكم بالدخان أو أبواب الحريق. وفي المباني التجارية يدعم نظام إدارة المبنى الامتثال للمباني الخضراء (السعفات في دبي واستدامة في أبوظبي). وقد دُمجت شركة أبوظبي للتوزيع وشركة العين للتوزيع في شركة «طاقة للتوزيع» المسؤولة عن شبكات الكهرباء والمياه في إمارة أبوظبي. من يحصل عليها: المكامل للمنتجات المعتمدة من الهيئة، ومقاول الأعمال الكهروميكانيكية للربط.",
+      "sources": [
+        "https://tdra.gov.ae/en/Services/register-and-approve-telecommunication-equipment",
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.etihadwe.ae/en",
+        "https://u.ae/en/information-and-services/housing/public-utilities",
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE publishes an electricity wiring regulation for the northern emirates; ADDC and AADC are merged into TAQA Distribution (u.ae); Al Sa'fat applies to all new buildings in Dubai. Not confirmed on any reachable page: TDRA type approval and civil defence approval of interfaces. Host(s) that could not be reached: tdra.gov.ae (blocked; www.tdra.gov.ae redirects there); moei.gov.ae (blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt); www.dewa.gov.ae (HTTP 403 from the site; dewa.gov.ae blocked by the session network). Corrected in body_en and body_ar to what the opened page says. Second page read 2026-11-10 (ledger 1597): Now confirmed on TDRA's Type Approval page (tdra.gov.ae): radio and telecommunications terminal equipment must be registered with TDRA before it can be used, sold or distributed in the UAE, and dealers, importers and manufacturers must be registered. Still not confirmed: civil defence approval of fire interfaces and the electrical regulations of DEWA and the Abu Dhabi Department of Energy."
+    },
+    {
+      "id": "home_automation:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing home automation quotes like for like",
+      "topic_ar": "مقارنة عروض أتمتة المنازل على أساس متكافئ",
+      "body_en": "Compare on the same platform, the same channel counts (lighting, dimming, curtains, HVAC, AV zones), the same keypads and touch panels, and programming, commissioning and handover of the project file treated alike. Value beyond price: an open platform any certified integrator can service, the programming file handed over, and a support response time.",
+      "body_ar": "قارن على المنصة نفسها، وأعداد القنوات نفسها (الإنارة والتعتيم والستائر والتكييف ومناطق الصوت والصورة)، ولوحات المفاتيح والشاشات نفسها، مع معاملة البرمجة والتشغيل وتسليم ملف المشروع بالطريقة نفسها. القيمة إلى جانب السعر: منصة مفتوحة يمكن لأي مكامل معتمد صيانتها، وتسليم ملف البرمجة، وزمن استجابة للدعم.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -483,15 +754,42 @@
     }
   ],
   "verified": {
-    "fetched_urls": 30,
-    "claims_checked": 148,
+    "fetched_urls": 33,
+    "claims_checked": 154,
     "corrected": [
       "home_automation:knx-wired-vs-wireless",
       "home_automation:bacnet-ip-vs-mstp",
-      "home_automation:zigbee-zwave-wifi-matter-thread"
+      "home_automation:zigbee-zwave-wifi-matter-thread",
+      "home_automation:approvals-per-emirate"
     ],
     "removed": [],
-    "still_unverified": [],
-    "method": "A4b re-pass 2026-09-23: each claim grep-checked against fetched page text; unsupported specifics removed or stated as not established inside the entry (see Verification note)."
+    "still_unverified": [
+      "home_automation:approvals-per-emirate"
+    ],
+    "method": "A4b re-pass 2026-09-23: each claim grep-checked against fetched page text; unsupported specifics removed or stated as not established inside the entry (see Verification note).",
+    "added": [
+      "home_automation:approvals-per-emirate",
+      "home_automation:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: home_automation:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 6 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "home_automation:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

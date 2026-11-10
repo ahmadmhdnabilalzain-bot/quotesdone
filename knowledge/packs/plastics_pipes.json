@@ -147,8 +147,8 @@
       "id": "plastics_pipes:spec-pipes",
       "topic": "Spec checklist: ordering plastic pipes and fittings",
       "kind": "spec_checklist",
-      "body_en": "A supplier can quote pipes exactly only if the buyer specifies each line fully. For pipes: material and grade (uPVC, CPVC, PPR or PP-RCT, PE100 or PE100-RC, GRP with resin type); application (potable cold, hot water, drainage above ground, buried sewer, irrigation, gas, fire, chemical, seawater); applicable standard (for example ISO 1452, EN 1401, EN 1329, ISO 15874, EN 12201, ISO 4437, AWWA C950, ASTM D1785); size in outside diameter millimetres or nominal inches, with the system stated; pressure class PN, SDR, schedule or stiffness SN; length and form (6 m lengths, 4 m, coils of 50 or 100 m); colour or stripe; end type (plain, socketed, spigot and socket with ring seal, flanged). For fittings: type, size, pressure class, jointing method, and whether moulded or fabricated. Also required: quantities per item, authority approval needed (Dubai Municipality, DEWA, Abu Dhabi utilities, Civil Defence for fire), WRAS or other potable-water certificate if required, test certificates, delivery location and schedule, and whether jointing tools, solvent cement or fusion services are included. Brand restrictions or approved vendor lists from the consultant must also be stated.",
-      "body_ar": "لا يستطيع المورد التسعير بدقة إلا إذا حدد المشتري كل بند كاملاً. للأنابيب: المادة والدرجة (uPVC أو CPVC أو PPR أو PP-RCT أو PE100 أو PE100-RC أو GRP مع نوع الراتنج)؛ والاستخدام (مياه شرب باردة، ماء ساخن، صرف فوق الأرض، مجاري مدفونة، ري، غاز، حريق، كيميائي، مياه بحر)؛ والمعيار المطبق (مثل ISO 1452 أو EN 1401 أو EN 1329 أو ISO 15874 أو EN 12201 أو ISO 4437 أو AWWA C950 أو ASTM D1785)؛ والمقاس بالقطر الخارجي بالمليمتر أو البوصة الاسمية مع ذكر النظام؛ وفئة الضغط PN أو SDR أو الجدول أو الصلابة SN؛ والطول والشكل (أطوال 6 أمتار أو 4، لفائف 50 أو 100 متر)؛ واللون أو الخط؛ ونوع الطرف (عادي، بقابس، ذكر وأنثى بحلقة مانعة، شفة). وللقطع: النوع والمقاس وفئة الضغط وطريقة الوصل، وهل هي مصبوبة أم مصنعة. ويلزم أيضاً: الكميات لكل بند، والموافقة المطلوبة (بلدية دبي، هيئة كهرباء ومياه دبي، مرافق أبوظبي، الدفاع المدني للحريق)، وشهادة WRAS أو غيرها لمياه الشرب إن طُلبت، وشهادات الاختبار، وموقع التسليم وجدوله، وهل تشمل أدوات الوصل أو لاصق المذيب أو خدمات اللحام. ويجب أيضاً ذكر قيود العلامات أو قوائم الموردين المعتمدين من الاستشاري.",
+      "body_en": "A supplier can quote pipes exactly only if the buyer specifies each line fully. For pipes: material and grade (uPVC, CPVC, PPR or PP-RCT, PE100 or PE100-RC, GRP with resin type); application (potable cold, hot water, drainage above ground, buried sewer, irrigation, gas, fire, chemical, seawater); applicable standard (for example ISO 1452, EN 1401, EN 1329, ISO 15874, EN 12201, ISO 4437, AWWA C950, ASTM D1785); size in outside diameter millimetres or nominal inches, with the system stated; pressure class PN, SDR, schedule or stiffness SN; length and form (6 m lengths, 4 m, coils of 50 or 100 m); colour or stripe; end type (plain, socketed, spigot and socket with ring seal, flanged). For fittings: type, size, pressure class, jointing method, and whether moulded or fabricated. Also required: quantities per item, authority approval needed (Dubai Municipality, DEWA, Abu Dhabi utilities, Civil Defence for fire), WRAS or other potable-water certificate if required, test certificates, delivery location and schedule, and whether jointing tools, solvent cement or fusion services are included. Brand restrictions or approved vendor lists from the consultant must also be stated.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): material and grade; application/fluid; standard; size (OD mm or NPS) and system; PN/SDR/schedule/SN; fittings list with type/size/class; quantities; authority approval required; approved vendor list / brand restrictions; operating temperature and pressure (and surge). Follow-up questions the answers trigger: application/fluid: Potable brings drinking-water certification; sprinkler brings UL/FM listing. authority approval required: Ask which authority the network is handed to. operating temperature and pressure (and surge): Hot water or sun-exposed pipes bring derating and UV protection. Before a firm price: none beyond the listed specs; a pipeline with installation needs the route drawing or a site visit. Supplier ask-back review (2026-11-10): the inquiry now also states Delivery location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: material and grade; application/fluid; standard; size (OD mm or NPS) and system; PN/SDR/schedule/SN; fittings list with type/size/class; quantities; authority approval required; approved vendor list / brand restrictions; operating temperature and pressure (and surge); Delivery location and emirate.",
+      "body_ar": "لا يستطيع المورد التسعير بدقة إلا إذا حدد المشتري كل بند كاملاً. للأنابيب: المادة والدرجة (uPVC أو CPVC أو PPR أو PP-RCT أو PE100 أو PE100-RC أو GRP مع نوع الراتنج)؛ والاستخدام (مياه شرب باردة، ماء ساخن، صرف فوق الأرض، مجاري مدفونة، ري، غاز، حريق، كيميائي، مياه بحر)؛ والمعيار المطبق (مثل ISO 1452 أو EN 1401 أو EN 1329 أو ISO 15874 أو EN 12201 أو ISO 4437 أو AWWA C950 أو ASTM D1785)؛ والمقاس بالقطر الخارجي بالمليمتر أو البوصة الاسمية مع ذكر النظام؛ وفئة الضغط PN أو SDR أو الجدول أو الصلابة SN؛ والطول والشكل (أطوال 6 أمتار أو 4، لفائف 50 أو 100 متر)؛ واللون أو الخط؛ ونوع الطرف (عادي، بقابس، ذكر وأنثى بحلقة مانعة، شفة). وللقطع: النوع والمقاس وفئة الضغط وطريقة الوصل، وهل هي مصبوبة أم مصنعة. ويلزم أيضاً: الكميات لكل بند، والموافقة المطلوبة (بلدية دبي، هيئة كهرباء ومياه دبي، مرافق أبوظبي، الدفاع المدني للحريق)، وشهادة WRAS أو غيرها لمياه الشرب إن طُلبت، وشهادات الاختبار، وموقع التسليم وجدوله، وهل تشمل أدوات الوصل أو لاصق المذيب أو خدمات اللحام. ويجب أيضاً ذكر قيود العلامات أو قوائم الموردين المعتمدين من الاستشاري.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المادة ودرجتها، والاستخدام والسائل، والمواصفة، والمقاس والنظام، وفئة الضغط أو SDR أو الجدول أو الصلابة، وقائمة التجهيزات، والكميات، والاعتماد المطلوب من الجهة المختصة، وقائمة الموردين المعتمدين، وضغط التشغيل وحرارته. أسئلة المتابعة: مياه الشرب تستلزم شهادة ملامسة مياه الشرب، والرشاشات تستلزم إدراج UL أو FM، ويُسأل عن الجهة التي تُسلّم إليها الشبكة، والمياه الساخنة أو الأنابيب المعرضة للشمس تستلزم تخفيض الضغط والحماية من الأشعة. خط الأنابيب مع التركيب يحتاج مخطط المسار أو زيارة موقع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع التسليم والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "sources": [
         "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf",
         "http://www.cosmoplast.com/catalogue/uPVC-metric-Imp-2015--21-02-2016.pdf",
@@ -175,8 +175,167 @@
         "approved vendor list / brand restrictions",
         "operating temperature and pressure (and surge)",
         "BS 6920 / WRAS / NSF 61 evidence for drinking water",
-        "fire listing (UL 1821 / FM) for sprinkler pipe"
-      ]
+        "fire listing (UL 1821 / FM) for sprinkler pipe",
+        "Delivery location and emirate",
+        "Payment terms"
+      ],
+      "blocking": [
+        "material and grade",
+        "application/fluid",
+        "standard",
+        "size (OD mm or NPS) and system",
+        "PN/SDR/schedule/SN",
+        "fittings list with type/size/class",
+        "quantities",
+        "authority approval required",
+        "approved vendor list / brand restrictions",
+        "operating temperature and pressure (and surge)",
+        "Delivery location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "material and grade",
+          "blocking": true,
+          "why_needed_to_price": "PVC, CPVC, PPR, HDPE PE100 and GRP differ in resin cost and use.",
+          "uae_options": "uPVC, CPVC, PPR/PPR-CT, HDPE PE80/PE100/PE100-RC, PE-X, GRP.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "application/fluid",
+          "blocking": true,
+          "why_needed_to_price": "Application fixes material, rating and approvals.",
+          "uae_options": "Potable water, drainage, irrigation, TSE, gas, chemicals, sprinkler, district cooling.",
+          "follow_up_if": "Potable brings drinking-water certification; sprinkler brings UL/FM listing."
+        },
+        {
+          "spec": "standard",
+          "blocking": true,
+          "why_needed_to_price": "The standard sets dimensions and wall thickness.",
+          "uae_options": "ISO 4427, EN 12201, ISO 1452, BS EN 1329/1401, DIN 8077/8078, ASTM D1785/F441.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "size (OD mm or NPS) and system",
+          "blocking": true,
+          "why_needed_to_price": "Metric and imperial systems do not mix.",
+          "uae_options": "OD 16-1,200 mm; NPS 1/2-12.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "PN/SDR/schedule/SN",
+          "blocking": true,
+          "why_needed_to_price": "Rating sets wall thickness and price.",
+          "uae_options": "PN10/16/20/25, SDR 11/17/26, SCH 40/80, SN4/SN8.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "length or coil form",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "6 m or 12 m lengths, coils for small HDPE.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "colour/stripe",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Black with blue stripe for water, yellow for gas, grey, white, green.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "end/joint type",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Plain, socket, solvent, ring-seal, butt-fusion, electrofusion.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "fittings list with type/size/class",
+          "blocking": true,
+          "why_needed_to_price": "Fittings are often a large share of the price.",
+          "uae_options": "Elbows, tees, reducers, couplers, electrofusion fittings, flanges with backing rings.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "quantities",
+          "blocking": true,
+          "why_needed_to_price": "Metres per size and project volume set the price per metre.",
+          "uae_options": "Metres per size; fittings per type.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "authority approval required",
+          "blocking": true,
+          "why_needed_to_price": "Utility approval may limit the brands that can be offered.",
+          "uae_options": "DEWA, EtihadWE, Abu Dhabi regulator, municipality or consultant approval.",
+          "follow_up_if": "Ask which authority the network is handed to."
+        },
+        {
+          "spec": "potable-water certification (e.g. WRAS)",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "WRAS, BS 6920, NSF 61.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "test certificates",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Factory test reports, third-party certificates.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery schedule",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "approved vendor list / brand restrictions",
+          "blocking": true,
+          "why_needed_to_price": "Projects often restrict to listed manufacturers; others cannot be priced as compliant.",
+          "uae_options": "Consultant's approved list, utility list.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "operating temperature and pressure (and surge)",
+          "blocking": true,
+          "why_needed_to_price": "Temperature derating in UAE heat changes the class required.",
+          "uae_options": "Working pressure, temperature, surge allowance.",
+          "follow_up_if": "Hot water or sun-exposed pipes bring derating and UV protection."
+        },
+        {
+          "spec": "BS 6920 / WRAS / NSF 61 evidence for drinking water",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "fire listing (UL 1821 / FM) for sprinkler pipe",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Delivery location and emirate",
+          "why_needed_to_price": "Freight, offloading and the distance to site are part of a delivered price; a delivered price to Dubai is not the same as one to Al Dhafra or Fujairah.",
+          "uae_options": "Ex-warehouse collection; delivered to one address in a named emirate; delivered and offloaded; split deliveries to several sites.",
+          "follow_up_if": "If the site has access limits (time windows, small vehicles only, no forklift), state them so freight is priced correctly.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "none beyond the listed specs; a pipeline with installation needs the route drawing or a site visit."
     },
     {
       "id": "plastics_pipes:dm-approval",
@@ -439,6 +598,19 @@
         "https://cdn.ymaws.com/www.ppfahome.org/resource/resmgr/pdf/ppfa_cpvc_installation_handb.pdf"
       ],
       "confidence": "high"
+    },
+    {
+      "id": "plastics_pipes:compare-quotes",
+      "topic": "Comparing plastic pipe quotes like-for-like",
+      "topic_ar": "مقارنة عروض الأنابيب البلاستيكية على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Normalise every offer to the same material grade, standard, size, rating and length unit, then add the fittings list priced in full; a low pipe price with fittings excluded is not comparable. Check approved-list status and potable or fire certification, temperature rating, delivered price and validity against resin price movements. Weigh local manufacture (shorter lead time, easier claims) and warranty. Recommend the three compliant offers by total delivered cost of pipe plus fittings.",
+      "body_ar": "وحّد كل عرض على درجة المادة والمواصفة والمقاس وفئة الضغط ووحدة الطول نفسها، ثم أضف قائمة التجهيزات مسعّرة بالكامل؛ فسعر الأنابيب المنخفض مع استثناء التجهيزات غير قابل للمقارنة. وتحقق من الإدراج في القائمة المعتمدة وشهادات مياه الشرب أو الحريق وتصنيف الحرارة وسعر التسليم وصلاحيته أمام تقلب أسعار الراتنج. وزن التصنيع المحلي (مدة توريد أقصر ومطالبات أسهل) والضمان. ويوصى بأفضل ثلاثة عروض مطابقة حسب إجمالي تكلفة تسليم الأنابيب والتجهيزات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -623,6 +795,9 @@
       "plastics_pipes:warranty",
       "plastics_pipes:irrigation"
     ],
-    "notes": "ISO/ASTM/DM/DEWA sites blocked or returned HTML shells; standard facts were confirmed through the Abu Dhabi DoE guide, DHA guideline, manufacturer technical documents and PPFA. Not established: which pipe types MoIAT currently regulates, Dubai Municipality product-approval specifics, DEWA material specification contents, DM sewerage material table."
+    "notes": "ISO/ASTM/DM/DEWA sites blocked or returned HTML shells; standard facts were confirmed through the Abu Dhabi DoE guide, DHA guideline, manufacturer technical documents and PPFA. Not established: which pipe types MoIAT currently regulates, Dubai Municipality product-approval specifics, DEWA material specification contents, DM sewerage material table.",
+    "expert_authored_unsourced": [
+      "plastics_pipes:compare-quotes"
+    ]
   }
 }

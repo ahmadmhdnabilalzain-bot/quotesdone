@@ -144,7 +144,9 @@ begin
   o := o || jsonb_build_object('R3_second_ask_chases', n, 'R3_second_ask_reply', v->>'deterministic_reply');
 
   -- nothing new yet: both stay open
-  v := public.fn_customer_support_closes_status_chases();
+  -- 10 Nov 2026: the status chase reads only demo rows under its fixture switch (two_customer_support_duties_read_only_
+  -- their_own_kind_of_row.sql, ruling 1199), so every call below on these ZZ DEMO fixtures sets the switch for that call.
+  perform set_config('qd.duty_fixtures', 'on', true); v := public.fn_customer_support_closes_status_chases(); perform set_config('qd.duty_fixtures', '', true);
   if (select status from public.agent_actions where id = h1) <> 'pending' then fails := fails || ' L1:closed_too_early'; end if;
   -- the third supplier quotes; A2's dated update falls due - while A has NO email on file (R6)
   insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, status, created_at, warranty, lead_time, payment_terms, exclusions, validity)
@@ -153,10 +155,10 @@ begin
   update public.quotes set status = 'submitted' where id = q3;
   update public.agent_actions set evidence = evidence || jsonb_build_object('next_update_by', now() - interval '1 minute') where id = h2;
   update public.customers set email = null where id = cA;
-  v := public.fn_customer_support_closes_status_chases();
-  v := public.fn_customer_support_closes_status_chases();
-  v := public.fn_customer_support_closes_status_chases();
-  v := public.fn_customer_support_closes_status_chases();
+  perform set_config('qd.duty_fixtures', 'on', true); v := public.fn_customer_support_closes_status_chases(); perform set_config('qd.duty_fixtures', '', true);
+  perform set_config('qd.duty_fixtures', 'on', true); v := public.fn_customer_support_closes_status_chases(); perform set_config('qd.duty_fixtures', '', true);
+  perform set_config('qd.duty_fixtures', 'on', true); v := public.fn_customer_support_closes_status_chases(); perform set_config('qd.duty_fixtures', '', true);
+  perform set_config('qd.duty_fixtures', 'on', true); v := public.fn_customer_support_closes_status_chases(); perform set_config('qd.duty_fixtures', '', true);
   select jsonb_build_object('h2_status', status, 'attempts', detail->'followup_attempts', 'last', detail->>'followup_last_status',
            'finding', (select issue_key from public.it_engineer_finding where issue_key = 'customer_support:status_chase_followup_undelivered:' || h2),
            'fourth_run', v - 'errors')
@@ -167,7 +169,7 @@ begin
   -- the email is back and the finding's cause is cleared: the next tick tells the customer and closes it
   update public.customers set email = 'zz-demo-wa-a@example.invalid' where id = cA;
   update public.agent_actions set detail = detail - 'followup_attempts' where id = h2;
-  v := public.fn_customer_support_closes_status_chases();
+  perform set_config('qd.duty_fixtures', 'on', true); v := public.fn_customer_support_closes_status_chases(); perform set_config('qd.duty_fixtures', '', true);
   select jsonb_build_object('h1', (select jsonb_build_object('status', status, 'outcome', evidence->>'outcome', 'by', evidence->>'verified_by', 'delivery', evidence->>'delivery_status') from public.agent_actions where id = h1),
                             'h2', (select jsonb_build_object('status', status, 'outcome', evidence->>'outcome', 'by', evidence->>'verified_by', 'delivery', evidence->>'delivery_status') from public.agent_actions where id = h2),
                             'followups', (select jsonb_agg(jsonb_build_object('type', type, 'channel', channel, 'status', status) order by id)
@@ -249,7 +251,7 @@ begin
   if r->'price_band'->>'average_label' <> 'under AED 1,000' or r->'price_band'->'average_rounded_to_nearest_1000' <> 'null'::jsonb then
     fails := fails || ' R8:floor(' || r::text || ')'; end if;
   o := o || jsonb_build_object('R8_floor_band', r->'price_band');
-  v := public.fn_customer_support_closes_status_chases();
+  perform set_config('qd.duty_fixtures', 'on', true); v := public.fn_customer_support_closes_status_chases(); perform set_config('qd.duty_fixtures', '', true);
   select jsonb_build_object('status', status, 'delivery', evidence->>'delivery_status', 'outcome', evidence->>'outcome',
            'our_sends', (select count(*) from public.notifications where inquiry_id = i3 and type = 'quote_received')) into r
     from public.agent_actions where id = h3;
@@ -338,7 +340,9 @@ begin
   h1 := (r->>'handoff_id')::bigint;
   update public.agent_actions set created_at = now() - interval '25 hours' where id = h1;
   v := public.fn_wa_human_request_tick();
+  perform set_config('qd.duty_fixtures', 'on', true);   -- 10 Nov 2026: the follow-up reads a demo party only under its switch
   v := v || jsonb_build_object('email', public.fn_wa_human_request_email_followup());
+  perform set_config('qd.duty_fixtures', '', true);
   select jsonb_build_object('status', status, 'followed_up', detail ? 'followed_up_at', 'skipped', detail->>'followup_skipped',
            'emailed', detail->'email_followup'->>'status', 'report', (select status from public.support_ceo_report where id = (detail->>'escalated_report_id')::bigint))
     into r from public.agent_actions where id = h1;

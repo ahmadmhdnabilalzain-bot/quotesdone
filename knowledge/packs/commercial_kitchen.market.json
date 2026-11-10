@@ -29,8 +29,8 @@
       "topic": "Commercial kitchen equipment: makes, brands, distributors and origins in the UAE",
       "topic_ar": "معدات مطابخ تجارية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the kitchen equipment brands commonly specified in the UAE, such as Rational, Unox, Hobart and Winterhalter, and where their dealers and fabricators are found. Brands commonly specified in UAE kitchens: Rational, Unox, Convotherm (Welbilt), Electrolux Professional, Hobart, Winterhalter, Meiko, Robot Coupe, Hoshizaki, Scotsman, Ansul (Johnson Controls). They are sold through several kitchen equipment dealers and fabricators in Al Quoz, Deira (Al Ras) and the Sharjah Industrial Areas; the current authorised dealer of each brand was not checked.",
-      "body_ar": "أكثر علامات معدات المطابخ التجارية اعتماداً في مواصفات المشاريع بالإمارات Rational وUnox وHobart وWinterhalter، مع بيان أماكن وكلائها وورش التصنيع. العلامات الشائعة في مطابخ الإمارات: Rational، Unox، Convotherm (Welbilt)، Electrolux Professional، Hobart، Winterhalter، Meiko، Robot Coupe، Hoshizaki، Scotsman، Ansul (Johnson Controls). وتُباع عبر عدة وكلاء لمعدات المطابخ ومصنعين في القوز وديرة (الراس) والمناطق الصناعية بالشارقة؛ ولم يُتحقق من الوكيل المعتمد الحالي لكل علامة.",
+      "body_en": "This entry names the kitchen equipment brands commonly specified in the UAE, such as Rational, Unox, Hobart and Winterhalter, and where their dealers and fabricators are found. Brands commonly specified in UAE kitchens: Rational, Unox, Convotherm (Welbilt), Electrolux Professional, Hobart, Winterhalter, Meiko, Robot Coupe, Hoshizaki, Scotsman, Ansul (Johnson Controls). They are sold through several kitchen equipment dealers and fabricators in Al Quoz, Deira (Al Ras) and the Sharjah Industrial Areas; the current authorised dealer of each brand was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Rational = a premium German brand; Unox = a premium Italian brand; Convotherm (Welbilt) = a premium German brand; Electrolux Professional = a premium Swedish brand; Hobart = a premium American brand; Winterhalter = a premium German brand; Meiko = a premium German brand; Robot Coupe = a premium French brand; Hoshizaki = a premium Japanese brand; Scotsman = a mid-tier American brand; Ansul (Johnson Controls) = a premium American brand.",
+      "body_ar": "أكثر علامات معدات المطابخ التجارية اعتماداً في مواصفات المشاريع بالإمارات Rational وUnox وHobart وWinterhalter، مع بيان أماكن وكلائها وورش التصنيع. العلامات الشائعة في مطابخ الإمارات: Rational، Unox، Convotherm (Welbilt)، Electrolux Professional، Hobart، Winterhalter، Meiko، Robot Coupe، Hoshizaki، Scotsman، Ansul (Johnson Controls). وتُباع عبر عدة وكلاء لمعدات المطابخ ومصنعين في القوز وديرة (الراس) والمناطق الصناعية بالشارقة؛ ولم يُتحقق من الوكيل المعتمد الحالي لكل علامة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Rational = علامة ألمانية من الفئة الممتازة؛ Unox = علامة إيطالية من الفئة الممتازة؛ Convotherm (Welbilt) = علامة ألمانية من الفئة الممتازة؛ Electrolux Professional = علامة سويدية من الفئة الممتازة؛ Hobart = علامة أمريكية من الفئة الممتازة؛ Winterhalter = علامة ألمانية من الفئة الممتازة؛ Meiko = علامة ألمانية من الفئة الممتازة؛ Robot Coupe = علامة فرنسية من الفئة الممتازة؛ Hoshizaki = علامة يابانية من الفئة الممتازة؛ Scotsman = علامة أمريكية من الفئة المتوسطة؛ Ansul (Johnson Controls) = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://makemyrestaurant.com/restaurant-fire-suppression-requirements-uae/",
         "https://www.atninfo.com/brand/uae/all/rational-26397",
@@ -42,7 +42,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: UAE Civil Defence requires automatic wet-chemical suppression certified to UL 300 in commercial kitchen hoods, with NFPA 96 and the UAE Fire and Life Safety Code -> confirmed | Rational and Winterhalter are sold through several UAE kitchen equipment suppliers -> confirmed: multiple dealers, none singled out | Horeca Trade, Winterhalter Middle East and Atlas Kitchen named as suppliers -> removed: not confirmed. Not checked: Current authorised distributor for each brand, and specific supplier company names listed as examples, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE Civil Defence requires automatic wet-chemical suppression certified to UL 300 in commercial kitchen hoods, with NFPA 96 and the UAE Fire and Life Safety Code -> confirmed | Rational and Winterhalter are sold through several UAE kitchen equipment suppliers -> confirmed: multiple dealers, none singled out | Horeca Trade, Winterhalter Middle East and Atlas Kitchen named as suppliers -> removed: not confirmed. Not checked: Current authorised distributor for each brand, and specific supplier company names listed as examples, were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Rational",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Unox",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Convotherm (Welbilt)",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Electrolux Professional",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hobart",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Winterhalter",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Meiko",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Robot Coupe",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hoshizaki",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Scotsman",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Ansul (Johnson Controls)",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "commercial_kitchen:uae-market-sizes",

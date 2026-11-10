@@ -107,3 +107,22 @@ the trade through the planner.
 The open measurement that decides whether this is a real risk is **how often the planner names the right trade for
 these 21 questions**. That needs a model call per question, so it was not run here, under the ruling against paid
 batch inference.
+
+## Re-measured 10 Nov 2026 (sales_engineer): the same 21 packs, and none of it is a loading gap
+
+Asked: why do some `.market` packs (hospitality_supplies, hvac) score 0 on production — never loaded, not embedded, or a
+filter? Measured live, read-only, path `ml`, `--packs '\.market$'`:
+
+- **The same result as 28 Oct, to the digit:** EN 0.909 / AR 0.767, 40 (pack, seat) pairs below the EN floor, the same 21
+  packs listed above. Nothing has regressed since; the gate has been red on these 21 since this report.
+- **Loaded, embedded, eligible:** all 24 expected entries of the 21 packs are in `sales_knowledge`, `runtime_index_eligible`,
+  tagged `verified:true` with no `audience:` tag, with a gte vector and a `knowledge_vector_ml` vector. 1,264 market rows are
+  loaded, 1,258 with an ml vector. So no loader, embedding or filter fix applies, and none was made.
+- **With the trade named** (`--with-trade`): 17 of 21 clear; hvac, mannequins_visual_merchandising, plastics_pipes and
+  stationery_office_supplies still read EN 0 (AR 1.0). Their top 5 is their own trade's other entries: for hvac
+  `hvac:price-drivers`, `hvac:mistake-comparing-by-price`, `hvac:uae-market-products`, `hvac:dewa-connection-load`,
+  `hvac:brands-origins`; for hospitality_supplies (trade-blind) `linen-par-levels` and `product-distinctions` above
+  `hotel_furniture:uae-market-sizes`.
+- The floor stays 0.35. The cause is the one this report names: one blind question per market pack, ranked trade-blind.
+- After this branch's packs are reloaded (`load_verified_packs.mjs --apply`, the bodies of all 223 packs changed), the
+  live eval must be run again: the new bodies change every vector.

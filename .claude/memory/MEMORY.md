@@ -97,6 +97,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Docker and a local database in a cloud session (9 Nov)](docker-and-a-local-database-in-a-cloud-session.md) — dockerd &, mirror.gcr.io, --network=host + CA secret; `npm run db:local` rebuilds the whole public schema and measures it
 - [Checks read split code through a sources helper; oxlint not ESLint (9 Nov)](checks-read-split-code-through-a-sources-helper.md) — functionSource()/portal_sources; arabic hashes keyed by path; typescript-eslint refuses TS 7
 - [Identity shapes live in one list (3 Nov)](identity-shapes-live-in-one-list.md) — every scrubber runs _shared/identity_text.ts; measure with identity_never_leaks_before_reveal.mjs (480 trials)
+- [A brand is generalised at the customer door (10 Nov)](a-brand-is-generalised-at-the-customer-door-not-in-the-supplier-copy.md) — ledger 1588-1590: quote_generalise.ts on every pre-reveal surface, raw brand kept for the hold gate; review notes EN/AR; 24-trade corpus + pack-prose over-redaction
 - [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
 - [The otp-race step runs on a throwaway Postgres in the cloud container (28 Oct)](the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container.md) — no Docker daemon, but Postgres 16 is installed; run it as the postgres user and set QD_OTP_RACE_PG
 - [A probe can run locally on a stub built from the mirror (3 Nov)](a-probe-can-run-locally-on-a-stub-built-from-the-mirror.md) — no token: copy the real routine bodies out of full_schema, stub net/roles, run `begin; file; probe; rollback;`; caught a now()-tie defect before the push
@@ -200,6 +201,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Nothing is done until a browser proved it](nothing-is-done-until-a-browser-proved-it.md): founder 2 Nov, ledger 1464-1465
 - [A later SQL file can silently delete a rule](a-later-sql-file-can-silently-delete-a-rule.md): diff every routine against live before merge
 - [A founder ruling is not a defect to fix](a-founder-ruling-is-not-a-defect-to-fix.md): read the ledger before changing a pinned check
+- [A probe must not assume production is empty of what it makes](a-probe-must-not-assume-production-is-empty-of-what-it-makes.md): 10 Nov; 36 red on main, production right; assert on your own subjects, set real rows aside in the aborted txn
 - [The automatic apply's language](an-automatic-apply-and-a-probe-must-speak-its-language.md): PROBE OK wording, seat, from=, mirror regen
 - [Conversation quality eval and its limits](conversation-quality-eval-and-its-limits.md): 3 Nov; widget 5 convs/IP/day; the canon is the product, not the brief
 - [A supplier's own words reach every customer, every trade](a-suppliers-own-words-reach-every-customer-in-every-trade.md): 10 Nov, ledger 1573/1579/1586; alias queue, adjacency, similarity ranks only

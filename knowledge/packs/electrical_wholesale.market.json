@@ -27,8 +27,8 @@
       "topic": "Electrical supplies (wholesale): makes, brands, distributors and origins in the UAE",
       "topic_ar": "المواد الكهربائية بالجملة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names electrical brands stocked in the UAE, such as Schneider Electric, ABB, Legrand, Ducab and Fluke, and where wholesalers cluster. Brands stocked: Schneider Electric, ABB, Siemens, Legrand, Hager, Eaton, MK, Crabtree, Clipsal, Havells, Signify, Ledvance, Opple, Ducab, Oman Cables, CMP, Hawke, OBO, Furse, Fluke, Megger, Kyoritsu, plus Chinese and Turkish value brands. Wholesalers cluster in Deira (the Naif Road area), Al Quoz, Sharjah Industrial Area and Musaffah, with Dragon Mart for retail. Which wholesaler carries each brand was not checked. Origins: Europe, Turkey, India, China, UAE.",
-      "body_ar": "من العلامات الكهربائية المتوفرة في السوق الإماراتي Schneider Electric وABB وLegrand وDucab وFluke، مع بيان أماكن تجمع تجار الجملة. والعلامات المتوفرة: Schneider Electric وABB وSiemens وLegrand وHager وEaton وMK وCrabtree وClipsal وHavells وSignify وLedvance وOpple وDucab وOman Cables وCMP وHawke وOBO وFurse وFluke وMegger وKyoritsu، إضافة إلى علامات صينية وتركية اقتصادية. ويتجمع تجار الجملة في ديرة (منطقة شارع نايف) والقوز والمنطقة الصناعية بالشارقة ومصفح، ودراجون مارت للبيع بالتجزئة. ولم نتحقق من تاجر الجملة الذي يوفر كل علامة. وبلدان المنشأ: أوروبا وتركيا والهند والصين والإمارات.",
+      "body_en": "This entry names electrical brands stocked in the UAE, such as Schneider Electric, ABB, Legrand, Ducab and Fluke, and where wholesalers cluster. Brands stocked: Schneider Electric, ABB, Siemens, Legrand, Hager, Eaton, MK, Crabtree, Clipsal, Havells, Signify, Ledvance, Opple, Ducab, Oman Cables, CMP, Hawke, OBO, Furse, Fluke, Megger, Kyoritsu, plus Chinese and Turkish value brands. Wholesalers cluster in Deira (the Naif Road area), Al Quoz, Sharjah Industrial Area and Musaffah, with Dragon Mart for retail. Which wholesaler carries each brand was not checked. Origins: Europe, Turkey, India, China, UAE.\n\nOrigin and tier, for describing a quoted brand without naming it: Schneider Electric - premium, France; ABB - premium, Switzerland; Siemens - premium, Germany; Legrand - premium, France; Hager - mid, Germany; Eaton - premium, USA; MK - mid, UK; Crabtree - mid, UK; Clipsal - mid, Australia; Havells - economy, India; Signify - premium, Netherlands; Ledvance - mid, Germany; Opple - economy, China; Ducab - premium, UAE; Oman Cables - mid, Oman; CMP - premium, UK; Hawke - premium, UK; OBO - premium, Germany; Furse - mid, UK; Fluke - premium, USA; Megger - premium, UK; Kyoritsu - mid, Japan.",
+      "body_ar": "من العلامات الكهربائية المتوفرة في السوق الإماراتي Schneider Electric وABB وLegrand وDucab وFluke، مع بيان أماكن تجمع تجار الجملة. والعلامات المتوفرة: Schneider Electric وABB وSiemens وLegrand وHager وEaton وMK وCrabtree وClipsal وHavells وSignify وLedvance وOpple وDucab وOman Cables وCMP وHawke وOBO وFurse وFluke وMegger وKyoritsu، إضافة إلى علامات صينية وتركية اقتصادية. ويتجمع تجار الجملة في ديرة (منطقة شارع نايف) والقوز والمنطقة الصناعية بالشارقة ومصفح، ودراجون مارت للبيع بالتجزئة. ولم نتحقق من تاجر الجملة الذي يوفر كل علامة. وبلدان المنشأ: أوروبا وتركيا والهند والصين والإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Schneider Electric: فئة ممتازة، فرنسا؛ ABB: فئة ممتازة، سويسرا؛ Siemens: فئة ممتازة، ألمانيا؛ Legrand: فئة ممتازة، فرنسا؛ Hager: فئة متوسطة، ألمانيا؛ Eaton: فئة ممتازة، الولايات المتحدة؛ MK: فئة متوسطة، المملكة المتحدة؛ Crabtree: فئة متوسطة، المملكة المتحدة؛ Clipsal: فئة متوسطة، أستراليا؛ Havells: فئة اقتصادية، الهند؛ Signify: فئة ممتازة، هولندا؛ Ledvance: فئة متوسطة، ألمانيا؛ Opple: فئة اقتصادية، الصين؛ Ducab: فئة ممتازة، الإمارات؛ Oman Cables: فئة متوسطة، عُمان؛ CMP: فئة ممتازة، المملكة المتحدة؛ Hawke: فئة ممتازة، المملكة المتحدة؛ OBO: فئة ممتازة، ألمانيا؛ Furse: فئة متوسطة، المملكة المتحدة؛ Fluke: فئة ممتازة، الولايات المتحدة؛ Megger: فئة ممتازة، المملكة المتحدة؛ Kyoritsu: فئة متوسطة، اليابان.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://spectrum-me.com/electrical.html",
@@ -38,7 +38,163 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: regulated products need an ECAS or EQM certificate of conformity from MoIAT -> confirmed | Ducab and Oman Cables sold by UAE wholesalers -> confirmed. Not checked: Which products are currently in the mandatory ECAS scope, and named distributors' current brand lines, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: regulated products need an ECAS or EQM certificate of conformity from MoIAT -> confirmed | Ducab and Oman Cables sold by UAE wholesalers -> confirmed. Not checked: Which products are currently in the mandatory ECAS scope, and named distributors' current brand lines, were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Schneider Electric",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "ABB",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Switzerland",
+          "generic_ar": "علامة ممتازة من سويسرا"
+        },
+        {
+          "brand": "Siemens",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Legrand",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Hager",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Eaton",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "MK",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Crabtree",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Clipsal",
+          "origin": "Australia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Australia",
+          "generic_ar": "علامة متوسطة من أستراليا"
+        },
+        {
+          "brand": "Havells",
+          "origin": "India",
+          "tier": "economy",
+          "generic_en": "a economy brand from India",
+          "generic_ar": "علامة اقتصادية من الهند"
+        },
+        {
+          "brand": "Signify",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium brand from Netherlands",
+          "generic_ar": "علامة ممتازة من هولندا"
+        },
+        {
+          "brand": "Ledvance",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Opple",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy brand from China",
+          "generic_ar": "علامة اقتصادية من الصين"
+        },
+        {
+          "brand": "Ducab",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "Oman Cables",
+          "origin": "Oman",
+          "tier": "mid",
+          "generic_en": "a mid brand from Oman",
+          "generic_ar": "علامة متوسطة من عُمان"
+        },
+        {
+          "brand": "CMP",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium brand from UK",
+          "generic_ar": "علامة ممتازة من المملكة المتحدة"
+        },
+        {
+          "brand": "Hawke",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium brand from UK",
+          "generic_ar": "علامة ممتازة من المملكة المتحدة"
+        },
+        {
+          "brand": "OBO",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Furse",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Fluke",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Megger",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium brand from UK",
+          "generic_ar": "علامة ممتازة من المملكة المتحدة"
+        },
+        {
+          "brand": "Kyoritsu",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid brand from Japan",
+          "generic_ar": "علامة متوسطة من اليابان"
+        }
+      ]
     },
     {
       "id": "electrical_wholesale:uae-market-sizes",

@@ -23,6 +23,8 @@ const WA_FLUSH = 'scripts/sql/wa_flush_is_unscheduled_because_resilience_ping_dr
 // 27 Oct 2026: the resolver learns a duty's own job (seat_duty:<duty>, made at run time by fn_seat_duty_isolate), and
 // cs_held_question_route is registered. Replayed while pending.
 const DUTY_JOBS = 'scripts/sql/a_seat_dutys_own_job_names_its_seat_through_the_duty.sql';
+// 10 Nov 2026: invite_same_day_brake (marketing) and review_request (ceo) were written with no seat. Replayed while pending.
+const LABELS_1110 = 'scripts/sql/the_same_day_brake_and_the_review_request_labels_name_their_seat.sql';
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
@@ -34,14 +36,14 @@ test('static: RLS + policy + revoke on the register, revoke + search_path on the
   assert.ok(src.includes('revoke execute on function public.fn_writers_without_a_seat(integer) from public, anon, authenticated'));
   assert.match(src, /fn_writers_without_a_seat\(p_days integer default 7\)[\s\S]{0,200}security definer\s+set search_path to 'public', 'pg_temp'/);
   const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/);
-  for (const f of [FILE, WA_FLUSH, DUTY_JOBS]) assert.ok(pending(f) !== manifest.includes(f), `${f}: exactly one of a pending note and a MANIFEST line`);
+  for (const f of [FILE, WA_FLUSH, DUTY_JOBS, LABELS_1110]) assert.ok(pending(f) !== manifest.includes(f), `${f}: exactly one of a pending note and a MANIFEST line`);
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 
 test('production, aborted: every run label of the last 7 days and every cron job names an active seat', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const replay = [WA_FLUSH, FILE, DUTY_JOBS].filter(pending).map(read).join('\n');
+  const replay = [WA_FLUSH, FILE, DUTY_JOBS, LABELS_1110].filter(pending).map(read).join('\n');
   let o;
   try {
     await replaySql(replay + `

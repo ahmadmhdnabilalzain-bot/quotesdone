@@ -5,8 +5,8 @@
       "id": "retail_shelving:spec-checklist",
       "topic": "Retail shelving - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For retail shelving quotes to be compared like-for-like, every quoted line (goods) must state: (1) shelving type (gondola, wall, supermarket, pharmacy); (2) height, length and depth per run; (3) number of shelves and load per shelf in kg; (4) material and finish (steel gauge, powder coat colour); (5) accessories (price strips, dividers, hooks, lighting); (6) layout drawing; (7) installation scope; (8) fire code aisle widths; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the retail_shelving trade.",
-      "body_ar": "لكي تُقارن عروض رفوف المحلات التجارية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الرفوف (جندولا، أو جدارية، أو سوبرماركت، أو صيدلية)؛ (2) الارتفاع والطول والعمق لكل صف؛ (3) عدد الأرفف والحمل لكل رف بالكيلوغرام؛ (4) المادة والتشطيب (سماكة الفولاذ ولون الطلاء البودرة)؛ (5) الملحقات (شرائط الأسعار، والفواصل، والخطافات، والإضاءة)؛ (6) مخطط التوزيع؛ (7) نطاق التركيب؛ (8) عرض الممرات وفق كود الحريق؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة retail_shelving فقط.",
+      "body_en": "For retail shelving quotes to be compared like-for-like, every quoted line (goods) must state: (1) shelving type (gondola, wall, supermarket, pharmacy); (2) height, length and depth per run; (3) number of shelves and load per shelf in kg; (4) material and finish (steel gauge, powder coat colour); (5) accessories (price strips, dividers, hooks, lighting); (6) layout drawing; (7) installation scope; (8) fire code aisle widths; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the retail_shelving trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): shelving type (gondola, wall, supermarket, pharmacy); height, length and depth per run; number of shelves and load per shelf in kg; material and finish (steel gauge, powder coat colour); layout drawing; installation scope; delivery terms and location. Follow-up questions the answers trigger: shelving type (gondola, wall, supermarket, pharmacy): Ask the store type and product category; height, length and depth per run: Ask for the floor plan; number of shelves and load per shelf in kg: Heavy goods (beverages, rice) need heavy-duty shelves; layout drawing: No plan: site visit needed. Before a firm price: a firm price needs a floor plan or planogram with run lengths, heights and shelf loads; without a plan a site measure visit is unavoidable. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: shelving type (gondola, wall, supermarket, pharmacy); height, length and depth per run; number of shelves and load per shelf in kg; material and finish (steel gauge, powder coat colour); layout drawing; installation scope; delivery terms and location.",
+      "body_ar": "لكي تُقارن عروض رفوف المحلات التجارية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الرفوف (جندولا، أو جدارية، أو سوبرماركت، أو صيدلية)؛ (2) الارتفاع والطول والعمق لكل صف؛ (3) عدد الأرفف والحمل لكل رف بالكيلوغرام؛ (4) المادة والتشطيب (سماكة الفولاذ ولون الطلاء البودرة)؛ (5) الملحقات (شرائط الأسعار، والفواصل، والخطافات، والإضاءة)؛ (6) مخطط التوزيع؛ (7) نطاق التركيب؛ (8) عرض الممرات وفق كود الحريق؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة retail_shelving فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الرفوف، والارتفاع والطول والعمق لكل صف، وعدد الرفوف والحمل لكل رف، والمادة والتشطيب، ومخطط التوزيع، ونطاق التركيب، والتسليم. أسئلة المتابعة: البضائع الثقيلة كالمشروبات والأرز تستلزم رفوفاً للأحمال الثقيلة، وغياب المخطط يستلزم زيارة موقع. لا يُعطى سعر نهائي دون مخطط أرضي أو مخطط عرض بالأطوال والارتفاعات والأحمال، وإلا فزيارة القياس في الموقع لا بد منها. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "shelving type (gondola, wall, supermarket, pharmacy)",
         "height, length and depth per run",
@@ -19,14 +19,119 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "shelving type (gondola, wall, supermarket, pharmacy)",
+        "height, length and depth per run",
+        "number of shelves and load per shelf in kg",
+        "material and finish (steel gauge, powder coat colour)",
+        "layout drawing",
+        "installation scope",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "shelving type (gondola, wall, supermarket, pharmacy)",
+          "why_needed_to_price": "Gondola, wall, supermarket and pharmacy systems use different uprights and accessories.",
+          "uae_options": "gondola island; wall bay; end cap; checkout; pharmacy; cold-room shelving",
+          "follow_up_if": "Ask the store type and product category.",
+          "blocking": true
+        },
+        {
+          "spec": "height, length and depth per run",
+          "why_needed_to_price": "Run lengths and heights set the number of bays.",
+          "uae_options": "bay widths 665-1330 mm; heights per brand",
+          "follow_up_if": "Ask for the floor plan.",
+          "blocking": true
+        },
+        {
+          "spec": "number of shelves and load per shelf in kg",
+          "why_needed_to_price": "Shelf count and load set shelf gauge and brackets.",
+          "uae_options": "light; medium; heavy kg per shelf",
+          "follow_up_if": "Heavy goods (beverages, rice) need heavy-duty shelves.",
+          "blocking": true
+        },
+        {
+          "spec": "material and finish (steel gauge, powder coat colour)",
+          "why_needed_to_price": "Steel thickness and powder coat drive cost.",
+          "uae_options": "steel gauge; RAL colour; wooden or glass shelves",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "accessories (price strips, dividers, hooks, lighting)",
+          "why_needed_to_price": "Accessories can add a large share.",
+          "uae_options": "price strips; dividers; hooks; wire baskets; LED lighting",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "layout drawing",
+          "why_needed_to_price": "A layout drawing is needed to count bays and end caps.",
+          "uae_options": "planogram or floor plan",
+          "follow_up_if": "No plan: site visit needed.",
+          "blocking": true
+        },
+        {
+          "spec": "installation scope",
+          "why_needed_to_price": "Installation and fixing to wall or floor are labour.",
+          "uae_options": "supply only; supply and install",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "fire code aisle widths",
+          "why_needed_to_price": "Aisle widths affect layout approval and number of runs.",
+          "uae_options": "from the fire and accessibility plan",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Delivery and mall working hours shift cost.",
+          "uae_options": "night installation in malls",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock vs imported.",
+          "uae_options": "ex-stock; imported",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "Warranty on coating and structure.",
+          "uae_options": "years",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "lighting wiring; signage; cold room shelving",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs a floor plan or planogram with run lengths, heights and shelf loads; without a plan a site measure visit is unavoidable.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "retail_shelving:uae-standards-and-approvals",
@@ -84,6 +189,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "retail_shelving:authority-approvals",
+      "topic": "Retail shelving & display fixtures: licences, permits and approvals by emirate",
+      "topic_ar": "رفوف ووحدات العرض لمتاجر التجزئة: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Shelving itself needs no product approval. The shop fit-out needs approval: in Dubai the fit-out drawings go to Dubai Municipality or the free-zone or master-developer authority, and the layout must respect the exit widths and travel distances of the UAE Fire and Life Safety Code, checked by the civil defence of the emirate; malls add their own landlord fit-out approval and working-hour rules. The retailer or its fit-out contractor obtains these approvals; the shelving supplier provides layout drawings and load data.",
+      "body_ar": "لا تحتاج الرفوف بحد ذاتها إلى اعتماد منتج، بل يحتاج تجهيز المتجر إلى اعتماد: ففي دبي تُرفع مخططات التجهيز إلى بلدية دبي أو سلطة المنطقة الحرة أو المطور الرئيسي، ويجب أن يراعي التوزيع عروض المخارج ومسافات الهروب في كود الإمارات للحماية من الحرائق الذي يتحقق منه الدفاع المدني في الإمارة، وتضيف المراكز التجارية اعتماد المالك وقواعد ساعات العمل. ويستخرج تاجر التجزئة أو مقاول التجهيز هذه الاعتمادات، بينما يقدّم مورد الرفوف مخططات التوزيع وبيانات الأحمال.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection. Second page read 2026-11-10 (ledger 1597): DDA's fit-out permit page (dda.gov.ae) confirms a fit-out permit for retail units in DDA zones, with a Dubai Civil Defense completion certificate before the fit-out completion certificate. Still not confirmed: the exit-width and travel-distance rules (www.dcd.gov.ae resets every connection, so the UAE Fire and Life Safety Code text was not read)."
+    },
+    {
+      "id": "retail_shelving:quote-red-flags",
+      "topic": "Retail shelving & display fixtures: red flags in supplier quotations",
+      "topic_ar": "رفوف ووحدات العرض لمتاجر التجزئة: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Check shelf load per level is stated in kg, not \"heavy duty\"; thinner uprights or shelves than specified; accessories priced per bay but quantities missing; end caps and back panels excluded; installation by day only when the mall allows nights only; lighting priced without wiring; and colour or brand system changed so later expansion will not match.",
+      "body_ar": "تحقق من ذكر حمل كل رف بالكيلوغرام لا عبارة \"للأحمال الثقيلة\"، ومن عدم وجود قوائم أو رفوف أرق من المواصفة، وتسعير الملحقات لكل وحدة دون ذكر الكميات، واستثناء الرفوف الطرفية والألواح الخلفية، والتركيب نهاراً فقط بينما يسمح المركز بالعمل ليلاً فقط، وتسعير الإنارة دون التوصيل، وتغيير اللون أو النظام بحيث لا تتطابق التوسعات لاحقاً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "retail_shelving:buyer-mistakes",
+      "topic": "Retail shelving & display fixtures: common buyer mistakes",
+      "topic_ar": "رفوف ووحدات العرض لمتاجر التجزئة: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers often order before the planogram is fixed, under-specify loads for beverages and bulk goods, forget end caps and checkout fixtures, and choose a non-standard system that cannot be extended later from local stock.",
+      "body_ar": "كثيراً ما يطلب المشترون قبل تثبيت مخطط العرض، ويقللون تحديد الأحمال للمشروبات والسلع السائبة، وينسون الرفوف الطرفية ووحدات الصناديق، ويختارون نظاماً غير قياسي لا يمكن توسيعه لاحقاً من المخزون المحلي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "retail_shelving:price-drivers",
+      "topic": "Retail shelving & display fixtures: what makes prices differ legitimately",
+      "topic_ar": "رفوف ووحدات العرض لمتاجر التجزئة: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Price differs with steel gauge, load class, finish, shelf material (steel, wood, glass), accessories, lighting, system brand, quantity of bays, installation hours and imported versus local stock.",
+      "body_ar": "يختلف السعر بسماكة الفولاذ وفئة الحمل والتشطيب ومادة الرف (فولاذ أو خشب أو زجاج) والملحقات والإنارة وعلامة النظام وعدد الوحدات وساعات التركيب والمخزون المستورد مقارنة بالمحلي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "retail_shelving:compare-quotes-cost-to-value",
+      "topic": "Retail shelving & display fixtures: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "رفوف ووحدات العرض لمتاجر التجزئة: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Count bays, end caps and accessories from the same layout in every quote, at the same loads and finish, installed. Value lies in load capacity, coating life, compatibility for future expansion and local spare availability. Recommend three that meet the layout and loads in full.",
+      "body_ar": "احسب الوحدات والرفوف الطرفية والملحقات من المخطط نفسه في كل عرض، بالأحمال والتشطيب نفسيهما ومع التركيب. وتكمن القيمة في قدرة التحمل وعمر الطلاء والتوافق مع التوسع المستقبلي وتوفر القطع محلياً. أوصِ بثلاثة عروض تلبي المخطط والأحمال كاملة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +300,8 @@
     "removed": [],
     "still_unverified": [
       "retail_shelving:spec-checklist",
-      "retail_shelving:uae-standards-and-approvals"
+      "retail_shelving:uae-standards-and-approvals",
+      "retail_shelving:authority-approvals"
     ],
     "added": [
       "retail_shelving:spec-checklist",
@@ -157,6 +332,37 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "retail_shelving:quote-red-flags",
+      "retail_shelving:buyer-mistakes",
+      "retail_shelving:price-drivers",
+      "retail_shelving:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "retail_shelving:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

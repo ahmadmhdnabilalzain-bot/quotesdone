@@ -5,8 +5,8 @@
       "id": "market_research:spec-checklist",
       "topic": "Market research - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For market research (trade code market_research only), every quoted line must state: Research objective; Method; Sample size and profile; Geography and languages; Deliverables; Data protection and consent; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط أبحاث السوق (رمز النشاط market_research فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: هدف البحث؛ المنهجية؛ حجم العينة وخصائصها؛ النطاق الجغرافي واللغات؛ المخرجات؛ حماية البيانات والموافقة؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For market research (trade code market_research only), every quoted line must state: Research objective; Method; Sample size and profile; Geography and languages; Deliverables; Data protection and consent; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Research objective; Method; Sample size and profile; Geography and languages; Deliverables; Deliverables and scope of work; Duration and schedule. Follow-up questions the answers trigger: Sample size and profile: Low-incidence targets: ask feasibility. Before a firm price: a firm price needs objective, method, sample size and profile, geography and deliverables; low-incidence or B2B samples may need a feasibility check before the price is firm.",
+      "body_ar": "في نشاط أبحاث السوق (رمز النشاط market_research فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: هدف البحث؛ المنهجية؛ حجم العينة وخصائصها؛ النطاق الجغرافي واللغات؛ المخرجات؛ حماية البيانات والموافقة؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الهدف، والمنهجية، وحجم العينة ومواصفاتها، والنطاق الجغرافي واللغات، والمخرجات، ونطاق العمل، والجدول الزمني. العينات النادرة أو بين الشركات قد تحتاج دراسة جدوى قبل تثبيت السعر.",
       "required_specs": [
         "Research objective",
         "Method",
@@ -25,7 +25,104 @@
         "https://uaelegislation.gov.ae/en"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Research objective",
+        "Method",
+        "Sample size and profile",
+        "Geography and languages",
+        "Deliverables",
+        "Deliverables and scope of work",
+        "Duration and schedule"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Research objective",
+          "why_needed_to_price": "Objective decides method.",
+          "uae_options": "market sizing; customer satisfaction; brand tracking; concept test",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Method",
+          "why_needed_to_price": "Method sets cost.",
+          "uae_options": "online survey; CATI; face-to-face; focus groups; interviews",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Sample size and profile",
+          "why_needed_to_price": "Sample size and profile drive fieldwork cost.",
+          "uae_options": "n; quotas; B2B or consumer; incidence",
+          "follow_up_if": "Low-incidence targets: ask feasibility.",
+          "blocking": true
+        },
+        {
+          "spec": "Geography and languages",
+          "why_needed_to_price": "Geography and languages.",
+          "uae_options": "emirates; GCC; Arabic; English",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Deliverables",
+          "why_needed_to_price": "Deliverables.",
+          "uae_options": "data tables; report; presentation; dashboard",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Data protection and consent",
+          "why_needed_to_price": "Data protection and consent.",
+          "uae_options": "PDPL; consent",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "Scope of work.",
+          "uae_options": "written scope",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Licence and qualifications.",
+          "uae_options": "ESOMAR membership",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Service level.",
+          "uae_options": "response",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "Timeline.",
+          "uae_options": "weeks",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "fixed; per complete",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "incentives; translation",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs objective, method, sample size and profile, geography and deliverables; low-incidence or B2B samples may need a feasibility check before the price is firm.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "market_research:uae-standards-and-approvals",
@@ -82,6 +179,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "market_research:authority-approvals",
+      "topic": "Market research & surveys: licences, permits and approvals by emirate",
+      "topic_ar": "أبحاث السوق والاستبيانات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Market research needs a trade licence with a research activity from the emirate or a free zone. Collecting and processing respondents' personal data is subject to Federal Decree-Law 45 of 2021 on personal data protection outside DIFC and ADGM, which have their own data laws; consent and purpose limits apply. Telephone fieldwork that markets to respondents falls under the 2024 telemarketing rules (Cabinet Resolution No. 56 of 2024 Concerning the Telemarketing Regulations, with penalties in Cabinet Resolution No. 57 of 2024), while genuine research calls are not marketing; whether research calls are exempt was not confirmed. Publishing survey results in media may engage UAE Media Council content rules. ESOMAR membership is a professional code, not a licence.",
+      "body_ar": "تحتاج أبحاث السوق إلى رخصة تجارية بنشاط بحثي من الإمارة أو منطقة حرة. ويخضع جمع البيانات الشخصية للمستجيبين ومعالجتها للمرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية خارج المركزين الماليين اللذين لهما قوانينهما، وتنطبق قيود الموافقة والغرض. ويخضع العمل الميداني الهاتفي الذي يسوّق للمستجيبين لقواعد التسويق الهاتفي لعام 2024 (قرار مجلس الوزراء رقم 56 لسنة 2024 بشأن تنظيم التسويق عبر الهاتف، وعقوباته في قرار مجلس الوزراء رقم 57 لسنة 2024)، أما مكالمات البحث الحقيقية فليست تسويقاً، ولم يُؤكَّد استثناؤها. وقد ينطوي نشر نتائج الاستبيانات في الإعلام على قواعد المحتوى لدى مجلس الإمارات للإعلام. وعضوية ESOMAR مدونة مهنية لا ترخيص.",
+      "sources": [
+        "https://www.simmons-simmons.com/en/publications/ckwugz8lu16rs0a44qvbqcbz9/uae-personal-data-protection-law-faqs",
+        "https://www.clydeco.com/en/insights/2024/07/uae-tightens-telemarketing-regulations-what-you-ne",
+        "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+        "https://u.ae/en/information-and-services/infrastructure/telecommunications"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: u.ae's data-protection page: Federal Decree-Law No. 45 of 2021 on the protection of personal data, in force since 2 January 2022, and DIFC's own Data Protection Law No. 5 of 2020; u.ae's telecommunications page: Cabinet Resolution No. 56 of 2024 Concerning the Telemarketing Regulations, with penalties in Cabinet Resolution No. 57 of 2024; u.ae's media regulation page on the UAE Media Council. Not confirmed on any page that opened: consent and purpose limits in the decree-law's text, ADGM's own data law, and whether research calls are exempt from the telemarketing rules. Corrected: named the 2024 telemarketing instruments (Cabinet Resolutions No. 56 and No. 57 of 2024) from u.ae."
+    },
+    {
+      "id": "market_research:quote-red-flags",
+      "topic": "Market research & surveys: red flags in supplier quotations",
+      "topic_ar": "أبحاث السوق والاستبيانات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for online panels described as representative of all UAE residents, sample sizes too small for sub-groups, incentives and translation excluded, deliverables limited to data tables, and fieldwork offshore without disclosure.",
+      "body_ar": "انتبه إلى لوحات إلكترونية توصف بأنها تمثل جميع سكان الدولة، وأحجام عينات صغيرة جداً للفئات الفرعية، واستثناء الحوافز والترجمة، ومخرجات مقصورة على جداول البيانات، وعمل ميداني خارج الدولة دون إفصاح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "market_research:buyer-mistakes",
+      "topic": "Market research & surveys: common buyer mistakes",
+      "topic_ar": "أبحاث السوق والاستبيانات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers choose the cheapest method without checking whether it reaches the target (for example, online samples missing blue-collar or older residents).",
+      "body_ar": "يختار المشترون أرخص منهجية دون التحقق من وصولها إلى الفئة المستهدفة (مثل العينات الإلكترونية التي تُغفل العمال وكبار السن).",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "market_research:price-drivers",
+      "topic": "Market research & surveys: what makes prices differ legitimately",
+      "topic_ar": "أبحاث السوق والاستبيانات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: method, sample size, incidence, languages, geography, analysis depth and turnaround.",
+      "body_ar": "العوامل: المنهجية، وحجم العينة، ونسبة الانتشار، واللغات، والنطاق الجغرافي، وعمق التحليل، ومدة الإنجاز.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "market_research:compare-quotes-cost-to-value",
+      "topic": "Market research & surveys: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "أبحاث السوق والاستبيانات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare cost per valid complete for the same sample profile and method, and the deliverables. Recommend three with a sound sampling plan.",
+      "body_ar": "قارن التكلفة لكل استبيان صحيح مكتمل لمواصفات العينة والمنهجية نفسها، والمخرجات. أوصِ بثلاثة عروض بخطة عينة سليمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -120,11 +288,14 @@
   "verified": {
     "fetched_urls": 0,
     "claims_checked": 0,
-    "corrected": [],
+    "corrected": [
+      "market_research:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "market_research:spec-checklist",
-      "market_research:uae-standards-and-approvals"
+      "market_research:uae-standards-and-approvals",
+      "market_research:authority-approvals"
     ],
     "added": [
       "market_research:spec-checklist",
@@ -155,6 +326,40 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "market_research:quote-red-flags",
+      "market_research:buyer-mistakes",
+      "market_research:price-drivers",
+      "market_research:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "market_research:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "market_research:authority-approvals"
+      ],
+      "urls_read": [
+        "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+        "https://u.ae/en/information-and-services/infrastructure/telecommunications"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

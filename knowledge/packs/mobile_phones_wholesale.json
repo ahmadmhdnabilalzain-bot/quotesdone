@@ -5,8 +5,8 @@
       "id": "mobile_phones_wholesale:spec-checklist",
       "topic": "Mobile phones wholesale - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For mobile phones wholesale (trade code mobile_phones_wholesale only), every quoted line must state: Brand, model and storage; Regional version; New, refurbished or used grade; TDRA type approval; Warranty provider; Colour mix per lot; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط تجارة الهواتف المحمولة بالجملة (رمز النشاط mobile_phones_wholesale فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: العلامة والطراز وسعة التخزين؛ النسخة الإقليمية؛ جديد أو مجدد أو درجة المستعمل؛ اعتماد النوع من هيئة تنظيم الاتصالات؛ جهة الضمان؛ توزيع الألوان لكل دفعة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For mobile phones wholesale (trade code mobile_phones_wholesale only), every quoted line must state: Brand, model and storage; Regional version; New, refurbished or used grade; TDRA type approval; Warranty provider; Colour mix per lot; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Brand, model and storage; Regional version; New, refurbished or used grade; TDRA type approval; Quantity and unit of measure; Delivery terms and location. Before a firm price: a firm price needs model, storage, version, condition and quantity; prices hold only briefly in this market. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. TDRA type approval is no longer quote-blocking: type approval belongs to the model and is shown by the supplier; the customer only says the units are for the UAE market, which the regional version and delivery terms already state. Quote-blocking after this review: Brand, model and storage; Regional version; New, refurbished or used grade; Quantity and unit of measure; Delivery terms and location.",
+      "body_ar": "في نشاط تجارة الهواتف المحمولة بالجملة (رمز النشاط mobile_phones_wholesale فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: العلامة والطراز وسعة التخزين؛ النسخة الإقليمية؛ جديد أو مجدد أو درجة المستعمل؛ اعتماد النوع من هيئة تنظيم الاتصالات؛ جهة الضمان؛ توزيع الألوان لكل دفعة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: العلامة والطراز والسعة، والنسخة الإقليمية، والحالة، واعتماد الهيئة، والكمية، والتسليم. لا تثبت الأسعار إلا لفترة قصيرة في هذا السوق. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «اعتماد الطراز من هيئة تنظيم الاتصالات» مانعاً للتسعير: الاعتماد يخص الطراز ويثبته المورّد؛ ويكفي أن يذكر العميل أن الأجهزة للسوق الإماراتي، وهو ما تذكره النسخة الإقليمية وشروط التسليم أصلاً.",
       "required_specs": [
         "Brand, model and storage",
         "Regional version",
@@ -20,13 +20,123 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://tdra.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Brand, model and storage",
+        "Regional version",
+        "New, refurbished or used grade",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Brand, model and storage",
+          "why_needed_to_price": "Brand, model and storage fix the price.",
+          "uae_options": "model; GB",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Regional version",
+          "why_needed_to_price": "Regional version changes compatibility and warranty.",
+          "uae_options": "Middle East; international",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "New, refurbished or used grade",
+          "why_needed_to_price": "Condition is a different product.",
+          "uae_options": "new sealed; refurbished A/B/C; used",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "TDRA type approval",
+          "why_needed_to_price": "TDRA type approval is needed for local sale.",
+          "uae_options": "approved model",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty provider",
+          "why_needed_to_price": "Warranty provider.",
+          "uae_options": "brand UAE warranty; seller",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Colour mix per lot",
+          "why_needed_to_price": "Colour mix.",
+          "uae_options": "per lot",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "Standards.",
+          "uae_options": "n/a",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "UAE approval.",
+          "uae_options": "TDRA",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "free zone; mainland",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "Warranty period.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "chargers",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs model, storage, version, condition and quantity; prices hold only briefly in this market.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "mobile_phones_wholesale:uae-standards-and-approvals",
@@ -83,6 +193,78 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "mobile_phones_wholesale:authority-approvals",
+      "topic": "Mobile phones & accessories wholesale: licences, permits and approvals by emirate",
+      "topic_ar": "جملة هواتف وإكسسوارات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Mobile phones are telecom terminal equipment: TDRA requires type approval and registration of each model before it is sold in the UAE, obtained by the registered manufacturer, importer or distributor, and certification bodies report a TDRA label card and a TDRA customs release permit for imports. Phones bought for re-export from free zones are outside local sale. Counterfeit phones are seized under trademark law. Ask for TDRA approval of every model for local sale and confirm the warranty provider.",
+      "body_ar": "الهواتف المتحركة معدات طرفية للاتصالات: تشترط هيئة تنظيم الاتصالات والحكومة الرقمية الاعتماد النوعي وتسجيل كل طراز قبل بيعه في الدولة، ويستخرجه المصنّع أو المستورد أو الموزع المسجل، وتفيد جهات الاعتماد ببطاقة الهيئة وبتصريح إفراج جمركي من الهيئة للاستيراد. والهواتف المشتراة لإعادة التصدير من المناطق الحرة خارج البيع المحلي. وتُضبط الهواتف المقلدة وفق قانون العلامات التجارية. اطلب اعتماد الهيئة لكل طراز للبيع المحلي وتأكد من جهة الضمان.",
+      "sources": [
+        "https://www.tuv.com/market-access-services/en/certification-filter/united-arab-emirates-telecommunication-apparatus-(tdra)-approval.html",
+        "https://www.tuvsud.com/en/services/product-certification/global-market-access/united-arab-emirates",
+        "https://www.middleeastbriefing.com/news/?p=5830",
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval",
+        "https://tdra.gov.ae/-/media/TDRA-Media/Resources/Resources-2025/TDRA-Service-Manual---EN---16-Oct-2025.ashx?c=Resources&t=Services+Guide"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: TDRA's Type Approval page (tdra.gov.ae): radio and telecommunications terminal equipment must be registered with TDRA before it is used, sold or distributed in the UAE, and dealers, importers and manufacturers must be registered with TDRA; TDRA's service guide of 16 October 2025 describes the supplier registration and device approval services. Not confirmed on any page that opened: the TDRA label card and the customs release permit (reported by certification bodies), and trademark seizures. Corrected: removed the line 'The official TDRA pages were not reachable from this session'; tdra.gov.ae opened."
+    },
+    {
+      "id": "mobile_phones_wholesale:quote-red-flags",
+      "topic": "Mobile phones & accessories wholesale: red flags in supplier quotations",
+      "topic_ar": "جملة هواتف وإكسسوارات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for international versions sold as Middle East versions, refurbished units sold as new, activated or locked phones, mismatched colour mix, and seller-only warranty.",
+      "body_ar": "انتبه إلى نسخ دولية تُباع على أنها نسخ الشرق الأوسط، ووحدات مجددة تُباع على أنها جديدة، وهواتف مفعلة أو مقفلة، وعدم تطابق مزيج الألوان، وضمان من البائع فقط.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "mobile_phones_wholesale:buyer-mistakes",
+      "topic": "Mobile phones & accessories wholesale: common buyer mistakes",
+      "topic_ar": "جملة هواتف وإكسسوارات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers do not specify version and condition grade and receive mixed lots.",
+      "body_ar": "لا يحدد المشترون النسخة ودرجة الحالة فتصلهم دفعات مختلطة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "mobile_phones_wholesale:price-drivers",
+      "topic": "Mobile phones & accessories wholesale: what makes prices differ legitimately",
+      "topic_ar": "جملة هواتف وإكسسوارات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: model and storage, version, condition, channel, quantity, colour mix and market movement.",
+      "body_ar": "العوامل: الطراز والسعة، والنسخة، والحالة، والقناة، والكمية، ومزيج الألوان، وحركة السوق.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "mobile_phones_wholesale:compare-quotes-cost-to-value",
+      "topic": "Mobile phones & accessories wholesale: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "جملة هواتف وإكسسوارات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare identical model, storage, version and condition with the warranty provider stated. Recommend three that match the spec exactly.",
+      "body_ar": "قارن الطراز والسعة والنسخة والحالة المتطابقة مع ذكر جهة الضمان. أوصِ بثلاثة عروض تطابق المواصفة تماماً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -121,10 +303,13 @@
   "verified": {
     "fetched_urls": 1,
     "claims_checked": 1,
-    "corrected": [],
+    "corrected": [
+      "mobile_phones_wholesale:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
-      "mobile_phones_wholesale:spec-checklist"
+      "mobile_phones_wholesale:spec-checklist",
+      "mobile_phones_wholesale:authority-approvals"
     ],
     "added": [
       "mobile_phones_wholesale:spec-checklist",
@@ -155,6 +340,39 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "mobile_phones_wholesale:quote-red-flags",
+      "mobile_phones_wholesale:buyer-mistakes",
+      "mobile_phones_wholesale:price-drivers",
+      "mobile_phones_wholesale:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "mobile_phones_wholesale:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "mobile_phones_wholesale:authority-approvals"
+      ],
+      "urls_read": [
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

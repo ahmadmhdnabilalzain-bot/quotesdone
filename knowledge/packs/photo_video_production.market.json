@@ -28,8 +28,8 @@
       "topic": "Photography & video production: makes, brands, distributors and origins in the UAE",
       "topic_ar": "التصوير وإنتاج الفيديو: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the UAE production company Filmworks Group, the Dubai Studio City hub, and the common camera brands, such as ARRI, RED, Sony and Canon. Confirmed production company and production hub, plus common camera brands: Filmworks Group, Dubai Studio City, ARRI, RED, Sony, Canon, Blackmagic Design. Camera rental houses in Al Quoz and Studio City were not checked.",
-      "body_ar": "من أبرز جهات الإنتاج في الإمارات Filmworks Group ومدينة دبي للاستوديوهات، ومن علامات الكاميرات الشائعة ARRI وRED وSony وCanon. شركة الإنتاج ومركز الإنتاج المؤكدان، إضافة إلى علامات الكاميرات الشائعة: Filmworks Group، Dubai Studio City، ARRI، RED، Sony، Canon، Blackmagic Design. ولم يُتحقق من دور تأجير الكاميرات في القوز واستوديو سيتي.",
+      "body_en": "This lists the UAE production company Filmworks Group, the Dubai Studio City hub, and the common camera brands, such as ARRI, RED, Sony and Canon. Confirmed production company and production hub, plus common camera brands: Filmworks Group, Dubai Studio City, ARRI, RED, Sony, Canon, Blackmagic Design. Camera rental houses in Al Quoz and Studio City were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Filmworks Group = a UAE trading or retail name; ARRI = a luxury German brand; RED = a luxury American brand; Sony = a premium Japanese brand; Canon = a premium Japanese brand; Blackmagic Design = a mid-tier Australian brand.",
+      "body_ar": "من أبرز جهات الإنتاج في الإمارات Filmworks Group ومدينة دبي للاستوديوهات، ومن علامات الكاميرات الشائعة ARRI وRED وSony وCanon. شركة الإنتاج ومركز الإنتاج المؤكدان، إضافة إلى علامات الكاميرات الشائعة: Filmworks Group، Dubai Studio City، ARRI، RED، Sony، Canon، Blackmagic Design. ولم يُتحقق من دور تأجير الكاميرات في القوز واستوديو سيتي.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Filmworks Group = اسم تجاري لتاجر أو موزع في الإمارات؛ ARRI = علامة ألمانية من الفئة الفاخرة؛ RED = علامة أمريكية من الفئة الفاخرة؛ Sony = علامة يابانية من الفئة الممتازة؛ Canon = علامة يابانية من الفئة الممتازة؛ Blackmagic Design = علامة أسترالية من الفئة المتوسطة.",
       "sources": [
         "https://www.uaefilmpermit.com/blog/drone-filming-permits-in-dubai",
         "https://www.filmworksgroup.com/",
@@ -40,7 +40,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Filming in Dubai public locations needs a Dubai Film and TV Commission permit; drone filming also needs GCAA and DCAA approvals -> confirmed | Filmworks (1998) is a Dubai production company in Dubai Studio City -> confirmed | The Talent Factory and Good People as TVC houses -> removed: not checked. Not checked: The Dubai Film and TV Commission and Creative Media Authority URLs, named production houses, and drone permit steps per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Filming in Dubai public locations needs a Dubai Film and TV Commission permit; drone filming also needs GCAA and DCAA approvals -> confirmed | Filmworks (1998) is a Dubai production company in Dubai Studio City -> confirmed | The Talent Factory and Good People as TVC houses -> removed: not checked. Not checked: The Dubai Film and TV Commission and Creative Media Authority URLs, named production houses, and drone permit steps per emirate were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Filmworks Group",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "ARRI",
+          "origin": "Germany",
+          "tier": "luxury",
+          "generic_en": "a luxury German brand",
+          "generic_ar": "علامة ألمانية من الفئة الفاخرة"
+        },
+        {
+          "brand": "RED",
+          "origin": "USA",
+          "tier": "luxury",
+          "generic_en": "a luxury American brand",
+          "generic_ar": "علامة أمريكية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Sony",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Canon",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Blackmagic Design",
+          "origin": "Australia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Australian brand",
+          "generic_ar": "علامة أسترالية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "photo_video_production:uae-market-sizes",

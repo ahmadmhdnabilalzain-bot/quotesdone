@@ -6,8 +6,8 @@
       "topic": "Optical & eyewear - what the buyer must state",
       "topic_ar": "البصريات والنظارات: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For optical & eyewear (trade code optical_eyewear only), every quoted line must state: Product type (frames, ophthalmic lenses, contact lenses, sunglasses, equipment); Brand and model or design; Material; Lens index, design and coatings; Prescription range or power availability; Sizes and colours; Quantity; Registration or conformity documents; Expiry or sterility for contact lenses; Warranty; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط البصريات والنظارات (رمز النشاط optical_eyewear فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المنتج (إطارات، عدسات طبية، عدسات لاصقة، نظارات شمسية، معدات)؛ العلامة والموديل أو التصميم؛ المادة؛ معامل العدسة وتصميمها وطلاءاتها؛ مدى الوصفة أو توفر القوة؛ المقاسات والألوان؛ الكمية؛ مستندات التسجيل أو المطابقة؛ تاريخ الانتهاء أو التعقيم للعدسات اللاصقة؛ الضمان؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For optical & eyewear (trade code optical_eyewear only), every quoted line must state: Product type (frames, ophthalmic lenses, contact lenses, sunglasses, equipment); Brand and model or design; Material; Lens index, design and coatings; Prescription range or power availability; Sizes and colours; Quantity; Registration or conformity documents; Expiry or sterility for contact lenses; Warranty; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Product type (frames, ophthalmic lenses, contact lenses, sunglasses, equipment); Brand and model or design; Lens index, design and coatings; Quantity; Delivery terms. Before a firm price: a firm price needs product type, brand and quantity; prescription lenses need index, design and coatings. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Product type (frames, ophthalmic lenses, contact lenses, sunglasses, equipment); Brand and model or design; Lens index, design and coatings; Quantity; Delivery terms.",
+      "body_ar": "في نشاط البصريات والنظارات (رمز النشاط optical_eyewear فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المنتج (إطارات، عدسات طبية، عدسات لاصقة، نظارات شمسية، معدات)؛ العلامة والموديل أو التصميم؛ المادة؛ معامل العدسة وتصميمها وطلاءاتها؛ مدى الوصفة أو توفر القوة؛ المقاسات والألوان؛ الكمية؛ مستندات التسجيل أو المطابقة؛ تاريخ الانتهاء أو التعقيم للعدسات اللاصقة؛ الضمان؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المنتج، والعلامة والطراز، ومعامل العدسة وتصميمها وطلاؤها، والكمية، والتسليم. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Product type (frames, ophthalmic lenses, contact lenses, sunglasses, equipment)",
         "Brand and model or design",
@@ -20,15 +20,117 @@
         "Expiry or sterility for contact lenses",
         "Warranty",
         "Delivery terms",
-        "Lead time"
+        "Lead time",
+        "Payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Contact_lens"
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: soft hydrogel and silicone hydrogel versus rigid gas permeable lenses; coloured lenses need a prescription."
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: soft hydrogel and silicone hydrogel versus rigid gas permeable lenses; coloured lenses need a prescription.",
+      "blocking": [
+        "Product type (frames, ophthalmic lenses, contact lenses, sunglasses, equipment)",
+        "Brand and model or design",
+        "Lens index, design and coatings",
+        "Quantity",
+        "Delivery terms"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Product type (frames, ophthalmic lenses, contact lenses, sunglasses, equipment)",
+          "why_needed_to_price": "Product type.",
+          "uae_options": "frames; lenses; contact lenses; sunglasses; equipment",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Brand and model or design",
+          "why_needed_to_price": "Brand and model.",
+          "uae_options": "brand",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Material",
+          "why_needed_to_price": "Material.",
+          "uae_options": "acetate; metal; titanium",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lens index, design and coatings",
+          "why_needed_to_price": "Lens index, design and coatings drive lens price.",
+          "uae_options": "1.5-1.74; single vision; progressive; AR; blue filter",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Prescription range or power availability",
+          "why_needed_to_price": "Prescription range.",
+          "uae_options": "powers",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Sizes and colours",
+          "why_needed_to_price": "Sizes and colours.",
+          "uae_options": "mix",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Registration or conformity documents",
+          "why_needed_to_price": "Registration documents.",
+          "uae_options": "contact lenses as medical devices",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Expiry or sterility for contact lenses",
+          "why_needed_to_price": "Expiry and sterility for contact lenses.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "store; lab",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock; lab",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs product type, brand and quantity; prescription lenses need index, design and coatings."
     },
     {
       "id": "optical_eyewear:product-distinctions",
@@ -59,6 +161,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "optical_eyewear:authority-approvals",
+      "topic": "Optical & eyewear: licences, permits and approvals by emirate",
+      "topic_ar": "البصريات والنظارات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Contact lenses and their solutions are medical devices needing UAE registration, now with the Emirates Drug Establishment; ophthalmic lenses and optical equipment may also fall under medical device rules. Optical shops and optometrists are licensed by the emirate's health regulator (DHA in Dubai, DoH in Abu Dhabi, MOHAP elsewhere). Counterfeit branded frames and sunglasses are seized under trademark law. These product rules were not read on an official page in this session.",
+      "body_ar": "العدسات اللاصقة ومحاليلها أجهزة طبية تحتاج تسجيلاً في الدولة، وهو الآن لدى مؤسسة الإمارات للدواء، وقد تخضع العدسات الطبية والمعدات البصرية أيضاً لقواعد الأجهزة الطبية. وتُرخَّص محلات البصريات وأخصائيو البصريات من الجهة الصحية في الإمارة (هيئة الصحة بدبي ودائرة الصحة في أبوظبي والوزارة في غيرهما). وتُضبط الإطارات والنظارات الشمسية المقلدة وفق قانون العلامات التجارية. ولم تُقرأ قواعد هذه المنتجات من صفحة رسمية في هذه الجلسة.",
+      "sources": [
+        "https://www.pureglobal.com/markets/uae",
+        "https://uppersetup.com/en/article/registering-medicines-and-medical-devices-in-the-uae-2026",
+        "https://www.ede.gov.ae/en/w/classification-of-a-product",
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-medical-device"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: EDE service pages: medical devices need EDE marketing authorisation, and EDE classifies a product to decide whether it needs one; u.ae: DHA, DoH, the Sharjah Health Authority and MOHAP regulate health. Not confirmed on any page that opened: that contact lenses and solutions are classed as medical devices (no EDE page read names them), optician licensing details and trademark seizures."
+    },
+    {
+      "id": "optical_eyewear:quote-red-flags",
+      "topic": "Optical & eyewear: red flags in supplier quotations",
+      "topic_ar": "البصريات والنظارات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for unregistered contact lenses, counterfeit brands, lower lens index or missing coatings, and short-dated contact lens stock.",
+      "body_ar": "انتبه إلى عدسات لاصقة غير مسجلة، وعلامات مقلدة، ومعامل عدسة أقل أو طلاء ناقص، ومخزون عدسات لاصقة قصير الصلاحية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "optical_eyewear:buyer-mistakes",
+      "topic": "Optical & eyewear: common buyer mistakes",
+      "topic_ar": "البصريات والنظارات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers compare frame prices without lens specification.",
+      "body_ar": "يقارن المشترون أسعار الإطارات دون مواصفة العدسات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "optical_eyewear:price-drivers",
+      "topic": "Optical & eyewear: what makes prices differ legitimately",
+      "topic_ar": "البصريات والنظارات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand, materials, lens technology, coatings and volume.",
+      "body_ar": "العوامل: العلامة، والمواد، وتقنية العدسة، والطلاء، والكمية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "optical_eyewear:compare-quotes-cost-to-value",
+      "topic": "Optical & eyewear: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "البصريات والنظارات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same brand tier and lens specification, genuine and registered. Recommend three authorised suppliers.",
+      "body_ar": "قارن فئة العلامة ومواصفة العدسة نفسيهما، أصلية ومسجلة. أوصِ بثلاثة موردين معتمدين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -92,6 +265,40 @@
       903,
       1198,
       1209
-    ]
+    ],
+    "still_unverified": [
+      "optical_eyewear:authority-approvals"
+    ],
+    "expert_authored_unsourced": [
+      "optical_eyewear:quote-red-flags",
+      "optical_eyewear:buyer-mistakes",
+      "optical_eyewear:price-drivers",
+      "optical_eyewear:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "optical_eyewear:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.ede.gov.ae/en/w/classification-of-a-product"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

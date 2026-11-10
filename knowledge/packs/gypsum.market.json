@@ -27,8 +27,8 @@
       "topic": "Gypsum, partitions & ceilings: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الجبس والقواطع والأسقف: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Gypsum board, system and ceiling brands in the UAE, such as locally made Gyproc and imported Knauf, USG Boral, Siniat, Armstrong, Rockfon and Ecophon, with locally roll-formed studs and GRG. Board, system and ceiling brands: Gyproc (Saint-Gobain, ICAD Abu Dhabi plant), Knauf, USG Boral, Siniat, Armstrong, USG, AMF, Rockfon, Ecophon, Hunter Douglas, Luxalon. Gyproc makes plasterboard in the UAE; the others are imported. Many Sharjah and Ajman factories roll-form metal studs locally, and local workshops make GRG. Distribution is through building-materials traders in Sharjah, Al Quoz and Musaffah. The UAE distributors of the imported brands were not checked. Origins: UAE, the region, Europe, China.",
-      "body_ar": "علامات الألواح الجبسية وأنظمتها والأسقف في الإمارات، مثل Gyproc المصنّع محلياً والمستورد من Knauf وUSG Boral وSiniat وArmstrong وRockfon وEcophon، مع قوائم معدنية (studs) وGRG مصنّعة محلياً. علامات الألواح والأنظمة والأسقف: Gyproc (Saint-Gobain, ICAD Abu Dhabi plant)، Knauf، USG Boral، Siniat، Armstrong، USG، AMF، Rockfon، Ecophon، Hunter Douglas، Luxalon. وتصنع Gyproc ألواح الجبس في الإمارات، والبقية مستوردة. وتُشكّل مصانع كثيرة في الشارقة وعجمان القوائم المعدنية محلياً، وتصنع ورش محلية منتجات GRG. ويجري التوزيع عبر تجار مواد البناء في الشارقة والقوز ومصفح، ولم يُتحقق من موزعي العلامات المستوردة. المنشأ: الإمارات، المنطقة، أوروبا، الصين.",
+      "body_en": "Gypsum board, system and ceiling brands in the UAE, such as locally made Gyproc and imported Knauf, USG Boral, Siniat, Armstrong, Rockfon and Ecophon, with locally roll-formed studs and GRG. Board, system and ceiling brands: Gyproc (Saint-Gobain, ICAD Abu Dhabi plant), Knauf, USG Boral, Siniat, Armstrong, USG, AMF, Rockfon, Ecophon, Hunter Douglas, Luxalon. Gyproc makes plasterboard in the UAE; the others are imported. Many Sharjah and Ajman factories roll-form metal studs locally, and local workshops make GRG. Distribution is through building-materials traders in Sharjah, Al Quoz and Musaffah. The UAE distributors of the imported brands were not checked. Origins: UAE, the region, Europe, China.\n\nOrigin and tier, for describing a quoted brand without naming it: Gyproc - premium, France; Knauf - premium, Germany; USG Boral - mid, USA; Siniat - mid, France; Armstrong - mid, USA; USG - mid, USA; AMF - mid, Germany; Rockfon - premium, Denmark; Ecophon - premium, Sweden; Hunter Douglas - premium, Netherlands; Luxalon - premium, Netherlands.",
+      "body_ar": "علامات الألواح الجبسية وأنظمتها والأسقف في الإمارات، مثل Gyproc المصنّع محلياً والمستورد من Knauf وUSG Boral وSiniat وArmstrong وRockfon وEcophon، مع قوائم معدنية (studs) وGRG مصنّعة محلياً. علامات الألواح والأنظمة والأسقف: Gyproc (Saint-Gobain, ICAD Abu Dhabi plant)، Knauf، USG Boral، Siniat، Armstrong، USG، AMF، Rockfon، Ecophon، Hunter Douglas، Luxalon. وتصنع Gyproc ألواح الجبس في الإمارات، والبقية مستوردة. وتُشكّل مصانع كثيرة في الشارقة وعجمان القوائم المعدنية محلياً، وتصنع ورش محلية منتجات GRG. ويجري التوزيع عبر تجار مواد البناء في الشارقة والقوز ومصفح، ولم يُتحقق من موزعي العلامات المستوردة. المنشأ: الإمارات، المنطقة، أوروبا، الصين.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Gyproc: فئة ممتازة، فرنسا؛ Knauf: فئة ممتازة، ألمانيا؛ USG Boral: فئة متوسطة، الولايات المتحدة؛ Siniat: فئة متوسطة، فرنسا؛ Armstrong: فئة متوسطة، الولايات المتحدة؛ USG: فئة متوسطة، الولايات المتحدة؛ AMF: فئة متوسطة، ألمانيا؛ Rockfon: فئة ممتازة، الدنمارك؛ Ecophon: فئة ممتازة، السويد؛ Hunter Douglas: فئة ممتازة، هولندا؛ Luxalon: فئة ممتازة، هولندا.",
       "sources": [
         "https://www.gyproc.ae/about-us/news-and-events/saint-gobain-gyproc-plasterboard-plant-middle-east-opening-event",
         "https://www.fepy.com/ideas/post/best-gypsum-boards",
@@ -38,7 +38,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Gyproc has a plasterboard plant in Dubai -> corrected: the plant is in ICAD, Abu Dhabi (opened 2010) | Knauf plant in the UAE -> removed: no UAE plant confirmed; Knauf kept as a brand sold | Gulf Gypsum / National Gypsum -> removed (not confirmed). Not checked: The exact locations of regional board plants and the current product listings with Civil Defence were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Gyproc has a plasterboard plant in Dubai -> corrected: the plant is in ICAD, Abu Dhabi (opened 2010) | Knauf plant in the UAE -> removed: no UAE plant confirmed; Knauf kept as a brand sold | Gulf Gypsum / National Gypsum -> removed (not confirmed). Not checked: The exact locations of regional board plants and the current product listings with Civil Defence were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Gyproc",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Knauf",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "USG Boral",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid brand from USA",
+          "generic_ar": "علامة متوسطة من الولايات المتحدة"
+        },
+        {
+          "brand": "Siniat",
+          "origin": "France",
+          "tier": "mid",
+          "generic_en": "a mid brand from France",
+          "generic_ar": "علامة متوسطة من فرنسا"
+        },
+        {
+          "brand": "Armstrong",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid brand from USA",
+          "generic_ar": "علامة متوسطة من الولايات المتحدة"
+        },
+        {
+          "brand": "USG",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid brand from USA",
+          "generic_ar": "علامة متوسطة من الولايات المتحدة"
+        },
+        {
+          "brand": "AMF",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Rockfon",
+          "origin": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium brand from Denmark",
+          "generic_ar": "علامة ممتازة من الدنمارك"
+        },
+        {
+          "brand": "Ecophon",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium brand from Sweden",
+          "generic_ar": "علامة ممتازة من السويد"
+        },
+        {
+          "brand": "Hunter Douglas",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium brand from Netherlands",
+          "generic_ar": "علامة ممتازة من هولندا"
+        },
+        {
+          "brand": "Luxalon",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium brand from Netherlands",
+          "generic_ar": "علامة ممتازة من هولندا"
+        }
+      ]
     },
     {
       "id": "gypsum:uae-market-sizes",

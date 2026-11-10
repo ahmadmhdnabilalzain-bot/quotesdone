@@ -29,8 +29,8 @@
       "topic": "Facilities management (hard & soft FM): makes, brands, distributors and origins in the UAE",
       "topic_ar": "إدارة المرافق: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "UAE FM operators such as Emrill, Imdaad, Farnek, EFS, Khidmah, Enova and Transguard, lift makers Otis, Schindler, KONE, TK Elevator and Mitsubishi Electric, and CAFM systems like Maximo. Confirmed UAE FM operators, and the lift makers that maintain their own equipment: Emrill, Imdaad, Farnek, EFS Facilities Services, Khidmah, Enova, Transguard, Otis, Schindler, KONE, TK Elevator, Mitsubishi Electric. Master developers often have in-house or affiliated FM arms. Common CAFM systems include Maximo, Archibus, Infor EAM and Planon; their local resellers were not checked.",
-      "body_ar": "من أبرز شركات إدارة المرافق في الإمارات Emrill وImdaad وFarnek وEFS وKhidmah وEnova وTransguard، ومن مصنعي المصاعد Otis وSchindler وKONE وTK Elevator وMitsubishi Electric، ومن أنظمة CAFM نظام Maximo. مشغلو إدارة المرافق المؤكدون في الإمارات، وشركات المصاعد التي تصون معداتها: Emrill، Imdaad، Farnek، EFS Facilities Services، Khidmah، Enova، Transguard، Otis، Schindler، KONE، TK Elevator، Mitsubishi Electric. وغالباً ما يكون لدى المطورين الرئيسيين أذرع داخلية أو تابعة لإدارة المرافق. وتشمل أنظمة إدارة المرافق المحوسبة الشائعة ماكسيمو وأرشيبس وإنفور وبلانون، ولم يُتحقق من موزعيها المحليين.",
+      "body_en": "UAE FM operators such as Emrill, Imdaad, Farnek, EFS, Khidmah, Enova and Transguard, lift makers Otis, Schindler, KONE, TK Elevator and Mitsubishi Electric, and CAFM systems like Maximo. Confirmed UAE FM operators, and the lift makers that maintain their own equipment: Emrill, Imdaad, Farnek, EFS Facilities Services, Khidmah, Enova, Transguard, Otis, Schindler, KONE, TK Elevator, Mitsubishi Electric. Master developers often have in-house or affiliated FM arms. Common CAFM systems include Maximo, Archibus, Infor EAM and Planon; their local resellers were not checked.\n\nOrigin and tier, for describing a quoted brand without naming it: Otis - premium, USA; Schindler - premium, Switzerland; KONE - premium, Finland; TK Elevator - premium, Germany; Mitsubishi Electric - premium, Japan; Maximo - premium, USA.",
+      "body_ar": "من أبرز شركات إدارة المرافق في الإمارات Emrill وImdaad وFarnek وEFS وKhidmah وEnova وTransguard، ومن مصنعي المصاعد Otis وSchindler وKONE وTK Elevator وMitsubishi Electric، ومن أنظمة CAFM نظام Maximo. مشغلو إدارة المرافق المؤكدون في الإمارات، وشركات المصاعد التي تصون معداتها: Emrill، Imdaad، Farnek، EFS Facilities Services، Khidmah، Enova، Transguard، Otis، Schindler، KONE، TK Elevator، Mitsubishi Electric. وغالباً ما يكون لدى المطورين الرئيسيين أذرع داخلية أو تابعة لإدارة المرافق. وتشمل أنظمة إدارة المرافق المحوسبة الشائعة ماكسيمو وأرشيبس وإنفور وبلانون، ولم يُتحقق من موزعيها المحليين.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Otis: فئة ممتازة، الولايات المتحدة؛ Schindler: فئة ممتازة، سويسرا؛ KONE: فئة ممتازة، فنلندا؛ TK Elevator: فئة ممتازة، ألمانيا؛ Mitsubishi Electric: فئة ممتازة، اليابان؛ Maximo: فئة ممتازة، الولايات المتحدة.",
       "sources": [
         "https://geem.com/blog/fire-safety-maintenance-dubai",
         "https://www.prnewswire.com/news-releases/research-and-markets---uae-facility-management-market-forecast--opportunities-2021---leading-operators-are-emrill-services-imdaad-farnek-service-efs-facility-management-services-and-khidmah-300374442.html",
@@ -42,7 +42,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Building owners must hold an annual maintenance contract with a Dubai Civil Defence approved contractor for fire systems (Ministerial Resolution 505 of 2012 cited) -> confirmed | Emrill, Imdaad, Farnek, EFS and Khidmah are leading UAE FM operators; Enova is a top FM company -> confirmed | Khidmah is Abu Dhabi-based and wholly owned by Aldar -> confirmed | Musanada, Deyaar Facilities, Provis-linked FM, Serco, ISS, Emcor joint ventures -> removed: not checked. Not checked: Current ownership and joint-venture structures of the named FM firms, and which hold active Civil Defence approvals, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Building owners must hold an annual maintenance contract with a Dubai Civil Defence approved contractor for fire systems (Ministerial Resolution 505 of 2012 cited) -> confirmed | Emrill, Imdaad, Farnek, EFS and Khidmah are leading UAE FM operators; Enova is a top FM company -> confirmed | Khidmah is Abu Dhabi-based and wholly owned by Aldar -> confirmed | Musanada, Deyaar Facilities, Provis-linked FM, Serco, ISS, Emcor joint ventures -> removed: not checked. Not checked: Current ownership and joint-venture structures of the named FM firms, and which hold active Civil Defence approvals, were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Otis",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Schindler",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Switzerland",
+          "generic_ar": "علامة ممتازة من سويسرا"
+        },
+        {
+          "brand": "KONE",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Finland",
+          "generic_ar": "علامة ممتازة من فنلندا"
+        },
+        {
+          "brand": "TK Elevator",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Mitsubishi Electric",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "Maximo",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        }
+      ]
     },
     {
       "id": "facilities_management:uae-market-sizes",

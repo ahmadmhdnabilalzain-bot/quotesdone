@@ -29,8 +29,8 @@
       "topic": "Façade access, BMU & rope access: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الوصول إلى الواجهات ووحدات صيانة المباني (BMU) والعمل بالحبال: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "BMU makers, rope access providers and fall-arrest brands in the UAE, such as CoxGomyl, Manntech, Tractel, Emrill, Rope Access Middle East, Spider Access, Petzl and MSA (Latchways). Confirmed BMU makers and rope access providers in the UAE, plus fall-arrest brands: CoxGomyl, Manntech, Tractel, Emrill, Rope Access Middle East, Spider Access, Petzl, MSA (Latchways). The fall-arrest brands' local distributors were not checked. Third-party inspection bodies issue load test and thorough examination certificates for access equipment.",
-      "body_ar": "مصنعو وحدات صيانة المباني (BMU) ومزودو العمل بالحبال وعلامات معدات الحماية من السقوط في الإمارات، مثل CoxGomyl وManntech وTractel وEmrill وRope Access Middle East وSpider Access وPetzl وMSA (Latchways). مصنعو وحدات صيانة المباني ومقدمو خدمات الوصول بالحبال المؤكدون في الإمارات، إضافة إلى علامات منع السقوط: CoxGomyl، Manntech، Tractel، Emrill، Rope Access Middle East، Spider Access، Petzl، MSA (Latchways). ولم يُتحقق من الموزعين المحليين لعلامات منع السقوط. وتصدر جهات الفحص المستقلة شهادات اختبار التحميل والفحص الشامل لمعدات الوصول.",
+      "body_en": "BMU makers, rope access providers and fall-arrest brands in the UAE, such as CoxGomyl, Manntech, Tractel, Emrill, Rope Access Middle East, Spider Access, Petzl and MSA (Latchways). Confirmed BMU makers and rope access providers in the UAE, plus fall-arrest brands: CoxGomyl, Manntech, Tractel, Emrill, Rope Access Middle East, Spider Access, Petzl, MSA (Latchways). The fall-arrest brands' local distributors were not checked. Third-party inspection bodies issue load test and thorough examination certificates for access equipment.\n\nOrigin and tier, for describing a quoted brand without naming it: CoxGomyl - premium, Australia; Manntech - premium, Germany; Tractel - premium, France; Spider Access - mid, USA; Petzl - premium, France; MSA (Latchways) - premium, USA.",
+      "body_ar": "مصنعو وحدات صيانة المباني (BMU) ومزودو العمل بالحبال وعلامات معدات الحماية من السقوط في الإمارات، مثل CoxGomyl وManntech وTractel وEmrill وRope Access Middle East وSpider Access وPetzl وMSA (Latchways). مصنعو وحدات صيانة المباني ومقدمو خدمات الوصول بالحبال المؤكدون في الإمارات، إضافة إلى علامات منع السقوط: CoxGomyl، Manntech، Tractel، Emrill، Rope Access Middle East، Spider Access، Petzl، MSA (Latchways). ولم يُتحقق من الموزعين المحليين لعلامات منع السقوط. وتصدر جهات الفحص المستقلة شهادات اختبار التحميل والفحص الشامل لمعدات الوصول.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: CoxGomyl: فئة ممتازة، أستراليا؛ Manntech: فئة ممتازة، ألمانيا؛ Tractel: فئة ممتازة، فرنسا؛ Spider Access: فئة متوسطة، الولايات المتحدة؛ Petzl: فئة ممتازة، فرنسا؛ MSA (Latchways): فئة ممتازة، الولايات المتحدة.",
       "sources": [
         "https://www.manntech.com/spotlight-on-the-middle-east/",
         "https://www.emrill.com/emrill-launches-rope-access-cleaning-service/",
@@ -42,7 +42,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: BMUs in the UAE follow Dubai Municipality requirements and EN 1808; Manntech designs to EN 1808 -> confirmed | Manntech and CoxGomyl supply BMUs on Dubai towers (Jumeirah Gate) -> confirmed | Emrill runs an IRATA-certified rope access cleaning service; Rope Access Middle East and Spider Access provide IRATA rope access in the UAE -> confirmed | Fixator, Sky Pro, XS Platforms, Power Climber named -> removed: not checked for the UAE. Not checked: Current regional representation of each BMU manufacturer and which contractors hold specific Civil Defence approvals were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: BMUs in the UAE follow Dubai Municipality requirements and EN 1808; Manntech designs to EN 1808 -> confirmed | Manntech and CoxGomyl supply BMUs on Dubai towers (Jumeirah Gate) -> confirmed | Emrill runs an IRATA-certified rope access cleaning service; Rope Access Middle East and Spider Access provide IRATA rope access in the UAE -> confirmed | Fixator, Sky Pro, XS Platforms, Power Climber named -> removed: not checked for the UAE. Not checked: Current regional representation of each BMU manufacturer and which contractors hold specific Civil Defence approvals were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "CoxGomyl",
+          "origin": "Australia",
+          "tier": "premium",
+          "generic_en": "a premium brand from Australia",
+          "generic_ar": "علامة ممتازة من أستراليا"
+        },
+        {
+          "brand": "Manntech",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Tractel",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Spider Access",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid brand from USA",
+          "generic_ar": "علامة متوسطة من الولايات المتحدة"
+        },
+        {
+          "brand": "Petzl",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "MSA (Latchways)",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        }
+      ]
     },
     {
       "id": "facade_access_maintenance:uae-market-sizes",

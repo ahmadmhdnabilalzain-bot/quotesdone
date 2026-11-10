@@ -42,7 +42,10 @@ if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 export const CASES = [
   ['how much do you charge', ['What are the platform fees?', 'What is the 3% fee?', 'When is it charged?']],
   ['is it free for suppliers', ['Is there a subscription fee for suppliers?']],
-  ['كم رسومكم', ['ما هي رسوم المنصة؟', 'ما هي رسوم الـ 3٪؟', 'متى يتم تحصيل الرسوم؟']],
+  // FAQ 610 (the Arabic mirror of 89, the 3% fee) was renamed 'ما هي رسوم الكشف البالغة 3٪؟' on 12 Oct by
+  // the_arabic_reveal_fee_question_reaches_its_own_mirror.sql (MANIFEST 2018); its old question stays listed for a
+  // production that has not re-embedded it. The answer is the same customer fee either way (measured 10 Nov: 610, 0.878).
+  ['كم رسومكم', ['ما هي رسوم المنصة؟', 'ما هي رسوم الـ 3٪؟', 'ما هي رسوم الكشف البالغة 3٪؟', 'متى يتم تحصيل الرسوم؟']],
   // Since #843 the Arabic corpus has the supplier-fee twin of FAQ 500: it, or the registration answer, is
   // right; silence (the menu again) is acceptable; a customer-fee answer is not.
   ['هل التسجيل مجاني للموردين', ['هل يدفع الموردون رسوم اشتراك أو رسوم تسجيل؟', 'كيف أسجل كمورد؟'], 'or_none'],

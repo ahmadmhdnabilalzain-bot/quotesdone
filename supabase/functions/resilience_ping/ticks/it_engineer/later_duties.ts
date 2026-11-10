@@ -3,7 +3,7 @@
 import { failureOf, type StepClock, stepClock } from '../../steps.ts';
 import { takeProviderReadings } from '../../../_shared/it_provider_readings.ts';
 import { runPostmasterStep, takePostmasterReading } from '../../../_shared/it_postmaster_readings.ts';
-import { takeUsageReadings, verifyRevisions } from '../../../_shared/it_duty_readings.ts';
+import { takeOpenPullRequests, takeUsageReadings, verifyRevisions } from '../../../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../../../_shared/it_restore_drill.ts';
 import { rotateAndSettle } from '../../../_shared/it_rotate_by_api.ts';
 import { PAUSED, pausedDuties } from '../../../_shared/duty_pause.ts';
@@ -18,6 +18,7 @@ import { FN, GATEWAY, SERVICE_KEY, admin, kickDetached, sec } from '../../shared
 // counts come back, because this endpoint is public. The routines each own a file in scripts/sql/.
 //   renewal        fn_it_renewal_watch   licences, domains, tokens: 60 and 30 days to the accountant (20)
 //   changes        GitHub's verdict on every revision a signed apply named, then fn_it_change_watch (24)
+//   open_prs       daily: one finding per open pull request (not dependabot's) idle for over 48 hours (25)
 //   usage          when it_duty_schedule says so: provider usage against the caps in it_threshold (22)
 //   restore_table  monthly: one table page from the newest finished export restored into scratch (19)
 // Duty 19's file half is duty 9's sample (itScheduledTick); 21 is duty 10's sender check; 23's patch PR
@@ -43,6 +44,15 @@ export async function itLaterDutiesTick(clock: StepClock = stepClock()): Promise
     const revs = ((await rpc('fn_it_change_revisions_due')) ?? []) as string[];
     await rpc('fn_it_change_revisions_record', { p: await verifyRevisions(sec, revs) });
     return { asked: revs.length };
+  });
+  // Open pull requests left alone (it_engineer, 10 Nov 2026): 15 sessions' pull requests sat unmerged for up to three
+  // weeks, some with SQL never applied. Read from GitHub with the token verifyRevisions uses; decided by
+  // stale_pull_requests.ts; raised and closed by fn_it_open_pull_requests_record. Due once a day (it_duty_schedule).
+  await step('open_pull_requests', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('open_pull_requests')) return { due: false };
+    const r = await takeOpenPullRequests(sec);
+    const out = (await rpc('fn_it_open_pull_requests_record', { p: r })) as Record<string, unknown>;
+    return { due: true, basis: (r as { basis?: string }).basis, stale: out?.stale ?? null, closed: out?.closed ?? null };
   });
   await step('usage', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('usage')) return { due: false };

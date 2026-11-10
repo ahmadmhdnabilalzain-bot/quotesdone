@@ -27,8 +27,8 @@
       "topic": "Tents, Shades & Canopies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الخيام والمظلات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the tent, fabric and umbrella brands sold in the UAE, such as Roder Emirates, Losberger De Boer and Serge Ferrari, and the local workshops that make Arabic tents. Tent, fabric and umbrella brands: Roder Emirates, Losberger De Boer, Neptunus, Hoecker, Serge Ferrari, Mehler, Sioen, Heytex, Caravita, May, Tuuci, Glatz. Röder is present locally through Roder Emirates; the UAE presence of the others was not checked. Arabic and majlis tents are made by local tent workshops in Sharjah, Ajman, Al Ain and Dubai, and rental companies serve events and Ramadan tents. Chinese aluminium frame tents are also sold through local rental firms.",
-      "body_ar": "من علامات الخيام والأقمشة والمظلات المباعة في الإمارات Roder Emirates وLosberger De Boer وSerge Ferrari، إلى جانب الورش المحلية التي تصنع الخيام العربية. علامات الخيام والأقمشة والمظلات: Roder Emirates، Losberger De Boer، Neptunus، Hoecker، Serge Ferrari، Mehler، Sioen، Heytex، Caravita، May، Tuuci، Glatz. ولـRöder حضور محلي عبر Roder Emirates، ولم يُتحقق من حضور البقية في الإمارات. وتُصنع الخيام العربية والمجالس في ورش محلية في الشارقة وعجمان والعين ودبي، وتخدم شركات التأجير المناسبات وخيام رمضان. وتُباع أيضاً خيام بإطار ألمنيوم صينية عبر شركات تأجير محلية.",
+      "body_en": "This entry lists the tent, fabric and umbrella brands sold in the UAE, such as Roder Emirates, Losberger De Boer and Serge Ferrari, and the local workshops that make Arabic tents. Tent, fabric and umbrella brands: Roder Emirates, Losberger De Boer, Neptunus, Hoecker, Serge Ferrari, Mehler, Sioen, Heytex, Caravita, May, Tuuci, Glatz. Röder is present locally through Roder Emirates; the UAE presence of the others was not checked. Arabic and majlis tents are made by local tent workshops in Sharjah, Ajman, Al Ain and Dubai, and rental companies serve events and Ramadan tents. Chinese aluminium frame tents are also sold through local rental firms.\n\nOrigin and tier, for describing a quoted brand without naming it: Roder Emirates - premium, Germany; Losberger De Boer - premium, Germany; Neptunus - premium, Netherlands; Hoecker - premium, Germany; Serge Ferrari - premium, France; Mehler - premium, Germany; Sioen - mid, Belgium; Heytex - mid, Germany; Caravita - premium, Germany; May - premium, Germany; Tuuci - luxury, USA; Glatz - premium, Switzerland.",
+      "body_ar": "من علامات الخيام والأقمشة والمظلات المباعة في الإمارات Roder Emirates وLosberger De Boer وSerge Ferrari، إلى جانب الورش المحلية التي تصنع الخيام العربية. علامات الخيام والأقمشة والمظلات: Roder Emirates، Losberger De Boer، Neptunus، Hoecker، Serge Ferrari، Mehler، Sioen، Heytex، Caravita، May، Tuuci، Glatz. ولـRöder حضور محلي عبر Roder Emirates، ولم يُتحقق من حضور البقية في الإمارات. وتُصنع الخيام العربية والمجالس في ورش محلية في الشارقة وعجمان والعين ودبي، وتخدم شركات التأجير المناسبات وخيام رمضان. وتُباع أيضاً خيام بإطار ألمنيوم صينية عبر شركات تأجير محلية.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Roder Emirates: فئة ممتازة، ألمانيا؛ Losberger De Boer: فئة ممتازة، ألمانيا؛ Neptunus: فئة ممتازة، هولندا؛ Hoecker: فئة ممتازة، ألمانيا؛ Serge Ferrari: فئة ممتازة، فرنسا؛ Mehler: فئة ممتازة، ألمانيا؛ Sioen: فئة متوسطة، بلجيكا؛ Heytex: فئة متوسطة، ألمانيا؛ Caravita: فئة ممتازة، ألمانيا؛ May: فئة ممتازة، ألمانيا؛ Tuuci: فئة فاخرة، الولايات المتحدة؛ Glatz: فئة ممتازة، سويسرا.",
       "sources": [
         "https://roderemirates.com/",
         "http://www.losberger-rds.fr/en/group-losberger.html",
@@ -38,7 +38,93 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Röder operates in the UAE -> confirmed (Roder Emirates: event and Ramadan tents) | Losberger rental in the UAE -> not confirmed; kept only as an international brand. Not checked: Local rental firms and the current Civil Defence approval process for event tents per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Röder operates in the UAE -> confirmed (Roder Emirates: event and Ramadan tents) | Losberger rental in the UAE -> not confirmed; kept only as an international brand. Not checked: Local rental firms and the current Civil Defence approval process for event tents per emirate were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Roder Emirates",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Losberger De Boer",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Neptunus",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium brand from Netherlands",
+          "generic_ar": "علامة ممتازة من هولندا"
+        },
+        {
+          "brand": "Hoecker",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Serge Ferrari",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Mehler",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Sioen",
+          "origin": "Belgium",
+          "tier": "mid",
+          "generic_en": "a mid brand from Belgium",
+          "generic_ar": "علامة متوسطة من بلجيكا"
+        },
+        {
+          "brand": "Heytex",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Caravita",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "May",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Tuuci",
+          "origin": "USA",
+          "tier": "luxury",
+          "generic_en": "a luxury brand from USA",
+          "generic_ar": "علامة فاخرة من الولايات المتحدة"
+        },
+        {
+          "brand": "Glatz",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Switzerland",
+          "generic_ar": "علامة ممتازة من سويسرا"
+        }
+      ]
     },
     {
       "id": "tents_shades:uae-market-sizes",

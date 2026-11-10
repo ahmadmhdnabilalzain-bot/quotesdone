@@ -6,8 +6,8 @@
       "topic": "Packaging machinery - what the buyer must state",
       "topic_ar": "آلات التعبئة والتغليف: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For packaging machinery (trade code packaging_machinery only), every quoted line must state: Machine type; Product and pack format; Speed per minute; Changeover parts; Power and compressed air; Factory acceptance test; Operator training; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "عند شراء آلة تعبئة أو تغليف وطلب عروض أسعار لها (رمز النشاط packaging_machinery فقط)، يجب أن يذكر كل بند: نوع الآلة؛ المنتج وشكل العبوة؛ السرعة بالعبوة في الدقيقة؛ قطع تغيير المقاسات؛ الكهرباء والهواء المضغوط المطلوبان؛ اختبار القبول في المصنع؛ تدريب المشغلين؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم ومكانه؛ نطاق التركيب والتشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد؛ الاستثناءات. بهذه البنود تصبح عروض الموردين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For packaging machinery (trade code packaging_machinery only), every quoted line must state: Machine type; Product and pack format; Speed per minute; Changeover parts; Power and compressed air; Factory acceptance test; Operator training; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Machine type; Product and pack format; Speed per minute; Power and compressed air; Quantity and unit of measure; Installation or commissioning scope. Follow-up questions the answers trigger: Product and pack format: Ask for samples of the product and the packs for trials. Installation or commissioning scope: Line integration brings the existing machines and their controls. Before a firm price: a filling or form-fill-seal machine needs product and pack samples for a trial, or at least the pack drawings; integration into an existing line needs a site visit. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Machine type; Product and pack format; Speed per minute; Power and compressed air; Quantity and unit of measure; Installation or commissioning scope.",
+      "body_ar": "عند شراء آلة تعبئة أو تغليف وطلب عروض أسعار لها (رمز النشاط packaging_machinery فقط)، يجب أن يذكر كل بند: نوع الآلة؛ المنتج وشكل العبوة؛ السرعة بالعبوة في الدقيقة؛ قطع تغيير المقاسات؛ الكهرباء والهواء المضغوط المطلوبان؛ اختبار القبول في المصنع؛ تدريب المشغلين؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم ومكانه؛ نطاق التركيب والتشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد؛ الاستثناءات. بهذه البنود تصبح عروض الموردين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الآلة، والمنتج وشكل العبوة، والسرعة في الدقيقة، والكهرباء والهواء المضغوط، والكمية، ونطاق التركيب والتشغيل. أسئلة المتابعة: تُطلب عينات من المنتج والعبوات للتجارب، والتكامل مع خط قائم يستلزم بيان الآلات الموجودة وأنظمة تحكمها. آلات التعبئة تحتاج عينات للتجربة أو رسومات العبوات على الأقل، والتكامل مع خط قائم يحتاج زيارة موقع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Machine type",
         "Product and pack format",
@@ -23,14 +23,139 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Machine type",
+        "Product and pack format",
+        "Speed per minute",
+        "Power and compressed air",
+        "Quantity and unit of measure",
+        "Installation or commissioning scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Machine type",
+          "blocking": true,
+          "why_needed_to_price": "Filler, capper, labeller, form-fill-seal, wrapper and case packer are different machines.",
+          "uae_options": "Liquid/powder filler, capper, labeller, VFFS/HFFS, flow wrapper, stretch wrapper, strapping, case erector, coder.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Product and pack format",
+          "blocking": true,
+          "why_needed_to_price": "Product and pack decide filling principle and change parts.",
+          "uae_options": "Product viscosity, particle size; pack sizes and materials.",
+          "follow_up_if": "Ask for samples of the product and the packs for trials."
+        },
+        {
+          "spec": "Speed per minute",
+          "blocking": true,
+          "why_needed_to_price": "Speed sets the machine size and number of heads.",
+          "uae_options": "Packs per minute at stated fill size.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Changeover parts",
+          "blocking": false,
+          "why_needed_to_price": "Each extra format needs change parts.",
+          "uae_options": "Formats included.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Power and compressed air",
+          "blocking": true,
+          "why_needed_to_price": "UAE supply 400 V/50 Hz; air consumption needs a compressor.",
+          "uae_options": "400 V/3 ph/50 Hz; air in l/min at bar.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Factory acceptance test",
+          "blocking": false,
+          "why_needed_to_price": "FAT with the buyer's product costs travel and time.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Operator training",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "Line orders vs single machines change price.",
+          "uae_options": "Machines, complete line.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "CE, hygienic design for food.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "blocking": true,
+          "why_needed_to_price": "Installation, integration with other machines and commissioning are large.",
+          "uae_options": "Supply only, install, line integration.",
+          "follow_up_if": "Line integration brings the existing machines and their controls."
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "a filling or form-fill-seal machine needs product and pack samples for a trial, or at least the pack drawings; integration into an existing line needs a site visit."
     },
     {
       "id": "packaging_machinery:uae-standards-and-approvals",
@@ -75,6 +200,78 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "packaging_machinery:authority-approvals",
+      "topic": "Packaging machinery: approvals that apply",
+      "topic_ar": "آلات التغليف: الموافقات المطبقة",
+      "kind": "authority_approval",
+      "body_en": "No general UAE type approval applies to packaging machines. Their electrical equipment falls within the GCC low-voltage regulation adopted by Cabinet Resolution No. 6 of 2019, and regulated electrical products need an ECAS certificate obtained by the importer. Machines used in food plants are inspected as part of the food business by Dubai Municipality or ADAFSA, so hygienic design and food-grade contact parts matter. Inkjet and laser coders with radio modules need TDRA type approval.",
+      "body_ar": "لا تنطبق موافقة نوعية عامة في الإمارات على آلات التغليف. لكن معداتها الكهربائية تدخل ضمن اللائحة الخليجية للجهد المنخفض المعتمدة بقرار مجلس الوزراء رقم 6 لسنة 2019، والمنتجات الكهربائية الخاضعة للتنظيم تحتاج شهادة ECAS يحصل عليها المستورد. والآلات المستخدمة في مصانع الأغذية تُفتش ضمن منشأة الأغذية من بلدية دبي أو هيئة أبوظبي للزراعة والسلامة الغذائية، لذا يهم التصميم الصحي والأجزاء الملامسة من الدرجة الغذائية. وأجهزة الترميز بالحبر أو الليزر المزودة بوحدات لاسلكية تحتاج اعتماد هيئة تنظيم الاتصالات.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2957",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://tdra.gov.ae",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet lists low-voltage electrical products (G-Mark under Gulf regulation BD-142004-01); TDRA's Type Approval page: radio equipment must be registered with TDRA before sale. Not confirmed on any page that opened: Cabinet Resolution No. 6 of 2019 as the adoption instrument (uaelegislation.gov.ae serves a Cloudflare block page), and DM or ADAFSA inspection of food plants."
+    },
+    {
+      "id": "packaging_machinery:quote-red-flags",
+      "topic": "Red flags in packaging machinery quotations",
+      "topic_ar": "علامات التحذير في عروض آلات التغليف",
+      "kind": "quote_red_flag",
+      "body_en": "Check the stated speed is for the buyer's product and pack, not a maximum on water or a small size. Watch for change parts for only one format, contact parts in non-food-grade material, a 60 Hz build, controls brand changed, FAT and SAT not included, installation and integration excluded, spares only from abroad, and a used or rebuilt machine described as new.",
+      "body_ar": "تحقق من أن السرعة المذكورة لمنتج المشتري وعبوته لا السرعة القصوى على الماء أو مقاس صغير. وانتبه إلى: أجزاء تغيير لشكل واحد فقط، وأجزاء ملامسة من مواد غير غذائية، وآلة مصممة لتردد 60 هرتز، وتغيير علامة نظام التحكم، وعدم شمول اختبار القبول في المصنع والموقع، واستثناء التركيب والتكامل، وقطع الغيار من الخارج فقط، ووصف آلة مستعملة أو مجددة بأنها جديدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "packaging_machinery:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying packaging machinery",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء آلات التغليف",
+      "kind": "buyer_mistake",
+      "body_en": "Buying a machine before testing it with the actual product and packaging; choosing speed without balancing the rest of the line; forgetting change parts for future SKUs; and comparing machine prices without installation, training and spares. Ask the products, pack sizes, target output and existing line.",
+      "body_ar": "شراء آلة قبل تجربتها مع المنتج والتغليف الفعليين؛ واختيار السرعة دون موازنة بقية الخط؛ ونسيان أجزاء التغيير للأصناف المستقبلية؛ ومقارنة أسعار الآلات دون التركيب والتدريب وقطع الغيار. لذا يُسأل عن المنتجات ومقاسات العبوات والإنتاج المستهدف والخط القائم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "packaging_machinery:price-drivers",
+      "topic": "What legitimately moves packaging machinery prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار آلات التغليف",
+      "kind": "price_driver",
+      "body_en": "Machine type and speed, automation level, number of formats and change parts, hygienic or pharma design, controls brand, brand and country of build (European above Turkish, Indian and Chinese), FAT, installation and integration, and service support.",
+      "body_ar": "نوع الآلة وسرعتها، ومستوى الأتمتة، وعدد الأشكال وأجزاء التغيير، والتصميم الصحي أو الدوائي، وعلامة نظام التحكم، والعلامة وبلد التصنيع (الأوروبية أعلى من التركية والهندية والصينية)، واختبار القبول في المصنع، والتركيب والتكامل، ودعم الخدمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "packaging_machinery:compare-quotes",
+      "topic": "Comparing packaging machinery quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض آلات التغليف من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare machines at the same proven speed on the buyer's product, the same formats and the same installed scope. Then weigh efficiency (downtime, waste), spares and local service. Recommend the three that meet speed and formats fully at the lowest installed and running cost.",
+      "body_ar": "قارن الآلات عند السرعة المثبتة نفسها على منتج المشتري، والأشكال نفسها، ونطاق التركيب نفسه. ثم زن الكفاءة (التوقف والهدر) وقطع الغيار والخدمة المحلية. ويوصى بأفضل ثلاثة عروض تستوفي السرعة والأشكال بالكامل بأقل تكلفة تركيب وتشغيل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -117,7 +314,8 @@
     "removed": [],
     "still_unverified": [
       "packaging_machinery:spec-checklist",
-      "packaging_machinery:uae-standards-and-approvals"
+      "packaging_machinery:uae-standards-and-approvals",
+      "packaging_machinery:authority-approvals"
     ],
     "added": [
       "packaging_machinery:spec-checklist",
@@ -145,6 +343,27 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "packaging_machinery:quote-red-flags",
+      "packaging_machinery:buyer-mistakes",
+      "packaging_machinery:price-drivers",
+      "packaging_machinery:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "packaging_machinery:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

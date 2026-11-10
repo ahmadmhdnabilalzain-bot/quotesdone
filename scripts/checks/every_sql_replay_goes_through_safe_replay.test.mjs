@@ -178,3 +178,13 @@ test('a begin; create function; commit; file replayed through the helper leaves 
   assert.deepEqual(rows, [{ v: 1 }]);
   assert.equal(await exists(), 0, `${name} is on production after a rows-mode replay`);
 });
+
+// 10 Nov 2026 (it_engineer): rows mode trimmed the end of the last query on the MASKED text, where a quoted identifier
+// is blank, so `select ... as "waBrake";` was sent as `select ... as) safe_replay_row` (42601). Offline replay of that input.
+test('rows mode keeps a quoted alias that ends the last query, and still drops the trailing semicolons', async () => {
+  const { rowsBody } = await import('../lib/safe_replay.mjs');
+  const out = rowsBody(`create table pg_temp.t(a int);\nselect 1 as "waBrake" ;;\n`, 'alias probe');
+  assert.match(out, /from \(\s*select 1 as "waBrake"\) safe_replay_row\)/, out);
+  const plain = rowsBody(`select 'x;y' as v;`, 'literal probe');
+  assert.match(plain, /from \(\s*select 'x;y' as v\) safe_replay_row\)/, plain);
+});

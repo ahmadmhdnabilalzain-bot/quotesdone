@@ -5,8 +5,8 @@
       "id": "recruitment_executive_search:spec-checklist",
       "topic": "Recruitment and executive search - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For recruitment and executive search quotes to be compared like-for-like, every quoted line (services) must state: (1) role title, level and number of hires; (2) job description and requirements; (3) salary band; (4) search type (contingency, retained, RPO); (5) fee basis and payment stages; (6) shortlist timeline; (7) replacement guarantee period; (8) MOHRE licence for recruitment; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the recruitment_executive_search trade.",
-      "body_ar": "لكي تُقارن عروض التوظيف والبحث عن الكفاءات التنفيذية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) المسمى الوظيفي والمستوى وعدد التعيينات؛ (2) الوصف الوظيفي والمتطلبات؛ (3) نطاق الراتب؛ (4) نوع البحث (عند النجاح، أو باشتراك، أو تعهيد التوظيف)؛ (5) أساس الأتعاب ومراحل الدفع؛ (6) الجدول الزمني للقائمة المختصرة؛ (7) مدة ضمان الاستبدال؛ (8) ترخيص وزارة الموارد البشرية لنشاط التوظيف؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة recruitment_executive_search فقط.",
+      "body_en": "For recruitment and executive search quotes to be compared like-for-like, every quoted line (services) must state: (1) role title, level and number of hires; (2) job description and requirements; (3) salary band; (4) search type (contingency, retained, RPO); (5) fee basis and payment stages; (6) shortlist timeline; (7) replacement guarantee period; (8) MOHRE licence for recruitment; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the recruitment_executive_search trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): role title, level and number of hires; job description and requirements; salary band; search type (contingency, retained, RPO); fee basis and payment stages. Before a firm price: a firm fee needs the role, level, salary band, search type and number of hires; senior retained searches usually start with a briefing meeting before the proposal is final. Supplier ask-back review (2026-11-10): a supplier can price firm from the required specs; nothing was added. Quote-blocking after this review: role title, level and number of hires; job description and requirements; salary band; search type (contingency, retained, RPO); fee basis and payment stages.",
+      "body_ar": "لكي تُقارن عروض التوظيف والبحث عن الكفاءات التنفيذية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) المسمى الوظيفي والمستوى وعدد التعيينات؛ (2) الوصف الوظيفي والمتطلبات؛ (3) نطاق الراتب؛ (4) نوع البحث (عند النجاح، أو باشتراك، أو تعهيد التوظيف)؛ (5) أساس الأتعاب ومراحل الدفع؛ (6) الجدول الزمني للقائمة المختصرة؛ (7) مدة ضمان الاستبدال؛ (8) ترخيص وزارة الموارد البشرية لنشاط التوظيف؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة recruitment_executive_search فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: المسمى الوظيفي والمستوى وعدد التعيينات، والوصف الوظيفي، ونطاق الراتب، ونوع البحث، وأساس الأتعاب ومراحلها. البحث التنفيذي المحتجز للمناصب العليا يبدأ عادة باجتماع إحاطة قبل تثبيت العرض. مراجعة من منظور المورّد (2026-11-10): يستطيع المورّد التسعير النهائي من المواصفات المطلوبة؛ ولم يُضف شيء.",
       "required_specs": [
         "role title, level and number of hires",
         "job description and requirements",
@@ -24,7 +24,95 @@
         "https://www.mohre.gov.ae/en/services.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "role title, level and number of hires",
+        "job description and requirements",
+        "salary band",
+        "search type (contingency, retained, RPO)",
+        "fee basis and payment stages"
+      ],
+      "spec_guide": [
+        {
+          "spec": "role title, level and number of hires",
+          "why_needed_to_price": "Role, level and number of hires decide effort.",
+          "uae_options": "title; seniority; count",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "job description and requirements",
+          "why_needed_to_price": "The job description defines the search.",
+          "uae_options": "JD; must-have requirements",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "salary band",
+          "why_needed_to_price": "Salary band drives the fee when it is a percentage.",
+          "uae_options": "monthly or annual package",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "search type (contingency, retained, RPO)",
+          "why_needed_to_price": "Search type changes the fee model.",
+          "uae_options": "contingency; retained; RPO",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "fee basis and payment stages",
+          "why_needed_to_price": "Fee basis and stages.",
+          "uae_options": "% of annual salary; retainer stages; fixed",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "shortlist timeline",
+          "why_needed_to_price": "Shortlist timeline.",
+          "uae_options": "weeks",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "replacement guarantee period",
+          "why_needed_to_price": "Replacement guarantee.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "MOHRE licence for recruitment",
+          "why_needed_to_price": "The agency must hold a MOHRE licence for recruitment on the mainland.",
+          "uae_options": "licence number",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "response",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "advertising; assessments; relocation",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm fee needs the role, level, salary band, search type and number of hires; senior retained searches usually start with a briefing meeting before the proposal is final.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "recruitment_executive_search:uae-standards-and-approvals",
@@ -81,6 +169,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "recruitment_executive_search:authority-approvals",
+      "topic": "Recruitment & executive search: licences, permits and approvals by emirate",
+      "topic_ar": "التوظيف والبحث عن الكفاءات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Recruitment agencies on the UAE mainland are licensed and regulated by the Ministry of Human Resources and Emiratisation (MOHRE); a 2022 ministerial resolution under the Labour Law (Decree-Law 33 of 2021) covers recruitment and mediation agencies and temporary employment and outsourcing agencies, with bank guarantees reported in the press, and MOHRE has suspended and revoked agency licences. Charging candidates recruitment fees is prohibited. Domestic worker recruitment is a separate regime. Free-zone agencies follow their free zone. Ask for the MOHRE licence number.",
+      "body_ar": "تُرخَّص وكالات التوظيف في البر الرئيسي وتُنظَّم من وزارة الموارد البشرية والتوطين؛ ويغطي قرار وزاري صدر عام 2022 تنفيذاً لقانون العمل (المرسوم بقانون رقم 33 لسنة 2021) وكالات التوظيف والوساطة ووكالات التشغيل المؤقت والإسناد، مع ضمانات مصرفية أفادت بها الصحافة، وقد علّقت الوزارة تراخيص وكالات وألغتها. ويُحظر تقاضي رسوم توظيف من المرشحين. وتوظيف العمالة المساعدة نظام منفصل. وتتبع الوكالات في المناطق الحرة منطقتها. اطلب رقم ترخيص الوزارة.",
+      "sources": [
+        "https://gulfnews.com/uae/government/new-guidelines-for-recruitment-agency-licensing-in-the-uae-1.500102110",
+        "https://gulfmigration.grc.net/uae-manual-for-licensing-and-regulating-work-employment-agencies/?print=pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection. Second page read 2026-11-10 (ledger 1597): Not confirmed again: mohre.gov.ae and www.mohre.gov.ae reset the TLS handshake (curl) and return HTTP 502 (Playwright); gulfnews.com and gulfmigration.grc.net are refused by the session network."
+    },
+    {
+      "id": "recruitment_executive_search:quote-red-flags",
+      "topic": "Recruitment & executive search: red flags in supplier quotations",
+      "topic_ar": "التوظيف والبحث عن الكفاءات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for fees calculated on total package including allowances when base salary was agreed, a short replacement guarantee, retained stages payable before a shortlist, exclusivity periods, unlicensed agencies, and candidates charged fees.",
+      "body_ar": "انتبه إلى احتساب الأتعاب على إجمالي الحزمة شاملة البدلات بينما اتُّفق على الراتب الأساسي، وضمان استبدال قصير، ودفع مراحل البحث المحتجز قبل القائمة المختصرة، وفترات الحصرية، والوكالات غير المرخصة، وتقاضي رسوم من المرشحين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "recruitment_executive_search:buyer-mistakes",
+      "topic": "Recruitment & executive search: common buyer mistakes",
+      "topic_ar": "التوظيف والبحث عن الكفاءات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Employers brief several contingency agencies at once and get duplicate CVs, give no salary band, and do not define the fee base.",
+      "body_ar": "يكلّف أصحاب العمل عدة وكالات في وقت واحد فتصلهم سير ذاتية مكررة، ولا يحددون نطاق الراتب، ولا يعرّفون أساس الأتعاب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "recruitment_executive_search:price-drivers",
+      "topic": "Recruitment & executive search: what makes prices differ legitimately",
+      "topic_ar": "التوظيف والبحث عن الكفاءات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: seniority and scarcity of the role, search type, exclusivity, number of hires, guarantee length and assessments.",
+      "body_ar": "العوامل: أقدمية المنصب وندرته، ونوع البحث، والحصرية، وعدد التعيينات، ومدة الضمان، والتقييمات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "recruitment_executive_search:compare-quotes-cost-to-value",
+      "topic": "Recruitment & executive search: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "التوظيف والبحث عن الكفاءات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the fee on the same base (base salary or total package), stage payments, guarantee and timeline. Recommend three licensed agencies with relevant placements.",
+      "body_ar": "قارن الأتعاب على الأساس نفسه (الراتب الأساسي أو إجمالي الحزمة)، ومراحل الدفع، والضمان، والجدول الزمني. أوصِ بثلاث وكالات مرخصة ذات تعيينات مماثلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -123,7 +280,8 @@
     "removed": [],
     "still_unverified": [
       "recruitment_executive_search:spec-checklist",
-      "recruitment_executive_search:uae-standards-and-approvals"
+      "recruitment_executive_search:uae-standards-and-approvals",
+      "recruitment_executive_search:authority-approvals"
     ],
     "added": [
       "recruitment_executive_search:spec-checklist",
@@ -154,6 +312,35 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "recruitment_executive_search:quote-red-flags",
+      "recruitment_executive_search:buyer-mistakes",
+      "recruitment_executive_search:price-drivers",
+      "recruitment_executive_search:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "recruitment_executive_search:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

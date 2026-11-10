@@ -95,7 +95,10 @@ test('the review of #1844 stays fixed: scrub, one chase, a confirmed cancel, a r
 
 test('production, rolled back: every case and every loop answers PROBE OK', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   let msg = '';
-  try { await replaySql(R(FILE) + '\n' + R(PROBE), { label: NAME, rows: false }); }
+  // 10 Nov 2026: replaying FILE puts back its own bodies of the two duties; the later demo-predicate file must follow it
+  const DEMO_FIX = 'scripts/sql/two_customer_support_duties_read_only_their_own_kind_of_row.sql';
+  const after = existsSync(join(ROOT, 'scripts/sql/pending/two_customer_support_duties_read_only_their_own_kind_of_row.txt')) ? R(DEMO_FIX) + '\n' : '';
+  try { await replaySql(R(FILE) + '\n' + after + R(PROBE), { label: NAME, rows: false }); }
   catch (e) { msg = String(e?.body ?? e?.message ?? e); }
   assert.match(msg, /CHK<<PROBE OK/, msg.slice(0, 3000));
 });

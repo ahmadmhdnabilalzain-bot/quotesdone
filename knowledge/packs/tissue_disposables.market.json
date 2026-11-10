@@ -29,8 +29,8 @@
       "topic": "Tissue & disposables: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المناديل الورقية والمستلزمات أحادية الاستخدام: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the UAE-based makers and widely sold tissue and disposables brands, such as Hotpack, Falcon Pack and Fine Hygienic Holding, and where imported gloves and disposables are traded. Confirmed UAE-based makers and widely sold brands: Hotpack, Falcon Pack, Fine Hygienic Holding, Kimberly-Clark (Kleenex, Scott), Essity (Tork), Sanita, Napco. The imported brands' UAE distributors were not checked. Gloves and disposables are largely imported from Malaysia, Thailand, China and India via traders in Deira, Al Ras, Sharjah and Dragon Mart.",
-      "body_ar": "من المصنعين المحليين والعلامات الشائعة للمناديل والمستلزمات أحادية الاستخدام في الإمارات Hotpack وFalcon Pack وFine Hygienic Holding، مع بيان أماكن تداول القفازات والمستلزمات المستوردة. المصنعون المؤكدون في الإمارات والعلامات المباعة على نطاق واسع: Hotpack، Falcon Pack، Fine Hygienic Holding، Kimberly-Clark (Kleenex, Scott)، Essity (Tork)، Sanita، Napco. ولم يُتحقق من موزعي العلامات المستوردة في الإمارات. وتُستورد القفازات والمستهلكات بشكل كبير من ماليزيا وتايلاند والصين والهند عبر تجار في ديرة والراس والشارقة ودراغون مارت.",
+      "body_en": "This entry lists the UAE-based makers and widely sold tissue and disposables brands, such as Hotpack, Falcon Pack and Fine Hygienic Holding, and where imported gloves and disposables are traded. Confirmed UAE-based makers and widely sold brands: Hotpack, Falcon Pack, Fine Hygienic Holding, Kimberly-Clark (Kleenex, Scott), Essity (Tork), Sanita, Napco. The imported brands' UAE distributors were not checked. Gloves and disposables are largely imported from Malaysia, Thailand, China and India via traders in Deira, Al Ras, Sharjah and Dragon Mart.\n\nOrigin and tier, for describing a quoted brand without naming it: Hotpack - mid, UAE; Falcon Pack - mid, UAE; Fine Hygienic Holding - mid, Jordan; Kimberly-Clark (Kleenex, Scott) - premium, USA; Essity (Tork) - premium, Sweden; Sanita - mid, Saudi Arabia; Napco - mid, Saudi Arabia.",
+      "body_ar": "من المصنعين المحليين والعلامات الشائعة للمناديل والمستلزمات أحادية الاستخدام في الإمارات Hotpack وFalcon Pack وFine Hygienic Holding، مع بيان أماكن تداول القفازات والمستلزمات المستوردة. المصنعون المؤكدون في الإمارات والعلامات المباعة على نطاق واسع: Hotpack، Falcon Pack، Fine Hygienic Holding، Kimberly-Clark (Kleenex, Scott)، Essity (Tork)، Sanita، Napco. ولم يُتحقق من موزعي العلامات المستوردة في الإمارات. وتُستورد القفازات والمستهلكات بشكل كبير من ماليزيا وتايلاند والصين والهند عبر تجار في ديرة والراس والشارقة ودراغون مارت.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Hotpack: فئة متوسطة، الإمارات؛ Falcon Pack: فئة متوسطة، الإمارات؛ Fine Hygienic Holding: فئة متوسطة، الأردن؛ Kimberly-Clark (Kleenex, Scott): فئة ممتازة، الولايات المتحدة؛ Essity (Tork): فئة ممتازة، السويد؛ Sanita: فئة متوسطة، السعودية؛ Napco: فئة متوسطة، السعودية.",
       "sources": [
         "https://www.thenationalnews.com/news/uae/2025/12/16/plastic-ban-uae-2026-list-of-products-banned/",
         "https://www.dm.gov.ae/2025/12/24/dubai-to-enforce-final-phase-of-single-use-plastic-ban-from-2026/",
@@ -42,7 +42,58 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Federal single-use plastics ban (Ministerial Resolution 380 of 2022): styrofoam cups and food containers, straws, stirrers and table covers from 1 Jan 2025; cups and lids, cutlery and plates from 1 Jan 2026; PLA products excluded -> corrected: dates and item lists made specific | Dubai final phase of single-use plastic ban on 1 Jan 2026 (Executive Council Resolution 124 of 2023) -> confirmed | Hotpack (Soft n Cool tissue, Dubai and Sharjah plants), Falcon Pack (food packaging) and Fine Hygienic Holding are UAE-based -> confirmed. Not checked: Exact phase-in dates and item lists of the federal and emirate single-use plastic bans should be checked at time of quoting; brand distributors were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Federal single-use plastics ban (Ministerial Resolution 380 of 2022): styrofoam cups and food containers, straws, stirrers and table covers from 1 Jan 2025; cups and lids, cutlery and plates from 1 Jan 2026; PLA products excluded -> corrected: dates and item lists made specific | Dubai final phase of single-use plastic ban on 1 Jan 2026 (Executive Council Resolution 124 of 2023) -> confirmed | Hotpack (Soft n Cool tissue, Dubai and Sharjah plants), Falcon Pack (food packaging) and Fine Hygienic Holding are UAE-based -> confirmed. Not checked: Exact phase-in dates and item lists of the federal and emirate single-use plastic bans should be checked at time of quoting; brand distributors were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Hotpack",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "Falcon Pack",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "Fine Hygienic Holding",
+          "origin": "Jordan",
+          "tier": "mid",
+          "generic_en": "a mid brand from Jordan",
+          "generic_ar": "علامة متوسطة من الأردن"
+        },
+        {
+          "brand": "Kimberly-Clark (Kleenex, Scott)",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Essity (Tork)",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium brand from Sweden",
+          "generic_ar": "علامة ممتازة من السويد"
+        },
+        {
+          "brand": "Sanita",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Saudi Arabia",
+          "generic_ar": "علامة متوسطة من السعودية"
+        },
+        {
+          "brand": "Napco",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Saudi Arabia",
+          "generic_ar": "علامة متوسطة من السعودية"
+        }
+      ]
     },
     {
       "id": "tissue_disposables:uae-market-sizes",

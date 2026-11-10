@@ -27,8 +27,8 @@
       "topic": "Joinery & carpentry: makes, brands, distributors and origins in the UAE",
       "topic_ar": "النجارة والأعمال الخشبية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists board, laminate and hardware brands such as Egger, Kronospan, Formica, Blum and Hettich, where boards come from, and where joinery workshops are concentrated. Board, laminate and hardware brands: Egger, Kronospan, Finsa, Pfleiderer, Sonae Arauco, Formica, Wilsonart, Abet Laminati, Polyrey, Greenlam, Merino, Century, Blum, Häfele, Hettich, Grass, Salice. Regional MDF also comes from Oman and Saudi Arabia, and plywood from Malaysia, Indonesia, Russia, Finland and China. Joinery workshops are concentrated in Al Quoz, Ras Al Khor, Jebel Ali, Sharjah Industrial Area and Ajman, and timber traders in Sharjah and Al Aweer. Only Egger's and Hettich's UAE channels were checked.",
-      "body_ar": "من ماركات الألواح والفورمايكا والإكسسوارات في أعمال النجارة Egger وKronospan وFormica وBlum وHettich، مع بيان منشأ الألواح وأماكن تركز ورش النجارة. ماركات الألواح والفورمايكا والإكسسوارات: Egger، Kronospan، Finsa، Pfleiderer، Sonae Arauco، Formica، Wilsonart، Abet Laminati، Polyrey، Greenlam، Merino، Century، Blum، Häfele، Hettich، Grass، Salice. وتأتي ألواح MDF إقليميًا أيضًا من عُمان والسعودية، والبلايوود من ماليزيا وإندونيسيا وروسيا وفنلندا والصين. وتتركز ورش النجارة في القوز ورأس الخور وجبل علي والمنطقة الصناعية بالشارقة وعجمان، وتجار الأخشاب في الشارقة والعوير. ولم نتحقق إلا من قنوات Egger وHettich في الإمارات.",
+      "body_en": "This entry lists board, laminate and hardware brands such as Egger, Kronospan, Formica, Blum and Hettich, where boards come from, and where joinery workshops are concentrated. Board, laminate and hardware brands: Egger, Kronospan, Finsa, Pfleiderer, Sonae Arauco, Formica, Wilsonart, Abet Laminati, Polyrey, Greenlam, Merino, Century, Blum, Häfele, Hettich, Grass, Salice. Regional MDF also comes from Oman and Saudi Arabia, and plywood from Malaysia, Indonesia, Russia, Finland and China. Joinery workshops are concentrated in Al Quoz, Ras Al Khor, Jebel Ali, Sharjah Industrial Area and Ajman, and timber traders in Sharjah and Al Aweer. Only Egger's and Hettich's UAE channels were checked.\n\nOrigin and tier, for describing a quoted brand without naming it: Egger - premium, Austria; Kronospan - mid, Austria; Finsa - mid, Spain; Pfleiderer - mid, Germany; Sonae Arauco - mid, Portugal; Formica - premium, USA; Wilsonart - mid, USA; Abet Laminati - premium, Italy; Polyrey - mid, France; Greenlam - economy, India; Merino - economy, India; Century - economy, India; Blum - premium, Austria; Häfele - mid, Germany; Hettich - premium, Germany; Grass - premium, Austria; Salice - premium, Italy.",
+      "body_ar": "من ماركات الألواح والفورمايكا والإكسسوارات في أعمال النجارة Egger وKronospan وFormica وBlum وHettich، مع بيان منشأ الألواح وأماكن تركز ورش النجارة. ماركات الألواح والفورمايكا والإكسسوارات: Egger، Kronospan، Finsa، Pfleiderer، Sonae Arauco، Formica، Wilsonart، Abet Laminati، Polyrey، Greenlam، Merino، Century، Blum، Häfele، Hettich، Grass، Salice. وتأتي ألواح MDF إقليميًا أيضًا من عُمان والسعودية، والبلايوود من ماليزيا وإندونيسيا وروسيا وفنلندا والصين. وتتركز ورش النجارة في القوز ورأس الخور وجبل علي والمنطقة الصناعية بالشارقة وعجمان، وتجار الأخشاب في الشارقة والعوير. ولم نتحقق إلا من قنوات Egger وHettich في الإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Egger: فئة ممتازة، النمسا؛ Kronospan: فئة متوسطة، النمسا؛ Finsa: فئة متوسطة، إسبانيا؛ Pfleiderer: فئة متوسطة، ألمانيا؛ Sonae Arauco: فئة متوسطة، البرتغال؛ Formica: فئة ممتازة، الولايات المتحدة؛ Wilsonart: فئة متوسطة، الولايات المتحدة؛ Abet Laminati: فئة ممتازة، إيطاليا؛ Polyrey: فئة متوسطة، فرنسا؛ Greenlam: فئة اقتصادية، الهند؛ Merino: فئة اقتصادية، الهند؛ Century: فئة اقتصادية، الهند؛ Blum: فئة ممتازة، النمسا؛ Häfele: فئة متوسطة، ألمانيا؛ Hettich: فئة ممتازة، ألمانيا؛ Grass: فئة ممتازة، النمسا؛ Salice: فئة ممتازة، إيطاليا.",
       "sources": [
         "https://www.egger.com/en/distribution-partners?country=AE",
         "https://censohome.com/blog/top-kitchen-cabinet-manufacturers-uae/",
@@ -38,7 +38,128 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Egger boards and Blum/Hettich hardware are sold through UAE distributors -> confirmed (Egger lists UAE distribution partners; Hettich Middle East is in Dubai) | named large joinery factories (Depa group joinery, Emirates Wood) -> removed (not confirmed); workshops kept generic. Not checked: Regional MDF producers' current capacity and named large joinery factories' status were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Egger boards and Blum/Hettich hardware are sold through UAE distributors -> confirmed (Egger lists UAE distribution partners; Hettich Middle East is in Dubai) | named large joinery factories (Depa group joinery, Emirates Wood) -> removed (not confirmed); workshops kept generic. Not checked: Regional MDF producers' current capacity and named large joinery factories' status were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Egger",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium brand from Austria",
+          "generic_ar": "علامة ممتازة من النمسا"
+        },
+        {
+          "brand": "Kronospan",
+          "origin": "Austria",
+          "tier": "mid",
+          "generic_en": "a mid brand from Austria",
+          "generic_ar": "علامة متوسطة من النمسا"
+        },
+        {
+          "brand": "Finsa",
+          "origin": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid brand from Spain",
+          "generic_ar": "علامة متوسطة من إسبانيا"
+        },
+        {
+          "brand": "Pfleiderer",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Sonae Arauco",
+          "origin": "Portugal",
+          "tier": "mid",
+          "generic_en": "a mid brand from Portugal",
+          "generic_ar": "علامة متوسطة من البرتغال"
+        },
+        {
+          "brand": "Formica",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Wilsonart",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid brand from USA",
+          "generic_ar": "علامة متوسطة من الولايات المتحدة"
+        },
+        {
+          "brand": "Abet Laminati",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        },
+        {
+          "brand": "Polyrey",
+          "origin": "France",
+          "tier": "mid",
+          "generic_en": "a mid brand from France",
+          "generic_ar": "علامة متوسطة من فرنسا"
+        },
+        {
+          "brand": "Greenlam",
+          "origin": "India",
+          "tier": "economy",
+          "generic_en": "a economy brand from India",
+          "generic_ar": "علامة اقتصادية من الهند"
+        },
+        {
+          "brand": "Merino",
+          "origin": "India",
+          "tier": "economy",
+          "generic_en": "a economy brand from India",
+          "generic_ar": "علامة اقتصادية من الهند"
+        },
+        {
+          "brand": "Century",
+          "origin": "India",
+          "tier": "economy",
+          "generic_en": "a economy brand from India",
+          "generic_ar": "علامة اقتصادية من الهند"
+        },
+        {
+          "brand": "Blum",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium brand from Austria",
+          "generic_ar": "علامة ممتازة من النمسا"
+        },
+        {
+          "brand": "Häfele",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Hettich",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Grass",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium brand from Austria",
+          "generic_ar": "علامة ممتازة من النمسا"
+        },
+        {
+          "brand": "Salice",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        }
+      ]
     },
     {
       "id": "joinery:uae-market-sizes",

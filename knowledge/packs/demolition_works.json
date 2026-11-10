@@ -5,8 +5,8 @@
       "id": "demolition_works:spec-checklist",
       "topic": "Demolition works - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for demolition works must state: structure description; demolition method; municipality demolition permit; utility disconnection; hazardous materials survey; waste disposal and recycling; site safety plan; programme; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة أعمال الهدم: وصف المنشأة؛ طريقة الهدم؛ تصريح الهدم من البلدية؛ فصل الخدمات؛ مسح المواد الخطرة؛ التخلص من المخلفات وإعادة تدويرها؛ خطة السلامة في الموقع؛ البرنامج الزمني؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for demolition works must state: structure description; demolition method; municipality demolition permit; utility disconnection; hazardous materials survey; waste disposal and recycling; site safety plan; programme; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; structure description, extent (strip-out, partial, full), hazardous-materials status and adjacent buildings. A site visit is unavoidable. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; salvage and scrap ownership; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة أعمال الهدم: وصف المنشأة؛ طريقة الهدم؛ تصريح الهدم من البلدية؛ فصل الخدمات؛ مسح المواد الخطرة؛ التخلص من المخلفات وإعادة تدويرها؛ خطة السلامة في الموقع؛ البرنامج الزمني؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، ووصف المنشأ، ونطاق الهدم (تفريغ داخلي أو جزئي أو كامل)، ووضع المواد الخطرة، والمباني المجاورة. وزيارة الموقع ضرورية. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وملكية المواد المستردة والخردة، وشروط الدفع.",
       "required_specs": [
         "structure description",
         "demolition method",
@@ -20,14 +20,157 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "full or partial demolition, or internal strip-out",
+        "adjacent buildings and distance to them",
+        "site location and emirate",
+        "salvage and scrap ownership",
+        "payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/municipality-business/",
         "https://www.dcd.gov.ae/portal/en/home.jsp"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "structure description",
+        "full or partial demolition, or internal strip-out",
+        "hazardous materials survey",
+        "adjacent buildings and distance to them",
+        "site location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "structure description",
+          "why_needed_to_price": "Floors, area, structure type (RC, steel, masonry) and basement set the volume and method.",
+          "uae_options": "villa; low-rise; high-rise; warehouse; basement",
+          "follow_up_if": "Basement: ask whether the slab and retaining walls are removed and who backfills.",
+          "blocking": true
+        },
+        {
+          "spec": "demolition method",
+          "why_needed_to_price": "Mechanical, high-reach, manual or controlled methods differ in cost and duration.",
+          "uae_options": "mechanical excavator; high-reach; manual; diamond cutting",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "municipality demolition permit",
+          "why_needed_to_price": "The demolition permit needs utility disconnections and approvals that take time and fees.",
+          "uae_options": "Dubai Municipality or emirate municipality demolition permit.",
+          "follow_up_if": "If the permit is excluded, ask who obtains it.",
+          "blocking": false
+        },
+        {
+          "spec": "utility disconnection",
+          "why_needed_to_price": "DEWA/ADDC/SEWA/EtihadWE and telecom disconnection certificates are needed first.",
+          "uae_options": "owner arranges; contractor arranges",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "hazardous materials survey",
+          "why_needed_to_price": "Asbestos needs a specialist and approvals before demolition.",
+          "uae_options": "survey available; survey to be done",
+          "follow_up_if": "Older buildings: an asbestos survey is unavoidable before a firm price.",
+          "blocking": true
+        },
+        {
+          "spec": "waste disposal and recycling",
+          "why_needed_to_price": "Haulage and tipping are a large share of cost.",
+          "uae_options": "contractor disposes at an approved site; recycling credit",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "site safety plan",
+          "why_needed_to_price": "A site safety plan and method statement are needed for approval.",
+          "uae_options": "Method statement; risk assessment; site safety plan.",
+          "follow_up_if": "If the site is near neighbours, ask for protection measures.",
+          "blocking": false
+        },
+        {
+          "spec": "programme",
+          "why_needed_to_price": "A short programme needs more plant and crews.",
+          "uae_options": "Demolition duration in weeks.",
+          "follow_up_if": "If the date is fixed, ask the contractor to confirm.",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and unlicensed offers are often cheaper for that reason.",
+          "uae_options": "Trade licence for the activity in the emirate or free zone; authority approvals or registrations where the trade requires them.",
+          "follow_up_if": "If the licence does not name the activity or the emirate of the site, the offer cannot be accepted until it does.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels set the staffing, frequency and standby the provider must carry, and so most of the price.",
+          "uae_options": "Defined frequency, response time, attendance hours and measurable KPIs; penalties or service credits by agreement.",
+          "follow_up_if": "If no level is stated, ask the buyer for frequency and response expectations before comparing quotes.",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Mobilisation and overheads are spread over the term, so a short contract costs more per month than a long one.",
+          "uae_options": "Single job; 6 months; 1 year; 2-3 years with renewal and escalation terms.",
+          "follow_up_if": "If the term is open, ask the supplier to quote one year and state the price for each renewal year.",
+          "blocking": false
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "full or partial demolition, or internal strip-out",
+          "why_needed_to_price": "Strip-out, partial and full demolition are different scopes and permits.",
+          "uae_options": "internal strip-out; partial; full to ground level; including foundations",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "adjacent buildings and distance to them",
+          "why_needed_to_price": "Close neighbours need protection, monitoring and slower methods.",
+          "uae_options": "free-standing; adjoining",
+          "follow_up_if": "Adjoining: ask for a method statement and monitoring.",
+          "blocking": true
+        },
+        {
+          "spec": "site location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "salvage and scrap ownership",
+          "blocking": false,
+          "why_needed_to_price": "Steel, copper and reusable items the contractor keeps are credited against the price; items the owner keeps must be removed with care.",
+          "uae_options": "Contractor keeps all scrap; owner keeps listed items; scrap value credited in the price.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "site_visit_required_when": "A site visit is unavoidable before a firm demolition price, to see the structure, neighbours, access and hazardous materials.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "demolition_works:uae-standards-and-approvals",
@@ -85,6 +228,82 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "demolition_works:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Demolition: permits per emirate",
+      "topic_ar": "الهدم: التراخيص في كل إمارة",
+      "body_en": "Dubai: Local Order No. 3 of 1999 treats demolition as construction works needing a Dubai Municipality permit; Dubai Municipality describes a permit valid for three months for full or partial demolition, renewable if work has not started or has stopped; buildings with asbestos sheets need the Environment Department's approval and safe disposal before a permit is issued; heritage buildings need prior approval of the competent authority; contractors must hold the insurance required by Executive Council Resolution No. 28 of 2022 from permit to completion certificate. Inside DDA or Trakhees areas the permit comes from them. Abu Dhabi: the DMT municipalities issue demolition permits; waste licensing moved to the Environment Agency Abu Dhabi. Sharjah and the northern emirates: municipal demolition permits; details not confirmed in this session. Utility disconnection certificates come first. Who obtains: the owner's consultant or the licensed demolition contractor.",
+      "body_ar": "في دبي: يعدّ الأمر المحلي رقم 3 لسنة 1999 الهدم من أعمال البناء التي تحتاج إلى ترخيص من بلدية دبي، وتصف البلدية ترخيصاً صالحاً ثلاثة أشهر للهدم الكلي أو الجزئي قابلاً للتجديد إذا لم تبدأ الأعمال أو توقفت، وتحتاج المباني التي تحتوي على ألواح الأسبستوس إلى موافقة إدارة البيئة والتخلص الآمن قبل إصدار الترخيص، وتحتاج المباني التراثية إلى موافقة مسبقة من الجهة المختصة، ويجب أن يحمل المقاول التأمين الذي يشترطه قرار المجلس التنفيذي رقم 28 لسنة 2022 من الترخيص حتى شهادة الإنجاز. وداخل مناطق سلطة دبي للتطوير أو تراخيص يصدر الترخيص منهما. في أبوظبي: تصدر بلديات دائرة البلديات والنقل تراخيص الهدم، وانتقل ترخيص إدارة النفايات إلى هيئة البيئة - أبوظبي. في الشارقة والإمارات الشمالية: تراخيص هدم بلدية، ولم يُتحقق من تفاصيلها في هذه الجلسة. وتأتي شهادات فصل المرافق أولاً. من يحصل عليها: استشاري المالك أو مقاول الهدم المرخّص.",
+      "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/1999/Local%20Order%20No.%20(3)%20of%201999%20Regulating%20Construction%20Works.pdf",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2022/Executive%20Council%20Resolution%20No.%20(28)%20of%202022%20Concerning%20the%20Insurance%20Policy%20Required.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2026/Law%20No.%20(3)%20of%202026%20Concerning%20the%20Quality%20and%20Safety%20of%20Buildings.html",
+        "https://www.wam.ae/en/article/13xw0mp-waste-management-licensing-services-transferred",
+        "https://www.dm.gov.ae/municipality-business/buildings-regulation-permits-agency/",
+        "https://www.dm.gov.ae/documents/hsd-gu50/",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/01/DM-HSD-GU50-SHA2_-Technical-Guidelines-for-Safe-Handling-of-Asbestos_V5-26-04-2024.pdf",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Local Order No. 3 of 1999 defines construction works to include demolition and bars them without a permit (dlp.dubai.gov.ae); DM's service 'Permit to Carry Out Demolition Works': a permit valid for 3 months to fully or partially demolish buildings, renewable if works have not started or have stopped (DM services); Executive Council Resolution No. 28 of 2022; DM Guideline 50 on asbestos handling during demolition; WAM (30 May 2024): EAD took over Abu Dhabi waste licensing, including construction-and-demolition NOCs; DDA demolition permit (dda.gov.ae). Not confirmed on any page that opened: Environment Department approval of asbestos before the permit, the heritage-building rule, the Trakhees demolition permit, and the Sharjah and northern-emirate permits."
+    },
+    {
+      "id": "demolition_works:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in demolition quotes",
+      "topic_ar": "علامات التحذير في عروض الهدم",
+      "body_en": "Watch for: asbestos \"excluded\" or \"if found, extra\"; foundations and basement slabs excluded; waste disposal fees excluded or a tipping site not named; utility disconnection, hoarding, dust control and neighbour protection missing; salvage credit assumed without a value; and an unlicensed subcontractor named for asbestos.",
+      "body_ar": "انتبه إلى: استثناء الأسبستوس أو «إن وُجد فبتكلفة إضافية»، واستثناء الأساسات وبلاطات القبو، واستثناء رسوم التخلص من المخلفات أو عدم تسمية موقع الطمر، وغياب فصل المرافق والسياج المؤقت ومكافحة الغبار وحماية الجيران، وافتراض قيمة للخردة المستردة دون رقم، وتسمية مقاول باطن غير مرخّص للأسبستوس.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "demolition_works:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in demolition",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الهدم",
+      "body_en": "Buyers ask for a demolition price without saying whether foundations go, forget disconnection certificates, and do not commission an asbestos survey on older buildings.",
+      "body_ar": "يطلب المشترون سعر الهدم دون ذكر هل تُزال الأساسات، وينسون شهادات فصل المرافق، ولا يطلبون مسحاً للأسبستوس في المباني القديمة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "demolition_works:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves demolition prices",
+      "topic_ar": "ما الذي يغيّر أسعار الهدم بشكل مشروع",
+      "body_en": "Prices differ legitimately by building volume and structure, height, method, adjacency, hazardous materials, haul distance and tipping fees, and the value of recovered steel.",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب حجم المبنى وهيكله، والارتفاع، وطريقة الهدم، والتلاصق مع المباني، والمواد الخطرة، ومسافة النقل ورسوم الطمر، وقيمة الحديد المسترد.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "demolition_works:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing demolition quotes like for like",
+      "topic_ar": "مقارنة عروض الهدم على أساس متكافئ",
+      "body_en": "Compare for the same extent (to ground level, or including foundations), with permits, disconnections, hoarding, asbestos, disposal and site levelling in or out alike, and any salvage credit shown separately. Value beyond price: a licensed asbestos specialist, a method statement for neighbours, and insurance in place.",
+      "body_ar": "قارن للنطاق نفسه (حتى منسوب الأرض أو مع الأساسات)، مع معاملة التراخيص وفصل المرافق والسياج والأسبستوس والتخلص وتسوية الموقع بالطريقة نفسها، وإظهار أي قيمة للخردة المستردة منفصلة. القيمة إلى جانب السعر: متخصص أسبستوس مرخّص، وبيان منهجية لحماية الجيران، وتأمين ساري.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -118,20 +337,33 @@
         "demolition_works:product-distinctions"
       ],
       "written_blind": true
+    },
+    {
+      "q_en": "What permit do I need to demolish an old villa in Dubai, and what about asbestos?",
+      "q_ar": "ما الترخيص المطلوب لهدم فيلا قديمة في دبي، وماذا عن الأسبستوس؟",
+      "expected_entry_ids": [
+        "demolition_works:approvals-per-emirate"
+      ]
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
+    "fetched_urls": 4,
+    "claims_checked": 9,
     "corrected": [],
     "removed": [],
     "still_unverified": [
       "demolition_works:spec-checklist",
-      "demolition_works:uae-standards-and-approvals"
+      "demolition_works:uae-standards-and-approvals",
+      "demolition_works:approvals-per-emirate"
     ],
     "added": [
       "demolition_works:spec-checklist",
-      "demolition_works:uae-standards-and-approvals"
+      "demolition_works:uae-standards-and-approvals",
+      "demolition_works:approvals-per-emirate",
+      "demolition_works:quote-red-flags",
+      "demolition_works:buyer-mistakes",
+      "demolition_works:price-drivers",
+      "demolition_works:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
@@ -158,6 +390,27 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: demolition_works:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 8 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "demolition_works:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.wam.ae/en/article/13xw0mp-waste-management-licensing-services-transferred"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

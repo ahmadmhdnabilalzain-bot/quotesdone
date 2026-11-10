@@ -27,8 +27,8 @@
       "topic": "Mannequins & visual merchandising: makes, brands, distributors and origins in the UAE",
       "topic_ar": "عارضات الأزياء وتجهيزات العرض المرئي: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names mannequin suppliers in Dubai, such as Show Racks Trading and XITE Display Studio, leading European makers, and the Chinese, Indian and Turkish volume sources. Confirmed Dubai suppliers and leading European mannequin makers: Show Racks Trading (Deira), XITE Display Studio, Creative Display (The Design Store), Bonaveri, Hans Boodt, Almax. No UAE distributor was found for the European makers. Most volume comes from Chinese, Indian and Turkish manufacturers via traders in Deira, Dragon Mart, Sharjah and Al Quoz.",
-      "body_ar": "من موردي المانيكانات في دبي Show Racks Trading وXITE Display Studio، إلى جانب كبار المصنعين الأوروبيين، والمصادر الصينية والهندية والتركية للكميات الكبيرة. الموردون المؤكدون في دبي وكبار المصنعين الأوروبيين لعارضات الأزياء: Show Racks Trading (Deira)، XITE Display Studio، Creative Display (The Design Store)، Bonaveri، Hans Boodt، Almax. ولم يُعثر على موزع في الإمارات للمصنعين الأوروبيين. ويأتي معظم الحجم من مصنعين صينيين وهنود وأتراك عبر تجار في ديرة ودراغون مارت والشارقة والقوز.",
+      "body_en": "This names mannequin suppliers in Dubai, such as Show Racks Trading and XITE Display Studio, leading European makers, and the Chinese, Indian and Turkish volume sources. Confirmed Dubai suppliers and leading European mannequin makers: Show Racks Trading (Deira), XITE Display Studio, Creative Display (The Design Store), Bonaveri, Hans Boodt, Almax. No UAE distributor was found for the European makers. Most volume comes from Chinese, Indian and Turkish manufacturers via traders in Deira, Dragon Mart, Sharjah and Al Quoz.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Show Racks Trading = a UAE trading or retail name; XITE Display Studio = a UAE trading or retail name; Creative Display (The Design Store) = a UAE trading or retail name; Bonaveri = a luxury Italian brand; Hans Boodt = a premium Dutch brand; Almax = a luxury Italian brand.",
+      "body_ar": "من موردي المانيكانات في دبي Show Racks Trading وXITE Display Studio، إلى جانب كبار المصنعين الأوروبيين، والمصادر الصينية والهندية والتركية للكميات الكبيرة. الموردون المؤكدون في دبي وكبار المصنعين الأوروبيين لعارضات الأزياء: Show Racks Trading (Deira)، XITE Display Studio، Creative Display (The Design Store)، Bonaveri، Hans Boodt، Almax. ولم يُعثر على موزع في الإمارات للمصنعين الأوروبيين. ويأتي معظم الحجم من مصنعين صينيين وهنود وأتراك عبر تجار في ديرة ودراغون مارت والشارقة والقوز.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Show Racks Trading = اسم تجاري لتاجر أو موزع في الإمارات؛ XITE Display Studio = اسم تجاري لتاجر أو موزع في الإمارات؛ Creative Display (The Design Store) = اسم تجاري لتاجر أو موزع في الإمارات؛ Bonaveri = علامة إيطالية من الفئة الفاخرة؛ Hans Boodt = علامة هولندية من الفئة الممتازة؛ Almax = علامة إيطالية من الفئة الفاخرة.",
       "sources": [
         "https://www.yellowpages-uae.com/uae/dubai/mannequins",
         "https://bonaveri.com/contact/distributors/",
@@ -38,7 +38,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Mannequin suppliers operate in Dubai incl. Deira (Show Racks Trading), XITE Display Studio and The Design Store (Creative Display) -> confirmed | Bonaveri, Hans Boodt, Almax have UAE distributors -> removed: no UAE distributor found. Not checked: Whether any of the named international mannequin brands has an appointed UAE distributor, and specific mall fire-retardant rules, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mannequin suppliers operate in Dubai incl. Deira (Show Racks Trading), XITE Display Studio and The Design Store (Creative Display) -> confirmed | Bonaveri, Hans Boodt, Almax have UAE distributors -> removed: no UAE distributor found. Not checked: Whether any of the named international mannequin brands has an appointed UAE distributor, and specific mall fire-retardant rules, were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Show Racks Trading",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "XITE Display Studio",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Creative Display (The Design Store)",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Bonaveri",
+          "origin": "Italy",
+          "tier": "luxury",
+          "generic_en": "a luxury Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Hans Boodt",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium Dutch brand",
+          "generic_ar": "علامة هولندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Almax",
+          "origin": "Italy",
+          "tier": "luxury",
+          "generic_en": "a luxury Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الفاخرة"
+        }
+      ]
     },
     {
       "id": "mannequins_visual_merchandising:uae-market-sizes",

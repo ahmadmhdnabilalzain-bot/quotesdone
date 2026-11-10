@@ -28,8 +28,8 @@
       "topic": "Retail shelving & display fixtures: makes, brands, distributors and origins in the UAE",
       "topic_ar": "رفوف ووحدات العرض لمتاجر التجزئة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names UAE shelving suppliers Creative Display, Al Khaleej, Abazar Shelving and the racking maker BITO, and where shopfitters cluster. Confirmed UAE shelving suppliers and a racking maker with a UAE inspection service: Creative Display, Al Khaleej (Sharjah), Abazar Shelving, BITO. Other international racking brands and European gondola systems are imported; their UAE representation was not checked. Shopfitters cluster in the Sharjah Industrial Areas, Deira and Al Quoz.",
-      "body_ar": "من موردي رفوف المتاجر في الإمارات Creative Display وAl Khaleej وAbazar Shelving، ومن مصنعي أنظمة التخزين BITO، مع بيان أماكن تركز شركات تجهيز المحلات. موردو الرفوف المؤكدون في الإمارات ومصنع رفوف يقدم خدمة فحص فيها: Creative Display، Al Khaleej (Sharjah)، Abazar Shelving، BITO. وتُستورد علامات الرفوف الدولية الأخرى وأنظمة الجندولا الأوروبية ولم يُتحقق من تمثيلها في الإمارات. ويتجمع مجهزو المتاجر في المناطق الصناعية بالشارقة وديرة والقوز.",
+      "body_en": "This entry names UAE shelving suppliers Creative Display, Al Khaleej, Abazar Shelving and the racking maker BITO, and where shopfitters cluster. Confirmed UAE shelving suppliers and a racking maker with a UAE inspection service: Creative Display, Al Khaleej (Sharjah), Abazar Shelving, BITO. Other international racking brands and European gondola systems are imported; their UAE representation was not checked. Shopfitters cluster in the Sharjah Industrial Areas, Deira and Al Quoz.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Creative Display = a UAE trading or retail name; Al Khaleej = a UAE trading or retail name; Abazar Shelving = a UAE trading or retail name; BITO = a premium German brand.",
+      "body_ar": "من موردي رفوف المتاجر في الإمارات Creative Display وAl Khaleej وAbazar Shelving، ومن مصنعي أنظمة التخزين BITO، مع بيان أماكن تركز شركات تجهيز المحلات. موردو الرفوف المؤكدون في الإمارات ومصنع رفوف يقدم خدمة فحص فيها: Creative Display، Al Khaleej (Sharjah)، Abazar Shelving، BITO. وتُستورد علامات الرفوف الدولية الأخرى وأنظمة الجندولا الأوروبية ولم يُتحقق من تمثيلها في الإمارات. ويتجمع مجهزو المتاجر في المناطق الصناعية بالشارقة وديرة والقوز.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Creative Display = اسم تجاري لتاجر أو موزع في الإمارات؛ Al Khaleej = اسم تجاري لتاجر أو موزع في الإمارات؛ Abazar Shelving = اسم تجاري لتاجر أو موزع في الإمارات؛ BITO = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://daralnaseeb.com/blog/warehouse-racking-approval-dubai-guide-2026",
         "https://www.creative-display.com/supermarket-shelving",
@@ -40,7 +40,37 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN 15635 is the accepted UAE basis for racking inspection; sprinkler clearance about 450 mm; in-rack sprinklers and Civil Defence drawing updates for high racking -> confirmed | Supermarket shelving suppliers include Creative Display (Dubai), Al Khaleej (Sharjah) and Abazar Shelving -> confirmed | Mecalux, Dexion, Stow, SSI Schaefer, Tegometall UAE presence -> removed: not confirmed. Not checked: Named European gondola brands' UAE availability and local manufacturer names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 15635 is the accepted UAE basis for racking inspection; sprinkler clearance about 450 mm; in-rack sprinklers and Civil Defence drawing updates for high racking -> confirmed | Supermarket shelving suppliers include Creative Display (Dubai), Al Khaleej (Sharjah) and Abazar Shelving -> confirmed | Mecalux, Dexion, Stow, SSI Schaefer, Tegometall UAE presence -> removed: not confirmed. Not checked: Named European gondola brands' UAE availability and local manufacturer names were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Creative Display",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Al Khaleej",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Abazar Shelving",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "BITO",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "retail_shelving:uae-market-sizes",

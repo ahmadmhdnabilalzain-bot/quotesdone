@@ -27,8 +27,8 @@
       "topic": "Roads, asphalt & interlock paving: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الطرق والإسفلت والإنترلوك: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names road contractors Al Naboodah, Dutco and Trojan, bitumen supplier ADNOC and road-safety brands 3M and Swarco, and where asphalt plants, precast factories and aggregates are located. Road work is done by authority-registered contractors, such as the first three here: Al Naboodah Construction Group, Dutco, Trojan Construction Group, ADNOC, 3M, Swarco. ADNOC supplies bitumen, and 3M and Swarco are road-safety product brands. Major contractors and suppliers run asphalt plants in Jebel Ali, Sharjah, Al Ain and Musaffah. Interlock and kerbs come from local precast factories. Aggregates come from Fujairah and RAK.",
-      "body_ar": "من مقاولي الطرق Al Naboodah وDutco وTrojan، ومن موردي البيتومين ADNOC، ومن ماركات السلامة المرورية 3M وSwarco، مع بيان أماكن محطات الإسفلت ومصانع الخرسانة مسبقة الصب ومصادر الركام. ينفذ أعمال الطرق مقاولون مسجلون لدى الجهات، ومنهم الثلاثة الأوائل هنا: Al Naboodah Construction Group، Dutco، Trojan Construction Group، ADNOC، 3M، Swarco؛ وتورد ADNOC البيتومين، و3M وSwarco علامات منتجات السلامة المرورية. وتدير شركات مقاولات وموردون كبار مصانع أسفلت في جبل علي والشارقة والعين ومصفح. ويأتي الإنترلوك والبردورات من مصانع مسبقة الصب محلية، والركام من الفجيرة ورأس الخيمة.",
+      "body_en": "This entry names road contractors Al Naboodah, Dutco and Trojan, bitumen supplier ADNOC and road-safety brands 3M and Swarco, and where asphalt plants, precast factories and aggregates are located. Road work is done by authority-registered contractors, such as the first three here: Al Naboodah Construction Group, Dutco, Trojan Construction Group, ADNOC, 3M, Swarco. ADNOC supplies bitumen, and 3M and Swarco are road-safety product brands. Major contractors and suppliers run asphalt plants in Jebel Ali, Sharjah, Al Ain and Musaffah. Interlock and kerbs come from local precast factories. Aggregates come from Fujairah and RAK.\n\nOrigin and tier, for describing a quoted brand without naming it: ADNOC - premium, UAE; 3M - premium, USA; Swarco - premium, Austria.",
+      "body_ar": "من مقاولي الطرق Al Naboodah وDutco وTrojan، ومن موردي البيتومين ADNOC، ومن ماركات السلامة المرورية 3M وSwarco، مع بيان أماكن محطات الإسفلت ومصانع الخرسانة مسبقة الصب ومصادر الركام. ينفذ أعمال الطرق مقاولون مسجلون لدى الجهات، ومنهم الثلاثة الأوائل هنا: Al Naboodah Construction Group، Dutco، Trojan Construction Group، ADNOC، 3M، Swarco؛ وتورد ADNOC البيتومين، و3M وSwarco علامات منتجات السلامة المرورية. وتدير شركات مقاولات وموردون كبار مصانع أسفلت في جبل علي والشارقة والعين ومصفح. ويأتي الإنترلوك والبردورات من مصانع مسبقة الصب محلية، والركام من الفجيرة ورأس الخيمة.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: ADNOC: فئة ممتازة، الإمارات؛ 3M: فئة ممتازة، الولايات المتحدة؛ Swarco: فئة ممتازة، النمسا.",
       "sources": [
         "https://dubaibitumen.com/products/performance-grade-bitumen/bitumen-pg-76-10",
         "https://www.rib-software.com/en/blogs/construction-companies-uae",
@@ -38,7 +38,30 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: PG 76-10 polymer-modified binder is used in the region -> confirmed as supplied in the region; RTA's current specified grade not confirmed, so the text now says so | named road contractors -> confirmed Al Naboodah, Dutco, Trojan; Arabian Construction, Al Habtoor, Al Jaber and unnamed precast plants removed or kept generic. Not checked: The exact current binder grade specified by each authority and the status of named contractors were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: PG 76-10 polymer-modified binder is used in the region -> confirmed as supplied in the region; RTA's current specified grade not confirmed, so the text now says so | named road contractors -> confirmed Al Naboodah, Dutco, Trojan; Arabian Construction, Al Habtoor, Al Jaber and unnamed precast plants removed or kept generic. Not checked: The exact current binder grade specified by each authority and the status of named contractors were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "ADNOC",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "3M",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Swarco",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium brand from Austria",
+          "generic_ar": "علامة ممتازة من النمسا"
+        }
+      ]
     },
     {
       "id": "road_works:uae-market-sizes",

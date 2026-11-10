@@ -26,8 +26,8 @@
       "topic": "Electric motors & drives: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المحركات الكهربائية ومحركات التحكم بالسرعة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Motor and drive brands in the UAE include ABB, Siemens, WEG, Schneider Electric, Danfoss, Leroy-Somer, Toshiba and Yaskawa, distributed from Deira, Sharjah Industrial Area, Al Quoz and Musaffah. Brands in the market: ABB, Siemens, WEG, Schneider Electric, Danfoss, Nidec Leroy-Somer, TECO, Toshiba, Hyundai Electric, Regal Rexnord, Lafert, CG Power, Bharat Bijlee, Yaskawa, Mitsubishi Electric, Delta, INVT, Wolong. Which UAE distributor carries each brand was not checked. Distribution clusters in Deira (Naif, Al Ras), Sharjah Industrial Area, Al Quoz and Musaffah.",
-      "body_ar": "من علامات المحركات والمشغلات في الإمارات ABB وSiemens وWEG وSchneider Electric وDanfoss وLeroy-Somer وToshiba وYaskawa، وتُوزَّع من ديرة والمنطقة الصناعية في الشارقة والقوز والمصفح. والعلامات المتوفرة في السوق: ABB وSiemens وWEG وSchneider Electric وDanfoss وNidec Leroy-Somer وTECO وToshiba وHyundai Electric وRegal Rexnord وLafert وCG Power وBharat Bijlee وYaskawa وMitsubishi Electric وDelta وINVT وWolong. ولم نتحقق من الموزع الإماراتي لكل علامة. ويتركز التوزيع في ديرة (نايف والراس) والمنطقة الصناعية بالشارقة والقوز ومصفح.",
+      "body_en": "Motor and drive brands in the UAE include ABB, Siemens, WEG, Schneider Electric, Danfoss, Leroy-Somer, Toshiba and Yaskawa, distributed from Deira, Sharjah Industrial Area, Al Quoz and Musaffah. Brands in the market: ABB, Siemens, WEG, Schneider Electric, Danfoss, Nidec Leroy-Somer, TECO, Toshiba, Hyundai Electric, Regal Rexnord, Lafert, CG Power, Bharat Bijlee, Yaskawa, Mitsubishi Electric, Delta, INVT, Wolong. Which UAE distributor carries each brand was not checked. Distribution clusters in Deira (Naif, Al Ras), Sharjah Industrial Area, Al Quoz and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): ABB = a premium Swiss brand; Siemens = a premium German brand; WEG = a mid-tier Brazilian brand; Schneider Electric = a premium French brand; Danfoss = a premium Danish brand; Nidec Leroy-Somer = a premium French brand; TECO = a mid-tier Taiwanese brand; Toshiba = a premium Japanese brand; Hyundai Electric = a mid-tier South Korean brand; Regal Rexnord = a mid-tier American brand; Lafert = a mid-tier Italian brand; CG Power = a economy Indian brand; Bharat Bijlee = a economy Indian brand; Yaskawa = a premium Japanese brand; Mitsubishi Electric = a premium Japanese brand; Delta = a mid-tier Taiwanese brand; INVT = a economy Chinese brand; Wolong = a economy Chinese brand.",
+      "body_ar": "من علامات المحركات والمشغلات في الإمارات ABB وSiemens وWEG وSchneider Electric وDanfoss وLeroy-Somer وToshiba وYaskawa، وتُوزَّع من ديرة والمنطقة الصناعية في الشارقة والقوز والمصفح. والعلامات المتوفرة في السوق: ABB وSiemens وWEG وSchneider Electric وDanfoss وNidec Leroy-Somer وTECO وToshiba وHyundai Electric وRegal Rexnord وLafert وCG Power وBharat Bijlee وYaskawa وMitsubishi Electric وDelta وINVT وWolong. ولم نتحقق من الموزع الإماراتي لكل علامة. ويتركز التوزيع في ديرة (نايف والراس) والمنطقة الصناعية بالشارقة والقوز ومصفح.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): ABB = علامة سويسرية من الفئة الممتازة؛ Siemens = علامة ألمانية من الفئة الممتازة؛ WEG = علامة برازيلية من الفئة المتوسطة؛ Schneider Electric = علامة فرنسية من الفئة الممتازة؛ Danfoss = علامة دنماركية من الفئة الممتازة؛ Nidec Leroy-Somer = علامة فرنسية من الفئة الممتازة؛ TECO = علامة تايوانية من الفئة المتوسطة؛ Toshiba = علامة يابانية من الفئة الممتازة؛ Hyundai Electric = علامة كورية جنوبية من الفئة المتوسطة؛ Regal Rexnord = علامة أمريكية من الفئة المتوسطة؛ Lafert = علامة إيطالية من الفئة المتوسطة؛ CG Power = علامة هندية من الفئة الاقتصادية؛ Bharat Bijlee = علامة هندية من الفئة الاقتصادية؛ Yaskawa = علامة يابانية من الفئة الممتازة؛ Mitsubishi Electric = علامة يابانية من الفئة الممتازة؛ Delta = علامة تايوانية من الفئة المتوسطة؛ INVT = علامة صينية من الفئة الاقتصادية؛ Wolong = علامة صينية من الفئة الاقتصادية.",
       "sources": [
         "https://en.wikipedia.org/wiki/Premium_efficiency",
         "https://moiat.gov.ae",
@@ -36,7 +36,135 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: IE efficiency classes per IEC 60034-30 -> confirmed (secondary) | mandatory motor MEPS in the UAE -> not checked; text states it is not verified. Not checked: Whether a mandatory minimum motor efficiency class is currently in force in the UAE was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: IE efficiency classes per IEC 60034-30 -> confirmed (secondary) | mandatory motor MEPS in the UAE -> not checked; text states it is not verified. Not checked: Whether a mandatory minimum motor efficiency class is currently in force in the UAE was not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "ABB",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Siemens",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "WEG",
+          "origin": "Brazil",
+          "tier": "mid",
+          "generic_en": "a mid-tier Brazilian brand",
+          "generic_ar": "علامة برازيلية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Schneider Electric",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Danfoss",
+          "origin": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "Nidec Leroy-Somer",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "TECO",
+          "origin": "Taiwan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Taiwanese brand",
+          "generic_ar": "علامة تايوانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Toshiba",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hyundai Electric",
+          "origin": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid-tier South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Regal Rexnord",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Lafert",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "CG Power",
+          "origin": "India",
+          "tier": "economy",
+          "generic_en": "a economy Indian brand",
+          "generic_ar": "علامة هندية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Bharat Bijlee",
+          "origin": "India",
+          "tier": "economy",
+          "generic_en": "a economy Indian brand",
+          "generic_ar": "علامة هندية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Yaskawa",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mitsubishi Electric",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Delta",
+          "origin": "Taiwan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Taiwanese brand",
+          "generic_ar": "علامة تايوانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "INVT",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Wolong",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        }
+      ]
     },
     {
       "id": "motors_drives:uae-market-sizes",

@@ -27,8 +27,8 @@
       "topic": "Courier & express delivery: makes, brands, distributors and origins in the UAE",
       "topic_ar": "البريد السريع والتوصيل: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the postal operator Emirates Post, the courier Aramex, and international express brands DHL Express, FedEx and UPS. Confirmed postal operator and courier, plus international express brands: Emirates Post, Aramex, DHL Express, FedEx, UPS. The international brands' UAE operations and last-mile firms were not checked; check any courier's Emirates Post Group licence.",
-      "body_ar": "يعمل في البريد والشحن السريع بالإمارات بريد الإمارات بصفته المشغل البريدي، وشركة أرامكس، والعلامات الدولية DHL Express وFedEx وUPS. والأسماء المؤكدة من المشغل البريدي وشركات الشحن والعلامات الدولية للشحن السريع: Emirates Post وAramex وDHL Express وFedEx وUPS. ولم نتحقق من عمليات العلامات الدولية داخل الإمارات ولا من شركات توصيل الميل الأخير، وتأكد من أن أي شركة شحن تحمل ترخيص مجموعة بريد الإمارات.",
+      "body_en": "This entry names the postal operator Emirates Post, the courier Aramex, and international express brands DHL Express, FedEx and UPS. Confirmed postal operator and courier, plus international express brands: Emirates Post, Aramex, DHL Express, FedEx, UPS. The international brands' UAE operations and last-mile firms were not checked; check any courier's Emirates Post Group licence.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Emirates Post = a mid-tier UAE operator; Aramex = a premium UAE operator; DHL Express = a premium German operator; FedEx = a premium American operator; UPS = a premium American operator.",
+      "body_ar": "يعمل في البريد والشحن السريع بالإمارات بريد الإمارات بصفته المشغل البريدي، وشركة أرامكس، والعلامات الدولية DHL Express وFedEx وUPS. والأسماء المؤكدة من المشغل البريدي وشركات الشحن والعلامات الدولية للشحن السريع: Emirates Post وAramex وDHL Express وFedEx وUPS. ولم نتحقق من عمليات العلامات الدولية داخل الإمارات ولا من شركات توصيل الميل الأخير، وتأكد من أن أي شركة شحن تحمل ترخيص مجموعة بريد الإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Emirates Post = جهة تشغيل إماراتية من الفئة المتوسطة؛ Aramex = جهة تشغيل إماراتية من الفئة الممتازة؛ DHL Express = جهة تشغيل ألمانية من الفئة الممتازة؛ FedEx = جهة تشغيل أمريكية من الفئة الممتازة؛ UPS = جهة تشغيل أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.epgl.ae/issue-license",
         "https://www.aramex.com/ae/en",
@@ -38,7 +38,44 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Courier licences are issued by Emirates Post Group (Resolution 5 of 2017, Federal Decree-Law 21 of 2019) -> corrected | Aramex offers express and e-commerce shipping in the UAE -> confirmed. Not checked: The current regulator for courier licensing (TDRA vs other), current status of some last-mile start-ups, and de minimis customs thresholds were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Courier licences are issued by Emirates Post Group (Resolution 5 of 2017, Federal Decree-Law 21 of 2019) -> corrected | Aramex offers express and e-commerce shipping in the UAE -> confirmed. Not checked: The current regulator for courier licensing (TDRA vs other), current status of some last-mile start-ups, and de minimis customs thresholds were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Emirates Post",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a mid-tier UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Aramex",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a premium UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "DHL Express",
+          "origin": "Germany",
+          "tier": "operator",
+          "generic_en": "a premium German operator",
+          "generic_ar": "جهة تشغيل ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "FedEx",
+          "origin": "USA",
+          "tier": "operator",
+          "generic_en": "a premium American operator",
+          "generic_ar": "جهة تشغيل أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "UPS",
+          "origin": "USA",
+          "tier": "operator",
+          "generic_en": "a premium American operator",
+          "generic_ar": "جهة تشغيل أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "courier_express:uae-market-sizes",

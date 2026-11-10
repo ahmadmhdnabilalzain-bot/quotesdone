@@ -5,8 +5,8 @@
       "id": "energy_services:spec-checklist",
       "topic": "Energy services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for energy services must state: facility and baseline consumption; audit level or scope; measures proposed; measurement and verification method; guaranteed savings terms; ESCO or auditor accreditation; contract term; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة خدمات الطاقة: المنشأة والاستهلاك المرجعي؛ مستوى التدقيق أو نطاقه؛ الإجراءات المقترحة؛ طريقة القياس والتحقق؛ شروط الوفورات المضمونة؛ اعتماد شركة الطاقة أو المدقق؛ مدة العقد؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for energy services must state: facility and baseline consumption; audit level or scope; measures proposed; measurement and verification method; guaranteed savings terms; ESCO or auditor accreditation; contract term; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): facility and baseline consumption; audit level or scope; contract term. Follow-up questions the answers trigger: facility and baseline consumption: Ask for utility bills. Before a firm price: an audit fee can be firm from facility size and audit level; a performance contract needs the bills and a site survey before any savings guarantee or price is firm. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states facility location and emirate. Not quote-blocking (the supplier states it, or quotes on its usual basis): pricing basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة خدمات الطاقة: المنشأة والاستهلاك المرجعي؛ مستوى التدقيق أو نطاقه؛ الإجراءات المقترحة؛ طريقة القياس والتحقق؛ شروط الوفورات المضمونة؛ اعتماد شركة الطاقة أو المدقق؛ مدة العقد؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنشأة واستهلاك خط الأساس، ومستوى التدقيق أو نطاقه، ومدة عقد الأداء. أتعاب التدقيق تُثبَّت من حجم المنشأة ومستوى التدقيق، أما عقد الأداء فيحتاج الفواتير ومسحاً للموقع قبل أي ضمان وفورات أو سعر نهائي. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): أساس التسعير.",
       "required_specs": [
         "facility and baseline consumption",
         "audit level or scope",
@@ -19,14 +19,116 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "facility location and emirate"
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits",
         "https://www.dewa.gov.ae/en/consumer/useful-tools/consumer-faqs"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "facility and baseline consumption",
+        "audit level or scope",
+        "contract term"
+      ],
+      "spec_guide": [
+        {
+          "spec": "facility and baseline consumption",
+          "why_needed_to_price": "Baseline consumption defines savings and fee.",
+          "uae_options": "12-36 months of bills; facility type and area",
+          "follow_up_if": "Ask for utility bills.",
+          "blocking": true
+        },
+        {
+          "spec": "audit level or scope",
+          "why_needed_to_price": "Audit level decides effort.",
+          "uae_options": "walk-through; detailed audit; investment grade",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "measures proposed",
+          "why_needed_to_price": "Measures proposed.",
+          "uae_options": "lighting; chillers; controls; solar",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "measurement and verification method",
+          "why_needed_to_price": "M&V method defines savings proof.",
+          "uae_options": "IPMVP option",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "guaranteed savings terms",
+          "why_needed_to_price": "Guaranteed savings terms.",
+          "uae_options": "guarantee %; shortfall payment",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "ESCO or auditor accreditation",
+          "why_needed_to_price": "ESCO or auditor accreditation.",
+          "uae_options": "RSB/DEWA ESCO accreditation; certified auditors",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract term",
+          "why_needed_to_price": "Contract term for performance contracts.",
+          "uae_options": "years",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Licences.",
+          "uae_options": "trade licence",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "reporting",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Duration.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "fixed audit fee; shared savings; guaranteed savings",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "capex; downtime",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "facility location and emirate",
+          "blocking": false,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        }
+      ],
+      "site_visit_required_when": "an audit fee can be firm from facility size and audit level; a performance contract needs the bills and a site survey before any savings guarantee or price is firm.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "energy_services:uae-standards-and-approvals",
@@ -85,6 +187,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "energy_services:authority-approvals",
+      "topic": "Energy audit & efficiency (ESCO): licences, permits and approvals by emirate",
+      "topic_ar": "تدقيق الطاقة وكفاءتها (ESCO): التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "In Dubai, energy service companies are accredited under a scheme of the Regulatory and Supervisory Bureau for electricity and water (RSB), with evidence of energy auditing capability; the published accreditation news is from 2015, so the current criteria were not confirmed. Etihad ESCO is the Dubai super ESCO established by DEWA and works with accredited ESCOs on government and private retrofits. Solar connection in Dubai goes through DEWA's Shams Dubai programme and in Abu Dhabi through the distribution company; this was not checked on an official page. Ask for the ESCO accreditation for Dubai performance contracts.",
+      "body_ar": "في دبي تُعتمد شركات خدمات الطاقة وفق نظام لمكتب التنظيم والرقابة لقطاع الكهرباء والمياه، مع إثبات القدرة على تدقيق الطاقة؛ وأخبار الاعتماد المنشورة تعود إلى 2015، فلم تُؤكَّد المعايير الحالية. والاتحاد لخدمات الطاقة شركة خدمات الطاقة الرئيسية في دبي التي أسستها هيئة كهرباء ومياه دبي، وتعمل مع الشركات المعتمدة على مشاريع التحديث الحكومية والخاصة. ويمر توصيل الطاقة الشمسية في دبي عبر برنامج شمس دبي لدى الهيئة وفي أبوظبي عبر شركة التوزيع، ولم يُتحقق من ذلك في صفحة رسمية. اطلب اعتماد الشركة لعقود الأداء في دبي.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/about-us/media-publications/latest-news/2015/02/regulatory-and-supervisory-bureau-for-electricity-water-in-dubai-accredits-3-new-escos",
+        "https://www.wam.ae/en/article/bimn00i-etihad-esco-completes-dubai’s-first-energy-savings"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection. Second page read 2026-11-10 (ledger 1597): WAM (12 March 2025) confirms Etihad ESCO is a wholly owned subsidiary of DEWA and completed Dubai's first energy savings performance contract. Still not confirmed: the RSB ESCO accreditation scheme (www.dewa.gov.ae returns 'Access Denied' HTTP 403 to curl and Playwright)."
+    },
+    {
+      "id": "energy_services:quote-red-flags",
+      "topic": "Energy audit & efficiency (ESCO): red flags in supplier quotations",
+      "topic_ar": "تدقيق الطاقة وكفاءتها (ESCO): علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for savings estimated without a baseline, guarantees with no shortfall payment, M&V method not stated, savings share calculated on tariff increases, long terms with ownership of equipment unclear, and maintenance excluded.",
+      "body_ar": "انتبه إلى وفورات مقدرة دون خط أساس، وضمانات دون دفع عند العجز، وعدم ذكر طريقة القياس والتحقق، وحساب حصة الوفورات على زيادات التعرفة، ومدد طويلة مع غموض ملكية المعدات، واستثناء الصيانة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "energy_services:buyer-mistakes",
+      "topic": "Energy audit & efficiency (ESCO): common buyer mistakes",
+      "topic_ar": "تدقيق الطاقة وكفاءتها (ESCO): الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Owners compare audit fees instead of the quality of the savings case, and sign shared-savings contracts without an agreed baseline.",
+      "body_ar": "يقارن الملاك أتعاب التدقيق بدل جودة دراسة الوفورات، ويوقعون عقود تقاسم الوفورات دون خط أساس متفق عليه.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "energy_services:price-drivers",
+      "topic": "Energy audit & efficiency (ESCO): what makes prices differ legitimately",
+      "topic_ar": "تدقيق الطاقة وكفاءتها (ESCO): العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: facility size, audit depth, measures, financing model, contract term and M&V.",
+      "body_ar": "العوامل: حجم المنشأة، وعمق التدقيق، والإجراءات، ونموذج التمويل، ومدة العقد، والقياس والتحقق.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "energy_services:compare-quotes-cost-to-value",
+      "topic": "Energy audit & efficiency (ESCO): comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "تدقيق الطاقة وكفاءتها (ESCO): مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare net present value of guaranteed savings minus payments over the term, under the same M&V method. Recommend three accredited ESCOs with guaranteed, measured savings.",
+      "body_ar": "قارن صافي القيمة الحالية للوفورات المضمونة مطروحاً منها المدفوعات على مدى العقد بطريقة القياس نفسها. أوصِ بثلاث شركات معتمدة بوفورات مضمونة ومقاسة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +298,8 @@
     "removed": [],
     "still_unverified": [
       "energy_services:spec-checklist",
-      "energy_services:uae-standards-and-approvals"
+      "energy_services:uae-standards-and-approvals",
+      "energy_services:authority-approvals"
     ],
     "added": [
       "energy_services:spec-checklist",
@@ -158,6 +330,37 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "energy_services:quote-red-flags",
+      "energy_services:buyer-mistakes",
+      "energy_services:price-drivers",
+      "energy_services:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "energy_services:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.wam.ae/en/article/bimn00i-etihad-esco-completes-dubai’s-first-energy-savings"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

@@ -29,8 +29,8 @@
       "topic": "Cleaning chemicals & janitorial supplies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "مواد تنظيف ومستلزمات نظافة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names local cleaning-chemical entities and widely sold brands in the UAE, such as Diversey, Ecolab, Dettol and Harpic, and where blenders and janitorial traders are. Confirmed local entities and widely sold brands: Diversey (Diversey Gulf FZE, Jebel Ali), Ecolab (Ecolab Gulf, Jebel Ali Free Zone), Ecoleaf (Diversey distributor), Kärcher, Clorox, Dettol, Harpic, Domestos, Fairy. The retail brands' UAE distributors were not checked. GCC-made products come from local blenders in the northern emirates and Jebel Ali, and janitorial traders cluster in Deira, Al Qusais, Al Quoz, Sharjah and Musaffah.",
-      "body_ar": "تشمل مواد التنظيف في الإمارات شركات محلية للكيماويات وعلامات واسعة الانتشار مثل Diversey وEcolab وDettol وHarpic، مع بيان أماكن مصانع الخلط وتجار مستلزمات النظافة. الكيانات المحلية المؤكدة والعلامات المباعة على نطاق واسع: Diversey (Diversey Gulf FZE, Jebel Ali)، Ecolab (Ecolab Gulf, Jebel Ali Free Zone)، Ecoleaf (Diversey distributor)، Kärcher، Clorox، Dettol، Harpic، Domestos، Fairy. ولم يُتحقق من موزعي علامات التجزئة في الإمارات. وتأتي المنتجات المصنوعة خليجياً من مصانع خلط محلية في الإمارات الشمالية وجبل علي، ويتجمع تجار مستلزمات النظافة في ديرة والقصيص والقوز والشارقة ومصفح.",
+      "body_en": "This entry names local cleaning-chemical entities and widely sold brands in the UAE, such as Diversey, Ecolab, Dettol and Harpic, and where blenders and janitorial traders are. Confirmed local entities and widely sold brands: Diversey (Diversey Gulf FZE, Jebel Ali), Ecolab (Ecolab Gulf, Jebel Ali Free Zone), Ecoleaf (Diversey distributor), Kärcher, Clorox, Dettol, Harpic, Domestos, Fairy. The retail brands' UAE distributors were not checked. GCC-made products come from local blenders in the northern emirates and Jebel Ali, and janitorial traders cluster in Deira, Al Qusais, Al Quoz, Sharjah and Musaffah.\n\nOrigin and tier, for describing a quoted brand without naming it: Diversey - premium, USA; Ecolab - premium, USA; Kärcher - premium, Germany; Clorox - mid, USA; Dettol - mid, UK; Harpic - mid, UK.",
+      "body_ar": "تشمل مواد التنظيف في الإمارات شركات محلية للكيماويات وعلامات واسعة الانتشار مثل Diversey وEcolab وDettol وHarpic، مع بيان أماكن مصانع الخلط وتجار مستلزمات النظافة. الكيانات المحلية المؤكدة والعلامات المباعة على نطاق واسع: Diversey (Diversey Gulf FZE, Jebel Ali)، Ecolab (Ecolab Gulf, Jebel Ali Free Zone)، Ecoleaf (Diversey distributor)، Kärcher، Clorox، Dettol، Harpic، Domestos، Fairy. ولم يُتحقق من موزعي علامات التجزئة في الإمارات. وتأتي المنتجات المصنوعة خليجياً من مصانع خلط محلية في الإمارات الشمالية وجبل علي، ويتجمع تجار مستلزمات النظافة في ديرة والقصيص والقوز والشارقة ومصفح.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Diversey: فئة ممتازة، الولايات المتحدة؛ Ecolab: فئة ممتازة، الولايات المتحدة؛ Kärcher: فئة ممتازة، ألمانيا؛ Clorox: فئة متوسطة، الولايات المتحدة؛ Dettol: فئة متوسطة، المملكة المتحدة؛ Harpic: فئة متوسطة، المملكة المتحدة.",
       "sources": [
         "https://www.raqam.com/detergent-product-registration-dubai",
         "https://ecoleafglobal.com/about",
@@ -42,7 +42,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Detergents, disinfectants and biocides for sale in Dubai are registered with Dubai Municipality through the Montaji portal -> confirmed | Diversey Gulf FZE is in Jebel Ali; Ecolab Gulf is in Jebel Ali Free Zone; Ecoleaf is a Diversey distributor for Dubai and the Northern Emirates -> confirmed | Local blenders in Sharjah, Ajman, UAQ named generically -> confirmed: generic, no names kept. Not checked: Exact registration category for each chemical type, current local distributors for each brand, and private-label MOQs were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Detergents, disinfectants and biocides for sale in Dubai are registered with Dubai Municipality through the Montaji portal -> confirmed | Diversey Gulf FZE is in Jebel Ali; Ecolab Gulf is in Jebel Ali Free Zone; Ecoleaf is a Diversey distributor for Dubai and the Northern Emirates -> confirmed | Local blenders in Sharjah, Ajman, UAQ named generically -> confirmed: generic, no names kept. Not checked: Exact registration category for each chemical type, current local distributors for each brand, and private-label MOQs were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Diversey",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Ecolab",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Kärcher",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Clorox",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid brand from USA",
+          "generic_ar": "علامة متوسطة من الولايات المتحدة"
+        },
+        {
+          "brand": "Dettol",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Harpic",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        }
+      ]
     },
     {
       "id": "cleaning_chemicals:uae-market-sizes",

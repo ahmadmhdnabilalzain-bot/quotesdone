@@ -90,9 +90,13 @@ async function fingerprint({ routines, relations }, opts) {
 // in the exception message and the transaction still rolls back. set_config(..., true) verdicts written earlier
 // in the text are visible to it, because it is the same transaction.
 const ROWS = /SAFE_REPLAY_ROWS<<([\s\S]*)>>SAFE_REPLAY_ROWS/;
-function rowsBody(body, label) {
+// The trailing trim reads the REAL text for whitespace and the MASK only for ';'. MEASURED 10 Nov 2026: it used to test
+// the mask for both, and maskSql blanks a quoted identifier, so a last query ending in `as "waBrake"` lost its alias
+// (`... ::jsonb) as) safe_replay_row`), a 42601 syntax error that failed
+// the_ceo_acts_on_the_supplier_target_and_writes_its_effects B on every run. Exported for its offline test.
+export function rowsBody(body, label) {
   const mask = maskSql(body);
-  let end = mask.length; while (end > 0 && /[\s;]/.test(mask[end - 1])) end--;
+  let end = mask.length; while (end > 0 && (/\s/.test(body[end - 1]) || mask[end - 1] === ';')) end--;
   const start = mask.lastIndexOf(';', end - 1) + 1;
   const last = body.slice(start, end);
   if (!/^\s*(select|with|values|table)\b/i.test(mask.slice(start, end))) {

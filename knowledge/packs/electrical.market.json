@@ -26,8 +26,8 @@
       "topic": "Electrical: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الأعمال الكهربائية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names switchgear, accessory and containment brands such as Schneider Electric, ABB, Siemens and Legrand, and where panel builders and wholesalers work. Switchgear, accessory and containment brands: Schneider Electric, ABB, Siemens, Eaton, Legrand, Hager, MK, Crabtree, Clipsal, OBO Bettermann. Local panel builders licensed by these brands work in Sharjah, Dubai (Al Quoz, Jebel Ali) and Abu Dhabi (Musaffah), and local factories make cable trays. The licences and distributors were not checked. Distribution is through electrical wholesalers in Deira (Naif), Al Quoz, Sharjah and Musaffah. The contractor needs a utility-registered electrical contractor licence and a licensed engineer to sign the drawings.",
-      "body_ar": "من أشهر ماركات لوحات التوزيع والمفاتيح والإكسسوارات ومجاري الكابلات Schneider Electric وABB وSiemens وLegrand، مع بيان أماكن عمل مصنعي اللوحات وتجار الجملة. علامات المفاتيح واللوازم والمسارات: Schneider Electric، ABB، Siemens، Eaton، Legrand، Hager، MK، Crabtree، Clipsal، OBO Bettermann. ويعمل مصنّعو لوحات محليون مرخصون من هذه العلامات في الشارقة ودبي (القوز وجبل علي) وأبوظبي (مصفح)، وتصنع مصانع محلية صواني الكابلات، ولم يُتحقق من التراخيص والموزعين. ويجري التوزيع عبر تجار الجملة الكهربائيين في ديرة (نايف) والقوز والشارقة ومصفح. ويحتاج المقاول رخصة مقاول كهرباء مسجلة لدى الهيئة ومهندساً مرخصاً للتوقيع على المخططات.",
+      "body_en": "This entry names switchgear, accessory and containment brands such as Schneider Electric, ABB, Siemens and Legrand, and where panel builders and wholesalers work. Switchgear, accessory and containment brands: Schneider Electric, ABB, Siemens, Eaton, Legrand, Hager, MK, Crabtree, Clipsal, OBO Bettermann. Local panel builders licensed by these brands work in Sharjah, Dubai (Al Quoz, Jebel Ali) and Abu Dhabi (Musaffah), and local factories make cable trays. The licences and distributors were not checked. Distribution is through electrical wholesalers in Deira (Naif), Al Quoz, Sharjah and Musaffah. The contractor needs a utility-registered electrical contractor licence and a licensed engineer to sign the drawings.\n\nOrigin and tier, for describing a quoted brand without naming it: Schneider Electric - premium, France; ABB - premium, Switzerland; Siemens - premium, Germany; Eaton - premium, USA; Legrand - premium, France; Hager - mid, Germany; MK - mid, UK; Crabtree - mid, UK; Clipsal - mid, Australia; OBO Bettermann - premium, Germany.",
+      "body_ar": "من أشهر ماركات لوحات التوزيع والمفاتيح والإكسسوارات ومجاري الكابلات Schneider Electric وABB وSiemens وLegrand، مع بيان أماكن عمل مصنعي اللوحات وتجار الجملة. علامات المفاتيح واللوازم والمسارات: Schneider Electric، ABB، Siemens، Eaton، Legrand، Hager، MK، Crabtree، Clipsal، OBO Bettermann. ويعمل مصنّعو لوحات محليون مرخصون من هذه العلامات في الشارقة ودبي (القوز وجبل علي) وأبوظبي (مصفح)، وتصنع مصانع محلية صواني الكابلات، ولم يُتحقق من التراخيص والموزعين. ويجري التوزيع عبر تجار الجملة الكهربائيين في ديرة (نايف) والقوز والشارقة ومصفح. ويحتاج المقاول رخصة مقاول كهرباء مسجلة لدى الهيئة ومهندساً مرخصاً للتوقيع على المخططات.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Schneider Electric: فئة ممتازة، فرنسا؛ ABB: فئة ممتازة، سويسرا؛ Siemens: فئة ممتازة، ألمانيا؛ Eaton: فئة ممتازة، الولايات المتحدة؛ Legrand: فئة ممتازة، فرنسا؛ Hager: فئة متوسطة، ألمانيا؛ MK: فئة متوسطة، المملكة المتحدة؛ Crabtree: فئة متوسطة، المملكة المتحدة؛ Clipsal: فئة متوسطة، أستراليا؛ OBO Bettermann: فئة ممتازة، ألمانيا.",
       "sources": [
         "https://www.dewa.gov.ae/en/about-us/media-publications/latest-news/2017/04/dewa-issues-regulations-for-electrical-installations-2017-booklet",
         "https://www.dewa.gov.ae",
@@ -36,7 +36,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: DEWA Regulations for Electrical Installations; BS 1363 sockets at 230 V 50 Hz -> confirmed (2017 booklet). Not checked: The current edition of each utility's wiring regulations and local panel builders' licences were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: DEWA Regulations for Electrical Installations; BS 1363 sockets at 230 V 50 Hz -> confirmed (2017 booklet). Not checked: The current edition of each utility's wiring regulations and local panel builders' licences were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Schneider Electric",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "ABB",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Switzerland",
+          "generic_ar": "علامة ممتازة من سويسرا"
+        },
+        {
+          "brand": "Siemens",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Eaton",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Legrand",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Hager",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "MK",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Crabtree",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Clipsal",
+          "origin": "Australia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Australia",
+          "generic_ar": "علامة متوسطة من أستراليا"
+        },
+        {
+          "brand": "OBO Bettermann",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        }
+      ]
     },
     {
       "id": "electrical:uae-market-sizes",

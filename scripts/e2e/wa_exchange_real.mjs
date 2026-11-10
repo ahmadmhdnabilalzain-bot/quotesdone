@@ -147,7 +147,12 @@ try {
   for (const p of [sup && (await mgmtRead(REF, `select phone from public.leads where id=${sup.leadId}`).then((x) => x[0]?.phone).catch(() => null)), STRANGER, '+971500000094', '+971500000095'].filter(Boolean)) {
     const d = p.replace(/\D/g, '');
     await mgmtFixture(REF, `delete from public.wa_turn where conversation_id in (select id from public.wa_conversation where phone_e164=${q(d)});
-      delete from public.wa_conversation where phone_e164=${q(d)}; delete from public.wa_messages where wa_from=${q('whatsapp:' + p)};
+      delete from public.wa_conversation where phone_e164=${q(d)};
+      -- 10 Nov 2026: the walk's messages may already be archived as PDFs; their archive rows go with them, or the backup
+      -- check counts a PDF that can never be queued (191 such rows measured that day). The PDF object itself stays in storage.
+      delete from public.conversation_archive where source_table = 'wa_messages'
+         and source_id in (select id::text from public.wa_messages where wa_from=${q('whatsapp:' + p)});
+      delete from public.wa_messages where wa_from=${q('whatsapp:' + p)};
       delete from public.wa_inbound_seen where wa_from=${q('whatsapp:' + p)}`, 'fixture wa rows').catch((e) => console.log('cleanup:', String(e).slice(0, 200)));
   }
   await mgmtFixture(REF, `update public.rehearsal_window set ended_at=now() where run_tag='qd_run:${tag}' and ended_at is null`, 'close window').catch(() => {});

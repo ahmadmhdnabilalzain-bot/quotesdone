@@ -9,6 +9,7 @@
 import { HANDLED_STRIPE_EVENTS } from './stripe_events.ts';
 import { isDemoEmail } from './demo_identity.ts';
 import tls from 'node:tls';
+import { type OpenPr, stalePullRequests, staleCandidates } from './stale_pull_requests.ts';
 
 type Sec = (key: string) => Promise<string>;
 type Got = { status: number; ok: boolean; json: unknown; text: string; error?: string };
@@ -273,4 +274,40 @@ export async function verifyRevisions(sec: Sec, revs: string[]) {
     const detail = { compare: c.status || c.error, compare_status: J(c)?.status ?? null, pulls: p.status || p.error };
     return answered(c) && answered(p) ? { rev, verdict: 'not_on_main', detail } : { rev, verdict: null, detail };
   }));
+}
+
+// ── DUTY 25: WHICH OPEN PULL REQUESTS HAVE BEEN LEFT ALONE? ─────────────────────────────────────────
+// fn_it_open_pull_requests_record (an_open_pull_request_nobody_touched_for_two_days_is_a_finding.sql) takes this.
+// The same GitHub token and repository as verifyRevisions above; the decision itself is stale_pull_requests.ts (pure,
+// tested). Every open pull request is listed (up to 10 pages of 100); the files of the STALE ones only are read, to say
+// whether SQL is waiting. A list that could not be read in full is 'unavailable', never a short list: the routine closes
+// a finding whose pull request is missing from the reading, so a partial list would close real findings.
+export async function takeOpenPullRequests(sec: Sec, now = Date.now()) {
+  const token = await sec('github_token');
+  if (!token) return unavailable('app_secrets.github_token is empty');
+  const h = { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } };
+  const prs: OpenPr[] = [];
+  for (let page = 1; page <= 10; page++) {
+    const g = await get(`https://api.github.com/repos/${REPO}/pulls?state=open&per_page=100&page=${page}`, h);
+    if (!g.ok || !Array.isArray(J(g))) return unavailable(`GitHub pulls (open, page ${page}) answered ${g.status || g.error}`);
+    prs.push(...(J(g) as OpenPr[]));
+    if ((J(g) as unknown[]).length < 100) break;
+    if (page === 10) return unavailable('more than 1000 open pull requests: the list was not read in full');
+  }
+  const filesByNumber: Record<number, string[] | null> = {};
+  await Promise.all(staleCandidates(prs, now).map(async (p) => {
+    const names: string[] = [];
+    for (let page = 1; page <= 10; page++) {
+      const f = await get(`https://api.github.com/repos/${REPO}/pulls/${p.number}/files?per_page=100&page=${page}`, h);
+      if (!f.ok || !Array.isArray(J(f))) { filesByNumber[p.number] = null; return; }   // unreadable: the flag is null
+      // deno-lint-ignore no-explicit-any
+      names.push(...(J(f) as any[]).map((x) => String(x.filename)));
+      if ((J(f) as unknown[]).length < 100) break;
+    }
+    filesByNumber[p.number] = names;
+  }));
+  return {
+    basis: 'measured', taken_at: new Date(now).toISOString(), open_count: prs.length,
+    stale: stalePullRequests(prs, now, filesByNumber),
+  };
 }

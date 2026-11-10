@@ -6,8 +6,8 @@
       "topic": "Infrastructure and utilities works - what the buyer must state",
       "topic_ar": "أعمال البنية التحتية والمرافق: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For infrastructure and utilities works (trade code infrastructure_utilities only), every quoted line must state: Utility type and network; Bill of quantities and drawings; Materials specification; Utility authority approvals and NOCs; Contractor registration category; Testing and commissioning; Reinstatement scope; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "عند طلب عروض أسعار لأعمال البنية التحتية وشبكات المرافق (رمز النشاط infrastructure_utilities فقط)، يجب أن يذكر كل بند: نوع المرفق والشبكة؛ جدول الكميات والمخططات؛ مواصفات المواد؛ موافقات جهات المرافق وشهادات عدم الممانعة؛ فئة تصنيف المقاول؛ الفحص والتشغيل؛ نطاق إعادة الوضع إلى ما كان عليه؛ المخرجات ونطاق العمل؛ ترخيص المقاول ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. بهذه البنود تصبح عروض المقاولين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For infrastructure and utilities works (trade code infrastructure_utilities only), every quoted line must state: Utility type and network; Bill of quantities and drawings; Materials specification; Utility authority approvals and NOCs; Contractor registration category; Testing and commissioning; Reinstatement scope; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): project location and emirate; utility type, BOQ and drawings, sizes and depths, and the material specification. In developed areas a services survey and site visit are unavoidable. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states project location and emirate; road works permits and traffic diversion; payment terms.",
+      "body_ar": "عند طلب عروض أسعار لأعمال البنية التحتية وشبكات المرافق (رمز النشاط infrastructure_utilities فقط)، يجب أن يذكر كل بند: نوع المرفق والشبكة؛ جدول الكميات والمخططات؛ مواصفات المواد؛ موافقات جهات المرافق وشهادات عدم الممانعة؛ فئة تصنيف المقاول؛ الفحص والتشغيل؛ نطاق إعادة الوضع إلى ما كان عليه؛ المخرجات ونطاق العمل؛ ترخيص المقاول ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. بهذه البنود تصبح عروض المقاولين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، ونوع المرفق، وجدول الكميات والمخططات، والمقاسات والأعماق، ومواصفة المواد. وفي المناطق المأهولة لا بد من مسح للخدمات القائمة وزيارة للموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وتصاريح أعمال الطرق وتحويل حركة المرور، وشروط الدفع.",
       "required_specs": [
         "Utility type and network",
         "Bill of quantities and drawings",
@@ -21,7 +21,12 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "pipe or duct sizes, depths and lengths",
+        "existing services survey",
+        "project location and emirate",
+        "road works permits and traffic diversion",
+        "payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/",
@@ -29,7 +34,145 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Utility type and network",
+        "Bill of quantities and drawings",
+        "pipe or duct sizes, depths and lengths",
+        "Materials specification",
+        "project location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Utility type and network",
+          "why_needed_to_price": "Water, sewer, storm, TSE, power, telecom and gas each have their own authority standard.",
+          "uae_options": "potable water; sewer; storm; irrigation/TSE; power ducts; telecom; gas",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Bill of quantities and drawings",
+          "why_needed_to_price": "Networks are priced per metre by size and depth.",
+          "uae_options": "BOQ with drawings",
+          "follow_up_if": "No drawings: a design is needed first.",
+          "blocking": true
+        },
+        {
+          "spec": "Materials specification",
+          "why_needed_to_price": "Each utility lists approved materials (DI, HDPE, GRP, uPVC).",
+          "uae_options": "per utility approved list",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Utility authority approvals and NOCs",
+          "why_needed_to_price": "NOCs take time and fees.",
+          "uae_options": "contractor; consultant",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Contractor registration category",
+          "why_needed_to_price": "Only contractors registered in the right category may work on utility networks.",
+          "uae_options": "Utility and municipality contractor registration category.",
+          "follow_up_if": "If the category does not match the works, the offer cannot be accepted.",
+          "blocking": false
+        },
+        {
+          "spec": "Testing and commissioning",
+          "why_needed_to_price": "Testing and commissioning of networks is often priced separately.",
+          "uae_options": "Pressure tests; cable tests; CCTV of sewers; commissioning.",
+          "follow_up_if": "If excluded, ask who tests.",
+          "blocking": false
+        },
+        {
+          "spec": "Reinstatement scope",
+          "why_needed_to_price": "Road and paving reinstatement is often excluded.",
+          "uae_options": "included; excluded",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "What the provider must actually hand over decides the hours and the price; an unclear scope makes every quote a guess.",
+          "uae_options": "Defined tasks, quantities, frequencies, reports and certificates; a scope document or bill of quantities.",
+          "follow_up_if": "If the buyer cannot describe the scope, ask for the site, the quantities and the end result wanted before pricing.",
+          "blocking": false
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and the qualifications of the team decide what it can be trusted to do.",
+          "uae_options": "Trade licence naming the activity; authority approval or registration; qualified supervisors and certified operatives.",
+          "follow_up_if": "If the licence or a required approval is missing or expired, the offer cannot be compared until it is provided.",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Response and fix times decide how many staff, vehicles and spares the provider must keep ready, which is most of a service price.",
+          "uae_options": "Emergency response within hours; scheduled work within agreed days; 24/7 or business-hours cover.",
+          "follow_up_if": "If the buyer needs 24/7 cover or penalties for missed response, say so: it is priced differently.",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "The length of the engagement and when work happens (hours, nights, phases) set labour, plant and overhead costs.",
+          "uae_options": "Fixed programme in weeks; phased handovers; daytime, night or Friday work; recurring schedule for services.",
+          "follow_up_if": "If work must avoid trading hours or occupants, state the permitted hours: night and weekend work is priced at a premium.",
+          "blocking": false
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "pipe or duct sizes, depths and lengths",
+          "why_needed_to_price": "Excavation depth and pipe size drive cost; deep trenches need shoring and dewatering.",
+          "uae_options": "per drawings",
+          "follow_up_if": "Deep or below water table: ask for the soil report and dewatering scope.",
+          "blocking": true
+        },
+        {
+          "spec": "existing services survey",
+          "why_needed_to_price": "Unknown services cause damage and delays.",
+          "uae_options": "GPR survey; trial trenches",
+          "follow_up_if": "Live area: trial trenches are needed before a firm price.",
+          "blocking": false
+        },
+        {
+          "spec": "project location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "road works permits and traffic diversion",
+          "blocking": false,
+          "why_needed_to_price": "Work in or across roads needs road-authority permits, traffic management and night working, which are priced in.",
+          "uae_options": "Not in a road; road crossing; work along a live road with diversion; by the customer.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "site_visit_required_when": "A site visit and an existing-services survey are unavoidable before a firm price in developed areas.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "infrastructure_utilities:uae-standards-and-approvals",
@@ -90,6 +233,82 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "infrastructure_utilities:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Utility networks: approvals per emirate",
+      "topic_ar": "شبكات المرافق: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: work in the right of way needs an RTA construction NOC collected from all service authorities (DEWA, Dubai Municipality drainage, telecom operators) through the e-NOC system; a trial-trench NOC exists for locating services. Trakhees issues infrastructure NOCs in its areas. Abu Dhabi: the Abu Dhabi infrastructure services guideline covers right-of-way utility disposition and the utility NOC programme; ADDC requires a notice of intent, a conflict check and an NOC at design and construction stage. Sharjah: SEWA for electricity, water and gas connections, with the municipality. Northern emirates: EtihadWE for power and water, with the municipalities. Who obtains: the contractor, with the consultant's drawings; each utility's approved-contractor list applies.",
+      "body_ar": "في دبي: يحتاج العمل في حرم الطريق إلى شهادة عدم ممانعة إنشائية من هيئة الطرق والمواصلات تُجمع فيها موافقات جميع جهات الخدمات (هيئة كهرباء ومياه دبي وتصريف بلدية دبي ومشغلي الاتصالات) عبر النظام الإلكتروني، وتوجد شهادة خاصة لحفر الخنادق التجريبية لتحديد الخدمات. وتصدر تراخيص شهادات البنية التحتية في مناطقها. في أبوظبي: يغطي الدليل الإرشادي لمواصفات البنية التحتية توزيع المرافق في حرم الطريق وبرنامج شهادات المرافق، وتشترط شركة أبوظبي للتوزيع إشعار نية وفحص تعارض وشهادة في مرحلتي التصميم والتنفيذ. في الشارقة: هيئة كهرباء ومياه وغاز الشارقة للتوصيلات مع البلدية. في الإمارات الشمالية: الاتحاد للماء والكهرباء مع البلديات. من يحصل عليها: المقاول بمخططات الاستشاري، وتنطبق قائمة المقاولين المعتمدين لدى كل جهة.",
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=314",
+        "https://pcfc.ae/en/Service%20Documents/TRK-CED-PS-CF15a,%20Infrastructure%20NOC%20Application%20Form.pdf",
+        "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/E-Library/Abu-Dhabi-Emirate-Guideline-for-Infrastructure-Services-Standards.pdf",
+        "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/E-Library/ADDC-requirement-for-issuing-NOC-online.pdf",
+        "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
+        "https://www.etihadwe.ae/en",
+        "https://www.rta.ae/links/rail-noc.pdf",
+        "https://www.sewa.gov.ae/en/gas",
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=315"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: RTA 'Construction NOC for Infrastructure Work' (serviceId 315): the final NOC is issued through the eNOC system once all listed service authorities approve; RTA rail NOC guidelines include a trial-trenches NOC; Trakhees Infrastructure NOC application form (pcfc.ae); ADDC NOC requirements; Sharjah supporting departments; EtihadWE coverage. Not confirmed on any page that opened: a trial-trench NOC for general (non-rail) works, and the Abu Dhabi infrastructure services guideline (its PDF did not load). Hosts that failed: www.dmt.gov.ae infrastructure-standards PDF (no response to curl or Playwright)."
+    },
+    {
+      "id": "infrastructure_utilities:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in utility network quotes",
+      "topic_ar": "علامات التحذير في عروض شبكات المرافق",
+      "body_en": "Watch for: pipe class or material not matching the utility's approved list; depth bands priced only to a shallow depth with deeper trench as extra; shoring, dewatering, trial trenches, testing, CCTV survey of sewers, reinstatement and NOC fees excluded; and a contractor not registered with the utility.",
+      "body_ar": "انتبه إلى: فئة الأنابيب أو مادتها غير مطابقة لقائمة الجهة المعتمدة، وتسعير الحفر لعمق ضحل فقط مع اعتبار الأعماق الأكبر إضافية، واستثناء التدعيم أو نزح المياه أو الخنادق التجريبية أو الفحوص أو المسح التلفزيوني للمجاري أو إعادة الرصف أو رسوم الشهادات، ومقاول غير مسجل لدى الجهة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "infrastructure_utilities:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in utility network",
+      "topic_ar": "أخطاء شائعة لدى المشترين في شبكات المرافق",
+      "body_en": "Buyers ask for a connection price without the distance to the utility's point of connection, forget that the utility's own connection fees are separate, and start work before the NOC is issued.",
+      "body_ar": "يطلب المشترون سعراً للتوصيل دون ذكر المسافة إلى نقطة الربط لدى الجهة، وينسون أن رسوم التوصيل الخاصة بالجهة منفصلة، ويبدؤون العمل قبل صدور شهادة عدم الممانعة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "infrastructure_utilities:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves utility network prices",
+      "topic_ar": "ما الذي يغيّر أسعار شبكات المرافق بشكل مشروع",
+      "body_en": "Prices differ legitimately by depth and ground (rock, water table), pipe material and size, traffic management and reinstatement in live roads, length (small jobs carry mobilisation), and night work required by the authority.",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب العمق ونوع الأرض (صخر أو مياه جوفية)، ومادة الأنابيب ومقاسها، وإدارة المرور وإعادة الرصف في الطرق المفتوحة، والطول (الأعمال الصغيرة تحمل كلفة التحريك)، والعمل الليلي الذي تشترطه الجهة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "infrastructure_utilities:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing utility network quotes like for like",
+      "topic_ar": "مقارنة عروض شبكات المرافق على أساس متكافئ",
+      "body_en": "Compare per metre by size and depth band on the same BOQ, with excavation, bedding, backfill, testing, reinstatement and NOCs treated alike. Value beyond price: registration with the utility, approved materials with certificates, and a services survey done before pricing.",
+      "body_ar": "قارن للمتر حسب المقاس ونطاق العمق على جدول الكميات نفسه، مع معاملة الحفر والفرشة والردم والفحوص وإعادة الرصف والشهادات بالطريقة نفسها. القيمة إلى جانب السعر: تسجيل لدى الجهة، ومواد معتمدة بشهادات، ومسح للخدمات قبل التسعير.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -126,17 +345,23 @@
     }
   ],
   "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 2,
+    "fetched_urls": 9,
+    "claims_checked": 11,
     "corrected": [],
     "removed": [],
     "still_unverified": [
       "infrastructure_utilities:spec-checklist",
-      "infrastructure_utilities:uae-standards-and-approvals"
+      "infrastructure_utilities:uae-standards-and-approvals",
+      "infrastructure_utilities:approvals-per-emirate"
     ],
     "added": [
       "infrastructure_utilities:spec-checklist",
-      "infrastructure_utilities:uae-standards-and-approvals"
+      "infrastructure_utilities:uae-standards-and-approvals",
+      "infrastructure_utilities:approvals-per-emirate",
+      "infrastructure_utilities:quote-red-flags",
+      "infrastructure_utilities:buyer-mistakes",
+      "infrastructure_utilities:price-drivers",
+      "infrastructure_utilities:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
@@ -163,6 +388,27 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: infrastructure_utilities:approvals-per-emirate re-checked against official pages opened through the session network (7 URL(s) read, 9 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "infrastructure_utilities:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=315",
+        "https://pcfc.ae/en/Service%20Documents/TRK-CED-PS-CF15a,%20Infrastructure%20NOC%20Application%20Form.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

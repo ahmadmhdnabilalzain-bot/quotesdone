@@ -5,8 +5,8 @@
       "id": "cold_chain_logistics:spec-checklist",
       "topic": "Cold chain logistics - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for cold chain logistics must state: goods type; temperature range; volume in pallets or cubic metres; storage or transport or both; temperature monitoring and records; food safety approvals; routes and delivery windows; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة لوجستيات سلسلة التبريد: نوع البضائع؛ نطاق درجة الحرارة؛ الحجم بالمنصات أو الأمتار المكعبة؛ تخزين أو نقل أو كلاهما؛ مراقبة درجة الحرارة وسجلاتها؛ موافقات سلامة الغذاء؛ المسارات ونوافذ التسليم؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for cold chain logistics must state: goods type; temperature range; volume in pallets or cubic metres; storage or transport or both; temperature monitoring and records; food safety approvals; routes and delivery windows; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): goods type; temperature range; volume in pallets or cubic metres; storage or transport or both; routes and delivery windows. Follow-up questions the answers trigger: goods type: Pharma brings GDP compliance and validated lanes; food brings the food-safety authority's vehicle and store approvals. temperature range: Multi-temperature loads bring multi-compartment vehicles. Before a firm price: none; a firm price needs the volume profile (pallets in and out per week, drops per day). Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states handling and value-added services. Not quote-blocking (the supplier states it, or quotes on its usual basis): pricing basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة لوجستيات سلسلة التبريد: نوع البضائع؛ نطاق درجة الحرارة؛ الحجم بالمنصات أو الأمتار المكعبة؛ تخزين أو نقل أو كلاهما؛ مراقبة درجة الحرارة وسجلاتها؛ موافقات سلامة الغذاء؛ المسارات ونوافذ التسليم؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع البضائع، ونطاق الحرارة، والحجم بالمنصات أو الأمتار المكعبة، وتخزين أم نقل أم كلاهما، والمسارات ونوافذ التسليم. أسئلة المتابعة: الأدوية تستلزم ممارسات التوزيع الجيد ومسارات مثبتة الصلاحية، والأغذية تستلزم موافقات جهة السلامة الغذائية للمركبات والمخازن، والأحمال متعددة الحرارة تستلزم مركبات متعددة المقصورات. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً المناولة والخدمات الإضافية. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): أساس التسعير.",
       "required_specs": [
         "goods type",
         "temperature range",
@@ -19,7 +19,8 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "handling and value-added services"
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits",
@@ -27,7 +28,109 @@
         "https://www.dm.gov.ae/wp-content/uploads/2024/10/Food-Code-2013-English.pdf"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "goods type",
+        "temperature range",
+        "volume in pallets or cubic metres",
+        "storage or transport or both",
+        "routes and delivery windows"
+      ],
+      "spec_guide": [
+        {
+          "spec": "goods type",
+          "blocking": true,
+          "why_needed_to_price": "Food, pharma, flowers and chemicals carry different handling and compliance.",
+          "uae_options": "Chilled food, frozen food, pharma (GDP), vaccines, flowers, chemicals.",
+          "follow_up_if": "Pharma brings GDP compliance and validated lanes; food brings the food-safety authority's vehicle and store approvals."
+        },
+        {
+          "spec": "temperature range",
+          "blocking": true,
+          "why_needed_to_price": "Frozen, chilled and controlled-ambient zones are priced differently.",
+          "uae_options": "-25 to -18 °C frozen, 0-4 °C or 2-8 °C chilled, 15-25 °C controlled ambient.",
+          "follow_up_if": "Multi-temperature loads bring multi-compartment vehicles."
+        },
+        {
+          "spec": "volume in pallets or cubic metres",
+          "blocking": true,
+          "why_needed_to_price": "Storage is priced per pallet position; transport per trip or pallet.",
+          "uae_options": "Pallet positions, CBM, pallets per day in and out.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "storage or transport or both",
+          "blocking": true,
+          "why_needed_to_price": "Storage, transport and integrated services are priced on different bases.",
+          "uae_options": "Storage only, transport only, integrated.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "temperature monitoring and records",
+          "blocking": false,
+          "why_needed_to_price": "Continuous logging and alarms cost more and are required for pharma.",
+          "uae_options": "Data loggers, real-time telemetry, temperature reports per trip.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "food safety approvals",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Dubai Municipality food transport permit; ADAFSA approvals; HACCP; GDP certification.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "routes and delivery windows",
+          "blocking": true,
+          "why_needed_to_price": "Multi-drop routes and narrow windows raise cost.",
+          "uae_options": "Drops per route, emirates covered, delivery windows.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "licences held",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "service levels",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "On-time, temperature excursion handling.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "contract duration",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "pricing basis",
+          "blocking": false,
+          "why_needed_to_price": "Per pallet per day/week, handling in and out, per trip, per drop — all must be converted to the buyer's volume.",
+          "uae_options": "Storage per pallet, handling fees, transport per trip or drop.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Handling, labelling, picking, blast freezing and waiting time are often extra.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "handling and value-added services",
+          "blocking": false,
+          "why_needed_to_price": "Case picking, labelling, kitting and returns handling are charged on top of pallet storage and transport.",
+          "uae_options": "Pallet in and out only; case or unit picking; labelling; kitting; returns handling.",
+          "follow_up_if": ""
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page.",
+      "site_visit_required_when": "none; a firm price needs the volume profile (pallets in and out per week, drops per day)."
     },
     {
       "id": "cold_chain_logistics:uae-standards-and-approvals",
@@ -86,6 +189,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "cold_chain_logistics:authority-approvals",
+      "topic": "Cold chain: food-transport vehicle permits and pharma distribution by emirate",
+      "topic_ar": "سلسلة التبريد: تصاريح مركبات نقل الأغذية وتوزيع الأدوية حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Vehicles carrying food in Dubai need Dubai Municipality's food transport approval: the Municipality publishes requirements for food transportation and delivery vehicles (guideline DM-FSD-GU63, 2024 update), and news reports describe annual permits issued after inspection, with RTA vehicle-testing centres inspecting on the Municipality's behalf; vehicles are registered with the RTA. In Abu Dhabi food businesses, including transport and stores, fall under ADAFSA. Medicines and vaccines move under good distribution practice and the medical-products regulator's rules for licensed storage (search results report a 3PL obtaining Emirates Drug Establishment certification to store pharmaceutical materials). The logistics provider holds the permits; the buyer should ask for the vehicle and store approvals.",
+      "body_ar": "تحتاج المركبات الناقلة للأغذية في دبي موافقة بلدية دبي لنقل الأغذية: إذ تنشر البلدية متطلبات مركبات نقل الأغذية وتوصيلها (الدليل DM-FSD-GU63، تحديث 2024)، وتصف التقارير الإعلامية تصاريح سنوية تصدر بعد الفحص، مع قيام مراكز فحص المركبات التابعة لهيئة الطرق والمواصلات بالفحص نيابة عن البلدية، وتُسجل المركبات لدى الهيئة. وفي أبوظبي تخضع منشآت الأغذية، ومنها النقل والمخازن، لهيئة أبوظبي للزراعة والسلامة الغذائية. وتنقل الأدوية واللقاحات وفق ممارسات التوزيع الجيد وقواعد الجهة المنظمة للمنتجات الطبية للتخزين المرخص (وتفيد نتائج البحث بحصول مزود خدمات لوجستية على شهادة مؤسسة الإمارات للدواء لتخزين المواد الدوائية). ويحمل مزود الخدمة التصاريح، وعلى المشتري طلب موافقات المركبات والمخازن.",
+      "sources": [
+        "https://www.ede.gov.ae/en",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/02/2.-DM-FSD-GU63-Requirements-for-food-transportation-and-delivery-vehicles-guidelines-update.pdf",
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-medical-device"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM-FSD-GU63 requirements for food transportation and delivery vehicles (2024 update, dmpmedia.dm.gov.ae), including a section on the food transportation vehicle permit in Dubai; EDE regulates medical-product storage through its licensed medical warehouses (EDE service pages). Not confirmed on any page that opened: annual permits after inspection and RTA testing centres inspecting for DM (news reports), ADAFSA's role and the 3PL EDE licence."
+    },
+    {
+      "id": "cold_chain_logistics:quote-red-flags",
+      "topic": "Red flags in cold chain quotations",
+      "topic_ar": "علامات التحذير في عروض سلسلة التبريد",
+      "kind": "quote_red_flag",
+      "body_en": "Check the temperature range per zone and the evidence: chilled vehicles offered for frozen goods, no continuous logging, or no food-transport permit are disqualifying. Watch for storage rates without handling-in and handling-out fees, minimum monthly charges, per-pallet rates with a short billing period that rounds up, waiting time and failed-delivery charges, blast freezing excluded, liability for temperature excursions capped or excluded, and older reefer units without a maintenance record.",
+      "body_ar": "افحص نطاق الحرارة لكل منطقة والدليل عليه: فعرض مركبات مبردة لبضائع مجمدة، أو غياب التسجيل المستمر للحرارة، أو غياب تصريح نقل الأغذية، أسباب استبعاد. وانتبه إلى: أسعار تخزين دون رسوم المناولة دخولاً وخروجاً، ورسوم دنيا شهرية، وأسعار للمنصة بفترة فوترة قصيرة تُقرّب للأعلى، ورسوم الانتظار والتسليم الفاشل، واستثناء التجميد السريع، وتحديد المسؤولية عن انحرافات الحرارة أو استثنائها، ووحدات تبريد قديمة دون سجل صيانة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "cold_chain_logistics:buyer-mistakes",
+      "topic": "Common buyer mistakes in cold chain logistics",
+      "topic_ar": "أخطاء شائعة لدى المشترين في سلسلة التبريد",
+      "kind": "buyer_mistake",
+      "body_en": "Comparing storage rates without handling and minimum charges; not stating temperature tolerance and excursion responsibility; using a general carrier for pharma without GDP; and ignoring delivery windows in summer heat. Ask the products, temperatures, volumes in and out, and drops per day.",
+      "body_ar": "مقارنة أسعار التخزين دون المناولة والرسوم الدنيا؛ وعدم ذكر تفاوت الحرارة المسموح ومسؤولية الانحراف؛ واستخدام ناقل عام للأدوية دون ممارسات التوزيع الجيد؛ وتجاهل نوافذ التسليم في حرارة الصيف. لذا يُسأل عن المنتجات والحرارة والكميات الداخلة والخارجة وعدد نقاط التسليم يومياً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "cold_chain_logistics:price-drivers",
+      "topic": "What legitimately moves cold chain prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار سلسلة التبريد",
+      "kind": "price_driver",
+      "body_en": "Temperature zone (frozen costs most), energy, pallet positions and turnover, handling and value-added services, vehicle size and drops per route, monitoring and compliance level (pharma GDP), contract length and volume commitment.",
+      "body_ar": "منطقة الحرارة (المجمد الأعلى تكلفة)، والطاقة، ومواقع المنصات ومعدل دورانها، والمناولة والخدمات المضافة، وحجم المركبة ونقاط التسليم في المسار، ومستوى المراقبة والامتثال (ممارسات التوزيع الجيد للأدوية)، ومدة العقد والالتزام بالحجم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "cold_chain_logistics:compare-quotes",
+      "topic": "Comparing cold chain quotes on monthly cost",
+      "topic_ar": "مقارنة عروض سلسلة التبريد على أساس التكلفة الشهرية",
+      "kind": "comparison",
+      "body_en": "Price the buyer's monthly profile through each offer: pallet storage days, handling in and out, transport trips or drops, monitoring, and minimum charges. Compare only providers with valid food or pharma approvals for the temperature range. Recommend the three compliant offers with the lowest total monthly cost and clear excursion liability.",
+      "body_ar": "سعّر ملف المشتري الشهري وفق كل عرض: أيام تخزين المنصات والمناولة دخولاً وخروجاً ورحلات النقل أو نقاط التسليم والمراقبة والرسوم الدنيا. ولا تقارن إلا مزودين يحملون موافقات غذائية أو دوائية سارية لنطاق الحرارة. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة شهرية إجمالية ومسؤولية واضحة عن الانحرافات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +300,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "cold_chain_logistics:spec-checklist"
+      "cold_chain_logistics:spec-checklist",
+      "cold_chain_logistics:authority-approvals"
     ],
     "added": [
       "cold_chain_logistics:spec-checklist",
@@ -158,6 +332,27 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "cold_chain_logistics:quote-red-flags",
+      "cold_chain_logistics:buyer-mistakes",
+      "cold_chain_logistics:price-drivers",
+      "cold_chain_logistics:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "cold_chain_logistics:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2024/02/2.-DM-FSD-GU63-Requirements-for-food-transportation-and-delivery-vehicles-guidelines-update.pdf",
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-medical-device"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

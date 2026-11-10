@@ -28,8 +28,8 @@
       "topic": "Commercial laundry equipment: makes, brands, distributors and origins in the UAE",
       "topic_ar": "معدات المغاسل التجارية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists laundry equipment brands commonly sold, such as Electrolux Professional, Miele Professional, Girbau and Speed Queen, and where dealers and service companies are found. Brands commonly sold: Electrolux Professional, Miele Professional, Girbau, Primus, IPSO, Speed Queen, UniMac, Jensen, Kannegiesser, Union, Renzacci. Electrolux Professional has its own Middle East office in Dubai; the other brands' UAE dealers were not checked. Dealers and service companies are found in Al Quoz, Deira, Sharjah and Musaffah.",
-      "body_ar": "أكثر علامات معدات المغاسل مبيعاً Electrolux Professional وMiele Professional وGirbau وSpeed Queen، مع بيان أماكن الوكلاء وشركات الصيانة. والعلامات الشائعة في السوق: Electrolux Professional وMiele Professional وGirbau وPrimus وIPSO وSpeed Queen وUniMac وJensen وKannegiesser وUnion وRenzacci. ولشركة Electrolux Professional مكتبها الخاص للشرق الأوسط في دبي، ولم نتحقق من وكلاء العلامات الأخرى في الإمارات. ويوجد الوكلاء وشركات الصيانة في القوز وديرة والشارقة ومصفح.",
+      "body_en": "This entry lists laundry equipment brands commonly sold, such as Electrolux Professional, Miele Professional, Girbau and Speed Queen, and where dealers and service companies are found. Brands commonly sold: Electrolux Professional, Miele Professional, Girbau, Primus, IPSO, Speed Queen, UniMac, Jensen, Kannegiesser, Union, Renzacci. Electrolux Professional has its own Middle East office in Dubai; the other brands' UAE dealers were not checked. Dealers and service companies are found in Al Quoz, Deira, Sharjah and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Electrolux Professional = a premium Swedish brand; Miele Professional = a premium German brand; Girbau = a premium Spanish brand; Primus = a mid-tier Belgian brand; IPSO = a mid-tier Belgian brand; Speed Queen = a mid-tier American brand; UniMac = a mid-tier American brand; Jensen = a premium Swiss brand; Kannegiesser = a premium German brand; Union = a mid-tier Italian brand; Renzacci = a mid-tier Italian brand.",
+      "body_ar": "أكثر علامات معدات المغاسل مبيعاً Electrolux Professional وMiele Professional وGirbau وSpeed Queen، مع بيان أماكن الوكلاء وشركات الصيانة. والعلامات الشائعة في السوق: Electrolux Professional وMiele Professional وGirbau وPrimus وIPSO وSpeed Queen وUniMac وJensen وKannegiesser وUnion وRenzacci. ولشركة Electrolux Professional مكتبها الخاص للشرق الأوسط في دبي، ولم نتحقق من وكلاء العلامات الأخرى في الإمارات. ويوجد الوكلاء وشركات الصيانة في القوز وديرة والشارقة ومصفح.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Electrolux Professional = علامة سويدية من الفئة الممتازة؛ Miele Professional = علامة ألمانية من الفئة الممتازة؛ Girbau = علامة إسبانية من الفئة الممتازة؛ Primus = علامة بلجيكية من الفئة المتوسطة؛ IPSO = علامة بلجيكية من الفئة المتوسطة؛ Speed Queen = علامة أمريكية من الفئة المتوسطة؛ UniMac = علامة أمريكية من الفئة المتوسطة؛ Jensen = علامة سويسرية من الفئة الممتازة؛ Kannegiesser = علامة ألمانية من الفئة الممتازة؛ Union = علامة إيطالية من الفئة المتوسطة؛ Renzacci = علامة إيطالية من الفئة المتوسطة.",
       "sources": [
         "https://webstore.iec.ch/en/publication/80076",
         "https://www.electroluxprofessional.com/me/contact-us/",
@@ -40,7 +40,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: IEC 60335-2-7 covers household washing machines; commercial and launderette machines fall under IEC 60335-2-122 -> corrected: commercial standard number added | Electrolux Professional has a Middle East office in JLT, Dubai; Girbau sells via subsidiaries and official distributors -> confirmed | Named dealers for each brand -> removed: dealer appointments not confirmed. Not checked: Current authorised dealers for each brand in the UAE and specific Civil Defence requirements for gas dryers were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: IEC 60335-2-7 covers household washing machines; commercial and launderette machines fall under IEC 60335-2-122 -> corrected: commercial standard number added | Electrolux Professional has a Middle East office in JLT, Dubai; Girbau sells via subsidiaries and official distributors -> confirmed | Named dealers for each brand -> removed: dealer appointments not confirmed. Not checked: Current authorised dealers for each brand in the UAE and specific Civil Defence requirements for gas dryers were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Electrolux Professional",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Miele Professional",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Girbau",
+          "origin": "Spain",
+          "tier": "premium",
+          "generic_en": "a premium Spanish brand",
+          "generic_ar": "علامة إسبانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Primus",
+          "origin": "Belgium",
+          "tier": "mid",
+          "generic_en": "a mid-tier Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "IPSO",
+          "origin": "Belgium",
+          "tier": "mid",
+          "generic_en": "a mid-tier Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Speed Queen",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "UniMac",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Jensen",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Kannegiesser",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Union",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Renzacci",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "laundry_equipment:uae-market-sizes",

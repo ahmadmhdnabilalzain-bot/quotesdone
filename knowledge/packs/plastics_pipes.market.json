@@ -27,8 +27,8 @@
       "topic": "Plastics, Pipes & Fittings: makes, brands, distributors and origins in the UAE",
       "topic_ar": "البلاستيك والأنابيب والتجهيزات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the plastic pipe makers and brands in the UAE, such as the local producers Cosmoplast and Future Pipe Industries plus imported brands, and where the trade is concentrated. Makers and brands: Cosmoplast, Future Pipe Industries, Borouge, Amiantit, Georg Fischer, Aliaxis, Wavin, Aquatherm, Rehau, Uponor, Polypipe. Cosmoplast (PE, PVC and PPR, with Borouge resin) and Future Pipe Industries (GRP) are UAE producers. The rest are imported, and their UAE distributors were not checked. Trading is concentrated in Deira (Al Ras), Sharjah Industrial Area and Musaffah. Utility projects need makes approved by the authority.",
-      "body_ar": "من مصنعي وماركات الأنابيب البلاستيكية في الإمارات المنتجان المحليان Cosmoplast وFuture Pipe Industries إضافة إلى ماركات مستوردة، مع بيان أماكن تركز التجارة. المصنّعون والعلامات: Cosmoplast، Future Pipe Industries، Borouge، Amiantit، Georg Fischer، Aliaxis، Wavin، Aquatherm، Rehau، Uponor، Polypipe. وCosmoplast (أنابيب PE وPVC وPPR بخامة Borouge) وFuture Pipe Industries (GRP) منتجون إماراتيون، والبقية مستوردة ولم يُتحقق من موزعيها. وتتركز التجارة في ديرة (الراس) والمنطقة الصناعية بالشارقة ومصفح، وتحتاج مشاريع المرافق علامات معتمدة من الجهات.",
+      "body_en": "This lists the plastic pipe makers and brands in the UAE, such as the local producers Cosmoplast and Future Pipe Industries plus imported brands, and where the trade is concentrated. Makers and brands: Cosmoplast, Future Pipe Industries, Borouge, Amiantit, Georg Fischer, Aliaxis, Wavin, Aquatherm, Rehau, Uponor, Polypipe. Cosmoplast (PE, PVC and PPR, with Borouge resin) and Future Pipe Industries (GRP) are UAE producers. The rest are imported, and their UAE distributors were not checked. Trading is concentrated in Deira (Al Ras), Sharjah Industrial Area and Musaffah. Utility projects need makes approved by the authority.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Cosmoplast = a mid-tier UAE brand; Future Pipe Industries = a premium UAE brand; Borouge = a premium UAE brand; Amiantit = a mid-tier Saudi brand; Georg Fischer = a premium Swiss brand; Aliaxis = a premium Belgian brand; Wavin = a premium Dutch brand; Aquatherm = a premium German brand; Rehau = a premium German brand; Uponor = a premium Finnish brand; Polypipe = a mid-tier British brand.",
+      "body_ar": "من مصنعي وماركات الأنابيب البلاستيكية في الإمارات المنتجان المحليان Cosmoplast وFuture Pipe Industries إضافة إلى ماركات مستوردة، مع بيان أماكن تركز التجارة. المصنّعون والعلامات: Cosmoplast، Future Pipe Industries، Borouge، Amiantit، Georg Fischer، Aliaxis، Wavin، Aquatherm، Rehau، Uponor، Polypipe. وCosmoplast (أنابيب PE وPVC وPPR بخامة Borouge) وFuture Pipe Industries (GRP) منتجون إماراتيون، والبقية مستوردة ولم يُتحقق من موزعيها. وتتركز التجارة في ديرة (الراس) والمنطقة الصناعية بالشارقة ومصفح، وتحتاج مشاريع المرافق علامات معتمدة من الجهات.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Cosmoplast = علامة إماراتية من الفئة المتوسطة؛ Future Pipe Industries = علامة إماراتية من الفئة الممتازة؛ Borouge = علامة إماراتية من الفئة الممتازة؛ Amiantit = علامة سعودية من الفئة المتوسطة؛ Georg Fischer = علامة سويسرية من الفئة الممتازة؛ Aliaxis = علامة بلجيكية من الفئة الممتازة؛ Wavin = علامة هولندية من الفئة الممتازة؛ Aquatherm = علامة ألمانية من الفئة الممتازة؛ Rehau = علامة ألمانية من الفئة الممتازة؛ Uponor = علامة فنلندية من الفئة الممتازة؛ Polypipe = علامة بريطانية من الفئة المتوسطة.",
       "sources": [
         "https://harwal.net/our-companies/cosmoplast/",
         "https://futurepipe.com/",
@@ -38,7 +38,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Cosmoplast is the largest regional thermoplastic pipe maker (Harwal) -> confirmed | Future Pipe Industries GRP -> confirmed | Union Pipes, APICO, Dubai Pipes Factory -> not checked; removed. Not checked: Utility approved-make lists per emirate and some local producers' current names were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Cosmoplast is the largest regional thermoplastic pipe maker (Harwal) -> confirmed | Future Pipe Industries GRP -> confirmed | Union Pipes, APICO, Dubai Pipes Factory -> not checked; removed. Not checked: Utility approved-make lists per emirate and some local producers' current names were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Cosmoplast",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Future Pipe Industries",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Borouge",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Amiantit",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Georg Fischer",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Aliaxis",
+          "origin": "Belgium",
+          "tier": "premium",
+          "generic_en": "a premium Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Wavin",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium Dutch brand",
+          "generic_ar": "علامة هولندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Aquatherm",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Rehau",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Uponor",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Polypipe",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "plastics_pipes:uae-market-sizes",

@@ -165,8 +165,14 @@ export function rowsOf(p) {
       ...(e.area ? ['area:' + e.area] : []), 'confidence:' + e.confidence, 'verified:' + isVerified(e),
       ...(p.kind !== 'trade' && isOwnEntry(e) ? ['audience:internal'] : [])];
     const eligible = isVerified(e);
+    // The expert interview's fields (sales_engineer, 10 Nov 2026, founder ledger 1587) ride on the row as the pack wrote them:
+    // a spec_checklist's blocking / spec_guide / site_visit_required_when and a brand entry's brand_origins. The runtime
+    // reads the checklist fields from public.trade_spec_checklist (scripts/kb/load_trade_spec_checklists.mjs); these are the
+    // same values on the retrieved row, so a seat that retrieves the entry sees what the interview asks. Absent: null.
     const sd = { entry_id: e.id, lang, verified: eligible, kind: e.kind, area: e.area ?? null, confidence: e.confidence, as_of: e.as_of, gap_kind: e.gap_kind ?? null,
-      required_specs: e.required_specs ?? null, source_note: e.source_note ?? null, sources: e.sources ?? [], pack_file: p.rel };
+      required_specs: e.required_specs ?? null, blocking: e.blocking ?? null, spec_guide: e.spec_guide ?? null,
+      site_visit_required_when: e.site_visit_required_when ?? null, brand_origins: e.brand_origins ?? null,
+      source_note: e.source_note ?? null, sources: e.sources ?? [], pack_file: p.rel };
     const b = sha(body);
     let cols;
     if (table === 'support_knowledge') {
@@ -231,11 +237,14 @@ export async function makeEmbedder(sql, projectRef, { cachePath = join(tmpdir(),
       const j = res.ok ? await res.json() : null;
       const v = typeof j?.embedding === 'string' ? JSON.parse(j.embedding) : j?.embedding;
       if (Array.isArray(v) && v.length === 384) { cache[k] = v; if (++dirty >= 50) save(); return v; }
-      if (attempt >= 4) throw new Error(`embedding refused (HTTP ${res.status}): ${res.ok ? 'no vector' : (await res.text()).slice(0, 160)}`);
+      if (attempt >= Number(process.env.QD_EMBED_ATTEMPTS || 4)) throw new Error(`embedding refused (HTTP ${res.status}): ${res.ok ? 'no vector' : (await res.text()).slice(0, 160)}`);
       await new Promise((r) => setTimeout(r, 1500 * 2 ** attempt));
     }
   }
-  async function many(texts, conc = 6) {
+  // THE EMBEDDER IS SHARED AND HAS A WORKER LIMIT (10 Nov 2026). The #1884 reload at 6 at once met embed_ml answering 546
+  // (WORKER_LIMIT) to ~10% of calls on top of live traffic; one text then failed 4 times and the whole load stopped, twice.
+  // QD_EMBED_CONC and QD_EMBED_ATTEMPTS let a bulk reload go gentler (2 at once, 8 tries) without changing the default.
+  async function many(texts, conc = Number(process.env.QD_EMBED_CONC || 6)) {
     const out = new Array(texts.length);
     let i = 0;
     await Promise.all(Array.from({ length: conc }, async () => { while (i < texts.length) { const j = i++; out[j] = await one(texts[j]); } }));
