@@ -93,22 +93,34 @@ test('production, aborted: every duty acts on ZZ DEMO fixtures, once', { skip: h
   let o;
   try { await replaySql(replay + '\n' + PROBE, { retry: false }); }
   catch (e) {
-    const m = String(e.message).match(/CHK<<(.*?)>>/s);
-    assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));
-    o = JSON.parse(m[1].replace(/\\"/g, '"'));
+    // e.message is cut at 2,000 characters by db.mjs and this payload is longer (10 Nov 2026), so read the whole answer
+    let text = String(e.body ?? e.message);
+    try { text = JSON.parse(text.slice(text.indexOf('{'))).message ?? text; } catch { /* keep the raw text */ }
+    const m = text.match(/CHK<<(.*?)>>/s);
+    assert.ok(m, 'the probe failed before it could report: ' + text.slice(0, 800));
+    o = JSON.parse(m[1]);
   }
   assert.ok(o, 'the probe committed instead of rolling back');
   // 24 Sep 2026: the dispute clock moved to the sales_engineer (reveal_follow_up_and_dispute_findings_belong_to_the_sales_engineer.sql)
   for (const duty of ['accountant.fraud_watch', 'accountant.sanctions_rescreen', 'sales_engineer.activation',
     'sales_engineer.disputes', 'sales_engineer.winback']) assert.ok(o.duties.includes(duty), `${duty} is not registered on its clock`);
   assert.ok(!o.duties.includes('customer_support.disputes'), 'customer_support still holds the dispute clock');
-  assert.deepEqual(o.act1, { first_request: 1, no_quote: 1, stalled_filed: 1 }, 'activation did not act');
+  // 10 Nov 2026 (it_engineer): act1.first_request read 15, not 1: production holds 14 demo customers left by the 2 Nov
+  // sign-up walk (delivered+qd-...@resend.dev, no request), which the fixture-mode tick rightly nudges too. The probe's
+  // own customer A must get exactly one first_request, B and C none; act2 below still requires the second run to send 0.
+  assert.ok(o.act1.first_request >= 1, 'activation did not act: ' + JSON.stringify(o.act1));
+  assert.deepEqual({ no_quote: o.act1.no_quote, stalled_filed: o.act1.stalled_filed }, { no_quote: 1, stalled_filed: 1 }, 'activation did not act');
+  assert.equal(o.act1_mine?.['a:activation.first_request'], 1, 'the probe customer A did not get one first_request: ' + JSON.stringify(o.act1_mine));
+  assert.ok(!o.act1_mine?.['b:activation.first_request'] && !o.act1_mine?.['c:activation.first_request'], 'a customer with a request got a first_request nudge');
   assert.deepEqual(o.act2, { first_request: 0, no_quote: 0, stalled_filed: 0 }, 'activation acted twice');
   assert.deepEqual(o.stalled_held, { seat: 'customer_support', stakes: 'high', status: 'held' }, 'the stalled case is not a reasoned question');
   assert.equal(o.stalled, 'applied', 'the reasoned answer on a stalled request was not applied');
   assert.equal(o.bad_choice, false, 'a choice outside the options was applied');
   assert.deepEqual([o.wb1.written, o.wb2.written], [1, 0], 'win-back did not write exactly once');
-  assert.deepEqual(o.fr1, { duplicates_flagged: 2, signals_flagged: 1, reasoning_filed: 1 }, 'fraud watch did not flag');
+  // duplicates_flagged also counts production's leftover demo duplicates (9 on 10 Nov morning, 11 that afternoon, all
+  // from e2e walks); the probe's own two are pinned exactly by o.flags below, and fr2 still requires the second run to flag 0
+  assert.ok(o.fr1.duplicates_flagged >= 2, 'fraud watch did not flag: ' + JSON.stringify(o.fr1));
+  assert.deepEqual({ signals_flagged: o.fr1.signals_flagged, reasoning_filed: o.fr1.reasoning_filed }, { signals_flagged: 1, reasoning_filed: 1 }, 'fraud watch did not flag');
   assert.deepEqual(o.fr2, { duplicates_flagged: 0, signals_flagged: 0, reasoning_filed: 0 }, 'fraud watch flagged twice');
   assert.deepEqual(o.flags, ['dup_customer_phone/open', 'duplicate_license/open', 'silent_after_reveal/open']);
   assert.equal(o.circ, true, 'a circumvention verdict opened no cross-family deliberation');
@@ -150,6 +162,11 @@ begin
     values (q2, i2, l1, cc, 1000, 'paid', now() - interval '70 days') returning id into t2;
 
   o := o || jsonb_build_object('act1', fn_customer_support_activation_tick());
+  -- what activation did to THIS probe's customers (10 Nov 2026: the tick's totals also count production's leftover demo
+  -- customers, e.g. 14 resend.dev sign-up-walk customers of 2 Nov with no request, so the totals are read, not equated)
+  o := o || jsonb_build_object('act1_mine', (select jsonb_object_agg(k, n) from (
+          select case m.customer_id when ca then 'a' when cb then 'b' when cc then 'c' end || ':' || m.stage k, count(*) n
+            from public.customer_support_duty_message m where m.customer_id in (ca, cb, cc) and m.stage like 'activation.%' group by 1) x));
   o := o || jsonb_build_object('act2', fn_customer_support_activation_tick());
   o := o || jsonb_build_object('wb1', fn_customer_support_winback_tick());
   o := o || jsonb_build_object('wb2', fn_customer_support_winback_tick());
@@ -159,7 +176,11 @@ begin
   -- accountant flag also read production's committed ones: accountant.risk_screen (#1110) legitimately holds
   -- free_email_company/open on a real lead that signs in with gmail.com, a flag this probe did not raise.
   o := o || jsonb_build_object('flags', (select jsonb_agg(kind || '/' || status order by kind) from fraud_flags
-    where detail->>'raised_by' = 'accountant' and created_at >= now()));  o := o || jsonb_build_object('sx', fn_accountant_sanctions_rescreen() - 'sources' - 'oldest_list' - 'runs');
+    where detail->>'raised_by' = 'accountant' and created_at >= now()
+      -- 10 Nov 2026: and only on this probe's subjects; the fixture-mode watch also flags production's leftover e2e demo
+      -- rows (7 customer_matches_supplier, 1 dup_customer_email, and dup_customer_phone on 500000000)
+      -- (a duplicate is keyed by what is shared: the normalised licence ZZ123456 and phone 500009991 of B and C)
+      and subject_id in (ca::text, cb::text, cc::text, l1::text, l2::text, i1::text, i2::text, q2::text, t2::text, 'ZZ123456', '500009991')));  o := o || jsonb_build_object('sx', fn_accountant_sanctions_rescreen() - 'sources' - 'oldest_list' - 'runs');
   o := o || jsonb_build_object('hit', (select jsonb_agg(field) from supplier_screening_hit where lead_id in (l1, l2)));
 
   select id into h from reasoning_held_question where dedupe_key = 'stalled_request:' || i1;
