@@ -197,9 +197,9 @@
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — dlp.dubai.gov.ae: not in the allowed network; www.itc.gov.ae: not in the allowed network; www.mediaoffice.abudhabi: not in the allowed network."
+      "verify_note": "Not verified on 2026-11-10 — dlp.dubai.gov.ae: not in the allowed network; www.itc.gov.ae: not in the allowed network; www.mediaoffice.abudhabi: not in the allowed network. Second page read 2026-11-10 (ledger 1597): Administrative Resolution No. 201 of 2012 (dlp.dubai.gov.ae): no person may drive a bus without the relevant permit from the Public Transport Agency; confirmed. Still not confirmed: Abu Dhabi Resolution No. 33 of 2021 and the Asateel platform (itc.gov.ae and www.mediaoffice.abudhabi refused), and the RTA inter-emirate permits."
     },
     {
       "id": "staff_transport:quote-red-flags",
@@ -318,6 +318,20 @@
       "staff_transport:buyer-mistakes",
       "staff_transport:price-drivers",
       "staff_transport:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "staff_transport:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2012/Administrative%20Resolution%20No.%20(201)%20of%202012%20Concerning%20the%20Standards.html"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

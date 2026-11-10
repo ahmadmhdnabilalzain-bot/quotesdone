@@ -185,17 +185,19 @@
       "topic": "Market research & surveys: licences, permits and approvals by emirate",
       "topic_ar": "أبحاث السوق والاستبيانات: التراخيص والتصاريح والموافقات حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "Market research needs a trade licence with a research activity from the emirate or a free zone. Collecting and processing respondents' personal data is subject to Federal Decree-Law 45 of 2021 on personal data protection outside DIFC and ADGM, which have their own data laws; consent and purpose limits apply. Telephone fieldwork that markets to respondents falls under the 2024 telemarketing rules, while genuine research calls are not marketing; whether research calls are exempt was not confirmed. Publishing survey results in media may engage UAE Media Council content rules. ESOMAR membership is a professional code, not a licence.",
-      "body_ar": "تحتاج أبحاث السوق إلى رخصة تجارية بنشاط بحثي من الإمارة أو منطقة حرة. ويخضع جمع البيانات الشخصية للمستجيبين ومعالجتها للمرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية خارج المركزين الماليين اللذين لهما قوانينهما، وتنطبق قيود الموافقة والغرض. ويخضع العمل الميداني الهاتفي الذي يسوّق للمستجيبين لقواعد التسويق الهاتفي لعام 2024، أما مكالمات البحث الحقيقية فليست تسويقاً، ولم يُؤكَّد استثناؤها. وقد ينطوي نشر نتائج الاستبيانات في الإعلام على قواعد المحتوى لدى مجلس الإمارات للإعلام. وعضوية ESOMAR مدونة مهنية لا ترخيص.",
+      "body_en": "Market research needs a trade licence with a research activity from the emirate or a free zone. Collecting and processing respondents' personal data is subject to Federal Decree-Law 45 of 2021 on personal data protection outside DIFC and ADGM, which have their own data laws; consent and purpose limits apply. Telephone fieldwork that markets to respondents falls under the 2024 telemarketing rules (Cabinet Resolution No. 56 of 2024 Concerning the Telemarketing Regulations, with penalties in Cabinet Resolution No. 57 of 2024), while genuine research calls are not marketing; whether research calls are exempt was not confirmed. Publishing survey results in media may engage UAE Media Council content rules. ESOMAR membership is a professional code, not a licence.",
+      "body_ar": "تحتاج أبحاث السوق إلى رخصة تجارية بنشاط بحثي من الإمارة أو منطقة حرة. ويخضع جمع البيانات الشخصية للمستجيبين ومعالجتها للمرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية خارج المركزين الماليين اللذين لهما قوانينهما، وتنطبق قيود الموافقة والغرض. ويخضع العمل الميداني الهاتفي الذي يسوّق للمستجيبين لقواعد التسويق الهاتفي لعام 2024 (قرار مجلس الوزراء رقم 56 لسنة 2024 بشأن تنظيم التسويق عبر الهاتف، وعقوباته في قرار مجلس الوزراء رقم 57 لسنة 2024)، أما مكالمات البحث الحقيقية فليست تسويقاً، ولم يُؤكَّد استثناؤها. وقد ينطوي نشر نتائج الاستبيانات في الإعلام على قواعد المحتوى لدى مجلس الإمارات للإعلام. وعضوية ESOMAR مدونة مهنية لا ترخيص.",
       "sources": [
         "https://www.simmons-simmons.com/en/publications/ckwugz8lu16rs0a44qvbqcbz9/uae-personal-data-protection-law-faqs",
-        "https://www.clydeco.com/en/insights/2024/07/uae-tightens-telemarketing-regulations-what-you-ne"
+        "https://www.clydeco.com/en/insights/2024/07/uae-tightens-telemarketing-regulations-what-you-ne",
+        "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+        "https://u.ae/en/information-and-services/infrastructure/telecommunications"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: u.ae's data-protection page: Federal Decree-Law No. 45 of 2021 on the protection of personal data, in force since 2 January 2022, and DIFC's own Data Protection Law No. 5 of 2020; u.ae's telecommunications page: Cabinet Resolution No. 56 of 2024 Concerning the Telemarketing Regulations, with penalties in Cabinet Resolution No. 57 of 2024; u.ae's media regulation page on the UAE Media Council. Not confirmed on any page that opened: consent and purpose limits in the decree-law's text, ADGM's own data law, and whether research calls are exempt from the telemarketing rules. Corrected: named the 2024 telemarketing instruments (Cabinet Resolutions No. 56 and No. 57 of 2024) from u.ae."
     },
     {
       "id": "market_research:quote-red-flags",
@@ -286,7 +288,9 @@
   "verified": {
     "fetched_urls": 0,
     "claims_checked": 0,
-    "corrected": [],
+    "corrected": [
+      "market_research:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "market_research:spec-checklist",
@@ -339,6 +343,23 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "market_research:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "market_research:authority-approvals"
+      ],
+      "urls_read": [
+        "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+        "https://u.ae/en/information-and-services/infrastructure/telecommunications"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

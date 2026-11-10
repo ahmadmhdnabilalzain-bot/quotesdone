@@ -85,11 +85,14 @@
       "sources": [
         "https://speed.resolute-dynamics.com/blog/speed-limiter-certificate-dubai-rta-process-cost/",
         "https://www.gso.org.sa/wp-content/uploads/2023/09/GSO-Technical-Regulations-MV-2025-MY-D2.pdf",
-        "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html"
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-09-23",
-      "gap_kind": "technical"
+      "gap_kind": "technical",
+      "verify_note": "Second page read 2026-11-10 (ledger 1597): Administrative Resolution No. 196 of 2015 (dlp.dubai.gov.ae), the implementing bylaw on school transport, limits school buses to 80 km/h with a speed control device; MoIAT's regulated-products sheet lists speed limiters as a regulated category. Still not confirmed: the federal fitment scope, the one-year certificate and the GSO list (gso.org.sa refused).",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)"
     },
     {
       "id": "vehicles_fleet:school-bus-dubai",
@@ -1130,6 +1133,20 @@
     ],
     "expert_authored_unsourced": [
       "vehicles_fleet:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "vehicles_fleet:speed-limiters"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2015/Administrative%20Resolution%20No.%20(196)%20of%202015.html"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

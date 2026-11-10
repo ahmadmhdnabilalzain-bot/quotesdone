@@ -191,9 +191,9 @@
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — dlp.dubai.gov.ae: not in the allowed network."
+      "verify_note": "Not verified on 2026-11-10 — dlp.dubai.gov.ae: not in the allowed network. Second page read 2026-11-10 (ledger 1597): Administrative Resolution No. 706 of 2019 (dlp.dubai.gov.ae) is the implementing bylaw of Executive Council Resolution No. 47 of 2017 on transport by, and rental of, vehicles in Dubai, and sets the RTA activity permit, its issuance requirements and one permit per activity; both confirmed. Still not confirmed: the 2022 amendment, the passport-retention ban, and Abu Dhabi ITC rules (itc.gov.ae redirects to admobility.gov.ae, which the session network refuses)."
     },
     {
       "id": "vehicle_leasing:quote-red-flags",
@@ -326,6 +326,20 @@
       "vehicle_leasing:buyer-mistakes",
       "vehicle_leasing:price-drivers",
       "vehicle_leasing:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "vehicle_leasing:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2019/Administrative%20Resolution%20No.%20(706)%20of%202019.html"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

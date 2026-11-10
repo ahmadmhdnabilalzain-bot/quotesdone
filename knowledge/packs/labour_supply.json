@@ -533,7 +533,9 @@
         "https://www.mohre.gov.ae/assets/download/4224b3b5/Federal%20Decree-Law%20No.%2033%20of%202021%20Regarding%20the%20Regulation%20of%20Employment%20Relationship%20and%20its%20amendments_638990571068264034.pdf.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "verify_note": "Second page read 2026-11-10 (ledger 1597): Not confirmed again: mohre.gov.ae and www.mohre.gov.ae reset the TLS handshake (curl) and return HTTP 502 (Playwright) (Decree-Law No. 33 of 2021 PDF) and difc.com is refused by the session network.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)"
     },
     {
       "id": "labour_supply:ethical-recruitment",
@@ -862,6 +864,18 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "labour_supply:free-zones-difc"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

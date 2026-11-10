@@ -167,13 +167,14 @@
       "body_en": "A PRO service provider needs a trade licence carrying the relevant document clearing or government transaction activity, issued by the economic department of the emirate (in Dubai, the Department of Economy and Tourism) or a free zone. The transactions themselves are handled by the authorities: the Federal Authority for Identity, Citizenship, Customs and Port Security (ICP) and, in Dubai, the General Directorate of Residency and Foreigners Affairs for visas and residency; MOHRE for work permits and contracts on the mainland; free-zone authorities for their own companies; and the Ministry of Foreign Affairs for attestation. Government fees are set by those authorities, not by the PRO. The specific licence activity names were not checked on an official page in this session.",
       "body_ar": "يحتاج مقدم خدمات المندوب إلى رخصة تجارية تحمل نشاط تخليص المعاملات أو المعاملات الحكومية ذي الصلة، تصدرها الدائرة الاقتصادية في الإمارة (دائرة الاقتصاد والسياحة في دبي) أو منطقة حرة. أما المعاملات نفسها فتتولاها الجهات: الهيئة الاتحادية للهوية والجنسية والجمارك وأمن المنافذ، وفي دبي الإدارة العامة للإقامة وشؤون الأجانب، للتأشيرات والإقامة، ووزارة الموارد البشرية والتوطين لتصاريح العمل والعقود في البر الرئيسي، وسلطات المناطق الحرة لشركاتها، ووزارة الخارجية للتصديق. وتحدد تلك الجهات الرسوم الحكومية لا المندوب. ولم يُتحقق من أسماء أنشطة الترخيص من صفحة رسمية في هذه الجلسة.",
       "sources": [
-        "https://www.businessdubai.ae/blogs/legal-consultancy-company-setup-dubai"
+        "https://www.businessdubai.ae/blogs/legal-consultancy-company-setup-dubai",
+        "https://u.ae/en/information-and-services/business/Doing-business/doing-business-on-the-mainland/steps-to-start-a-business-on-the-mainland"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection. Second page read 2026-11-10 (ledger 1597): u.ae's 'Steps to start a business on the mainland' page confirms that mainland trade licences come from the emirate's economic department. Still not confirmed: the ICP and GDRFA transaction roles (businessdubai.ae refused)."
     },
     {
       "id": "pro_government_services:quote-red-flags",
@@ -315,6 +316,20 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "pro_government_services:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://u.ae/en/information-and-services/business/Doing-business/doing-business-on-the-mainland/steps-to-start-a-business-on-the-mainland"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

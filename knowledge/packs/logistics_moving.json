@@ -206,14 +206,14 @@
       "body_ar": "يتم التخليص الجمركي عبر جمارك كل إمارة (جمارك دبي وجمارك أبوظبي والشارقة وغيرها) بواسطة وكلاء تخليص مرخصين؛ والبضائع المنقولة من منطقة حرة إلى البر الرئيسي يُصرح عنها وتدفع رسومها عند ذلك، والبضائع المقيدة تحتاج موافقة مسبقة من الجهة المختصة (وتنشر جمارك أبوظبي قائمة المقيدات). وتُرخص المركبات الناقلة للبضائع الخطرة على طرق دبي عبر هيئة الطرق والمواصلات التي أبرمت اتفاقية مع الدفاع المدني بدبي، وتحتاج مركبات النفايات الخطرة تصريحاً من بلدية دبي وتتبعاً بنظام راصد. ويجب أن تلتزم المركبات الثقيلة والأحمال الكبيرة بحدود الأوزان والأبعاد الاتحادية (نشرت وزارة الطاقة والبنية التحتية جدولها للطرق الاتحادية عام 2024) وتحتاج تصاريح خاصة عند تجاوزها. ويحمل مقدم الخدمة الرخص، ويقدم المشتري بيانات دقيقة عن البضاعة.",
       "sources": [
         "https://www.adcustoms.gov.ae/Policies-and-Regulations/Restricted-Banned-Commodities",
-        "https://www.dm.gov.ae/wp-content/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf",
-        "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced"
+        "https://www.moei.gov.ae/en/media-center/news/31/1/2024/table-of-maximum-weights-and-dimensions-of-heavy-vehicles-on-federal-roads-announced",
+        "https://dmpmedia.dm.gov.ae/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.adcustoms.gov.ae: not in the allowed network; www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses; www.moei.gov.ae: not in the allowed network."
+      "verify_note": "Not verified on 2026-11-10 — www.adcustoms.gov.ae: not in the allowed network; www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses; www.moei.gov.ae: not in the allowed network. Second page read 2026-11-10 (ledger 1597): DM Technical Guideline No. 11 on hazardous-waste transport now read on dmpmedia.dm.gov.ae. Still not confirmed: the Abu Dhabi Customs restricted list (refused), the RTA dangerous-goods licensing and the MoEI weights table (moei.gov.ae resets)."
     },
     {
       "id": "logistics_moving:quote-red-flags",
@@ -346,6 +346,20 @@
       "logistics_moving:buyer-mistakes",
       "logistics_moving:price-drivers",
       "logistics_moving:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "logistics_moving:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }
