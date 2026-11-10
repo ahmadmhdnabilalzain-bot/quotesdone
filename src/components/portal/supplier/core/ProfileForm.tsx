@@ -100,7 +100,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       if (!phoneVerified) missing.push('reg_mobile');
       if (!emailVerified) missing.push('reg_email');
       if (!waSignupSettled(wa)) missing.push('reg_whatsapp');
-      if (!licOnFile && !String(f.trade_license_no || '').trim()) missing.push('reg_licence');
+      // The licence item is the STORED FILE, as fn_supplier_mandatory_six decides it. A typed number never counted
+      // there, and save_profile never writes one (PROFILE_COLS): see the licence fields below (10 Nov 2026).
+      if (!licOnFile) missing.push('reg_licence');
       if (!profileFile && !me.company_profile_doc_path) missing.push('reg_profile');
       if (!terms) missing.push('reg_terms');
       if (missing.length) { setMsg(srvText(lang, 'missing_required', { missing })); return; }
@@ -119,7 +121,10 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       }
       // The checkbox's own value (audit 15 Sep 2026: a constant "yes" was sent whatever it said).
       const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: terms, marketing_consent: marketingOptIn === true };
-      const strk = ['contact_name', 'signatory_name', 'phone', 'products', 'services', 'description', 'trade_license_no', 'license_authority', 'license_expiry', 'trn', 'egr_number', 'company_type', 'company_size'];
+      // Only fields save_profile keeps (supplier_api/lib/fields.ts PROFILE_COLS). The licence number, authority and expiry
+      // are read from the uploaded file and never taken from the browser, so they are not sent.
+      // Prevented by scripts/checks/a_registration_field_the_server_discards_is_not_offered.test.mjs.
+      const strk = ['contact_name', 'signatory_name', 'phone', 'products', 'services', 'description', 'trn', 'egr_number', 'company_type', 'company_size'];
       for (const k of strk) if (String(f[k] || '').trim()) payload[k] = f[k];
       if (uaeMobile(f.phone)) payload.phone = uaeMobile(f.phone);
       if (String(f.founded_year || '').trim()) payload.founded_year = Number(f.founded_year);
@@ -167,15 +172,19 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         terms; everything else optional (memory: supplier-verification-mandatory-six). The 8 Aug
         "five things" note (licence, profile, catalogue, mobile, e-mail) is superseded: the catalogue is
         optional. Contact name, products and services stay on the Profile tab, asked once inside. */}
-    <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_trade')}{ok(licOnFile || !!String(f.trade_license_no || '').trim())}{!isEdit && <Need lang={lang} req />}</h3>
+    <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_trade')}{ok(licOnFile)}{!isEdit && <Need lang={lang} req />}</h3>
     {!isEdit && <>
       <div className={cn(S.sub, 'mb-1.5')}>{t(lang, 'trade_sub')}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && upLicense(fl)} />{uploading && <span className={S.sub} role="status">{t(lang, 'reading_lic')}</span>}</div>
       {licNote && <div role="status" className={cn(S.sub, 'font-semibold text-primary')}>{licNote}</div>}
     </>}
+    {/* AS READ FROM THE FILE, NOT TYPED (10 Nov 2026, customer_support, supplier-journey audit). These were inputs, and
+        save_profile has never kept them: the licence number, authority and expiry are written only from the stored file
+        (PROFILE_COLS, 15 Sep 2026), and the gate asks for a clearer copy when they do not read. A typed number was dropped
+        without a word, while this form counted it as the licence. They show what was read; a new upload changes them. */}
     <div className={S.frow}>
-      <Lbl className="flex-1 min-w-[180px]" visible need={isEdit ? null : 'opt'} lang={lang} text={t(lang, 'lic_no')}><Input dir="ltr" placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /></Lbl>
-      <Lbl className="flex-1 min-w-[180px]" visible need={isEdit ? null : 'opt'} lang={lang} text={t(lang, 'authority')}><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></Lbl>
+      <Lbl className="flex-1 min-w-[180px]" visible lang={lang} text={t(lang, 'lic_no')}><Input dir="ltr" readOnly aria-readonly="true" tabIndex={-1} className="bg-muted/40" placeholder={t(lang, 'lic_no')} value={f.trade_license_no} /></Lbl>
+      <Lbl className="flex-1 min-w-[180px]" visible lang={lang} text={t(lang, 'authority')}><Input readOnly aria-readonly="true" tabIndex={-1} className="bg-muted/40" placeholder={t(lang, 'authority')} value={f.license_authority} /></Lbl>
     </div>
 
     <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'pf_contact')}{ok(phoneVerified && emailVerified)}{!isEdit && <Need lang={lang} req />}</h3>

@@ -79,6 +79,16 @@ export function planCreateCompany(o: { ownCompany: boolean; emailLeads: EmailLea
   return o.emailProven ? { kind: 'claim_invited', lead } : { kind: 'verify_email_first' };
 }
 
+/**
+ * A listing claim_lookup answers not_found for (permanently_closed: a PDPL erasure, fn_pdpl_carry_out; banned) is not
+ * claimable by index.ts `claim` either. Until 10 Nov 2026 the page said "not valid or has expired" while the claim,
+ * run after sign-in from the token the page had already stored, attached the listing anyway.
+ * Prevented by: supplier_api/a_closed_listing_cannot_be_claimed.test.ts.
+ */
+export function listingClosedToClaims(row: { permanently_closed?: boolean | null; banned?: boolean | null }): boolean {
+  return row.permanently_closed === true || row.banned === true;
+}
+
 const EMAIL_INDEX = 'uq_leads_email_lower';
 const CLAIMED_BY_INDEX = 'leads_claimed_by_lower_uidx';
 const clashOn = (e: PgError, idx: string) => !!e && String(e.code ?? '') === '23505' && `${e.message ?? ''} ${e.details ?? ''}`.includes(idx);
