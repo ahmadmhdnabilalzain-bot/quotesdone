@@ -77,7 +77,8 @@ export interface AiReplyRequest {
   signal?: AbortSignal;     // the caller no longer wants the answer (a discarded speculative draft): the call in flight is aborted and none starts
   extraCheck?: (text: string) => string[]; // the caller's own rules (the portal's plain-language gate, English for suppliers)
   // THE CLASS (ruling 1571, 10 Nov 2026): conversation_reply when absent. status_reply (a WhatsApp status, invoice-copy or code
-  // answer whose facts code fixed) and voice_draft (the request chat's code-decided sentence) run on their own route.
+  // answer whose facts code fixed) and voice_draft (the request chat's code-decided sentence) run on their own route; a
+  // customer's job conversation on WhatsApp is the expert interview, inquiry_qualification_conversation (ledger 1572/1586).
   taskClass?: string;
   // false: the company brief (21-40k tokens since 3 Nov 2026; ~140k before) is NOT sent, only the rules and the caller's facts; every draft is still checked
   // against the brief. WhatsApp's last chance (model_says.ts) uses it: a short prompt answers in seconds, not 10-15 s.
@@ -89,9 +90,6 @@ export interface AiReplyRequest {
   // Lebanese, Gulf)"): the dialect the conversation's state holds (_shared/inquiry_state.ts). An Arabic reply mirrors it
   // (arabicRegister); absent, the model mirrors what it reads in their messages. Never used for a supplier (ruling 1008).
   dialect?: Dialect | null;
-  // THE CLASS OF THIS REPLY (10 Nov 2026, ledger 1572/1586): a customer's job conversation on WhatsApp is the expert interview
-  // and asks inquiry_qualification_conversation; absent, REPLY_CLASS. Which model a class runs on is model_policy's.
-  taskClass?: string;
 }
 /** The trade pack a reply carries: the caller's own, else the first trade the other party named in its recent turns,
  *  then the message, then the facts (company_brief.ts conversationTrade). */
