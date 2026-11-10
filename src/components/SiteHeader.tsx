@@ -39,7 +39,7 @@ export function SiteHeader() {
           <Link
             href="/"
             aria-label="QuotesDone"
-            className="group flex shrink-0 items-center gap-2.5 whitespace-nowrap font-head text-[18px] font-semibold tracking-tight text-white sm:text-[19px]"
+            className="group flex min-h-11 shrink-0 items-center gap-2.5 whitespace-nowrap font-head text-[18px] font-semibold tracking-tight text-white sm:text-[19px]"
           >
             {/* The official mark (drawn inside a padded 800-unit box) is framed, not redrawn: scaled
                 about the artwork's own centre so it fills the tile. */}
