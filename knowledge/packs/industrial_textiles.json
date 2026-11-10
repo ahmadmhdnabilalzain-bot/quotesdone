@@ -214,13 +214,14 @@
       "body_en": "Fabrics used in buildings, tents and shade structures are fire-performance matters under the UAE Fire and Life Safety Code enforced by each emirate's civil defence, which approves materials by their fire test results; the contractor or supplier obtains approval. Geosynthetics for landfills and ponds follow the consultant's and environment authority's project specifications (for example environmental agencies for landfill liners). No product licence was found for general industrial fabrics.",
       "body_ar": "الأقمشة المستخدمة في المباني والخيام ومظلات التظليل مسألة أداء في الحريق وفق كود الإمارات للحماية من الحرائق وسلامة الأرواح الذي يطبقه الدفاع المدني في كل إمارة، ويعتمد المواد حسب نتائج اختبارات الحريق، ويحصل المقاول أو المورد على الاعتماد. والمواد الجيوتقنية للمكبات والبرك تتبع مواصفات المشروع لدى الاستشاري والجهة البيئية (مثل الجهات البيئية لبطانات المكبات). ولم يُعثر على ترخيص منتج للأقمشة الصناعية العامة.",
       "sources": [
-        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.dcd.gov.ae: allowed but drops the connection."
+      "verify_note": "Not verified on 2026-11-10 — www.dcd.gov.ae: allowed but drops the connection. Second page read 2026-11-10 (ledger 1597): MoIAT's regulated-products sheet lists 'Textiles' under Cabinet Resolution No. 54 of 2019 (finished textile products) and no industrial-fabric or geosynthetic category. Still not confirmed: civil defence fire approval of building and tent fabrics (www.dcd.gov.ae resets every connection, so the UAE Fire and Life Safety Code text was not read)."
     },
     {
       "id": "industrial_textiles:quote-red-flags",
@@ -353,6 +354,20 @@
       "industrial_textiles:buyer-mistakes",
       "industrial_textiles:price-drivers",
       "industrial_textiles:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "industrial_textiles:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

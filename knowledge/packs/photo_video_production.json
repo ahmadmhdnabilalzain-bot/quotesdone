@@ -169,17 +169,17 @@
       "topic": "Photography & video production: licences, permits and approvals by emirate",
       "topic_ar": "التصوير وإنتاج الفيديو: التراخيص والتصاريح والموافقات حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "Filming in public places in Dubai is permitted through the Dubai Film and TV Commission, and drone filming needs the civil aviation authority's approval; reports describe a 2024 agreement to speed drone permits for media professionals. GCAA's regulation CAR-UAC requires a UA Operator Authorisation for commercial drone operations, issued by GCAA or the local aviation authority of the emirate, and a GCAA or LAA pilot licence. In Abu Dhabi, filming permits are reported to go through the Creative Media Authority. Talent and models need valid work status. The production company obtains permits; ask that they are in the quote.",
-      "body_ar": "يُسمح بالتصوير في الأماكن العامة في دبي عبر لجنة دبي للأفلام والتلفزيون، ويحتاج التصوير بالطائرات المسيّرة موافقة سلطة الطيران المدني، وتفيد التقارير باتفاقية في 2024 لتسريع تصاريح المسيّرات للإعلاميين. وتشترط لائحة الهيئة العامة للطيران المدني CAR-UAC تفويض مشغل للعمليات التجارية بالمسيّرات، تصدره الهيئة أو سلطة الطيران المحلية في الإمارة، ورخصة طيار من الهيئة أو السلطة المحلية. وفي أبوظبي أُفيد بأن تصاريح التصوير تمر عبر هيئة الإعلام الإبداعي. ويحتاج المؤدون والعارضون إلى وضع عمل صالح. وتستخرج شركة الإنتاج التصاريح، فاطلب أن تكون ضمن العرض.",
+      "body_en": "Filming in public places in Dubai is permitted through the Dubai Film and TV Commission, and drone filming needs the civil aviation authority's approval; reports describe a 2024 agreement to speed drone permits for media professionals. GCAA's regulation CAR-UAC requires a UA Operator Authorisation, a document issued by GCAA, for commercial drone operations, and a UA pilot licence issued by GCAA or the emirate's Local Appropriate Authority (LAA), for which the applicant must normally be at least 18, a UAE resident and trained by an approved UA training operator. In Abu Dhabi, filming permits are reported to go through the Creative Media Authority. Talent and models need valid work status. The production company obtains permits; ask that they are in the quote.",
+      "body_ar": "يُسمح بالتصوير في الأماكن العامة في دبي عبر لجنة دبي للأفلام والتلفزيون، ويحتاج التصوير بالطائرات المسيّرة موافقة سلطة الطيران المدني، وتفيد التقارير باتفاقية في 2024 لتسريع تصاريح المسيّرات للإعلاميين. وتشترط لائحة الهيئة العامة للطيران المدني CAR-UAC تفويض مشغل للعمليات التجارية بالمسيّرات، وهو وثيقة تصدرها الهيئة، ورخصة طيار مسيّرة تصدرها الهيئة أو السلطة المحلية المختصة في الإمارة (LAA)، ويُشترط لها عادة ألا يقل عمر المتقدم عن 18 عاماً وأن يكون مقيماً في الدولة وأن يُكمل تدريباً لدى جهة تدريب معتمدة. وفي أبوظبي أُفيد بأن تصاريح التصوير تمر عبر هيئة الإعلام الإبداعي. ويحتاج المؤدون والعارضون إلى وضع عمل صالح. وتستخرج شركة الإنتاج التصاريح، فاطلب أن تكون ضمن العرض.",
       "sources": [
         "https://khaleejtimes.com/uae/dubai-new-initiative-to-ease-drone-licensing-for-media-professionals?amp=1",
         "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: GCAA CAR-UAC Issue 02: commercial drone operations need a UA Operator Authorisation issued by GCAA or the emirate's Local Appropriate Authority, and from January 2024 a pilot licence issued by GCAA or the LAA. Not confirmed: the DFTC filming permit, the 2024 drone-permit agreement and the Abu Dhabi permit route. Hosts not reachable from this session: the Dubai Film and TV Commission and Abu Dhabi Creative Media Authority sites (not on the allowed list)."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: GCAA's CAR-UAC Issue 02 (gcaa.gov.ae): no operator may perform commercial UA operations without a valid UA Operator Authorisation, which the regulation defines as a document issued by GCAA; no one may operate a UA without a pilot licence issued by GCAA or the Local Appropriate Authority (LAA), for which the applicant must be at least 18 unless accepted otherwise, a UAE resident and trained by an approved UA training operator. Not confirmed on any page that opened: the Dubai Film and TV Commission permit, the 2024 drone-permit agreement for media (news report) and the Abu Dhabi Creative Media Authority route. Hosts that failed: khaleejtimes.com (refused by the session network, and not official). Corrected: the UA Operator Authorisation is issued by GCAA; it is the pilot licence (and airspace approvals) that GCAA or the emirate's Local Appropriate Authority issue; the LAA is the 'Local Appropriate Authority', not a 'local aviation authority'."
     },
     {
       "id": "photo_video_production:quote-red-flags",
@@ -270,7 +270,9 @@
   "verified": {
     "fetched_urls": 0,
     "claims_checked": 0,
-    "corrected": [],
+    "corrected": [
+      "photo_video_production:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "photo_video_production:spec-checklist",
@@ -323,6 +325,22 @@
     },
     "k3_pages_opened": [
       "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "photo_video_production:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "photo_video_production:authority-approvals"
+      ],
+      "urls_read": [
+        "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

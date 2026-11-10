@@ -197,13 +197,14 @@
       "body_en": "A workshop needs a trade licence for the activity and the emirate's municipality and civil defence approvals for its premises. Vehicles must pass the emirate's periodic vehicle test at registration renewal (in Dubai through RTA-approved testing centres), so maintenance must keep them roadworthy. Speed limiters required on commercial and heavy vehicles must not be disabled (see the vehicles_fleet pack). Air-conditioning refrigerant handling follows the federal controls on refrigerants. Warranty work on vehicles under maker warranty is normally done by the authorised dealer. The provider holds premises approvals; the fleet owner handles registration and testing unless delegated.",
       "body_ar": "تحتاج الورشة رخصة تجارية للنشاط وموافقات البلدية والدفاع المدني في الإمارة على مقرها. ويجب أن تجتاز المركبات الفحص الدوري في الإمارة عند تجديد التسجيل (في دبي عبر مراكز فحص معتمدة من هيئة الطرق والمواصلات)، لذا يجب أن تحافظ الصيانة على صلاحيتها للسير. ولا يجوز تعطيل محددات السرعة المطلوبة في المركبات التجارية والثقيلة (انظر حزمة مركبات الأساطيل). ويتبع التعامل مع غازات تكييف المركبات الضوابط الاتحادية على غازات التبريد. وأعمال الضمان على المركبات تحت ضمان الصانع ينفذها عادة الوكيل المعتمد. ويحمل مقدم الخدمة موافقات المقر، ويتولى مالك الأسطول التسجيل والفحص ما لم يُفوض بهما.",
       "sources": [
-        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold. No fleet-maintenance-specific UAE regulation was found by search.",
-      "verify_note": "Not verified on 2026-11-10 — www.dcd.gov.ae: allowed but drops the connection."
+      "verify_note": "Not verified on 2026-11-10 — www.dcd.gov.ae: allowed but drops the connection. Second page read 2026-11-10 (ledger 1597): MoIAT's regulated-products sheet lists 'Vehicle repair workshops' (2019, UAE workshop classification) and speed limiters as regulated categories. Still not confirmed: the RTA periodic test and civil defence premises approvals."
     },
     {
       "id": "fleet_maintenance:quote-red-flags",
@@ -336,6 +337,20 @@
       "fleet_maintenance:buyer-mistakes",
       "fleet_maintenance:price-drivers",
       "fleet_maintenance:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "fleet_maintenance:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

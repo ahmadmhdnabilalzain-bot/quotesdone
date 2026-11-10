@@ -190,13 +190,14 @@
       "body_en": "Shelving itself needs no product approval. The shop fit-out needs approval: in Dubai the fit-out drawings go to Dubai Municipality or the free-zone or master-developer authority, and the layout must respect the exit widths and travel distances of the UAE Fire and Life Safety Code, checked by the civil defence of the emirate; malls add their own landlord fit-out approval and working-hour rules. The retailer or its fit-out contractor obtains these approvals; the shelving supplier provides layout drawings and load data.",
       "body_ar": "لا تحتاج الرفوف بحد ذاتها إلى اعتماد منتج، بل يحتاج تجهيز المتجر إلى اعتماد: ففي دبي تُرفع مخططات التجهيز إلى بلدية دبي أو سلطة المنطقة الحرة أو المطور الرئيسي، ويجب أن يراعي التوزيع عروض المخارج ومسافات الهروب في كود الإمارات للحماية من الحرائق الذي يتحقق منه الدفاع المدني في الإمارة، وتضيف المراكز التجارية اعتماد المالك وقواعد ساعات العمل. ويستخرج تاجر التجزئة أو مقاول التجهيز هذه الاعتمادات، بينما يقدّم مورد الرفوف مخططات التوزيع وبيانات الأحمال.",
       "sources": [
-        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection. Second page read 2026-11-10 (ledger 1597): DDA's fit-out permit page (dda.gov.ae) confirms a fit-out permit for retail units in DDA zones, with a Dubai Civil Defense completion certificate before the fit-out completion certificate. Still not confirmed: the exit-width and travel-distance rules (www.dcd.gov.ae resets every connection, so the UAE Fire and Life Safety Code text was not read)."
     },
     {
       "id": "retail_shelving:quote-red-flags",
@@ -340,6 +341,20 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "retail_shelving:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }
