@@ -29,8 +29,8 @@
       "topic": "Dental equipment & supplies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "معدات ومستلزمات الأسنان: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names UAE dental distributors such as DentCo and DME Medical, manufacturers such as Dentsply Sirona, Straumann and Ivoclar, and the AEEDC Dubai exhibition. Confirmed UAE dental distributors and major manufacturers: DentCo Medical Supplies, DME Medical, Aden Medical, Dentsply Sirona, Straumann, Nobel Biocare, Ivoclar, GC, KaVo, NSK, W&H, Planmeca, Vatech, A-dec. Which distributor holds each manufacturer's agency was not checked. AEEDC Dubai at the Dubai World Trade Centre is the main regional dental exhibition.",
-      "body_ar": "من موزعي مستلزمات الأسنان في الإمارات DentCo وDME Medical، ومن المصنعين Dentsply Sirona وStraumann وIvoclar، إضافة إلى معرض AEEDC دبي. موزعو مستلزمات الأسنان المؤكدون في الإمارات وكبرى الشركات المصنعة: DentCo Medical Supplies، DME Medical، Aden Medical، Dentsply Sirona، Straumann، Nobel Biocare، Ivoclar، GC، KaVo، NSK، W&H، Planmeca، Vatech، A-dec. ولم يُتحقق من الموزع الذي يحمل وكالة كل شركة مصنعة. ويُعد معرض ومؤتمر AEEDC دبي في مركز دبي التجاري العالمي المعرض الإقليمي الرئيسي لطب الأسنان.",
+      "body_en": "This entry names UAE dental distributors such as DentCo and DME Medical, manufacturers such as Dentsply Sirona, Straumann and Ivoclar, and the AEEDC Dubai exhibition. Confirmed UAE dental distributors and major manufacturers: DentCo Medical Supplies, DME Medical, Aden Medical, Dentsply Sirona, Straumann, Nobel Biocare, Ivoclar, GC, KaVo, NSK, W&H, Planmeca, Vatech, A-dec. Which distributor holds each manufacturer's agency was not checked. AEEDC Dubai at the Dubai World Trade Centre is the main regional dental exhibition.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): DentCo Medical Supplies = a UAE trading or retail name; DME Medical = a UAE trading or retail name; Aden Medical = a UAE trading or retail name; Dentsply Sirona = a premium American brand; Straumann = a luxury Swiss brand; Nobel Biocare = a luxury Swiss brand; Ivoclar = a premium Liechtenstein brand; GC = a premium Japanese brand; KaVo = a premium German brand; NSK = a premium Japanese brand; W&H = a premium Austrian brand; Planmeca = a premium Finnish brand; Vatech = a mid-tier South Korean brand; A-dec = a premium American brand.",
+      "body_ar": "من موزعي مستلزمات الأسنان في الإمارات DentCo وDME Medical، ومن المصنعين Dentsply Sirona وStraumann وIvoclar، إضافة إلى معرض AEEDC دبي. موزعو مستلزمات الأسنان المؤكدون في الإمارات وكبرى الشركات المصنعة: DentCo Medical Supplies، DME Medical، Aden Medical، Dentsply Sirona، Straumann، Nobel Biocare، Ivoclar، GC، KaVo، NSK، W&H، Planmeca، Vatech، A-dec. ولم يُتحقق من الموزع الذي يحمل وكالة كل شركة مصنعة. ويُعد معرض ومؤتمر AEEDC دبي في مركز دبي التجاري العالمي المعرض الإقليمي الرئيسي لطب الأسنان.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): DentCo Medical Supplies = اسم تجاري لتاجر أو موزع في الإمارات؛ DME Medical = اسم تجاري لتاجر أو موزع في الإمارات؛ Aden Medical = اسم تجاري لتاجر أو موزع في الإمارات؛ Dentsply Sirona = علامة أمريكية من الفئة الممتازة؛ Straumann = علامة سويسرية من الفئة الفاخرة؛ Nobel Biocare = علامة سويسرية من الفئة الفاخرة؛ Ivoclar = علامة ليختنشتاينية من الفئة الممتازة؛ GC = علامة يابانية من الفئة الممتازة؛ KaVo = علامة ألمانية من الفئة الممتازة؛ NSK = علامة يابانية من الفئة الممتازة؛ W&H = علامة نمساوية من الفئة الممتازة؛ Planmeca = علامة فنلندية من الفئة الممتازة؛ Vatech = علامة كورية جنوبية من الفئة المتوسطة؛ A-dec = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.ede.gov.ae/en/home",
         "https://fanr.gov.ae/en/Documents/DENTAL-X-RAY.pdf",
@@ -42,7 +42,107 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dental devices are registered with the Emirates Drug Establishment (federal regulator for medical devices since 29 Sep 2023) -> confirmed | Dental X-ray (intraoral and panoramic/OPG) needs FANR approval; DHA requires FANR registration before activating radiology -> confirmed | Dental distributors in the UAE include DentCo (Dubai), DME Medical (since 2006) and Aden Medical -> confirmed. Not checked: The Emirates Drug Establishment URL and the current transfer of device registration from MOHAP, and each brand's appointed UAE distributor, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dental devices are registered with the Emirates Drug Establishment (federal regulator for medical devices since 29 Sep 2023) -> confirmed | Dental X-ray (intraoral and panoramic/OPG) needs FANR approval; DHA requires FANR registration before activating radiology -> confirmed | Dental distributors in the UAE include DentCo (Dubai), DME Medical (since 2006) and Aden Medical -> confirmed. Not checked: The Emirates Drug Establishment URL and the current transfer of device registration from MOHAP, and each brand's appointed UAE distributor, were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "DentCo Medical Supplies",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "DME Medical",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Aden Medical",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Dentsply Sirona",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Straumann",
+          "origin": "Switzerland",
+          "tier": "luxury",
+          "generic_en": "a luxury Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Nobel Biocare",
+          "origin": "Switzerland",
+          "tier": "luxury",
+          "generic_en": "a luxury Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Ivoclar",
+          "origin": "Liechtenstein",
+          "tier": "premium",
+          "generic_en": "a premium Liechtenstein brand",
+          "generic_ar": "علامة ليختنشتاينية من الفئة الممتازة"
+        },
+        {
+          "brand": "GC",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "KaVo",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "NSK",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "W&H",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium Austrian brand",
+          "generic_ar": "علامة نمساوية من الفئة الممتازة"
+        },
+        {
+          "brand": "Planmeca",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Vatech",
+          "origin": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid-tier South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة المتوسطة"
+        },
+        {
+          "brand": "A-dec",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "dental_supplies:uae-market-sizes",

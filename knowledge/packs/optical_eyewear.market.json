@@ -9,8 +9,8 @@
       "topic": "Optical & eyewear: brands and makers in this category",
       "topic_ar": "البصريات والنظارات: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): EssilorLuxottica (France and Italy) makes ophthalmic lenses, prescription glasses and sunglasses and owns brands such as Ray-Ban and Oakley. Bausch + Lomb (Canada) makes contact lenses, lens care solutions and intraocular lenses. Acuvue is a disposable contact lens brand of Johnson & Johnson Vision. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): EssilorLuxottica (فرنسا وإيطاليا) تصنع العدسات الطبية والنظارات الطبية والشمسية وتملك علامات مثل Ray-Ban وOakley. Bausch + Lomb (كندا) تصنع العدسات اللاصقة ومحاليل العناية بها والعدسات داخل العين. Acuvue علامة عدسات لاصقة للاستعمال المؤقت من Johnson & Johnson Vision. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): EssilorLuxottica (France and Italy) makes ophthalmic lenses, prescription glasses and sunglasses and owns brands such as Ray-Ban and Oakley. Bausch + Lomb (Canada) makes contact lenses, lens care solutions and intraocular lenses. Acuvue is a disposable contact lens brand of Johnson & Johnson Vision. Which local distributor carries each make was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): EssilorLuxottica = a premium French brand; Bausch + Lomb = a premium Canadian brand; Acuvue = a premium American brand.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): EssilorLuxottica (فرنسا وإيطاليا) تصنع العدسات الطبية والنظارات الطبية والشمسية وتملك علامات مثل Ray-Ban وOakley. Bausch + Lomb (كندا) تصنع العدسات اللاصقة ومحاليل العناية بها والعدسات داخل العين. Acuvue علامة عدسات لاصقة للاستعمال المؤقت من Johnson & Johnson Vision. ولم يُتحقق من الموزع المحلي لكل علامة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): EssilorLuxottica = علامة فرنسية من الفئة الممتازة؛ Bausch + Lomb = علامة كندية من الفئة الممتازة؛ Acuvue = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://en.wikipedia.org/wiki/EssilorLuxottica",
         "https://en.wikipedia.org/wiki/Bausch_%2B_Lomb",
@@ -19,7 +19,30 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
-      "source_note": "EssilorLuxottica: https://en.wikipedia.org/wiki/EssilorLuxottica | Bausch + Lomb: https://en.wikipedia.org/wiki/Bausch_%2B_Lomb | Acuvue: https://en.wikipedia.org/wiki/Acuvue"
+      "source_note": "EssilorLuxottica: https://en.wikipedia.org/wiki/EssilorLuxottica | Bausch + Lomb: https://en.wikipedia.org/wiki/Bausch_%2B_Lomb | Acuvue: https://en.wikipedia.org/wiki/Acuvue brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "EssilorLuxottica",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bausch + Lomb",
+          "origin": "Canada",
+          "tier": "premium",
+          "generic_en": "a premium Canadian brand",
+          "generic_ar": "علامة كندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Acuvue",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     }
   ],
   "eval": [

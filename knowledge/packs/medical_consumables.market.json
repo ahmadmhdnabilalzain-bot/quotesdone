@@ -30,8 +30,8 @@
       "topic": "Medical consumables: makes, brands, distributors and origins in the UAE",
       "topic_ar": "مستهلكات طبية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names the UAE purchasing body Rafed, distributors such as Gulf Drug and Al Zahrawi Medical, and manufacturers such as BD and B. Braun. Confirmed UAE purchasing body and distributors, plus manufacturers: Rafed (PureHealth), Gulf Drug, Al Zahrawi Medical, AMICO, Al Maqam, BD, B. Braun, Medtronic, 3M, Smith & Nephew, Mölnlycke, Terumo, Ansell. BD and B. Braun are carried by the named distributors; the other manufacturers' UAE agents were not checked.",
-      "body_ar": "من الجهات الفاعلة في المستهلكات الطبية بالإمارات جهة الشراء رافد، والموزعون مثل Gulf Drug والزهراوي الطبية، والمصنعون مثل BD وB. Braun. جهة الشراء والموزعون المؤكدون في الإمارات، إضافة إلى الشركات المصنعة: Rafed (PureHealth)، Gulf Drug، Al Zahrawi Medical، AMICO، Al Maqam، BD، B. Braun، Medtronic، 3M، Smith & Nephew، Mölnlycke، Terumo، Ansell. ويحمل الموزعون المذكورون BD وبي براون؛ ولم يُتحقق من وكلاء الشركات المصنعة الأخرى في الإمارات.",
+      "body_en": "This names the UAE purchasing body Rafed, distributors such as Gulf Drug and Al Zahrawi Medical, and manufacturers such as BD and B. Braun. Confirmed UAE purchasing body and distributors, plus manufacturers: Rafed (PureHealth), Gulf Drug, Al Zahrawi Medical, AMICO, Al Maqam, BD, B. Braun, Medtronic, 3M, Smith & Nephew, Mölnlycke, Terumo, Ansell. BD and B. Braun are carried by the named distributors; the other manufacturers' UAE agents were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Rafed (PureHealth) = a UAE operator; Gulf Drug = a UAE trading or retail name; Al Zahrawi Medical = a UAE trading or retail name; AMICO = a UAE trading or retail name; Al Maqam = a UAE trading or retail name; BD = a premium American brand; B. Braun = a premium German brand; Medtronic = a premium Irish brand; 3M = a premium American brand; Smith & Nephew = a premium British brand; Mölnlycke = a premium Swedish brand; Terumo = a premium Japanese brand; Ansell = a premium Australian brand.",
+      "body_ar": "من الجهات الفاعلة في المستهلكات الطبية بالإمارات جهة الشراء رافد، والموزعون مثل Gulf Drug والزهراوي الطبية، والمصنعون مثل BD وB. Braun. جهة الشراء والموزعون المؤكدون في الإمارات، إضافة إلى الشركات المصنعة: Rafed (PureHealth)، Gulf Drug، Al Zahrawi Medical، AMICO، Al Maqam، BD، B. Braun، Medtronic، 3M، Smith & Nephew، Mölnlycke، Terumo، Ansell. ويحمل الموزعون المذكورون BD وبي براون؛ ولم يُتحقق من وكلاء الشركات المصنعة الأخرى في الإمارات.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Rafed (PureHealth) = جهة تشغيل إماراتية؛ Gulf Drug = اسم تجاري لتاجر أو موزع في الإمارات؛ Al Zahrawi Medical = اسم تجاري لتاجر أو موزع في الإمارات؛ AMICO = اسم تجاري لتاجر أو موزع في الإمارات؛ Al Maqam = اسم تجاري لتاجر أو موزع في الإمارات؛ BD = علامة أمريكية من الفئة الممتازة؛ B. Braun = علامة ألمانية من الفئة الممتازة؛ Medtronic = علامة أيرلندية من الفئة الممتازة؛ 3M = علامة أمريكية من الفئة الممتازة؛ Smith & Nephew = علامة بريطانية من الفئة الممتازة؛ Mölnlycke = علامة سويدية من الفئة الممتازة؛ Terumo = علامة يابانية من الفئة الممتازة؛ Ansell = علامة أسترالية من الفئة الممتازة.",
       "sources": [
         "https://www.ede.gov.ae/en/home",
         "https://www.mediaoffice.abudhabi/en/topic/rafed/",
@@ -44,7 +44,100 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Medical devices and consumables are registered with the Emirates Drug Establishment -> confirmed | Rafed (a PureHealth asset) is the UAE's first and largest healthcare group purchasing organisation, based in Abu Dhabi -> confirmed | B. Braun and BD are distributed in the UAE by Gulf Drug, Al Zahrawi Medical, AMICO and Al Maqam -> confirmed | EN 14683 Type IIR masks have BFE >= 98% and splash resistance; FFP2 under EN 149 -> confirmed. Not checked: The Rafed URL, current UAE-based manufacturers of syringes/gloves, and exact shelf-life thresholds used by each public buyer were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Medical devices and consumables are registered with the Emirates Drug Establishment -> confirmed | Rafed (a PureHealth asset) is the UAE's first and largest healthcare group purchasing organisation, based in Abu Dhabi -> confirmed | B. Braun and BD are distributed in the UAE by Gulf Drug, Al Zahrawi Medical, AMICO and Al Maqam -> confirmed | EN 14683 Type IIR masks have BFE >= 98% and splash resistance; FFP2 under EN 149 -> confirmed. Not checked: The Rafed URL, current UAE-based manufacturers of syringes/gloves, and exact shelf-life thresholds used by each public buyer were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Rafed (PureHealth)",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "Gulf Drug",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Al Zahrawi Medical",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "AMICO",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Al Maqam",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "BD",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "B. Braun",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Medtronic",
+          "origin": "Ireland",
+          "tier": "premium",
+          "generic_en": "a premium Irish brand",
+          "generic_ar": "علامة أيرلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "3M",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Smith & Nephew",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mölnlycke",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Terumo",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Ansell",
+          "origin": "Australia",
+          "tier": "premium",
+          "generic_en": "a premium Australian brand",
+          "generic_ar": "علامة أسترالية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "medical_consumables:uae-market-sizes",
