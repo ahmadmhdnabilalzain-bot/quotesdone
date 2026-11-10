@@ -144,7 +144,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [agent_runs is a cron log, not an employee log](agent-runs-is-a-cron-log-not-an-employee-log.md)
 - [No job or task without an agent](no-job-or-task-without-an-agent.md) — his rule, 7 Sep
 - [The org is two agents and no departments](the-org-is-two-agents-and-no-departments.md) — 7 Sep; since grown to 5 seats (ceo, customer_support, sales_engineer, accountant, it_engineer)
-- [CI green is not npm test green](ci-green-does-not-mean-npm-test-green.md) — the checks job has no token
+- [CI green is not npm test green](ci-green-does-not-mean-npm-test-green.md) — the checks job has no token; 10 Nov: the offline gate skips node checks, so run the ones naming a changed file and diff the failure set with main
 - [Checks retired with their subject](checks-retired-with-their-subject.md) — 13 retired; never soften a check to green
 - [Apify paused until ~Feb 2027](apify-paused-until-2027.md)
 - [The OS dashboard is still basic](os-dashboard-still-basic.md)
