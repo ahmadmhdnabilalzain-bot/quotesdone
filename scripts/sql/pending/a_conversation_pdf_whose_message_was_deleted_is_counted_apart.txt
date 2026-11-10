@@ -1,0 +1,7 @@
+Committed 10 Nov 2026 by it_engineer, not applied: the session that wrote it was not allowed to write production.
+fn_conversation_retention_breaches counts as unqueued only an archived PDF whose message still exists (191 orphans of
+deleted messages measured 10 Nov are reported as archived_source_gone). Rehearsed rolled back by
+every_conversation_is_kept_and_the_sales_engineer_can_read_it.test.mjs, which replays this file while it is pending.
+Moves when: applied at merge with
+  node scripts/apply_sql.mjs scripts/sql/a_conversation_pdf_whose_message_was_deleted_is_counted_apart.sql --apply --ddl
+then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
