@@ -248,8 +248,8 @@
       "id": "landscaping:pool-spec-checklist",
       "topic": "What to state when requesting a swimming pool quote",
       "kind": "spec_checklist",
-      "body_en": "A pool contractor needs a defined brief to price exactly. State the location (emirate, community, authority), plot access for machinery, and whether the ground has a high water table. Give pool dimensions, shallow and deep depths, shape, and whether steps, benches, a baby pool, spa or jets are wanted. Define the edge type (skimmer, overflow, infinity), construction method (concrete or fibreglass), interior finish (mosaic, porcelain, plaster) and coping and deck material. Equipment: filtration type, pump (single or variable speed), disinfection (chlorine dosing or salt), automation, chiller or heat pump, lighting (LED, colour), and water features. Safety: fence or barrier per authority guidelines, cover if wanted, anti-entrapment drains. Scope: excavation and disposal, waterproofing, electrical supply from the villa DB, plumbing to the equipment room, backfilling, landscaping around, authority permit and consultant drawings, testing and commissioning, and handover training. Commercial: programme, payment milestones, warranty on structure, waterproofing, tiles and equipment, and first-year maintenance. Missing any of these produces non-comparable quotes.",
-      "body_ar": "يحتاج مقاول المسابح إلى متطلبات محددة ليسعّر بدقة. اذكر الموقع، الإمارة والمجتمع والجهة، ووصول الآليات إلى القطعة، وهل منسوب المياه الجوفية مرتفع. حدد أبعاد المسبح والعمق الضحل والعميق والشكل، وهل تريد درجاً أو مقاعد أو مسبح أطفال أو سبا أو نفاثات. حدد نوع الحافة قشاط أو فائض أو لانهائي، وطريقة الإنشاء خرسانة أو ألياف زجاجية، والتشطيب الداخلي موزاييك أو بورسلين أو لياسة، ومادة الحواف والسطح المحيط. المعدات: نوع الفلترة، والمضخة أحادية أو متغيرة السرعة، والتعقيم بالكلور أو الملح، والأتمتة، والمبرد أو المضخة الحرارية، والإنارة LED وألوانها، والنوافير. السلامة: سياج أو حاجز وفق إرشادات الجهة، وغطاء إن رغبت، ومصارف مانعة للانحباس. النطاق: الحفر والتخلص من المخلفات، والعزل، وتغذية الكهرباء من لوحة الفيلا، والتمديدات إلى غرفة المعدات، والردم، والتنسيق حول المسبح، وتصريح الجهة ورسومات الاستشاري، والاختبار والتشغيل، والتدريب عند التسليم. التجاري: البرنامج الزمني ودفعات السداد والضمان على الهيكل والعزل والبلاط والمعدات وصيانة السنة الأولى. غياب أي منها ينتج عروضاً غير قابلة للمقارنة.",
+      "body_en": "A pool contractor needs a defined brief to price exactly. State the location (emirate, community, authority), plot access for machinery, and whether the ground has a high water table. Give pool dimensions, shallow and deep depths, shape, and whether steps, benches, a baby pool, spa or jets are wanted. Define the edge type (skimmer, overflow, infinity), construction method (concrete or fibreglass), interior finish (mosaic, porcelain, plaster) and coping and deck material. Equipment: filtration type, pump (single or variable speed), disinfection (chlorine dosing or salt), automation, chiller or heat pump, lighting (LED, colour), and water features. Safety: fence or barrier per authority guidelines, cover if wanted, anti-entrapment drains. Scope: excavation and disposal, waterproofing, electrical supply from the villa DB, plumbing to the equipment room, backfilling, landscaping around, authority permit and consultant drawings, testing and commissioning, and handover training. Commercial: programme, payment milestones, warranty on structure, waterproofing, tiles and equipment, and first-year maintenance. Missing any of these produces non-comparable quotes.\n\nExpert interview (2026-11-10): Blocking: size and depth, edge type, construction method, site access and water table, and location. A site visit is unavoidable.",
+      "body_ar": "يحتاج مقاول المسابح إلى متطلبات محددة ليسعّر بدقة. اذكر الموقع، الإمارة والمجتمع والجهة، ووصول الآليات إلى القطعة، وهل منسوب المياه الجوفية مرتفع. حدد أبعاد المسبح والعمق الضحل والعميق والشكل، وهل تريد درجاً أو مقاعد أو مسبح أطفال أو سبا أو نفاثات. حدد نوع الحافة قشاط أو فائض أو لانهائي، وطريقة الإنشاء خرسانة أو ألياف زجاجية، والتشطيب الداخلي موزاييك أو بورسلين أو لياسة، ومادة الحواف والسطح المحيط. المعدات: نوع الفلترة، والمضخة أحادية أو متغيرة السرعة، والتعقيم بالكلور أو الملح، والأتمتة، والمبرد أو المضخة الحرارية، والإنارة LED وألوانها، والنوافير. السلامة: سياج أو حاجز وفق إرشادات الجهة، وغطاء إن رغبت، ومصارف مانعة للانحباس. النطاق: الحفر والتخلص من المخلفات، والعزل، وتغذية الكهرباء من لوحة الفيلا، والتمديدات إلى غرفة المعدات، والردم، والتنسيق حول المسبح، وتصريح الجهة ورسومات الاستشاري، والاختبار والتشغيل، والتدريب عند التسليم. التجاري: البرنامج الزمني ودفعات السداد والضمان على الهيكل والعزل والبلاط والمعدات وصيانة السنة الأولى. غياب أي منها ينتج عروضاً غير قابلة للمقارنة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المقاس والعمق، ونوع الحافة، وطريقة الإنشاء، والوصول إلى الموقع ومنسوب المياه الجوفية، والموقع. وزيارة الموقع ضرورية.",
       "required_specs": [
         "location and authority",
         "site access and water table",
@@ -277,14 +277,60 @@
         "https://en.wikipedia.org/wiki/Infinity_pool"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "dimensions and depths",
+        "edge type (skimmer/overflow/infinity)",
+        "construction method",
+        "site access and water table",
+        "location and authority"
+      ],
+      "spec_guide": [
+        {
+          "spec": "dimensions and depths",
+          "why_needed_to_price": "Excavation, concrete and finish all follow the size.",
+          "uae_options": "length x width x depth",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "edge type (skimmer/overflow/infinity)",
+          "why_needed_to_price": "Overflow and infinity edges need a balance tank and more pipework.",
+          "uae_options": "skimmer; overflow; infinity",
+          "follow_up_if": "Infinity or overflow: ask about the balance tank, catch gutter and a structural engineer.",
+          "blocking": true
+        },
+        {
+          "spec": "construction method",
+          "why_needed_to_price": "Reinforced concrete, shotcrete and prefab pools differ in cost.",
+          "uae_options": "RC; shotcrete; prefab",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "site access and water table",
+          "why_needed_to_price": "High water tables need dewatering; tight access raises cost.",
+          "uae_options": "site survey",
+          "follow_up_if": "High water table: dewatering and an anti-flotation design are needed.",
+          "blocking": true
+        },
+        {
+          "spec": "location and authority",
+          "why_needed_to_price": "The permit and approvals depend on emirate and community.",
+          "uae_options": "emirate and community",
+          "follow_up_if": "",
+          "blocking": true
+        }
+      ],
+      "site_visit_required_when": "A site visit is unavoidable before a firm pool price to check access, soil and services.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "landscaping:landscape-spec-checklist",
       "topic": "What to state when requesting a landscaping quote",
       "kind": "spec_checklist",
-      "body_en": "For softscape and hardscape, the buyer should provide a landscape layout drawing or at least measured areas, and specify each element. Softscape: lawn area and grass type (natural variety or artificial turf specification), plant schedule with botanical names, sizes and quantities, trees and palms by species and clear trunk height, soil mix and depth, mulch or decorative gravel. Irrigation: water source, drip, bubbler and spray areas, controller type and number of zones, pipe material, tank and pump if required. Hardscape: paving type and thickness, sub-base, kerbs, stone or tile finishes, steps, walls, pergolas and shade, lighting (fixture type, IP rating, low-voltage or mains), water features, fencing, and outdoor kitchens. Also state site condition (existing debris to remove, levels), access, authority or master developer approval requirements, maintenance period after handover, plant replacement warranty, and whether as-built irrigation drawings will be supplied. Asking contractors to 'design and build' without these parameters produces wildly different quotes that cannot be compared.",
-      "body_ar": "للأعمال الزراعية والصلبة يجب أن يقدم المشتري رسماً لتنسيق الموقع أو على الأقل مساحات مقاسة، ويحدد كل عنصر. الأعمال الزراعية: مساحة العشب ونوعه، صنف طبيعي أو مواصفة العشب الصناعي، وجدول النباتات بالأسماء العلمية والأحجام والكميات، والأشجار والنخيل حسب النوع وارتفاع الجذع الصافي، وخلطة التربة وعمقها، والغطاء العضوي أو الحصى الزخرفي. الري: مصدر المياه، ومناطق التنقيط والفقاعات والرش، ونوع وحدة التحكم وعدد المناطق، ومادة الأنابيب، والخزان والمضخة عند الحاجة. الأعمال الصلبة: نوع البلاط وسماكته، وما تحت الأساس، والبردورات، وتشطيبات الحجر أو البلاط، والدرج، والجدران، والبرجولات والمظلات، والإنارة من نوع الوحدة ودرجة الحماية IP وجهد منخفض أو عادي، والنوافير، والأسوار، والمطابخ الخارجية. واذكر أيضاً حالة الموقع من مخلفات تجب إزالتها ومناسيب، والوصول، ومتطلبات موافقة الجهة أو المطور الرئيسي، وفترة الصيانة بعد التسليم، وضمان استبدال النباتات، وهل ستُسلَّم رسومات الري المنفذة. الطلب من المقاولين التصميم والتنفيذ دون هذه المعايير ينتج عروضاً متباينة جداً لا يمكن مقارنتها.",
+      "body_en": "For softscape and hardscape, the buyer should provide a landscape layout drawing or at least measured areas, and specify each element. Softscape: lawn area and grass type (natural variety or artificial turf specification), plant schedule with botanical names, sizes and quantities, trees and palms by species and clear trunk height, soil mix and depth, mulch or decorative gravel. Irrigation: water source, drip, bubbler and spray areas, controller type and number of zones, pipe material, tank and pump if required. Hardscape: paving type and thickness, sub-base, kerbs, stone or tile finishes, steps, walls, pergolas and shade, lighting (fixture type, IP rating, low-voltage or mains), water features, fencing, and outdoor kitchens. Also state site condition (existing debris to remove, levels), access, authority or master developer approval requirements, maintenance period after handover, plant replacement warranty, and whether as-built irrigation drawings will be supplied. Asking contractors to 'design and build' without these parameters produces wildly different quotes that cannot be compared.\n\nExpert interview (2026-11-10): Blocking: layout or measured areas, lawn type, plant schedule, irrigation water source and paving. A site visit is needed without a survey drawing.",
+      "body_ar": "للأعمال الزراعية والصلبة يجب أن يقدم المشتري رسماً لتنسيق الموقع أو على الأقل مساحات مقاسة، ويحدد كل عنصر. الأعمال الزراعية: مساحة العشب ونوعه، صنف طبيعي أو مواصفة العشب الصناعي، وجدول النباتات بالأسماء العلمية والأحجام والكميات، والأشجار والنخيل حسب النوع وارتفاع الجذع الصافي، وخلطة التربة وعمقها، والغطاء العضوي أو الحصى الزخرفي. الري: مصدر المياه، ومناطق التنقيط والفقاعات والرش، ونوع وحدة التحكم وعدد المناطق، ومادة الأنابيب، والخزان والمضخة عند الحاجة. الأعمال الصلبة: نوع البلاط وسماكته، وما تحت الأساس، والبردورات، وتشطيبات الحجر أو البلاط، والدرج، والجدران، والبرجولات والمظلات، والإنارة من نوع الوحدة ودرجة الحماية IP وجهد منخفض أو عادي، والنوافير، والأسوار، والمطابخ الخارجية. واذكر أيضاً حالة الموقع من مخلفات تجب إزالتها ومناسيب، والوصول، ومتطلبات موافقة الجهة أو المطور الرئيسي، وفترة الصيانة بعد التسليم، وضمان استبدال النباتات، وهل ستُسلَّم رسومات الري المنفذة. الطلب من المقاولين التصميم والتنفيذ دون هذه المعايير ينتج عروضاً متباينة جداً لا يمكن مقارنتها.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المخطط أو المساحات المقاسة، ونوع العشب، وجدول النباتات، ومصدر مياه الري، والرصف. وتلزم زيارة الموقع في غياب مخطط مساحي.",
       "required_specs": [
         "layout drawing or measured areas",
         "lawn type and area",
@@ -311,7 +357,67 @@
         "https://en.wikipedia.org/wiki/Artificial_turf"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "layout drawing or measured areas",
+        "lawn type and area",
+        "plant schedule (botanical name, size, qty)",
+        "irrigation water source",
+        "paving type, thickness and sub-base"
+      ],
+      "spec_guide": [
+        {
+          "spec": "layout drawing or measured areas",
+          "why_needed_to_price": "Every item (lawn, paving, planting) is priced by area or count.",
+          "uae_options": "landscape drawing; measured sketch",
+          "follow_up_if": "No drawing: a site visit is needed.",
+          "blocking": true
+        },
+        {
+          "spec": "lawn type and area",
+          "why_needed_to_price": "Natural turf, seeded grass and artificial grass differ in price and upkeep.",
+          "uae_options": "natural turf rolls; seeded; artificial grass by pile height",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "plant schedule (botanical name, size, qty)",
+          "why_needed_to_price": "Plant size (pot size, height) drives cost.",
+          "uae_options": "shrubs by pot size; trees by height and trunk girth",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "irrigation water source",
+          "why_needed_to_price": "Potable, TSE or well water change the system and approvals.",
+          "uae_options": "potable; TSE; borewell",
+          "follow_up_if": "TSE: ask whether the community supplies it.",
+          "blocking": true
+        },
+        {
+          "spec": "paving type, thickness and sub-base",
+          "why_needed_to_price": "Paving material and sub-base depth set the price per m2.",
+          "uae_options": "interlock; natural stone; porcelain; concrete",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "site clearance and levels",
+          "why_needed_to_price": "Levelling and soil removal are often excluded.",
+          "uae_options": "clear site; import soil; cut and fill",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "maintenance period",
+          "why_needed_to_price": "Maintenance after handover is often priced separately.",
+          "uae_options": "none; 3, 6, 12 months",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site visit is genuinely needed to check levels, soil, existing services and access unless a survey drawing exists.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "landscaping:maintenance-contracts",
@@ -430,6 +536,36 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "landscaping:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Landscaping: approvals per emirate",
+      "topic_ar": "تنسيق الحدائق: الاعتمادات في كل إمارة",
+      "body_en": "Soft landscaping inside a private plot normally needs no authority permit, but most communities need the master developer's NOC for landscaping, pergolas and boundary works. A swimming pool needs approval: in Dubai, Dubai Municipality approves pool plans through its online permit system and publishes safety guidelines for private and public pools; Abu Dhabi, Sharjah and the northern emirates require a municipal permit for a pool, whose details were not confirmed in this session. Using TSE for irrigation needs a connection approved by the utility or the municipality. Shade structures and pergolas above a size may need a building permit. Who obtains: the landscape contractor or consultant, with the owner's NOC from the developer.",
+      "body_ar": "لا تحتاج أعمال الزراعة داخل قطعة أرض خاصة عادة إلى رخصة حكومية، لكن معظم المجمعات تشترط عدم ممانعة من المطوّر الرئيسي للتنسيق والبرجولات وأعمال الحدود. أما المسبح فيحتاج إلى اعتماد: ففي دبي تعتمد بلدية دبي مخططات المسابح عبر نظامها الإلكتروني للتراخيص وتنشر أدلة سلامة للمسابح الخاصة والعامة، وفي أبوظبي والشارقة والإمارات الشمالية تلزم رخصة بلدية للمسبح، ولم يُتحقق من تفاصيلها في هذه الجلسة. ويحتاج استخدام مياه الصرف المعالجة للري إلى توصيلة معتمدة من الجهة المزودة أو البلدية. وقد تحتاج المظلات والبرجولات فوق حجم معين إلى رخصة بناء. من يحصل عليها: مقاول التنسيق أو الاستشاري، مع عدم ممانعة المالك من المطوّر.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU34-ASPP2_Technical-Guidelines-for-Approval-of-Swimming-Pool-Plans_V4.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2022/03/DM-HSD-GU80_PRSPS2_Private-Swimming-Pools-Safety-Guidelines_V1-1.pdf",
+        "https://shjmun.gov.ae/servicedirectory/subServices/10"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10: each URL is an official page or document named in the search results. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "landscaping:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing landscaping quotes like for like",
+      "topic_ar": "مقارنة عروض تنسيق الحدائق على أساس متكافئ",
+      "body_en": "Compare on the same plant schedule (species and sizes), lawn type and area, paving type and sub-base, irrigation design and controller, with site clearance, soil import, lighting and maintenance in or out alike. Plant sizes are the common hidden cut: a smaller pot size or a younger palm looks the same on paper. Value beyond price: a plant-replacement warranty, an irrigation design with zones, and a maintenance period included.",
+      "body_ar": "قارن على جدول النباتات نفسه (الأنواع والمقاسات)، ونوع العشب ومساحته، ونوع الرصف وطبقة الأساس، وتصميم الري ووحدة التحكم، مع معاملة تنظيف الموقع واستيراد التربة والإنارة والصيانة بالطريقة نفسها. ومقاسات النباتات هي التخفيض الخفي الشائع: فوعاء أصغر أو نخلة أصغر عمراً تبدو متطابقة على الورق. القيمة إلى جانب السعر: ضمان استبدال النباتات، وتصميم ري مقسّم إلى مناطق، وفترة صيانة مشمولة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -530,7 +666,8 @@
     "removed": [],
     "still_unverified": [
       "landscaping:pergolas-shade",
-      "landscaping:lead-times"
+      "landscaping:lead-times",
+      "landscaping:approvals-per-emirate"
     ],
     "A4c": {
       "date": "2026-09-23",
@@ -538,6 +675,15 @@
       "fetched_urls": 4,
       "claims_checked": 22,
       "corrected": []
+    },
+    "added": [
+      "landscaping:approvals-per-emirate",
+      "landscaping:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

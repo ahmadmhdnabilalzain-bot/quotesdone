@@ -62,8 +62,8 @@
       "id": "gypsum:partition-spec-checklist",
       "topic": "Drywall partition — what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "To get comparable partition quotes state: partition type (single or double stud, staggered, shaft wall, lining, furring); required fire rating (minutes, integrity/insulation) and the tested system reference; required acoustic rating (Rw or STC); height and length per wall (drawings); stud size, gauge and spacing; board type, thickness and number of layers each side; insulation (mineral wool density and thickness); head detail (deflection head, fire-rated if applicable); openings (doors, windows, access panels) with framing; reinforcement for wall-mounted items; wet-area treatment (MR or cement board, waterproofing); finish level (jointing level, skim coat, ready for paint or wallpaper); corner beads and trims; sealing at perimeters (acoustic or fire sealant); service penetrations and fire-stopping; and whether painting is included. Also state site conditions (slab-to-slab height, access, working hours) and who provides approved drawings for Civil Defence.",
-      "body_ar": "للحصول على عروض قواطع قابلة للمقارنة يُحدَّد: نوع القاطع (قوائم مفردة أو مزدوجة، متداخلة، جدار فتحات رأسية، تكسية، هيكل تثبيت)؛ وتصنيف الحريق المطلوب (بالدقائق، السلامة والعزل) ومرجع النظام المختبر؛ والتصنيف الصوتي المطلوب (Rw أو STC)؛ والارتفاع والطول لكل جدار (مخططات)؛ ومقاس القوائم وسماكتها والمسافات؛ ونوع الألواح وسماكتها وعدد الطبقات في كل جانب؛ والعزل (كثافة الصوف المعدني وسماكته)؛ والتفصيل العلوي (رأس انحراف، ومقاوم للحريق عند اللزوم)؛ والفتحات (أبواب، نوافذ، فتحات صيانة) مع هياكلها؛ والتقوية للأغراض المعلقة؛ ومعالجة المناطق الرطبة؛ ومستوى التشطيب (مستوى المعجون، الطبقة النهائية، جاهز للدهان أو ورق الجدران)؛ والزوايا المعدنية والتشطيبات؛ والسد عند المحيط (مادة صوتية أو مقاومة للحريق)؛ واختراقات الخدمات وسدّ الحريق؛ وهل الدهان مشمول. مع ذكر ظروف الموقع (الارتفاع بين البلاطات، الوصول، ساعات العمل) ومن يقدم المخططات المعتمدة للدفاع المدني.",
+      "body_en": "To get comparable partition quotes state: partition type (single or double stud, staggered, shaft wall, lining, furring); required fire rating (minutes, integrity/insulation) and the tested system reference; required acoustic rating (Rw or STC); height and length per wall (drawings); stud size, gauge and spacing; board type, thickness and number of layers each side; insulation (mineral wool density and thickness); head detail (deflection head, fire-rated if applicable); openings (doors, windows, access panels) with framing; reinforcement for wall-mounted items; wet-area treatment (MR or cement board, waterproofing); finish level (jointing level, skim coat, ready for paint or wallpaper); corner beads and trims; sealing at perimeters (acoustic or fire sealant); service penetrations and fire-stopping; and whether painting is included. Also state site conditions (slab-to-slab height, access, working hours) and who provides approved drawings for Civil Defence.\n\nExpert interview (2026-11-10): Blocking: partition type, heights and lengths, fire rating, acoustic rating and board type and layers.",
+      "body_ar": "للحصول على عروض قواطع قابلة للمقارنة يُحدَّد: نوع القاطع (قوائم مفردة أو مزدوجة، متداخلة، جدار فتحات رأسية، تكسية، هيكل تثبيت)؛ وتصنيف الحريق المطلوب (بالدقائق، السلامة والعزل) ومرجع النظام المختبر؛ والتصنيف الصوتي المطلوب (Rw أو STC)؛ والارتفاع والطول لكل جدار (مخططات)؛ ومقاس القوائم وسماكتها والمسافات؛ ونوع الألواح وسماكتها وعدد الطبقات في كل جانب؛ والعزل (كثافة الصوف المعدني وسماكته)؛ والتفصيل العلوي (رأس انحراف، ومقاوم للحريق عند اللزوم)؛ والفتحات (أبواب، نوافذ، فتحات صيانة) مع هياكلها؛ والتقوية للأغراض المعلقة؛ ومعالجة المناطق الرطبة؛ ومستوى التشطيب (مستوى المعجون، الطبقة النهائية، جاهز للدهان أو ورق الجدران)؛ والزوايا المعدنية والتشطيبات؛ والسد عند المحيط (مادة صوتية أو مقاومة للحريق)؛ واختراقات الخدمات وسدّ الحريق؛ وهل الدهان مشمول. مع ذكر ظروف الموقع (الارتفاع بين البلاطات، الوصول، ساعات العمل) ومن يقدم المخططات المعتمدة للدفاع المدني.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع القاطع، والارتفاعات والأطوال، ومقاومة الحريق، والعزل الصوتي، ونوع الألواح وعدد طبقاتها.",
       "required_specs": [
         "partition type (single/double/staggered stud, shaft wall, lining)",
         "fire rating in minutes and tested system reference",
@@ -90,7 +90,66 @@
         "https://www.nationalgypsum.com/ngconnects/blog/building-knowledge/gypsum-board-finish-levels"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "partition type (single/double/staggered stud, shaft wall, lining)",
+        "wall heights and lengths (drawings)",
+        "fire rating in minutes and tested system reference",
+        "acoustic rating (Rw or STC, lab) and test report",
+        "board EN 520/ASTM type, thickness and layers per side"
+      ],
+      "spec_guide": [
+        {
+          "spec": "partition type (single/double/staggered stud, shaft wall, lining)",
+          "why_needed_to_price": "Each type has a different stud and board count per m2.",
+          "uae_options": "single stud; double stud; shaft wall; wall lining",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "wall heights and lengths (drawings)",
+          "why_needed_to_price": "Area and height set quantities and stud size.",
+          "uae_options": "measured from drawings",
+          "follow_up_if": "No drawings: site measurement needed.",
+          "blocking": true
+        },
+        {
+          "spec": "fire rating in minutes and tested system reference",
+          "why_needed_to_price": "Rated walls need more layers of fire board and tested details.",
+          "uae_options": "none; 30; 60; 90; 120 minutes",
+          "follow_up_if": "Rated: ask for the tested system and Civil Defence submission.",
+          "blocking": true
+        },
+        {
+          "spec": "acoustic rating (Rw or STC, lab) and test report",
+          "why_needed_to_price": "Acoustic walls need insulation and extra layers.",
+          "uae_options": "none; Rw 40-60",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "board EN 520/ASTM type, thickness and layers per side",
+          "why_needed_to_price": "Board type and layers drive material cost.",
+          "uae_options": "standard; moisture-resistant; fire; impact",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "finish level (GA-214 level) and paint sheen",
+          "why_needed_to_price": "Higher finish levels add jointing labour.",
+          "uae_options": "level 3 to 5",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "painting included or excluded",
+          "why_needed_to_price": "Painting is often excluded and priced separately.",
+          "uae_options": "included; excluded",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "gypsum:fire-rated-partitions",
@@ -192,8 +251,8 @@
       "id": "gypsum:ceiling-spec-checklist",
       "topic": "False ceiling — what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "State: ceiling type per area (plain gypsum, grid with lay-in tiles, metal, acoustic panels, baffles, open cell, stretch ceiling); ceiling height and plenum depth; board or tile product type with performance data (moisture resistance, fire reaction, NRC/αw, CAC); grid type, width and finish; suspension system and hanger spacing, including seismic or wind uplift requirements for soffits; bulkheads, coves, shadow gaps, curves and level changes (drawings); cut-outs and coordination for lights, diffusers, speakers, sprinklers, detectors and access panels (who cuts and who supplies); access panel sizes, quantities and fire rating where applicable; fire-rated ceiling membranes if required; finish level and painting; perimeter trims; moisture areas (kitchens, bathrooms, external soffits); and site constraints. Also ask who is responsible for the ceiling grid layout coordination drawing with MEP.",
-      "body_ar": "يُحدَّد: نوع السقف لكل منطقة (جبس مصمت، شبكة مع بلاطات، معدني، ألواح صوتية، حواجز، شبكة مفتوحة، سقف مشدود)؛ وارتفاع السقف وعمق الفراغ؛ ونوع اللوح أو البلاط مع بيانات الأداء (مقاومة الرطوبة، تصنيف الحريق، الامتصاص الصوتي، التوهين)؛ ونوع الشبكة وعرضها وتشطيبها؛ ونظام التعليق ومسافات المعلقات بما في ذلك متطلبات الزلازل أو الرياح للأسقف الخارجية؛ والبلكونات والتجاويف وفواصل الظل والمنحنيات وتغيرات المنسوب (مخططات)؛ والفتحات والتنسيق للإنارة والمخارج والسماعات والرشاشات والكواشف وفتحات الصيانة (من يقص ومن يورد)؛ ومقاسات فتحات الصيانة وأعدادها وتصنيفها للحريق عند اللزوم؛ والأسقف المقاومة للحريق إن طُلبت؛ ومستوى التشطيب والدهان؛ والزوايا المحيطية؛ والمناطق الرطبة؛ وقيود الموقع. ويُسأل عمن يتحمل مسؤولية مخطط تنسيق شبكة السقف مع الأنظمة الكهروميكانيكية.",
+      "body_en": "State: ceiling type per area (plain gypsum, grid with lay-in tiles, metal, acoustic panels, baffles, open cell, stretch ceiling); ceiling height and plenum depth; board or tile product type with performance data (moisture resistance, fire reaction, NRC/αw, CAC); grid type, width and finish; suspension system and hanger spacing, including seismic or wind uplift requirements for soffits; bulkheads, coves, shadow gaps, curves and level changes (drawings); cut-outs and coordination for lights, diffusers, speakers, sprinklers, detectors and access panels (who cuts and who supplies); access panel sizes, quantities and fire rating where applicable; fire-rated ceiling membranes if required; finish level and painting; perimeter trims; moisture areas (kitchens, bathrooms, external soffits); and site constraints. Also ask who is responsible for the ceiling grid layout coordination drawing with MEP.\n\nExpert interview (2026-11-10): Blocking: ceiling type, height and plenum, and the decorative features from the RCP.",
+      "body_ar": "يُحدَّد: نوع السقف لكل منطقة (جبس مصمت، شبكة مع بلاطات، معدني، ألواح صوتية، حواجز، شبكة مفتوحة، سقف مشدود)؛ وارتفاع السقف وعمق الفراغ؛ ونوع اللوح أو البلاط مع بيانات الأداء (مقاومة الرطوبة، تصنيف الحريق، الامتصاص الصوتي، التوهين)؛ ونوع الشبكة وعرضها وتشطيبها؛ ونظام التعليق ومسافات المعلقات بما في ذلك متطلبات الزلازل أو الرياح للأسقف الخارجية؛ والبلكونات والتجاويف وفواصل الظل والمنحنيات وتغيرات المنسوب (مخططات)؛ والفتحات والتنسيق للإنارة والمخارج والسماعات والرشاشات والكواشف وفتحات الصيانة (من يقص ومن يورد)؛ ومقاسات فتحات الصيانة وأعدادها وتصنيفها للحريق عند اللزوم؛ والأسقف المقاومة للحريق إن طُلبت؛ ومستوى التشطيب والدهان؛ والزوايا المحيطية؛ والمناطق الرطبة؛ وقيود الموقع. ويُسأل عمن يتحمل مسؤولية مخطط تنسيق شبكة السقف مع الأنظمة الكهروميكانيكية.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع السقف، والارتفاع والفراغ فوقه، والعناصر الزخرفية من مخطط السقف.",
       "required_specs": [
         "ceiling type per area",
         "ceiling height and plenum depth",
@@ -217,7 +276,50 @@
         "https://www.designingbuildings.co.uk/wiki/BS_EN_13501-1"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "ceiling type per area",
+        "ceiling height and plenum depth",
+        "bulkheads, coves, shadow gaps, curves (RCP and sections)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "ceiling type per area",
+          "why_needed_to_price": "Plasterboard, grid tile and metal ceilings differ in price.",
+          "uae_options": "jointless plasterboard; 600x600 grid; metal; acoustic",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "ceiling height and plenum depth",
+          "why_needed_to_price": "Deep plenums need longer hangers and bracing.",
+          "uae_options": "height and void depth",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "bulkheads, coves, shadow gaps, curves (RCP and sections)",
+          "why_needed_to_price": "Decorative features add labour per metre.",
+          "uae_options": "flat; bulkheads; coves; curves",
+          "follow_up_if": "Design ceiling: ask for the RCP and sections.",
+          "blocking": true
+        },
+        {
+          "spec": "MEP cut-outs: who cuts, who supplies",
+          "why_needed_to_price": "Openings for lights and diffusers take labour.",
+          "uae_options": "ceiling contractor cuts; MEP contractor",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "access panel schedule incl. fire rating",
+          "why_needed_to_price": "Access panels are priced per unit.",
+          "uae_options": "standard; fire-rated",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "gypsum:access-panels",
@@ -544,6 +646,37 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "gypsum:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Gypsum partitions and ceilings: approvals per emirate",
+      "topic_ar": "القواطع والأسقف الجبسية: الاعتمادات في كل إمارة",
+      "body_en": "A decorative ceiling or a non-rated partition inside a private villa normally needs no authority permit, though a community may require a work permit. In commercial units, partitions and ceilings are part of the fit-out permit: Dubai Municipality or the controlling authority (DDA, Trakhees, a free zone) in Dubai; the DMT municipalities in Abu Dhabi; Sharjah Municipality; northern-emirate municipalities. Fire-rated partitions and ceilings must follow tested systems and be approved by the emirate's civil defence (Dubai Civil Defence reviews fit-out drawings; Abu Dhabi Civil Defence Authority; Sharjah and northern-emirate civil defence). Who obtains: the fit-out contractor or consultant; the supplier provides tested-system certificates.",
+      "body_ar": "لا يحتاج السقف الزخرفي أو القاطع غير المصنف ضد الحريق داخل فيلا خاصة عادة إلى رخصة حكومية، وقد يطلب المجمع تصريح عمل. أما في الوحدات التجارية فالقواطع والأسقف جزء من رخصة التجهيز الداخلي: بلدية دبي أو الجهة صاحبة الولاية (سلطة دبي للتطوير أو تراخيص أو منطقة حرة) في دبي، وبلديات دائرة البلديات والنقل في أبوظبي، وبلدية الشارقة، وبلديات الإمارات الشمالية. ويجب أن تتبع القواطع والأسقف المقاومة للحريق أنظمة مختبرة وأن يعتمدها الدفاع المدني في الإمارة (يراجع الدفاع المدني بدبي مخططات التجهيز، وهيئة أبوظبي للدفاع المدني، والدفاع المدني في الشارقة والإمارات الشمالية). من يحصل عليها: مقاول التجهيز أو الاستشاري، ويقدم المورد شهادات الأنظمة المختبرة.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/en/item/16-approval-of-drawings.jsp",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10: each URL is an official page or document named in the search results. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "gypsum:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing partition and ceiling quotes like for like",
+      "topic_ar": "مقارنة عروض القواطع والأسقف على أساس متكافئ",
+      "body_en": "Compare per m2 for the same system: stud size and gauge, board type and layers, insulation, finish level and fire or acoustic rating, with painting, access panels, bulkheads and MEP cut-outs treated alike. A rated wall quoted with standard board, or a tested system replaced by a \"similar\" build-up, is not comparable. Value beyond price: a named tested system, certificates, and a contractor who includes Civil Defence submission.",
+      "body_ar": "قارن لكل متر مربع للنظام نفسه: مقاس الدعامات وسماكتها، ونوع الألواح وطبقاتها، والعزل، ومستوى التشطيب، ومقاومة الحريق أو العزل الصوتي، مع معاملة الدهان وفتحات الصيانة والبلكونات وفتحات الكهروميكانيك بالطريقة نفسها. والجدار المصنف المسعّر بألواح عادية، أو النظام المختبر المستبدل بتركيبة «مشابهة»، لا يقارن. القيمة إلى جانب السعر: نظام مختبر مسمّى، وشهادات، ومقاول يشمل تقديم المخططات للدفاع المدني.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -714,8 +847,18 @@
       "gypsum:gypsum-price-drivers",
       "gypsum:gypsum-warranty",
       "gypsum:dbc-ceiling-partition-rules",
-      "gypsum:glass-impact-classes"
+      "gypsum:glass-impact-classes",
+      "gypsum:approvals-per-emirate"
     ],
-    "notes": "No entries removed. Claims removed/softened: MgO failure history (now 'not established'), EN Q1-Q4 detail flagged unverified, STC-vs-Rw fixed gap replaced by range across sources. Retail-blog price figures deliberately not added. Gyproc/Gypsemna UAE plants from search summary only; Knauf RAK plant fetched. still_unverified = entries resting on practice judgement or single sources."
+    "notes": "No entries removed. Claims removed/softened: MgO failure history (now 'not established'), EN Q1-Q4 detail flagged unverified, STC-vs-Rw fixed gap replaced by range across sources. Retail-blog price figures deliberately not added. Gyproc/Gypsemna UAE plants from search summary only; Knauf RAK plant fetched. still_unverified = entries resting on practice judgement or single sources.",
+    "added": [
+      "gypsum:approvals-per-emirate",
+      "gypsum:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+    }
   }
 }
