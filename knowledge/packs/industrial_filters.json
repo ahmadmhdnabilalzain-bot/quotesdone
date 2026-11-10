@@ -199,13 +199,14 @@
       "body_en": "No UAE licence or conformity scheme was found for air or liquid filter elements. Requirements come from the application: HVAC filters in Dubai buildings follow the building and green-building rules the consultant applies; cleanroom filters follow the facility's GMP or ISO 14644 classification; filters in drinking-water treatment may need the water utility's approval where connected to its network. The supplier provides the test report proving the efficiency class.",
       "body_ar": "لم يُعثر على ترخيص أو نظام مطابقة في الإمارات لعناصر فلاتر الهواء أو السوائل، وتأتي المتطلبات من التطبيق: ففلاتر التكييف في مباني دبي تتبع قواعد البناء والمباني الخضراء التي يطبقها الاستشاري، وفلاتر الغرف النظيفة تتبع تصنيف المنشأة وفق ممارسات التصنيع الجيد أو ISO 14644، وفلاتر معالجة مياه الشرب قد تحتاج موافقة جهة المياه عند ربطها بشبكتها. ويقدم المورد تقرير الاختبار الذي يثبت فئة الكفاءة.",
       "sources": [
-        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold. No filter-specific UAE regulation was found by search.",
-      "verify_note": "Not verified on 2026-11-10 — moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www)."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet lists no filter-element category (it names vehicle spare parts generally, under Cabinet Resolution No. 12 of 2018), and MoIAT offers a voluntary conformity certificate for unregulated products (moiat.gov.ae). Not confirmed on any page that opened: the application-specific rules (green-building, GMP or ISO 14644, water-utility approval)."
     },
     {
       "id": "industrial_filters:quote-red-flags",
@@ -333,6 +334,21 @@
       "industrial_filters:buyer-mistakes",
       "industrial_filters:price-drivers",
       "industrial_filters:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "industrial_filters:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

@@ -209,13 +209,14 @@
       "body_ar": "لم يُعثر على ترخيص أو نظام مطابقة في الإمارات للراتنجات البوليمرية بوصفها مادة خام، وتتبع المتطلبات المنتج المصنوع منها: فالأصناف الملامسة للغذاء تخضع لمسار ملامسة الغذاء (شهادة ECAS لدى وزارة الصناعة والتكنولوجيا المتقدمة يحصل عليها صانع الصنف)، وراتنجات الأنابيب تُعتمد ضمن اعتمادات منتج الأنابيب، وبعض الراتنجات والإضافات المصنفة خطرة تحتاج صحيفة بيانات السلامة ومناولة البضائع الخطرة. والبضائع المسحوبة من مستودعات المناطق الحرة إلى البر الرئيسي تمر بالجمارك عند ذلك.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
-        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop"
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www)."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet lists no polymer-resin category, and lists food-contact material (Cabinet Resolution No. 20 of 2015) as regulated, obtained by the applicant holding the trade licence. Not confirmed on any page that opened: pipe-resin approval through the pipe product, SDS and dangerous-goods handling, and the free-zone customs point."
     },
     {
       "id": "polymers_resins:quote-red-flags",
@@ -348,6 +349,20 @@
       "polymers_resins:buyer-mistakes",
       "polymers_resins:price-drivers",
       "polymers_resins:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "polymers_resins:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

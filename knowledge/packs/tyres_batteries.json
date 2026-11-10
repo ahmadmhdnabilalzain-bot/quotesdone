@@ -196,13 +196,14 @@
       "body_ar": "الإطارات منتجات خاضعة للتنظيم: إذ تصادق وزارة الصناعة والتكنولوجيا المتقدمة على شهادات المطابقة الخليجية للإطارات ضمن اللوائح الفنية الخليجية، ويسجل مدخل عمر الإطارات في هذه الحزمة نظام الإطارات الإماراتي (النافذ منذ سبتمبر 2018) الذي يقضي بالتخلص من الإطارات التي يبلغ عمرها خمس سنوات من التصنيع؛ وتذكر مصادر ثانوية أن عمر الإطار يُفحص عند فحص المركبة. ويحمل المستورد أو الموزع شهادة المطابقة. ولم يثبت هل تحتاج بطاريات المركبات شهادة ECAS. والإطارات المستعملة وبطاريات الرصاص الحمضية نفايات يجب تسليمها لجهات تدوير مرخصة، ويستعيدها المورد عادة.",
       "sources": [
         "https://moiat.gov.ae/en/services/attestation-of-conformity-certificate-issued-by-gcc-standardization-organization",
-        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www)."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet lists retreaded tyres and RFID for tyres as regulated categories and lists no automotive-battery category; MoIAT attests GSO conformity certificates (moiat.gov.ae). Not confirmed on any page that opened: the September 2018 tyre-age scheme, tyre-age checks at vehicle inspection, and the recycler take-back rules."
     },
     {
       "id": "tyres_batteries:quote-red-flags",
@@ -335,6 +336,20 @@
       "tyres_batteries:buyer-mistakes",
       "tyres_batteries:price-drivers",
       "tyres_batteries:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "tyres_batteries:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

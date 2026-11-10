@@ -206,13 +206,14 @@
       "body_en": "The label converter needs no product approval; the rules sit with the product being labelled. Food, cosmetics, medicines and other regulated products carry mandatory label content in Arabic (and usually English) set by the GCC and UAE technical regulations for that category, and the brand owner is responsible for the text; medicines additionally carry Tatmeen serialisation codes. Barcodes (GTINs) are issued through GS1 UAE to the brand owner. Labels that touch food directly fall under the food-contact route. The buyer supplies approved text; the converter prints it.",
       "body_ar": "لا يحتاج محوّل الملصقات موافقة منتج، فالقواعد تخص المنتج الذي يحمل الملصق. فالأغذية ومستحضرات التجميل والأدوية والمنتجات المنظمة الأخرى تحمل محتوى وسم إلزامياً باللغة العربية (وعادة الإنجليزية) تحدده اللوائح الفنية الخليجية والإماراتية لكل فئة، ومالك العلامة مسؤول عن النص؛ وتحمل الأدوية أيضاً رموز التتبع في نظام تتمين. وتصدر أرقام الباركود (GTIN) عبر GS1 الإمارات لمالك العلامة. والملصقات الملامسة للغذاء مباشرة تخضع لمسار ملامسة الغذاء. ويقدم المشتري النص المعتمد ويطبعه المحوّل.",
       "sources": [
-        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold. The labelling-rule statements are general (category technical regulations); no single UAE labelling page was located.",
-      "verify_note": "Not verified on 2026-11-10 — moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www)."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet sets label requirements per regulated category (for example Annex 2 of Cabinet Resolution No. 20 of 2015 for food-contact material and Annex 1 of Cabinet Resolution No. 18 of 2014 for cosmetics), which supports 'the rules sit with the product being labelled'. Not confirmed on any page that opened: Arabic label content for each category, Tatmeen codes on medicines, and GS1 UAE barcodes."
     },
     {
       "id": "labels_sleeves:quote-red-flags",
@@ -344,6 +345,20 @@
       "labels_sleeves:buyer-mistakes",
       "labels_sleeves:price-drivers",
       "labels_sleeves:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "labels_sleeves:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

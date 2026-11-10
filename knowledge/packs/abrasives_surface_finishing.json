@@ -193,16 +193,17 @@
       "topic": "Abrasives and blasting: approvals and site rules",
       "topic_ar": "المواد الكاشطة والسفع: الموافقات وقواعد المواقع",
       "kind": "authority_approval",
-      "body_en": "No UAE product licence or conformity scheme was found for coated or bonded abrasives; safety marking follows European standards (EN 12413, EN 13743) and the oSa voluntary scheme. Abrasive blasting is controlled at the workplace: dust and silica exposure fall under the occupational safety frameworks (Abu Dhabi OSHAD, Dubai Municipality health and safety guidelines), and many end users ban free-silica sand and require low-silica media such as garnet or steel grit. Blasting waste and spent media are disposed of through licensed waste handlers.",
-      "body_ar": "لم يُعثر على ترخيص منتج أو نظام مطابقة في الإمارات للمواد الكاشطة المطلية أو المترابطة، وتتبع علامات السلامة المواصفات الأوروبية (EN 12413 وEN 13743) والنظام الطوعي oSa. أما السفع بالمواد الكاشطة فيُضبط في مكان العمل: إذ يخضع التعرض للغبار والسيليكا لأطر السلامة المهنية (أوشاد في أبوظبي وأدلة الصحة والسلامة لدى بلدية دبي)، ويمنع كثير من المستخدمين النهائيين رمل السيليكا الحرة ويشترطون مواد منخفضة السيليكا مثل الغارنت أو الحبيبات الفولاذية. ويُتخلص من نفايات السفع والمواد المستهلكة عبر جهات مرخصة لمعالجة النفايات.",
+      "body_en": "No UAE product licence or conformity scheme was found for coated or bonded abrasives; safety marking follows European standards (EN 12413, EN 13743) and the oSa voluntary scheme. Abrasive blasting is controlled at the workplace: dust and silica exposure fall under the occupational safety frameworks (Abu Dhabi's ADOSH-SF, formerly OSHAD, and Dubai Municipality health and safety guidelines), and many end users ban free-silica sand and require low-silica media such as garnet or steel grit. Blasting waste and spent media are disposed of through licensed waste handlers.",
+      "body_ar": "لم يُعثر على ترخيص منتج أو نظام مطابقة في الإمارات للمواد الكاشطة المطلية أو المترابطة، وتتبع علامات السلامة المواصفات الأوروبية (EN 12413 وEN 13743) والنظام الطوعي oSa. أما السفع بالمواد الكاشطة فيُضبط في مكان العمل: إذ يخضع التعرض للغبار والسيليكا لأطر السلامة المهنية (إطار ADOSH-SF في أبوظبي، المعروف سابقاً بأوشاد، وأدلة الصحة والسلامة لدى بلدية دبي)، ويمنع كثير من المستخدمين النهائيين رمل السيليكا الحرة ويشترطون مواد منخفضة السيليكا مثل الغارنت أو الحبيبات الفولاذية. ويُتخلص من نفايات السفع والمواد المستهلكة عبر جهات مرخصة لمعالجة النفايات.",
       "sources": [
-        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold. No abrasive-specific UAE regulation was found by search; the cited MoIAT page is the voluntary conformity route.",
-      "verify_note": "Not verified on 2026-11-10 — moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www)."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet lists no abrasive-product category, consistent with 'no UAE product licence or conformity scheme was found'; MoIAT offers a voluntary certificate for unregulated products; ADPHC's ADOSH-SF codes of practice apply to all employers in Abu Dhabi; DM publishes health and safety technical guidelines. Not confirmed on any page that opened: the EN 12413 and EN 13743 marking practice and the oSa scheme (industry schemes), the silica-media bans by end users, and the waste-handler rule. Corrected: the Abu Dhabi framework is now ADOSH-SF (formerly OSHAD-SF)."
     },
     {
       "id": "abrasives_surface_finishing:quote-red-flags",
@@ -293,7 +294,9 @@
   "verified": {
     "fetched_urls": 2,
     "claims_checked": 1,
-    "corrected": [],
+    "corrected": [
+      "abrasives_surface_finishing:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "abrasives_surface_finishing:spec-checklist",
@@ -334,6 +337,23 @@
       "abrasives_surface_finishing:buyer-mistakes",
       "abrasives_surface_finishing:price-drivers",
       "abrasives_surface_finishing:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "abrasives_surface_finishing:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "abrasives_surface_finishing:authority-approvals"
+      ],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

@@ -205,13 +205,14 @@
       "body_ar": "حديد التسليح خاضع للتنظيم: إذ تحدد نتائج البحث قرار مجلس الوزراء رقم 121 لسنة 2023 بإنشاء النظام الإماراتي لقضبان الفولاذ لتسليح الخرسانة، الذي يلزم منتجي قضبان التسليح والكتل والملفات المستخدمة في صنعها بالحصول على شهادة مطابقة ECAS من وزارة الصناعة والتكنولوجيا المتقدمة، بمن فيهم المنتجون في المناطق الحرة، مع تفتيش الوزارة على المطابقة؛ ويذكر مصدر ثانوي أن الكتل المستخدمة في إنتاج التسليح في الإمارات يجب أن تكون معتمدة من 27 نوفمبر 2024 ويصف علامات الدرفلة والشهادات برمز QR. ويحصل المصنع على الشهادة، وعلى المشتري طلبها في العرض. ولم يُعثر على نظام مماثل للمقاطع الإنشائية والألواح، ويعتمد الاستشاري المصنع والدرجة في كل مشروع.",
       "sources": [
         "https://uaelegislation.gov.ae/en/legislations/2346/download",
-        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://www.dm.gov.ae/dubai-municipality-services/"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — uaelegislation.gov.ae: not in the allowed network; moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www)."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's ECAS service page confirms conformity certificates for products under technical regulations; DM issues supplier registration certificates to traders and manufacturers of reinforcing steel (DM services). Not confirmed on any page that opened: Cabinet Resolution No. 121 of 2023 and the steel-bar scheme (not in MoIAT's regulated-products sheet read; uaelegislation.gov.ae serves a Cloudflare block page), the 27 November 2024 billet date and the rolling marks."
     },
     {
       "id": "steel_stock:quote-red-flags",
@@ -344,6 +345,20 @@
       "steel_stock:buyer-mistakes",
       "steel_stock:price-drivers",
       "steel_stock:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "steel_stock:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.dm.gov.ae/dubai-municipality-services/"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

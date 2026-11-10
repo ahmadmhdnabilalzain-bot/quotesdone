@@ -224,13 +224,15 @@
       "body_ar": "التغليف الملامس للغذاء هو الحالة الخاضعة للتنظيم. إذ تفيد نتائج البحث بأن المواد الملامسة للغذاء تُعتمد ضمن نظام المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وفق قرار مجلس الوزراء رقم 20 لسنة 2015، للمواد البلاستيكية والزجاجية والخزفية والسيليكونية والورقية والمعدنية والخشبية، عبر جهة مخطرة لدى الوزارة، ويحصل على الشهادة المصنع أو المستورد لا المشتري؛ وتناولت ورشة عمل للوزارة عام 2023 حول تغليف الأغذية من البلاستيك المعاد تدويره توثيق نظام الجودة واختبارات الانتقال في مختبر إماراتي معتمد. وتفتش بلدية دبي وهيئة أبوظبي للزراعة والسلامة الغذائية منشآت الأغذية بما في ذلك تغليفها. والأكياس الكبيرة والأكياس المستخدمة للبضائع الخطرة يجب أن تكون بتصاميم معتمدة من الأمم المتحدة، مختبرة ومعلّمة من الصانع.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
-        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop"
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www)."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists food-contact material as a regulated product under Cabinet Resolution No. 20 of 2015, applied for by the holder of a UAE trade or industry licence with a test report from an accredited laboratory per Annex 1, the label per Annex 2, GMP compliance and an electronic declaration of conformity; MoIAT's news of 17 August 2023 on recycled plastic food packaging confirms quality-system documentation and migration tests at an accredited UAE laboratory; DM Guideline 100 lists food-contact materials among the consumer products DM registers before sale in Dubai. Not confirmed on any page that opened: the list of seven materials, the 'MoIAT-notified body' route, and ADAFSA's inspection of food businesses (www.adafsa.gov.ae is not on the session network) and the UN certification of FIBCs and sacks for dangerous goods (an international transport rule, not read on a UAE page)"
     },
     {
       "id": "bulk_bags_sacks:quote-red-flags",
@@ -362,6 +364,22 @@
       "bulk_bags_sacks:buyer-mistakes",
       "bulk_bags_sacks:price-drivers",
       "bulk_bags_sacks:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "bulk_bags_sacks:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

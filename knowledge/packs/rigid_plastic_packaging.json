@@ -209,13 +209,16 @@
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
         "https://leap.unep.org/en/countries/ae/national-legislation/ministerial-resolution-no-380-2022-regarding-regulating-use",
-        "https://dlp.dubai.gov.ae/Legislation%20Reference/2023/Executive%20Council%20Resolution%20No.%20(124)%20of%202023%20Regulating%20the%20Use%20of%20Single-use%20Products.html"
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2023/Executive%20Council%20Resolution%20No.%20(124)%20of%202023%20Regulating%20the%20Use%20of%20Single-use%20Products.html",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://www.wam.ae/en/article/bn8qxpm-second-phase-nationwide-ban-import-trade"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www); leap.unep.org: not in the allowed network; dlp.dubai.gov.ae: not in the allowed network."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists food-contact material as a regulated product under Cabinet Resolution No. 20 of 2015, applied for by the holder of a UAE trade or industry licence with a test report from an accredited laboratory per Annex 1, the label per Annex 2, GMP compliance and an electronic declaration of conformity; MoIAT's news of 17 August 2023 on recycled plastic food packaging confirms quality-system documentation and migration tests at an accredited UAE laboratory; DM Guideline 100 lists food-contact materials among the consumer products DM registers before sale in Dubai. WAM (16 December 2025) and MOCCAE (2 January 2025) confirm Ministerial Decision No. 380 of 2022, its 1 January 2024 bag phase and its 1 January 2026 phase (cups and lids, cutlery, plates, straws, stirrers, Styrofoam containers, and single-use bags of any material, paper included, under 50 microns) and the exemptions for exported products, products of UAE-recycled material and some bag uses; Executive Council Resolution No. 124 of 2023 is read on dlp.dubai.gov.ae. Not confirmed on any page that opened: the list of seven materials, the 'MoIAT-notified body' route, and ADAFSA's inspection of food businesses (www.adafsa.gov.ae is not on the session network), and the UN-specification rule for dangerous-goods containers"
     },
     {
       "id": "rigid_plastic_packaging:quote-red-flags",
@@ -348,6 +351,22 @@
       "rigid_plastic_packaging:buyer-mistakes",
       "rigid_plastic_packaging:price-drivers",
       "rigid_plastic_packaging:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "rigid_plastic_packaging:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://www.wam.ae/en/article/bn8qxpm-second-phase-nationwide-ban-import-trade",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2023/Executive%20Council%20Resolution%20No.%20(124)%20of%202023%20Regulating%20the%20Use%20of%20Single-use%20Products.html"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

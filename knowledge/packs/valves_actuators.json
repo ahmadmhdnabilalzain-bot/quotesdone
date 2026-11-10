@@ -220,13 +220,14 @@
       "sources": [
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
         "https://uaelegislation.gov.ae/en/legislations/2957",
-        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.dcd.gov.ae: allowed but drops the connection; uaelegislation.gov.ae: not in the allowed network; moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www)."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists low-voltage electrical products, with the G-Mark route under the Gulf Technical Regulation for Low Voltage Electrical Equipment and Appliances BD-142004-01 (technical file, manufacturer's declaration, test reports from the maker's lab or a notified body) and a UAE certificate requiring the applicant's trade or industry licence; MoIAT's ECAS service page. Not confirmed on any page that opened: Cabinet Resolution No. 6 of 2019 as the UAE adoption instrument and the 50-1,000 V scope (uaelegislation.gov.ae serves a Cloudflare block page), the fire-code listing of fire-protection valves (www.dcd.gov.ae resets every connection) and water-utility approvals."
     },
     {
       "id": "valves_actuators:quote-red-flags",
@@ -359,6 +360,20 @@
       "valves_actuators:buyer-mistakes",
       "valves_actuators:price-drivers",
       "valves_actuators:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "valves_actuators:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }
