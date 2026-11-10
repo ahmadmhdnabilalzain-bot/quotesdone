@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-10T21:53:50.184Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-10T22:26:35.132Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3519,7 +3519,8 @@ CREATE TABLE IF NOT EXISTS public.email_verifications (
   used_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   attempts integer DEFAULT 0 NOT NULL,
-  token_hash text
+  token_hash text,
+  verified_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.employee_authority (
@@ -5702,7 +5703,11 @@ CREATE TABLE IF NOT EXISTS public.leads (
   marketing_consent boolean DEFAULT false NOT NULL,
   marketing_consent_at timestamp with time zone,
   marketing_consent_source text,
-  license_issue_date date
+  license_issue_date date,
+  licence_read_state text,
+  licence_read_at timestamp with time zone,
+  licence_read_failed_since timestamp with time zone,
+  licence_read_tries integer DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.legal_checklist (
@@ -12345,6 +12350,7 @@ ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_decided_by_c
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_evidence_check CHECK ((btrim(evidence) <> ''::text));
 ALTER TABLE public.leads ADD CONSTRAINT leads_accepted_terms_sha256_check CHECK (((accepted_terms_sha256 IS NULL) OR (accepted_terms_sha256 ~ '^[0-9a-f]{64}$'::text)));
 ALTER TABLE public.leads ADD CONSTRAINT leads_approved_implies_verified CHECK (((COALESCE(approval_status, ''::text) <> 'approved'::text) OR (COALESCE(verified, false) = true)));
+ALTER TABLE public.leads ADD CONSTRAINT leads_licence_read_state_known CHECK (((licence_read_state IS NULL) OR (licence_read_state = ANY (ARRAY['read'::text, 'ours_failed'::text, 'file_unreadable'::text]))));
 ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.leads ADD CONSTRAINT leads_registration_amount_aed_check CHECK (((registration_amount_aed IS NULL) OR (registration_amount_aed >= (0)::numeric)));
 ALTER TABLE public.leads ADD CONSTRAINT leads_registration_fee_due_money_ck CHECK (((registration_fee_due >= (0)::numeric) AND (registration_fee_due = round(registration_fee_due, 2))));
@@ -13769,6 +13775,7 @@ CREATE UNIQUE INDEX leads_founding_rank_uidx ON public.leads USING btree (foundi
 CREATE INDEX leads_has_email_idx ON public.leads USING btree (((email IS NOT NULL)));
 CREATE INDEX leads_invite_status_idx ON public.leads USING btree (invite_status);
 CREATE INDEX leads_invited_at_idx ON public.leads USING btree (invited_at) WHERE (invited_at IS NOT NULL);
+CREATE INDEX leads_licence_ours_failed_idx ON public.leads USING btree (licence_read_at) WHERE (licence_read_state = 'ours_failed'::text);
 CREATE INDEX leads_lifecycle_stage_idx ON public.leads USING btree (lifecycle_stage);
 CREATE INDEX leads_phone_tail9_idx ON public.leads USING btree ("right"(regexp_replace(COALESCE(phone, ''::text), '[^0-9]'::text, ''::text, 'g'::text), 9));
 CREATE UNIQUE INDEX leads_place_id_uidx ON public.leads USING btree (place_id) WHERE (place_id IS NOT NULL);

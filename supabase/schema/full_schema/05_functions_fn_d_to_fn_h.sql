@@ -2124,6 +2124,20 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_email_proven(p_email text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(btrim(p_email), '') <> ''
+     and exists (select 1 from public.email_verifications v
+                  where v.email = lower(btrim(p_email))
+                    and v.purpose in ('login', 'kyc')
+                    and v.verified_at is not null)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text)
  RETURNS jsonb
  LANGUAGE plpgsql

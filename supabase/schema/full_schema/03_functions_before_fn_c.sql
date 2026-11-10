@@ -9072,6 +9072,34 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_actions_close_for_gone_suppliers(p_ids bigint[] DEFAULT NULL::bigint[])
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_n int;
+begin
+  with named as (
+    select a.id, coalesce(nullif(a.detail ->> 'supplier_id', ''), case when a.target_table = 'leads' then a.target_id end) as sid
+      from public.agent_actions a
+     where a.status = 'pending' and a.kind <> 'handoff'
+       and (a.detail ? 'supplier_id' or a.target_table = 'leads')
+  ), gone as (
+    select n.id, n.sid::bigint as sid from named n
+     where n.sid ~ '^[0-9]{1,18}$'
+       and (p_ids is null or n.sid::bigint = any(p_ids))
+       and not exists (select 1 from public.leads l where l.id = n.sid::bigint)
+  )
+  update public.agent_actions a
+     set status = 'dismissed', decided_at = now(), decided_by = 'sales_engineer',
+         detail = a.detail || jsonb_build_object('closed_because', 'the supplier no longer exists', 'supplier_gone', g.sid)
+    from gone g where a.id = g.id;
+  get diagnostics v_n = row_count;
+  return v_n;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_actions_fill_alternatives()
  RETURNS trigger
  LANGUAGE plpgsql

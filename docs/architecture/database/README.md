@@ -11,17 +11,17 @@ override list in the areas file), so a routine is found by its subject even thou
 
 | area | routines | tables | views | cron jobs | edge functions |
 |---|---:|---:|---:|---:|---:|
-| [Quotes, reveal and payments](quotes-reveal-payments.md) | 74 | 35 | 1 | 0 | 11 |
+| [Quotes, reveal and payments](quotes-reveal-payments.md) | 75 | 35 | 1 | 0 | 11 |
 | [Matching](matching.md) | 32 | 12 | 1 | 1 | 1 |
-| [Messaging, outbox and WhatsApp](messaging.md) | 126 | 48 | 1 | 2 | 20 |
-| [Suppliers and registration](suppliers-registration.md) | 252 | 77 | 10 | 16 | 9 |
+| [Messaging, outbox and WhatsApp](messaging.md) | 127 | 48 | 1 | 2 | 20 |
+| [Suppliers and registration](suppliers-registration.md) | 256 | 77 | 10 | 18 | 9 |
 | [Customers and inquiries](customers-inquiries.md) | 192 | 86 | 11 | 17 | 17 |
 | [Accounting](accounting.md) | 173 | 49 | 19 | 10 | 1 |
 | [Marketing](marketing.md) | 173 | 75 | 4 | 9 | 7 |
 | [Knowledge](knowledge.md) | 127 | 69 | 8 | 2 | 3 |
 | [IT, operations and monitoring](it-ops-monitoring.md) | 370 | 115 | 16 | 21 | 6 |
-| [Seats, agents and duties](seats-agents-duties.md) | 569 | 227 | 17 | 21 | 3 |
-| **total** | **2088** | **793** | **88** | **99** | **78** |
+| [Seats, agents and duties](seats-agents-duties.md) | 570 | 227 | 17 | 21 | 3 |
+| **total** | **2095** | **793** | **88** | **101** | **78** |
 
 ## How to read a routine row
 

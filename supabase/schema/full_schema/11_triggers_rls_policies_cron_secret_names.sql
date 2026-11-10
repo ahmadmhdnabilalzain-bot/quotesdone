@@ -180,6 +180,7 @@ CREATE TRIGGER zz_knowledge_library_mirror_ml AFTER INSERT OR UPDATE OF src, row
 CREATE TRIGGER zz_knowledge_library_mirror_ml_delete AFTER DELETE ON public.knowledge_vector_ml FOR EACH ROW WHEN ((old.src = ANY (ARRAY['kb_chunks'::text, 'ops_knowledge'::text, 'agent_knowledge'::text, 'sales_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'ceo_knowledge'::text, 'support_knowledge'::text]))) EXECUTE FUNCTION fn_knowledge_library_mirror_ml();
 CREATE TRIGGER a00_leads_sanctioned_row_is_never_deleted BEFORE DELETE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_row_is_permanent();
 CREATE TRIGGER a01_leads_sanctioned_identity_cannot_re_register BEFORE INSERT OR UPDATE OF company_name, trade_license_no, claimed_by, email ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_identity_cannot_re_register();
+CREATE TRIGGER a05_leads_licence_read_clock BEFORE INSERT OR UPDATE OF licence_read_state, license_doc_path ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_licence_read_clock();
 CREATE TRIGGER quote_reviews_follow_owner AFTER UPDATE OF claimed_by ON public.leads FOR EACH ROW WHEN ((old.claimed_by IS DISTINCT FROM new.claimed_by)) EXECUTE FUNCTION fn_quote_reviews_follow_owner();
 CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
 CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
@@ -198,6 +199,7 @@ CREATE TRIGGER z21_sign_supplier_on_acceptance AFTER UPDATE OF accepted_terms_at
 CREATE TRIGGER z40_leads_keep_the_public_name AFTER INSERT OR UPDATE OF company_name ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_leads_keep_the_public_name();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER z80_invite_same_day_brake AFTER UPDATE OF invite_status ON public.leads FOR EACH ROW WHEN (((new.invite_status = ANY (ARRAY['bounced'::text, 'complained'::text])) AND (old.invite_status IS DISTINCT FROM new.invite_status))) EXECUTE FUNCTION fn_invite_same_day_brake();
+CREATE TRIGGER z90_leads_gone_closes_its_pending_actions AFTER DELETE ON public.leads REFERENCING OLD TABLE AS gone FOR EACH STATEMENT EXECUTE FUNCTION fn_leads_gone_closes_its_pending_actions();
 CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
 CREATE TRIGGER zzz_leads_sanctioned_ban_is_permanent BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_row_is_permanent();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
@@ -1655,6 +1657,8 @@ select cron.schedule('seat_duty:ceo.org_task_handlers','*/5 * * * *',$CRON$set s
 select cron.schedule('seat_duty:it_engineer.safe_fix','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.safe_fix');$CRON$);
 select cron.schedule('sales_engineer_verification_rerun','* * * * *',$CRON$set statement_timeout = '50s'; select public.fn_sales_engineer_reruns_held_verifications();$CRON$);
 select cron.schedule('sales_engineer_agreement_resign','* * * * *',$CRON$set statement_timeout = '50s'; select public.fn_sales_engineer_resigns_unsigned_agreements();$CRON$);
+select cron.schedule('seat_duty:sales_engineer.request_outcomes','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.request_outcomes');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.abandoned_intakes','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.abandoned_intakes');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
@@ -1778,6 +1782,7 @@ select cron.schedule('sales_engineer_agreement_resign','* * * * *',$CRON$set sta
 --   cred_fn_to_pdf_native
 --   cred_fn_to_route_inquiry
 --   cred_fn_wa_docs
+--   cred_fn_wa_drawings
 --   cred_fn_wa_inbound
 --   cred_fn_wa_pdf
 --   cred_fn_workflow_dispatch
