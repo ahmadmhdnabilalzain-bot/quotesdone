@@ -5124,6 +5124,7 @@
   "e54485f1e472"
  ],
  "src/components/portal/supplier/SupplierEntryHero.tsx": [
+  "ed961be130fa",
   "0937105b3ced",
   "18ca9480dc4c",
   "2da9a56c06cf",
@@ -7625,6 +7626,8 @@
   "c09183a62789"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
+  "4444f5e0cd80",
+  "b53b02426594",
   "027ef5367e8d",
   "03eac81b0927",
   "09e27633881f",
