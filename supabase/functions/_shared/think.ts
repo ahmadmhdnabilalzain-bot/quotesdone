@@ -74,5 +74,5 @@ export { SYNTH_FOR_READERS, readerOfTheirOwnText } from './think/reader.ts';
 export { think } from './think/engine.ts';
 export { MIN_STEP_MS, withDeadline, defaultDeps, heartbeatDeps } from './think/deps.ts';
 export {
-  REPLAY_MAX_ROWS, REPLAY_BUDGET_MS, REPLAY_ROW_MS, REPLAY_CLAIM, REPLAY_RESERVE_MS, REPLAY_STALE_MS, replayHeld,
+  REPLAY_MAX_ROWS, REPLAY_BUDGET_MS, REPLAY_ROW_MS, REPLAY_CLAIM, REPLAY_RESERVE_MS, REPLAY_STALE_MS, REPLAY_ANSWER_RESERVE_MS, replayHeld,
 } from './think/replay.ts';

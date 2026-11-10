@@ -726,7 +726,18 @@ export async function handle(req: Request): Promise<Response> {
           }
 
           failStatus = r.ok ? null : r.status;
-          const j = await r.json().catch(() => null);
+          // OUR OWN WALL IS NOT AN EMPTY COMPLETION (it_engineer, 10 Nov 2026). OpenRouter answers HTTP 200 with its headers
+          // first and writes the body when the model is done, so the wall's abort lands HERE, while the body is read - and
+          // the swallowed rejection made j null and the attempt read "empty completion: finish_reason=none
+          // completion_tokens=?". Measured: 272 such attempts in llm_attempt from 20 Oct to 9 Nov, none with a usage block
+          // or a generation id, and not one "aborted" since 13 Oct; on 2-10 Nov 119 of them were the held replay's answers,
+          // ending 84-88 s (p10-p90) after their row's plan began: the replay's 90 s budget, not the provider. A body the
+          // provider finished that is not JSON stays an empty answer, as before.
+          // prevented by: ai_gateway/drill_provider_faults.test.ts ('D2 ... headers then nothing')
+          const j = await r.json().catch((_e) => {
+            if (ac.signal.aborted) throw new Error('gateway_wall: aborted after ' + (Date.now() - attemptStartedAt) + ' ms at the ' + wallBudgetMs + ' ms budget the caller declared; HTTP ' + r.status + ' headers had come, the body had not');
+            return null;
+          });
           const msg = j?.choices?.[0]?.message;
           const c = msg?.content;
           // A tool-calling reply is a SUCCESS with empty content - the answer is in tool_calls.

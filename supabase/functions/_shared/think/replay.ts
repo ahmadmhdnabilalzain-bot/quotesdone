@@ -45,6 +45,10 @@ export const REPLAY_CLAIM = 2;
 // for the next tick rather than running past its caller (review of #1688: the detached run is raced at 120 s).
 export const REPLAY_RESERVE_MS = 25_000;
 export const REPLAY_STALE_MS = 24 * 3600_000;
+// The answer's share of a row (withDeadline answerReserveMs): an answered internal_judgement call on gpt-6-luna-pro takes
+// p95 34.7 s, p99 44.0 s (llm_attempt, 2-10 Nov 2026), and llm.ts lets the gateway run 2 s past the call's own time, so
+// 40 s fits about 97 in 100 answers and leaves the plan and retrieval 50 s of the 90 s row (answered rows used p90 49 s).
+export const REPLAY_ANSWER_RESERVE_MS = 40_000;
 export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>,
   opts: { maxRows?: number; budgetMs?: number; rowMs?: number; staleMs?: number; now?: () => number; deadline?: number } = {}): Promise<unknown> {
   const now = opts.now ?? Date.now;
@@ -54,8 +58,9 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
   const rowMs = opts.rowMs ?? REPLAY_ROW_MS;
   const claimSize = Math.max(1, Math.min(limit, REPLAY_CLAIM));   // the rows reasoned together, never more than REPLAY_CLAIM
   // Every model call of every row ends by the budget: a call with under MIN_STEP_MS left is not started and the row
-  // stays held (turn_deadline), so the step never returns over a call still in flight.
-  const d = withDeadline(deps ?? heartbeatDeps(admin), t0 + budget, MIN_STEP_MS, now);
+  // stays held (turn_deadline), so the step never returns over a call still in flight. The plan and retrieval stop
+  // REPLAY_ANSWER_RESERVE_MS before the budget's end, so the answer is never the call left with the scraps.
+  const d = withDeadline(deps ?? heartbeatDeps(admin), t0 + budget, MIN_STEP_MS, now, REPLAY_ANSWER_RESERVE_MS);
   const staleMs = opts.staleMs ?? REPLAY_STALE_MS;
   // The sweep runs on every tick, hold or not (5 Oct 2026): until then it ran inside fn_reason_held_due, which this
   // function never reached while the hold was on, so fixture and stale rows piled up for the day the hold lifts.

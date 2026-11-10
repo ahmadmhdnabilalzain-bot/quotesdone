@@ -1,6 +1,6 @@
 // think/deps.ts — the live dependencies of think(), and a step under a caller's clock (moved whole from _shared/think.ts).
 import { HOLD_PROBE_MODEL } from '../llm_hold.ts';
-import type { Admin, EmbedSpace, ThinkDeps } from './types.ts';
+import type { Admin, EmbedSpace, Phase, ThinkDeps } from './types.ts';
 import { readPage, webSearch } from './research.ts';
 
 
@@ -11,14 +11,38 @@ import { readPage, webSearch } from './research.ts';
  *  answer and never retries (SLOW_MODEL_ERROR): the decision is held, nothing is chosen or filled. A per-call timeout is
  *  not a turn budget; this is. prevented by: _shared/think_deadline.test.ts */
 export const MIN_STEP_MS = 5_000;
-export function withDeadline(deps: ThinkDeps, deadline: number, minMs = MIN_STEP_MS, now: () => number = Date.now): ThinkDeps {
+// THE ANSWER KEEPS ITS OWN TIME (it_engineer, 10 Nov 2026). Measured on production (llm_attempt, 2-10 Nov): the held
+// replay's answer step (internal_judgement, gpt-6-luna-pro, fn resilience_ping) failed 119 of 317 times. Every failed
+// call ended 84-88 s (p10-p90) after the row's plan call started - the 90 s REPLAY_BUDGET_MS - because the plan (~20 s)
+// and the sequential retrieval of 5-6 plan steps (two remote embeds and one RPC each: 43 s median on the failed rows,
+// 18.5 s on the answered ones) spent the budget first, and the answer then started with about 13-47 s left (p10-p90) while
+// an answered call takes p50 22.5 s, p90 31.7 s, p95 34.7 s. The gateway cut it at its wall, mid-reasoning, and the
+// row was held with nothing to show for a paid call. With `answerReserveMs`, the work BEFORE the answer (the plan,
+// research reads, embeddings, web search and page reads) must end that long before `deadline`; past that line it is
+// not started (a planner that does not run answers from the one-step plan, a step that is not embedded is recorded
+// 'turn_deadline' and reads as thin), so the answer always starts with at least the reserve. 0 = no reserve, the
+// behaviour every other caller (the intake turn, the routine judgements, reasoned decisions) keeps.
+// prevented by: _shared/think_answer_reserve.test.ts
+const BEFORE_THE_ANSWER: ReadonlySet<Phase> = new Set<Phase>(['decompose', 'research']);
+export function withDeadline(deps: ThinkDeps, deadline: number, minMs = MIN_STEP_MS, now: () => number = Date.now, answerReserveMs = 0): ThinkDeps {
+  const line = deadline - Math.max(0, answerReserveMs);
+  const pastLine = () => answerReserveMs > 0 && now() >= line;
+  const skipped = new Set<string>();
+  const why = () => 'turn_deadline: past the ' + answerReserveMs + ' ms kept for the answer';
   return {
     ...deps,
     llm: async (phase, system, input, o) => {
-      const left = deadline - now();
-      if (left < minMs) return { content: null, model: null, error: 'turn_deadline: ' + Math.max(0, left) + ' ms left' };
+      const end = BEFORE_THE_ANSWER.has(phase) ? line : deadline;
+      const left = end - now();
+      if (left < minMs) return { content: null, model: null, error: 'turn_deadline: ' + Math.max(0, left) + ' ms left' + (end === deadline ? '' : ' before the ' + answerReserveMs + ' ms kept for the answer') };
       return await deps.llm(phase, system, input, { ...o, timeoutMs: Math.min(o.timeoutMs ?? left, left) });
     },
+    ...(answerReserveMs > 0 ? {
+      embed: (t: string, sp?: EmbedSpace) => { if (pastLine()) { skipped.add((sp ?? 'gte') + '\u0001' + t); return Promise.resolve(null); } return deps.embed(t, sp); },
+      embedFailure: (t: string, sp: EmbedSpace) => skipped.has(sp + '\u0001' + t) ? why() : (deps.embedFailure?.(t, sp) ?? null),
+      ...(deps.search ? { search: (q: string) => pastLine() ? Promise.resolve([]) : deps.search!(q) } : {}),
+      ...(deps.read ? { read: (u: string) => pastLine() ? Promise.resolve(null) : deps.read!(u) } : {}),
+    } : {}),
   };
 }
 
