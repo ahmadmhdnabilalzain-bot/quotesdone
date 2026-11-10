@@ -185,14 +185,14 @@
       "body_ar": "يجب أن يُعدّ الدراسات البيئية مستشارون مسجلون لدى الجهة الرقابية. إذ تسجل إدارة البيئة والاستدامة في بلدية دبي المستشارين البيئيين وتنشر قائمتهم (قائمة 2024 على موقعها)، وتحدد إرشاداتها متطلبات التصريح البيئي لمشاريع التطوير والبنية التحتية والصناعة. وفي أبوظبي يشترط قرار هيئة البيئة رقم 4 لسنة 2025 بشأن اعتماد وتسجيل مكاتب الاستشارات البيئية ألا تتعامل المنشآت إلا مع المكاتب المعتمدة والمسجلة، مع مراجعة سنوية للتصنيف (بحسب ما أُفيد). وللمناطق الحرة ومؤسسة تراخيص إداراتها البيئية. اطلب تسجيل المستشار لدى الجهة المعنية.",
       "sources": [
         "https://www.dm.gov.ae/municipality-business/environment-sustainability-technical-guidelines/registered-environmental-consultants-with-environment-department/",
-        "https://www.dm.gov.ae/wp-content/uploads/2024/05/1.-Guidance-on-the-Environmental-Clearance-EC-Requirements-for-Development-Infrastructure-Industrial-Projects-in-the-Emirate-of-Dubai.pdf",
-        "https://www.magzter.com/de/stories/newspaper/Gulf-Today/EAD-ISSUES-RESOLUTION-ON-APPROVAL-REGISTRATION-OF-ECOS"
+        "https://www.magzter.com/de/stories/newspaper/Gulf-Today/EAD-ISSUES-RESOLUTION-ON-APPROVAL-REGISTRATION-OF-ECOS",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/05/1.-Guidance-on-the-Environmental-Clearance-EC-Requirements-for-Development-Infrastructure-Industrial-Projects-in-the-Emirate-of-Dubai.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: Dubai Municipality's Environment Sustainability Department runs a registration process for environmental consultants so that environmental reports submitted to it are prepared by qualified registered consultants, and provides the latest list of registered consultants on request. Not confirmed: the EAD Resolution 4 of 2025 on environmental consultancy offices, which rests on a news report. Hosts not reachable from this session: the Environment Agency Abu Dhabi site (ead.gov.ae, not on the allowed list)."
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: Dubai Municipality's Environment Sustainability Department runs a registration process for environmental consultants so that environmental reports submitted to it are prepared by qualified registered consultants, and provides the latest list of registered consultants on request. Not confirmed: the EAD Resolution 4 of 2025 on environmental consultancy offices, which rests on a news report. Hosts not reachable from this session: the Environment Agency Abu Dhabi site (ead.gov.ae, not on the allowed list). Second page read 2026-11-10 (ledger 1597): DM's environmental clearance guidance for development, infrastructure and industrial projects (now read on dmpmedia.dm.gov.ae) and DM's registered-environmental-consultants page (which now says the latest list is sent on email request) confirmed. Still not confirmed: EAD's ECO registration resolution (magzter.com refused)."
     },
     {
       "id": "environmental_consultancy:quote-red-flags",
@@ -335,6 +335,20 @@
     },
     "k3_pages_opened": [
       "https://www.dm.gov.ae/municipality-business/environment-sustainability-technical-guidelines/registered-environmental-consultants-with-environment-department/"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "environmental_consultancy:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2024/05/1.-Guidance-on-the-Environmental-Clearance-EC-Requirements-for-Development-Infrastructure-Industrial-Projects-in-the-Emirate-of-Dubai.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

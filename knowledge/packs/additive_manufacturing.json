@@ -196,13 +196,14 @@
       "body_en": "No UAE product licence or conformity scheme applies to made-to-drawing 3D-printed parts: the controls are contractual. The buyer's drawing, material standard and inspection requirements govern, and the end user may add its own approved-vendor or approved-manufacturer list (ADNOC group companies, for example, register vendors and score the In-Country Value certificate in tenders). Parts for regulated sectors follow those sectors: aircraft parts need aviation release documents, pressure parts follow the pressure-equipment code named in the order. Goods produced in a free zone and delivered to the mainland pass customs at that point. This is the state as far as could be established by search.",
       "body_ar": "لا يلزم ترخيص منتج أو نظام مطابقة في الإمارات لـالقطع المطبوعة ثلاثياً المصنوعة حسب الرسم، فالضوابط تعاقدية: يحكمها رسم المشتري ومواصفة المادة ومتطلبات الفحص، وقد يضيف المستخدم النهائي قائمة موردين أو مصنّعين معتمدين (فشركات مجموعة أدنوك مثلاً تسجل الموردين وتقيّم شهادة القيمة المحلية المضافة في المناقصات). وتتبع قطع القطاعات المنظمة أنظمة قطاعاتها: فقطع الطائرات تحتاج وثائق إفراج جوية، وقطع الضغط تتبع كود معدات الضغط المذكور في الطلب. والبضائع المنتجة في منطقة حرة والمسلّمة إلى البر الرئيسي تمر بالجمارك عند ذلك. هذا ما أمكن التثبت منه بالبحث.",
       "sources": [
-        "https://www.adnoc.ae/en/incountry-value/unified-certification-process"
+        "https://www.adnoc.ae/en/incountry-value/unified-certification-process",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.adnoc.ae: not in the allowed network."
+      "verify_note": "Not verified on 2026-11-10 — www.adnoc.ae: not in the allowed network. Second page read 2026-11-10 (ledger 1597): Not confirmed again: www.adnoc.ae is refused by the session network, so ADNOC's ICV page was not read; MoIAT's regulated-products sheet lists no category for made-to-drawing parts."
     },
     {
       "id": "additive_manufacturing:quote-red-flags",
@@ -334,6 +335,20 @@
       "additive_manufacturing:buyer-mistakes",
       "additive_manufacturing:price-drivers",
       "additive_manufacturing:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "additive_manufacturing:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

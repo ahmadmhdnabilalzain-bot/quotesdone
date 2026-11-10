@@ -321,11 +321,14 @@
       "sources": [
         "https://dlp.dubai.gov.ae/Legislation%20Reference/2002/Local%20Order%20No.%20(8)%20of%202002%20Concerning%20Sewerage,%20Irrigation,%20and%20Water.html",
         "https://dda.gov.ae/en/planning-development/construction/permits-nocs/dewatering-noc",
-        "https://nimbusconsultancy.com/blogs/dubai-contractor-licensing-law-2026/"
+        "https://nimbusconsultancy.com/blogs/dubai-contractor-licensing-law-2026/",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs"
       ],
       "confidence": "low",
       "as_of": "2026-09-23",
-      "gap_kind": "technical"
+      "gap_kind": "technical",
+      "verify_note": "Second page read 2026-11-10 (ledger 1597): Second-pass check: DDA's permits list (dda.gov.ae) confirms separate mobilisation, excavation, shoring, piling, temporary construction, right-of-way and night-shift work permits, and Local Order No. 8 of 2002 on sewerage, irrigation and water and the DDA dewatering NOC opened; the practice guidance (scope lists, inspection stages, commercial norms) stays not established, so the entry stays low.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)"
     },
     {
       "id": "civil_works:site-safety",
@@ -1090,7 +1093,8 @@
       "ledger": 1597,
       "date": "2026-11-10",
       "checked": [
-        "civil_works:approvals-per-emirate"
+        "civil_works:approvals-per-emirate",
+        "civil_works:building-permit-contractor-role"
       ],
       "raised_to_high": [],
       "corrected": [],

@@ -189,17 +189,17 @@
       "topic": "HSE consultancy: licences, permits and approvals by emirate",
       "topic_ar": "استشارات الصحة والسلامة والبيئة: التراخيص والتصاريح والموافقات حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "In Abu Dhabi, the Abu Dhabi Occupational Safety and Health System Framework (OSHAD) registers OSH professional entities (Mechanism 7.0) and OSH practitioners (Mechanism 8.0), and sources describe practitioner registration as mandatory for health and safety professionals there. In Dubai, workplace safety requirements come from Dubai Municipality codes and the free zone or Trakhees for their areas. Fire risk and life safety are civil defence matters. The located sources are training providers and job postings; the official OSHAD pages were not opened.",
-      "body_ar": "في أبوظبي يسجل إطار نظام أبوظبي للسلامة والصحة المهنية (OSHAD) الجهات المهنية للسلامة (الآلية 7.0) والممارسين (الآلية 8.0)، وتصف المصادر تسجيل الممارسين بأنه إلزامي لمهنيي الصحة والسلامة هناك. وفي دبي تنشأ متطلبات سلامة مكان العمل من أدلة بلدية دبي وسلطة المنطقة الحرة أو مؤسسة الموانئ والجمارك والمنطقة الحرة (تراخيص) لمناطقها. ومخاطر الحريق وسلامة الأرواح من شأن الدفاع المدني. والمصادر المحددة جهات تدريب وإعلانات وظائف، ولم تُفتح صفحات OSHAD الرسمية.",
+      "body_en": "In Abu Dhabi, the Abu Dhabi Occupational Safety and Health System Framework (ADOSH-SF, formerly OSHAD,) registers OSH professional entities (Mechanism 7.0) and OSH practitioners (Mechanism 8.0), and sources describe practitioner registration as mandatory for health and safety professionals there. In Dubai, workplace safety requirements come from Dubai Municipality codes and the free zone or Trakhees for their areas. Fire risk and life safety are civil defence matters. The located sources are training providers and job postings; the official OSHAD pages were not opened.",
+      "body_ar": "في أبوظبي يسجل إطار نظام أبوظبي للسلامة والصحة المهنية (ADOSH-SF، OSHAD سابقاً،) الجهات المهنية للسلامة (الآلية 7.0) والممارسين (الآلية 8.0)، وتصف المصادر تسجيل الممارسين بأنه إلزامي لمهنيي الصحة والسلامة هناك. وفي دبي تنشأ متطلبات سلامة مكان العمل من أدلة بلدية دبي وسلطة المنطقة الحرة أو مؤسسة الموانئ والجمارك والمنطقة الحرة (تراخيص) لمناطقها. ومخاطر الحريق وسلامة الأرواح من شأن الدفاع المدني. والمصادر المحددة جهات تدريب وإعلانات وظائف، ولم تُفتح صفحات OSHAD الرسمية.",
       "sources": [
         "https://www.slideshare.net/FeliciaClark10/abu-dhabi-occupational-safety-and-health-system-framework-oshadsf-mechanisms-mechanism-80-osh-practitioner-registration",
         "https://dev.to/m2yglobalacademy1/osh-senior-practitioner-registration-in-abu-dhabi-complete-guide-2026-266m"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection. Second page read 2026-11-10 (ledger 1597): ADPHC's CoP 26.0 confirms the framework is now ADOSH-SF and lists 'OSHAD-SF - Mechanism 8.0 - OSH' among its references; the registration rules of Mechanisms 7.0 and 8.0 were not read (slideshare.net and dev.to are refused and not official). Renamed OSHAD to ADOSH-SF, formerly OSHAD (ADPHC CoP 26.0 revision history)."
     },
     {
       "id": "hse_consultancy:quote-red-flags",
@@ -290,7 +290,9 @@
   "verified": {
     "fetched_urls": 3,
     "claims_checked": 3,
-    "corrected": [],
+    "corrected": [
+      "hse_consultancy:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "hse_consultancy:spec-checklist",
@@ -343,6 +345,22 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "hse_consultancy:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "hse_consultancy:authority-approvals"
+      ],
+      "urls_read": [
+        "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/2026/COP-260--Scaffolding-v41-English.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

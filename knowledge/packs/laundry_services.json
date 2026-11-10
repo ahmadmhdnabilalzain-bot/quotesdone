@@ -191,8 +191,8 @@
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM issues an NOC to carry out public health and safety related activities once the establishment's interior layout is approved. Not confirmed on any reachable page: a laundry-specific permit in each emirate."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM issues an NOC to carry out public health and safety related activities once the establishment's interior layout is approved. Not confirmed on any reachable page: a laundry-specific permit in each emirate. Second page read 2026-11-10 (ledger 1597): DM services (re-read) list no laundry-specific approval; the per-emirate public-health permits remain unconfirmed."
     },
     {
       "id": "laundry_services:quote-red-flags",
@@ -329,6 +329,18 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: laundry_services:approvals-per-emirate re-checked against official pages opened through the session network (1 URL(s) read, 3 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "laundry_services:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

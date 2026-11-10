@@ -204,9 +204,9 @@
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.ippc.int: not in the allowed network; www.moccae.gov.ae: allowed but the site answers \"Request Rejected\" to this session."
+      "verify_note": "Not verified on 2026-11-10 — www.ippc.int: not in the allowed network; www.moccae.gov.ae: allowed but the site answers \"Request Rejected\" to this session. Second page read 2026-11-10 (ledger 1597): Not confirmed again: www.ippc.int is refused by the session network and MOCCAE's services page returns page-not-found; ISPM 15 is an international standard, not a UAE page."
     },
     {
       "id": "industrial_crating:quote-red-flags",
@@ -339,6 +339,18 @@
       "industrial_crating:buyer-mistakes",
       "industrial_crating:price-drivers",
       "industrial_crating:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "industrial_crating:authority-ispm15"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }
