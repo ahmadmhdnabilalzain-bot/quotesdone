@@ -26,7 +26,7 @@ Deno.test('one sentence that defers passes: the check runs per streamed sentence
 
 Deno.test('site_assistant hands this check to answerFromBrief', async () => {
   const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
-  assert(src.includes('check: siteReplyCheck(brief, sys, replyLang),'));
+  assert(src.includes("check: siteReplyCheck(brief, sys + '\\n\\n' + facts, replyLang),"));   // this turn's facts ride with the message (turn_facts.ts)
 });
 
 // The language is a WHOLE-reply rule (review of #1830): per sentence it refused the published contact line and English specs.
