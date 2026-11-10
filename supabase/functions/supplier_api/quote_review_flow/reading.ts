@@ -52,7 +52,7 @@ export async function readQuotationFile(bytes: Uint8Array, filename: string, mim
   if (vision && (!rd.ok || (!rd.text.trim() && !rd.tables.length && !rd.children.length))) {
     const a = await readEveryAttachment(bytes, filename, mime, vision);
     if (a.status === 'read' && a.by === 'model') return readQuotationFile(new TextEncoder().encode(transcriptAsText(a.text)), 'quotation.txt', 'text/plain', supplierTerms, readTerms, null);
-    return { proposal: null, text: '', kind: rd.ok ? rd.kind : 'image' };
+    return { proposal: null, text: '', kind: rd.ok ? rd.kind : 'image', reason: a.reason };
   }
   if (!rd.ok) return { proposal: null, text: '', kind: 'refused' };
   const texts: string[] = [];
