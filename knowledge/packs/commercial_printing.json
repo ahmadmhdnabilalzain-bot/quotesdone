@@ -5,8 +5,8 @@
       "id": "commercial_printing:spec-checklist",
       "topic": "Commercial printing - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for commercial printing must state: item and finished size; quantity; paper or substrate and weight; colours front and back; print process; finishing; artwork file and proof; content approval where required; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): item and finished size; quantity; paper or substrate and weight; colours front and back. Before a firm price: a firm price needs item, size, quantity, stock, colours and finishing; packaging and special finishes need a sample or dummy approved.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الطباعة التجارية: المادة والمقاس النهائي؛ الكمية؛ الورق أو الخامة ووزنها؛ الألوان للوجه والظهر؛ طريقة الطباعة؛ التشطيب؛ ملف التصميم والبروفة؛ الموافقة على المحتوى عند الحاجة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الصنف والمقاس النهائي، والكمية، والورق ووزنه، والألوان على الوجهين. التغليف والتشطيبات الخاصة تحتاج عيّنة أو نموذجاً معتمداً.",
+      "body_en": "Each quoted product line for commercial printing must state: item and finished size; quantity; paper or substrate and weight; colours front and back; print process; finishing; artwork file and proof; content approval where required; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): item and finished size; quantity; paper or substrate and weight; colours front and back. Before a firm price: a firm price needs item, size, quantity, stock, colours and finishing; packaging and special finishes need a sample or dummy approved. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states number of designs or versions; delivery emirate and site; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الطباعة التجارية: المادة والمقاس النهائي؛ الكمية؛ الورق أو الخامة ووزنها؛ الألوان للوجه والظهر؛ طريقة الطباعة؛ التشطيب؛ ملف التصميم والبروفة؛ الموافقة على المحتوى عند الحاجة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الصنف والمقاس النهائي، والكمية، والورق ووزنه، والألوان على الوجهين. التغليف والتشطيبات الخاصة تحتاج عيّنة أو نموذجاً معتمداً. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً عدد التصاميم أو النسخ، وإمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "item and finished size",
         "quantity",
@@ -20,7 +20,10 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "number of designs or versions",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
@@ -124,10 +127,32 @@
           "uae_options": "design; storage",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "number of designs or versions",
+          "blocking": false,
+          "why_needed_to_price": "Each different design or language version needs its own plates or set-up, so the same total quantity costs more when split.",
+          "uae_options": "One design; a stated number of versions; variable data per piece.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "a firm price needs item, size, quantity, stock, colours and finishing; packaging and special finishes need a sample or dummy approved.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "commercial_printing:uae-standards-and-approvals",

@@ -222,8 +222,8 @@
       "id": "civil_works:soil-investigation",
       "topic": "Soil investigation before civil works",
       "kind": "spec_checklist",
-      "body_en": "A civil contractor or client commissioning a soil investigation should specify enough for a reliable foundation design. Items to define: number and location of boreholes (typically set by the geotechnical or structural engineer according to footprint and building load), depth of each borehole (below expected foundation or pile toe level), in-situ testing (standard penetration tests at intervals, cone penetration tests where suitable, pressuremeter or packer tests for rock and permeability as needed), groundwater observation (standpipes to record levels over time), sampling and laboratory testing (particle size, Atterberg limits, moisture, density, strength, and chemical tests for chlorides, sulphates and pH to set concrete durability), rock coring and strength tests where rock is encountered, and a factual and interpretative report with foundation recommendations, bearing capacity, settlement, pile capacity estimates, excavation and dewatering advice and seismic site class. The testing firm should be accredited (for example by EIAC) and approved by the authority. Buyers should ensure the investigation covers any proposed basement depth and the influence zone of piles; skimping here often costs far more later in foundations or claims. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): number, location and depth of boreholes.",
-      "body_ar": "يجب على المقاول المدني أو العميل الذي يطلب فحص تربة أن يحدد ما يكفي لتصميم أساسات موثوق. البنود المطلوب تحديدها: عدد الجسات ومواقعها، ويحددها عادة المهندس الجيوتقني أو الإنشائي حسب مساحة المبنى وحمله، وعمق كل جسة أسفل منسوب الأساس أو رأس الخازوق المتوقع، والاختبارات الموقعية من اختبارات الاختراق القياسي على فترات والاختراق المخروطي حيث يناسب واختبارات مقياس الضغط أو النفاذية للصخر عند الحاجة، ورصد المياه الجوفية بأنابيب قياس لتسجيل المناسيب مع الوقت، وأخذ العينات والاختبارات المعملية من تدرج الحبيبات وحدود أتربرغ والرطوبة والكثافة والمقاومة والاختبارات الكيميائية للكلوريدات والكبريتات والرقم الهيدروجيني لتحديد متانة الخرسانة، وأخذ لباب الصخر واختبارات مقاومته عند مواجهته، وتقريراً حقائقياً وتفسيرياً بتوصيات الأساسات وقدرة التحمل والهبوط وتقديرات قدرة الخوازيق ونصائح الحفر والنزح والفئة الزلزالية للموقع. يجب أن تكون شركة الفحص معتمدة، مثلاً من مركز الإمارات الدولي للاعتماد، ومعتمدة لدى الجهة. على المشتري التأكد من أن الفحص يغطي عمق القبو المقترح ومنطقة تأثير الخوازيق؛ فالتوفير هنا يكلف غالباً أكثر بكثير لاحقاً في الأساسات أو المطالبات. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: عدد الجسات ومواقعها وأعماقها.",
+      "body_en": "A civil contractor or client commissioning a soil investigation should specify enough for a reliable foundation design. Items to define: number and location of boreholes (typically set by the geotechnical or structural engineer according to footprint and building load), depth of each borehole (below expected foundation or pile toe level), in-situ testing (standard penetration tests at intervals, cone penetration tests where suitable, pressuremeter or packer tests for rock and permeability as needed), groundwater observation (standpipes to record levels over time), sampling and laboratory testing (particle size, Atterberg limits, moisture, density, strength, and chemical tests for chlorides, sulphates and pH to set concrete durability), rock coring and strength tests where rock is encountered, and a factual and interpretative report with foundation recommendations, bearing capacity, settlement, pile capacity estimates, excavation and dewatering advice and seismic site class. The testing firm should be accredited (for example by EIAC) and approved by the authority. Buyers should ensure the investigation covers any proposed basement depth and the influence zone of piles; skimping here often costs far more later in foundations or claims. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): plot location and emirate; number, location and depth of boreholes. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states plot location and emirate; utility NOCs and permits for drilling; payment terms; required report date.",
+      "body_ar": "يجب على المقاول المدني أو العميل الذي يطلب فحص تربة أن يحدد ما يكفي لتصميم أساسات موثوق. البنود المطلوب تحديدها: عدد الجسات ومواقعها، ويحددها عادة المهندس الجيوتقني أو الإنشائي حسب مساحة المبنى وحمله، وعمق كل جسة أسفل منسوب الأساس أو رأس الخازوق المتوقع، والاختبارات الموقعية من اختبارات الاختراق القياسي على فترات والاختراق المخروطي حيث يناسب واختبارات مقياس الضغط أو النفاذية للصخر عند الحاجة، ورصد المياه الجوفية بأنابيب قياس لتسجيل المناسيب مع الوقت، وأخذ العينات والاختبارات المعملية من تدرج الحبيبات وحدود أتربرغ والرطوبة والكثافة والمقاومة والاختبارات الكيميائية للكلوريدات والكبريتات والرقم الهيدروجيني لتحديد متانة الخرسانة، وأخذ لباب الصخر واختبارات مقاومته عند مواجهته، وتقريراً حقائقياً وتفسيرياً بتوصيات الأساسات وقدرة التحمل والهبوط وتقديرات قدرة الخوازيق ونصائح الحفر والنزح والفئة الزلزالية للموقع. يجب أن تكون شركة الفحص معتمدة، مثلاً من مركز الإمارات الدولي للاعتماد، ومعتمدة لدى الجهة. على المشتري التأكد من أن الفحص يغطي عمق القبو المقترح ومنطقة تأثير الخوازيق؛ فالتوفير هنا يكلف غالباً أكثر بكثير لاحقاً في الأساسات أو المطالبات. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، وعدد الجسات ومواقعها وأعماقها. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، ومسؤولية التصاريح ورسوم الجهات، وشروط الدفع، وتاريخ التسليم أو الإنجاز المطلوب.",
       "required_specs": [
         "number and location of boreholes",
         "borehole depths",
@@ -233,7 +233,11 @@
         "rock coring if applicable",
         "interpretative report scope",
         "accredited and authority-approved lab",
-        "basement depth and pile zone coverage"
+        "basement depth and pile zone coverage",
+        "plot location and emirate",
+        "utility NOCs and permits for drilling",
+        "payment terms",
+        "required report date"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Geotechnical_investigation"
@@ -242,7 +246,8 @@
       "as_of": "2026-09-23",
       "blocking": [
         "number and location of boreholes",
-        "borehole depths"
+        "borehole depths",
+        "plot location and emirate"
       ],
       "spec_guide": [
         {
@@ -307,10 +312,39 @@
           "uae_options": "Borehole depth beyond pile toe or basement level.",
           "follow_up_if": "If piles are planned, ask for their expected length.",
           "blocking": false
+        },
+        {
+          "spec": "plot location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "utility NOCs and permits for drilling",
+          "blocking": false,
+          "why_needed_to_price": "Who obtains and pays the authority, landlord or community permits and NOCs changes the price by the fees and the time spent.",
+          "uae_options": "Supplier obtains and pays; supplier obtains, customer pays at cost; customer obtains.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        },
+        {
+          "spec": "required report date",
+          "blocking": false,
+          "why_needed_to_price": "An urgent date can mean air freight, overtime or only in-stock options, which change the price.",
+          "uae_options": "A date or week; urgent; flexible.",
+          "follow_up_if": ""
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": "A site visit is needed to confirm access for the drilling rig and the borehole positions."
+      "site_visit_required_when": "A site visit is needed to confirm access for the drilling rig and the borehole positions.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "civil_works:building-permit-contractor-role",

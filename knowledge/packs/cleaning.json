@@ -5,8 +5,8 @@
       "id": "cleaning:spec-checklist",
       "topic": "Cleaning services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for cleaning services must state: area and type of premises; cleaning scope and frequency; number of staff and hours; consumables and chemicals; equipment provided; supervision; performance checks; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): one-off or contract, area and use, scope and frequency, staff and hours, and consumables. Deep and post-construction cleans need a site visit.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة خدمات التنظيف: مساحة ونوع المنشأة؛ نطاق التنظيف وتكراره؛ عدد العمال والساعات؛ المستهلكات والمواد الكيميائية؛ المعدات المقدمة؛ الإشراف؛ فحوص الأداء؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: تنظيف لمرة واحدة أو عقد دوري، والمساحة والاستخدام، والنطاق والتكرار، وعدد العمال والساعات، والمواد الاستهلاكية. والتنظيف العميق وتنظيف ما بعد البناء يحتاجان إلى زيارة الموقع.",
+      "body_en": "Each quoted service line for cleaning services must state: area and type of premises; cleaning scope and frequency; number of staff and hours; consumables and chemicals; equipment provided; supervision; performance checks; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): premises location and emirate; one-off or contract, area and use, scope and frequency, staff and hours, and consumables. Deep and post-construction cleans need a site visit. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states premises location and emirate.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة خدمات التنظيف: مساحة ونوع المنشأة؛ نطاق التنظيف وتكراره؛ عدد العمال والساعات؛ المستهلكات والمواد الكيميائية؛ المعدات المقدمة؛ الإشراف؛ فحوص الأداء؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، وتنظيف لمرة واحدة أو عقد دوري، والمساحة والاستخدام، والنطاق والتكرار، وعدد العمال والساعات، والمواد الاستهلاكية. والتنظيف العميق وتنظيف ما بعد البناء يحتاجان إلى زيارة الموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة.",
       "required_specs": [
         "area and type of premises",
         "cleaning scope and frequency",
@@ -20,7 +20,8 @@
         "contract duration",
         "pricing basis",
         "exclusions",
-        "one-off deep clean or recurring contract"
+        "one-off deep clean or recurring contract",
+        "premises location and emirate"
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
@@ -32,7 +33,8 @@
         "area and type of premises",
         "cleaning scope and frequency",
         "number of staff and hours",
-        "consumables and chemicals"
+        "consumables and chemicals",
+        "premises location and emirate"
       ],
       "spec_guide": [
         {
@@ -125,10 +127,18 @@
           "uae_options": "one-off; daily; weekly; monthly contract",
           "follow_up_if": "After-construction cleaning: ask about paint, cement and sticker removal.",
           "blocking": true
+        },
+        {
+          "spec": "premises location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
         }
       ],
       "site_visit_required_when": "A site visit is genuinely needed for deep cleaning, after-construction cleaning and large contracts, to see the condition and measure areas.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "cleaning:uae-standards-and-approvals",
