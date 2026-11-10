@@ -40,7 +40,7 @@ test('the probe asks production the fixture\'s matrix, row for row', () => {
   assert.ok(mx.rows.length >= 40 && new Set(fx.rows.map((r) => r.group)).size === 12, 'the matrix no longer spans the 12 groups');
   assert.match(R(PROBE), /raise exception 'CHK<<%>>'/, 'the probe does not end in its rolled-back verdict');
   // its suppliers are the factory-built ZZ DEMO ones at @example.invalid; it creates none (an approved supplier needs the six)
-  assert.match(R(PROBE), /company_name ~\* '\^\\s\*zz\\s\*demo' and l\.email like '%@example\.invalid'/, 'the probe\'s suppliers are not ZZ DEMO at @example.invalid');
+  assert.match(R(PROBE), /company_name ~\* '\^\\s\*\(zz\|qd\)\\s\*demo' and l\.email like '%@example\.invalid'/, 'the probe\'s suppliers are not ZZ DEMO at @example.invalid');
   assert.doesNotMatch(code(R(PROBE)), /insert into public\.leads/, 'the probe creates a supplier');
 });
 

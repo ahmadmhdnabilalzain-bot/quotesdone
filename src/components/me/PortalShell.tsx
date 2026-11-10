@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { BrandMark } from '@/components/BrandMark';
 import { NAV_GROUPS, MOBILE_PRIMARY } from './shell/navGroups';
 import { AssistantPanel } from './shell/AssistantPanel';
+import { afterEscape, afterMoreToggle, afterNavigate } from '@/lib/portalPanels';
 export { NAV_GROUPS } from './shell/navGroups';
 export { AssistantPanel } from './shell/AssistantPanel';
 export { StatTile, RFQ_STATE, rfqState, StatusPill } from './shell/StatusParts';
@@ -66,6 +67,14 @@ export function PortalShell({
   const [seed, setSeed] = useState('');
   const [q, setQ] = useState('');
   const searchRef = useRef(null);
+  // The three panels move together through src/lib/portalPanels.ts: on a phone a tab, the More sheet or Escape never
+  // leaves the full-width assistant covering what was chosen (measured 10 Nov 2026, e2e run b9d7d1d5).
+  const panelsNow = useRef({ asst: false, more: false, bell: false });
+  panelsNow.current = { asst: asstOpen, more: moreOpen, bell: bellOpen };
+  const setPanels = (p) => {
+    setAsstOpen(p.asst); setMoreOpen(p.more); setBellOpen(p.bell);
+    if (!p.asst) setSeed('');
+  };
 
   // FOCUS COMES BACK TO THE CONTROL THAT OPENED THE PANEL (a11y review, 18 Sep 2026).
   // Choosing a destination in the More sheet, or an alert in the bell list, or closing the
@@ -119,13 +128,13 @@ export function PortalShell({
   useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 'k') { e.preventDefault(); if (searchRef.current) searchRef.current.focus(); }
-      if (e.key === 'Escape') { setMoreOpen(false); setBellOpen(false); }
+      if (e.key === 'Escape') setPanels(afterEscape(panelsNow.current));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const go = (id) => { setMoreOpen(false); onView(id); };
+  const go = (id) => { setPanels(afterNavigate(panelsNow.current, narrow)); onView(id); };
   const submitAsk = (e) => {
     e.preventDefault();
     const text = q.trim(); if (!text) { setAsstOpen(true); return; }
@@ -322,7 +331,7 @@ export function PortalShell({
             </button>
           );
         })}
-        <button type="button" ref={moreBtn} onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-controls="qd-nav-more"
+        <button type="button" ref={moreBtn} onClick={() => setPanels(afterMoreToggle(panelsNow.current))} aria-expanded={moreOpen} aria-controls="qd-nav-more"
           className={cn('flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[11.5px] font-semibold leading-tight transition-colors',
             'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
             moreOpen ? 'text-primary' : 'text-foreground/75')}>

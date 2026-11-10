@@ -86,7 +86,9 @@ const STEPS = [
   // cdn.jsdelivr.net needs no substitute here (#1653): ml_embed.ts carries @ts-types from npm, so deno check reads no +esm.
   ['deno-all', 'deno-check', 'typecheck every edge function', () => 'deno check --no-lock --node-modules-dir=auto '
     + readdirSync(join(REPO, 'supabase/functions')).filter((d) => existsSync(join(REPO, 'supabase/functions', d, 'index.ts'))).map((d) => `supabase/functions/${d}/index.ts`).join(' '), { heavy: true }],
-  ['otp-race', 'otp-race', 'a sign-in code survives 5 guesses and verifies once under a burst', 'deno test --no-lock --node-modules-dir=auto --allow-read --allow-write=node_modules --allow-env --allow-net supabase/functions/login_otp/verify_race.check.ts', { postgres: true }],
+  // One throwaway Postgres for both races: the sign-in code, and an approval that never waits on another transaction's
+  // founding-rank lock (10 Nov 2026: a services confirm timed out twice behind it).
+  ['otp-race', 'otp-race', 'a sign-in code survives 5 guesses and verifies once under a burst; an approval never waits on the rank lock', 'deno test --no-lock --node-modules-dir=auto --allow-read --allow-write=node_modules --allow-env --allow-net supabase/functions/login_otp/verify_race.check.ts supabase/functions/_shared/founding_rank_race.check.ts', { postgres: true }],
   // project-parity.yml, job parity: production, serial
   ['receipts', 'parity', 'a forwarded receipt is booked or owned by finance', 'node --test scripts/checks/receipts_never_wait_on_the_founder.test.mjs', { prod: true }],
   ['fn-owner', 'parity', 'every deployed function has exactly one owner', 'node scripts/checks/every_deployed_function_has_an_owner.mjs', { prod: true }],

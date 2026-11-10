@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-10T10:09:46.282Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-10T14:08:37.595Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -224,7 +224,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (790) =====
+-- ===== TABLES (793) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4409,6 +4409,34 @@ CREATE TABLE IF NOT EXISTS public.inquiry_scope_disposition (
   party_role text,
   party_clause_index integer,
   sentence_index integer
+);
+
+CREATE TABLE IF NOT EXISTS public.inquiry_state (
+  conv_key text NOT NULL,
+  surface text NOT NULL,
+  party_key text,
+  episode_from integer DEFAULT 0 NOT NULL,
+  intake_id uuid,
+  source_key text,
+  carried_to text,
+  trade text,
+  trade_codes text[] DEFAULT '{}'::text[] NOT NULL,
+  specs jsonb DEFAULT '{}'::jsonb NOT NULL,
+  unknown jsonb DEFAULT '{}'::jsonb NOT NULL,
+  asked jsonb DEFAULT '{}'::jsonb NOT NULL,
+  language text,
+  dialect text,
+  dialect_by text,
+  script text,
+  message_count integer DEFAULT 0 NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  handoff_id bigint,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  condition jsonb DEFAULT '{}'::jsonb NOT NULL,
+  options_offered jsonb DEFAULT '[]'::jsonb NOT NULL,
+  chosen_option jsonb,
+  budget jsonb
 );
 
 CREATE TABLE IF NOT EXISTS public.inquiry_state_audit (
@@ -9240,6 +9268,22 @@ CREATE TABLE IF NOT EXISTS public.seo_categories (
   updated_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.service_alias_proposal (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  phrase text NOT NULL,
+  phrase_norm text NOT NULL,
+  trade_code text NOT NULL,
+  code text NOT NULL,
+  source text NOT NULL,
+  supplier_ids bigint[] DEFAULT '{}'::bigint[] NOT NULL,
+  seen integer DEFAULT 1 NOT NULL,
+  status text DEFAULT 'proposed'::text NOT NULL,
+  decided_by text,
+  decided_at timestamp with time zone,
+  reason text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.service_implication (
   from_code text NOT NULL,
   implies_trade text NOT NULL,
@@ -9636,7 +9680,8 @@ CREATE TABLE IF NOT EXISTS public.supplier_capabilities (
   services_raw_text text,
   services_implied text[] DEFAULT '{}'::text[] NOT NULL,
   services_removed text[] DEFAULT '{}'::text[] NOT NULL,
-  services_rewritten_at timestamp with time zone
+  services_rewritten_at timestamp with time zone,
+  service_phrases jsonb DEFAULT '[]'::jsonb NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.supplier_capability_confirmation (
@@ -10486,6 +10531,15 @@ CREATE TABLE IF NOT EXISTS public.taxonomy_trade (
   umbrella_code text
 );
 
+CREATE TABLE IF NOT EXISTS public.taxonomy_trade_adjacent (
+  a_code text NOT NULL,
+  b_code text NOT NULL,
+  reason_en text NOT NULL,
+  reason_ar text NOT NULL,
+  active boolean DEFAULT true NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.taxonomy_trade_code (
   trade_code text NOT NULL,
   scheme text NOT NULL,
@@ -11195,6 +11249,7 @@ ALTER TABLE public.inquiry_intake ADD CONSTRAINT inquiry_intake_pkey PRIMARY KEY
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_requirement ADD CONSTRAINT inquiry_requirement_pkey PRIMARY KEY (inquiry_id);
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_pkey PRIMARY KEY (id);
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_pkey PRIMARY KEY (conv_key);
 ALTER TABLE public.inquiry_state_audit ADD CONSTRAINT inquiry_state_audit_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_supplier_brief ADD CONSTRAINT inquiry_supplier_brief_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_pkey PRIMARY KEY (id);
@@ -11549,6 +11604,7 @@ ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_pkey PRIMARY KEY (na
 ALTER TABLE public.security_kpi_snapshots ADD CONSTRAINT security_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.self_review ADD CONSTRAINT self_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY (slug);
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_pkey PRIMARY KEY (id);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_pkey PRIMARY KEY (from_code, implies_trade, implies_code);
 ALTER TABLE public.signup_purge ADD CONSTRAINT signup_purge_pkey PRIMARY KEY (id);
 ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_pkey PRIMARY KEY (id);
@@ -11633,6 +11689,7 @@ ALTER TABLE public.target_path ADD CONSTRAINT target_path_pkey PRIMARY KEY (cont
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_pkey PRIMARY KEY (id);
 ALTER TABLE public.taxonomy_role ADD CONSTRAINT taxonomy_role_pkey PRIMARY KEY (code);
 ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_pkey PRIMARY KEY (code);
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_pkey PRIMARY KEY (a_code, b_code);
 ALTER TABLE public.taxonomy_trade_code ADD CONSTRAINT taxonomy_trade_code_pkey PRIMARY KEY (trade_code, scheme, code);
 ALTER TABLE public.taxonomy_trade_group ADD CONSTRAINT taxonomy_trade_group_pkey PRIMARY KEY (code);
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_pkey PRIMARY KEY (id);
@@ -11787,6 +11844,7 @@ ALTER TABLE public.sales_engineer_negotiation_round ADD CONSTRAINT sales_enginee
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_question_norm_key UNIQUE (question_norm);
 ALTER TABLE public.seat_case_memory ADD CONSTRAINT seat_case_memory_source_uq UNIQUE (source_table, source_id);
 ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_seat_pack_lang_question_key UNIQUE (seat, pack, lang, question);
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_phrase_norm_trade_code_code_key UNIQUE (phrase_norm, trade_code, code);
 ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_doc_backup_id_key UNIQUE (doc_backup_id);
 ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_bucket_path_key UNIQUE (bucket, path);
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_state_hash_key UNIQUE (state_hash);
@@ -12156,6 +12214,22 @@ ALTER TABLE public.inquiry_gate_required ADD CONSTRAINT inquiry_gate_required_le
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_similarity_fraction CHECK (((similarity IS NULL) OR ((similarity >= (0)::numeric) AND (similarity <= (1)::numeric))));
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_confirmation_status_check CHECK ((confirmation_status = ANY (ARRAY['inferred'::text, 'confirmed'::text, 'rejected'::text])));
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_source_kind_check CHECK ((source_kind = ANY (ARRAY['customer_text'::text, 'structured_answer'::text, 'document_extraction'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_asked_check CHECK ((jsonb_typeof(asked) = 'object'::text));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_budget_check CHECK (((budget IS NULL) OR (jsonb_typeof(budget) = 'object'::text)));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_chosen_option_check CHECK (((chosen_option IS NULL) OR (jsonb_typeof(chosen_option) = 'object'::text)));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_condition_check CHECK ((jsonb_typeof(condition) = 'object'::text));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_conv_key_check CHECK ((btrim(conv_key) <> ''::text));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_dialect_by_check CHECK ((dialect_by = ANY (ARRAY['model'::text, 'markers'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_dialect_check CHECK ((dialect = ANY (ARRAY['gulf'::text, 'egyptian'::text, 'levantine'::text, 'msa'::text, 'english'::text, 'arabizi'::text, 'mixed'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_episode_from_check CHECK ((episode_from >= 0));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_language_check CHECK ((language = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_message_count_check CHECK ((message_count >= 0));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_options_offered_check CHECK ((jsonb_typeof(options_offered) = 'array'::text));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_script_check CHECK ((script = ANY (ARRAY['arabic'::text, 'latin'::text, 'arabizi'::text, 'mixed'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_specs_check CHECK ((jsonb_typeof(specs) = 'object'::text));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_status_check CHECK ((status = ANY (ARRAY['open'::text, 'converging'::text, 'summarising'::text, 'handed_off'::text, 'carried'::text, 'closed'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_surface_check CHECK ((surface = ANY (ARRAY['request_chat'::text, 'portal_assistant'::text, 'widget'::text, 'whatsapp'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_unknown_check CHECK ((jsonb_typeof(unknown) = 'object'::text));
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_confidence_check CHECK (((evidence_score >= (0)::numeric) AND (evidence_score <= (1)::numeric)));
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_evidence_source_check CHECK ((evidence_source = ANY (ARRAY['structured_answer'::text, 'customer_text'::text, 'scope_rule'::text, 'alias'::text, 'document_extraction'::text])));
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_score_basis_check CHECK ((score_basis = ANY (ARRAY['rule_weight_provisional'::text, 'calibrated_frequency'::text, 'measured_probability'::text])));
@@ -12749,6 +12823,9 @@ ALTER TABLE public.seat_senior_exam ADD CONSTRAINT seat_senior_exam_check CHECK 
 ALTER TABLE public.seat_senior_exam ADD CONSTRAINT seat_senior_exam_items_check CHECK ((items > 0));
 ALTER TABLE public.seat_senior_verdict ADD CONSTRAINT seat_senior_verdict_level_check CHECK ((level = ANY (ARRAY['junior'::text, 'mid'::text, 'senior'::text])));
 ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'partial'::text])));
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_phrase_check CHECK (((char_length(btrim(phrase)) >= 3) AND (char_length(btrim(phrase)) <= 120)));
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_source_check CHECK ((source = ANY (ARRAY['supplier_confirmed'::text, 'profile'::text, 'curated'::text])));
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'approved'::text, 'rejected'::text])));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_from_code_check CHECK ((from_code ~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)?$'::text));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_itself CHECK ((from_code <> ((implies_trade || '.'::text) || implies_code)));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
@@ -12896,6 +12973,9 @@ ALTER TABLE public.target_path ADD CONSTRAINT target_path_tolerance_pct_check CH
 ALTER TABLE public.target_path ADD CONSTRAINT target_path_value_check CHECK ((value >= (0)::numeric));
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_verdict_check CHECK ((verdict = ANY (ARRAY['ACHIEVABLE'::text, 'AT_RISK'::text, 'NOT_ACHIEVABLE'::text, 'CANNOT_ASSESS'::text])));
 ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_umbrella_is_another_trade CHECK ((umbrella_code IS DISTINCT FROM code));
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_check CHECK ((a_code < b_code));
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_reason_en_check CHECK ((char_length(reason_en) >= 10));
 ALTER TABLE public.taxonomy_trade_code ADD CONSTRAINT taxonomy_trade_code_code_check CHECK ((code ~ '^[0-9]{4,10}$'::text));
 ALTER TABLE public.taxonomy_trade_code ADD CONSTRAINT taxonomy_trade_code_scheme_check CHECK ((scheme = ANY (ARRAY['isic4'::text, 'uae_activity'::text, 'unspsc'::text])));
 ALTER TABLE public.taxonomy_trade_group ADD CONSTRAINT taxonomy_trade_group_code_check CHECK ((code ~ '^[a-z][a-z0-9_]*$'::text));
@@ -13078,6 +13158,8 @@ ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_dispos
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_scope_component_fkey FOREIGN KEY (scope_component) REFERENCES scope_component(component);
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_intake_id_fkey FOREIGN KEY (intake_id) REFERENCES inquiry_intake(id) ON DELETE SET NULL;
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_source_key_fkey FOREIGN KEY (source_key) REFERENCES inquiry_state(conv_key) ON DELETE SET NULL;
 ALTER TABLE public.inquiry_supplier_brief ADD CONSTRAINT inquiry_supplier_brief_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
@@ -13238,6 +13320,7 @@ ALTER TABLE public.seat_self_review ADD CONSTRAINT seat_self_review_seat_fkey FO
 ALTER TABLE public.seat_senior_contribution ADD CONSTRAINT seat_senior_contribution_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_senior_exam ADD CONSTRAINT seat_senior_exam_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_senior_verdict ADD CONSTRAINT seat_senior_verdict_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_trade_code_code_fkey FOREIGN KEY (trade_code, code) REFERENCES taxonomy_trade_service(trade_code, code);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_purge_id_fkey FOREIGN KEY (purge_id) REFERENCES signup_purge(id) ON DELETE CASCADE;
 ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_purge_id_fkey FOREIGN KEY (purge_id) REFERENCES signup_purge(id) ON DELETE CASCADE;
@@ -13301,6 +13384,8 @@ ALTER TABLE public.target_path ADD CONSTRAINT target_path_owner_seat_fkey FOREIG
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_contract_id_fkey FOREIGN KEY (contract_id) REFERENCES target_contract(id) ON DELETE CASCADE;
 ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_group_code_fkey FOREIGN KEY (group_code) REFERENCES taxonomy_trade_group(code) ON UPDATE CASCADE;
 ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_umbrella_code_fkey FOREIGN KEY (umbrella_code) REFERENCES taxonomy_trade(code) ON UPDATE CASCADE;
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_a_code_fkey FOREIGN KEY (a_code) REFERENCES taxonomy_trade(code);
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_b_code_fkey FOREIGN KEY (b_code) REFERENCES taxonomy_trade(code);
 ALTER TABLE public.taxonomy_trade_code ADD CONSTRAINT taxonomy_trade_code_trade_code_fkey FOREIGN KEY (trade_code) REFERENCES taxonomy_trade(code) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_mapped_to_fkey FOREIGN KEY (mapped_to) REFERENCES taxonomy_trade(code);
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
@@ -13562,6 +13647,8 @@ CREATE UNIQUE INDEX inquiry_intake_one_open_repeat ON public.inquiry_intake USIN
 CREATE INDEX inquiry_intake_status_idx ON public.inquiry_intake USING btree (status);
 CREATE INDEX inquiry_scope_disposition_group_idx ON public.inquiry_scope_disposition USING btree (group_id, trade_key, scope_component);
 CREATE INDEX inquiry_state_audit_group_idx ON public.inquiry_state_audit USING btree (group_id, at DESC);
+CREATE INDEX inquiry_state_intake_idx ON public.inquiry_state USING btree (intake_id) WHERE (intake_id IS NOT NULL);
+CREATE INDEX inquiry_state_party_recent_idx ON public.inquiry_state USING btree (party_key, updated_at DESC);
 CREATE INDEX inquiry_supplier_brief_inquiry_idx ON public.inquiry_supplier_brief USING btree (inquiry_id, version DESC);
 CREATE UNIQUE INDEX inquiry_trade_clarification_open_uidx ON public.inquiry_trade_clarification USING btree (group_id) WHERE (answered_at IS NULL);
 CREATE INDEX internal_credential_audit_at ON public.internal_credential_audit USING btree (at DESC);
@@ -13834,6 +13921,7 @@ CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseli
 CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX service_alias_proposal_open_idx ON public.service_alias_proposal USING btree (created_at) WHERE (status = 'proposed'::text);
 CREATE INDEX site_uptime_check_pending ON public.site_uptime_check USING btree (request_id) WHERE ((answered_at IS NULL) AND (error IS NULL));
 CREATE INDEX site_uptime_check_url_checked_at ON public.site_uptime_check USING btree (url, checked_at DESC);
 CREATE INDEX sms_messages_from_created_idx ON public.sms_messages USING btree (sms_from, created_at DESC);

@@ -5254,7 +5254,9 @@ with w as (
          coalesce((select value::text::numeric from decision_policy where key='score_w_brand'),20)        as w_brand,
          coalesce((select value::text::numeric from decision_policy where key='score_w_project_type'),15) as w_ptype,
          coalesce((select value::text::numeric from decision_policy where key='score_w_track_record'),15) as w_track,
-         coalesce((select value::text::numeric from decision_policy where key='score_w_size_fit'),10)     as w_size
+         coalesce((select value::text::numeric from decision_policy where key='score_w_size_fit'),10)     as w_size,
+         -- 10 Nov 2026: RANKING ONLY (see the header); absent = 0 = off.
+         coalesce((select value::text::numeric from decision_policy where key='score_w_service_similarity'),0) as w_sim
 ),
 -- EXACT (23 Sep 2026, decision point 25): the request's terms and the supplier's, each lower-cased and
 -- trimmed, then compared for equality. A substring is not a match: "door" is not "door closer".
@@ -5264,11 +5266,6 @@ q as (
          nullif(lower(btrim(coalesce(p_project_type, ''))), '') as ptype,
          nullif(lower(btrim(coalesce(p_emirate, ''))), '') as emirate
 ),
-req_auth as (
-  select coalesce(array_agg(distinct a),'{}') as codes
-  from public.taxonomy_trade t, unnest(t.authority_required) a
-  where t.code = any(p_trades)
-),
 named as (
   select distinct s as key, split_part(s, '.', 1) as tr
   from unnest(coalesce(p_services, '{}'::text[])) s
@@ -5277,6 +5274,27 @@ named as (
                 where ts.active and ts.trade_code || '.' || ts.code = s)
 ),
 n as (select count(*)::int as k from named),
+-- THE REACH (10 Nov 2026, founder ledger 1573/1579/1586). With no service named it is the request's trades, exactly as
+-- before. With a service named it adds the trade that service belongs to (a code the request itself named) and the
+-- curated adjacent trades of either (public.taxonomy_trade_adjacent), ONE level: an adjacent trade's own neighbours are
+-- not followed. A supplier found only through the reach must hold a named service (scored, below).
+asked as (
+  select distinct t from (select unnest(coalesce(p_trades, '{}'::text[])) as t union select tr from named) x where t is not null
+),
+reach as (
+  select coalesce(array_agg(distinct c), '{}'::text[]) as codes from (
+    select t as c from asked
+    union
+    select case when j.a_code = a.t then j.b_code else j.a_code end
+      from asked a join public.taxonomy_trade_adjacent j on j.active and (j.a_code = a.t or j.b_code = a.t)
+     where (select k from n) > 0
+  ) r
+),
+req_auth as (
+  select coalesce(array_agg(distinct a),'{}') as codes
+  from public.taxonomy_trade t, unnest(t.authority_required) a
+  where t.code = any(p_trades) or t.code in (select tr from named)
+),
 loc as (
   select sc.supplier_id,
          array(select distinct lower(btrim(e)) from unnest(coalesce(sc.coverage_emirates, '{}'::text[])
@@ -5294,7 +5312,9 @@ cand as (
          -- and perf_score remain the fallback for a supplier the platform has not measured yet.
          least(1, greatest(0, coalesce(pf.score, sp.quote_rate, sp.perf_score, 0))) as track,
          ((select emirate from q) is not null and (select emirate from q) = any(loc.stated)) as in_emirate,
-         cardinality(loc.stated) as stated_n
+         cardinality(loc.stated) as stated_n,
+         -- the request's own trade (the trade-level pass applies to these only)
+         coalesce(sc.trades && p_trades, false) as direct
   from public.supplier_capabilities sc
   join public.leads l on l.id = sc.supplier_id
   join loc on loc.supplier_id = sc.supplier_id
@@ -5302,8 +5322,9 @@ cand as (
   left join public.supplier_performance pf on pf.lead_id = sc.supplier_id
   left join public.supplier_availability av on av.supplier_id = sc.supplier_id
   where sc.confirmed_at is not null
-    and sc.trades && p_trades
+    and sc.trades && (select codes from reach)
     and not (sc.excluded_trades && p_trades)
+    and not (sc.excluded_trades && array(select tr from named))
     and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked,
                                l.approval_status, l.permanently_closed, l.chat_strikes)
     -- 29 Sep 2026 (ledger 1033): a supplier who said he is busy or paused is not sent a request. No row = available;
@@ -5362,11 +5383,22 @@ scored as (
     ((select ptype from q) is not null and exists (
        select 1 from unnest(coalesce(c.project_types, '{}'::text[])) pt where lower(btrim(pt)) = (select ptype from q)
      )) as ptype_hit,
-    (p_value is not null and c.min_project_value is not null and c.max_project_value is not null) as size_known
+    (p_value is not null and c.min_project_value is not null and c.max_project_value is not null) as size_known,
+    -- THE SIMILARITY SIGNAL (ranking only): the best cosine between a named service and a service this supplier stated,
+    -- over the stored gte-small vectors. 1 for an exact hit; 0 when either side has no vector or the weight is 0.
+    case when (select k from n) = 0 or (select w_sim from w) = 0 then 0::numeric else coalesce((
+      select max(greatest(0, least(1, 1 - (a.embedding_gte <=> b.embedding_gte))))::numeric
+        from public.taxonomy_trade_service a
+        join named nm on a.trade_code || '.' || a.code = nm.key
+        join public.taxonomy_trade_service b on b.active and b.trade_code || '.' || b.code = any(coalesce(c.services, '{}'::text[]))
+       where a.embedding_gte is not null and b.embedding_gte is not null), 0) end as sim
   from svc c
+  -- THE GATE. A supplier of the request's own trades passes at trade level when the request names no service of his
+  -- trades (founder 857); one reached only through a named service's trade or an adjacent trade must hold a named
+  -- service. The similarity above is computed for those already through and decides nothing here.
   where (select k from n) = 0
      or cardinality(c.service_hits) > 0
-     or c.never_asked
+     or (c.never_asked and c.direct)
 ),
 ranked as (
   select s.*,
@@ -5377,13 +5409,17 @@ ranked as (
       + w.w_ptype * (case when s.ptype_hit then 1 else 0 end)
       + w.w_track * s.track
       + w.w_size  * (case when s.size_known then 1 else 0.5 end)
+      + w.w_sim   * s.sim
     , 1) as score_v
   from scored s, w
 )
 select r.supplier_id, r.company_name, r.score_v as score,
   r.trades, r.roles, r.product_hits, r.brand_hit, r.ptype_hit, round(r.track,3) as track,
   concat_ws(' · ',
-    'trades ' || array_to_string(array(select unnest(r.trades) intersect select unnest(p_trades)), '+'),
+    case when r.direct then 'trades ' || array_to_string(array(select unnest(r.trades) intersect select unnest(p_trades)), '+') end,
+    case when not r.direct then 'reached through '
+      || array_to_string(array(select unnest(r.trades) intersect select unnest((select codes from reach))), '+')
+      || ' (the named service''s trade or a curated adjacent trade)' end,
     case when cardinality(r.service_hits) > 0 then cardinality(r.service_hits)||'/'||(select k from n)||' services' end,
     case when (select k from n) > 0 and r.never_asked and cardinality(r.service_hits) = 0
            then 'trade level (no service named in this supplier''s trades)' end,
@@ -5391,6 +5427,7 @@ select r.supplier_id, r.company_name, r.score_v as score,
     case when r.product_hits > 0 then r.product_hits||'/'||cardinality((select products from q))||' products' end,
     case when r.brand_hit then 'brand match' end,
     case when r.ptype_hit then 'project type' end,
+    case when r.sim > 0 and r.sim < 1 then 'service similarity ' || round(r.sim, 2) end,
     case when p_emirate is not null then
       case when r.in_emirate then 'in ' || p_emirate else 'UAE-wide (no stated limit)' end end
   ) as why,
