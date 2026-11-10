@@ -10,18 +10,18 @@
 // because the body finished with {{2}}. Both bodies below open AND close with literal text.
 // Keep that shape if you edit the copy.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { requireInternal } from '../_shared/internal_auth.ts';
+import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { WA_INVITE_BUTTONS, WA_INVITE_SAMPLE_TRADE, WA_INVITE_TEMPLATE_EN } from '../_shared/marketing_send_gate.ts';
+import { J } from '../_shared/json_response.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string | undefined) || undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
-const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+// secretOk() is the shared one, in ../_shared/internal_auth.ts.
 
 // 3 SEP 2026: one function, several templates. The key is chosen per call (body.key) from this
 // catalogue; the default stays the document-expiry notice this function was written for. Every body

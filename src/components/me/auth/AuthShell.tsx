@@ -1,7 +1,7 @@
-// @ts-nocheck
 'use client';
 import { Seal, Kicker } from '@/components/ui/sealed';
 import { Check } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { t } from '../portalText';
 
 // THE DOORWAY GOT THE SAME TREATMENT AS THE HOUSE.
@@ -15,7 +15,7 @@ import { t } from '../portalText';
 // The three lines are the product's actual terms, not marketing filler — free to post, anonymous
 // until you choose, 3% only on a reveal. A customer deciding whether to sign up is deciding about
 // exactly those three facts.
-function AuthShell({ lang, children }) {
+function AuthShell({ lang, children }: { lang: string; children: ReactNode }) {
   const points = ['auth_p1', 'auth_p2', 'auth_p3'];
   return (
     <div className="mx-auto grid w-full max-w-[1080px] items-center gap-10 px-4 py-10 sm:px-5 md:min-h-[76vh] md:grid-cols-[1.05fr_minmax(380px,420px)] md:py-16">

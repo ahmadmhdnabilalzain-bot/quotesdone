@@ -1,0 +1,24 @@
+PASS unknown token -> not_found — 404 {"ok":false,"error":"not_found","message":"This claim link is no longer available. Please contact management@quotesdone.
+PASS malformed token -> invalid_link — 400 {"ok":false,"error":"invalid_link","message":"This claim link is not valid. Please use the link from your invitation."}
+PASS valid token -> company, claimable — {"ok":true,"company_name":"ZZ DEMO Errors 2971f745","emirate":"Dubai","claimable":true,"already_claimed":false}
+PASS wrong e-mail code refused — 400 {"error":"Incorrect or expired code.","code":"wrong_code"}
+PASS A claims the invited listing — 200 {"ok":true,"id":156090,"registration":{"status":"not_due","fee_due":0,"may_quote":true,"founding_rank":null,"charging_st
+PASS reused link reports already claimed — {"ok":true,"company_name":"ZZ DEMO Errors 2971f745","emirate":"Dubai","claimable":false,"already_claimed":true}
+PASS second account cannot claim the reused link — 409 {"error":"This company is already claimed by another account."}
+PASS a second account cannot register an already-claimed company name — 409 {"error":"A company with this name is already registered on QuotesDone. If it is yours, sign in with the email used to register it, or write to management@quote
+PASS an account with no company may register its own — 200 {"ok":true,"id":156097,"registration":{"status":"not_due","fee_due":0,"may_quote":true,"founding_ran
+PASS one account cannot own a second company — 409 {"error":"Your account already manages a company.","code":"company_exists"}
+PASS missing licence/documents -> action_required, not approved — {"ok":true,"reason":"reg_mobile","missing":["reg_mobile","reg_email","reg_licence","reg_profile","reg_terms"],"decision":"action_required","auto_approve":true,"approval_status":"action_required","lice
+PASS SMS verify on a fixture number never reaches Twilio — {"ok":false,"captured":true,"code":"fixture_number","error":"This is a reserved test number. No code or message is ever 
+PASS an expired e-mail code is refused as expired — 400 {"error":"That code has expired. Please request a new one.","code":"code_expired"}
+PASS a resend generates and records a new code; the send is attempted (fixture fenced at the Resend door) — 200 {"ok":true,"channel":"email","identifier":"qd-2971f745-supc@example.invalid"}; rows 2 -> 3, live 1
+PASS the code before the resend no longer verifies — 400 {"error":"Incorrect or expired code.","code":"wrong_code"}
+PASS a mobile shared by two suppliers never selects an account (409 ambiguous_phone, no SMS) — 409 {"error":"More than one QuotesDone account uses this mobile number, so we cannot tell which one is y
+PASS a second sign-up with a registered e-mail creates no second login — auth users for A: 1
+PASS a wrong file type is refused with a reason and not stored — 200 {"ok":true,"saved":[],"failed":[{"kind":"license","reason":"the file content is an executable, whatever it was named or declared as"}],"read":{},"versioned":[],
+PASS a 26 MB file is refused with a reason and not stored — 200 {"ok":true,"saved":[],"failed":[{"kind":"license","reason":"That trade licence is 26.0 MB. We can read files of up to 10 MB. Please upload a smaller copy: a com
+PASS an unfinished sign-up past 30 minutes is purged: login deleted, invited lead back in the pool — {"d_claimed":false,"e_claimed":true,"d_login":0,"e_login":1} purge {"held":0,"apply":true,"items":[{"kind":"supplier","counts":{"lead":"returned to the invited pool","outbox":0,"auth_users":1,"outbox_kept":"campaign mail of an 
+PASS a sign-up inside its 30 minutes is untouched — {"held":0,"apply":true,"items":[],"removed":0}
+teardown: {"auth_users":0,"customers":0,"leads":0,"inquiries":0,"quotes":0,"quote_spec_hold":0,"quote_reviews":0,"notifications":0,"transactions":0,"refunds":0,"supplier_dues":0,"refund_case":0,"inquiry_intake":0,"email_verifications":0,"storage_objects":0,"assistant_logs":0,"support_customer_profile":0,"support_case":0,"assistant_logs_run_tag":0,"sales_decision_log":0,"support_reply_readability":0,"total":0,"knowledge_gaps_filed":0,"org_tasks_filed":0}
+21/21 passed
+EXIT 0

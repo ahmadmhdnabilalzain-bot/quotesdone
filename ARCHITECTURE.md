@@ -38,6 +38,11 @@ Two exceptions a literal reader would trip on. `scripts/lib/` also holds three `
 which is exactly the dependency the rule is about. And the inverse is the rule that really matters:
 something in `scripts/` root that nothing imports and nothing runs belongs in `scripts/archive/`.
 
+**To find a routine, a table or a cron job by subject**, open `docs/architecture/database/README.md`: every one
+production runs, filed under ten business areas with its canonical file and owning seat. It is generated
+(`node scripts/architecture/database_map.mjs`) and a check fails when it drifts, so it can be trusted where this page
+cannot be kept current by hand.
+
 ### The four SQL apply tiers
 
 A routine can be defined in more than one file. Which definition is real is decided by an explicit

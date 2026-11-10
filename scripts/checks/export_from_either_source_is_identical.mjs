@@ -173,6 +173,11 @@ if (WRITE) {
   const parts = writeSchemaMirror(banner() + live);
   console.log(`\nwrote ${FILE}/ (${a.length} schema lines + banner) as ${parts.length} parts:`);
   for (const p of parts) console.log(`  ${String(p.bytes).padStart(9)}  ${p.file}`);
+  // The database map (docs/architecture/database/) is generated from this mirror; refresh it in the same step so the
+  // commit that carries the mirror carries the map too (the_database_map_is_complete_and_current.test.mjs).
+  const { writeMap } = await import('../architecture/database_map.mjs');
+  const { pages, unmapped } = writeMap();
+  console.log(`wrote docs/architecture/database/ (${pages.size} pages)${unmapped.length ? `; ${unmapped.length} names in no area, listed in its README: name them in scripts/architecture/database_areas.mjs` : ''}`);
 } else if (live !== onDisk) {
   process.exitCode = 1;
 }

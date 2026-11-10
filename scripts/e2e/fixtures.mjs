@@ -118,18 +118,38 @@ export async function staleRunTags({ graceMinutes = 60 } = {}) {
        and exists (select 1 from public.rehearsal_window w where w.run_tag = 'qd_run:' || t.tag)
        and not exists (select 1 from public.rehearsal_window w where w.run_tag = 'qd_run:' || t.tag
                         and (w.ended_at is null or w.ended_at > now() - make_interval(mins => ${Number(graceMinutes) | 0})))
+       -- a run the sweep already found nothing removable in (sweepStaleRuns, SWEPT_EMPTY) is not tried again
+       and not exists (select 1 from public.rehearsal_window w where w.run_tag = 'qd_run:' || t.tag and w.opened_by = ${q(SWEPT_EMPTY)})
      order by 1`);
   return rows.map((r) => r.tag).filter((t) => /^[a-z0-9]{4,16}$/.test(t) && !NEVER_SWEPT.has(t));
 }
 
 /** Remove the fixtures of runs that are over, each with the harness's own teardown by its exact tag. */
 // opts.limit bounds how many runs one call removes (withRun sweeps a few per start; run.mjs takes them all).
+//
+// A RUN IT CAN REMOVE NOTHING FROM IS MARKED DONE, AND SAID ONCE (customer_support, 10 Nov 2026). Run fafbabb3 was found
+// stale on every start and its teardown removed 0 rows each time ("comparison_candidate_v2 (table no longer exists) 0,
+// customer_organization (table no longer exists) 0"), so every run's first teardown paid for it again. When a teardown
+// removes nothing, one already-ended marker window is written for the tag (opened_by SWEPT_EMPTY, note = what is still
+// there and why) and staleRunTags skips it from then on. The marker starts and ends at the run's own last ended_at,
+// so fn_rehearsal_window_covers covers no moment it did not already cover and no real failure is hidden by it. The
+// rows that remain are not hidden either: the sweep returns them as `left` (with any refused auth delete), run.mjs
+// prints them, and the run that made them already failed "zero leftovers" when it closed.
+export const SWEPT_EMPTY = 'fixtures.sweepStaleRuns:nothing_removable';
 export async function sweepStaleRuns(opts = {}) {
   const out = [];
   for (const tag of (await staleRunTags(opts)).slice(0, opts.limit ?? Infinity)) {
     if (NEVER_SWEPT.has(tag)) continue;   // belt and braces: never the founder's demo accounts
     const t = await teardown(newRun({ tag, quiet: true }));
-    out.push({ tag, summary: t.summary });
+    if (t.removed === 0 && (t.objects ? Object.values(t.objects).every((n) => !n) : true)) {
+      const left = (await staleRunTags({ graceMinutes: 0 })).includes(tag) ? 'still found by staleRunTags' : 'no longer found';
+      const note = `swept ${new Date().toISOString()}: removed 0 (${t.summary}); ${left}${t.refused?.length ? '; auth delete refused: ' + t.refused.join(' | ') : ''}`.slice(0, 900);
+      await write(`insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, cap_usd, started_at, ended_at, expires_at)
+                   select w.run_tag, ${q(SWEPT_EMPTY)}, ${q(note)}, false, 0.01, max(w.ended_at), max(w.ended_at), max(w.ended_at)
+                     from public.rehearsal_window w where w.run_tag = ${q('qd_run:' + tag)} and w.ended_at is not null group by w.run_tag`,
+                  'mark a run the sweep can remove nothing from');
+      out.push({ tag, summary: `${t.summary} — marked done (${left})`, left: left === 'still found by staleRunTags', refused: t.refused || [] });
+    } else out.push({ tag, summary: t.summary, refused: t.refused || [] });
   }
   return out;
 }
@@ -383,9 +403,17 @@ const SERVICE_WORDS = {
 // second call is the same write; `call` itself is not changed because a quote submit is not idempotent.
 // prevented by: scripts/e2e/fixtures_gateway_blip.test.mjs
 export const isGatewayBlip = (r) => [502, 503, 504].includes(r?.status) && !r?.json && /<html|bad gateway|gateway time-?out|service unavailable/i.test(String(r?.text || ''));
+// A ROW LOCKED BY SOMEONE ELSE'S ROLLED-BACK PROBE IS RETRIED TOO (10 Nov 2026, customer_support). Run 2026-11-10T14-20-25
+// never reached journey f: demo supplier 156068's services_save_rewrite returned 500 services_rewrite_write_failed,
+// "canceling statement due to statement timeout" at 14:21:25Z (postgres_logs). The upsert's foreign-key check on its
+// own new lead waited on another session's demo-purge probe, which deleted every demo lead (28) inside one transaction
+// for 33,962 ms and then rolled back. PostgREST's roles stop at 8 s (statement_timeout and lock_timeout = 8s), so the
+// write was refused, not slow. The write is the same SET as the blip case, so a second call is safe; anything else
+// still fails the fixture.
+export const isLockWait = (r) => r?.status === 500 && /canceling statement due to (statement|lock) timeout|lock timeout|deadlock detected/i.test(String(r?.text || ''));
 async function callRetryingBlip(fn, jwt, body) {
   let r = await call(fn, jwt, body);
-  for (let i = 1; i <= 2 && isGatewayBlip(r); i++) { await new Promise((s) => setTimeout(s, 3000 * i)); r = await call(fn, jwt, body); }
+  for (let i = 1; i <= 2 && (isGatewayBlip(r) || isLockWait(r)); i++) { await new Promise((s) => setTimeout(s, 3000 * i)); r = await call(fn, jwt, body); }
   return r;
 }
 async function stateServices(leadId, jwt, trade) {
@@ -402,7 +430,7 @@ async function stateServices(leadId, jwt, trade) {
     roles: st.json?.capability?.roles?.length ? st.json.capability.roles : ['contractor', 'installer', 'supplier'],
     services: stated, implied, removed: [], own_words: rw.json?.own_words || [], raw_text: text,
   });
-  if (sv.json?.ok !== true) throw new Error(`demo supplier ${leadId}: services_save_rewrite failed HTTP ${sv.status} ${sv.text?.slice(0, 200)}`);
+  if (sv.json?.ok !== true) throw new Error(`demo supplier ${leadId}: services_save_rewrite failed HTTP ${sv.status} ${sv.text?.slice(0, 400)}`);
   return { stated, implied };
 }
 

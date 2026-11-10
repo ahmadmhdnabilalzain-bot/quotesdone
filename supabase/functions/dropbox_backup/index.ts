@@ -48,13 +48,13 @@ import { demoPurgeDeleteAllowed, signupPurgeDeleteAllowed } from './purge.ts';
 import { compareListing, dailyRoots, fileSlices, listTree, type Expected } from './listing.ts';
 import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
 import { classifyDropboxFailure, isTransientDbError } from './health.ts';
+import { J } from '../_shared/json_response.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 const DEADLINE = T0 + 110_000;           // leave room under the 150 s edge limit to record the result
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SELF = SUPABASE_URL + '/functions/v1/dropbox_backup';
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const errText = (e: unknown) => String((e as Error)?.message || e);
 
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {

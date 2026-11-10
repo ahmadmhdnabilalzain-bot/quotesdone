@@ -7849,5 +7849,16 @@
   "fb757db0a0d9",
   "fd13abcc950c",
   "ff7fb214597b"
+ ],
+ "scripts/sql/two_customer_support_duties_read_only_their_own_kind_of_row.sql": [
+  "1a6bced74eb5",
+  "22b3e97aeda2",
+  "2aff41e0990f",
+  "31e9b483e7dc",
+  "5881a7100768",
+  "817e5fa6a653",
+  "999c3753adda",
+  "c54113251261",
+  "fbc53a6b6fe7"
  ]
 }

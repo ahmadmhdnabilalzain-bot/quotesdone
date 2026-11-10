@@ -39,6 +39,7 @@ import { pageRows } from '../_shared/table_export_core.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { exportPathAllowed } from '../_shared/backup_prune_allow.ts';
 import { type Deps, ExportError, HOP_BYTES, type HopState, leftoverFailure, retry, runHop } from '../_shared/table_export_core.ts';
+import { J } from '../_shared/json_response.ts';
 // v3 (15 Sep 2026, it_engineer): the first full copy failed twice on kb_chunks/page_0103.json with
 // "Forbidden" — the edge firewall refused a body holding OWASP injection examples; the request never
 // reached storage (see _shared/table_export_core.ts). Now: every page is written with its risky
@@ -50,7 +51,6 @@ import { type Deps, ExportError, HOP_BYTES, type HopState, leftoverFailure, retr
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/backup';
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const errText = (e: unknown) => String((e as Error)?.message || e).slice(0, 300);
 
 const SLICE_MS = 30_000;   // hand off well inside the worker's compute budget (v1 measured a 546 at 102 s)
