@@ -34,8 +34,8 @@ import { timedFetch } from '../_shared/timed_fetch.ts';
 import { TRIAGE_LLM } from './triage_llm.ts';
 import { applyBackstop, backstopApplies, holdsUnread, readTriage, UNREAD_CATEGORY, UNREAD_SUMMARY } from './opt_out_backstop.ts';
 import { beat, budgetLeft, closeStaleRuns } from './run_guard.ts';
+import { J } from '../_shared/json_response.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 const llm = makeLlm(SONNET_FIRST, TRIAGE_LLM); // shared OpenRouter client (Sonnet-first ladder + 25s timeout); never served another mail's triage from the cache (triage_llm.ts)
 

@@ -29,5 +29,7 @@ test('what counts as transient', () => {
 });
 test('the portal uploads through retryTransient', () => {
   const s = readSupplierPortal();
-  assert.match(s, /const uploadDirect = \(kind, file, token\) => retryTransient\(/);
+  // The parameters carry types since upload.ts left @ts-nocheck (10 Nov 2026); the assertion is unchanged: the whole
+  // body of uploadDirect is one retryTransient call.
+  assert.match(s, /const uploadDirect = \(kind(?:: string)?, file(?:: File)?, token(?:: string)?\) => retryTransient\(/);
 });

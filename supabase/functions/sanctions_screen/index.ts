@@ -57,9 +57,9 @@ import {
   isWorkbook, parseUaeWorkbook, parseUnXml, uaeCandidateUrls,
   UAE_FALLBACK_URL, UAE_PAGE, type ParsedEntry,
 } from './parse.ts';
+import { J } from '../_shared/json_response.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const UN_URL = 'https://scsanctions.un.org/resources/xml/en/consolidated.xml';
 // A source that cannot be downloaded inside this must not hold the whole screen open. 2.1 MB over a warm
 // edge connection measured in seconds; 45 s is generous and still well inside the tick's own budget.
