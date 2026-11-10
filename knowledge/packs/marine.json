@@ -255,100 +255,100 @@
         {
           "spec": "vessel name, IMO number, flag, class",
           "blocking": true,
-          "why_it_prices": "Flag and class decide which certificates are acceptable.",
+          "why_needed_to_price": "Flag and class decide which certificates are acceptable.",
           "uae_options": "IMO number, flag state, class society.",
-          "follow_up": "Flag and class bring the approval marks the item must carry."
+          "follow_up_if": "Flag and class bring the approval marks the item must carry."
         },
         {
           "spec": "SOLAS or non-SOLAS",
           "blocking": true,
-          "why_it_prices": "SOLAS vessels need MED/USCG-approved equipment, which costs more.",
+          "why_needed_to_price": "SOLAS vessels need MED/USCG-approved equipment, which costs more.",
           "uae_options": "SOLAS cargo/passenger, non-SOLAS, leisure craft.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "port/anchorage and ETA/ETD",
           "blocking": true,
-          "why_it_prices": "Delivery location and window decide launch hire and urgency.",
+          "why_needed_to_price": "Delivery location and window decide launch hire and urgency.",
           "uae_options": "Jebel Ali, Port Rashid, Khalifa, Fujairah anchorage, Khor Fakkan.",
-          "follow_up": "Anchorage delivery brings launch hire and weather window."
+          "follow_up_if": "Anchorage delivery brings launch hire and weather window."
         },
         {
           "spec": "agent and delivery method (berth/launch)",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Ship's agent; berth delivery or launch.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "customs status (in transit / duty paid)",
           "blocking": true,
-          "why_it_prices": "Ship stores in transit are cleared differently from duty-paid goods.",
+          "why_needed_to_price": "Ship stores in transit are cleared differently from duty-paid goods.",
           "uae_options": "Ship spares in transit, duty paid.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "IMPA/ISSA code or maker part number",
           "blocking": true,
-          "why_it_prices": "The code identifies the item exactly.",
+          "why_needed_to_price": "The code identifies the item exactly.",
           "uae_options": "IMPA or ISSA code; maker's part number.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "equipment model/serial for spares",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Nameplate data.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "unit and quantity",
           "blocking": true,
-          "why_it_prices": "Pack units (pieces, sets, litres) must match the code to be comparable.",
+          "why_needed_to_price": "Pack units (pieces, sets, litres) must match the code to be comparable.",
           "uae_options": "Pieces, sets, litres.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "genuine/equivalent acceptance",
           "blocking": true,
-          "why_it_prices": "Genuine maker spares cost more than equivalents.",
+          "why_needed_to_price": "Genuine maker spares cost more than equivalents.",
           "uae_options": "Genuine only, equivalent acceptable.",
-          "follow_up": "If equivalent, ask whether class must accept it."
+          "follow_up_if": "If equivalent, ask whether class must accept it."
         },
         {
           "spec": "certification required (MED/USCG/class)",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "MED wheel mark, USCG, class certificate.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "expiry/manufacturing date limits",
           "blocking": false,
-          "why_it_prices": "Pyrotechnics, medical stores and liferaft items expire.",
+          "why_needed_to_price": "Pyrotechnics, medical stores and liferaft items expire.",
           "uae_options": "Minimum remaining life.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "rope/chain/lifting: material, size, MBL/SWL, certificate",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "paint: product, colour, system compatibility",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "commercial terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Payment, validity, delivery charges.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
@@ -519,65 +519,65 @@
         {
           "spec": "vessel name, IMO number, flag and class society",
           "blocking": true,
-          "why_it_prices": "Flag and class decide the acceptable service company and report format.",
+          "why_needed_to_price": "Flag and class decide the acceptable service company and report format.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "ship type (passenger or cargo) and survey due date",
           "blocking": true,
-          "why_it_prices": "Survey date drives urgency and scope.",
+          "why_needed_to_price": "Survey date drives urgency and scope.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "protected spaces and system maker",
           "blocking": true,
-          "why_it_prices": "System maker sets spares and procedures.",
+          "why_needed_to_price": "System maker sets spares and procedures.",
           "uae_options": "Engine room, cargo holds, pump room; system maker.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "number and size of CO2 cylinders and pilot cylinders",
           "blocking": true,
-          "why_it_prices": "Service is priced per cylinder.",
+          "why_needed_to_price": "Service is priced per cylinder.",
           "uae_options": "Count and kg per cylinder.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "date of last hydrostatic test and last service report",
           "blocking": true,
-          "why_it_prices": "Due tests change the scope radically.",
+          "why_needed_to_price": "Due tests change the scope radically.",
           "uae_options": "",
-          "follow_up": "Ask for the last report to see what is due."
+          "follow_up_if": "Ask for the last report to see what is due."
         },
         {
           "spec": "scope: routine service, 5-year valve inspection, 10-year hydrostatic test, hose renewal",
           "blocking": true,
-          "why_it_prices": "Each scope item is a separate price.",
+          "why_needed_to_price": "Each scope item is a separate price.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "refill of under-weight cylinders priced separately",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "required approval of service company (flag/class acceptance)",
           "blocking": true,
-          "why_it_prices": "Only approved stations can certify.",
+          "why_needed_to_price": "Only approved stations can certify.",
           "uae_options": "Flag and class approved service station.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "port or anchorage and service window",
           "blocking": true,
-          "why_it_prices": "Time on board and access set labour cost.",
+          "why_needed_to_price": "Time on board and access set labour cost.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

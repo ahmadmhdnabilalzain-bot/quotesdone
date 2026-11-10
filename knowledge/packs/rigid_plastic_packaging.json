@@ -40,100 +40,100 @@
         {
           "spec": "container type (bottle, jar, tub, crate, preform)",
           "blocking": true,
-          "why_it_prices": "Bottles, jars, tubs, jerry cans and crates use different moulds and machines.",
+          "why_needed_to_price": "Bottles, jars, tubs, jerry cans and crates use different moulds and machines.",
           "uae_options": "Blow-moulded bottle, injection tub, jar, jerry can, crate, preform.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "material (PET, HDPE, PP)",
           "blocking": true,
-          "why_it_prices": "Resin type and grade set the cost.",
+          "why_needed_to_price": "Resin type and grade set the cost.",
           "uae_options": "PET, HDPE, PP, LDPE; virgin or recycled content.",
-          "follow_up": "Recycled content brings food-contact restrictions."
+          "follow_up_if": "Recycled content brings food-contact restrictions."
         },
         {
           "spec": "capacity in ml and weight in grams",
           "blocking": true,
-          "why_it_prices": "Gram weight is the main price driver.",
+          "why_needed_to_price": "Gram weight is the main price driver.",
           "uae_options": "Brimful and nominal capacity; target weight.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "neck finish and closure type",
           "blocking": true,
-          "why_it_prices": "Neck standard must match the closure and capping machine.",
+          "why_needed_to_price": "Neck standard must match the closure and capping machine.",
           "uae_options": "PCO 1881, 28/410, 38 mm, 63 mm; screw, flip-top, tamper-evident, child-resistant.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "colour and transparency",
           "blocking": false,
-          "why_it_prices": "Masterbatch colours and UV blockers add cost and MOQ.",
+          "why_needed_to_price": "Masterbatch colours and UV blockers add cost and MOQ.",
           "uae_options": "Natural, transparent, opaque, custom colour.",
-          "follow_up": "Custom colours bring a colour MOQ."
+          "follow_up_if": "Custom colours bring a colour MOQ."
         },
         {
           "spec": "food-contact compliance",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Declaration, migration tests, ECAS certificate where required.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "printing or labelling",
           "blocking": false,
-          "why_it_prices": "Screen printing or in-mould labelling add cost.",
+          "why_needed_to_price": "Screen printing or in-mould labelling add cost.",
           "uae_options": "None, screen print, IML, label by buyer.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity and pallet configuration",
           "blocking": true,
-          "why_it_prices": "MOQ per colour and mould utilisation set price.",
+          "why_needed_to_price": "MOQ per colour and mould utilisation set price.",
           "uae_options": "Pieces per order; pallet pattern.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty period and terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Closures and moulds are often quoted separately.",
+          "why_needed_to_price": "Closures and moulds are often quoted separately.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "mould ownership",
           "blocking": false,
-          "why_it_prices": "A custom shape needs a new mould; who pays and owns it matters.",
+          "why_needed_to_price": "A custom shape needs a new mould; who pays and owns it matters.",
           "uae_options": "Stock mould, custom mould paid by buyer, amortised.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UN rating for dangerous goods",
           "blocking": false,
-          "why_it_prices": "Containers for hazardous products need UN-tested designs.",
+          "why_needed_to_price": "Containers for hazardous products need UN-tested designs.",
           "uae_options": "UN 3H1 jerry can, 1H1 drum.",
-          "follow_up": "Chemicals bring the UN rating and the product's compatibility."
+          "follow_up_if": "Chemicals bring the UN rating and the product's compatibility."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -40,56 +40,56 @@
       "brand_origins": [
         {
           "brand": "Fenner Dunlop",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "ContiTech",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Bridgestone",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Trelleborg",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Parker",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Gates",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Semperit",
-          "origin_country": "Austria",
+          "origin": "Austria",
           "tier": "premium",
           "generic_en": "a premium Austrian brand",
           "generic_ar": "علامة نمساوية من الفئة الممتازة"
         },
         {
           "brand": "Freudenberg",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"

@@ -41,100 +41,100 @@
         {
           "spec": "Component type and function",
           "blocking": true,
-          "why_it_prices": "Pump, valve, cylinder, hose and FRL are different products.",
+          "why_needed_to_price": "Pump, valve, cylinder, hose and FRL are different products.",
           "uae_options": "Gear/vane/piston pump, directional/proportional valve, cylinder, hose assembly, FRL, pneumatic valve.",
-          "follow_up": "Cylinders bring bore, rod, stroke, mounting and cushioning."
+          "follow_up_if": "Cylinders bring bore, rod, stroke, mounting and cushioning."
         },
         {
           "spec": "Brand and part number",
           "blocking": true,
-          "why_it_prices": "The part number fixes the product; a different brand needs a cross-reference.",
+          "why_needed_to_price": "The part number fixes the product; a different brand needs a cross-reference.",
           "uae_options": "OEM part number or the nameplate code.",
-          "follow_up": "If replacing, ask for the nameplate photo."
+          "follow_up_if": "If replacing, ask for the nameplate photo."
         },
         {
           "spec": "Operating pressure rating",
           "blocking": true,
-          "why_it_prices": "Pressure rating sets the construction and price.",
+          "why_needed_to_price": "Pressure rating sets the construction and price.",
           "uae_options": "Hydraulic up to 210/350 bar; pneumatic 6-10 bar.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Flow rate",
           "blocking": true,
-          "why_it_prices": "Flow sizes valves and pumps.",
+          "why_needed_to_price": "Flow sizes valves and pumps.",
           "uae_options": "l/min.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Port size and connection standard",
           "blocking": true,
-          "why_it_prices": "BSP, NPT, SAE and ISO ports are not interchangeable.",
+          "why_needed_to_price": "BSP, NPT, SAE and ISO ports are not interchangeable.",
           "uae_options": "BSPP, NPT, SAE J518 flange, ISO 6149, push-in fittings.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Seal material and fluid compatibility",
           "blocking": false,
-          "why_it_prices": "Fluid and temperature decide NBR vs FKM vs PU.",
+          "why_needed_to_price": "Fluid and temperature decide NBR vs FKM vs PU.",
           "uae_options": "Mineral oil, fire-resistant fluid, water glycol, bio oil.",
-          "follow_up": "Fire-resistant fluids bring FKM or special seals."
+          "follow_up_if": "Fire-resistant fluids bring FKM or special seals."
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Hose is priced by assembly or by metre.",
+          "why_needed_to_price": "Hose is priced by assembly or by metre.",
           "uae_options": "Pieces, assemblies, metres.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "Hose standards and test certificates matter for safety.",
+          "why_needed_to_price": "Hose standards and test certificates matter for safety.",
           "uae_options": "EN 853/856, SAE J517, ISO 4413, ISO 4414.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Normally none; solenoid coils are electrical.",
+          "why_needed_to_price": "Normally none; solenoid coils are electrical.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Stock vs factory order.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Fittings, adaptors and coil connectors often excluded.",
+          "why_needed_to_price": "Fittings, adaptors and coil connectors often excluded.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Solenoid voltage",
           "blocking": false,
-          "why_it_prices": "Coil voltage is part of the valve code.",
+          "why_needed_to_price": "Coil voltage is part of the valve code.",
           "uae_options": "24 V DC, 110/230 V AC.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

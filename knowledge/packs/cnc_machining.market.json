@@ -23,14 +23,14 @@
       "brand_origins": [
         {
           "brand": "Haas Automation",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Okuma",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"

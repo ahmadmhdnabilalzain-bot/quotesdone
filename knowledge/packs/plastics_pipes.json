@@ -193,128 +193,128 @@
         {
           "spec": "material and grade",
           "blocking": true,
-          "why_it_prices": "PVC, CPVC, PPR, HDPE PE100 and GRP differ in resin cost and use.",
+          "why_needed_to_price": "PVC, CPVC, PPR, HDPE PE100 and GRP differ in resin cost and use.",
           "uae_options": "uPVC, CPVC, PPR/PPR-CT, HDPE PE80/PE100/PE100-RC, PE-X, GRP.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "application/fluid",
           "blocking": true,
-          "why_it_prices": "Application fixes material, rating and approvals.",
+          "why_needed_to_price": "Application fixes material, rating and approvals.",
           "uae_options": "Potable water, drainage, irrigation, TSE, gas, chemicals, sprinkler, district cooling.",
-          "follow_up": "Potable brings drinking-water certification; sprinkler brings UL/FM listing."
+          "follow_up_if": "Potable brings drinking-water certification; sprinkler brings UL/FM listing."
         },
         {
           "spec": "standard",
           "blocking": true,
-          "why_it_prices": "The standard sets dimensions and wall thickness.",
+          "why_needed_to_price": "The standard sets dimensions and wall thickness.",
           "uae_options": "ISO 4427, EN 12201, ISO 1452, BS EN 1329/1401, DIN 8077/8078, ASTM D1785/F441.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "size (OD mm or NPS) and system",
           "blocking": true,
-          "why_it_prices": "Metric and imperial systems do not mix.",
+          "why_needed_to_price": "Metric and imperial systems do not mix.",
           "uae_options": "OD 16-1,200 mm; NPS 1/2-12.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "PN/SDR/schedule/SN",
           "blocking": true,
-          "why_it_prices": "Rating sets wall thickness and price.",
+          "why_needed_to_price": "Rating sets wall thickness and price.",
           "uae_options": "PN10/16/20/25, SDR 11/17/26, SCH 40/80, SN4/SN8.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "length or coil form",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "6 m or 12 m lengths, coils for small HDPE.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "colour/stripe",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Black with blue stripe for water, yellow for gas, grey, white, green.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "end/joint type",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Plain, socket, solvent, ring-seal, butt-fusion, electrofusion.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "fittings list with type/size/class",
           "blocking": true,
-          "why_it_prices": "Fittings are often a large share of the price.",
+          "why_needed_to_price": "Fittings are often a large share of the price.",
           "uae_options": "Elbows, tees, reducers, couplers, electrofusion fittings, flanges with backing rings.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantities",
           "blocking": true,
-          "why_it_prices": "Metres per size and project volume set the price per metre.",
+          "why_needed_to_price": "Metres per size and project volume set the price per metre.",
           "uae_options": "Metres per size; fittings per type.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "authority approval required",
           "blocking": true,
-          "why_it_prices": "Utility approval may limit the brands that can be offered.",
+          "why_needed_to_price": "Utility approval may limit the brands that can be offered.",
           "uae_options": "DEWA, EtihadWE, Abu Dhabi regulator, municipality or consultant approval.",
-          "follow_up": "Ask which authority the network is handed to."
+          "follow_up_if": "Ask which authority the network is handed to."
         },
         {
           "spec": "potable-water certification (e.g. WRAS)",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "WRAS, BS 6920, NSF 61.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "test certificates",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Factory test reports, third-party certificates.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery schedule",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "approved vendor list / brand restrictions",
           "blocking": true,
-          "why_it_prices": "Projects often restrict to listed manufacturers; others cannot be priced as compliant.",
+          "why_needed_to_price": "Projects often restrict to listed manufacturers; others cannot be priced as compliant.",
           "uae_options": "Consultant's approved list, utility list.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "operating temperature and pressure (and surge)",
           "blocking": true,
-          "why_it_prices": "Temperature derating in UAE heat changes the class required.",
+          "why_needed_to_price": "Temperature derating in UAE heat changes the class required.",
           "uae_options": "Working pressure, temperature, surge allowance.",
-          "follow_up": "Hot water or sun-exposed pipes bring derating and UV protection."
+          "follow_up_if": "Hot water or sun-exposed pipes bring derating and UV protection."
         },
         {
           "spec": "BS 6920 / WRAS / NSF 61 evidence for drinking water",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "fire listing (UL 1821 / FM) for sprinkler pipe",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

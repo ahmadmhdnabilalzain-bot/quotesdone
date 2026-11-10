@@ -38,70 +38,70 @@
       "brand_origins": [
         {
           "brand": "Interplast",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Cosmoplast",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Aptar",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Silgan",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Berry",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Schütz",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Mauser",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Greif",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Borouge",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "SABIC",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "premium",
           "generic_en": "a premium Saudi brand",
           "generic_ar": "علامة سعودية من الفئة الممتازة"

@@ -41,100 +41,100 @@
         {
           "spec": "Container type and capacity",
           "blocking": true,
-          "why_it_prices": "Bottle, jar, vial and perfume flacon are different moulds and grades.",
+          "why_needed_to_price": "Bottle, jar, vial and perfume flacon are different moulds and grades.",
           "uae_options": "Capacity in ml (brimful and fill), shape; stock or custom.",
-          "follow_up": "Perfume bottles bring the decoration and pump/crimp neck."
+          "follow_up_if": "Perfume bottles bring the decoration and pump/crimp neck."
         },
         {
           "spec": "Glass colour and type",
           "blocking": true,
-          "why_it_prices": "Flint, extra-flint, amber and green, and Type I/II/III for pharma, differ in price.",
+          "why_needed_to_price": "Flint, extra-flint, amber and green, and Type I/II/III for pharma, differ in price.",
           "uae_options": "Flint, extra-flint, amber, green; soda-lime, borosilicate Type I.",
-          "follow_up": "Pharma brings the pharmacopoeia glass type."
+          "follow_up_if": "Pharma brings the pharmacopoeia glass type."
         },
         {
           "spec": "Neck finish and closure fit",
           "blocking": true,
-          "why_it_prices": "The neck must match the closure or pump.",
+          "why_needed_to_price": "The neck must match the closure or pump.",
           "uae_options": "Screw (e.g. 28 mm), crown, cork, crimp FEA 15, pump neck.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Weight and dimensions tolerance",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Drawing with tolerances.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Food-contact suitability declaration",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Declaration; ECAS where required.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Pallet pattern and packing",
           "blocking": false,
-          "why_it_prices": "Glass is fragile; packing and pallet pattern change freight and breakage.",
+          "why_needed_to_price": "Glass is fragile; packing and pallet pattern change freight and breakage.",
           "uae_options": "Bulk palletised, cartoned, layer pads.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Glass furnaces run large minimums; stock vs custom changes MOQ greatly.",
+          "why_needed_to_price": "Glass furnaces run large minimums; stock vs custom changes MOQ greatly.",
           "uae_options": "Pieces; pallets.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Thermal shock, internal pressure, annealing tests.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": true,
-          "why_it_prices": "Most glass is imported; freight and breakage are a big share.",
+          "why_needed_to_price": "Most glass is imported; freight and breakage are a big share.",
           "uae_options": "EXW, CIF Jebel Ali, delivered.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Decoration, closures and moulds are often extra.",
+          "why_needed_to_price": "Decoration, closures and moulds are often extra.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Decoration",
           "blocking": false,
-          "why_it_prices": "Screen printing, spraying, frosting and metallising add cost.",
+          "why_needed_to_price": "Screen printing, spraying, frosting and metallising add cost.",
           "uae_options": "None, screen print, spray coat, frost, hot foil.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

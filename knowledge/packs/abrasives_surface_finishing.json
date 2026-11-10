@@ -39,93 +39,93 @@
         {
           "spec": "abrasive type and grain material",
           "blocking": true,
-          "why_it_prices": "Aluminium oxide, zirconia, ceramic and silicon carbide differ in life and price.",
+          "why_needed_to_price": "Aluminium oxide, zirconia, ceramic and silicon carbide differ in life and price.",
           "uae_options": "Aluminium oxide, zirconia alumina, ceramic, silicon carbide; garnet, steel grit, glass bead for blasting.",
-          "follow_up": "Stainless work brings iron-free (inox) grades."
+          "follow_up_if": "Stainless work brings iron-free (inox) grades."
         },
         {
           "spec": "grit size per FEPA or ISO 6344",
           "blocking": true,
-          "why_it_prices": "Grit sets the finish and the product.",
+          "why_needed_to_price": "Grit sets the finish and the product.",
           "uae_options": "P24-P1200 coated; F grits for bonded; mesh for blasting media.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "product form and dimensions",
           "blocking": true,
-          "why_it_prices": "Discs, flap discs, belts, wheels and media are different products.",
+          "why_needed_to_price": "Discs, flap discs, belts, wheels and media are different products.",
           "uae_options": "115/125/180/230 mm discs; belt width x length; wheel diameter x bore.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "backing or bond type",
           "blocking": false,
-          "why_it_prices": "Backing and bond change performance and price.",
+          "why_needed_to_price": "Backing and bond change performance and price.",
           "uae_options": "Cloth, paper, fibre, film; resin, vitrified bond.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "maximum operating speed",
           "blocking": true,
-          "why_it_prices": "Speed rating must match the tool; a mismatch is unsafe and a different product.",
+          "why_needed_to_price": "Speed rating must match the tool; a mismatch is unsafe and a different product.",
           "uae_options": "RPM or m/s stated on the disc.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "safety standard such as EN 12413 or EN 13743",
           "blocking": false,
-          "why_it_prices": "Certified bonded abrasives (EN 12413, oSa) cost more than uncertified.",
+          "why_needed_to_price": "Certified bonded abrasives (EN 12413, oSa) cost more than uncertified.",
           "uae_options": "EN 12413, EN 13743, oSa.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "substrate to be finished",
           "blocking": false,
-          "why_it_prices": "The material decides grain and grade.",
+          "why_needed_to_price": "The material decides grain and grade.",
           "uae_options": "Carbon steel, stainless, aluminium, wood, concrete, paint.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity and pack unit",
           "blocking": true,
-          "why_it_prices": "Boxes of 10, 25 or 50 and per-kg media break comparison.",
+          "why_needed_to_price": "Boxes of 10, 25 or 50 and per-kg media break comparison.",
           "uae_options": "Pieces, boxes, kg, bags.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "Blasting media may need a free-silica statement.",
+          "why_needed_to_price": "Blasting media may need a free-silica statement.",
           "uae_options": "",
-          "follow_up": "Blasting brings the site's rules on silica sand."
+          "follow_up_if": "Blasting brings the site's rules on silica sand."
         },
         {
           "spec": "delivery and installation scope",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

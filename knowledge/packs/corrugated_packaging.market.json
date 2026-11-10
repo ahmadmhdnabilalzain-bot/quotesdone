@@ -42,35 +42,35 @@
       "brand_origins": [
         {
           "brand": "Falcon Pack",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "MEPCO",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "mid",
           "generic_en": "a mid-tier Saudi brand",
           "generic_ar": "علامة سعودية من الفئة المتوسطة"
         },
         {
           "brand": "Mondi",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Smurfit Westrock",
-          "origin_country": "Ireland",
+          "origin": "Ireland",
           "tier": "premium",
           "generic_en": "a premium Irish brand",
           "generic_ar": "علامة أيرلندية من الفئة الممتازة"
         },
         {
           "brand": "Nine Dragons",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"

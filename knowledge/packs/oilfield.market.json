@@ -40,105 +40,105 @@
       "brand_origins": [
         {
           "brand": "Tenaris",
-          "origin_country": "Luxembourg",
+          "origin": "Luxembourg",
           "tier": "premium",
           "generic_en": "a premium Luxembourg-based brand",
           "generic_ar": "علامة لوكسمبورغية من الفئة الممتازة"
         },
         {
           "brand": "Vallourec",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "JFE",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Nippon Steel",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "TMK",
-          "origin_country": "Russia",
+          "origin": "Russia",
           "tier": "mid",
           "generic_en": "a mid-tier Russian brand",
           "generic_ar": "علامة روسية من الفئة المتوسطة"
         },
         {
           "brand": "Jindal SAW",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "Welspun",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "Arabian Pipes",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "mid",
           "generic_en": "a mid-tier Saudi brand",
           "generic_ar": "علامة سعودية من الفئة المتوسطة"
         },
         {
           "brand": "Cameron",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Baker Hughes",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Emerson",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Velan",
-          "origin_country": "Canada",
+          "origin": "Canada",
           "tier": "premium",
           "generic_en": "a premium Canadian brand",
           "generic_ar": "علامة كندية من الفئة الممتازة"
         },
         {
           "brand": "KSB",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "L&T",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "Weatherford",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"

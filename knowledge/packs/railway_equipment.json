@@ -39,93 +39,93 @@
         {
           "spec": "component or system and part number",
           "blocking": true,
-          "why_it_prices": "Rail items are specific to the network and the rolling stock.",
+          "why_needed_to_price": "Rail items are specific to the network and the rolling stock.",
           "uae_options": "Rail, sleepers, fastenings, turnouts, signalling, OCS, rolling-stock parts; part number.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "track gauge and rail profile",
           "blocking": true,
-          "why_it_prices": "Gauge and profile fix the product.",
+          "why_needed_to_price": "Gauge and profile fix the product.",
           "uae_options": "Standard gauge 1,435 mm; rail profile (e.g. 60E1/UIC60, 141 lb).",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "applicable standard (EN, IEC, UIC)",
           "blocking": true,
-          "why_it_prices": "Standards and type tests drive cost.",
+          "why_needed_to_price": "Standards and type tests drive cost.",
           "uae_options": "EN 13674, EN 13230, EN 50126/8/9, IEC 62278.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "operator or project and interface requirements",
           "blocking": true,
-          "why_it_prices": "The operator's specification and interfaces govern acceptance.",
+          "why_needed_to_price": "The operator's specification and interfaces govern acceptance.",
           "uae_options": "Etihad Rail, metro or tram operator, project EPC.",
-          "follow_up": "Ask for the operator's technical specification and interface documents."
+          "follow_up_if": "Ask for the operator's technical specification and interface documents."
         },
         {
           "spec": "quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Rail is sold per tonne or metre; components per set.",
+          "why_needed_to_price": "Rail is sold per tonne or metre; components per set.",
           "uae_options": "Tonnes, metres, sets.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "material certificates and traceability",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "EN 10204 3.1/3.2.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "RAMS or safety case documentation",
           "blocking": false,
-          "why_it_prices": "Safety documentation can be a major cost for systems.",
+          "why_needed_to_price": "Safety documentation can be a major cost for systems.",
           "uae_options": "RAMS plan, hazard log, SIL evidence.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "type approval by the operator or authority",
           "blocking": true,
-          "why_it_prices": "Without type approval the item cannot be used; new approval adds cost and time.",
+          "why_needed_to_price": "Without type approval the item cannot be used; new approval adds cost and time.",
           "uae_options": "Already approved on the network, approval required.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "spares and training",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty period and terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -43,107 +43,107 @@
         {
           "spec": "chemical name and CAS number",
           "blocking": true,
-          "why_it_prices": "The CAS number identifies the exact substance; trade names do not.",
+          "why_needed_to_price": "The CAS number identifies the exact substance; trade names do not.",
           "uae_options": "IUPAC/common name plus CAS; product name for formulated products.",
-          "follow_up": "Formulated products bring the technical data sheet."
+          "follow_up_if": "Formulated products bring the technical data sheet."
         },
         {
           "spec": "grade and purity",
           "blocking": true,
-          "why_it_prices": "Technical, industrial, food, pharma (USP/BP/EP) and reagent grades differ widely.",
+          "why_needed_to_price": "Technical, industrial, food, pharma (USP/BP/EP) and reagent grades differ widely.",
           "uae_options": "Technical, industrial, food grade, USP/BP/EP, AR/ACS reagent; concentration %.",
-          "follow_up": "Food or pharma use brings the grade certificate and the regulator's requirements."
+          "follow_up_if": "Food or pharma use brings the grade certificate and the regulator's requirements."
         },
         {
           "spec": "specification or certificate of analysis",
           "blocking": false,
-          "why_it_prices": "A CoA against a stated specification is the quality evidence.",
+          "why_needed_to_price": "A CoA against a stated specification is the quality evidence.",
           "uae_options": "Supplier spec, buyer spec, CoA per batch.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity and unit",
           "blocking": true,
-          "why_it_prices": "Chemicals are sold per kg, litre, drum, IBC or tonne; density converts between them.",
+          "why_needed_to_price": "Chemicals are sold per kg, litre, drum, IBC or tonne; density converts between them.",
           "uae_options": "kg, L, drums, IBCs, tonnes, bulk tanker.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "packaging",
           "blocking": true,
-          "why_it_prices": "Pack size and UN-rated packaging change price.",
+          "why_needed_to_price": "Pack size and UN-rated packaging change price.",
           "uae_options": "25 kg bags, 200 L drums, 1,000 L IBC, bulk; UN-rated for dangerous goods.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "safety data sheet",
           "blocking": false,
-          "why_it_prices": "An SDS in GHS format is required to handle and store.",
+          "why_needed_to_price": "An SDS in GHS format is required to handle and store.",
           "uae_options": "SDS in English and Arabic where required.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "hazard classification and transport",
           "blocking": true,
-          "why_it_prices": "Dangerous goods need UN packaging, DG transport and storage, which add cost.",
+          "why_needed_to_price": "Dangerous goods need UN packaging, DG transport and storage, which add cost.",
           "uae_options": "UN number, class, packing group; non-hazardous.",
-          "follow_up": "Dangerous goods bring DG vehicle, driver and storage approvals."
+          "follow_up_if": "Dangerous goods bring DG vehicle, driver and storage approvals."
         },
         {
           "spec": "import permit for controlled chemicals",
           "blocking": true,
-          "why_it_prices": "Controlled substances cannot be supplied without the permit; lead time and cost change.",
+          "why_needed_to_price": "Controlled substances cannot be supplied without the permit; lead time and cost change.",
           "uae_options": "Not controlled; controlled with permit held by the supplier; precursor.",
-          "follow_up": "If controlled, ask the end use and whether the buyer holds an end-user approval."
+          "follow_up_if": "If controlled, ask the end use and whether the buyer holds an end-user approval."
         },
         {
           "spec": "shelf life",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Months from manufacture; storage temperature.",
-          "follow_up": "UAE heat may shorten shelf life; ask storage conditions."
+          "follow_up_if": "UAE heat may shorten shelf life; ask storage conditions."
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery and installation scope",
           "blocking": false,
-          "why_it_prices": "DG delivery and tank offloading are services.",
+          "why_needed_to_price": "DG delivery and tank offloading are services.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Returnable containers, deposits and DG surcharges are often extra.",
+          "why_needed_to_price": "Returnable containers, deposits and DG surcharges are often extra.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "origin and manufacturer",
           "blocking": false,
-          "why_it_prices": "Origin and maker matter for quality consistency and for specified sources.",
+          "why_needed_to_price": "Origin and maker matter for quality consistency and for specified sources.",
           "uae_options": "Named manufacturer or origin, or open.",
-          "follow_up": "If the buyer named an origin or maker, any other is a deviation."
+          "follow_up_if": "If the buyer named an origin or maker, any other is a deviation."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

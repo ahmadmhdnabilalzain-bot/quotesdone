@@ -38,93 +38,93 @@
         {
           "spec": "part drawing and revision",
           "blocking": true,
-          "why_it_prices": "Machining is priced from the drawing and the 3D model.",
+          "why_needed_to_price": "Machining is priced from the drawing and the 3D model.",
           "uae_options": "PDF with tolerances, STEP/IGES model, revision.",
-          "follow_up": "No drawing brings a sample part to measure and reverse-engineer."
+          "follow_up_if": "No drawing brings a sample part to measure and reverse-engineer."
         },
         {
           "spec": "material and grade",
           "blocking": true,
-          "why_it_prices": "Material sets stock cost and machining time.",
+          "why_needed_to_price": "Material sets stock cost and machining time.",
           "uae_options": "Aluminium 6061/7075, SS304/316, 4140, brass, PEEK, Delrin, titanium.",
-          "follow_up": "Ask who supplies the material and whether a certificate is needed."
+          "follow_up_if": "Ask who supplies the material and whether a certificate is needed."
         },
         {
           "spec": "quantity",
           "blocking": true,
-          "why_it_prices": "Set-up is spread over quantity; one-offs cost far more each.",
+          "why_needed_to_price": "Set-up is spread over quantity; one-offs cost far more each.",
           "uae_options": "Prototype, batch, repeat annual quantity.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "tolerances per ISO 2768 or drawing",
           "blocking": true,
-          "why_it_prices": "Tight tolerances need slower cutting, grinding and inspection.",
+          "why_needed_to_price": "Tight tolerances need slower cutting, grinding and inspection.",
           "uae_options": "ISO 2768-m/f general; specific tolerances; GD&T.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "surface roughness",
           "blocking": false,
-          "why_it_prices": "Fine finishes need extra passes or grinding.",
+          "why_needed_to_price": "Fine finishes need extra passes or grinding.",
           "uae_options": "Ra 3.2, 1.6, 0.8 µm.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "finishing or coating",
           "blocking": false,
-          "why_it_prices": "Anodising, plating and painting are outsourced cost.",
+          "why_needed_to_price": "Anodising, plating and painting are outsourced cost.",
           "uae_options": "Anodise (type II/III), zinc, nickel, chrome, powder coat, passivation.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "inspection report",
           "blocking": false,
-          "why_it_prices": "CMM reports and first-article inspection cost time.",
+          "why_needed_to_price": "CMM reports and first-article inspection cost time.",
           "uae_options": "Visual, dimensional report, CMM, FAI.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "material certificate",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "EN 10204 3.1.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery and installation scope",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Material, coating and heat treatment are sometimes excluded.",
+          "why_needed_to_price": "Material, coating and heat treatment are sometimes excluded.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

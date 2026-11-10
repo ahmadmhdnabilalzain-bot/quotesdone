@@ -40,84 +40,84 @@
       "brand_origins": [
         {
           "brand": "Verescence",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "luxury",
           "generic_en": "a luxury French brand",
           "generic_ar": "علامة فرنسية من الفئة الفاخرة"
         },
         {
           "brand": "Pochet du Courval",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "luxury",
           "generic_en": "a luxury French brand",
           "generic_ar": "علامة فرنسية من الفئة الفاخرة"
         },
         {
           "brand": "Estal",
-          "origin_country": "Spain",
+          "origin": "Spain",
           "tier": "premium",
           "generic_en": "a premium Spanish brand",
           "generic_ar": "علامة إسبانية من الفئة الممتازة"
         },
         {
           "brand": "Stoelzle",
-          "origin_country": "Austria",
+          "origin": "Austria",
           "tier": "premium",
           "generic_en": "a premium Austrian brand",
           "generic_ar": "علامة نمساوية من الفئة الممتازة"
         },
         {
           "brand": "Bormioli Luigi",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"
         },
         {
           "brand": "Vitro",
-          "origin_country": "Mexico",
+          "origin": "Mexico",
           "tier": "mid",
           "generic_en": "a mid-tier Mexican brand",
           "generic_ar": "علامة مكسيكية من الفئة المتوسطة"
         },
         {
           "brand": "Schott",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Gerresheimer",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Stevanato",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"
         },
         {
           "brand": "SGD Pharma",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Piramal Glass",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "Ajmal",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"

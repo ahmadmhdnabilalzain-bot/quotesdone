@@ -254,100 +254,100 @@
         {
           "spec": "product packed: type, weight, dimensions, fragility, category (food/pharma/cosmetic/chemical/hazardous)",
           "blocking": true,
-          "why_it_prices": "The product's weight, fragility and category decide the construction and the compliance needed.",
+          "why_needed_to_price": "The product's weight, fragility and category decide the construction and the compliance needed.",
           "uae_options": "Food, pharma, cosmetic, chemical, hazardous, industrial; weight and dimensions.",
-          "follow_up": "Food or pharma brings food-contact or pharma compliance; hazardous goods bring UN-rated packaging."
+          "follow_up_if": "Food or pharma brings food-contact or pharma compliance; hazardous goods bring UN-rated packaging."
         },
         {
           "spec": "pack type",
           "blocking": true,
-          "why_it_prices": "Carton, pouch, bottle, label and tray are different converters.",
+          "why_needed_to_price": "Carton, pouch, bottle, label and tray are different converters.",
           "uae_options": "Corrugated box, folding carton, rigid box, pouch, bag, bottle, jar, label, film.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "internal dimensions and style (FEFCO code for boxes)",
           "blocking": true,
-          "why_it_prices": "Size and style set material area and tooling.",
+          "why_needed_to_price": "Size and style set material area and tooling.",
           "uae_options": "L x W x H internal; FEFCO code; dieline.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "material: flute/wall and paper grades, or board type and gsm, or resin/film structure",
           "blocking": true,
-          "why_it_prices": "Board grade, flute, gsm or film structure is the main cost.",
+          "why_needed_to_price": "Board grade, flute, gsm or film structure is the main cost.",
           "uae_options": "Flute and paper grades; SBS/FBB gsm; laminate structure in microns.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "performance target (ECT/BCT/burst; barrier/shelf life)",
           "blocking": false,
-          "why_it_prices": "Strength and barrier targets decide the material.",
+          "why_needed_to_price": "Strength and barrier targets decide the material.",
           "uae_options": "ECT/BCT/burst; OTR/WVTR; shelf life.",
-          "follow_up": "Export or humid storage brings a higher strength target."
+          "follow_up_if": "Export or humid storage brings a higher strength target."
         },
         {
           "spec": "print process expectations, colours (CMYK + Pantone refs), coverage",
           "blocking": true,
-          "why_it_prices": "Number of colours and process decide plates and press.",
+          "why_needed_to_price": "Number of colours and process decide plates and press.",
           "uae_options": "Offset, flexo, digital, gravure; CMYK plus Pantone; coverage.",
-          "follow_up": "Ask for the brand's Pantone references and colour tolerance."
+          "follow_up_if": "Ask for the brand's Pantone references and colour tolerance."
         },
         {
           "spec": "finishes (lamination, varnish, spot UV, foil, emboss, window)",
           "blocking": false,
-          "why_it_prices": "Each finish is an extra process.",
+          "why_needed_to_price": "Each finish is an extra process.",
           "uae_options": "Lamination, varnish, spot UV, foil, emboss, window.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity per order, annual volume, number of designs",
           "blocking": true,
-          "why_it_prices": "MOQ and set-up per design dominate small runs.",
+          "why_needed_to_price": "MOQ and set-up per design dominate small runs.",
           "uae_options": "Order quantity, annual volume, SKUs.",
-          "follow_up": "Several designs bring plate and set-up per design."
+          "follow_up_if": "Several designs bring plate and set-up per design."
         },
         {
           "spec": "artwork/dieline status",
           "blocking": true,
-          "why_it_prices": "Artwork readiness decides whether design and repro costs apply.",
+          "why_needed_to_price": "Artwork readiness decides whether design and repro costs apply.",
           "uae_options": "Print-ready files, dieline to be developed, design needed.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "food-contact / regulatory compliance documents",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Declaration of compliance, migration test report, ECAS certificate.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "recyclability or recycled-content requirement",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Mono-material, recycled content %, FSC.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery location, palletising and date",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "sample/proof approval steps",
           "blocking": false,
-          "why_it_prices": "Structural samples and press proofs add time and cost.",
+          "why_needed_to_price": "Structural samples and press proofs add time and cost.",
           "uae_options": "Digital proof, physical sample, press pass.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "overs/unders tolerance and tooling ownership",
           "blocking": false,
-          "why_it_prices": "Overs and unders of a few percent are normal and invoiced; tooling may be charged once.",
+          "why_needed_to_price": "Overs and unders of a few percent are normal and invoiced; tooling may be charged once.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

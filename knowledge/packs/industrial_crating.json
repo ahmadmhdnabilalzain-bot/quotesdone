@@ -41,93 +41,93 @@
         {
           "spec": "Item to be packed and its weight",
           "blocking": true,
-          "why_it_prices": "Weight and fragility decide skid, frame and timber sections.",
+          "why_needed_to_price": "Weight and fragility decide skid, frame and timber sections.",
           "uae_options": "Machinery, panels, spares; weight and centre of gravity.",
-          "follow_up": "Ask whether the item has lifting points and fragile parts to brace."
+          "follow_up_if": "Ask whether the item has lifting points and fragile parts to brace."
         },
         {
           "spec": "Internal and external dimensions",
           "blocking": true,
-          "why_it_prices": "Size sets timber volume; external size decides container or flat-rack fit.",
+          "why_needed_to_price": "Size sets timber volume; external size decides container or flat-rack fit.",
           "uae_options": "L x W x H; container type (20/40 ft, open top, flat rack).",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Timber or plywood type",
           "blocking": true,
-          "why_it_prices": "Solid timber vs plywood vs OSB changes cost and ISPM 15 treatment.",
+          "why_needed_to_price": "Solid timber vs plywood vs OSB changes cost and ISPM 15 treatment.",
           "uae_options": "Pine, hardwood, plywood (exempt from ISPM 15 as processed wood), OSB.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Heat treatment marking for export",
           "blocking": true,
-          "why_it_prices": "Solid wood for export needs ISPM 15 treatment and marking.",
+          "why_needed_to_price": "Solid wood for export needs ISPM 15 treatment and marking.",
           "uae_options": "HT-stamped timber; plywood not regulated.",
-          "follow_up": "Ask destination countries."
+          "follow_up_if": "Ask destination countries."
         },
         {
           "spec": "Cushioning and moisture protection",
           "blocking": true,
-          "why_it_prices": "Seaworthy packing with VCI and barrier foil adds material and labour.",
+          "why_needed_to_price": "Seaworthy packing with VCI and barrier foil adds material and labour.",
           "uae_options": "Foam, VCI film, barrier foil with desiccant, shrink wrap.",
-          "follow_up": "Sea freight or long storage brings barrier foil and desiccant."
+          "follow_up_if": "Sea freight or long storage brings barrier foil and desiccant."
         },
         {
           "spec": "Lifting and forklift points",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Skid runners, forklift entries, lifting marks.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Repeat crates of one design cost less each.",
+          "why_needed_to_price": "Repeat crates of one design cost less each.",
           "uae_options": "Crates; one-off or repeat.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "HPE packing guidelines, customer packing spec.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": true,
-          "why_it_prices": "On-site packing at the buyer's premises vs packing at the supplier's yard changes cost.",
+          "why_needed_to_price": "On-site packing at the buyer's premises vs packing at the supplier's yard changes cost.",
           "uae_options": "Pack at site, pack at yard, include loading and lashing.",
-          "follow_up": "Packing at site brings access, crane and working hours."
+          "follow_up_if": "Packing at site brings access, crane and working hours."
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Loading, lashing, crane and documentation are often extra.",
+          "why_needed_to_price": "Loading, lashing, crane and documentation are often extra.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

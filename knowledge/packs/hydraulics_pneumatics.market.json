@@ -40,98 +40,98 @@
       "brand_origins": [
         {
           "brand": "Bosch Rexroth",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Parker Hannifin",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Danfoss",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "premium",
           "generic_en": "a premium Danish brand",
           "generic_ar": "علامة دنماركية من الفئة الممتازة"
         },
         {
           "brand": "Kawasaki",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Yuken",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Atos",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "Hydac",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Manuli",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "Gates",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Alfagomma",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "SMC",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Festo",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Norgren",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Camozzi",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"

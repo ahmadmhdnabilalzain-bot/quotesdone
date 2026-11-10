@@ -40,147 +40,147 @@
       "brand_origins": [
         {
           "brand": "Grundfos",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "premium",
           "generic_en": "a premium Danish brand",
           "generic_ar": "علامة دنماركية من الفئة الممتازة"
         },
         {
           "brand": "KSB",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Wilo",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Xylem",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Sulzer",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Flowserve",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Ebara",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Pentair",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Armstrong",
-          "origin_country": "Canada",
+          "origin": "Canada",
           "tier": "premium",
           "generic_en": "a premium Canadian brand",
           "generic_ar": "علامة كندية من الفئة الممتازة"
         },
         {
           "brand": "Aurora",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "DAB",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "Pedrollo",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "Calpeda",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "Kirloskar",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "CRI",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "economy",
           "generic_en": "a economy Indian brand",
           "generic_ar": "علامة هندية من الفئة الاقتصادية"
         },
         {
           "brand": "Tsurumi",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Netzsch",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Seepex",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Graco",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Wilden",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "ProMinent",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"

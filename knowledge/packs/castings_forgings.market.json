@@ -40,14 +40,14 @@
       "brand_origins": [
         {
           "brand": "Saint-Gobain PAM",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "EJ",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"

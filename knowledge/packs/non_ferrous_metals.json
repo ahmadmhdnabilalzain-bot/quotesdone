@@ -40,100 +40,100 @@
         {
           "spec": "Metal and alloy designation",
           "blocking": true,
-          "why_it_prices": "Alloy sets metal cost and properties.",
+          "why_needed_to_price": "Alloy sets metal cost and properties.",
           "uae_options": "Aluminium 1050/5083/6061/6063; copper C101/C110; brass CZ121; bronze; zinc; nickel alloys.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Temper",
           "blocking": true,
-          "why_it_prices": "Temper changes strength and processing.",
+          "why_needed_to_price": "Temper changes strength and processing.",
           "uae_options": "O, H14, H32, T5, T6; half-hard copper.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Form and dimensions",
           "blocking": true,
-          "why_it_prices": "Sheet, plate, extrusion, bar, tube, wire and ingot are priced differently.",
+          "why_needed_to_price": "Sheet, plate, extrusion, bar, tube, wire and ingot are priced differently.",
           "uae_options": "Thickness x width x length; extrusion die number; diameter.",
-          "follow_up": "Custom extrusions bring a die cost and minimum quantity."
+          "follow_up_if": "Custom extrusions bring a die cost and minimum quantity."
         },
         {
           "spec": "Tolerance standard",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "EN 485, EN 755, ASTM B209.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Mill test certificate",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "EN 10204 3.1.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Surface finish",
           "blocking": false,
-          "why_it_prices": "Anodising, powder coating and polishing add cost.",
+          "why_needed_to_price": "Anodising, powder coating and polishing add cost.",
           "uae_options": "Mill finish, anodised (micron class), powder coated, brushed.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Priced per kg, per tonne or per piece; metal premium changes with quantity.",
+          "why_needed_to_price": "Priced per kg, per tonne or per piece; metal premium changes with quantity.",
           "uae_options": "kg, tonnes, pieces, lengths.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Pricing basis",
           "blocking": true,
-          "why_it_prices": "LME-linked prices need the reference date and premium; fixed prices need validity.",
+          "why_needed_to_price": "LME-linked prices need the reference date and premium; fixed prices need validity.",
           "uae_options": "LME plus premium and conversion; fixed price with validity.",
-          "follow_up": "Ask whether the buyer wants a fixed price or an LME-linked formula."
+          "follow_up_if": "Ask whether the buyer wants a fixed price or an LME-linked formula."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

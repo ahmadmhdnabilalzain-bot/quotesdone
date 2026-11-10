@@ -44,21 +44,21 @@
       "brand_origins": [
         {
           "brand": "Aramex",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "supplier",
           "generic_en": "a premium UAE supplier",
           "generic_ar": "شركة توريد إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Carrier Transicold",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Thermo King",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"

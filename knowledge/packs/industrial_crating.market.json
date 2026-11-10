@@ -40,28 +40,28 @@
       "brand_origins": [
         {
           "brand": "DHL",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "supplier",
           "generic_en": "a premium German supplier",
           "generic_ar": "شركة توريد ألمانية من الفئة الممتازة"
         },
         {
           "brand": "DB Schenker",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "supplier",
           "generic_en": "a premium German supplier",
           "generic_ar": "شركة توريد ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Kuehne+Nagel",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "supplier",
           "generic_en": "a premium Swiss supplier",
           "generic_ar": "شركة توريد سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Cortec",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"

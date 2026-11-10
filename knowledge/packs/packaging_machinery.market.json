@@ -38,112 +38,112 @@
       "brand_origins": [
         {
           "brand": "Syntegon",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "IMA",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"
         },
         {
           "brand": "Krones",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Sidel",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "ProMach",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Robopac",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "Signode",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Mosca",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "mid",
           "generic_en": "a mid-tier German brand",
           "generic_ar": "علامة ألمانية من الفئة المتوسطة"
         },
         {
           "brand": "Videojet",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Markem-Imaje",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Domino",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Herma",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Fromm",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "mid",
           "generic_en": "a mid-tier Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة المتوسطة"
         },
         {
           "brand": "Cyklop",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "mid",
           "generic_en": "a mid-tier German brand",
           "generic_ar": "علامة ألمانية من الفئة المتوسطة"
         },
         {
           "brand": "Uhlmann",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Marchesini",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"

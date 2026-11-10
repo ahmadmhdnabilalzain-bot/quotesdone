@@ -39,86 +39,86 @@
         {
           "spec": "number of passengers and routes",
           "blocking": true,
-          "why_it_prices": "Passenger count and routes decide vehicles and trips.",
+          "why_needed_to_price": "Passenger count and routes decide vehicles and trips.",
           "uae_options": "Passengers per shift; pick-up points; destinations; km per route.",
-          "follow_up": "Ask the accommodation and site addresses and whether routes cross emirates."
+          "follow_up_if": "Ask the accommodation and site addresses and whether routes cross emirates."
         },
         {
           "spec": "vehicle type and seating capacity",
           "blocking": true,
-          "why_it_prices": "Bus size sets the rate.",
+          "why_needed_to_price": "Bus size sets the rate.",
           "uae_options": "14-seat van, 26/30-seat coaster, 50/67-seat bus.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "vehicle age and air-conditioning",
           "blocking": true,
-          "why_it_prices": "Newer A/C buses cost more; many clients require A/C.",
+          "why_needed_to_price": "Newer A/C buses cost more; many clients require A/C.",
           "uae_options": "Maximum vehicle age; A/C.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "trips per day and schedule",
           "blocking": true,
-          "why_it_prices": "Shifts and idle time between trips drive cost.",
+          "why_needed_to_price": "Shifts and idle time between trips drive cost.",
           "uae_options": "Trips per day; shift times; days per week; Fridays and holidays.",
-          "follow_up": "Split shifts bring waiting time or extra trips."
+          "follow_up_if": "Split shifts bring waiting time or extra trips."
         },
         {
           "spec": "driver licence and passenger transport permit",
           "blocking": true,
-          "why_it_prices": "With-driver service needs the operator's passenger transport permit and permitted drivers.",
+          "why_needed_to_price": "With-driver service needs the operator's passenger transport permit and permitted drivers.",
           "uae_options": "Operator's RTA (Dubai) or ITC (Abu Dhabi) permit; driver professional permit.",
-          "follow_up": "Ask whether the service is with driver; with driver brings the driver's permit, hours and replacement driver."
+          "follow_up_if": "Ask whether the service is with driver; with driver brings the driver's permit, hours and replacement driver."
         },
         {
           "spec": "fuel, Salik and parking included or excluded",
           "blocking": true,
-          "why_it_prices": "Fuel and tolls can be a large share.",
+          "why_needed_to_price": "Fuel and tolls can be a large share.",
           "uae_options": "All-inclusive or fuel/Salik recharged.",
-          "follow_up": "Ask whether Salik and Darb tolls are included."
+          "follow_up_if": "Ask whether Salik and Darb tolls are included."
         },
         {
           "spec": "replacement vehicle",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Replacement within a stated time on breakdown.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "passenger insurance",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Passenger liability cover.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "contract duration and pricing basis",
           "blocking": true,
-          "why_it_prices": "Monthly contracts price lower than daily hire.",
+          "why_needed_to_price": "Monthly contracts price lower than daily hire.",
           "uae_options": "Per trip, per day, per month per bus.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service levels and response times",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "GPS tracking, punctuality, reporting.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Overtime hours, extra trips and holiday work are often excluded.",
+          "why_needed_to_price": "Overtime hours, extra trips and holiday work are often excluded.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "inter-emirate travel",
           "blocking": false,
-          "why_it_prices": "Crossing emirates may need an additional permit.",
+          "why_needed_to_price": "Crossing emirates may need an additional permit.",
           "uae_options": "Within one emirate, crossing emirates.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

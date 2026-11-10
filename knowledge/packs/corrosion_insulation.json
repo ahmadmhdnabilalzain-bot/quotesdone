@@ -44,107 +44,107 @@
         {
           "spec": "system and product data sheets",
           "blocking": true,
-          "why_it_prices": "The coating or insulation system defines materials and coats.",
+          "why_needed_to_price": "The coating or insulation system defines materials and coats.",
           "uae_options": "Named system (primer/intermediate/finish) or insulation material (mineral wool, PIR, cellular glass, elastomeric, aerogel).",
-          "follow_up": "Ask whether the end user has an approved system or vendor list."
+          "follow_up_if": "Ask whether the end user has an approved system or vendor list."
         },
         {
           "spec": "surface preparation grade per ISO 8501-1",
           "blocking": true,
-          "why_it_prices": "Blasting to Sa 2.5 vs hand tool St 2 is a large cost difference.",
+          "why_needed_to_price": "Blasting to Sa 2.5 vs hand tool St 2 is a large cost difference.",
           "uae_options": "Sa 2.5, Sa 3, St 2/St 3; profile in µm.",
-          "follow_up": "Blasting brings containment and abrasive restrictions on site."
+          "follow_up_if": "Blasting brings containment and abrasive restrictions on site."
         },
         {
           "spec": "coating or insulation thickness",
           "blocking": true,
-          "why_it_prices": "DFT and insulation thickness set material quantity.",
+          "why_needed_to_price": "DFT and insulation thickness set material quantity.",
           "uae_options": "DFT per coat in µm; insulation 25-100 mm.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "corrosivity category per ISO 12944",
           "blocking": false,
-          "why_it_prices": "C5 or CX systems are heavier than C3.",
+          "why_needed_to_price": "C5 or CX systems are heavier than C3.",
           "uae_options": "C3, C4, C5, CX; durability L/M/H/VH.",
-          "follow_up": "Coastal and offshore sites in the UAE are usually C5 or higher."
+          "follow_up_if": "Coastal and offshore sites in the UAE are usually C5 or higher."
         },
         {
           "spec": "operating temperature",
           "blocking": true,
-          "why_it_prices": "Hot and cryogenic service need different systems.",
+          "why_needed_to_price": "Hot and cryogenic service need different systems.",
           "uae_options": "Ambient, hot (above 120 °C), cryogenic, cycling.",
-          "follow_up": "Hot pipes bring CUI-resistant coating under insulation."
+          "follow_up_if": "Hot pipes bring CUI-resistant coating under insulation."
         },
         {
           "spec": "area or pipe lengths and sizes",
           "blocking": true,
-          "why_it_prices": "Quantity is priced by m2 or by metre per pipe size.",
+          "why_needed_to_price": "Quantity is priced by m2 or by metre per pipe size.",
           "uae_options": "m2; metres per NPS; number of fittings and valves.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "cladding or jacketing",
           "blocking": false,
-          "why_it_prices": "Aluminium, stainless or GRP cladding adds cost.",
+          "why_needed_to_price": "Aluminium, stainless or GRP cladding adds cost.",
           "uae_options": "Aluminium 0.7-1.0 mm, SS, PVC, mastic.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "inspection and test plan",
           "blocking": false,
-          "why_it_prices": "DFT, holiday and adhesion tests and third-party inspection add cost.",
+          "why_needed_to_price": "DFT, holiday and adhesion tests and third-party inspection add cost.",
           "uae_options": "ITP with hold points, NACE/FROSIO inspector.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "applicator qualifications",
           "blocking": false,
-          "why_it_prices": "Qualified applicators and approved contractors cost more.",
+          "why_needed_to_price": "Qualified applicators and approved contractors cost more.",
           "uae_options": "NACE/AMPP or FROSIO inspector; manufacturer-approved applicator.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "licences held",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Trade licence for the activity; civil defence approval for fire-rated insulation.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service levels",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "contract duration",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pricing basis",
           "blocking": true,
-          "why_it_prices": "Lump sum, per m2 and per metre prices are not comparable without quantities.",
+          "why_needed_to_price": "Lump sum, per m2 and per metre prices are not comparable without quantities.",
           "uae_options": "Lump sum, unit rates with quantities, day rates.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Scaffolding, access, removal of old insulation and waste disposal are frequent exclusions.",
+          "why_needed_to_price": "Scaffolding, access, removal of old insulation and waste disposal are frequent exclusions.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "access and scaffolding",
           "blocking": true,
-          "why_it_prices": "Access at height can cost as much as the coating.",
+          "why_needed_to_price": "Access at height can cost as much as the coating.",
           "uae_options": "Ground level, scaffolding by others, rope access, MEWP.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

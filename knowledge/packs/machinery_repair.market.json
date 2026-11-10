@@ -38,70 +38,70 @@
       "brand_origins": [
         {
           "brand": "Siemens",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "ABB",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "WEG",
-          "origin_country": "Brazil",
+          "origin": "Brazil",
           "tier": "mid",
           "generic_en": "a mid-tier Brazilian brand",
           "generic_ar": "علامة برازيلية من الفئة المتوسطة"
         },
         {
           "brand": "Atlas Copco",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Grundfos",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "premium",
           "generic_en": "a premium Danish brand",
           "generic_ar": "علامة دنماركية من الفئة الممتازة"
         },
         {
           "brand": "Al-Bahar",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "an authorised dealer or distributor based in the UAE",
           "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
         },
         {
           "brand": "SKF",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Fluke",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Emerson",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Pruftechnik",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"

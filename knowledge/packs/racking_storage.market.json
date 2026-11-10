@@ -38,70 +38,70 @@
       "brand_origins": [
         {
           "brand": "Mecalux",
-          "origin_country": "Spain",
+          "origin": "Spain",
           "tier": "premium",
           "generic_en": "a premium Spanish brand",
           "generic_ar": "علامة إسبانية من الفئة الممتازة"
         },
         {
           "brand": "Stow",
-          "origin_country": "Belgium",
+          "origin": "Belgium",
           "tier": "premium",
           "generic_en": "a premium Belgian brand",
           "generic_ar": "علامة بلجيكية من الفئة الممتازة"
         },
         {
           "brand": "SSI Schäfer",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Dexion",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "AR Racking",
-          "origin_country": "Spain",
+          "origin": "Spain",
           "tier": "mid",
           "generic_en": "a mid-tier Spanish brand",
           "generic_ar": "علامة إسبانية من الفئة المتوسطة"
         },
         {
           "brand": "Kardex",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Constructor",
-          "origin_country": "Norway",
+          "origin": "Norway",
           "tier": "mid",
           "generic_en": "a mid-tier Norwegian brand",
           "generic_ar": "علامة نرويجية من الفئة المتوسطة"
         },
         {
           "brand": "Averys",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "mid",
           "generic_en": "a mid-tier French brand",
           "generic_ar": "علامة فرنسية من الفئة المتوسطة"
         },
         {
           "brand": "Nedcon",
-          "origin_country": "Netherlands",
+          "origin": "Netherlands",
           "tier": "mid",
           "generic_en": "a mid-tier Dutch brand",
           "generic_ar": "علامة هولندية من الفئة المتوسطة"
         },
         {
           "brand": "Godrej",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"

@@ -40,168 +40,168 @@
       "brand_origins": [
         {
           "brand": "SKF",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Schaeffler (FAG, INA)",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "NSK",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "NTN",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Koyo",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Timken",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "NACHI",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "ZWZ",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "HRB",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Gates",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Optibelt",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Continental",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Bando",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Mitsuboshi",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Fenner",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "Tsubaki",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Renold",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Rexnord",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "iwis",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "SEW-Eurodrive",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Bonfiglioli",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "Nord",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Flender",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Sumitomo",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"

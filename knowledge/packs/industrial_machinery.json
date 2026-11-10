@@ -44,114 +44,114 @@
         {
           "spec": "Machine type, make and model",
           "blocking": true,
-          "why_it_prices": "The model fixes the build, options and price list.",
+          "why_needed_to_price": "The model fixes the build, options and price list.",
           "uae_options": "A named model, or a duty description the supplier proposes against.",
-          "follow_up": "If no make is named, ask the output, material and tolerance so suppliers can propose equivalents."
+          "follow_up_if": "If no make is named, ask the output, material and tolerance so suppliers can propose equivalents."
         },
         {
           "spec": "Output capacity",
           "blocking": true,
-          "why_it_prices": "Capacity sizes the machine and its motors.",
+          "why_needed_to_price": "Capacity sizes the machine and its motors.",
           "uae_options": "Units per hour, kg/h, tonnage, working envelope.",
-          "follow_up": "Ask the product or material processed and the shift pattern."
+          "follow_up_if": "Ask the product or material processed and the shift pattern."
         },
         {
           "spec": "Power supply and connected load",
           "blocking": true,
-          "why_it_prices": "UAE supply is 400 V 3-phase 50 Hz; a 60 Hz or 480 V build needs a transformer or changes.",
+          "why_needed_to_price": "UAE supply is 400 V 3-phase 50 Hz; a 60 Hz or 480 V build needs a transformer or changes.",
           "uae_options": "400 V/3 ph/50 Hz, 230 V single phase, site transformer.",
-          "follow_up": "Ask whether the site has the spare electrical capacity; a DEWA/ADDC load increase is the buyer's."
+          "follow_up_if": "Ask whether the site has the spare electrical capacity; a DEWA/ADDC load increase is the buyer's."
         },
         {
           "spec": "New, used or refurbished",
           "blocking": true,
-          "why_it_prices": "Used and rebuilt machines price far below new and carry less warranty.",
+          "why_needed_to_price": "Used and rebuilt machines price far below new and carry less warranty.",
           "uae_options": "New, used as-is, refurbished with a defined scope, demo unit.",
-          "follow_up": "Used machines bring the year, hours, inspection report and whether it can be seen running."
+          "follow_up_if": "Used machines bring the year, hours, inspection report and whether it can be seen running."
         },
         {
           "spec": "Control system",
           "blocking": false,
-          "why_it_prices": "CNC/PLC brand and level change price and spares availability.",
+          "why_needed_to_price": "CNC/PLC brand and level change price and spares availability.",
           "uae_options": "Siemens, Fanuc, Mitsubishi, Allen-Bradley, maker's own.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Operator training",
           "blocking": false,
-          "why_it_prices": "Training days and trainer travel are priced.",
+          "why_needed_to_price": "Training days and trainer travel are priced.",
           "uae_options": "On-site days, at the factory, online.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Spare parts package",
           "blocking": false,
-          "why_it_prices": "A start-up or two-year spares list is a separate cost.",
+          "why_needed_to_price": "A start-up or two-year spares list is a separate cost.",
           "uae_options": "Commissioning spares, two-year operating spares.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Quantity changes the build slot and discount.",
+          "why_needed_to_price": "Quantity changes the build slot and discount.",
           "uae_options": "Units.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "CE/ISO safety compliance and a factory acceptance test add cost.",
+          "why_needed_to_price": "CE/ISO safety compliance and a factory acceptance test add cost.",
           "uae_options": "CE marking, ISO 12100, FAT at the factory, SAT on site.",
-          "follow_up": "Ask whether the buyer will witness the FAT."
+          "follow_up_if": "Ask whether the buyer will witness the FAT."
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Electrical items may fall under a UAE technical regulation.",
+          "why_needed_to_price": "Electrical items may fall under a UAE technical regulation.",
           "uae_options": "ECAS where regulated; civil defence for gas-fired plant.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": true,
-          "why_it_prices": "Heavy plant freight, rigging and duty are large.",
+          "why_needed_to_price": "Heavy plant freight, rigging and duty are large.",
           "uae_options": "EXW, CIF Jebel Ali, DAP site, offloaded and positioned.",
-          "follow_up": "Ask for site access, door size and crane availability."
+          "follow_up_if": "Ask for site access, door size and crane availability."
         },
         {
           "spec": "Installation or commissioning scope",
           "blocking": true,
-          "why_it_prices": "Foundations, rigging, utilities and commissioning can equal a large share of the machine price.",
+          "why_needed_to_price": "Foundations, rigging, utilities and commissioning can equal a large share of the machine price.",
           "uae_options": "Supply only, supervision, full installation and commissioning.",
-          "follow_up": "Ask who builds the foundation and brings power, air and water to the machine."
+          "follow_up_if": "Ask who builds the foundation and brings power, air and water to the machine."
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "Longer warranty and on-site response are priced.",
+          "why_needed_to_price": "Longer warranty and on-site response are priced.",
           "uae_options": "Maker's period from commissioning or from shipment.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "Build-to-order machines take months.",
+          "why_needed_to_price": "Build-to-order machines take months.",
           "uae_options": "Stock, build slot, months.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Foundations, civil work, utilities, tooling and freight are often excluded.",
+          "why_needed_to_price": "Foundations, civil work, utilities, tooling and freight are often excluded.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Tooling, dies or moulds",
           "blocking": false,
-          "why_it_prices": "Tooling can be a separate large cost.",
+          "why_needed_to_price": "Tooling can be a separate large cost.",
           "uae_options": "Included, quoted separately, buyer-supplied.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

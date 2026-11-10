@@ -23,21 +23,21 @@
       "brand_origins": [
         {
           "brand": "Giant",
-          "origin_country": "Taiwan",
+          "origin": "Taiwan",
           "tier": "mid",
           "generic_en": "a mid-tier Taiwanese brand",
           "generic_ar": "علامة تايوانية من الفئة المتوسطة"
         },
         {
           "brand": "Trek",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Segway",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "mid",
           "generic_en": "a mid-tier Chinese brand",
           "generic_ar": "علامة صينية من الفئة المتوسطة"

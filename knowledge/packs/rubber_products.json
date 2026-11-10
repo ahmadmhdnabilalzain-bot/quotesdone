@@ -37,86 +37,86 @@
         {
           "spec": "product type (sheet, gasket, hose, mat, moulded part)",
           "blocking": true,
-          "why_it_prices": "Sheet, gasket, hose, mat and moulded part are different processes.",
+          "why_needed_to_price": "Sheet, gasket, hose, mat and moulded part are different processes.",
           "uae_options": "Sheet, cut gasket, hose, matting, moulded part, extrusion, lining.",
-          "follow_up": "Moulded parts bring a mould cost."
+          "follow_up_if": "Moulded parts bring a mould cost."
         },
         {
           "spec": "rubber compound (NR, EPDM, NBR, neoprene, silicone, Viton)",
           "blocking": true,
-          "why_it_prices": "Compound sets chemical and temperature resistance and price.",
+          "why_needed_to_price": "Compound sets chemical and temperature resistance and price.",
           "uae_options": "NR, SBR, EPDM, NBR, neoprene (CR), silicone, FKM (Viton), PU.",
-          "follow_up": "Oils bring NBR or FKM; outdoor and UV bring EPDM."
+          "follow_up_if": "Oils bring NBR or FKM; outdoor and UV bring EPDM."
         },
         {
           "spec": "hardness in Shore A",
           "blocking": true,
-          "why_it_prices": "Hardness is part of the compound and changes the product.",
+          "why_needed_to_price": "Hardness is part of the compound and changes the product.",
           "uae_options": "40-90 Shore A.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "dimensions and tolerances",
           "blocking": true,
-          "why_it_prices": "Size and tolerance class set price.",
+          "why_needed_to_price": "Size and tolerance class set price.",
           "uae_options": "Thickness, width, length; ISO 3302 tolerance class.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "temperature and chemical resistance",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Operating range; media.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pressure rating for hoses",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Working and burst pressure; standard.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "food-grade or potable-water approval",
           "blocking": false,
-          "why_it_prices": "Approved compounds cost more.",
+          "why_needed_to_price": "Approved compounds cost more.",
           "uae_options": "FDA/EU food-grade; WRAS for potable water.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity and unit",
           "blocking": true,
-          "why_it_prices": "Rolls, metres and kg are priced differently; volume lowers unit price.",
+          "why_needed_to_price": "Rolls, metres and kg are priced differently; volume lowers unit price.",
           "uae_options": "Metres, rolls, kg, pieces.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty period and terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

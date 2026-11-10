@@ -44,56 +44,56 @@
       "brand_origins": [
         {
           "brand": "Gulf Craft",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "luxury",
           "generic_en": "a luxury UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الفاخرة"
         },
         {
           "brand": "Yamaha",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Mercury",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Volvo Penta",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Garmin",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Raymarine",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "Furuno",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Jotun",
-          "origin_country": "Norway",
+          "origin": "Norway",
           "tier": "premium",
           "generic_en": "a premium Norwegian brand",
           "generic_ar": "علامة نرويجية من الفئة الممتازة"

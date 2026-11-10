@@ -40,126 +40,126 @@
       "brand_origins": [
         {
           "brand": "Siemens",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Rockwell Automation",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Schneider Electric",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "ABB",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Emerson",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Honeywell",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Yokogawa",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Endress+Hauser",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Krohne",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Vega",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "WIKA",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "mid",
           "generic_en": "a mid-tier German brand",
           "generic_ar": "علامة ألمانية من الفئة المتوسطة"
         },
         {
           "brand": "Omron",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Mitsubishi Electric",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Delta",
-          "origin_country": "Taiwan",
+          "origin": "Taiwan",
           "tier": "economy",
           "generic_en": "a economy Taiwanese brand",
           "generic_ar": "علامة تايوانية من الفئة الاقتصادية"
         },
         {
           "brand": "Phoenix Contact",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Pepperl+Fuchs",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Dräger",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "MSA",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"

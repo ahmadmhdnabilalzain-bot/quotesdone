@@ -40,133 +40,133 @@
       "brand_origins": [
         {
           "brand": "Cameron",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Emerson",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Flowserve",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "KSB",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Velan",
-          "origin_country": "Canada",
+          "origin": "Canada",
           "tier": "premium",
           "generic_en": "a premium Canadian brand",
           "generic_ar": "علامة كندية من الفئة الممتازة"
         },
         {
           "brand": "Neles",
-          "origin_country": "Finland",
+          "origin": "Finland",
           "tier": "premium",
           "generic_en": "a premium Finnish brand",
           "generic_ar": "علامة فنلندية من الفئة الممتازة"
         },
         {
           "brand": "Samson",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Rotork",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "AUMA",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Belimo",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Danfoss",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "premium",
           "generic_en": "a premium Danish brand",
           "generic_ar": "علامة دنماركية من الفئة الممتازة"
         },
         {
           "brand": "IMI Hydronic",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Crane",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Pegler",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "AVK",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "mid",
           "generic_en": "a mid-tier Danish brand",
           "generic_ar": "علامة دنماركية من الفئة المتوسطة"
         },
         {
           "brand": "Saint-Gobain PAM",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "mid",
           "generic_en": "a mid-tier French brand",
           "generic_ar": "علامة فرنسية من الفئة المتوسطة"
         },
         {
           "brand": "Bray",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Zwick",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "L&T",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"

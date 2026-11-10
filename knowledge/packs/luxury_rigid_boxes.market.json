@@ -42,21 +42,21 @@
       "brand_origins": [
         {
           "brand": "Fedrigoni",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "luxury",
           "generic_en": "a luxury Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الفاخرة"
         },
         {
           "brand": "GMUND",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "luxury",
           "generic_en": "a luxury German brand",
           "generic_ar": "علامة ألمانية من الفئة الفاخرة"
         },
         {
           "brand": "Ajmal",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"

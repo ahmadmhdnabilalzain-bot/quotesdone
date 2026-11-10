@@ -40,84 +40,84 @@
       "brand_origins": [
         {
           "brand": "Al-Futtaim",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "an authorised dealer or distributor based in the UAE",
           "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
         },
         {
           "brand": "Bosch",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Denso",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "NGK",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Valeo",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Mahle",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Mann-Filter",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "ZF",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Brembo",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"
         },
         {
           "brand": "Mobil",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Shell",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "ENOC",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"

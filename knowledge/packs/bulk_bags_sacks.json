@@ -44,114 +44,114 @@
         {
           "spec": "bag type",
           "blocking": true,
-          "why_it_prices": "FIBC, woven PP sack, paper multiwall and leno bags are different products.",
+          "why_needed_to_price": "FIBC, woven PP sack, paper multiwall and leno bags are different products.",
           "uae_options": "FIBC (U-panel, circular, baffle), woven PP sack, BOPP-laminated sack, multiwall paper, leno mesh.",
-          "follow_up": "FIBCs bring the electrostatic type (A, B, C, D) for flammable atmospheres."
+          "follow_up_if": "FIBCs bring the electrostatic type (A, B, C, D) for flammable atmospheres."
         },
         {
           "spec": "dimensions",
           "blocking": true,
-          "why_it_prices": "Size sets fabric area and the volume carried.",
+          "why_needed_to_price": "Size sets fabric area and the volume carried.",
           "uae_options": "FIBC base and height; sack width x length.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "safe working load",
           "blocking": true,
-          "why_it_prices": "SWL decides fabric and loops.",
+          "why_needed_to_price": "SWL decides fabric and loops.",
           "uae_options": "500-2,000 kg for FIBCs; 25-50 kg sacks.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "safety factor",
           "blocking": true,
-          "why_it_prices": "Single-trip 5:1 vs multi-trip 6:1 bags differ.",
+          "why_needed_to_price": "Single-trip 5:1 vs multi-trip 6:1 bags differ.",
           "uae_options": "5:1 single trip, 6:1 multi-trip.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "fabric weight and material",
           "blocking": true,
-          "why_it_prices": "Fabric gsm is the main cost and sets strength.",
+          "why_needed_to_price": "Fabric gsm is the main cost and sets strength.",
           "uae_options": "gsm; PP, coated or uncoated.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "standard such as ISO 21898",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "ISO 21898 for FIBCs; UN-certified bags for dangerous goods.",
-          "follow_up": "Dangerous goods bring UN-certified FIBCs."
+          "follow_up_if": "Dangerous goods bring UN-certified FIBCs."
         },
         {
           "spec": "filling and discharge spout",
           "blocking": true,
-          "why_it_prices": "Spouts and open tops change construction.",
+          "why_needed_to_price": "Spouts and open tops change construction.",
           "uae_options": "Duffle top, filling spout, flat bottom, discharge spout.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "liner and coating",
           "blocking": false,
-          "why_it_prices": "Liners and food-grade production add cost.",
+          "why_needed_to_price": "Liners and food-grade production add cost.",
           "uae_options": "Loose or form-fit PE liner; food-grade cleanroom production.",
-          "follow_up": "Food use brings food-grade production and documents."
+          "follow_up_if": "Food use brings food-grade production and documents."
         },
         {
           "spec": "UV stabilisation",
           "blocking": false,
-          "why_it_prices": "Outdoor storage needs UV-stabilised fabric.",
+          "why_needed_to_price": "Outdoor storage needs UV-stabilised fabric.",
           "uae_options": "Hours of UV resistance.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity",
           "blocking": true,
-          "why_it_prices": "Annual contracts and container loads lower unit price.",
+          "why_needed_to_price": "Annual contracts and container loads lower unit price.",
           "uae_options": "Pieces; annual volume.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery and installation scope",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "printing",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "1-4 colours, sides printed.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

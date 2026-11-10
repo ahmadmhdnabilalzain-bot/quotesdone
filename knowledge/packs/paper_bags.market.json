@@ -40,28 +40,28 @@
       "brand_origins": [
         {
           "brand": "Mondi",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Billerud",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Smurfit Westrock",
-          "origin_country": "Ireland",
+          "origin": "Ireland",
           "tier": "premium",
           "generic_en": "a premium Irish brand",
           "generic_ar": "علامة أيرلندية من الفئة الممتازة"
         },
         {
           "brand": "Segezha",
-          "origin_country": "Russia",
+          "origin": "Russia",
           "tier": "mid",
           "generic_en": "a mid-tier Russian brand",
           "generic_ar": "علامة روسية من الفئة المتوسطة"

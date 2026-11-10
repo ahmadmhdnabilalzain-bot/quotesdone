@@ -41,107 +41,107 @@
         {
           "spec": "bearing or component designation",
           "blocking": true,
-          "why_it_prices": "The full designation (with suffixes) is the product; without it there is nothing to price.",
+          "why_needed_to_price": "The full designation (with suffixes) is the product; without it there is nothing to price.",
           "uae_options": "ISO designation such as 6205-2RS C3; belt section and length; chain pitch and strands; gearbox ratio and torque.",
-          "follow_up": "If the buyer only has the old part, ask for a photo of the markings and the dimensions."
+          "follow_up_if": "If the buyer only has the old part, ask for a photo of the markings and the dimensions."
         },
         {
           "spec": "brand",
           "blocking": true,
-          "why_it_prices": "Premium and economy brands of the same designation differ several-fold in price and life.",
+          "why_needed_to_price": "Premium and economy brands of the same designation differ several-fold in price and life.",
           "uae_options": "Named brand, a list of acceptable brands, or open.",
-          "follow_up": "If open, ask whether economy brands are acceptable; counterfeits are common in premium brands."
+          "follow_up_if": "If open, ask whether economy brands are acceptable; counterfeits are common in premium brands."
         },
         {
           "spec": "bore and outside dimensions",
           "blocking": false,
-          "why_it_prices": "Confirms the designation and catches errors.",
+          "why_needed_to_price": "Confirms the designation and catches errors.",
           "uae_options": "d x D x B in mm.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "load rating",
           "blocking": false,
-          "why_it_prices": "Heavy-duty variants cost more.",
+          "why_needed_to_price": "Heavy-duty variants cost more.",
           "uae_options": "Dynamic and static ratings per catalogue.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "clearance and precision class",
           "blocking": true,
-          "why_it_prices": "C3 vs CN or P5 vs P0 is a different product.",
+          "why_needed_to_price": "C3 vs CN or P5 vs P0 is a different product.",
           "uae_options": "CN, C3, C4; P0, P6, P5, P4.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "seal or shield type",
           "blocking": true,
-          "why_it_prices": "Open, shielded and sealed versions are different part numbers.",
+          "why_needed_to_price": "Open, shielded and sealed versions are different part numbers.",
           "uae_options": "Open, ZZ/2Z, 2RS/2RSH, contact or non-contact seals.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lubrication",
           "blocking": false,
-          "why_it_prices": "Special greases cost more.",
+          "why_needed_to_price": "Special greases cost more.",
           "uae_options": "Standard grease, high-temperature, food-grade, oil.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "operating speed and temperature",
           "blocking": false,
-          "why_it_prices": "High temperature or speed changes cage and grease.",
+          "why_needed_to_price": "High temperature or speed changes cage and grease.",
           "uae_options": "",
-          "follow_up": "High temperature brings heat-stabilised versions."
+          "follow_up_if": "High temperature brings heat-stabilised versions."
         },
         {
           "spec": "quantity",
           "blocking": true,
-          "why_it_prices": "Box quantities and volume change unit price.",
+          "why_needed_to_price": "Box quantities and volume change unit price.",
           "uae_options": "Pieces, boxes.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "Normally none; a brand authenticity letter matters.",
+          "why_needed_to_price": "Normally none; a brand authenticity letter matters.",
           "uae_options": "Authorised distributor certificate.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery and installation scope",
           "blocking": false,
-          "why_it_prices": "Fitting, alignment and gearbox installation are services.",
+          "why_needed_to_price": "Fitting, alignment and gearbox installation are services.",
           "uae_options": "Supply only, fitting, laser alignment.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Stock in Dubai vs import.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "genuine-brand evidence",
           "blocking": false,
-          "why_it_prices": "Counterfeit bearings are a known risk; authenticity is part of value.",
+          "why_needed_to_price": "Counterfeit bearings are a known risk; authenticity is part of value.",
           "uae_options": "Supply from the brand's authorised distributor, with traceable packaging.",
-          "follow_up": "For premium brands ask for the authorised-distributor status."
+          "follow_up_if": "For premium brands ask for the authorised-distributor status."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

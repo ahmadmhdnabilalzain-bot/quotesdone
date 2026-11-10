@@ -39,93 +39,93 @@
         {
           "spec": "Bag type",
           "blocking": true,
-          "why_it_prices": "SOS, satchel, flat-handle, twisted-handle and multiwall sacks differ in machine and price.",
+          "why_needed_to_price": "SOS, satchel, flat-handle, twisted-handle and multiwall sacks differ in machine and price.",
           "uae_options": "SOS grocery, flat or twisted handle carrier, satchel, multiwall valve sack, food bag.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Dimensions",
           "blocking": true,
-          "why_it_prices": "Size sets paper area per bag.",
+          "why_needed_to_price": "Size sets paper area per bag.",
           "uae_options": "Width x gusset x height.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Paper grade and weight",
           "blocking": true,
-          "why_it_prices": "Kraft gsm sets cost and load capacity.",
+          "why_needed_to_price": "Kraft gsm sets cost and load capacity.",
           "uae_options": "Brown or white kraft, 60-120 gsm; recycled or virgin.",
-          "follow_up": "Ask the load the bag carries."
+          "follow_up_if": "Ask the load the bag carries."
         },
         {
           "spec": "Handle type",
           "blocking": true,
-          "why_it_prices": "Twisted paper, flat paper, rope and ribbon handles differ.",
+          "why_needed_to_price": "Twisted paper, flat paper, rope and ribbon handles differ.",
           "uae_options": "None, flat, twisted, rope, ribbon, die-cut.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Printing",
           "blocking": true,
-          "why_it_prices": "Colours and process add plates and set-up.",
+          "why_needed_to_price": "Colours and process add plates and set-up.",
           "uae_options": "Unprinted, 1-4 colour flexo, offset for premium bags.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Food-contact suitability",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Food-grade paper and inks for direct contact.",
-          "follow_up": "Direct food contact brings documents."
+          "follow_up_if": "Direct food contact brings documents."
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Machine-made bags have high MOQs; hand-made premium bags cost more each.",
+          "why_needed_to_price": "Machine-made bags have high MOQs; hand-made premium bags cost more each.",
           "uae_options": "Pieces per design.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Single-use bag rules may apply.",
+          "why_needed_to_price": "Single-use bag rules may apply.",
           "uae_options": "",
-          "follow_up": "Retail carrier bags bring the single-use bag rules."
+          "follow_up_if": "Retail carrier bags bring the single-use bag rules."
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

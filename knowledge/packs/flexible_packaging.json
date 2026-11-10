@@ -42,93 +42,93 @@
         {
           "spec": "pack format",
           "blocking": true,
-          "why_it_prices": "Roll stock, pouches, bags and sachets are different converting.",
+          "why_needed_to_price": "Roll stock, pouches, bags and sachets are different converting.",
           "uae_options": "Roll stock, 3-side seal, stand-up pouch, zipper, spout, flat-bottom, sachet, shrink/stretch film.",
-          "follow_up": "Pouches bring zipper, spout, tear notch and window options."
+          "follow_up_if": "Pouches bring zipper, spout, tear notch and window options."
         },
         {
           "spec": "dimensions",
           "blocking": true,
-          "why_it_prices": "Area per pack sets material use.",
+          "why_needed_to_price": "Area per pack sets material use.",
           "uae_options": "W x H x gusset; reel width and core.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "laminate structure and thickness",
           "blocking": true,
-          "why_it_prices": "The layer structure is the main cost.",
+          "why_needed_to_price": "The layer structure is the main cost.",
           "uae_options": "PET/PE, BOPP/CPP, PET/ALU/PE, kraft/PE; microns per layer.",
-          "follow_up": "Ask the filling machine and seal requirements."
+          "follow_up_if": "Ask the filling machine and seal requirements."
         },
         {
           "spec": "barrier properties",
           "blocking": false,
-          "why_it_prices": "Barrier needs aluminium, metallised or EVOH layers.",
+          "why_needed_to_price": "Barrier needs aluminium, metallised or EVOH layers.",
           "uae_options": "OTR, WVTR targets; shelf life.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "printing colours",
           "blocking": true,
-          "why_it_prices": "Gravure cylinders or flexo plates per colour drive set-up cost.",
+          "why_needed_to_price": "Gravure cylinders or flexo plates per colour drive set-up cost.",
           "uae_options": "Number of colours; gravure, flexo, digital; Pantone references.",
-          "follow_up": "Gravure brings cylinder cost per colour and higher MOQ."
+          "follow_up_if": "Gravure brings cylinder cost per colour and higher MOQ."
         },
         {
           "spec": "food-contact compliance",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Declaration of compliance, migration tests, ECAS certificate where required.",
-          "follow_up": "Food brings the food type (fatty, acidic, frozen, hot-fill)."
+          "follow_up_if": "Food brings the food type (fatty, acidic, frozen, hot-fill)."
         },
         {
           "spec": "quantity",
           "blocking": true,
-          "why_it_prices": "MOQ in kg or pieces and run length dominate price.",
+          "why_needed_to_price": "MOQ in kg or pieces and run length dominate price.",
           "uae_options": "kg, metres, pieces; per design.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery and installation scope",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Cylinders, plates and design are often extra.",
+          "why_needed_to_price": "Cylinders, plates and design are often extra.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "artwork status",
           "blocking": true,
-          "why_it_prices": "Artwork readiness decides repro and design costs.",
+          "why_needed_to_price": "Artwork readiness decides repro and design costs.",
           "uae_options": "Print-ready, needs repro, needs design.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

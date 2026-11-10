@@ -41,100 +41,100 @@
         {
           "spec": "product form (plate, sheet, section, pipe, rebar, bar)",
           "blocking": true,
-          "why_it_prices": "Plate, sheet, section, pipe, rebar and bar are priced separately.",
+          "why_needed_to_price": "Plate, sheet, section, pipe, rebar and bar are priced separately.",
           "uae_options": "Plate, HR/CR sheet, galvanised coil, beams (IPE, HEA, UB, UC), channels, angles, hollow sections, rebar, bright bar.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "steel grade and standard (S275JR, S355, ASTM A36, BS 4449 B500B)",
           "blocking": true,
-          "why_it_prices": "Grade and standard set chemistry, testing and price.",
+          "why_needed_to_price": "Grade and standard set chemistry, testing and price.",
           "uae_options": "S275JR, S355J2, ASTM A36, A572 Gr50, BS 4449 B500B, ASTM A615 Gr60.",
-          "follow_up": "Rebar brings the UAE conformity scheme for reinforcing bars."
+          "follow_up_if": "Rebar brings the UAE conformity scheme for reinforcing bars."
         },
         {
           "spec": "dimensions and thickness",
           "blocking": true,
-          "why_it_prices": "Size is the basis of weight.",
+          "why_needed_to_price": "Size is the basis of weight.",
           "uae_options": "Thickness x width x length; section designation; bar diameter.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "length (fixed or random)",
           "blocking": false,
-          "why_it_prices": "Cut-to-length and fixed lengths cost more than mill lengths.",
+          "why_needed_to_price": "Cut-to-length and fixed lengths cost more than mill lengths.",
           "uae_options": "6 m, 12 m, cut to length.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity in tonnes or pieces",
           "blocking": true,
-          "why_it_prices": "Steel is priced per tonne; theoretical vs actual weight must be stated.",
+          "why_needed_to_price": "Steel is priced per tonne; theoretical vs actual weight must be stated.",
           "uae_options": "Tonnes (theoretical or weighbridge), pieces.",
-          "follow_up": "Ask whether invoicing is on theoretical or actual weight."
+          "follow_up_if": "Ask whether invoicing is on theoretical or actual weight."
         },
         {
           "spec": "mill test certificate (EN 10204 3.1)",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "3.1 MTC traceable to heat number.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "origin mill",
           "blocking": true,
-          "why_it_prices": "Mill and origin change price and are often restricted by consultants.",
+          "why_needed_to_price": "Mill and origin change price and are often restricted by consultants.",
           "uae_options": "UAE mills, GCC, Turkey, India, China, Korea, Japan.",
-          "follow_up": "If a mill or origin is specified, any other is a deviation."
+          "follow_up_if": "If a mill or origin is specified, any other is a deviation."
         },
         {
           "spec": "cutting or processing",
           "blocking": false,
-          "why_it_prices": "Cutting, bending, drilling and shot blasting are services.",
+          "why_needed_to_price": "Cutting, bending, drilling and shot blasting are services.",
           "uae_options": "Cut, bent to schedule (rebar), drilled, blasted and primed.",
-          "follow_up": "Rebar cut-and-bend brings the bar bending schedule."
+          "follow_up_if": "Rebar cut-and-bend brings the bar bending schedule."
         },
         {
           "spec": "surface condition (black, galvanised, painted)",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Black, pickled and oiled, galvanised, primed.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery terms and location",
           "blocking": true,
-          "why_it_prices": "Freight per trip and offloading matter for heavy loads.",
+          "why_needed_to_price": "Freight per trip and offloading matter for heavy loads.",
           "uae_options": "Ex-yard, delivered site with or without offloading.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty period and terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "price validity",
           "blocking": true,
-          "why_it_prices": "Steel prices move weekly; validity decides whether the price is firm.",
+          "why_needed_to_price": "Steel prices move weekly; validity decides whether the price is firm.",
           "uae_options": "Validity in days; price adjustment clause.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

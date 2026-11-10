@@ -41,100 +41,100 @@
         {
           "spec": "Product type and brand",
           "blocking": true,
-          "why_it_prices": "Engine oil, hydraulic oil, gear oil, grease and metalworking fluid are different products.",
+          "why_needed_to_price": "Engine oil, hydraulic oil, gear oil, grease and metalworking fluid are different products.",
           "uae_options": "Named product, or a type with an approval list.",
-          "follow_up": "If no brand is named, ask for the OEM approval the machine manual requires."
+          "follow_up_if": "If no brand is named, ask for the OEM approval the machine manual requires."
         },
         {
           "spec": "Viscosity grade",
           "blocking": true,
-          "why_it_prices": "Viscosity selects the product.",
+          "why_needed_to_price": "Viscosity selects the product.",
           "uae_options": "ISO VG 32/46/68/100/220/320; SAE 15W-40, 5W-30; NLGI 2 for grease.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Performance specification or OEM approval",
           "blocking": true,
-          "why_it_prices": "API, ACEA and OEM approvals separate premium from basic oils.",
+          "why_needed_to_price": "API, ACEA and OEM approvals separate premium from basic oils.",
           "uae_options": "API CK-4/SP, ACEA E8, DIN 51524 HLP, MAN/Volvo/MB approvals.",
-          "follow_up": "Ask the equipment make and manual; warranties may require approved oil."
+          "follow_up_if": "Ask the equipment make and manual; warranties may require approved oil."
         },
         {
           "spec": "Pack size",
           "blocking": true,
-          "why_it_prices": "Litre packs, pails, drums, IBCs and bulk are priced differently.",
+          "why_needed_to_price": "Litre packs, pails, drums, IBCs and bulk are priced differently.",
           "uae_options": "1/4/5 L, 18-20 L pail, 208 L drum, 1,000 L IBC, bulk.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Technical and safety data sheets",
           "blocking": false,
-          "why_it_prices": "TDS and SDS are needed for approval and storage.",
+          "why_needed_to_price": "TDS and SDS are needed for approval and storage.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Batch and shelf life",
           "blocking": false,
-          "why_it_prices": "Old stock and short shelf life are a risk.",
+          "why_needed_to_price": "Old stock and short shelf life are a risk.",
           "uae_options": "Manufacturing date, shelf life.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Litres vs drums vs kg breaks comparison.",
+          "why_needed_to_price": "Litres vs drums vs kg breaks comparison.",
           "uae_options": "Litres, drums, kg.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Engine oils are a regulated product needing conformity.",
+          "why_needed_to_price": "Engine oils are a regulated product needing conformity.",
           "uae_options": "ECAS certificate for engine oil held by the importer or blender.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Used-oil collection is often outside the price.",
+          "why_needed_to_price": "Used-oil collection is often outside the price.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Used-oil collection",
           "blocking": false,
-          "why_it_prices": "Licensed disposal of used oil has a cost or a rebate.",
+          "why_needed_to_price": "Licensed disposal of used oil has a cost or a rebate.",
           "uae_options": "Collection by a licensed collector, or none.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

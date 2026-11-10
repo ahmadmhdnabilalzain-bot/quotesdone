@@ -42,93 +42,93 @@
         {
           "spec": "Gas and purity grade",
           "blocking": true,
-          "why_it_prices": "Purity grade multiplies the price.",
+          "why_needed_to_price": "Purity grade multiplies the price.",
           "uae_options": "Industrial, high purity (4.5-5.0), ultra-high purity, food grade (CO2, N2), medical.",
-          "follow_up": "Medical use brings the medical-gas regulator's requirements; food use brings food-grade certification."
+          "follow_up_if": "Medical use brings the medical-gas regulator's requirements; food use brings food-grade certification."
         },
         {
           "spec": "Supply mode",
           "blocking": true,
-          "why_it_prices": "Cylinders, cylinder packs, bulk liquid tanks and on-site generation are priced on different bases.",
+          "why_needed_to_price": "Cylinders, cylinder packs, bulk liquid tanks and on-site generation are priced on different bases.",
           "uae_options": "Single cylinders, MCPs, micro-bulk, bulk liquid with tank, on-site N2/O2 generator.",
-          "follow_up": "Bulk brings tank rental, telemetry and site civil works; on-site generation brings power and space."
+          "follow_up_if": "Bulk brings tank rental, telemetry and site civil works; on-site generation brings power and space."
         },
         {
           "spec": "Cylinder size and valve type",
           "blocking": true,
-          "why_it_prices": "Size and valve outlet decide the regulator and the refill price.",
+          "why_needed_to_price": "Size and valve outlet decide the regulator and the refill price.",
           "uae_options": "Water capacity in litres; valve outlet standard.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Cylinder rental and deposit",
           "blocking": true,
-          "why_it_prices": "Rental per cylinder per month can exceed the gas price.",
+          "why_needed_to_price": "Rental per cylinder per month can exceed the gas price.",
           "uae_options": "Monthly rental, deposit, customer-owned cylinders.",
-          "follow_up": "Ask how many cylinders are kept on site and the usage per month."
+          "follow_up_if": "Ask how many cylinders are kept on site and the usage per month."
         },
         {
           "spec": "Certificate of analysis",
           "blocking": false,
-          "why_it_prices": "CoA per batch costs more for specialty gases.",
+          "why_needed_to_price": "CoA per batch costs more for specialty gases.",
           "uae_options": "Per batch, per cylinder.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Storage and handling approval on site",
           "blocking": true,
-          "why_it_prices": "Site storage must meet civil defence rules before delivery.",
+          "why_needed_to_price": "Site storage must meet civil defence rules before delivery.",
           "uae_options": "Cylinder cage, segregation, ventilation; bulk tank approval.",
-          "follow_up": "Ask whether the site already has an approved storage area."
+          "follow_up_if": "Ask whether the site already has an approved storage area."
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Gas is sold by cylinder, m3, kg or litre of liquid.",
+          "why_needed_to_price": "Gas is sold by cylinder, m3, kg or litre of liquid.",
           "uae_options": "Cylinders/month, m3, kg, litres.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "ISO 14175 for shielding gases; pharmacopoeia grades for medical.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": true,
-          "why_it_prices": "Delivery frequency and distance are part of the price.",
+          "why_needed_to_price": "Delivery frequency and distance are part of the price.",
           "uae_options": "Delivered per call, scheduled, collected.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Regulators, manifolds and pipework are often extras.",
+          "why_needed_to_price": "Regulators, manifolds and pipework are often extras.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

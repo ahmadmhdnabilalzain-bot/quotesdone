@@ -38,86 +38,86 @@
         {
           "spec": "vehicle make, model and year",
           "blocking": true,
-          "why_it_prices": "Vehicle class sets the monthly rate.",
+          "why_needed_to_price": "Vehicle class sets the monthly rate.",
           "uae_options": "Named model or class; new or used; model year.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "number of vehicles",
           "blocking": true,
-          "why_it_prices": "Fleet size changes rate.",
+          "why_needed_to_price": "Fleet size changes rate.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lease term in months",
           "blocking": true,
-          "why_it_prices": "Term sets depreciation per month.",
+          "why_needed_to_price": "Term sets depreciation per month.",
           "uae_options": "12, 24, 36, 48 months.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "annual mileage allowance and excess rate",
           "blocking": true,
-          "why_it_prices": "Mileage drives depreciation and maintenance.",
+          "why_needed_to_price": "Mileage drives depreciation and maintenance.",
           "uae_options": "km per year; rate per excess km.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "maintenance, registration and insurance included",
           "blocking": true,
-          "why_it_prices": "Full-service vs dry lease differ greatly.",
+          "why_needed_to_price": "Full-service vs dry lease differ greatly.",
           "uae_options": "Full maintenance, registration, comprehensive insurance, tyres, replacement.",
-          "follow_up": "Ask the insurance excess and who pays it."
+          "follow_up_if": "Ask the insurance excess and who pays it."
         },
         {
           "spec": "replacement vehicle",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Like-for-like within hours; class down.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Salik and fines handling",
           "blocking": true,
-          "why_it_prices": "Salik tolls and traffic fines must be recharged with admin fees or included.",
+          "why_needed_to_price": "Salik tolls and traffic fines must be recharged with admin fees or included.",
           "uae_options": "Recharged at cost plus fee, included cap, buyer's account.",
-          "follow_up": "Ask whether Salik and Darb (Abu Dhabi tolls) and parking are recharged and with what admin fee."
+          "follow_up_if": "Ask whether Salik and Darb (Abu Dhabi tolls) and parking are recharged and with what admin fee."
         },
         {
           "spec": "early termination terms",
           "blocking": false,
-          "why_it_prices": "Early termination penalties can be large.",
+          "why_needed_to_price": "Early termination penalties can be large.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "contract duration and pricing basis",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service levels and response times",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "driver included",
           "blocking": false,
-          "why_it_prices": "Chauffeur service turns a lease into a transport service with different rules.",
+          "why_needed_to_price": "Chauffeur service turns a lease into a transport service with different rules.",
           "uae_options": "Self-drive or with driver.",
-          "follow_up": "With driver brings the driver's permit and hours."
+          "follow_up_if": "With driver brings the driver's permit and hours."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

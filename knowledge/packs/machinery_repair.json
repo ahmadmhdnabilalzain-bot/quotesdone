@@ -38,93 +38,93 @@
         {
           "spec": "Machine make, model and serial",
           "blocking": true,
-          "why_it_prices": "Parts and procedures depend on the exact machine.",
+          "why_needed_to_price": "Parts and procedures depend on the exact machine.",
           "uae_options": "Make, model, serial, year.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Fault description",
           "blocking": true,
-          "why_it_prices": "The fault decides whether a price can be given before inspection.",
+          "why_needed_to_price": "The fault decides whether a price can be given before inspection.",
           "uae_options": "Symptoms, alarms, when it started, photos or video.",
-          "follow_up": "An unknown fault brings an inspection-first quote."
+          "follow_up_if": "An unknown fault brings an inspection-first quote."
         },
         {
           "spec": "Inspection and diagnosis fee",
           "blocking": true,
-          "why_it_prices": "Most workshops charge to strip and diagnose.",
+          "why_needed_to_price": "Most workshops charge to strip and diagnose.",
           "uae_options": "Fixed fee, hourly, deducted if repair proceeds.",
-          "follow_up": "Ask whether the fee is credited against the repair."
+          "follow_up_if": "Ask whether the fee is credited against the repair."
         },
         {
           "spec": "Parts to be replaced",
           "blocking": false,
-          "why_it_prices": "Genuine vs aftermarket parts change the price.",
+          "why_needed_to_price": "Genuine vs aftermarket parts change the price.",
           "uae_options": "Genuine, OEM, aftermarket, reconditioned.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "On-site or workshop repair",
           "blocking": true,
-          "why_it_prices": "On-site work adds travel and access; workshop work adds transport.",
+          "why_needed_to_price": "On-site work adds travel and access; workshop work adds transport.",
           "uae_options": "On-site, workshop, pick-up and delivery.",
-          "follow_up": "On-site brings site access, permits and working hours."
+          "follow_up_if": "On-site brings site access, permits and working hours."
         },
         {
           "spec": "Test after repair",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "No-load run, load test, vibration report.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Repair warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Deliverables and scope of work",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Inspection report, repair report, test certificate.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Licence and qualifications of the provider",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Maker-authorised service, independent workshop.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Service level and response time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Duration and schedule",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Pricing basis",
           "blocking": true,
-          "why_it_prices": "Fixed price vs time and materials are not comparable.",
+          "why_needed_to_price": "Fixed price vs time and materials are not comparable.",
           "uae_options": "Fixed price after diagnosis, labour rate plus parts, contract.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -40,93 +40,93 @@
         {
           "spec": "fastener type",
           "blocking": true,
-          "why_it_prices": "Bolt, stud, screw, anchor and rivet are different products and processes.",
+          "why_needed_to_price": "Bolt, stud, screw, anchor and rivet are different products and processes.",
           "uae_options": "Hex bolt, socket cap screw, stud, nut, washer, chemical or mechanical anchor, self-drilling screw.",
-          "follow_up": "Anchors bring the base material (cracked/uncracked concrete, block, steel)."
+          "follow_up_if": "Anchors bring the base material (cracked/uncracked concrete, block, steel)."
         },
         {
           "spec": "size and length",
           "blocking": true,
-          "why_it_prices": "Diameter and length set weight and price.",
+          "why_needed_to_price": "Diameter and length set weight and price.",
           "uae_options": "M6-M64; imperial UNC/UNF; length in mm.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "material and property class",
           "blocking": true,
-          "why_it_prices": "Class 8.8 vs 10.9, A2 vs A4 stainless and alloy grades price very differently.",
+          "why_needed_to_price": "Class 8.8 vs 10.9, A2 vs A4 stainless and alloy grades price very differently.",
           "uae_options": "4.6, 8.8, 10.9, 12.9; A2-70, A4-80; B7/2H; duplex.",
-          "follow_up": "Coastal or chemical exposure brings A4 or duplex."
+          "follow_up_if": "Coastal or chemical exposure brings A4 or duplex."
         },
         {
           "spec": "product standard such as ISO 4014",
           "blocking": false,
-          "why_it_prices": "The standard fixes thread length, head and tolerances.",
+          "why_needed_to_price": "The standard fixes thread length, head and tolerances.",
           "uae_options": "ISO 4014/4017, DIN 931/933, ASME B18.2.1, EN 14399 for structural sets.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "coating",
           "blocking": true,
-          "why_it_prices": "Hot-dip galvanising, zinc flake and PTFE coatings add cost and change thread fit.",
+          "why_needed_to_price": "Hot-dip galvanising, zinc flake and PTFE coatings add cost and change thread fit.",
           "uae_options": "Plain, zinc plated, HDG, zinc flake (Geomet/Delta), PTFE (Xylan).",
-          "follow_up": "HDG bolts need oversize-tapped nuts."
+          "follow_up_if": "HDG bolts need oversize-tapped nuts."
         },
         {
           "spec": "anchor approval or assessment",
           "blocking": true,
-          "why_it_prices": "An anchor with a European Technical Assessment for the use is a different product from an unassessed one.",
+          "why_needed_to_price": "An anchor with a European Technical Assessment for the use is a different product from an unassessed one.",
           "uae_options": "ETA to EAD 330232/330499 options, seismic C1/C2, fire rating.",
-          "follow_up": "Ask the load and edge distances; a safety-critical anchor needs a design calculation."
+          "follow_up_if": "Ask the load and edge distances; a safety-critical anchor needs a design calculation."
         },
         {
           "spec": "quantity and pack unit",
           "blocking": true,
-          "why_it_prices": "Fasteners are sold per piece, per box or per kg; mixing them breaks comparison.",
+          "why_needed_to_price": "Fasteners are sold per piece, per box or per kg; mixing them breaks comparison.",
           "uae_options": "Pieces, boxes of 100, kg.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "Mill certificates (EN 10204 3.1) for structural and pressure bolting.",
+          "why_needed_to_price": "Mill certificates (EN 10204 3.1) for structural and pressure bolting.",
           "uae_options": "3.1 certificates, consultant approval of anchors.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery and installation scope",
           "blocking": false,
-          "why_it_prices": "Anchor installation and pull testing are services.",
+          "why_needed_to_price": "Anchor installation and pull testing are services.",
           "uae_options": "Supply only, install, pull-out test.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Stock vs import for special grades.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Nuts and washers are often priced separately.",
+          "why_needed_to_price": "Nuts and washers are often priced separately.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "origin",
           "blocking": false,
-          "why_it_prices": "Taiwanese, Chinese, Indian and European fasteners differ in price; projects may restrict origin.",
+          "why_needed_to_price": "Taiwanese, Chinese, Indian and European fasteners differ in price; projects may restrict origin.",
           "uae_options": "As specified.",
-          "follow_up": "If the buyer named an origin, any other is a deviation."
+          "follow_up_if": "If the buyer named an origin, any other is a deviation."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

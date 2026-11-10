@@ -40,119 +40,119 @@
       "brand_origins": [
         {
           "brand": "Rockwool",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "premium",
           "generic_en": "a premium Danish brand",
           "generic_ar": "علامة دنماركية من الفئة الممتازة"
         },
         {
           "brand": "Knauf",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Foamglas",
-          "origin_country": "Belgium",
+          "origin": "Belgium",
           "tier": "premium",
           "generic_en": "a premium Belgian brand",
           "generic_ar": "علامة بلجيكية من الفئة الممتازة"
         },
         {
           "brand": "Armacell",
-          "origin_country": "Luxembourg",
+          "origin": "Luxembourg",
           "tier": "premium",
           "generic_en": "a premium Luxembourg-based brand",
           "generic_ar": "علامة لوكسمبورغية من الفئة الممتازة"
         },
         {
           "brand": "Aspen Aerogels",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Johns Manville",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Jotun",
-          "origin_country": "Norway",
+          "origin": "Norway",
           "tier": "premium",
           "generic_en": "a premium Norwegian brand",
           "generic_ar": "علامة نرويجية من الفئة الممتازة"
         },
         {
           "brand": "Hempel",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "premium",
           "generic_en": "a premium Danish brand",
           "generic_ar": "علامة دنماركية من الفئة الممتازة"
         },
         {
           "brand": "International",
-          "origin_country": "Netherlands",
+          "origin": "Netherlands",
           "tier": "premium",
           "generic_en": "a premium Dutch brand",
           "generic_ar": "علامة هولندية من الفئة الممتازة"
         },
         {
           "brand": "Sherwin-Williams",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "PPG",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Carboline",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "BAC",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "Corrpro",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Denso",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "Trenton",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Stopaq",
-          "origin_country": "Netherlands",
+          "origin": "Netherlands",
           "tier": "mid",
           "generic_en": "a mid-tier Dutch brand",
           "generic_ar": "علامة هولندية من الفئة المتوسطة"

@@ -39,100 +39,100 @@
         {
           "spec": "shipment type and volume",
           "blocking": true,
-          "why_it_prices": "Documents, parcels, pallets and e-commerce volumes are different products.",
+          "why_needed_to_price": "Documents, parcels, pallets and e-commerce volumes are different products.",
           "uae_options": "Documents, parcels, palletised freight; shipments per month.",
-          "follow_up": "E-commerce brings COD, returns and failed-delivery handling."
+          "follow_up_if": "E-commerce brings COD, returns and failed-delivery handling."
         },
         {
           "spec": "weight and dimensions",
           "blocking": true,
-          "why_it_prices": "Couriers bill the greater of actual and volumetric weight.",
+          "why_needed_to_price": "Couriers bill the greater of actual and volumetric weight.",
           "uae_options": "kg and cm per piece; volumetric divisor.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "origin and destination",
           "blocking": true,
-          "why_it_prices": "Zones set the rate.",
+          "why_needed_to_price": "Zones set the rate.",
           "uae_options": "Same city, inter-emirate, GCC, international zones.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service speed",
           "blocking": true,
-          "why_it_prices": "Same-day, next-day and economy differ.",
+          "why_needed_to_price": "Same-day, next-day and economy differ.",
           "uae_options": "Same day, next day, 2-3 days, economy international.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pickup schedule",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Daily scheduled, on call.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "tracking and proof of delivery",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "cash on delivery",
           "blocking": false,
-          "why_it_prices": "COD carries a fee and remittance terms.",
+          "why_needed_to_price": "COD carries a fee and remittance terms.",
           "uae_options": "COD fee, remittance cycle.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "liability and insurance",
           "blocking": false,
-          "why_it_prices": "Standard liability is limited; declared value insurance costs extra.",
+          "why_needed_to_price": "Standard liability is limited; declared value insurance costs extra.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "customs clearance for international",
           "blocking": false,
-          "why_it_prices": "Duties, taxes and clearance fees may be billed to the receiver.",
+          "why_needed_to_price": "Duties, taxes and clearance fees may be billed to the receiver.",
           "uae_options": "DDP or DDU.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "licences held",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service levels",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "contract duration",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pricing basis",
           "blocking": true,
-          "why_it_prices": "Rate cards by weight band and zone, plus surcharges, must be compared on the buyer's profile.",
+          "why_needed_to_price": "Rate cards by weight band and zone, plus surcharges, must be compared on the buyer's profile.",
           "uae_options": "Rate card per kg band and zone; fuel surcharge.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Fuel, remote-area, oversize and re-delivery surcharges are common.",
+          "why_needed_to_price": "Fuel, remote-area, oversize and re-delivery surcharges are common.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

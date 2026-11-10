@@ -38,84 +38,84 @@
       "brand_origins": [
         {
           "brand": "Borouge",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "SABIC",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "premium",
           "generic_en": "a premium Saudi brand",
           "generic_ar": "علامة سعودية من الفئة الممتازة"
         },
         {
           "brand": "Sipchem",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "mid",
           "generic_en": "a mid-tier Saudi brand",
           "generic_ar": "علامة سعودية من الفئة المتوسطة"
         },
         {
           "brand": "Tasnee",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "mid",
           "generic_en": "a mid-tier Saudi brand",
           "generic_ar": "علامة سعودية من الفئة المتوسطة"
         },
         {
           "brand": "Petro Rabigh",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "mid",
           "generic_en": "a mid-tier Saudi brand",
           "generic_ar": "علامة سعودية من الفئة المتوسطة"
         },
         {
           "brand": "OQ",
-          "origin_country": "Oman",
+          "origin": "Oman",
           "tier": "mid",
           "generic_en": "a mid-tier Omani brand",
           "generic_ar": "علامة عُمانية من الفئة المتوسطة"
         },
         {
           "brand": "QAPCO",
-          "origin_country": "Qatar",
+          "origin": "Qatar",
           "tier": "mid",
           "generic_en": "a mid-tier Qatari brand",
           "generic_ar": "علامة قطرية من الفئة المتوسطة"
         },
         {
           "brand": "Q-Chem",
-          "origin_country": "Qatar",
+          "origin": "Qatar",
           "tier": "mid",
           "generic_en": "a mid-tier Qatari brand",
           "generic_ar": "علامة قطرية من الفئة المتوسطة"
         },
         {
           "brand": "EQUATE",
-          "origin_country": "Kuwait",
+          "origin": "Kuwait",
           "tier": "mid",
           "generic_en": "a mid-tier Kuwaiti brand",
           "generic_ar": "علامة كويتية من الفئة المتوسطة"
         },
         {
           "brand": "Ampacet",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Avient",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Clariant",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"

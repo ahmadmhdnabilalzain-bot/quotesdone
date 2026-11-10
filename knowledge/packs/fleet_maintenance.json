@@ -39,93 +39,93 @@
         {
           "spec": "fleet size and vehicle types",
           "blocking": true,
-          "why_it_prices": "Mix of cars, vans, trucks and buses decides labour and parts.",
+          "why_needed_to_price": "Mix of cars, vans, trucks and buses decides labour and parts.",
           "uae_options": "Count per make/model/year; mileage.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service schedule",
           "blocking": true,
-          "why_it_prices": "Intervals set the number of visits.",
+          "why_needed_to_price": "Intervals set the number of visits.",
           "uae_options": "Maker's schedule, severe-duty schedule, km or hours.",
-          "follow_up": "UAE heat and dust usually justify the severe-duty schedule."
+          "follow_up_if": "UAE heat and dust usually justify the severe-duty schedule."
         },
         {
           "spec": "parts policy",
           "blocking": true,
-          "why_it_prices": "Genuine vs OES vs aftermarket parts is the main cost lever.",
+          "why_needed_to_price": "Genuine vs OES vs aftermarket parts is the main cost lever.",
           "uae_options": "Genuine only, OES allowed, aftermarket allowed per category.",
-          "follow_up": "Vehicles under maker warranty bring genuine parts and dealer service."
+          "follow_up_if": "Vehicles under maker warranty bring genuine parts and dealer service."
         },
         {
           "spec": "labour rate basis",
           "blocking": true,
-          "why_it_prices": "Flat-rate menus and hourly rates are not comparable without times.",
+          "why_needed_to_price": "Flat-rate menus and hourly rates are not comparable without times.",
           "uae_options": "Menu price per service, hourly rate with standard times.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pickup and replacement vehicles",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Pickup and drop, replacement vehicle.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "turnaround time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Same day for routine service.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "reporting and records",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Digital service history, fleet reports.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "licences held",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service levels",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "contract duration",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pricing basis",
           "blocking": true,
-          "why_it_prices": "Per-vehicle monthly fee, per-service menu or time and material decide risk sharing.",
+          "why_needed_to_price": "Per-vehicle monthly fee, per-service menu or time and material decide risk sharing.",
           "uae_options": "Fixed monthly per vehicle, menu, T&M.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Tyres, batteries, accident repairs, AC gas and consumables are often outside.",
+          "why_needed_to_price": "Tyres, batteries, accident repairs, AC gas and consumables are often outside.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "registration renewal and testing",
           "blocking": false,
-          "why_it_prices": "Annual testing and registration handling is often added.",
+          "why_needed_to_price": "Annual testing and registration handling is often added.",
           "uae_options": "Included or not.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

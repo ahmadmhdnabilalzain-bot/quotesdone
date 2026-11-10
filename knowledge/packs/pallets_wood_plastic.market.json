@@ -42,28 +42,28 @@
       "brand_origins": [
         {
           "brand": "CHEP",
-          "origin_country": "Australia",
+          "origin": "Australia",
           "tier": "premium",
           "generic_en": "a premium Australian brand",
           "generic_ar": "علامة أسترالية من الفئة الممتازة"
         },
         {
           "brand": "Schoeller Allibert",
-          "origin_country": "Netherlands",
+          "origin": "Netherlands",
           "tier": "premium",
           "generic_en": "a premium Dutch brand",
           "generic_ar": "علامة هولندية من الفئة الممتازة"
         },
         {
           "brand": "Craemer",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Cabka",
-          "origin_country": "Netherlands",
+          "origin": "Netherlands",
           "tier": "mid",
           "generic_en": "a mid-tier Dutch brand",
           "generic_ar": "علامة هولندية من الفئة المتوسطة"

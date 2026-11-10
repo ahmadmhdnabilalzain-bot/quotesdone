@@ -42,107 +42,107 @@
         {
           "spec": "racking type (selective, drive-in, cantilever, mezzanine, shelving)",
           "blocking": true,
-          "why_it_prices": "Each system is a different design and steel tonnage.",
+          "why_needed_to_price": "Each system is a different design and steel tonnage.",
           "uae_options": "Selective pallet racking, drive-in, push-back, cantilever, mezzanine, longspan or boltless shelving, mobile.",
-          "follow_up": "Mezzanines bring floor loading, stairs, handrails and civil defence approval."
+          "follow_up_if": "Mezzanines bring floor loading, stairs, handrails and civil defence approval."
         },
         {
           "spec": "load per level and per bay in kg",
           "blocking": true,
-          "why_it_prices": "Load sets upright and beam sections.",
+          "why_needed_to_price": "Load sets upright and beam sections.",
           "uae_options": "kg per pallet, pallets per level, UDL per level.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "upright height, beam length and depth",
           "blocking": true,
-          "why_it_prices": "Dimensions set steel quantity.",
+          "why_needed_to_price": "Dimensions set steel quantity.",
           "uae_options": "Height to top beam, clear beam length, frame depth.",
-          "follow_up": "Ask the clear height under the roof, sprinklers and lights."
+          "follow_up_if": "Ask the clear height under the roof, sprinklers and lights."
         },
         {
           "spec": "number of bays and levels",
           "blocking": true,
-          "why_it_prices": "Quantity drives the price.",
+          "why_needed_to_price": "Quantity drives the price.",
           "uae_options": "Bays x levels, or a layout drawing.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pallet size and forklift type",
           "blocking": true,
-          "why_it_prices": "Pallet and truck decide beam spacing, aisle and clearances.",
+          "why_needed_to_price": "Pallet and truck decide beam spacing, aisle and clearances.",
           "uae_options": "Pallet size and overhang; counterbalance, reach or VNA truck.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "design standard (EN 15512, EN 15635)",
           "blocking": false,
-          "why_it_prices": "Designing to EN 15512 with calculations costs engineering time.",
+          "why_needed_to_price": "Designing to EN 15512 with calculations costs engineering time.",
           "uae_options": "EN 15512, EN 16681 (seismic), FEM 10.2.02.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "finish and steel grade",
           "blocking": false,
-          "why_it_prices": "Galvanised vs powder-coated and steel grade change cost.",
+          "why_needed_to_price": "Galvanised vs powder-coated and steel grade change cost.",
           "uae_options": "Powder coat, pre-galvanised, hot-dip galvanised for cold stores.",
-          "follow_up": "Cold stores bring galvanised finish."
+          "follow_up_if": "Cold stores bring galvanised finish."
         },
         {
           "spec": "floor slab and anchoring",
           "blocking": true,
-          "why_it_prices": "Point loads may exceed the slab; anchors are part of the price.",
+          "why_needed_to_price": "Point loads may exceed the slab; anchors are part of the price.",
           "uae_options": "Slab thickness and concrete grade; anchor type.",
-          "follow_up": "If the slab is unknown, a slab check or core test is needed before a firm design."
+          "follow_up_if": "If the slab is unknown, a slab check or core test is needed before a firm design."
         },
         {
           "spec": "installation and load signs",
           "blocking": true,
-          "why_it_prices": "Installation can be quoted or excluded.",
+          "why_needed_to_price": "Installation can be quoted or excluded.",
           "uae_options": "Supply only, supply and install, load notices per EN 15635.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "sprinkler and fire code clearances",
           "blocking": false,
-          "why_it_prices": "In-rack sprinklers and flue spaces change layout.",
+          "why_needed_to_price": "In-rack sprinklers and flue spaces change layout.",
           "uae_options": "Flue spaces, in-rack sprinkler provision per the fire code.",
-          "follow_up": "High-bay storage brings civil defence review of the fire system."
+          "follow_up_if": "High-bay storage brings civil defence review of the fire system."
         },
         {
           "spec": "delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty period and terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Column guards, mesh decks, row spacers and inspections are often extras.",
+          "why_needed_to_price": "Column guards, mesh decks, row spacers and inspections are often extras.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "accessories",
           "blocking": false,
-          "why_it_prices": "Mesh decks, pallet supports and guards add cost.",
+          "why_needed_to_price": "Mesh decks, pallet supports and guards add cost.",
           "uae_options": "Column protectors, end guards, mesh decking, row spacers.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

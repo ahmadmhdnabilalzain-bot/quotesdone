@@ -40,63 +40,63 @@
       "brand_origins": [
         {
           "brand": "Taghleef Industries",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Falcon Pack",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Cosmoplast",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Interplast",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Schütz",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Mauser",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Stora Enso",
-          "origin_country": "Finland",
+          "origin": "Finland",
           "tier": "premium",
           "generic_en": "a premium Finnish brand",
           "generic_ar": "علامة فنلندية من الفئة الممتازة"
         },
         {
           "brand": "Iggesund",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Metsä",
-          "origin_country": "Finland",
+          "origin": "Finland",
           "tier": "premium",
           "generic_en": "a premium Finnish brand",
           "generic_ar": "علامة فنلندية من الفئة الممتازة"

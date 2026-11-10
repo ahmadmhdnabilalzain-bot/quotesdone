@@ -41,93 +41,93 @@
         {
           "spec": "Tool type, brand and model",
           "blocking": true,
-          "why_it_prices": "Model fixes power, features and price; trade and DIY lines of the same brand differ.",
+          "why_needed_to_price": "Model fixes power, features and price; trade and DIY lines of the same brand differ.",
           "uae_options": "Named model, professional or DIY grade, or a duty description.",
-          "follow_up": "If no brand is named, ask professional or occasional use."
+          "follow_up_if": "If no brand is named, ask professional or occasional use."
         },
         {
           "spec": "Power source and rating",
           "blocking": true,
-          "why_it_prices": "Corded watts, cordless voltage and pneumatic air consumption change the tool class.",
+          "why_needed_to_price": "Corded watts, cordless voltage and pneumatic air consumption change the tool class.",
           "uae_options": "Corded 230 V, cordless 12/18/36 V, pneumatic, hydraulic.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Voltage and plug type",
           "blocking": true,
-          "why_it_prices": "UAE sites use 230 V with BS 1363 plugs; many sites require 110 V CTE tools.",
+          "why_needed_to_price": "UAE sites use 230 V with BS 1363 plugs; many sites require 110 V CTE tools.",
           "uae_options": "230 V UK plug, 110 V yellow plug with transformer.",
-          "follow_up": "Construction sites often mandate 110 V; ask the site rule."
+          "follow_up_if": "Construction sites often mandate 110 V; ask the site rule."
         },
         {
           "spec": "Battery platform and capacity",
           "blocking": true,
-          "why_it_prices": "Bare tool vs kit with batteries and charger is the main price swing in cordless.",
+          "why_needed_to_price": "Bare tool vs kit with batteries and charger is the main price swing in cordless.",
           "uae_options": "Bare tool (skin only), kit with 2 x 4.0 Ah and charger, existing platform.",
-          "follow_up": "Ask whether the buyer already owns batteries of that platform."
+          "follow_up_if": "Ask whether the buyer already owns batteries of that platform."
         },
         {
           "spec": "Accessories included",
           "blocking": false,
-          "why_it_prices": "Case, bits, blades and dust extraction add cost.",
+          "why_needed_to_price": "Case, bits, blades and dust extraction add cost.",
           "uae_options": "Case, starter accessories, none.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Genuine or equivalent",
           "blocking": true,
-          "why_it_prices": "Grey imports and fakes undercut genuine prices and void warranty.",
+          "why_needed_to_price": "Grey imports and fakes undercut genuine prices and void warranty.",
           "uae_options": "Genuine through local distributor, parallel import.",
-          "follow_up": "If warranty matters, ask for local-distributor supply."
+          "follow_up_if": "If warranty matters, ask for local-distributor supply."
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Fleet quantities change the distributor discount.",
+          "why_needed_to_price": "Fleet quantities change the distributor discount.",
           "uae_options": "Pieces, kits.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "Electrical tools carry safety-standard compliance.",
+          "why_needed_to_price": "Electrical tools carry safety-standard compliance.",
           "uae_options": "IEC/EN 62841, CE.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Electrical tools may need ECAS conformity at import.",
+          "why_needed_to_price": "Electrical tools may need ECAS conformity at import.",
           "uae_options": "ECAS certificate held by the importer.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Ex-shop, delivered.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "Local warranty only applies to locally distributed tools.",
+          "why_needed_to_price": "Local warranty only applies to locally distributed tools.",
           "uae_options": "Maker's local warranty, extended on registration.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Batteries and chargers are often excluded from \"tool\" prices.",
+          "why_needed_to_price": "Batteries and chargers are often excluded from \"tool\" prices.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

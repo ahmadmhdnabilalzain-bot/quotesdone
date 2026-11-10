@@ -40,86 +40,86 @@
         {
           "spec": "goods type",
           "blocking": true,
-          "why_it_prices": "Food, pharma, flowers and chemicals carry different handling and compliance.",
+          "why_needed_to_price": "Food, pharma, flowers and chemicals carry different handling and compliance.",
           "uae_options": "Chilled food, frozen food, pharma (GDP), vaccines, flowers, chemicals.",
-          "follow_up": "Pharma brings GDP compliance and validated lanes; food brings the food-safety authority's vehicle and store approvals."
+          "follow_up_if": "Pharma brings GDP compliance and validated lanes; food brings the food-safety authority's vehicle and store approvals."
         },
         {
           "spec": "temperature range",
           "blocking": true,
-          "why_it_prices": "Frozen, chilled and controlled-ambient zones are priced differently.",
+          "why_needed_to_price": "Frozen, chilled and controlled-ambient zones are priced differently.",
           "uae_options": "-25 to -18 °C frozen, 0-4 °C or 2-8 °C chilled, 15-25 °C controlled ambient.",
-          "follow_up": "Multi-temperature loads bring multi-compartment vehicles."
+          "follow_up_if": "Multi-temperature loads bring multi-compartment vehicles."
         },
         {
           "spec": "volume in pallets or cubic metres",
           "blocking": true,
-          "why_it_prices": "Storage is priced per pallet position; transport per trip or pallet.",
+          "why_needed_to_price": "Storage is priced per pallet position; transport per trip or pallet.",
           "uae_options": "Pallet positions, CBM, pallets per day in and out.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "storage or transport or both",
           "blocking": true,
-          "why_it_prices": "Storage, transport and integrated services are priced on different bases.",
+          "why_needed_to_price": "Storage, transport and integrated services are priced on different bases.",
           "uae_options": "Storage only, transport only, integrated.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "temperature monitoring and records",
           "blocking": false,
-          "why_it_prices": "Continuous logging and alarms cost more and are required for pharma.",
+          "why_needed_to_price": "Continuous logging and alarms cost more and are required for pharma.",
           "uae_options": "Data loggers, real-time telemetry, temperature reports per trip.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "food safety approvals",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Dubai Municipality food transport permit; ADAFSA approvals; HACCP; GDP certification.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "routes and delivery windows",
           "blocking": true,
-          "why_it_prices": "Multi-drop routes and narrow windows raise cost.",
+          "why_needed_to_price": "Multi-drop routes and narrow windows raise cost.",
           "uae_options": "Drops per route, emirates covered, delivery windows.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "licences held",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service levels",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "On-time, temperature excursion handling.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "contract duration",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pricing basis",
           "blocking": true,
-          "why_it_prices": "Per pallet per day/week, handling in and out, per trip, per drop — all must be converted to the buyer's volume.",
+          "why_needed_to_price": "Per pallet per day/week, handling in and out, per trip, per drop — all must be converted to the buyer's volume.",
           "uae_options": "Storage per pallet, handling fees, transport per trip or drop.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Handling, labelling, picking, blast freezing and waiting time are often extra.",
+          "why_needed_to_price": "Handling, labelling, picking, blast freezing and waiting time are often extra.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

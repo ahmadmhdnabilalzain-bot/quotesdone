@@ -38,100 +38,100 @@
         {
           "spec": "Grade",
           "blocking": true,
-          "why_it_prices": "Each grade is a different mill product.",
+          "why_needed_to_price": "Each grade is a different mill product.",
           "uae_options": "Copy paper, woodfree offset, coated art (gloss/matt), SBS, FBB, WLC/duplex, kraft liner, testliner, fluting, greaseproof.",
-          "follow_up": "Food packaging brings food-contact grade."
+          "follow_up_if": "Food packaging brings food-contact grade."
         },
         {
           "spec": "Grammage",
           "blocking": true,
-          "why_it_prices": "Price is per tonne; gsm decides sheets per tonne.",
+          "why_needed_to_price": "Price is per tonne; gsm decides sheets per tonne.",
           "uae_options": "70-400 gsm.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Caliper",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Microns.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Sheet size or reel width",
           "blocking": true,
-          "why_it_prices": "Size and format decide waste and conversion.",
+          "why_needed_to_price": "Size and format decide waste and conversion.",
           "uae_options": "A4, SRA3, 70x100 cm, 65x90 cm; reel width and diameter.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Brightness or shade",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "ISO brightness, CIE whiteness.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Mill certificate",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "FSC/PEFC chain of custody, mill CoA.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Reams, sheets, tonnes and reels are not interchangeable.",
+          "why_needed_to_price": "Reams, sheets, tonnes and reels are not interchangeable.",
           "uae_options": "Reams, cartons, sheets, tonnes, reels.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Brand or mill",
           "blocking": false,
-          "why_it_prices": "Mill and brand change price and runnability.",
+          "why_needed_to_price": "Mill and brand change price and runnability.",
           "uae_options": "Named mill, origin, or open.",
-          "follow_up": "If specified, any other mill is a deviation."
+          "follow_up_if": "If specified, any other mill is a deviation."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

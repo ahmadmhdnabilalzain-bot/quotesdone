@@ -42,77 +42,77 @@
       "brand_origins": [
         {
           "brand": "Cosmoplast",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Future Pipe Industries",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Borouge",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Amiantit",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "mid",
           "generic_en": "a mid-tier Saudi brand",
           "generic_ar": "علامة سعودية من الفئة المتوسطة"
         },
         {
           "brand": "Georg Fischer",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Aliaxis",
-          "origin_country": "Belgium",
+          "origin": "Belgium",
           "tier": "premium",
           "generic_en": "a premium Belgian brand",
           "generic_ar": "علامة بلجيكية من الفئة الممتازة"
         },
         {
           "brand": "Wavin",
-          "origin_country": "Netherlands",
+          "origin": "Netherlands",
           "tier": "premium",
           "generic_en": "a premium Dutch brand",
           "generic_ar": "علامة هولندية من الفئة الممتازة"
         },
         {
           "brand": "Aquatherm",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Rehau",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Uponor",
-          "origin_country": "Finland",
+          "origin": "Finland",
           "tier": "premium",
           "generic_en": "a premium Finnish brand",
           "generic_ar": "علامة فنلندية من الفئة الممتازة"
         },
         {
           "brand": "Polypipe",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"

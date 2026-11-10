@@ -23,21 +23,21 @@
       "brand_origins": [
         {
           "brand": "Lincoln Electric",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "ESAB",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Fronius",
-          "origin_country": "Austria",
+          "origin": "Austria",
           "tier": "premium",
           "generic_en": "a premium Austrian brand",
           "generic_ar": "علامة نمساوية من الفئة الممتازة"

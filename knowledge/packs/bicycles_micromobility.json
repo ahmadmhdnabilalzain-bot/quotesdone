@@ -41,93 +41,93 @@
         {
           "spec": "Vehicle type",
           "blocking": true,
-          "why_it_prices": "Road, mountain, city, e-bike, e-scooter and cargo bike are different products.",
+          "why_needed_to_price": "Road, mountain, city, e-bike, e-scooter and cargo bike are different products.",
           "uae_options": "Road, MTB, hybrid, folding, e-bike, e-scooter, cargo bike.",
-          "follow_up": "E-scooters for public roads bring the RTA rider rules and riding zones."
+          "follow_up_if": "E-scooters for public roads bring the RTA rider rules and riding zones."
         },
         {
           "spec": "Make and model",
           "blocking": true,
-          "why_it_prices": "Model fixes components and price tier.",
+          "why_needed_to_price": "Model fixes components and price tier.",
           "uae_options": "Named model or class.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Frame material and size",
           "blocking": true,
-          "why_it_prices": "Aluminium, steel and carbon frames differ widely.",
+          "why_needed_to_price": "Aluminium, steel and carbon frames differ widely.",
           "uae_options": "Steel, aluminium, carbon; frame size by rider height.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Motor power and battery capacity (electric)",
           "blocking": true,
-          "why_it_prices": "Motor and battery are the main cost of an e-bike or e-scooter.",
+          "why_needed_to_price": "Motor and battery are the main cost of an e-bike or e-scooter.",
           "uae_options": "W; Wh or Ah at V; removable battery.",
-          "follow_up": "Ask about charging location; battery safety matters in UAE heat."
+          "follow_up_if": "Ask about charging location; battery safety matters in UAE heat."
         },
         {
           "spec": "Top speed and range (electric)",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "km/h; km per charge.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Wheel size and tyres",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Brakes",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Rim, mechanical disc, hydraulic disc.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Rider weight limit",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "kg.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Safety certifications",
           "blocking": false,
-          "why_it_prices": "Battery and e-bike certifications reduce fire risk.",
+          "why_needed_to_price": "Battery and e-bike certifications reduce fire risk.",
           "uae_options": "EN 15194 e-bikes, EN 17128 e-scooters, UL 2849/2272, battery UN 38.3.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Accessories included",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Lights, lock, helmet, rack.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty and service",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Frame, motor, battery warranty; local service.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity",
           "blocking": true,
-          "why_it_prices": "Fleet orders for staff or rental change price.",
+          "why_needed_to_price": "Fleet orders for staff or rental change price.",
           "uae_options": "Units.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "site_visit_required_when": null

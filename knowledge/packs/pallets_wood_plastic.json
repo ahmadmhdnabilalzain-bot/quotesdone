@@ -42,100 +42,100 @@
         {
           "spec": "Pallet material",
           "blocking": true,
-          "why_it_prices": "Wood, plastic, presswood and metal differ several-fold in unit cost.",
+          "why_needed_to_price": "Wood, plastic, presswood and metal differ several-fold in unit cost.",
           "uae_options": "Pine or local hardwood, HDPE/PP plastic, presswood, steel or aluminium.",
-          "follow_up": "Plastic brings virgin vs recycled resin and food-grade colour; wood brings timber species and moisture."
+          "follow_up_if": "Plastic brings virgin vs recycled resin and food-grade colour; wood brings timber species and moisture."
         },
         {
           "spec": "Dimensions and entry",
           "blocking": true,
-          "why_it_prices": "Size and 2-way/4-way entry set the timber or mould used.",
+          "why_needed_to_price": "Size and 2-way/4-way entry set the timber or mould used.",
           "uae_options": "1200x1000 (common in the GCC), 1200x800 Euro, 1100x1100, custom.",
-          "follow_up": "Custom sizes bring the product footprint and overhang allowed."
+          "follow_up_if": "Custom sizes bring the product footprint and overhang allowed."
         },
         {
           "spec": "Static and dynamic load",
           "blocking": true,
-          "why_it_prices": "Load decides board thickness and block count.",
+          "why_needed_to_price": "Load decides board thickness and block count.",
           "uae_options": "Static, dynamic (on forklift) and racking loads stated in kg.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Racking load",
           "blocking": true,
-          "why_it_prices": "A racked pallet spans beams unsupported and needs a stronger design.",
+          "why_needed_to_price": "A racked pallet spans beams unsupported and needs a stronger design.",
           "uae_options": "Edge-racked, drive-in, or floor-stacked only.",
-          "follow_up": "If racked, ask the beam span and racking type."
+          "follow_up_if": "If racked, ask the beam span and racking type."
         },
         {
           "spec": "Heat treatment for export",
           "blocking": true,
-          "why_it_prices": "ISPM 15 treatment and marking add a process and a stamp.",
+          "why_needed_to_price": "ISPM 15 treatment and marking add a process and a stamp.",
           "uae_options": "Heat treated and stamped (HT), or untreated for domestic use; plastic and presswood are outside ISPM 15.",
-          "follow_up": "Ask the destination countries; mixed export and domestic use needs one rule for all."
+          "follow_up_if": "Ask the destination countries; mixed export and domestic use needs one rule for all."
         },
         {
           "spec": "New or recycled",
           "blocking": true,
-          "why_it_prices": "Used and repaired pallets are much cheaper and less uniform.",
+          "why_needed_to_price": "Used and repaired pallets are much cheaper and less uniform.",
           "uae_options": "New, grade A used, grade B used, repaired.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Monthly call-off volumes change the price per piece.",
+          "why_needed_to_price": "Monthly call-off volumes change the price per piece.",
           "uae_options": "Per piece, per load, monthly call-off.",
-          "follow_up": "Repeat supply brings the monthly volume and delivery frequency."
+          "follow_up_if": "Repeat supply brings the monthly volume and delivery frequency."
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "A design tested to a standard costs more than a \"standard\" pallet.",
+          "why_needed_to_price": "A design tested to a standard costs more than a \"standard\" pallet.",
           "uae_options": "ISO 8611 load tests; EPAL licence for Euro pallets.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Only export treatment marking is normally relevant.",
+          "why_needed_to_price": "Only export treatment marking is normally relevant.",
           "uae_options": "ISPM 15 mark from a registered treatment provider.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": true,
-          "why_it_prices": "Pallets are bulky; freight per trip is a big share of price.",
+          "why_needed_to_price": "Pallets are bulky; freight per trip is a big share of price.",
           "uae_options": "Delivered per truckload to the site, or collected.",
-          "follow_up": "Ask whether the site can receive a full trailer and has a forklift."
+          "follow_up_if": "Ask whether the site can receive a full trailer and has a forklift."
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "Plastic pallets often carry a defects period; wood rarely.",
+          "why_needed_to_price": "Plastic pallets often carry a defects period; wood rarely.",
           "uae_options": "None for wood; manufacturer's period for plastic.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "Large heat-treated or imported plastic orders take longer.",
+          "why_needed_to_price": "Large heat-treated or imported plastic orders take longer.",
           "uae_options": "Days for stock wood; weeks for custom or imported plastic.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Stretch wrap, corner boards and buy-back are often excluded.",
+          "why_needed_to_price": "Stretch wrap, corner boards and buy-back are often excluded.",
           "uae_options": "Buy-back or exchange scheme, collection of old pallets.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Hygiene or food/pharma use",
           "blocking": false,
-          "why_it_prices": "Food and pharma users often need plastic or treated, clean pallets.",
+          "why_needed_to_price": "Food and pharma users often need plastic or treated, clean pallets.",
           "uae_options": "Food-grade plastic, washable, no bark, kiln-dried.",
-          "follow_up": "Food or pharma use brings the customer's audit standard."
+          "follow_up_if": "Food or pharma use brings the customer's audit standard."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

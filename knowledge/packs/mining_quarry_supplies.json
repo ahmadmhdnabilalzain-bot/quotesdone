@@ -39,93 +39,93 @@
         {
           "spec": "Item and application",
           "blocking": true,
-          "why_it_prices": "Crusher liners, screen media, drill bits, conveyor belts and explosives accessories are different products.",
+          "why_needed_to_price": "Crusher liners, screen media, drill bits, conveyor belts and explosives accessories are different products.",
           "uae_options": "Jaw/cone liners, screen mesh, drill bits and rods, GET (teeth, edges), conveyor belts, idlers.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Machine it fits",
           "blocking": true,
-          "why_it_prices": "Wear parts are model-specific.",
+          "why_needed_to_price": "Wear parts are model-specific.",
           "uae_options": "Crusher/screen/drill make and model; part number.",
-          "follow_up": "Ask the serial or the OEM part number."
+          "follow_up_if": "Ask the serial or the OEM part number."
         },
         {
           "spec": "Material and hardness",
           "blocking": true,
-          "why_it_prices": "Manganese grade, chrome iron, rubber or polyurethane change price and life.",
+          "why_needed_to_price": "Manganese grade, chrome iron, rubber or polyurethane change price and life.",
           "uae_options": "Mn14, Mn18, Mn22 with Cr; high-chrome iron; rubber, PU screen media; belt grade EP/ST.",
-          "follow_up": "Ask the rock type and abrasiveness (limestone vs gabbro)."
+          "follow_up_if": "Ask the rock type and abrasiveness (limestone vs gabbro)."
         },
         {
           "spec": "Dimensions",
           "blocking": true,
-          "why_it_prices": "Belts and screens are priced by size.",
+          "why_needed_to_price": "Belts and screens are priced by size.",
           "uae_options": "Belt width, ply and length; screen aperture and panel size.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Wear life expectation",
           "blocking": false,
-          "why_it_prices": "Life per tonne is the real value measure.",
+          "why_needed_to_price": "Life per tonne is the real value measure.",
           "uae_options": "Tonnes or hours per set.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Certificate of conformity",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Sets per year change foundry batching and price.",
+          "why_needed_to_price": "Sets per year change foundry batching and price.",
           "uae_options": "Sets, pieces, metres.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Belt standards (ISO 14890, DIN 22102).",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Explosives and blasting accessories are controlled.",
+          "why_needed_to_price": "Explosives and blasting accessories are controlled.",
           "uae_options": "",
-          "follow_up": "Explosives bring the Ministry of Interior permit route."
+          "follow_up_if": "Explosives bring the Ministry of Interior permit route."
         },
         {
           "spec": "Delivery terms and location",
           "blocking": true,
-          "why_it_prices": "Quarries in Fujairah and RAK are remote; delivery adds cost.",
+          "why_needed_to_price": "Quarries in Fujairah and RAK are remote; delivery adds cost.",
           "uae_options": "Delivered quarry site.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Fitting, belt splicing and vulcanising are services.",
+          "why_needed_to_price": "Fitting, belt splicing and vulcanising are services.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

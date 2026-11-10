@@ -44,114 +44,114 @@
         {
           "spec": "Motor or drive type",
           "blocking": true,
-          "why_it_prices": "Induction motor, servo, VFD and soft starter are different products.",
+          "why_needed_to_price": "Induction motor, servo, VFD and soft starter are different products.",
           "uae_options": "TEFC induction motor, Ex motor, servo, VFD/VSD, soft starter.",
-          "follow_up": "VFDs bring the motor rating, control mode and harmonics requirement."
+          "follow_up_if": "VFDs bring the motor rating, control mode and harmonics requirement."
         },
         {
           "spec": "Power rating",
           "blocking": true,
-          "why_it_prices": "kW is the main price axis.",
+          "why_needed_to_price": "kW is the main price axis.",
           "uae_options": "kW or HP; for VFDs the continuous current.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Voltage, phase and frequency",
           "blocking": true,
-          "why_it_prices": "UAE is 400 V/3 ph/50 Hz; other builds cost extra or fail.",
+          "why_needed_to_price": "UAE is 400 V/3 ph/50 Hz; other builds cost extra or fail.",
           "uae_options": "400 V/50 Hz, 690 V, 230 V single phase.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Speed and poles",
           "blocking": true,
-          "why_it_prices": "2, 4, 6 and 8-pole motors differ in frame and price.",
+          "why_needed_to_price": "2, 4, 6 and 8-pole motors differ in frame and price.",
           "uae_options": "2-pole 2,900 rpm, 4-pole 1,450 rpm.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Efficiency class",
           "blocking": true,
-          "why_it_prices": "IE2, IE3 and IE4 are different motors.",
+          "why_needed_to_price": "IE2, IE3 and IE4 are different motors.",
           "uae_options": "IE2, IE3, IE4 per IEC 60034-30-1.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Frame, mounting and enclosure",
           "blocking": true,
-          "why_it_prices": "Mounting and IP rating fix the build.",
+          "why_needed_to_price": "Mounting and IP rating fix the build.",
           "uae_options": "IEC frame; B3 foot, B5 flange, B35; IP55/IP56/IP66.",
-          "follow_up": "Outdoor or coastal sites bring IP56+ and anti-corrosion paint."
+          "follow_up_if": "Outdoor or coastal sites bring IP56+ and anti-corrosion paint."
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Quantity changes discount.",
+          "why_needed_to_price": "Quantity changes discount.",
           "uae_options": "Units.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "IEC 60034; routine test report.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Hazardous-area motors need IECEx/ATEX; electrical products may need ECAS.",
+          "why_needed_to_price": "Hazardous-area motors need IECEx/ATEX; electrical products may need ECAS.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Installation or commissioning scope",
           "blocking": false,
-          "why_it_prices": "VFD programming and commissioning are services.",
+          "why_needed_to_price": "VFD programming and commissioning are services.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Stock for standard frames; weeks for Ex or large motors.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Hazardous-area rating",
           "blocking": false,
-          "why_it_prices": "Ex d, Ex e or Ex n motors cost far more.",
+          "why_needed_to_price": "Ex d, Ex e or Ex n motors cost far more.",
           "uae_options": "Zone 1/2, gas group, temperature class.",
-          "follow_up": "Hazardous area brings the zone, gas group and T-class."
+          "follow_up_if": "Hazardous area brings the zone, gas group and T-class."
         },
         {
           "spec": "Ambient temperature",
           "blocking": false,
-          "why_it_prices": "Standard motors are rated for 40 °C; UAE outdoor needs derating or a larger frame.",
+          "why_needed_to_price": "Standard motors are rated for 40 °C; UAE outdoor needs derating or a larger frame.",
           "uae_options": "40, 45, 50 °C ambient.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -39,93 +39,93 @@
         {
           "spec": "tyre size and load/speed index",
           "blocking": true,
-          "why_it_prices": "Size and indices fix the product.",
+          "why_needed_to_price": "Size and indices fix the product.",
           "uae_options": "e.g. 265/65 R17 112H; LT and commercial ply ratings.",
-          "follow_up": "Commercial vehicles bring load index and ply rating."
+          "follow_up_if": "Commercial vehicles bring load index and ply rating."
         },
         {
           "spec": "battery type, voltage, capacity (Ah) and CCA",
           "blocking": true,
-          "why_it_prices": "Battery spec fixes the product.",
+          "why_needed_to_price": "Battery spec fixes the product.",
           "uae_options": "Flooded, EFB, AGM, lithium; 12/24 V; Ah; CCA; group size.",
-          "follow_up": "Start-stop vehicles bring EFB or AGM."
+          "follow_up_if": "Start-stop vehicles bring EFB or AGM."
         },
         {
           "spec": "brand and model",
           "blocking": true,
-          "why_it_prices": "Brand tier is the main price driver.",
+          "why_needed_to_price": "Brand tier is the main price driver.",
           "uae_options": "Named brand and tread pattern or battery series.",
-          "follow_up": "If open, ask premium or economy."
+          "follow_up_if": "If open, ask premium or economy."
         },
         {
           "spec": "manufacturing date (DOT code) limit",
           "blocking": true,
-          "why_it_prices": "Old stock is cheaper; the UAE scheme limits tyre age.",
+          "why_needed_to_price": "Old stock is cheaper; the UAE scheme limits tyre age.",
           "uae_options": "Manufactured within the last N months.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "vehicle application",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Car, SUV, van, truck, forklift.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity certificate",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "GSO/ECAS certificate held by the importer.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "fitting, balancing and disposal of old units",
           "blocking": true,
-          "why_it_prices": "Fitting, balancing, valves and disposal are separate charges.",
+          "why_needed_to_price": "Fitting, balancing, valves and disposal are separate charges.",
           "uae_options": "Supply only, fitted, mobile fitting; old-unit disposal.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity per size",
           "blocking": true,
-          "why_it_prices": "Sets per size change price; tyres are sold in fours or axle sets.",
+          "why_needed_to_price": "Sets per size change price; tyres are sold in fours or axle sets.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty period and terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Tyre manufacturing-defect warranty; battery months.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "origin of manufacture",
           "blocking": false,
-          "why_it_prices": "Premium brands make tyres in several countries; buyers may specify.",
+          "why_needed_to_price": "Premium brands make tyres in several countries; buyers may specify.",
           "uae_options": "As specified.",
-          "follow_up": "If the buyer named an origin, any other is a deviation."
+          "follow_up_if": "If the buyer named an origin, any other is a deviation."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

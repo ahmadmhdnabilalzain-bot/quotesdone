@@ -42,112 +42,112 @@
       "brand_origins": [
         {
           "brand": "Toyota",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Linde",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Still",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Jungheinrich",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Crown",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Hyster-Yale",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Komatsu",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Mitsubishi Logisnext",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Bobcat",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Heli",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Hangcha",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "EP",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Kalmar",
-          "origin_country": "Finland",
+          "origin": "Finland",
           "tier": "premium",
           "generic_en": "a premium Finnish brand",
           "generic_ar": "علامة فنلندية من الفئة الممتازة"
         },
         {
           "brand": "Konecranes",
-          "origin_country": "Finland",
+          "origin": "Finland",
           "tier": "premium",
           "generic_en": "a premium Finnish brand",
           "generic_ar": "علامة فنلندية من الفئة الممتازة"
         },
         {
           "brand": "Demag",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "GH Cranes",
-          "origin_country": "Spain",
+          "origin": "Spain",
           "tier": "mid",
           "generic_en": "a mid-tier Spanish brand",
           "generic_ar": "علامة إسبانية من الفئة المتوسطة"

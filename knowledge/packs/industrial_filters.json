@@ -40,93 +40,93 @@
         {
           "spec": "Filter type and application",
           "blocking": true,
-          "why_it_prices": "Air, liquid, dust-collector and engine filters are different products.",
+          "why_needed_to_price": "Air, liquid, dust-collector and engine filters are different products.",
           "uae_options": "Panel, bag, HEPA, cartridge, dust-collector bag, hydraulic, fuel, water cartridge.",
-          "follow_up": "Cleanrooms bring the room class; dust collectors bring the dust type and temperature."
+          "follow_up_if": "Cleanrooms bring the room class; dust collectors bring the dust type and temperature."
         },
         {
           "spec": "Filtration efficiency class",
           "blocking": true,
-          "why_it_prices": "Efficiency class is the main price axis.",
+          "why_needed_to_price": "Efficiency class is the main price axis.",
           "uae_options": "ISO 16890 ePM1/ePM2.5/ePM10/Coarse; EN 1822 E10-U17; micron rating and beta ratio for liquids.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Dimensions and frame",
           "blocking": true,
-          "why_it_prices": "Non-standard sizes are made to order.",
+          "why_needed_to_price": "Non-standard sizes are made to order.",
           "uae_options": "W x H x D in mm; frame material (galvanised, aluminium, plastic).",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Media material",
           "blocking": false,
-          "why_it_prices": "Glass fibre, synthetic, PTFE and cellulose differ in life and price.",
+          "why_needed_to_price": "Glass fibre, synthetic, PTFE and cellulose differ in life and price.",
           "uae_options": "",
-          "follow_up": "High-temperature or chemical service brings special media."
+          "follow_up_if": "High-temperature or chemical service brings special media."
         },
         {
           "spec": "Airflow or flow rate and pressure drop",
           "blocking": true,
-          "why_it_prices": "Flow decides media area; pressure drop drives energy cost.",
+          "why_needed_to_price": "Flow decides media area; pressure drop drives energy cost.",
           "uae_options": "m3/h and initial/final pressure drop; l/min for liquids.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Equivalent to OEM part number",
           "blocking": true,
-          "why_it_prices": "A replacement must cross-reference the OEM part.",
+          "why_needed_to_price": "A replacement must cross-reference the OEM part.",
           "uae_options": "OEM part number; approved equivalent.",
-          "follow_up": "If no number, ask for the old filter's label or dimensions."
+          "follow_up_if": "If no number, ask for the old filter's label or dimensions."
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Annual consumption changes the price per piece.",
+          "why_needed_to_price": "Annual consumption changes the price per piece.",
           "uae_options": "Pieces, sets, annual contract.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "Tested efficiency per ISO 16890 or EN 1822 is evidence of class.",
+          "why_needed_to_price": "Tested efficiency per ISO 16890 or EN 1822 is evidence of class.",
           "uae_options": "ISO 16890 test report, EN 1822 scan test for HEPA.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Normally none.",
+          "why_needed_to_price": "Normally none.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Replacement labour and disposal often excluded.",
+          "why_needed_to_price": "Replacement labour and disposal often excluded.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -40,100 +40,100 @@
         {
           "spec": "Machine make and model",
           "blocking": true,
-          "why_it_prices": "The same part differs by model and serial range.",
+          "why_needed_to_price": "The same part differs by model and serial range.",
           "uae_options": "Make, model, serial or VIN, engine model.",
-          "follow_up": "Ask the serial number; many parts changed within a model run."
+          "follow_up_if": "Ask the serial number; many parts changed within a model run."
         },
         {
           "spec": "Part number",
           "blocking": true,
-          "why_it_prices": "Without a part number the supplier can only guess.",
+          "why_needed_to_price": "Without a part number the supplier can only guess.",
           "uae_options": "OEM part number, superseded number, or a sample/photo of the old part.",
-          "follow_up": "If there is no number, ask for a photo, dimensions and the nameplate."
+          "follow_up_if": "If there is no number, ask for a photo, dimensions and the nameplate."
         },
         {
           "spec": "OEM, genuine or aftermarket",
           "blocking": true,
-          "why_it_prices": "Genuine, OEM-supplier and aftermarket parts differ widely in price and life.",
+          "why_needed_to_price": "Genuine, OEM-supplier and aftermarket parts differ widely in price and life.",
           "uae_options": "Genuine (through the dealer), OEM brand in its own box, aftermarket, reconditioned.",
-          "follow_up": "If the buyer did not say, ask whether aftermarket is acceptable; it is the biggest price driver."
+          "follow_up_if": "If the buyer did not say, ask whether aftermarket is acceptable; it is the biggest price driver."
         },
         {
           "spec": "Material and dimensions",
           "blocking": false,
-          "why_it_prices": "Needed for fabricated or non-catalogue parts.",
+          "why_needed_to_price": "Needed for fabricated or non-catalogue parts.",
           "uae_options": "Drawing, material grade, hardness.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Country of origin",
           "blocking": false,
-          "why_it_prices": "Origin is a common silent substitution.",
+          "why_needed_to_price": "Origin is a common silent substitution.",
           "uae_options": "As the buyer requires; EU, USA, Japan, Korea, China, India.",
-          "follow_up": "If the buyer named an origin, any other origin is a deviation."
+          "follow_up_if": "If the buyer named an origin, any other origin is a deviation."
         },
         {
           "spec": "Certificate of conformity",
           "blocking": false,
-          "why_it_prices": "A certificate or dealer invoice proves genuineness.",
+          "why_needed_to_price": "A certificate or dealer invoice proves genuineness.",
           "uae_options": "Manufacturer CoC, dealer delivery note, warranty card.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Kits and single parts are priced differently.",
+          "why_needed_to_price": "Kits and single parts are priced differently.",
           "uae_options": "Pieces, kits, sets.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "Rarely needed except for safety-critical parts.",
+          "why_needed_to_price": "Rarely needed except for safety-critical parts.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Normally none for machinery spares.",
+          "why_needed_to_price": "Normally none for machinery spares.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": true,
-          "why_it_prices": "Air freight for urgent parts changes the price.",
+          "why_needed_to_price": "Air freight for urgent parts changes the price.",
           "uae_options": "Ex-stock Dubai, air freight, sea freight.",
-          "follow_up": "Ask whether the machine is down; urgency decides air vs sea."
+          "follow_up_if": "Ask whether the machine is down; urgency decides air vs sea."
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "Genuine parts carry a dealer warranty; aftermarket varies.",
+          "why_needed_to_price": "Genuine parts carry a dealer warranty; aftermarket varies.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "Stock vs back-order is often the real decision.",
+          "why_needed_to_price": "Stock vs back-order is often the real decision.",
           "uae_options": "Ex-stock, days, weeks from origin.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Fitting, core charges and freight are often excluded.",
+          "why_needed_to_price": "Fitting, core charges and freight are often excluded.",
           "uae_options": "Core return charge for exchange units.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exchange or core return",
           "blocking": false,
-          "why_it_prices": "Exchange units are priced net of a returned old part.",
+          "why_needed_to_price": "Exchange units are priced net of a returned old part.",
           "uae_options": "Outright purchase or exchange with core return.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

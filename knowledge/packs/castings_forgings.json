@@ -40,100 +40,100 @@
         {
           "spec": "part drawing and revision",
           "blocking": true,
-          "why_it_prices": "A made-to-drawing part cannot be priced without the drawing.",
+          "why_needed_to_price": "A made-to-drawing part cannot be priced without the drawing.",
           "uae_options": "PDF and 3D model, revision letter.",
-          "follow_up": "No drawing brings a sample part for reverse engineering."
+          "follow_up_if": "No drawing brings a sample part for reverse engineering."
         },
         {
           "spec": "material grade and standard",
           "blocking": true,
-          "why_it_prices": "Grade sets alloy cost and melting route.",
+          "why_needed_to_price": "Grade sets alloy cost and melting route.",
           "uae_options": "ASTM A216 WCB, A351 CF8M, EN-GJS-500-7, A105, F316L, 42CrMo4.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "process",
           "blocking": true,
-          "why_it_prices": "Sand casting, investment casting, die casting and open or closed-die forging differ in tooling and unit price.",
+          "why_needed_to_price": "Sand casting, investment casting, die casting and open or closed-die forging differ in tooling and unit price.",
           "uae_options": "Sand, shell, investment, die casting; open-die, closed-die, ring rolling.",
-          "follow_up": "Closed-die forging and die casting bring tooling cost and minimum quantities."
+          "follow_up_if": "Closed-die forging and die casting bring tooling cost and minimum quantities."
         },
         {
           "spec": "weight and quantity",
           "blocking": true,
-          "why_it_prices": "Castings are priced per kg and per piece; tooling is spread over quantity.",
+          "why_needed_to_price": "Castings are priced per kg and per piece; tooling is spread over quantity.",
           "uae_options": "Weight per piece; quantity per batch and annual.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "heat treatment",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Normalised, quenched and tempered, solution annealed.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "machining scope",
           "blocking": true,
-          "why_it_prices": "As-cast vs finish-machined changes price a lot.",
+          "why_needed_to_price": "As-cast vs finish-machined changes price a lot.",
           "uae_options": "Rough, finish-machined, to drawing tolerances.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "non-destructive testing",
           "blocking": false,
-          "why_it_prices": "RT, UT, MT and PT add cost per piece.",
+          "why_needed_to_price": "RT, UT, MT and PT add cost per piece.",
           "uae_options": "Visual, MT/PT, UT, RT to a stated acceptance level.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "mill or inspection certificate type",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "EN 10204 3.1 or 3.2.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery and installation scope",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "Pattern or die making adds weeks.",
+          "why_needed_to_price": "Pattern or die making adds weeks.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Patterns, dies and testing are often quoted separately.",
+          "why_needed_to_price": "Patterns, dies and testing are often quoted separately.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pattern or tooling ownership",
           "blocking": false,
-          "why_it_prices": "Tooling cost and who owns it matter for repeat orders.",
+          "why_needed_to_price": "Tooling cost and who owns it matter for repeat orders.",
           "uae_options": "Buyer-owned, supplier-owned, amortised.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -144,100 +144,100 @@
         {
           "spec": "Make/model or acceptable class",
           "blocking": true,
-          "why_it_prices": "Make and class fix the price band.",
+          "why_needed_to_price": "Make and class fix the price band.",
           "uae_options": "Named model or class (compact sedan, SUV, 7-seater).",
-          "follow_up": "If only a class is given, ask budget band and preferred makes."
+          "follow_up_if": "If only a class is given, ask budget band and preferred makes."
         },
         {
           "spec": "Model year; new; GCC spec; authorised distributor",
           "blocking": true,
-          "why_it_prices": "GCC-spec new cars from the authorised distributor carry the local warranty; imports and grey cars do not.",
+          "why_needed_to_price": "GCC-spec new cars from the authorised distributor carry the local warranty; imports and grey cars do not.",
           "uae_options": "Current model year, GCC specification, authorised dealer.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exact trim/variant",
           "blocking": true,
-          "why_it_prices": "Trim levels differ widely in price.",
+          "why_needed_to_price": "Trim levels differ widely in price.",
           "uae_options": "Base, mid, top trim.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Engine/fuel/transmission (EV: battery, charging standard)",
           "blocking": true,
-          "why_it_prices": "Powertrain is a separate variant price; EV battery size changes it most.",
+          "why_needed_to_price": "Powertrain is a separate variant price; EV battery size changes it most.",
           "uae_options": "Petrol, hybrid, EV; automatic; battery kWh; charging connector.",
-          "follow_up": "EVs bring charging infrastructure at the depot."
+          "follow_up_if": "EVs bring charging infrastructure at the depot."
         },
         {
           "spec": "Quantity and delivery schedule",
           "blocking": true,
-          "why_it_prices": "Fleet volume drives discount and allocation.",
+          "why_needed_to_price": "Fleet volume drives discount and allocation.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Colour per unit",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Mandatory equipment list",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Tint, accessories, branding",
           "blocking": false,
-          "why_it_prices": "Tint must stay within the legal limit; branding needs a permit in some emirates.",
+          "why_needed_to_price": "Tint must stay within the legal limit; branding needs a permit in some emirates.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Registration name/emirate, insurance, plates, Salik",
           "blocking": true,
-          "why_it_prices": "Registration, insurance and Salik tags may or may not be in the price.",
+          "why_needed_to_price": "Registration, insurance and Salik tags may or may not be in the price.",
           "uae_options": "Registered in buyer's name; emirate; insurance type.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty and service package",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Years/km; service contract.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Trade-in/disposal",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Payment/finance/lease terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Intended use",
           "blocking": false,
-          "why_it_prices": "Use decides spec and whether commercial registration applies.",
+          "why_needed_to_price": "Use decides spec and whether commercial registration applies.",
           "uae_options": "Executive, pool, sales, delivery.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
@@ -282,93 +282,93 @@
         {
           "spec": "Vehicle type and cab/body style",
           "blocking": true,
-          "why_it_prices": "Single/double cab, panel van and high-roof differ.",
+          "why_needed_to_price": "Single/double cab, panel van and high-roof differ.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Engine, fuel, transmission",
           "blocking": true,
-          "why_it_prices": "Engine and transmission choice sets the variant price.",
+          "why_needed_to_price": "Engine and transmission choice sets the variant price.",
           "uae_options": "Petrol, diesel; manual or automatic.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "4x2 or 4x4",
           "blocking": true,
-          "why_it_prices": "4x4 carries a large premium.",
+          "why_needed_to_price": "4x4 carries a large premium.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Payload and GVW",
           "blocking": true,
-          "why_it_prices": "Payload must suit the load and the licence category.",
+          "why_needed_to_price": "Payload must suit the load and the licence category.",
           "uae_options": "kg payload; GVW.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Seating capacity (vans)",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": "Passenger vans for staff bring the passenger transport rules."
+          "follow_up_if": "Passenger vans for staff bring the passenger transport rules."
         },
         {
           "spec": "Roof height and cargo dimensions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Body additions and certifying supplier",
           "blocking": false,
-          "why_it_prices": "Racks, boxes and liners must be certified for registration.",
+          "why_needed_to_price": "Racks, boxes and liners must be certified for registration.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Equipment incl. speed limiter/GPS for commercial use",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Tyre type",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity, colour, branding",
           "blocking": true,
-          "why_it_prices": "Fleet volume changes discount.",
+          "why_needed_to_price": "Fleet volume changes discount.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Registration category and emirate",
           "blocking": true,
-          "why_it_prices": "Commercial registration changes cost and rules.",
+          "why_needed_to_price": "Commercial registration changes cost and rules.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty/service package",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery location and date",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
@@ -413,86 +413,86 @@
         {
           "spec": "Application (staff/school/city/coach)",
           "blocking": true,
-          "why_it_prices": "School and city buses have their own specifications.",
+          "why_needed_to_price": "School and city buses have their own specifications.",
           "uae_options": "",
-          "follow_up": "School buses bring the school-bus bylaw."
+          "follow_up_if": "School buses bring the school-bus bylaw."
         },
         {
           "spec": "Seating capacity incl. driver/attendant",
           "blocking": true,
-          "why_it_prices": "Capacity sets the chassis and the permit category.",
+          "why_needed_to_price": "Capacity sets the chassis and the permit category.",
           "uae_options": "14, 26, 30, 50, 67 seats.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "A/C or non-A/C and cooling performance",
           "blocking": true,
-          "why_it_prices": "UAE buses need high-capacity A/C; non-A/C buses are restricted for passenger use in many cases.",
+          "why_needed_to_price": "UAE buses need high-capacity A/C; non-A/C buses are restricted for passenger use in many cases.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Engine emission standard, fuel, transmission",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Euro emission level; diesel or EV.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Seat type and belt type",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Doors, emergency exits, accessibility",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Safety equipment list (ABS, fire suppression, GPS, CCTV, camera, speed limiter)",
           "blocking": true,
-          "why_it_prices": "Mandated safety and tracking equipment adds cost.",
+          "why_needed_to_price": "Mandated safety and tracking equipment adds cost.",
           "uae_options": "",
-          "follow_up": "Abu Dhabi operators bring the ITC tracking requirement."
+          "follow_up_if": "Abu Dhabi operators bring the ITC tracking requirement."
         },
         {
           "spec": "School-bus bylaw compliance (if applicable)",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Overall height vs 4.6 m limit",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Livery, quantity, delivery, registration",
           "blocking": true,
-          "why_it_prices": "Delivery, livery and registration are priced items.",
+          "why_needed_to_price": "Delivery, livery and registration are priced items.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty coverage and service location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Spare-parts package",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
@@ -542,121 +542,121 @@
         {
           "spec": "Application and body type",
           "blocking": true,
-          "why_it_prices": "Body type (tipper, cargo box, tanker, reefer, mixer) defines the truck.",
+          "why_needed_to_price": "Body type (tipper, cargo box, tanker, reefer, mixer) defines the truck.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Legal payload, GVW, axle configuration vs federal limits",
           "blocking": true,
-          "why_it_prices": "Axle loads must stay within federal limits; this sets the chassis.",
+          "why_needed_to_price": "Axle loads must stay within federal limits; this sets the chassis.",
           "uae_options": "4x2, 6x4, 8x4; GVW.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Overall dimensions vs limits",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Duty class",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Light, medium, heavy.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Cab type",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Day cab, sleeper.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Engine power, emission standard, fuel",
           "blocking": true,
-          "why_it_prices": "Engine size and emission level set the chassis price.",
+          "why_needed_to_price": "Engine size and emission level set the chassis price.",
           "uae_options": "hp, Euro level.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Transmission",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Wheelbase",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Tyres and spare",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Fuel tank capacity",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "PTO/hydraulics",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Speed limiter, markings, GPS",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Air-conditioning",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Body builder and multi-stage conformity",
           "blocking": true,
-          "why_it_prices": "The body and its conformity are a separate cost and approval.",
+          "why_needed_to_price": "The body and its conformity are a separate cost and approval.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity, delivery, registration",
           "blocking": true,
-          "why_it_prices": "Fleet size and registration scope change price.",
+          "why_needed_to_price": "Fleet size and registration scope change price.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty and service network",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Spare-parts stock",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
@@ -702,86 +702,86 @@
         {
           "spec": "Base vehicle and who supplies it",
           "blocking": true,
-          "why_it_prices": "Whether the converter buys the base vehicle changes price and warranty.",
+          "why_needed_to_price": "Whether the converter buys the base vehicle changes price and warranty.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Conversion scope and drawings",
           "blocking": true,
-          "why_it_prices": "Conversions are priced from drawings.",
+          "why_needed_to_price": "Conversions are priced from drawings.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Materials and dimensions",
           "blocking": true,
-          "why_it_prices": "Material choice sets weight and price.",
+          "why_needed_to_price": "Material choice sets weight and price.",
           "uae_options": "Aluminium, GRP, insulated panels.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Added weight, payload, GVW",
           "blocking": true,
-          "why_it_prices": "Added weight must stay within GVW for registration.",
+          "why_needed_to_price": "Added weight must stay within GVW for registration.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Electrical changes",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Refrigeration range/unit (if any)",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Chilled or frozen; unit brand.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Seating and belt anchorages",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "GCC multi-stage conformity",
           "blocking": true,
-          "why_it_prices": "A converted vehicle needs conformity for re-registration.",
+          "why_needed_to_price": "A converted vehicle needs conformity for re-registration.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Pre/post approvals, re-inspection, registration update",
           "blocking": true,
-          "why_it_prices": "Approvals and re-inspection are part of the job.",
+          "why_needed_to_price": "Approvals and re-inspection are part of the job.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Effect on base warranty; conversion warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time and downtime",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Branding content and permit",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

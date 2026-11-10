@@ -46,126 +46,126 @@
       "brand_origins": [
         {
           "brand": "Julphar",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Amcor",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Constantia Flexibles",
-          "origin_country": "Austria",
+          "origin": "Austria",
           "tier": "premium",
           "generic_en": "a premium Austrian brand",
           "generic_ar": "علامة نمساوية من الفئة الممتازة"
         },
         {
           "brand": "Huhtamaki",
-          "origin_country": "Finland",
+          "origin": "Finland",
           "tier": "premium",
           "generic_en": "a premium Finnish brand",
           "generic_ar": "علامة فنلندية من الفئة الممتازة"
         },
         {
           "brand": "Klöckner Pentaplast",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Bilcare",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "Uflex",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "Schott",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Gerresheimer",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Stevanato",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"
         },
         {
           "brand": "SGD Pharma",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Piramal",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "Berry Global",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Aptar",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Sofrigam",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "mid",
           "generic_en": "a mid-tier French brand",
           "generic_ar": "علامة فرنسية من الفئة المتوسطة"
         },
         {
           "brand": "Peli BioThermal",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Softbox",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "Va-Q-tec",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"

@@ -38,119 +38,119 @@
       "brand_origins": [
         {
           "brand": "3M",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Norton",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Klingspor",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Pferd",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Tyrolit",
-          "origin_country": "Austria",
+          "origin": "Austria",
           "tier": "premium",
           "generic_en": "a premium Austrian brand",
           "generic_ar": "علامة نمساوية من الفئة الممتازة"
         },
         {
           "brand": "Bosch",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Makita",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "DeWalt",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Flexovit",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "mid",
           "generic_en": "a mid-tier French brand",
           "generic_ar": "علامة فرنسية من الفئة المتوسطة"
         },
         {
           "brand": "Rhodius",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Cumi",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "economy",
           "generic_en": "a economy Indian brand",
           "generic_ar": "علامة هندية من الفئة الاقتصادية"
         },
         {
           "brand": "Awuko",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "mid",
           "generic_en": "a mid-tier German brand",
           "generic_ar": "علامة ألمانية من الفئة المتوسطة"
         },
         {
           "brand": "Mirka",
-          "origin_country": "Finland",
+          "origin": "Finland",
           "tier": "premium",
           "generic_en": "a premium Finnish brand",
           "generic_ar": "علامة فنلندية من الفئة الممتازة"
         },
         {
           "brand": "Sia",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Graco",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Clemco",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Blastline",
-          "origin_country": "Singapore",
+          "origin": "Singapore",
           "tier": "mid",
           "generic_en": "a mid-tier Singaporean brand",
           "generic_ar": "علامة سنغافورية من الفئة المتوسطة"

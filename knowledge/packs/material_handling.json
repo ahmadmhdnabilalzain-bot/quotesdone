@@ -42,107 +42,107 @@
         {
           "spec": "Equipment type",
           "blocking": true,
-          "why_it_prices": "Counterbalance forklift, reach truck, pallet stacker, crane and hoist are different machines.",
+          "why_needed_to_price": "Counterbalance forklift, reach truck, pallet stacker, crane and hoist are different machines.",
           "uae_options": "Diesel/LPG/electric counterbalance, reach truck, VNA, stacker, pallet truck, EOT crane, hoist.",
-          "follow_up": "Cranes bring span, runway and hook approach; forklifts bring aisle width."
+          "follow_up_if": "Cranes bring span, runway and hook approach; forklifts bring aisle width."
         },
         {
           "spec": "Rated load capacity",
           "blocking": true,
-          "why_it_prices": "Capacity at the stated load centre sizes the machine.",
+          "why_needed_to_price": "Capacity at the stated load centre sizes the machine.",
           "uae_options": "1.5-10 t forklifts at 500 mm load centre; crane SWL.",
-          "follow_up": "Long or wide loads bring a larger load centre and derating."
+          "follow_up_if": "Long or wide loads bring a larger load centre and derating."
         },
         {
           "spec": "Lift height",
           "blocking": true,
-          "why_it_prices": "Mast height and residual capacity at height change the build.",
+          "why_needed_to_price": "Mast height and residual capacity at height change the build.",
           "uae_options": "Duplex, triplex mast; free lift; lift height in mm.",
-          "follow_up": "Ask the top beam height of the racking and the door height."
+          "follow_up_if": "Ask the top beam height of the racking and the door height."
         },
         {
           "spec": "Power source",
           "blocking": true,
-          "why_it_prices": "Diesel, LPG and electric (lead-acid or lithium) trucks differ in price and running cost.",
+          "why_needed_to_price": "Diesel, LPG and electric (lead-acid or lithium) trucks differ in price and running cost.",
           "uae_options": "Diesel, LPG, electric 48/80 V, lead-acid or lithium-ion.",
-          "follow_up": "Indoor use brings electric; electric brings charger, battery and charging area."
+          "follow_up_if": "Indoor use brings electric; electric brings charger, battery and charging area."
         },
         {
           "spec": "Load test and inspection certificate",
           "blocking": false,
-          "why_it_prices": "Third-party certification is required before use and costs money.",
+          "why_needed_to_price": "Third-party certification is required before use and costs money.",
           "uae_options": "EIAC-accredited third-party load test and certificate.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Operator training",
           "blocking": false,
-          "why_it_prices": "Operators need licences; training is often bundled.",
+          "why_needed_to_price": "Operators need licences; training is often bundled.",
           "uae_options": "RTA forklift licence training in Dubai; supplier familiarisation.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Fleet size changes pricing.",
+          "why_needed_to_price": "Fleet size changes pricing.",
           "uae_options": "Units; purchase or rental.",
-          "follow_up": "Rental brings the duration, hours per day and whether the operator and maintenance are included."
+          "follow_up_if": "Rental brings the duration, hours per day and whether the operator and maintenance are included."
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "ISO 3691, EN 1726, FEM classes for cranes.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Inspection and operator licence rules apply.",
+          "why_needed_to_price": "Inspection and operator licence rules apply.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Installation or commissioning scope",
           "blocking": true,
-          "why_it_prices": "Cranes need runway rails, electrification and commissioning.",
+          "why_needed_to_price": "Cranes need runway rails, electrification and commissioning.",
           "uae_options": "Supply only, install and commission, runway steel included.",
-          "follow_up": "Cranes bring the building's structural capacity for the runway."
+          "follow_up_if": "Cranes bring the building's structural capacity for the runway."
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Months or hours, whichever first.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Batteries, chargers, attachments and forks are sometimes extras.",
+          "why_needed_to_price": "Batteries, chargers, attachments and forks are sometimes extras.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Attachments",
           "blocking": false,
-          "why_it_prices": "Side shifters, fork positioners and clamps add cost.",
+          "why_needed_to_price": "Side shifters, fork positioners and clamps add cost.",
           "uae_options": "Side shift, fork positioner, rotator, clamp.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

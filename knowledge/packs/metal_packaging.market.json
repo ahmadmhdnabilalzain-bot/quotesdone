@@ -40,77 +40,77 @@
       "brand_origins": [
         {
           "brand": "Greif",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Mauser Packaging Solutions",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Crown",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Tata Steel",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "JFE",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Baosteel",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "mid",
           "generic_en": "a mid-tier Chinese brand",
           "generic_ar": "علامة صينية من الفئة المتوسطة"
         },
         {
           "brand": "ArcelorMittal",
-          "origin_country": "Luxembourg",
+          "origin": "Luxembourg",
           "tier": "mid",
           "generic_en": "a mid-tier Luxembourg-based brand",
           "generic_ar": "علامة لوكسمبورغية من الفئة المتوسطة"
         },
         {
           "brand": "Aptar",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Precision",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Coster",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "Lindal",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "mid",
           "generic_en": "a mid-tier German brand",
           "generic_ar": "علامة ألمانية من الفئة المتوسطة"

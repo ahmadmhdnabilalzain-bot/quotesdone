@@ -40,100 +40,100 @@
         {
           "spec": "Container type and capacity",
           "blocking": true,
-          "why_it_prices": "Cans, tins, pails, drums and aerosols are different lines.",
+          "why_needed_to_price": "Cans, tins, pails, drums and aerosols are different lines.",
           "uae_options": "Food can, general line tin, pail, 200 L drum (1A1/1A2), aerosol can, aluminium bottle.",
-          "follow_up": "Drums bring tight-head or open-head and UN rating."
+          "follow_up_if": "Drums bring tight-head or open-head and UN rating."
         },
         {
           "spec": "Metal and thickness",
           "blocking": true,
-          "why_it_prices": "Tinplate, TFS, aluminium and steel gauge set the cost.",
+          "why_needed_to_price": "Tinplate, TFS, aluminium and steel gauge set the cost.",
           "uae_options": "Tinplate gauge, aluminium, mild steel 0.8-1.2 mm drums.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Internal lacquer",
           "blocking": true,
-          "why_it_prices": "The lining must suit the product; epoxy-phenolic, BPA-NI and others differ.",
+          "why_needed_to_price": "The lining must suit the product; epoxy-phenolic, BPA-NI and others differ.",
           "uae_options": "Unlined, gold lacquer, epoxy-phenolic, BPA-NI, phenolic for chemicals.",
-          "follow_up": "Ask the product and its pH or solvent content."
+          "follow_up_if": "Ask the product and its pH or solvent content."
         },
         {
           "spec": "Closure type",
           "blocking": true,
-          "why_it_prices": "Easy-open ends, valves and bungs are priced components.",
+          "why_needed_to_price": "Easy-open ends, valves and bungs are priced components.",
           "uae_options": "Easy-open end, lever lid, screw cap, bung (2 in / 3/4 in), aerosol valve.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Printing",
           "blocking": false,
-          "why_it_prices": "Offset printing on sheet and varnish add cost and MOQ.",
+          "why_needed_to_price": "Offset printing on sheet and varnish add cost and MOQ.",
           "uae_options": "Plain, lithographed, labelled.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Food-contact declaration",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Declaration of compliance; ECAS where required.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Order size against the production run sets the unit price.",
+          "why_needed_to_price": "Order size against the production run sets the unit price.",
           "uae_options": "Pieces; pallets.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "UN test report for DG drums; aerosol pressure rating.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "New or reconditioned",
           "blocking": false,
-          "why_it_prices": "Reconditioned drums are cheaper but may not keep their UN rating.",
+          "why_needed_to_price": "Reconditioned drums are cheaper but may not keep their UN rating.",
           "uae_options": "New, reconditioned with re-test.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -46,107 +46,107 @@
         {
           "spec": "valve type (gate, globe, ball, butterfly, check)",
           "blocking": true,
-          "why_it_prices": "Each valve type is a different casting and mechanism.",
+          "why_needed_to_price": "Each valve type is a different casting and mechanism.",
           "uae_options": "Gate, globe, ball, butterfly (resilient or high-performance), check, plug, PRV.",
-          "follow_up": "Butterfly brings wafer, lug or double-flanged body; ball brings floating or trunnion."
+          "follow_up_if": "Butterfly brings wafer, lug or double-flanged body; ball brings floating or trunnion."
         },
         {
           "spec": "size (DN) and pressure class (PN or ANSI class)",
           "blocking": true,
-          "why_it_prices": "Size and rating set the body weight and price.",
+          "why_needed_to_price": "Size and rating set the body weight and price.",
           "uae_options": "DN15-DN1200; PN10/16/25 or ASME 150-600.",
-          "follow_up": "Ask the pipe standard so flange drilling matches."
+          "follow_up_if": "Ask the pipe standard so flange drilling matches."
         },
         {
           "spec": "body, trim and seat materials",
           "blocking": true,
-          "why_it_prices": "Ductile iron vs carbon steel vs stainless vs bronze changes price several-fold.",
+          "why_needed_to_price": "Ductile iron vs carbon steel vs stainless vs bronze changes price several-fold.",
           "uae_options": "GGG40/50, WCB, CF8M, bronze; EPDM/NBR/PTFE seats; SS or aluminium-bronze disc.",
-          "follow_up": "Seawater or TSE brings bronze, duplex or coated disc."
+          "follow_up_if": "Seawater or TSE brings bronze, duplex or coated disc."
         },
         {
           "spec": "end connection (flanged, threaded, welded)",
           "blocking": true,
-          "why_it_prices": "Flanged, threaded and welded bodies differ.",
+          "why_needed_to_price": "Flanged, threaded and welded bodies differ.",
           "uae_options": "Flanged to EN 1092 or ASME B16.5, threaded BSP/NPT, BW/SW.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "design standard (API 6D, EN 593, API 600)",
           "blocking": false,
-          "why_it_prices": "The standard fixes wall thickness and tests.",
+          "why_needed_to_price": "The standard fixes wall thickness and tests.",
           "uae_options": "API 6D, API 600/602/609, EN 593, EN 1171, BS 5163, ISO 17292.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "actuator type, power supply and control signal",
           "blocking": true,
-          "why_it_prices": "Actuation can exceed the valve cost.",
+          "why_needed_to_price": "Actuation can exceed the valve cost.",
           "uae_options": "Manual lever/gear, pneumatic double-acting or spring-return, electric on/off or modulating.",
-          "follow_up": "Electric brings voltage, IP/Ex rating and 4-20 mA or bus signal; pneumatic brings air pressure and solenoid."
+          "follow_up_if": "Electric brings voltage, IP/Ex rating and 4-20 mA or bus signal; pneumatic brings air pressure and solenoid."
         },
         {
           "spec": "fluid and operating temperature",
           "blocking": true,
-          "why_it_prices": "Fluid and temperature decide seat and body materials.",
+          "why_needed_to_price": "Fluid and temperature decide seat and body materials.",
           "uae_options": "Chilled water, potable water, fire water, steam, oil, gas, chemicals.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "testing and certificates (EN 12266, EN 10204 3.1)",
           "blocking": false,
-          "why_it_prices": "Shell and seat tests and 3.1 certificates are standard; witness is extra.",
+          "why_needed_to_price": "Shell and seat tests and 3.1 certificates are standard; witness is extra.",
           "uae_options": "EN 12266, API 598, EN 10204 3.1.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "approval for fire or potable water where applicable",
           "blocking": true,
-          "why_it_prices": "Fire valves need listings; potable-water valves need contact approval.",
+          "why_needed_to_price": "Fire valves need listings; potable-water valves need contact approval.",
           "uae_options": "UL/FM listed fire valves; WRAS or equivalent potable approval.",
-          "follow_up": "Fire service brings the civil defence approval of the listed valve."
+          "follow_up_if": "Fire service brings the civil defence approval of the listed valve."
         },
         {
           "spec": "quantity per tag",
           "blocking": true,
-          "why_it_prices": "Quantities per size drive batching.",
+          "why_needed_to_price": "Quantities per size drive batching.",
           "uae_options": "Pieces per tag and size.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery terms and location",
           "blocking": true,
-          "why_it_prices": "Delivered-site and ex-store prices differ.",
+          "why_needed_to_price": "Delivered-site and ex-store prices differ.",
           "uae_options": "Ex-stock, delivered site.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Stock DN50-300 days; large or actuated weeks to months.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty period and terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Maker's period.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Gaskets, bolts and actuator commissioning are often excluded.",
+          "why_needed_to_price": "Gaskets, bolts and actuator commissioning are often excluded.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "origin and brand requirement",
           "blocking": false,
-          "why_it_prices": "Origin and brand are the commonest silent substitution.",
+          "why_needed_to_price": "Origin and brand are the commonest silent substitution.",
           "uae_options": "As specified or approved equal.",
-          "follow_up": "If an origin or approved brand list is named, any other is a deviation."
+          "follow_up_if": "If an origin or approved brand list is named, any other is a deviation."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

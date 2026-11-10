@@ -40,126 +40,126 @@
       "brand_origins": [
         {
           "brand": "ABB",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Siemens",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "WEG",
-          "origin_country": "Brazil",
+          "origin": "Brazil",
           "tier": "mid",
           "generic_en": "a mid-tier Brazilian brand",
           "generic_ar": "علامة برازيلية من الفئة المتوسطة"
         },
         {
           "brand": "Schneider Electric",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Danfoss",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "premium",
           "generic_en": "a premium Danish brand",
           "generic_ar": "علامة دنماركية من الفئة الممتازة"
         },
         {
           "brand": "Nidec Leroy-Somer",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "TECO",
-          "origin_country": "Taiwan",
+          "origin": "Taiwan",
           "tier": "mid",
           "generic_en": "a mid-tier Taiwanese brand",
           "generic_ar": "علامة تايوانية من الفئة المتوسطة"
         },
         {
           "brand": "Toshiba",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Hyundai Electric",
-          "origin_country": "South Korea",
+          "origin": "South Korea",
           "tier": "mid",
           "generic_en": "a mid-tier South Korean brand",
           "generic_ar": "علامة كورية جنوبية من الفئة المتوسطة"
         },
         {
           "brand": "Regal Rexnord",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Lafert",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "CG Power",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "economy",
           "generic_en": "a economy Indian brand",
           "generic_ar": "علامة هندية من الفئة الاقتصادية"
         },
         {
           "brand": "Bharat Bijlee",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "economy",
           "generic_en": "a economy Indian brand",
           "generic_ar": "علامة هندية من الفئة الاقتصادية"
         },
         {
           "brand": "Yaskawa",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Mitsubishi Electric",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Delta",
-          "origin_country": "Taiwan",
+          "origin": "Taiwan",
           "tier": "mid",
           "generic_en": "a mid-tier Taiwanese brand",
           "generic_ar": "علامة تايوانية من الفئة المتوسطة"
         },
         {
           "brand": "INVT",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Wolong",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"

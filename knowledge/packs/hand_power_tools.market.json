@@ -42,168 +42,168 @@
       "brand_origins": [
         {
           "brand": "Bosch",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Makita",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "DeWalt",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Milwaukee",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Hilti",
-          "origin_country": "Liechtenstein",
+          "origin": "Liechtenstein",
           "tier": "premium",
           "generic_en": "a premium Liechtenstein brand",
           "generic_ar": "علامة ليختنشتاينية من الفئة الممتازة"
         },
         {
           "brand": "Metabo",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Stanley",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Black+Decker",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "economy",
           "generic_en": "a economy American brand",
           "generic_ar": "علامة أمريكية من الفئة الاقتصادية"
         },
         {
           "brand": "Ryobi",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Festool",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "luxury",
           "generic_en": "a luxury German brand",
           "generic_ar": "علامة ألمانية من الفئة الفاخرة"
         },
         {
           "brand": "HiKOKI",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Ingco",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Total",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Tolsen",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Crown",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Bahco",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Knipex",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Wera",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Wiha",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Beta",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"
         },
         {
           "brand": "Facom",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Snap-on",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "luxury",
           "generic_en": "a luxury American brand",
           "generic_ar": "علامة أمريكية من الفئة الفاخرة"
         },
         {
           "brand": "Gedore",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Taparia",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "economy",
           "generic_en": "a economy Indian brand",
           "generic_ar": "علامة هندية من الفئة الاقتصادية"

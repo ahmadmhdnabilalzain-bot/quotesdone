@@ -38,86 +38,86 @@
         {
           "spec": "box style",
           "blocking": true,
-          "why_it_prices": "Style decides blank size and whether a cutting die is needed.",
+          "why_needed_to_price": "Style decides blank size and whether a cutting die is needed.",
           "uae_options": "RSC (FEFCO 0201), die-cut, crash-lock, tray, telescopic.",
-          "follow_up": "Die-cut styles bring a cutting die cost."
+          "follow_up_if": "Die-cut styles bring a cutting die cost."
         },
         {
           "spec": "internal dimensions",
           "blocking": true,
-          "why_it_prices": "Board area per box is the price basis.",
+          "why_needed_to_price": "Board area per box is the price basis.",
           "uae_options": "L x W x H internal in mm.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "board grade and flute",
           "blocking": true,
-          "why_it_prices": "Flute, wall and paper grades set strength and cost.",
+          "why_needed_to_price": "Flute, wall and paper grades set strength and cost.",
           "uae_options": "Single wall B/C/E; double wall BC/EB; kraft vs test liners; gsm per layer.",
-          "follow_up": "If unknown, ask the weight packed and stacking height so the supplier can propose."
+          "follow_up_if": "If unknown, ask the weight packed and stacking height so the supplier can propose."
         },
         {
           "spec": "strength requirement",
           "blocking": false,
-          "why_it_prices": "A stated ECT/BCT or burst target lets suppliers propose equivalent constructions.",
+          "why_needed_to_price": "A stated ECT/BCT or burst target lets suppliers propose equivalent constructions.",
           "uae_options": "ECT kN/m, BCT kgf, burst kPa.",
-          "follow_up": "Humid or container storage brings a higher safety factor."
+          "follow_up_if": "Humid or container storage brings a higher safety factor."
         },
         {
           "spec": "printing",
           "blocking": true,
-          "why_it_prices": "Colours and coverage change plates and press.",
+          "why_needed_to_price": "Colours and coverage change plates and press.",
           "uae_options": "Plain, 1-4 colour flexo, litho-laminated, digital.",
-          "follow_up": "Ask for artwork and Pantone references."
+          "follow_up_if": "Ask for artwork and Pantone references."
         },
         {
           "spec": "quantity",
           "blocking": true,
-          "why_it_prices": "MOQ and set-up dominate small runs.",
+          "why_needed_to_price": "MOQ and set-up dominate small runs.",
           "uae_options": "Order quantity, annual volume.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "food-contact suitability",
           "blocking": false,
-          "why_it_prices": "Direct food contact needs suitable liners and inks.",
+          "why_needed_to_price": "Direct food contact needs suitable liners and inks.",
           "uae_options": "Indirect contact, direct contact with declaration.",
-          "follow_up": "Direct food contact brings the compliance documents."
+          "follow_up_if": "Direct food contact brings the compliance documents."
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery and installation scope",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Flat-packed, palletised, delivered.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Cutting dies and plates are often extra.",
+          "why_needed_to_price": "Cutting dies and plates are often extra.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

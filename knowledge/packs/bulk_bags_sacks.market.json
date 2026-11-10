@@ -38,14 +38,14 @@
       "brand_origins": [
         {
           "brand": "Borouge",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "SABIC",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "premium",
           "generic_en": "a premium Saudi brand",
           "generic_ar": "علامة سعودية من الفئة الممتازة"

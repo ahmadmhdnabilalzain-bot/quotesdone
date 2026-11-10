@@ -42,42 +42,42 @@
       "brand_origins": [
         {
           "brand": "Sanad",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "operator",
           "generic_en": "a premium UAE operator",
           "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Emirates Engineering",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "operator",
           "generic_en": "a premium UAE operator",
           "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Etihad Engineering",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "operator",
           "generic_en": "a premium UAE operator",
           "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Satair",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "supplier",
           "generic_en": "a premium Danish supplier",
           "generic_ar": "شركة توريد دنماركية من الفئة الممتازة"
         },
         {
           "brand": "Boeing Global Services",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "supplier",
           "generic_en": "a premium American supplier",
           "generic_ar": "شركة توريد أمريكية من الفئة الممتازة"
         },
         {
           "brand": "AAR",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "supplier",
           "generic_en": "a premium American supplier",
           "generic_ar": "شركة توريد أمريكية من الفئة الممتازة"

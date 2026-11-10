@@ -47,121 +47,121 @@
         {
           "spec": "Pump type and application",
           "blocking": true,
-          "why_it_prices": "End-suction, split-case, multistage, submersible and PD pumps are different machines.",
+          "why_needed_to_price": "End-suction, split-case, multistage, submersible and PD pumps are different machines.",
           "uae_options": "End-suction, vertical inline, split-case, multistage booster, submersible, API 610, diaphragm, progressive cavity, dosing.",
-          "follow_up": "Ask the application: water transfer, booster, fire, chemical, sewage, cooling tower."
+          "follow_up_if": "Ask the application: water transfer, booster, fire, chemical, sewage, cooling tower."
         },
         {
           "spec": "Flow and head duty point",
           "blocking": true,
-          "why_it_prices": "Flow and head select the model and motor; without them there is no pump to price.",
+          "why_needed_to_price": "Flow and head select the model and motor; without them there is no pump to price.",
           "uae_options": "m3/h and m head (or bar), duty and standby.",
-          "follow_up": "If the buyer does not know, ask the system: tank levels, building height, pipe length, or the existing pump nameplate."
+          "follow_up_if": "If the buyer does not know, ask the system: tank levels, building height, pipe length, or the existing pump nameplate."
         },
         {
           "spec": "Pumped fluid and temperature",
           "blocking": true,
-          "why_it_prices": "Fluid sets materials, seal and motor size (density, viscosity).",
+          "why_needed_to_price": "Fluid sets materials, seal and motor size (density, viscosity).",
           "uae_options": "Potable water, seawater, TSE, sewage, chemicals, oil, hot water.",
-          "follow_up": "Chemicals bring concentration and SDS; solids bring particle size."
+          "follow_up_if": "Chemicals bring concentration and SDS; solids bring particle size."
         },
         {
           "spec": "Materials of casing and impeller",
           "blocking": true,
-          "why_it_prices": "Cast iron vs stainless vs duplex vs bronze changes price a lot.",
+          "why_needed_to_price": "Cast iron vs stainless vs duplex vs bronze changes price a lot.",
           "uae_options": "Cast iron/bronze, SS304/316, duplex, plastic for chemicals.",
-          "follow_up": "Seawater or TSE brings duplex or bronze."
+          "follow_up_if": "Seawater or TSE brings duplex or bronze."
         },
         {
           "spec": "Motor power, voltage and enclosure",
           "blocking": true,
-          "why_it_prices": "Motor kW, efficiency class and IP rating are part of the price.",
+          "why_needed_to_price": "Motor kW, efficiency class and IP rating are part of the price.",
           "uae_options": "400 V/3 ph/50 Hz; IE2/IE3/IE4; IP55; Ex-proof where hazardous.",
-          "follow_up": "Hazardous area brings the zone and gas group."
+          "follow_up_if": "Hazardous area brings the zone and gas group."
         },
         {
           "spec": "Seal type",
           "blocking": false,
-          "why_it_prices": "Mechanical seal grade or packing changes price and life.",
+          "why_needed_to_price": "Mechanical seal grade or packing changes price and life.",
           "uae_options": "Gland packing, single mechanical seal, cartridge, double seal with plan.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Performance curve and test certificate",
           "blocking": false,
-          "why_it_prices": "A witnessed performance test is extra.",
+          "why_needed_to_price": "A witnessed performance test is extra.",
           "uae_options": "Catalogue curve, works test certificate, witnessed test to ISO 9906.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Duty/standby sets and quantity change the build and discount.",
+          "why_needed_to_price": "Duty/standby sets and quantity change the build and discount.",
           "uae_options": "Units, sets (duty/standby).",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "API 610 or fire-pump listings multiply the price.",
+          "why_needed_to_price": "API 610 or fire-pump listings multiply the price.",
           "uae_options": "ISO 5199, API 610, NFPA 20 with UL/FM listing.",
-          "follow_up": "Fire pumps bring civil defence approval and listed packages."
+          "follow_up_if": "Fire pumps bring civil defence approval and listed packages."
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Fire pumps and potable-water pumps carry approvals.",
+          "why_needed_to_price": "Fire pumps and potable-water pumps carry approvals.",
           "uae_options": "Civil defence approval for fire pump sets; water authority approval where required.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": true,
-          "why_it_prices": "Delivered-site and ex-store prices differ by freight and offloading.",
+          "why_needed_to_price": "Delivered-site and ex-store prices differ by freight and offloading.",
           "uae_options": "Ex-stock Dubai, delivered site.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Installation or commissioning scope",
           "blocking": true,
-          "why_it_prices": "Installation, alignment and commissioning are often excluded.",
+          "why_needed_to_price": "Installation, alignment and commissioning are often excluded.",
           "uae_options": "Supply only, supervision, installation and commissioning.",
-          "follow_up": "Booster sets bring the control panel, VFDs and pressure vessel."
+          "follow_up_if": "Booster sets bring the control panel, VFDs and pressure vessel."
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Maker's period from commissioning or supply.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Stock to weeks; API and fire sets months.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Baseplate, coupling guard, valves, panel and civil work are frequent exclusions.",
+          "why_needed_to_price": "Baseplate, coupling guard, valves, panel and civil work are frequent exclusions.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "NPSH available and suction conditions",
           "blocking": false,
-          "why_it_prices": "A pump that cavitates fails early; suction lift changes the model.",
+          "why_needed_to_price": "A pump that cavitates fails early; suction lift changes the model.",
           "uae_options": "Flooded suction, suction lift, tank levels.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Control panel and drives",
           "blocking": false,
-          "why_it_prices": "VFDs and panels can cost as much as the pump.",
+          "why_needed_to_price": "VFDs and panels can cost as much as the pump.",
           "uae_options": "DOL, star-delta, soft starter, VFD; panel IP rating.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -42,14 +42,14 @@
       "brand_origins": [
         {
           "brand": "Al-Futtaim",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "an authorised dealer or distributor based in the UAE",
           "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
         },
         {
           "brand": "Bosch Car Service",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "operator",
           "generic_en": "a mid-tier German operator",
           "generic_ar": "جهة تشغيل ألمانية من الفئة المتوسطة"

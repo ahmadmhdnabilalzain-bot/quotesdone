@@ -44,98 +44,98 @@
       "brand_origins": [
         {
           "brand": "Gulf Cryo",
-          "origin_country": "Kuwait",
+          "origin": "Kuwait",
           "tier": "supplier",
           "generic_en": "a mid-tier Kuwaiti supplier",
           "generic_ar": "شركة توريد كويتية من الفئة المتوسطة"
         },
         {
           "brand": "Emirates Industrial Gases",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "supplier",
           "generic_en": "a mid-tier UAE supplier",
           "generic_ar": "شركة توريد إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Dubai Industrial Gases",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "supplier",
           "generic_en": "a mid-tier UAE supplier",
           "generic_ar": "شركة توريد إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Air Products",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "supplier",
           "generic_en": "a premium American supplier",
           "generic_ar": "شركة توريد أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Linde",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "supplier",
           "generic_en": "a premium German supplier",
           "generic_ar": "شركة توريد ألمانية من الفئة الممتازة"
         },
         {
           "brand": "ADNOC Gas",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "supplier",
           "generic_en": "a premium UAE supplier",
           "generic_ar": "شركة توريد إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Brothers Gas",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "supplier",
           "generic_en": "a mid-tier UAE supplier",
           "generic_ar": "شركة توريد إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Honeywell",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Chemours",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Daikin",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Arkema",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Atlas Copco",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Parker",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Inmatec",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "mid",
           "generic_en": "a mid-tier German brand",
           "generic_ar": "علامة ألمانية من الفئة المتوسطة"

@@ -42,107 +42,107 @@
         {
           "spec": "Fabric type and construction",
           "blocking": true,
-          "why_it_prices": "Woven, non-woven, knitted, geomembrane and coated fabrics are different products.",
+          "why_needed_to_price": "Woven, non-woven, knitted, geomembrane and coated fabrics are different products.",
           "uae_options": "Woven PP, non-woven geotextile, HDPE geomembrane, PVC-coated polyester, shade net, filter cloth.",
-          "follow_up": "Geosynthetics bring the application (separation, drainage, lining)."
+          "follow_up_if": "Geosynthetics bring the application (separation, drainage, lining)."
         },
         {
           "spec": "Fibre composition",
           "blocking": true,
-          "why_it_prices": "Fibre type sets cost, strength and UV resistance.",
+          "why_needed_to_price": "Fibre type sets cost, strength and UV resistance.",
           "uae_options": "PP, PET, HDPE, glass, aramid, cotton.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Weight per square metre",
           "blocking": true,
-          "why_it_prices": "gsm (or membrane thickness) is the main price axis.",
+          "why_needed_to_price": "gsm (or membrane thickness) is the main price axis.",
           "uae_options": "gsm; geomembrane 1.0-2.5 mm.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Width and roll length",
           "blocking": true,
-          "why_it_prices": "Roll format sets production set-up and the number of seams.",
+          "why_needed_to_price": "Roll format sets production set-up and the number of seams.",
           "uae_options": "Roll width and length.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Coating or treatment",
           "blocking": false,
-          "why_it_prices": "UV, flame-retardant and PVC coatings add cost.",
+          "why_needed_to_price": "UV, flame-retardant and PVC coatings add cost.",
           "uae_options": "UV-stabilised, FR, PVC, PU, PTFE.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Tensile and tear strength",
           "blocking": false,
-          "why_it_prices": "Strength values to a test standard decide equivalence.",
+          "why_needed_to_price": "Strength values to a test standard decide equivalence.",
           "uae_options": "kN/m to ISO 10319, CBR puncture to ISO 12236.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Fire performance where required",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "NFPA 701, EN 13501, civil defence approval for tents and building fabrics.",
-          "follow_up": "Tents and building fabrics bring civil defence approval."
+          "follow_up_if": "Tents and building fabrics bring civil defence approval."
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "m2 vs rolls vs kg.",
+          "why_needed_to_price": "m2 vs rolls vs kg.",
           "uae_options": "m2, rolls, kg.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Installation, welding of geomembranes and testing are services.",
+          "why_needed_to_price": "Installation, welding of geomembranes and testing are services.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Installation scope",
           "blocking": false,
-          "why_it_prices": "Geomembrane welding and testing need specialist installers.",
+          "why_needed_to_price": "Geomembrane welding and testing need specialist installers.",
           "uae_options": "Supply only, supply and install with QA testing.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -41,100 +41,100 @@
         {
           "spec": "packaging component (blister foil, bottle, vial, carton, label)",
           "blocking": true,
-          "why_it_prices": "Blister foil, bottles, vials, cartons and leaflets are different converters.",
+          "why_needed_to_price": "Blister foil, bottles, vials, cartons and leaflets are different converters.",
           "uae_options": "Blister lidding foil, forming film, cold-form Alu, HDPE bottle, Type I vial, ampoule, carton, leaflet, label.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "material and grade (PVC, PVDC, Alu, glass type I/II/III, HDPE)",
           "blocking": true,
-          "why_it_prices": "PVC vs PVDC vs Aclar vs cold-form Alu change barrier and price.",
+          "why_needed_to_price": "PVC vs PVDC vs Aclar vs cold-form Alu change barrier and price.",
           "uae_options": "PVC 250 µm, PVC/PVDC, PVC/Aclar, Alu/Alu; glass type I/II/III; pharma-grade HDPE.",
-          "follow_up": "Moisture-sensitive products bring higher-barrier films."
+          "follow_up_if": "Moisture-sensitive products bring higher-barrier films."
         },
         {
           "spec": "dimensions, thickness and capacity",
           "blocking": true,
-          "why_it_prices": "Gauge and size set material use and the tooling.",
+          "why_needed_to_price": "Gauge and size set material use and the tooling.",
           "uae_options": "Foil width and gauge; vial size; carton dieline.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pharmacopoeia compliance (Ph. Eur., BP)",
           "blocking": true,
-          "why_it_prices": "Pharmacopoeia testing and documentation are part of the price.",
+          "why_needed_to_price": "Pharmacopoeia testing and documentation are part of the price.",
           "uae_options": "Ph. Eur., USP, BP.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quality system certification (ISO 15378)",
           "blocking": false,
-          "why_it_prices": "GMP-certified packaging suppliers cost more.",
+          "why_needed_to_price": "GMP-certified packaging suppliers cost more.",
           "uae_options": "ISO 15378, GMP audit.",
-          "follow_up": "Ask whether the buyer will audit the supplier."
+          "follow_up_if": "Ask whether the buyer will audit the supplier."
         },
         {
           "spec": "printing and artwork approval",
           "blocking": true,
-          "why_it_prices": "Approved artwork and colour control are regulated.",
+          "why_needed_to_price": "Approved artwork and colour control are regulated.",
           "uae_options": "Approved artwork with version control; pharma codes.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity with unit of measure",
           "blocking": true,
-          "why_it_prices": "Batch size against qualification and set-up costs sets unit price.",
+          "why_needed_to_price": "Batch size against qualification and set-up costs sets unit price.",
           "uae_options": "Reels, kg, pieces.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "certificate of analysis per batch",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty period and terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "serialisation and coding",
           "blocking": false,
-          "why_it_prices": "Space and code quality for Tatmeen 2D codes affect artwork and print.",
+          "why_needed_to_price": "Space and code quality for Tatmeen 2D codes affect artwork and print.",
           "uae_options": "GS1 DataMatrix printed on line or pre-printed area.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "change control",
           "blocking": false,
-          "why_it_prices": "A supplier change for primary packaging needs the buyer's regulatory change control.",
+          "why_needed_to_price": "A supplier change for primary packaging needs the buyer's regulatory change control.",
           "uae_options": "Approved supplier only; change notification.",
-          "follow_up": "A new supplier of primary packaging brings stability data and regulatory variation."
+          "follow_up_if": "A new supplier of primary packaging brings stability data and regulatory variation."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -38,93 +38,93 @@
         {
           "spec": "process (MMA, MIG/MAG, TIG, plasma cutting)",
           "blocking": true,
-          "why_it_prices": "MMA, MIG/MAG, TIG and plasma machines are different products.",
+          "why_needed_to_price": "MMA, MIG/MAG, TIG and plasma machines are different products.",
           "uae_options": "MMA (stick), MIG/MAG, pulsed MIG, TIG DC or AC/DC, plasma cutting, multi-process.",
-          "follow_up": "Aluminium brings AC/DC TIG or pulsed MIG; site work brings engine-driven or inverter portability."
+          "follow_up_if": "Aluminium brings AC/DC TIG or pulsed MIG; site work brings engine-driven or inverter portability."
         },
         {
           "spec": "output current range and duty cycle",
           "blocking": true,
-          "why_it_prices": "Amperage and duty cycle size the power source.",
+          "why_needed_to_price": "Amperage and duty cycle size the power source.",
           "uae_options": "160-500 A; duty cycle at 40 °C (e.g. 60%).",
-          "follow_up": "Ask the thickest plate and continuous welding time; UAE heat lowers effective duty cycle."
+          "follow_up_if": "Ask the thickest plate and continuous welding time; UAE heat lowers effective duty cycle."
         },
         {
           "spec": "input power supply (single or three phase, voltage)",
           "blocking": true,
-          "why_it_prices": "Single-phase 230 V vs three-phase 400 V machines differ; engine drives for sites without power.",
+          "why_needed_to_price": "Single-phase 230 V vs three-phase 400 V machines differ; engine drives for sites without power.",
           "uae_options": "230 V/1 ph, 400 V/3 ph, generator or engine-driven.",
-          "follow_up": "Running on a site generator brings the generator kVA."
+          "follow_up_if": "Running on a site generator brings the generator kVA."
         },
         {
           "spec": "brand and model",
           "blocking": false,
-          "why_it_prices": "Model fixes features and price.",
+          "why_needed_to_price": "Model fixes features and price.",
           "uae_options": "Named model or class.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "accessories (torch, cables, regulator, wire feeder)",
           "blocking": true,
-          "why_it_prices": "Torch, cables, regulator and wire feeder are often not in the machine price.",
+          "why_needed_to_price": "Torch, cables, regulator and wire feeder are often not in the machine price.",
           "uae_options": "Torch length and cooling, earth and electrode cables, gas regulator, separate or built-in wire feeder.",
-          "follow_up": "Water-cooled torches bring a cooling unit."
+          "follow_up_if": "Water-cooled torches bring a cooling unit."
         },
         {
           "spec": "consumables (electrodes, wire grade and size)",
           "blocking": false,
-          "why_it_prices": "Consumables are a running cost and must match the process and metal.",
+          "why_needed_to_price": "Consumables are a running cost and must match the process and metal.",
           "uae_options": "E7018, E6013 electrodes; ER70S-6, ER308L wire; diameter; spool weight.",
-          "follow_up": "Code work brings consumable certificates (EN 10204 3.1)."
+          "follow_up_if": "Code work brings consumable certificates (EN 10204 3.1)."
         },
         {
           "spec": "safety standard (IEC 60974-1)",
           "blocking": false,
-          "why_it_prices": "Compliance with IEC 60974-1 is the safety baseline.",
+          "why_needed_to_price": "Compliance with IEC 60974-1 is the safety baseline.",
           "uae_options": "IEC 60974-1, -10 (EMC).",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "conformity certificate",
           "blocking": false,
-          "why_it_prices": "Electrical equipment may need ECAS at import.",
+          "why_needed_to_price": "Electrical equipment may need ECAS at import.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty period and terms",
           "blocking": false,
-          "why_it_prices": "Power sources usually carry a longer warranty than torches.",
+          "why_needed_to_price": "Power sources usually carry a longer warranty than torches.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Gas cylinders and PPE are rarely included.",
+          "why_needed_to_price": "Gas cylinders and PPE are rarely included.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity",
           "blocking": true,
-          "why_it_prices": "Fleet orders change the price per unit.",
+          "why_needed_to_price": "Fleet orders change the price per unit.",
           "uae_options": "Units.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -40,63 +40,63 @@
       "brand_origins": [
         {
           "brand": "Al-Futtaim",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "an authorised dealer or distributor based in the UAE",
           "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
         },
         {
           "brand": "Nissan",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Mitsubishi",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Hyundai",
-          "origin_country": "South Korea",
+          "origin": "South Korea",
           "tier": "mid",
           "generic_en": "a mid-tier South Korean brand",
           "generic_ar": "علامة كورية جنوبية من الفئة المتوسطة"
         },
         {
           "brand": "Kia",
-          "origin_country": "South Korea",
+          "origin": "South Korea",
           "tier": "mid",
           "generic_en": "a mid-tier South Korean brand",
           "generic_ar": "علامة كورية جنوبية من الفئة المتوسطة"
         },
         {
           "brand": "Isuzu",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Hino",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Mercedes-Benz",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "luxury",
           "generic_en": "a luxury German brand",
           "generic_ar": "علامة ألمانية من الفئة الفاخرة"
         },
         {
           "brand": "BYD",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "mid",
           "generic_en": "a mid-tier Chinese brand",
           "generic_ar": "علامة صينية من الفئة المتوسطة"

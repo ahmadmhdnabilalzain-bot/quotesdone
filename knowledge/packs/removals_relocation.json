@@ -39,86 +39,86 @@
         {
           "spec": "origin and destination addresses",
           "blocking": true,
-          "why_it_prices": "Distance, floors and access drive the price.",
+          "why_needed_to_price": "Distance, floors and access drive the price.",
           "uae_options": "Within an emirate, inter-emirate, international.",
-          "follow_up": "International brings destination country customs and the mode (sea groupage, FCL, air)."
+          "follow_up_if": "International brings destination country customs and the mode (sea groupage, FCL, air)."
         },
         {
           "spec": "inventory list or volume in m3",
           "blocking": true,
-          "why_it_prices": "Volume is the price basis.",
+          "why_needed_to_price": "Volume is the price basis.",
           "uae_options": "Inventory list, video survey, m3.",
-          "follow_up": "Without an inventory the mover cannot price firmly."
+          "follow_up_if": "Without an inventory the mover cannot price firmly."
         },
         {
           "spec": "packing materials and packing scope",
           "blocking": true,
-          "why_it_prices": "Full packing vs self-pack differ a lot.",
+          "why_needed_to_price": "Full packing vs self-pack differ a lot.",
           "uae_options": "Full pack, fragile only, self-pack.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "dismantling and reassembly",
           "blocking": false,
-          "why_it_prices": "Furniture, beds, wardrobes and appliances take labour.",
+          "why_needed_to_price": "Furniture, beds, wardrobes and appliances take labour.",
           "uae_options": "",
-          "follow_up": "Ask about AC units, curtains, wall-mounted TVs and handyman work."
+          "follow_up_if": "Ask about AC units, curtains, wall-mounted TVs and handyman work."
         },
         {
           "spec": "moving date and working hours",
           "blocking": true,
-          "why_it_prices": "Weekends, month-end and evening work change cost.",
+          "why_needed_to_price": "Weekends, month-end and evening work change cost.",
           "uae_options": "",
-          "follow_up": "Ask building move-in time windows."
+          "follow_up_if": "Ask building move-in time windows."
         },
         {
           "spec": "building permits and access (lift, parking)",
           "blocking": true,
-          "why_it_prices": "Many towers need move permits, lift booking and loading-bay slots.",
+          "why_needed_to_price": "Many towers need move permits, lift booking and loading-bay slots.",
           "uae_options": "Building management move permit, service lift, parking.",
-          "follow_up": "Ask whether the building management or community requires a move permit or deposit."
+          "follow_up_if": "Ask whether the building management or community requires a move permit or deposit."
         },
         {
           "spec": "transit insurance and liability limit",
           "blocking": false,
-          "why_it_prices": "Standard liability is limited; full insurance is extra.",
+          "why_needed_to_price": "Standard liability is limited; full insurance is extra.",
           "uae_options": "Limited liability, declared-value insurance.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "storage if required",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Short or long-term storage; climate-controlled.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "customs clearance for international moves",
           "blocking": false,
-          "why_it_prices": "Clearance and destination charges can be excluded.",
+          "why_needed_to_price": "Clearance and destination charges can be excluded.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "contract duration and pricing basis",
           "blocking": true,
-          "why_it_prices": "Fixed survey-based price vs per-hour or per-truck rates differ.",
+          "why_needed_to_price": "Fixed survey-based price vs per-hour or per-truck rates differ.",
           "uae_options": "Fixed price, per truck, per hour, per m3.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service levels and response times",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Disposal of unwanted items, cleaning and handyman work are often extra.",
+          "why_needed_to_price": "Disposal of unwanted items, cleaning and handyman work are often extra.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

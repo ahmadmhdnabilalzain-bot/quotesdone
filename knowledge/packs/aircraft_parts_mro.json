@@ -40,93 +40,93 @@
         {
           "spec": "aircraft or component part number",
           "blocking": true,
-          "why_it_prices": "Part number and dash number fix the product; interchangeability must be shown.",
+          "why_needed_to_price": "Part number and dash number fix the product; interchangeability must be shown.",
           "uae_options": "P/N with dash number; alternate P/N per IPC.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "aircraft type and registration",
           "blocking": true,
-          "why_it_prices": "Registration decides which authority's rules apply.",
+          "why_needed_to_price": "Registration decides which authority's rules apply.",
           "uae_options": "Type, MSN, registration (A6 for UAE).",
-          "follow_up": "UAE-registered aircraft bring GCAA acceptance of the release document."
+          "follow_up_if": "UAE-registered aircraft bring GCAA acceptance of the release document."
         },
         {
           "spec": "part condition",
           "blocking": true,
-          "why_it_prices": "New, overhauled, repaired, serviceable and as-removed differ greatly in price.",
+          "why_needed_to_price": "New, overhauled, repaired, serviceable and as-removed differ greatly in price.",
           "uae_options": "NE, NS, OH, RP, SV, AR.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "release certificate required",
           "blocking": true,
-          "why_it_prices": "The release document decides whether the part can be fitted.",
+          "why_needed_to_price": "The release document decides whether the part can be fitted.",
           "uae_options": "EASA Form 1, FAA 8130-3, GCAA Form 1, dual release.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "maintenance scope and task cards",
           "blocking": true,
-          "why_it_prices": "MRO is priced from the work scope.",
+          "why_needed_to_price": "MRO is priced from the work scope.",
           "uae_options": "Task cards, check type (A/C check), component shop visit scope.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "CAR-145 approval rating",
           "blocking": true,
-          "why_it_prices": "Only an approved organisation rated for the type can release work.",
+          "why_needed_to_price": "Only an approved organisation rated for the type can release work.",
           "uae_options": "GCAA CAR-145 or EASA Part-145 rating for the aircraft or component.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "traceability documents",
           "blocking": false,
-          "why_it_prices": "Back-to-birth or non-incident statements affect value.",
+          "why_needed_to_price": "Back-to-birth or non-incident statements affect value.",
           "uae_options": "Trace to last operator, non-incident statement, back-to-birth for LLPs.",
-          "follow_up": "Life-limited parts bring full back-to-birth records."
+          "follow_up_if": "Life-limited parts bring full back-to-birth records."
         },
         {
           "spec": "turnaround time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "licences held",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service levels",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "AOG response.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "contract duration",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "pricing basis",
           "blocking": true,
-          "why_it_prices": "Fixed price, flat rate plus findings, exchange and outright purchase are not comparable directly.",
+          "why_needed_to_price": "Fixed price, flat rate plus findings, exchange and outright purchase are not comparable directly.",
           "uae_options": "Outright, exchange with core, flat-rate repair, NTE cap, T&M.",
-          "follow_up": "Exchange brings core return conditions and BER charges."
+          "follow_up_if": "Exchange brings core return conditions and BER charges."
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Findings beyond scope, BER and freight are frequent.",
+          "why_needed_to_price": "Findings beyond scope, BER and freight are frequent.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -44,77 +44,77 @@
       "brand_origins": [
         {
           "brand": "Sika",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Master Builders Solutions",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Fosroc",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "Mapei",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"
         },
         {
           "brand": "Henkel",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Pidilite",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "Borouge",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Fertiglobe",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "SABIC",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "premium",
           "generic_en": "a premium Saudi brand",
           "generic_ar": "علامة سعودية من الفئة الممتازة"
         },
         {
           "brand": "Brenntag",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "supplier",
           "generic_en": "a premium German supplier",
           "generic_ar": "شركة توريد ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Univar",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "supplier",
           "generic_en": "a premium American supplier",
           "generic_ar": "شركة توريد أمريكية من الفئة الممتازة"

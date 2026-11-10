@@ -42,42 +42,42 @@
       "brand_origins": [
         {
           "brand": "Aramex",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "supplier",
           "generic_en": "a premium UAE supplier",
           "generic_ar": "شركة توريد إماراتية من الفئة الممتازة"
         },
         {
           "brand": "DP World",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "supplier",
           "generic_en": "a premium UAE supplier",
           "generic_ar": "شركة توريد إماراتية من الفئة الممتازة"
         },
         {
           "brand": "DHL",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "supplier",
           "generic_en": "a premium German supplier",
           "generic_ar": "شركة توريد ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Kuehne+Nagel",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "supplier",
           "generic_en": "a premium Swiss supplier",
           "generic_ar": "شركة توريد سويسرية من الفئة الممتازة"
         },
         {
           "brand": "DSV",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "supplier",
           "generic_en": "a premium Danish supplier",
           "generic_ar": "شركة توريد دنماركية من الفئة الممتازة"
         },
         {
           "brand": "AD Ports Group",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "supplier",
           "generic_en": "a premium UAE supplier",
           "generic_ar": "شركة توريد إماراتية من الفئة الممتازة"

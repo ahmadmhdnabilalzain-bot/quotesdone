@@ -42,84 +42,84 @@
       "brand_origins": [
         {
           "brand": "MEPCO",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "mid",
           "generic_en": "a mid-tier Saudi brand",
           "generic_ar": "علامة سعودية من الفئة المتوسطة"
         },
         {
           "brand": "Stora Enso",
-          "origin_country": "Finland",
+          "origin": "Finland",
           "tier": "premium",
           "generic_en": "a premium Finnish brand",
           "generic_ar": "علامة فنلندية من الفئة الممتازة"
         },
         {
           "brand": "UPM",
-          "origin_country": "Finland",
+          "origin": "Finland",
           "tier": "premium",
           "generic_en": "a premium Finnish brand",
           "generic_ar": "علامة فنلندية من الفئة الممتازة"
         },
         {
           "brand": "Sappi",
-          "origin_country": "South Africa",
+          "origin": "South Africa",
           "tier": "premium",
           "generic_en": "a premium South African brand",
           "generic_ar": "علامة جنوب أفريقية من الفئة الممتازة"
         },
         {
           "brand": "Mondi",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "APP",
-          "origin_country": "Indonesia",
+          "origin": "Indonesia",
           "tier": "mid",
           "generic_en": "a mid-tier Indonesian brand",
           "generic_ar": "علامة إندونيسية من الفئة المتوسطة"
         },
         {
           "brand": "Double A",
-          "origin_country": "Thailand",
+          "origin": "Thailand",
           "tier": "mid",
           "generic_en": "a mid-tier Thai brand",
           "generic_ar": "علامة تايلاندية من الفئة المتوسطة"
         },
         {
           "brand": "PaperOne",
-          "origin_country": "Indonesia",
+          "origin": "Indonesia",
           "tier": "mid",
           "generic_en": "a mid-tier Indonesian brand",
           "generic_ar": "علامة إندونيسية من الفئة المتوسطة"
         },
         {
           "brand": "Navigator",
-          "origin_country": "Portugal",
+          "origin": "Portugal",
           "tier": "premium",
           "generic_en": "a premium Portuguese brand",
           "generic_ar": "علامة برتغالية من الفئة الممتازة"
         },
         {
           "brand": "Chenming",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Sun Paper",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Nine Dragons",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"

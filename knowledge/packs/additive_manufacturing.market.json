@@ -42,112 +42,112 @@
       "brand_origins": [
         {
           "brand": "Immensa",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "supplier",
           "generic_en": "a mid-tier UAE supplier",
           "generic_ar": "شركة توريد إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Stratasys",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "UltiMaker",
-          "origin_country": "Netherlands",
+          "origin": "Netherlands",
           "tier": "mid",
           "generic_en": "a mid-tier Dutch brand",
           "generic_ar": "علامة هولندية من الفئة المتوسطة"
         },
         {
           "brand": "Formlabs",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "HP",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "EOS",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "3D Systems",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Markforged",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Bambu Lab",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Prusa",
-          "origin_country": "Czech Republic",
+          "origin": "Czech Republic",
           "tier": "mid",
           "generic_en": "a mid-tier Czech brand",
           "generic_ar": "علامة تشيكية من الفئة المتوسطة"
         },
         {
           "brand": "Creality",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "a economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"
         },
         {
           "brand": "Raise3D",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Nikon SLM Solutions",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Farsoon",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "mid",
           "generic_en": "a mid-tier Chinese brand",
           "generic_ar": "علامة صينية من الفئة المتوسطة"
         },
         {
           "brand": "COBOD",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "premium",
           "generic_en": "a premium Danish brand",
           "generic_ar": "علامة دنماركية من الفئة الممتازة"
         },
         {
           "brand": "Apis Cor",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"

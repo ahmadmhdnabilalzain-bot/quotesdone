@@ -43,93 +43,93 @@
         {
           "spec": "Scale type and application",
           "blocking": true,
-          "why_it_prices": "Bench, floor, platform, weighbridge, crane scale and checkweigher are different products.",
+          "why_needed_to_price": "Bench, floor, platform, weighbridge, crane scale and checkweigher are different products.",
           "uae_options": "Bench, floor, pallet, weighbridge (pit or surface), crane, checkweigher, lab balance.",
-          "follow_up": "Weighbridges bring vehicle size and axle loads."
+          "follow_up_if": "Weighbridges bring vehicle size and axle loads."
         },
         {
           "spec": "Capacity",
           "blocking": true,
-          "why_it_prices": "Capacity sets the load cells and structure.",
+          "why_needed_to_price": "Capacity sets the load cells and structure.",
           "uae_options": "kg or tonnes.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Readability or division",
           "blocking": true,
-          "why_it_prices": "Finer division needs better load cells and indicators.",
+          "why_needed_to_price": "Finer division needs better load cells and indicators.",
           "uae_options": "e/d in g or kg.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Accuracy class",
           "blocking": true,
-          "why_it_prices": "Class III vs class II and legal-for-trade approval change the product.",
+          "why_needed_to_price": "Class III vs class II and legal-for-trade approval change the product.",
           "uae_options": "OIML R76 class I-IIII; legal-for-trade or process use.",
-          "follow_up": "Trade use brings legal metrology verification."
+          "follow_up_if": "Trade use brings legal metrology verification."
         },
         {
           "spec": "Platform or deck size",
           "blocking": true,
-          "why_it_prices": "Deck size and material set the structure.",
+          "why_needed_to_price": "Deck size and material set the structure.",
           "uae_options": "Mild steel, stainless; dimensions; weighbridge length 12-24 m.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Load cell type and number",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Analogue or digital; stainless; IP68.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Indicator and connectivity",
           "blocking": false,
-          "why_it_prices": "Printers, software and network add cost.",
+          "why_needed_to_price": "Printers, software and network add cost.",
           "uae_options": "Indicator, printer, RS232/Ethernet, ERP integration.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Environment and protection (IP)",
           "blocking": false,
-          "why_it_prices": "Washdown and outdoor sites need higher IP.",
+          "why_needed_to_price": "Washdown and outdoor sites need higher IP.",
           "uae_options": "IP65-IP69K; stainless for food.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Legal-for-trade verification",
           "blocking": true,
-          "why_it_prices": "Trade weighing needs legal metrology verification.",
+          "why_needed_to_price": "Trade weighing needs legal metrology verification.",
           "uae_options": "Initial and periodic verification by the competent authority.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Installation and civil works",
           "blocking": true,
-          "why_it_prices": "Weighbridge foundations and pits can exceed the bridge cost.",
+          "why_needed_to_price": "Weighbridge foundations and pits can exceed the bridge cost.",
           "uae_options": "Supply only; installation; foundations by others or supplier.",
-          "follow_up": "Weighbridges bring soil, foundation design and drainage."
+          "follow_up_if": "Weighbridges bring soil, foundation design and drainage."
         },
         {
           "spec": "Calibration certificate",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "ISO 17025 accredited calibration.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty and service",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "site_visit_required_when": "a weighbridge needs a site visit for foundations, access and drainage before a firm price; standard scales can be priced from the specs."

@@ -44,42 +44,42 @@
       "brand_origins": [
         {
           "brand": "Etihad Rail",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "operator",
           "generic_en": "a premium UAE operator",
           "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Alstom",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Siemens Mobility",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Hitachi Rail",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "CRRC",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "mid",
           "generic_en": "a mid-tier Chinese brand",
           "generic_ar": "علامة صينية من الفئة المتوسطة"
         },
         {
           "brand": "Progress Rail",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"

@@ -40,63 +40,63 @@
       "brand_origins": [
         {
           "brand": "Solmax",
-          "origin_country": "Canada",
+          "origin": "Canada",
           "tier": "premium",
           "generic_en": "a premium Canadian brand",
           "generic_ar": "علامة كندية من الفئة الممتازة"
         },
         {
           "brand": "Naue",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Huesker",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Tensar",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Maccaferri",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"
         },
         {
           "brand": "Geofabrics",
-          "origin_country": "Australia",
+          "origin": "Australia",
           "tier": "mid",
           "generic_en": "a mid-tier Australian brand",
           "generic_ar": "علامة أسترالية من الفئة المتوسطة"
         },
         {
           "brand": "Propex",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Agru",
-          "origin_country": "Austria",
+          "origin": "Austria",
           "tier": "premium",
           "generic_en": "a premium Austrian brand",
           "generic_ar": "علامة نمساوية من الفئة الممتازة"
         },
         {
           "brand": "Atarfil",
-          "origin_country": "Spain",
+          "origin": "Spain",
           "tier": "mid",
           "generic_en": "a mid-tier Spanish brand",
           "generic_ar": "علامة إسبانية من الفئة المتوسطة"

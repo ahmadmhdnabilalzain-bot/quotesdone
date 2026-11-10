@@ -41,93 +41,93 @@
         {
           "spec": "equipment type, model and capacity",
           "blocking": true,
-          "why_it_prices": "Rates are per machine class.",
+          "why_needed_to_price": "Rates are per machine class.",
           "uae_options": "Generator kVA, compressor cfm, MEWP height, crane tonnage, light tower, pump size.",
-          "follow_up": "Generators bring the load profile and fuel tank size."
+          "follow_up_if": "Generators bring the load profile and fuel tank size."
         },
         {
           "spec": "rental period and start date",
           "blocking": true,
-          "why_it_prices": "Longer hire gets lower rates; short notice may cost more.",
+          "why_needed_to_price": "Longer hire gets lower rates; short notice may cost more.",
           "uae_options": "Days, weeks, months; start and end dates.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "rate basis (daily, weekly, monthly)",
           "blocking": true,
-          "why_it_prices": "Daily, weekly and monthly rates and hour limits are not comparable directly.",
+          "why_needed_to_price": "Daily, weekly and monthly rates and hour limits are not comparable directly.",
           "uae_options": "Day, week, month; 8 or 10-hour shift; overtime hours.",
-          "follow_up": "Ask the hours per day and whether it runs nights."
+          "follow_up_if": "Ask the hours per day and whether it runs nights."
         },
         {
           "spec": "with or without operator",
           "blocking": true,
-          "why_it_prices": "An operator adds wages, visa cost, accommodation and transport.",
+          "why_needed_to_price": "An operator adds wages, visa cost, accommodation and transport.",
           "uae_options": "Bare (dry) hire or with operator (wet hire).",
-          "follow_up": "With operator brings the operator's licence/certificate, hours and overtime."
+          "follow_up_if": "With operator brings the operator's licence/certificate, hours and overtime."
         },
         {
           "spec": "delivery and collection",
           "blocking": true,
-          "why_it_prices": "Mobilisation and demobilisation are charged separately.",
+          "why_needed_to_price": "Mobilisation and demobilisation are charged separately.",
           "uae_options": "Included, one-way, two-way.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "fuel and consumables",
           "blocking": true,
-          "why_it_prices": "Fuel can exceed the rental cost on generators.",
+          "why_needed_to_price": "Fuel can exceed the rental cost on generators.",
           "uae_options": "Fuel by hirer, fuel by supplier with refill service.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "third-party inspection certificate for lifting equipment",
           "blocking": true,
-          "why_it_prices": "Lifting equipment cannot be used without a valid certificate.",
+          "why_needed_to_price": "Lifting equipment cannot be used without a valid certificate.",
           "uae_options": "Valid EIAC-accredited TPI certificate supplied with the unit.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "insurance and damage liability",
           "blocking": false,
-          "why_it_prices": "Who bears damage changes the effective price.",
+          "why_needed_to_price": "Who bears damage changes the effective price.",
           "uae_options": "Supplier's insurance, hirer's responsibility, damage waiver.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "breakdown replacement",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Replacement within hours, repair on site.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "contract duration and pricing basis",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service levels and response times",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Service visits per running hours.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Cables, distribution boards, hoses and accessories are often extra.",
+          "why_needed_to_price": "Cables, distribution boards, hoses and accessories are often extra.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "site location and access",
           "blocking": true,
-          "why_it_prices": "Location sets transport cost and permits.",
+          "why_needed_to_price": "Location sets transport cost and permits.",
           "uae_options": "Emirate and area; access restrictions; free zone gate passes.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

@@ -43,107 +43,107 @@
         {
           "spec": "Instrument or controller type",
           "blocking": true,
-          "why_it_prices": "Transmitter, flowmeter, analyser, PLC and SCADA are different products.",
+          "why_needed_to_price": "Transmitter, flowmeter, analyser, PLC and SCADA are different products.",
           "uae_options": "Pressure/temperature/level transmitter, magnetic/ultrasonic/Coriolis flowmeter, analyser, PLC, HMI, SCADA.",
-          "follow_up": "PLC/SCADA brings I/O count, redundancy and software licences."
+          "follow_up_if": "PLC/SCADA brings I/O count, redundancy and software licences."
         },
         {
           "spec": "Measuring range and accuracy",
           "blocking": true,
-          "why_it_prices": "Accuracy class and range select the model.",
+          "why_needed_to_price": "Accuracy class and range select the model.",
           "uae_options": "Range in engineering units; accuracy % of span or reading.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Process connection and wetted materials",
           "blocking": true,
-          "why_it_prices": "Connections and wetted materials change price and compatibility.",
+          "why_needed_to_price": "Connections and wetted materials change price and compatibility.",
           "uae_options": "Flange class or thread; 316L, Hastelloy, PTFE liner.",
-          "follow_up": "Chemical or seawater service brings wetted-material choice."
+          "follow_up_if": "Chemical or seawater service brings wetted-material choice."
         },
         {
           "spec": "Output signal and protocol",
           "blocking": true,
-          "why_it_prices": "4-20 mA HART, Modbus, Profibus and Foundation Fieldbus are different electronics.",
+          "why_needed_to_price": "4-20 mA HART, Modbus, Profibus and Foundation Fieldbus are different electronics.",
           "uae_options": "4-20 mA HART, Modbus RTU/TCP, Profibus, Profinet, FF.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Enclosure and hazardous-area rating",
           "blocking": true,
-          "why_it_prices": "Ex-certified instruments cost more.",
+          "why_needed_to_price": "Ex-certified instruments cost more.",
           "uae_options": "IP66/67; Ex d or Ex ia; zone and gas group.",
-          "follow_up": "Hazardous area brings zone, gas group and certificate scheme."
+          "follow_up_if": "Hazardous area brings zone, gas group and certificate scheme."
         },
         {
           "spec": "Calibration certificate",
           "blocking": false,
-          "why_it_prices": "Accredited calibration costs more than a factory certificate.",
+          "why_needed_to_price": "Accredited calibration costs more than a factory certificate.",
           "uae_options": "Factory certificate, ISO 17025 accredited calibration.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Configuration and programming scope",
           "blocking": true,
-          "why_it_prices": "Engineering hours can exceed hardware cost in automation.",
+          "why_needed_to_price": "Engineering hours can exceed hardware cost in automation.",
           "uae_options": "Pre-configured, on-site configuration, full PLC/SCADA programming.",
-          "follow_up": "Programming brings the control philosophy or I/O list."
+          "follow_up_if": "Programming brings the control philosophy or I/O list."
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Tag count and project size change engineering and hardware discounts.",
+          "why_needed_to_price": "Tag count and project size change engineering and hardware discounts.",
           "uae_options": "Units, tags.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "IEC 61508/61511 SIL where safety-related.",
-          "follow_up": "Safety functions bring SIL rating."
+          "follow_up_if": "Safety functions bring SIL rating."
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "Radio-enabled devices need TDRA type approval; electrical products may need ECAS.",
+          "why_needed_to_price": "Radio-enabled devices need TDRA type approval; electrical products may need ECAS.",
           "uae_options": "",
-          "follow_up": "Wireless devices bring TDRA type approval."
+          "follow_up_if": "Wireless devices bring TDRA type approval."
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Installation or commissioning scope",
           "blocking": false,
-          "why_it_prices": "Loop checks and commissioning are services.",
+          "why_needed_to_price": "Loop checks and commissioning are services.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Cables, glands, mounting brackets and software licences often excluded.",
+          "why_needed_to_price": "Cables, glands, mounting brackets and software licences often excluded.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

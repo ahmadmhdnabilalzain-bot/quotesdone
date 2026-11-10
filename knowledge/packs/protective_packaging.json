@@ -38,93 +38,93 @@
         {
           "spec": "material (bubble wrap, foam, air pillows, corner boards, stretch film)",
           "blocking": true,
-          "why_it_prices": "Bubble, foam, air pillows, paper void fill and stretch film are different products.",
+          "why_needed_to_price": "Bubble, foam, air pillows, paper void fill and stretch film are different products.",
           "uae_options": "Bubble wrap, EPE foam, EPS mouldings, PU foam-in-place, air pillows, paper void fill, corner boards, stretch film.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "dimensions, thickness or gauge",
           "blocking": true,
-          "why_it_prices": "Thickness and gauge set material use.",
+          "why_needed_to_price": "Thickness and gauge set material use.",
           "uae_options": "Bubble size; foam thickness; film microns.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "roll length or piece count",
           "blocking": true,
-          "why_it_prices": "Price per roll means nothing without its length.",
+          "why_needed_to_price": "Price per roll means nothing without its length.",
           "uae_options": "Roll length x width; pieces.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "density or strength rating",
           "blocking": false,
-          "why_it_prices": "Foam density and film pre-stretch rating decide protection.",
+          "why_needed_to_price": "Foam density and film pre-stretch rating decide protection.",
           "uae_options": "kg/m3; film elongation.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "anti-static or special properties",
           "blocking": false,
-          "why_it_prices": "Anti-static and VCI materials cost more.",
+          "why_needed_to_price": "Anti-static and VCI materials cost more.",
           "uae_options": "Pink anti-static, static-shielding, VCI, fire-retardant.",
-          "follow_up": "Electronics bring the ESD requirement."
+          "follow_up_if": "Electronics bring the ESD requirement."
         },
         {
           "spec": "recycled content",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity per unit of measure",
           "blocking": true,
-          "why_it_prices": "Rolls, kg and pieces break comparison.",
+          "why_needed_to_price": "Rolls, kg and pieces break comparison.",
           "uae_options": "Rolls, kg, pieces.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "printing if required",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery terms and location",
           "blocking": false,
-          "why_it_prices": "Low-density goods are freight-heavy.",
+          "why_needed_to_price": "Low-density goods are freight-heavy.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty period and terms",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "custom moulding or cut inserts",
           "blocking": false,
-          "why_it_prices": "Moulded EPS and cut foam inserts need tooling.",
+          "why_needed_to_price": "Moulded EPS and cut foam inserts need tooling.",
           "uae_options": "Stock material, CNC-cut foam, EPS mould.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

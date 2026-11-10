@@ -41,100 +41,100 @@
         {
           "spec": "Goods description and volume",
           "blocking": true,
-          "why_it_prices": "Volume, weight and nature decide vehicle, container and handling.",
+          "why_needed_to_price": "Volume, weight and nature decide vehicle, container and handling.",
           "uae_options": "General cargo, palletised, project cargo, dangerous goods, temperature-controlled; CBM and kg.",
-          "follow_up": "Dangerous goods bring UN number and class; project cargo brings dimensions and lifting points."
+          "follow_up_if": "Dangerous goods bring UN number and class; project cargo brings dimensions and lifting points."
         },
         {
           "spec": "Origin and destination",
           "blocking": true,
-          "why_it_prices": "Lanes, distance and borders set the rate.",
+          "why_needed_to_price": "Lanes, distance and borders set the rate.",
           "uae_options": "Within an emirate, inter-emirate, GCC cross-border, sea or air international.",
-          "follow_up": "Cross-border trucking brings border documents and transit time."
+          "follow_up_if": "Cross-border trucking brings border documents and transit time."
         },
         {
           "spec": "Vehicle type and number",
           "blocking": true,
-          "why_it_prices": "Pickup, 3-tonne, 7-tonne, trailer, low-bed and reefer rates differ.",
+          "why_needed_to_price": "Pickup, 3-tonne, 7-tonne, trailer, low-bed and reefer rates differ.",
           "uae_options": "Pickup, 1-3 t, 7-10 t, 40 ft flatbed/curtain trailer, low-bed, reefer.",
-          "follow_up": "Oversize loads bring police escort and road permits."
+          "follow_up_if": "Oversize loads bring police escort and road permits."
         },
         {
           "spec": "Packing and crating scope",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "None, palletising, crating, export packing.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Transit insurance",
           "blocking": false,
-          "why_it_prices": "Insurance on cargo value is a separate cost.",
+          "why_needed_to_price": "Insurance on cargo value is a separate cost.",
           "uae_options": "Carrier's limited liability, all-risk cargo insurance.",
-          "follow_up": "Ask the cargo value."
+          "follow_up_if": "Ask the cargo value."
         },
         {
           "spec": "Customs clearance scope",
           "blocking": true,
-          "why_it_prices": "Clearance, duty, deposits and documentation are often outside the freight rate.",
+          "why_needed_to_price": "Clearance, duty, deposits and documentation are often outside the freight rate.",
           "uae_options": "Not needed, clearance by provider, by buyer's broker; duty paid by whom.",
-          "follow_up": "Free-zone to mainland moves bring a customs declaration and duty."
+          "follow_up_if": "Free-zone to mainland moves bring a customs declaration and duty."
         },
         {
           "spec": "Move date and window",
           "blocking": true,
-          "why_it_prices": "Urgency and loading windows change availability and price.",
+          "why_needed_to_price": "Urgency and loading windows change availability and price.",
           "uae_options": "Date, time window, night loading.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Deliverables and scope of work",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Loading, offloading, tail-lift, labour.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Licence and qualifications of the provider",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Freight forwarder licence, customs broker code, DG transport licence.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Service level and response time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Tracking, POD, damage claims process.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Duration and schedule",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "One-off, recurring, contract.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Pricing basis",
           "blocking": true,
-          "why_it_prices": "Per trip, per CBM, per kg, per pallet and per container are not comparable without conversion.",
+          "why_needed_to_price": "Per trip, per CBM, per kg, per pallet and per container are not comparable without conversion.",
           "uae_options": "Per trip, per CBM/kg (chargeable weight for air), per pallet, per container.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Waiting time, port charges, THC, demurrage and detention are frequent exclusions.",
+          "why_needed_to_price": "Waiting time, port charges, THC, demurrage and detention are frequent exclusions.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Incoterm",
           "blocking": true,
-          "why_it_prices": "The Incoterm decides which charges the provider quotes.",
+          "why_needed_to_price": "The Incoterm decides which charges the provider quotes.",
           "uae_options": "EXW, FCA, FOB, CFR/CIF, DAP, DDP.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

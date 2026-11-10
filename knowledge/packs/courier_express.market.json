@@ -42,35 +42,35 @@
       "brand_origins": [
         {
           "brand": "Emirates Post",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "operator",
           "generic_en": "a mid-tier UAE operator",
           "generic_ar": "جهة تشغيل إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Aramex",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "operator",
           "generic_en": "a premium UAE operator",
           "generic_ar": "جهة تشغيل إماراتية من الفئة الممتازة"
         },
         {
           "brand": "DHL Express",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "operator",
           "generic_en": "a premium German operator",
           "generic_ar": "جهة تشغيل ألمانية من الفئة الممتازة"
         },
         {
           "brand": "FedEx",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "operator",
           "generic_en": "a premium American operator",
           "generic_ar": "جهة تشغيل أمريكية من الفئة الممتازة"
         },
         {
           "brand": "UPS",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "operator",
           "generic_en": "a premium American operator",
           "generic_ar": "جهة تشغيل أمريكية من الفئة الممتازة"

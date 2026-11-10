@@ -40,93 +40,93 @@
         {
           "spec": "vessel type, name, IMO number and dimensions",
           "blocking": true,
-          "why_it_prices": "Size sets dock, cranes and labour.",
+          "why_needed_to_price": "Size sets dock, cranes and labour.",
           "uae_options": "LOA, beam, draft, GT, lightship weight.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "class society and class notation",
           "blocking": true,
-          "why_it_prices": "Class rules and surveys add scope and cost.",
+          "why_needed_to_price": "Class rules and surveys add scope and cost.",
           "uae_options": "Named society; notation.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "work scope and specification",
           "blocking": true,
-          "why_it_prices": "Yards price from a repair specification.",
+          "why_needed_to_price": "Yards price from a repair specification.",
           "uae_options": "Owner's specification with items and quantities.",
-          "follow_up": "Ask for the last docking report and the class survey items due."
+          "follow_up_if": "Ask for the last docking report and the class survey items due."
         },
         {
           "spec": "dry-docking days and yard",
           "blocking": true,
-          "why_it_prices": "Dock days are charged per day.",
+          "why_needed_to_price": "Dock days are charged per day.",
           "uae_options": "Floating dock, graving dock, slipway; days.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "steel renewal in tonnes",
           "blocking": true,
-          "why_it_prices": "Steel is priced per kg renewed, which varies with location on the ship.",
+          "why_needed_to_price": "Steel is priced per kg renewed, which varies with location on the ship.",
           "uae_options": "Tonnes by location (flat, curved, tanks).",
-          "follow_up": "Steel quantity is estimated until gauging; ask whether gauging is done."
+          "follow_up_if": "Steel quantity is estimated until gauging; ask whether gauging is done."
         },
         {
           "spec": "coating system and area in m2",
           "blocking": true,
-          "why_it_prices": "Blasting and painting are priced per m2.",
+          "why_needed_to_price": "Blasting and painting are priced per m2.",
           "uae_options": "Hull bottom, topsides, tanks; m2; system.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "materials supplied by owner or yard",
           "blocking": false,
-          "why_it_prices": "Owner-supplied paint and spares change the price.",
+          "why_needed_to_price": "Owner-supplied paint and spares change the price.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "class survey and certificates",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery date and delay terms",
           "blocking": false,
-          "why_it_prices": "Delay penalties and extra-day rates matter.",
+          "why_needed_to_price": "Delay penalties and extra-day rates matter.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "contract duration and pricing basis",
           "blocking": true,
-          "why_it_prices": "Unit-rate tariffs and lump sums differ.",
+          "why_needed_to_price": "Unit-rate tariffs and lump sums differ.",
           "uae_options": "Yard tariff unit rates, lump sum, mixed.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service levels and response times",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "Owner's items, services (power, water, cranes, fire watch), waste disposal and agency are often excluded.",
+          "why_needed_to_price": "Owner's items, services (power, water, cranes, fire watch), waste disposal and agency are often excluded.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "yard services",
           "blocking": false,
-          "why_it_prices": "Shore power, cooling water, cranage, fire watch and garbage are charged daily.",
+          "why_needed_to_price": "Shore power, cooling water, cranage, fire watch and garbage are charged daily.",
           "uae_options": "Per day tariffs.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

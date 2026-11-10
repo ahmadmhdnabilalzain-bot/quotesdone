@@ -44,91 +44,91 @@
       "brand_origins": [
         {
           "brand": "EMSTEEL",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Conares",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Al Ghurair Iron & Steel",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Tata Steel",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "JSW",
-          "origin_country": "India",
+          "origin": "India",
           "tier": "mid",
           "generic_en": "a mid-tier Indian brand",
           "generic_ar": "علامة هندية من الفئة المتوسطة"
         },
         {
           "brand": "POSCO",
-          "origin_country": "South Korea",
+          "origin": "South Korea",
           "tier": "premium",
           "generic_en": "a premium South Korean brand",
           "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
         },
         {
           "brand": "Hyundai Steel",
-          "origin_country": "South Korea",
+          "origin": "South Korea",
           "tier": "premium",
           "generic_en": "a premium South Korean brand",
           "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
         },
         {
           "brand": "Baosteel",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "mid",
           "generic_en": "a mid-tier Chinese brand",
           "generic_ar": "علامة صينية من الفئة المتوسطة"
         },
         {
           "brand": "Kardemir",
-          "origin_country": "Turkey",
+          "origin": "Turkey",
           "tier": "mid",
           "generic_en": "a mid-tier Turkish brand",
           "generic_ar": "علامة تركية من الفئة المتوسطة"
         },
         {
           "brand": "Habas",
-          "origin_country": "Turkey",
+          "origin": "Turkey",
           "tier": "mid",
           "generic_en": "a mid-tier Turkish brand",
           "generic_ar": "علامة تركية من الفئة المتوسطة"
         },
         {
           "brand": "Qatar Steel",
-          "origin_country": "Qatar",
+          "origin": "Qatar",
           "tier": "mid",
           "generic_en": "a mid-tier Qatari brand",
           "generic_ar": "علامة قطرية من الفئة المتوسطة"
         },
         {
           "brand": "Jindal Shadeed",
-          "origin_country": "Oman",
+          "origin": "Oman",
           "tier": "mid",
           "generic_en": "a mid-tier Omani brand",
           "generic_ar": "علامة عُمانية من الفئة المتوسطة"
         },
         {
           "brand": "SABIC Hadeed",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "mid",
           "generic_en": "a mid-tier Saudi brand",
           "generic_ar": "علامة سعودية من الفئة المتوسطة"

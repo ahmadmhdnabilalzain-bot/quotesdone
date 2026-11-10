@@ -237,128 +237,128 @@
         {
           "spec": "valve type and design",
           "blocking": true,
-          "why_it_prices": "Gate, ball, globe, check and butterfly differ in body weight, machining and price by multiples.",
+          "why_needed_to_price": "Gate, ball, globe, check and butterfly differ in body weight, machining and price by multiples.",
           "uae_options": "Gate/globe to API 600/602, ball to API 6D or ISO 17292, butterfly to API 609, check to API 594.",
-          "follow_up": "Ball valves bring floating vs trunnion-mounted and full vs reduced bore."
+          "follow_up_if": "Ball valves bring floating vs trunnion-mounted and full vs reduced bore."
         },
         {
           "spec": "governing standard and project spec",
           "blocking": true,
-          "why_it_prices": "The project spec (ADNOC, ENOC or EPC) adds tests and documents that carry cost.",
+          "why_needed_to_price": "The project spec (ADNOC, ENOC or EPC) adds tests and documents that carry cost.",
           "uae_options": "API/ISO product standard plus the end user's valve specification and data sheet.",
-          "follow_up": "Ask for the data sheet revision and the end user; an ADNOC job brings its approved manufacturer list."
+          "follow_up_if": "Ask for the data sheet revision and the end user; an ADNOC job brings its approved manufacturer list."
         },
         {
           "spec": "size NPS and bore",
           "blocking": true,
-          "why_it_prices": "Size drives casting weight and machining.",
+          "why_needed_to_price": "Size drives casting weight and machining.",
           "uae_options": "NPS 1/2 to 48 and above; full or reduced bore.",
-          "follow_up": "Pigging lines need full bore."
+          "follow_up_if": "Pigging lines need full bore."
         },
         {
           "spec": "pressure class",
           "blocking": true,
-          "why_it_prices": "Class sets wall thickness and flange rating.",
+          "why_needed_to_price": "Class sets wall thickness and flange rating.",
           "uae_options": "ASME Class 150 to 2500, or API 6A 2000-15000 psi for wellhead service.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "end connections and facing",
           "blocking": true,
-          "why_it_prices": "Flanged RF/RTJ, butt-weld or socket-weld change the body and the tests.",
+          "why_needed_to_price": "Flanged RF/RTJ, butt-weld or socket-weld change the body and the tests.",
           "uae_options": "RF, RTJ, BW to the pipe schedule, SW, NPT.",
-          "follow_up": "Butt-weld ends need the pipe schedule and material for the weld bevel."
+          "follow_up_if": "Butt-weld ends need the pipe schedule and material for the weld bevel."
         },
         {
           "spec": "body/trim/seat materials",
           "blocking": true,
-          "why_it_prices": "Material is the largest price swing: carbon steel vs stainless vs duplex vs nickel alloy.",
+          "why_needed_to_price": "Material is the largest price swing: carbon steel vs stainless vs duplex vs nickel alloy.",
           "uae_options": "A216 WCB, A105, A352 LCC, A351 CF8M, duplex A995 4A/5A, Inconel overlay; PTFE, PEEK, metal seats.",
-          "follow_up": "Low-temperature service brings impact-tested grades; seawater brings duplex or super duplex."
+          "follow_up_if": "Low-temperature service brings impact-tested grades; seawater brings duplex or super duplex."
         },
         {
           "spec": "service fluid, temperature, sour service",
           "blocking": true,
-          "why_it_prices": "Sour (H2S) service forces NACE MR0175 materials and hardness control.",
+          "why_needed_to_price": "Sour (H2S) service forces NACE MR0175 materials and hardness control.",
           "uae_options": "Hydrocarbon, water, steam, gas, chemicals; sweet or sour.",
-          "follow_up": "If sour, ask the H2S partial pressure so the supplier can apply ISO 15156 limits."
+          "follow_up_if": "If sour, ask the H2S partial pressure so the supplier can apply ISO 15156 limits."
         },
         {
           "spec": "seat type and leakage class",
           "blocking": false,
-          "why_it_prices": "Tighter shut-off classes cost more testing and lapping.",
+          "why_needed_to_price": "Tighter shut-off classes cost more testing and lapping.",
           "uae_options": "API 598 / ISO 5208 rate A to D; FCI 70-2 class IV to VI for control valves.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "fire-safe / fugitive emission tests",
           "blocking": false,
-          "why_it_prices": "Type tests are certificates the maker must already hold or must perform.",
+          "why_needed_to_price": "Type tests are certificates the maker must already hold or must perform.",
           "uae_options": "API 607/6FA fire-safe; ISO 15848-1 or API 624/641 low emission.",
-          "follow_up": "Ask whether existing type-test certificates are acceptable or a new test is required."
+          "follow_up_if": "Ask whether existing type-test certificates are acceptable or a new test is required."
         },
         {
           "spec": "operator/actuator details",
           "blocking": true,
-          "why_it_prices": "An actuator can cost more than the valve.",
+          "why_needed_to_price": "An actuator can cost more than the valve.",
           "uae_options": "Lever, gearbox, pneumatic, electric (Rotork/AUMA class), hydraulic; fail-safe position.",
-          "follow_up": "Actuated valves bring the supply voltage, control signal, hazardous-area zone and SIL rating."
+          "follow_up_if": "Actuated valves bring the supply voltage, control signal, hazardous-area zone and SIL rating."
         },
         {
           "spec": "special features (DBB, extended stem)",
           "blocking": false,
-          "why_it_prices": "Double block and bleed, extended bonnets and locking devices add machining.",
+          "why_needed_to_price": "Double block and bleed, extended bonnets and locking devices add machining.",
           "uae_options": "DBB, DIB, cryogenic extension, ISO 5211 top flange, locking.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "painting system",
           "blocking": false,
-          "why_it_prices": "A project paint system changes surface preparation and coats.",
+          "why_needed_to_price": "A project paint system changes surface preparation and coats.",
           "uae_options": "Maker's standard primer, or the end user's system with DFT.",
-          "follow_up": "Coastal or offshore sites bring a marine system."
+          "follow_up_if": "Coastal or offshore sites bring a marine system."
         },
         {
           "spec": "inspection level and TPI",
           "blocking": false,
-          "why_it_prices": "Witness points and third-party inspection add days and fees.",
+          "why_needed_to_price": "Witness points and third-party inspection add days and fees.",
           "uae_options": "Maker's inspection, TPI review, or witness of hydrotest and dimensions.",
-          "follow_up": "Ask who pays the TPI and which agency the end user accepts."
+          "follow_up_if": "Ask who pays the TPI and which agency the end user accepts."
         },
         {
           "spec": "certificates (EN 10204 3.1/3.2) and data book",
           "blocking": false,
-          "why_it_prices": "3.2 needs an independent inspector on the material.",
+          "why_needed_to_price": "3.2 needs an independent inspector on the material.",
           "uae_options": "EN 10204 3.1 standard; 3.2 on critical service; a manufacturer data book.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity and tag numbers",
           "blocking": true,
-          "why_it_prices": "Quantity per size and class decides foundry batching.",
+          "why_needed_to_price": "Quantity per size and class decides foundry batching.",
           "uae_options": "Quantity per line item; project tag numbers for traceability.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "approved manufacturer list",
           "blocking": true,
-          "why_it_prices": "An end user's AML excludes makers who are not on it, so a non-AML price is not a valid quote.",
+          "why_needed_to_price": "An end user's AML excludes makers who are not on it, so a non-AML price is not a valid quote.",
           "uae_options": "ADNOC, ENOC or EPC approved manufacturer and vendor lists.",
-          "follow_up": "Ask whether an equivalent outside the AML can be offered as an alternative."
+          "follow_up_if": "Ask whether an equivalent outside the AML can be offered as an alternative."
         },
         {
           "spec": "origin and acceptable countries",
           "blocking": false,
-          "why_it_prices": "Origin shifts price and is often restricted by the end user.",
+          "why_needed_to_price": "Origin shifts price and is often restricted by the end user.",
           "uae_options": "EU, USA, Japan, Korea, India, China; some projects exclude origins.",
-          "follow_up": "If the buyer named an origin, any other origin is a deviation the quote must declare."
+          "follow_up_if": "If the buyer named an origin, any other origin is a deviation the quote must declare."
         },
         {
           "spec": "Incoterms, delivery point and duty",
           "blocking": true,
-          "why_it_prices": "Ex-works, CIF and DDP site prices are not comparable.",
+          "why_needed_to_price": "Ex-works, CIF and DDP site prices are not comparable.",
           "uae_options": "EXW, FCA, CIF Jebel Ali, DAP/DDP site; free zone or mainland delivery.",
-          "follow_up": "Mainland delivery from a free zone brings customs duty."
+          "follow_up_if": "Mainland delivery from a free zone brings customs duty."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
@@ -411,114 +411,114 @@
         {
           "spec": "pipe standard, grade and PSL",
           "blocking": true,
-          "why_it_prices": "Grade and PSL change chemistry, testing and price.",
+          "why_needed_to_price": "Grade and PSL change chemistry, testing and price.",
           "uae_options": "API 5L Gr B to X70 PSL1/PSL2, ASTM A106 B, A333 Gr 6, A312 TP316L, duplex A790.",
-          "follow_up": "PSL2 brings impact testing; sour service brings Annex H/J."
+          "follow_up_if": "PSL2 brings impact testing; sour service brings Annex H/J."
         },
         {
           "spec": "manufacturing process",
           "blocking": true,
-          "why_it_prices": "Seamless costs more than welded at the same size.",
+          "why_needed_to_price": "Seamless costs more than welded at the same size.",
           "uae_options": "Seamless, ERW/HFW, LSAW, SSAW.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "NPS/OD and wall thickness or schedule",
           "blocking": true,
-          "why_it_prices": "Weight per metre is the price basis.",
+          "why_needed_to_price": "Weight per metre is the price basis.",
           "uae_options": "NPS 1/2-48+, SCH 10 to XXS or a stated wall in mm.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "length type",
           "blocking": false,
-          "why_it_prices": "Random lengths are cheaper than fixed cut lengths.",
+          "why_needed_to_price": "Random lengths are cheaper than fixed cut lengths.",
           "uae_options": "SRL about 6 m, DRL about 12 m, or cut to length.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "end finish",
           "blocking": false,
-          "why_it_prices": "Bevelled ends cost machining.",
+          "why_needed_to_price": "Bevelled ends cost machining.",
           "uae_options": "Plain, bevelled to ASME B16.25, threaded and coupled.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "coating/lining",
           "blocking": true,
-          "why_it_prices": "External coating can rival the pipe price.",
+          "why_needed_to_price": "External coating can rival the pipe price.",
           "uae_options": "Bare/varnished, 3LPE, FBE, galvanised, cement or epoxy lining.",
-          "follow_up": "Coating brings thickness, standard (ISO 21809) and holiday test."
+          "follow_up_if": "Coating brings thickness, standard (ISO 21809) and holiday test."
         },
         {
           "spec": "supplementary requirements (sour, impact, NDE)",
           "blocking": false,
-          "why_it_prices": "Extra tests cost time and money.",
+          "why_needed_to_price": "Extra tests cost time and money.",
           "uae_options": "HIC/SSC tests, impact temperature, 100% UT, hardness survey.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "fittings type/angle/radius/schedules/material",
           "blocking": true,
-          "why_it_prices": "Each fitting is a separate line with its own price.",
+          "why_needed_to_price": "Each fitting is a separate line with its own price.",
           "uae_options": "Elbows 45/90 LR/SR, tees, reducers, caps to ASME B16.9/B16.11.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "flange type/class/facing/bore/standard/material",
           "blocking": true,
-          "why_it_prices": "Flange weight and machining depend on all six.",
+          "why_needed_to_price": "Flange weight and machining depend on all six.",
           "uae_options": "WN, SO, blind, SW, LJ to ASME B16.5/B16.47 A/B; A105, F316L, F51.",
-          "follow_up": "Weld-neck flanges need the matching pipe bore."
+          "follow_up_if": "Weld-neck flanges need the matching pipe bore."
         },
         {
           "spec": "gaskets and bolting per flange",
           "blocking": false,
-          "why_it_prices": "Often forgotten; priced separately.",
+          "why_needed_to_price": "Often forgotten; priced separately.",
           "uae_options": "Spiral wound, RTJ rings, sheet; B7/2H, B7M/2HM, coated studs.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity and units",
           "blocking": true,
-          "why_it_prices": "Pipe is sold by metre, tonne or length; mixing them breaks comparison.",
+          "why_needed_to_price": "Pipe is sold by metre, tonne or length; mixing them breaks comparison.",
           "uae_options": "Metres, tonnes, pieces.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "certificates (EN 10204 3.1/3.2)",
           "blocking": false,
-          "why_it_prices": "3.2 requires an independent inspector.",
+          "why_needed_to_price": "3.2 requires an independent inspector.",
           "uae_options": "3.1 standard; 3.2 for critical lines.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "third-party inspection",
           "blocking": false,
-          "why_it_prices": "Witness at the mill adds cost and time.",
+          "why_needed_to_price": "Witness at the mill adds cost and time.",
           "uae_options": "Document review, witness, release note.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "approved mills/origin",
           "blocking": true,
-          "why_it_prices": "End users restrict mills and countries; a non-approved mill is not a valid offer.",
+          "why_needed_to_price": "End users restrict mills and countries; a non-approved mill is not a valid offer.",
           "uae_options": "End-user approved mill list; Japan, EU, Korea, India, China, GCC mills.",
-          "follow_up": "If the buyer said a specific origin, a different origin must be flagged as a deviation."
+          "follow_up_if": "If the buyer said a specific origin, a different origin must be flagged as a deviation."
         },
         {
           "spec": "packing",
           "blocking": false,
-          "why_it_prices": "Export packing and end caps add cost.",
+          "why_needed_to_price": "Export packing and end caps add cost.",
           "uae_options": "Bundled, bevel protectors, end caps, seaworthy.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Incoterms and destination",
           "blocking": true,
-          "why_it_prices": "Freight on steel is heavy; ex-works and site prices differ widely.",
+          "why_needed_to_price": "Freight on steel is heavy; ex-works and site prices differ widely.",
           "uae_options": "EXW stockist yard, CIF Jebel Ali, DAP site in Musaffah or Ruwais.",
-          "follow_up": "Mainland delivery from a free-zone stockist brings duty."
+          "follow_up_if": "Mainland delivery from a free-zone stockist brings duty."
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

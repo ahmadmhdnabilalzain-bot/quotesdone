@@ -42,100 +42,100 @@
         {
           "spec": "Label type",
           "blocking": true,
-          "why_it_prices": "Self-adhesive, wet-glue, shrink sleeve, in-mould and wrap-around labels use different presses.",
+          "why_needed_to_price": "Self-adhesive, wet-glue, shrink sleeve, in-mould and wrap-around labels use different presses.",
           "uae_options": "Self-adhesive (pressure-sensitive), wet-glue, shrink sleeve, stretch sleeve, IML, thermal transfer/direct thermal blanks.",
-          "follow_up": "Sleeves bring the container drawing and shrink ratio."
+          "follow_up_if": "Sleeves bring the container drawing and shrink ratio."
         },
         {
           "spec": "Size and shape",
           "blocking": true,
-          "why_it_prices": "Size and die shape set material and tooling.",
+          "why_needed_to_price": "Size and die shape set material and tooling.",
           "uae_options": "W x H; rectangle, round, custom die.",
-          "follow_up": "Custom shapes bring a cutting die."
+          "follow_up_if": "Custom shapes bring a cutting die."
         },
         {
           "spec": "Substrate and adhesive",
           "blocking": true,
-          "why_it_prices": "Paper vs film and permanent vs removable adhesive change price and performance.",
+          "why_needed_to_price": "Paper vs film and permanent vs removable adhesive change price and performance.",
           "uae_options": "Semi-gloss paper, PP, PE, PET, metallised; permanent, removable, freezer, high-tack adhesive.",
-          "follow_up": "Wet, frozen or squeezable containers bring film substrates and special adhesives."
+          "follow_up_if": "Wet, frozen or squeezable containers bring film substrates and special adhesives."
         },
         {
           "spec": "Printing colours and finish",
           "blocking": true,
-          "why_it_prices": "Colours, varnish, foil and embellishments add plates and passes.",
+          "why_needed_to_price": "Colours, varnish, foil and embellishments add plates and passes.",
           "uae_options": "CMYK plus spot colours; varnish, lamination, hot foil, emboss, screen tactile.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Artwork and proof approval",
           "blocking": true,
-          "why_it_prices": "Ready artwork avoids repro and design charges.",
+          "why_needed_to_price": "Ready artwork avoids repro and design charges.",
           "uae_options": "Print-ready PDF, proof, press pass.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Core size, roll direction and labels per roll",
           "blocking": true,
-          "why_it_prices": "Rolls must fit the applicator.",
+          "why_needed_to_price": "Rolls must fit the applicator.",
           "uae_options": "Core 25/40/76 mm; winding direction; labels per roll; outer diameter.",
-          "follow_up": "Ask the label applicator or printer model."
+          "follow_up_if": "Ask the label applicator or printer model."
         },
         {
           "spec": "Regulatory text in Arabic",
           "blocking": false,
-          "why_it_prices": "Mandatory text on food, cosmetics and other regulated products affects layout.",
+          "why_needed_to_price": "Mandatory text on food, cosmetics and other regulated products affects layout.",
           "uae_options": "Arabic and English text per the product rule.",
-          "follow_up": "Regulated products bring the product category's labelling rule."
+          "follow_up_if": "Regulated products bring the product category's labelling rule."
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Set-up dominates short runs.",
+          "why_needed_to_price": "Set-up dominates short runs.",
           "uae_options": "Labels per design, number of designs.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "Plates, dies and design are often extra.",
+          "why_needed_to_price": "Plates, dies and design are often extra.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

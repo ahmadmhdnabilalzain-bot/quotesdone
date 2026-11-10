@@ -40,86 +40,86 @@
         {
           "spec": "part number and description",
           "blocking": true,
-          "why_it_prices": "Part number fixes the product.",
+          "why_needed_to_price": "Part number fixes the product.",
           "uae_options": "OEM part number; aftermarket cross-reference.",
-          "follow_up": "If unknown, ask the VIN."
+          "follow_up_if": "If unknown, ask the VIN."
         },
         {
           "spec": "vehicle make model and year",
           "blocking": true,
-          "why_it_prices": "Parts change between model years and markets.",
+          "why_needed_to_price": "Parts change between model years and markets.",
           "uae_options": "Make, model, year, engine, VIN.",
-          "follow_up": "GCC-spec vs imported vehicles may use different parts."
+          "follow_up_if": "GCC-spec vs imported vehicles may use different parts."
         },
         {
           "spec": "OEM or aftermarket",
           "blocking": true,
-          "why_it_prices": "Genuine, OES and aftermarket differ widely in price.",
+          "why_needed_to_price": "Genuine, OES and aftermarket differ widely in price.",
           "uae_options": "Genuine (dealer), OES brand, aftermarket, used/reconditioned.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "brand and country of origin",
           "blocking": true,
-          "why_it_prices": "Brand and origin are the common substitution.",
+          "why_needed_to_price": "Brand and origin are the common substitution.",
           "uae_options": "Named brand; origin.",
-          "follow_up": "If the buyer named an origin, any other is a deviation."
+          "follow_up_if": "If the buyer named an origin, any other is a deviation."
         },
         {
           "spec": "conformity certificate for regulated parts",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "ECAS/GSO certificate where the part is regulated.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "quantity",
           "blocking": true,
-          "why_it_prices": "Quantity changes the dealer or importer discount.",
+          "why_needed_to_price": "Quantity changes the dealer or importer discount.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "condition new or used",
           "blocking": true,
-          "why_it_prices": "Used parts are far cheaper and carry little warranty.",
+          "why_needed_to_price": "Used parts are far cheaper and carry little warranty.",
           "uae_options": "New, used, reconditioned.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery and installation scope",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Supply only, fitted.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

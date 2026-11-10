@@ -44,107 +44,107 @@
         {
           "spec": "Box style",
           "blocking": true,
-          "why_it_prices": "Lid-and-base, magnetic, book, drawer and shoulder boxes need different construction.",
+          "why_needed_to_price": "Lid-and-base, magnetic, book, drawer and shoulder boxes need different construction.",
           "uae_options": "Lid and base, magnetic flap, book-style, drawer, shoulder-neck, collapsible.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Internal dimensions",
           "blocking": true,
-          "why_it_prices": "Board and wrap area are priced from size.",
+          "why_needed_to_price": "Board and wrap area are priced from size.",
           "uae_options": "L x W x H internal.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Board grade and thickness",
           "blocking": true,
-          "why_it_prices": "Greyboard thickness sets rigidity and cost.",
+          "why_needed_to_price": "Greyboard thickness sets rigidity and cost.",
           "uae_options": "1.5-3 mm greyboard.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Wrapping paper or material",
           "blocking": true,
-          "why_it_prices": "Speciality papers, textured stocks and leatherette change price a lot.",
+          "why_needed_to_price": "Speciality papers, textured stocks and leatherette change price a lot.",
           "uae_options": "Coated art paper, speciality textured paper, leatherette, fabric.",
-          "follow_up": "Speciality papers bring MOQ per paper."
+          "follow_up_if": "Speciality papers bring MOQ per paper."
         },
         {
           "spec": "Printing and finishing",
           "blocking": true,
-          "why_it_prices": "Foil, emboss, spot UV and soft-touch lamination add passes.",
+          "why_needed_to_price": "Foil, emboss, spot UV and soft-touch lamination add passes.",
           "uae_options": "CMYK, Pantone, hot foil, emboss/deboss, spot UV, soft-touch.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Insert material",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "Foam, flocked EVA, card, moulded pulp, satin.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Pre-production sample",
           "blocking": true,
-          "why_it_prices": "A physical sample is normal before a luxury run.",
+          "why_needed_to_price": "A physical sample is normal before a luxury run.",
           "uae_options": "White sample, printed sample, paid or free.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Quantity and unit of measure",
           "blocking": true,
-          "why_it_prices": "Hand-made runs carry high set-up; MOQ is central.",
+          "why_needed_to_price": "Hand-made runs carry high set-up; MOQ is central.",
           "uae_options": "Pieces per design.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Applicable standard and test report",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE conformity or authority approval",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Delivery terms and location",
           "blocking": false,
-          "why_it_prices": "Rigid boxes ship assembled and take volume.",
+          "why_needed_to_price": "Rigid boxes ship assembled and take volume.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Warranty or defects liability period",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "Artwork status",
           "blocking": true,
-          "why_it_prices": "Ready artwork and dieline avoid design cost.",
+          "why_needed_to_price": "Ready artwork and dieline avoid design cost.",
           "uae_options": "Print-ready, needs design.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

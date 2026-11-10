@@ -45,107 +45,107 @@
         {
           "spec": "compressor type",
           "blocking": true,
-          "why_it_prices": "Piston, rotary screw, oil-free screw and centrifugal are different machines.",
+          "why_needed_to_price": "Piston, rotary screw, oil-free screw and centrifugal are different machines.",
           "uae_options": "Piston, oil-injected screw, oil-free screw or scroll, centrifugal; fixed or variable speed.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "free air delivery at rated pressure",
           "blocking": true,
-          "why_it_prices": "FAD sizes the machine; kW alone does not.",
+          "why_needed_to_price": "FAD sizes the machine; kW alone does not.",
           "uae_options": "m3/min or l/s at the working pressure, per ISO 1217.",
-          "follow_up": "If unknown, ask the tools and machines connected, or the existing compressor nameplate and running hours."
+          "follow_up_if": "If unknown, ask the tools and machines connected, or the existing compressor nameplate and running hours."
         },
         {
           "spec": "working pressure",
           "blocking": true,
-          "why_it_prices": "Higher pressure lowers FAD for the same motor.",
+          "why_needed_to_price": "Higher pressure lowers FAD for the same motor.",
           "uae_options": "7, 8, 10, 13 bar.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "motor power and supply voltage",
           "blocking": true,
-          "why_it_prices": "Motor size and voltage set the machine and the electrical works.",
+          "why_needed_to_price": "Motor size and voltage set the machine and the electrical works.",
           "uae_options": "400 V/3 ph/50 Hz; kW.",
-          "follow_up": "Ask whether the site supply can take the starting current; VSD helps."
+          "follow_up_if": "Ask whether the site supply can take the starting current; VSD helps."
         },
         {
           "spec": "oil-free or oil-injected",
           "blocking": true,
-          "why_it_prices": "Oil-free machines cost much more.",
+          "why_needed_to_price": "Oil-free machines cost much more.",
           "uae_options": "Oil-injected with filtration, or certified oil-free (ISO 8573-1 class 0).",
-          "follow_up": "Food, pharma and electronics bring class 0."
+          "follow_up_if": "Food, pharma and electronics bring class 0."
         },
         {
           "spec": "air quality class per ISO 8573-1",
           "blocking": true,
-          "why_it_prices": "Dryers and filters are priced to the class.",
+          "why_needed_to_price": "Dryers and filters are priced to the class.",
           "uae_options": "Particles/water/oil classes, e.g. 1.4.1 or 2.4.2.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "dryer and receiver scope",
           "blocking": true,
-          "why_it_prices": "Dryer, receiver, filters and drains can be a large share.",
+          "why_needed_to_price": "Dryer, receiver, filters and drains can be a large share.",
           "uae_options": "Refrigerant or desiccant dryer; receiver litres and pressure; filters; drains.",
-          "follow_up": "A receiver brings pressure-vessel inspection."
+          "follow_up_if": "A receiver brings pressure-vessel inspection."
         },
         {
           "spec": "ambient rating for UAE heat",
           "blocking": true,
-          "why_it_prices": "Standard machines are rated for lower ambient; UAE plant rooms need high-ambient builds.",
+          "why_needed_to_price": "Standard machines are rated for lower ambient; UAE plant rooms need high-ambient builds.",
           "uae_options": "Rated to 46-50 °C ambient; ventilated room or AC.",
-          "follow_up": "Ask whether the compressor room is ventilated or air-conditioned."
+          "follow_up_if": "Ask whether the compressor room is ventilated or air-conditioned."
         },
         {
           "spec": "noise level",
           "blocking": false,
-          "why_it_prices": "Canopy and low-noise builds add cost.",
+          "why_needed_to_price": "Canopy and low-noise builds add cost.",
           "uae_options": "dB(A) at 1 m.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "UAE approvals and certificates",
           "blocking": false,
-          "why_it_prices": "Receiver inspection certificates.",
+          "why_needed_to_price": "Receiver inspection certificates.",
           "uae_options": "Third-party receiver certificate.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "delivery and installation scope",
           "blocking": true,
-          "why_it_prices": "Piping, electrical and commissioning are often outside the machine price.",
+          "why_needed_to_price": "Piping, electrical and commissioning are often outside the machine price.",
           "uae_options": "Supply only, installation and piping, commissioning.",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "lead time",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "warranty",
           "blocking": false,
-          "why_it_prices": "Extended warranties usually require the maker's service plan.",
+          "why_needed_to_price": "Extended warranties usually require the maker's service plan.",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "exclusions",
           "blocking": false,
-          "why_it_prices": "",
+          "why_needed_to_price": "",
           "uae_options": "",
-          "follow_up": ""
+          "follow_up_if": ""
         },
         {
           "spec": "service plan",
           "blocking": false,
-          "why_it_prices": "Service contracts are part of life cost.",
+          "why_needed_to_price": "Service contracts are part of life cost.",
           "uae_options": "None, preventive, all-inclusive.",
-          "follow_up": ""
+          "follow_up_if": ""
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
