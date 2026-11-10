@@ -8,7 +8,8 @@ import { FN, admin, sec } from '../shared.ts';
 // lapses through customer_support. The loop's state and timing live in Postgres
 // (fn_spec_offer_candidates / fn_spec_offer_due), so calling it every pass is correct. sales_engineer
 // is deployed with verify_jwt on, so the service key goes to the gateway; __secret decides the caller.
-export async function specOfferTick(): Promise<unknown> {
+// Not a tick of its own since 10 Nov 2026: specOfferAndRematchTick below runs it beside the re-match.
+async function specOfferSweepCall(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
     const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -24,7 +25,7 @@ export async function specOfferTick(): Promise<unknown> {
 // It rides the specoffer step — the sales engineer's existing 15-minute beat — rather than a new step or cron: both are
 // "a request is waiting on the sales engineer, ask again when its clock comes". The two run side by side and the step is
 // nested, so a failing re-match is its own finding (duty:heartbeat:specoffer.rematch), never hidden by a passing offer.
-export async function rematchTick(): Promise<unknown> {
+async function rematchSweepCall(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
     const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -38,7 +39,7 @@ export async function rematchTick(): Promise<unknown> {
 }
 
 export async function specOfferAndRematchTick(): Promise<unknown> {
-  const [spec_offer, rematch] = await Promise.all([specOfferTick(), rematchTick()]);
+  const [spec_offer, rematch] = await Promise.all([specOfferSweepCall(), rematchSweepCall()]);
   return { spec_offer, rematch };
 }
 
