@@ -72,6 +72,10 @@ const PHONE = /\+?\(?\d{2,4}\)?[\s.-]\d{2,4}(?:[\s.-]\d{2,4}){0,3}\b/g;   // pho
 const PHONE_WORD_BEFORE = /(?:\b(?:call|phone|tel|telephone|mobile|whatsapp|hotline|toll[- ]free|dial|fax)\b|اتصل|اتصلوا|هاتف|جوال|واتساب|الرقم)[\s:.]*(?:(?:us|me|them|on|at|via|number|no\.?|رقم|على|عبر)[\s:.]+){0,3}$/iu;
 const NOT_A_COUNT = [
   /\b[A-Z]{2,}(?:-[A-Z0-9]+)+\b/g,                                                    // references: QD-10234, QD-S-KYUUSA
+  // a request, job or report number written as a reference: "#5202", "Job 7731", "طلب رقم 5202" (it_engineer, 10 Nov 2026).
+  // Eval A (docs/reports/2026-11-10-model-routing-evals.md): "طلبكم #5202 ... وصل إلى 4 موردين" read 5202 as OUR supplier
+  // count, the sentence was refused, and the rewrite then left out the reference the reply must carry (3 of 12 status turns).
+  /#\s?[0-9٠-٩]{3,}\b|\b(?:job|request|inquiry|report|quote)\s+(?:no\.?\s*|number\s+|#\s?)?[0-9]{3,}\b|(?:طلب|الطلب|طلبكم|طلبك|رقم)\s+(?:رقم\s+)?#?\s?[0-9٠-٩]{3,}/giu,
   /\b(?:19|20)\d{2}\b(?![,٬]\d)/g,                                                      // years
   /(?:AED|USD|Dhs?|درهم)\s*[0-9٠-٩][0-9٠-٩,٬.]*|[0-9٠-٩][0-9٠-٩,٬.]*\s*(?:AED|USD|Dhs?|درهم)/giu, // prices
   /[0-9٠-٩][0-9٠-٩,٬.]*\s*(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?|MB|KB|GB|km|m2|sqm|sq ft|يوم|أيام|ساعة|ساعات|شهر|أشهر)\b/giu, // durations, sizes
