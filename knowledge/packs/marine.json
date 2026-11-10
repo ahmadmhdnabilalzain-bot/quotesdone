@@ -351,8 +351,8 @@
           "follow_up": ""
         }
       ],
-      "firm_price_condition": "none beyond the listed specs; repairs and servicing need a survey on board.",
-      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "none beyond the listed specs; repairs and servicing need a survey on board."
     },
     {
       "id": "marine:port-delivery-uae",
@@ -580,8 +580,8 @@
           "follow_up": ""
         }
       ],
-      "firm_price_condition": "a firm price needs the last service report; cylinders due for hydrostatic test need to be landed and counted.",
-      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "a firm price needs the last service report; cylinders due for hydrostatic test need to be landed and counted."
     },
     {
       "id": "marine:pyrotechnics-expiry",

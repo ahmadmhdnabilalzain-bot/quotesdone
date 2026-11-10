@@ -40,8 +40,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EMSTEEL rebar and sections -> confirmed (renamed from Emirates Steel Arkan) | Conares (JAFZA) -> confirmed | Al Ghurair Iron & Steel -> confirmed; UTP and other pipe mills removed (not checked). Not checked: Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: EMSTEEL rebar and sections -> confirmed (renamed from Emirates Steel Arkan) | Conares (JAFZA) -> confirmed | Al Ghurair Iron & Steel -> confirmed; UTP and other pipe mills removed (not checked). Not checked: Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "EMSTEEL",
           "origin_country": "UAE",

@@ -120,8 +120,8 @@
           "follow_up": "With driver brings the driver's permit and hours."
         }
       ],
-      "firm_price_condition": "none; a firm monthly rate is possible from the specs.",
-      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": null
     },
     {
       "id": "vehicle_leasing:uae-standards-and-approvals",
@@ -192,7 +192,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — dlp.dubai.gov.ae: not in the allowed network."
     },
     {
       "id": "vehicle_leasing:quote-red-flags",

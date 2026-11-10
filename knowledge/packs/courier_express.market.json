@@ -38,8 +38,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Courier licences are issued by Emirates Post Group (Resolution 5 of 2017, Federal Decree-Law 21 of 2019) -> corrected | Aramex offers express and e-commerce shipping in the UAE -> confirmed. Not checked: The current regulator for courier licensing (TDRA vs other), current status of some last-mile start-ups, and de minimis customs thresholds were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Courier licences are issued by Emirates Post Group (Resolution 5 of 2017, Federal Decree-Law 21 of 2019) -> corrected | Aramex offers express and e-commerce shipping in the UAE -> confirmed. Not checked: The current regulator for courier licensing (TDRA vs other), current status of some last-mile start-ups, and de minimis customs thresholds were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Emirates Post",
           "origin_country": "UAE",

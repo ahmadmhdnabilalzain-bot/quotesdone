@@ -40,8 +40,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Gulf Cryo is headquartered in Dubai -> corrected: Dubai-headquartered (not Kuwait-based) | UAE gas suppliers -> confirmed Air Products, Linde, Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, ADNOC Gas, Brothers Gas; Abu Dhabi Industrial Gases removed | HFC imports regulated by MOCCAE ministerial decree -> confirmed (registration, licence, reporting). Not checked: Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Gulf Cryo is headquartered in Dubai -> corrected: Dubai-headquartered (not Kuwait-based) | UAE gas suppliers -> confirmed Air Products, Linde, Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, ADNOC Gas, Brothers Gas; Abu Dhabi Industrial Gases removed | HFC imports regulated by MOCCAE ministerial decree -> confirmed (registration, licence, reporting). Not checked: Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Gulf Cryo",
           "origin_country": "Kuwait",

@@ -18,8 +18,8 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
-      "source_note": "3M: https://en.wikipedia.org/wiki/3M | tesa: https://en.wikipedia.org/wiki/Tesa_SE brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "3M: https://en.wikipedia.org/wiki/3M | tesa: https://en.wikipedia.org/wiki/Tesa_SE brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "3M",
           "origin_country": "USA",

@@ -350,8 +350,8 @@
           "follow_up": ""
         }
       ],
-      "firm_price_condition": "printed or custom packaging needs the artwork or dieline (and often a structural sample) before a firm price; stock items can be priced from the specs.",
-      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "printed or custom packaging needs the artwork or dieline (and often a structural sample) before a firm price; stock items can be priced from the specs."
     },
     {
       "id": "packaging:red-flags",

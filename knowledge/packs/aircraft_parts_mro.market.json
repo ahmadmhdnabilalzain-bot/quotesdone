@@ -38,8 +38,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Sanad (Mubadala) is the Middle East's largest independent engine MRO -> confirmed | GCAA Part-145 approval for UAE MRO -> unconfirmed: not stated on opened page; kept as general statement | Emirates Engineering site -> removed: site certificate expired | Traders in DAFZ, Dubai South and SAIF Zone -> confirmed_domain_only. Not checked: Names generalised as 'type' were not verified; the current status of GAMCO/Etihad Engineering and the exact UAE CAR-145 naming were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Sanad (Mubadala) is the Middle East's largest independent engine MRO -> confirmed | GCAA Part-145 approval for UAE MRO -> unconfirmed: not stated on opened page; kept as general statement | Emirates Engineering site -> removed: site certificate expired | Traders in DAFZ, Dubai South and SAIF Zone -> confirmed_domain_only. Not checked: Names generalised as 'type' were not verified; the current status of GAMCO/Etihad Engineering and the exact UAE CAR-145 naming were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Sanad",
           "origin_country": "UAE",

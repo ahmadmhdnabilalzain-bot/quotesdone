@@ -40,8 +40,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: MEI is the Federal Railway Regulator under Federal Law 8 of 2020; RTA regulates Dubai rail -> corrected | Etihad Rail runs freight and passenger services -> confirmed. Not checked: The exact federal rail regulator name, current Dubai Metro operator contract, and supplier roles on current Etihad Rail phases were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEI is the Federal Railway Regulator under Federal Law 8 of 2020; RTA regulates Dubai rail -> corrected | Etihad Rail runs freight and passenger services -> confirmed. Not checked: The exact federal rail regulator name, current Dubai Metro operator contract, and supplier roles on current Etihad Rail phases were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Etihad Rail",
           "origin_country": "UAE",

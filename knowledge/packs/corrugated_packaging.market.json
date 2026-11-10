@@ -38,8 +38,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO (Saudi) makes containerboard -> confirmed | Falcon Pack is a UAE packaging maker -> confirmed | Union Paper Mills -> removed: the site did not answer; Hotpack removed (connection refused). Not checked: Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO (Saudi) makes containerboard -> confirmed | Falcon Pack is a UAE packaging maker -> confirmed | Union Paper Mills -> removed: the site did not answer; Hotpack removed (connection refused). Not checked: Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Falcon Pack",
           "origin_country": "UAE",

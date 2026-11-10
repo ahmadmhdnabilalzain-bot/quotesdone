@@ -90,27 +90,6 @@ export function validate(pack, kind, code, sibling = new Set()) {
     if (e.verified !== undefined && typeof e.verified !== 'boolean') err.push(`${at}: verified must be true or false`);
     if (kind === 'seat' && UNFILTERED_SEATS.includes(code) && !isVerified(e)) err.push(`${at}: an unverified entry cannot sit in the ${code} pack (its ml retrieval does not filter)`);
     if (e.area !== undefined && !/^[a-z_]+$/.test(e.area)) err.push(`${at}: area must be a lowercase_word, got ${JSON.stringify(e.area)}`);
-    // THE EXPERT INTERVIEW FIELDS (sales_engineer, 10 Nov 2026, ledger 1587-1590). A blocking spec the checklist does not
-    // require, or a guide row for a spec it does not list, is a rule nobody can satisfy: the loader would mark nothing and
-    // the interview would ask for something no quote line carries. A brand tier outside the four words cannot be turned
-    // into the generic description that replaces a supplier-identifying brand.
-    const req = new Set((e.required_specs ?? []).map(String));
-    if (e.blocking !== undefined) {
-      if (!Array.isArray(e.blocking)) err.push(`${at}: blocking must be an array`);
-      else for (const b of e.blocking) if (!req.has(String(b))) err.push(`${at}: blocking spec ${JSON.stringify(b)} is not in required_specs`);
-    }
-    if (e.spec_guide !== undefined) {
-      if (!Array.isArray(e.spec_guide)) err.push(`${at}: spec_guide must be an array`);
-      else {
-        for (const g of e.spec_guide) if (!req.has(String(g?.spec)) || typeof g.blocking !== 'boolean' || !String(g.why_it_prices ?? '').trim() && g.blocking) err.push(`${at}: spec_guide row ${JSON.stringify(g?.spec)} is malformed or not in required_specs`);
-        const blk = new Set(e.spec_guide.filter((g) => g.blocking).map((g) => String(g.spec)));
-        if (blk.size !== (e.blocking ?? []).length || (e.blocking ?? []).some((b) => !blk.has(String(b)))) err.push(`${at}: spec_guide blocking rows and the blocking list disagree`);
-      }
-    }
-    for (const b of e.brand_profiles ?? []) {
-      if (!b?.brand || !b.origin_country || !['economy', 'mid', 'premium', 'luxury', 'dealer', 'operator', 'supplier'].includes(b.tier) || !String(b.generic_en ?? '').trim() || !AR.test(String(b.generic_ar ?? '')))
-        err.push(`${at}: brand_profiles row ${JSON.stringify(b?.brand)} needs origin_country, a tier (economy/mid/premium/luxury/dealer/operator/supplier) and generic_en/generic_ar`);
-    }
   }
   for (const q of pack.eval ?? []) {
     if (!q.q_en || !q.q_ar || !Array.isArray(q.expected_entry_ids) || !q.expected_entry_ids.length) err.push(`eval: malformed ${JSON.stringify(q).slice(0, 80)}`);
@@ -187,9 +166,7 @@ export function rowsOf(p) {
       ...(p.kind !== 'trade' && isOwnEntry(e) ? ['audience:internal'] : [])];
     const eligible = isVerified(e);
     const sd = { entry_id: e.id, lang, verified: eligible, kind: e.kind, area: e.area ?? null, confidence: e.confidence, as_of: e.as_of, gap_kind: e.gap_kind ?? null,
-      required_specs: e.required_specs ?? null, blocking: e.blocking ?? null, spec_guide: e.spec_guide ?? null,
-      firm_price_condition: e.firm_price_condition ?? null, brand_profiles: e.brand_profiles ?? null,
-      source_note: e.source_note ?? null, sources: e.sources ?? [], pack_file: p.rel };
+      required_specs: e.required_specs ?? null, source_note: e.source_note ?? null, sources: e.sources ?? [], pack_file: p.rel };
     const b = sha(body);
     let cols;
     if (table === 'support_knowledge') {

@@ -38,8 +38,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner (dealer service) -> confirmed | ENOC Autopro service chain -> removed: page blocked, not confirmed | RTA annual vehicle testing -> unconfirmed: not stated on opened page. Not checked: Truck franchise assignments listed with 'type' are uncertain and were not verified; the ITC URL was not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner (dealer service) -> confirmed | ENOC Autopro service chain -> removed: page blocked, not confirmed | RTA annual vehicle testing -> unconfirmed: not stated on opened page. Not checked: Truck franchise assignments listed with 'type' are uncertain and were not verified; the ITC URL was not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Al-Futtaim",
           "origin_country": "UAE",

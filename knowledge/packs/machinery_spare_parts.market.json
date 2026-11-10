@@ -36,8 +36,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar parts via Al-Bahar -> confirmed | Komatsu and JCB dealers -> confirmed Galadari; Cummins Arabia removed. Not checked: The Executive Office website address and current sanctions lists must be checked at the time of trade; named dealer appointments were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar parts via Al-Bahar -> confirmed | Komatsu and JCB dealers -> confirmed Galadari; Cummins Arabia removed. Not checked: The Executive Office website address and current sanctions lists must be checked at the time of trade; named dealer appointments were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Al-Bahar",
           "origin_country": "UAE",

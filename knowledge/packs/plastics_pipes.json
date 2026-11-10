@@ -317,8 +317,8 @@
           "follow_up": ""
         }
       ],
-      "firm_price_condition": "none beyond the listed specs; a pipeline with installation needs the route drawing or a site visit.",
-      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "none beyond the listed specs; a pipeline with installation needs the route drawing or a site visit."
     },
     {
       "id": "plastics_pipes:dm-approval",

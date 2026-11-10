@@ -36,8 +36,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Metso supplies crusher wear parts and screening media -> confirmed | RAK quarries at Khor Khwair -> confirmed. Not checked: The FNRC website address, quarry count and current explosives licensing authority per emirate were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Metso supplies crusher wear parts and screening media -> confirmed | RAK quarries at Khor Khwair -> confirmed. Not checked: The FNRC website address, quarry count and current explosives licensing authority per emirate were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Metso",
           "origin_country": "Finland",

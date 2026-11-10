@@ -127,8 +127,8 @@
           "follow_up": ""
         }
       ],
-      "firm_price_condition": "none; a firm price is possible from the specs. Robotic or automated welding cells need the part drawing and a sample weld.",
-      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": null
     },
     {
       "id": "welding_equipment:uae-standards-and-approvals",
@@ -204,7 +204,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — uaelegislation.gov.ae: not in the allowed network; moiat.gov.ae: allowed from 10 Nov 2026 but gave no answer (connection timed out, with and without www); pcfc.ae: not in the allowed network (www.trakhees.ae is allowed but gave no answer); www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses."
     },
     {
       "id": "welding_equipment:quote-red-flags",

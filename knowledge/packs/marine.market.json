@@ -40,8 +40,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Maritime Authority registers and licenses marine vessels (eservices.dmca.ae) -> corrected: authority URL | Gulf Craft is a UAE boat builder -> confirmed. Not checked: The Dubai Maritime Authority URL, the current federal maritime registry body, and marine dealer appointments were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Maritime Authority registers and licenses marine vessels (eservices.dmca.ae) -> corrected: authority URL | Gulf Craft is a UAE boat builder -> confirmed. Not checked: The Dubai Maritime Authority URL, the current federal maritime registry body, and marine dealer appointments were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Gulf Craft",
           "origin_country": "UAE",

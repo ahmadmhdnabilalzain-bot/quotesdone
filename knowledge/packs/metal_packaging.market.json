@@ -36,8 +36,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Greif makes industrial drums and packaging -> confirmed | Hira Industries (Dubai) -> removed: site did not answer | Crown UAE plant -> not confirmed; kept only as an international brand. Not checked: Current UAE plants of Crown and Mauser and Hira's current product range were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Greif makes industrial drums and packaging -> confirmed | Hira Industries (Dubai) -> removed: site did not answer | Crown UAE plant -> not confirmed; kept only as an international brand. Not checked: Current UAE plants of Crown and Mauser and Hira's current product range were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Greif",
           "origin_country": "USA",

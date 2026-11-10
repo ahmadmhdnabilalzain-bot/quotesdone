@@ -29,7 +29,7 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: hub motors front or rear; top speeds vary widely by model, with European e-scooters usually limited to 20-25 km/h. spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: hub motors front or rear; top speeds vary widely by model, with European e-scooters usually limited to 20-25 km/h. spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
       "blocking": [
         "Vehicle type",
         "Make and model",
@@ -130,7 +130,7 @@
           "follow_up": ""
         }
       ],
-      "firm_price_condition": "none; a firm price is possible from the specs."
+      "site_visit_required_when": null
     },
     {
       "id": "bicycles_micromobility:product-distinctions",
@@ -175,7 +175,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.rta.ae: allowed but drops the connection."
     },
     {
       "id": "bicycles_micromobility:quote-red-flags",

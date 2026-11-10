@@ -38,8 +38,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Tyres older than 5 years from production cannot be used (retailer statement of an ESMA rule) -> removed: contradicted by a Gulf News summary of the tyre law and no primary text found | UAE tyre law requires the manufacturing date to be shown and sets tread wear limits -> confirmed | Michelin as a brand -> confirmed_domain_only. Not checked: The exact maximum tyre age rule in the current UAE tyre regulation is uncertain and must be checked; distributor brand assignments listed with 'type' were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Tyres older than 5 years from production cannot be used (retailer statement of an ESMA rule) -> removed: contradicted by a Gulf News summary of the tyre law and no primary text found | UAE tyre law requires the manufacturing date to be shown and sets tread wear limits -> confirmed | Michelin as a brand -> confirmed_domain_only. Not checked: The exact maximum tyre age rule in the current UAE tyre regulation is uncertain and must be checked; distributor brand assignments listed with 'type' were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
         {
           "brand": "Michelin",
           "origin_country": "France",

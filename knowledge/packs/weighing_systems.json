@@ -29,7 +29,7 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: pit-mounted and surface-mounted weighbridges, axle scales, load cells as the sensing element. spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: pit-mounted and surface-mounted weighbridges, axle scales, load cells as the sensing element. spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
       "blocking": [
         "Scale type and application",
         "Capacity",
@@ -132,7 +132,7 @@
           "follow_up": ""
         }
       ],
-      "firm_price_condition": "a weighbridge needs a site visit for foundations, access and drainage before a firm price; standard scales can be priced from the specs."
+      "site_visit_required_when": "a weighbridge needs a site visit for foundations, access and drainage before a firm price; standard scales can be priced from the specs."
     },
     {
       "id": "weighing_systems:product-distinctions",
@@ -178,7 +178,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — uaelegislation.gov.ae: not in the allowed network."
     },
     {
       "id": "weighing_systems:quote-red-flags",
@@ -231,6 +232,21 @@
       "as_of": "2026-11-10",
       "gap_kind": "commercial",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "weighing_systems:authority-dubai-legal-metrology",
+      "topic": "Weighing systems: legal metrology verification in Dubai",
+      "topic_ar": "أنظمة الوزن: التحقق المترولوجي القانوني في دبي",
+      "kind": "authority_approval",
+      "body_en": "In Dubai, Dubai Central Laboratory of Dubai Municipality implements legal metrology control for measuring instruments used in commercial transactions and in health and safety, under Cabinet Resolution No. 64 of 2022 on the National Metrology System and a cooperation and authorisation agreement with the Ministry of Industry and Advanced Technology. The instruments it monitors include electronic balances (with petrol pumps, taxi meters, medical devices and pre-packed goods). After verification the inspector fixes a green \"Verified\" sticker when the instrument complies, or a red \"Rejected\" sticker when it is unusable for customer transactions; fees follow Cabinet Resolution No. 13 of 2021. A scale used for selling by weight must therefore carry a valid green sticker; the owner arranges the verification, and the supplier should deliver an instrument that can pass it.",
+      "body_ar": "في دبي يطبق مختبر دبي المركزي التابع لبلدية دبي الرقابة المترولوجية القانونية على أدوات القياس المستخدمة في المعاملات التجارية وفي مجال الصحة والسلامة، بموجب قرار مجلس الوزراء رقم 64 لسنة 2022 بشأن المنظومة الوطنية للمقاييس واتفاقية تعاون وتفويض مع وزارة الصناعة والتكنولوجيا المتقدمة. ومن الأدوات التي يراقبها الموازين الإلكترونية (إلى جانب مضخات الوقود وعدادات سيارات الأجرة والأجهزة الطبية والسلع المعبأة مسبقاً). وبعد التحقق يضع المفتش ملصقاً أخضر \"تم التحقق\" إذا كانت الأداة مطابقة، أو ملصقاً أحمر \"مرفوض\" إذا كانت غير صالحة للمعاملات مع العملاء، وتُستوفى الرسوم وفق قرار مجلس الوزراء رقم 13 لسنة 2021. لذا يجب أن يحمل الميزان المستخدم في البيع بالوزن ملصقاً أخضر سارياً؛ ويرتب المالك التحقق، وعلى المورد تسليم أداة قادرة على اجتيازه.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/legal-metrology-verification/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590) from the Dubai Municipality page in sources, opened with curl that day; every claim in the body is read on that page.",
+      "source_note": "Opened 2026-11-10: Dubai Municipality, Legal Metrology Verification page (www.dm.gov.ae)."
     }
   ],
   "eval": [
@@ -273,6 +289,9 @@
       "weighing_systems:buyer-mistakes",
       "weighing_systems:price-drivers",
       "weighing_systems:compare-quotes"
+    ],
+    "opened_10_nov_2026": [
+      "https://www.dm.gov.ae/municipality-business/legal-metrology-verification/"
     ]
   }
 }
