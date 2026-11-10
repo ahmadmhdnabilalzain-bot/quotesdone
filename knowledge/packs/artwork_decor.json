@@ -6,8 +6,8 @@
       "topic": "Artwork, framing & decor - what the buyer must state",
       "topic_ar": "الأعمال الفنية والبراويز والديكور: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For artwork, framing & decor (trade code artwork_decor only), every quoted line must state: Artwork type (original, print, commissioned); Size; Medium and substrate; Framing: moulding, mat and glazing; Mounting and hanging method; Quantity; Edition and certificate for prints; Installation; Packaging and delivery; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Artwork type (original, print, commissioned); Size; Medium and substrate; Framing: moulding, mat and glazing; Quantity. Follow-up questions the answers trigger: Artwork type (original, print, commissioned): Commission: ask the brief and budget. Before a firm price: prints and framing can be priced from size and materials; a commissioned piece needs a brief, and usually a concept or sketch approval, before a firm price.",
-      "body_ar": "في نشاط الأعمال الفنية والبراويز والديكور (رمز النشاط artwork_decor فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع العمل الفني (أصلي، مطبوع، حسب الطلب)؛ المقاس؛ الوسيط والسطح؛ البرواز: الإطار والحافة والزجاج؛ طريقة التثبيت والتعليق؛ الكمية؛ الإصدار والشهادة للمطبوعات؛ التركيب؛ التغليف والتسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العمل الفني، والمقاس، والوسيط والسطح، ومواد التأطير، والكمية. القطع المطبوعة والتأطير تُسعّر من المقاس والمواد، أما العمل المفوَّض فيحتاج موجزاً وغالباً اعتماد فكرة أو رسم أولي قبل السعر النهائي.",
+      "body_en": "For artwork, framing & decor (trade code artwork_decor only), every quoted line must state: Artwork type (original, print, commissioned); Size; Medium and substrate; Framing: moulding, mat and glazing; Mounting and hanging method; Quantity; Edition and certificate for prints; Installation; Packaging and delivery; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Artwork type (original, print, commissioned); Size; Medium and substrate; Framing: moulding, mat and glazing; Quantity. Follow-up questions the answers trigger: Artwork type (original, print, commissioned): Commission: ask the brief and budget. Before a firm price: prints and framing can be priced from size and materials; a commissioned piece needs a brief, and usually a concept or sketch approval, before a firm price. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery and installation site and emirate; artist level for original works; payment terms.",
+      "body_ar": "في نشاط الأعمال الفنية والبراويز والديكور (رمز النشاط artwork_decor فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع العمل الفني (أصلي، مطبوع، حسب الطلب)؛ المقاس؛ الوسيط والسطح؛ البرواز: الإطار والحافة والزجاج؛ طريقة التثبيت والتعليق؛ الكمية؛ الإصدار والشهادة للمطبوعات؛ التركيب؛ التغليف والتسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العمل الفني، والمقاس، والوسيط والسطح، ومواد التأطير، والكمية. القطع المطبوعة والتأطير تُسعّر من المقاس والمواد، أما العمل المفوَّض فيحتاج موجزاً وغالباً اعتماد فكرة أو رسم أولي قبل السعر النهائي. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، ومستوى الفنان للأعمال الأصلية، وشروط الدفع.",
       "required_specs": [
         "Artwork type (original, print, commissioned)",
         "Size",
@@ -18,7 +18,10 @@
         "Edition and certificate for prints",
         "Installation",
         "Packaging and delivery",
-        "Lead time"
+        "Lead time",
+        "delivery and installation site and emirate",
+        "artist level for original works",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Picture_framing"
@@ -26,7 +29,7 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: glazing with a UV filter; mats and backing boards protect artwork.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: glazing with a UV filter; mats and backing boards protect artwork. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
       "blocking": [
         "Artwork type (original, print, commissioned)",
         "Size",
@@ -104,6 +107,27 @@
           "uae_options": "stock; commission time",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "delivery and installation site and emirate",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "artist level for original works",
+          "blocking": false,
+          "why_needed_to_price": "An original by an emerging artist and one by an established artist are not comparable prices.",
+          "uae_options": "Emerging; mid-career; established; no preference (decorative).",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "prints and framing can be priced from size and materials; a commissioned piece needs a brief, and usually a concept or sketch approval, before a firm price."

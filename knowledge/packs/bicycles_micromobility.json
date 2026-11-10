@@ -6,8 +6,8 @@
       "topic": "Bicycles & e-scooters - what the buyer must state",
       "topic_ar": "الدراجات الهوائية والسكوترات الكهربائية: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For bicycles & e-scooters (trade code bicycles_micromobility only), every quoted line must state: Vehicle type; Make and model; Frame material and size; Motor power and battery capacity (electric); Top speed and range (electric); Wheel size and tyres; Brakes; Rider weight limit; Safety certifications; Accessories included; Warranty and service; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Vehicle type; Make and model; Frame material and size; Motor power and battery capacity (electric); Quantity. Follow-up questions the answers trigger: Vehicle type: E-scooters for public roads bring the RTA rider rules and riding zones. Motor power and battery capacity (electric): Ask about charging location; battery safety matters in UAE heat. Before a firm price: none; a firm price is possible from the specs.",
-      "body_ar": "في نشاط الدراجات الهوائية والسكوترات الكهربائية (رمز النشاط bicycles_micromobility فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المركبة؛ الماركة والموديل؛ مادة الإطار ومقاسه؛ قدرة المحرك وسعة البطارية (الكهربائية)؛ السرعة القصوى والمدى (الكهربائية)؛ مقاس العجلات والإطارات؛ المكابح؛ حد وزن الراكب؛ شهادات السلامة؛ الملحقات المشمولة؛ الضمان والخدمة؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المركبة، والماركة والطراز، ومادة الإطار ومقاسه، وقدرة المحرك وسعة البطارية (للكهربائية)، والكمية. أسئلة المتابعة: الدراجات الكهربائية للطرق العامة تستلزم قواعد هيئة الطرق والمواصلات للراكبين ومناطق القيادة، ويُسأل عن مكان الشحن لأن سلامة البطارية مهمة في حرارة الإمارات.",
+      "body_en": "For bicycles & e-scooters (trade code bicycles_micromobility only), every quoted line must state: Vehicle type; Make and model; Frame material and size; Motor power and battery capacity (electric); Top speed and range (electric); Wheel size and tyres; Brakes; Rider weight limit; Safety certifications; Accessories included; Warranty and service; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Vehicle type; Make and model; Frame material and size; Motor power and battery capacity (electric); Quantity. Follow-up questions the answers trigger: Vehicle type: E-scooters for public roads bring the RTA rider rules and riding zones. Motor power and battery capacity (electric): Ask about charging location; battery safety matters in UAE heat. Before a firm price: none; a firm price is possible from the specs. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate and site; payment terms.",
+      "body_ar": "في نشاط الدراجات الهوائية والسكوترات الكهربائية (رمز النشاط bicycles_micromobility فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المركبة؛ الماركة والموديل؛ مادة الإطار ومقاسه؛ قدرة المحرك وسعة البطارية (الكهربائية)؛ السرعة القصوى والمدى (الكهربائية)؛ مقاس العجلات والإطارات؛ المكابح؛ حد وزن الراكب؛ شهادات السلامة؛ الملحقات المشمولة؛ الضمان والخدمة؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المركبة، والماركة والطراز، ومادة الإطار ومقاسه، وقدرة المحرك وسعة البطارية (للكهربائية)، والكمية. أسئلة المتابعة: الدراجات الكهربائية للطرق العامة تستلزم قواعد هيئة الطرق والمواصلات للراكبين ومناطق القيادة، ويُسأل عن مكان الشحن لأن سلامة البطارية مهمة في حرارة الإمارات. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "Vehicle type",
         "Make and model",
@@ -21,7 +21,9 @@
         "Accessories included",
         "Warranty and service",
         "Lead time",
-        "Quantity"
+        "Quantity",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Electric_kick_scooter"
@@ -29,7 +31,7 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: hub motors front or rear; top speeds vary widely by model, with European e-scooters usually limited to 20-25 km/h. spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: hub motors front or rear; top speeds vary widely by model, with European e-scooters usually limited to 20-25 km/h. spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
       "blocking": [
         "Vehicle type",
         "Make and model",
@@ -128,6 +130,20 @@
           "why_needed_to_price": "Fleet orders for staff or rental change price.",
           "uae_options": "Units.",
           "follow_up_if": ""
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": null
