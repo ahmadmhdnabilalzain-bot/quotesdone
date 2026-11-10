@@ -47,6 +47,12 @@
 --   fn_ceo_launch_readiness             REWRITTEN: the week's open trades, not "every trade". It no longer mails the
 --                                       founder anything (ledger 1616: he is told in his daily brief only).
 --
+-- THE DEMO HARNESS: ZZ DEMO suppliers count only for a ZZ DEMO customer (fn_customer_is_demo, fn_inquiry_is_demo,
+-- fn_is_demo_phone: the markers the estate already uses), and for such a customer a trade is open at the floor of 5, so
+-- scripts/e2e/evidence_pack.mjs (five ZZ DEMO suppliers per journey) and the walks run while no real trade is open. A real
+-- customer is never served, and never charged a reveal, on the strength of a demo supplier; the hourly state table counts
+-- real suppliers only. Measured 10 Nov 2026: 3 ZZ DEMO suppliers are matchable (aluminium 2, gypsum 1, painting 1).
+--
 -- NOT CHANGED: pricing_config (category_open_min_suppliers stays the sales engineer's recruitment target per trade),
 -- fn_sales_engineer_supply_gap, the matcher, any campaign switch or cap. A request with no taxonomy trade at all
 -- ('general', the intake's own "no listed trade fits") posts as before: there is no trade to count coverage on, and
@@ -116,21 +122,26 @@ revoke all on public.customer_trade_waitlist from anon, authenticated;
 -- Verified, matchable suppliers of one trade, UAE-wide: the predicate fn_sales_engineer_supply_gap counts on (a confirmed
 -- capability row and fn_is_matchable), with one difference that matters: A DEMO SUPPLIER NEVER COUNTS. Measured 10 Nov 2026:
 -- supply_gap's "4 matchable" are all one ZZ DEMO supplier; real verified, matchable suppliers number 0.
--- THE PROBE SEAM: qd.trade_opening_fixture_counts, a session setting holding {"<trade>": n}, replaces the count for the
--- trades it names. Only this file's probe sets it, inside its own rolled-back transaction (set_config(..., true)); it is
--- never stored, and a verified supplier cannot be faked for a probe (fn_supplier_mandatory_six wants real documents).
-create or replace function public.fn_trade_verified_suppliers(p_trade text)
+-- THE DEMO HARNESS (coordinator review, 10 Nov 2026): ZZ DEMO suppliers count ONLY for a ZZ DEMO customer (p_with_fixtures,
+-- set by the callers from fn_customer_is_demo / fn_inquiry_is_demo / fn_is_demo_phone, the markers the estate already uses),
+-- so scripts/e2e/evidence_pack.mjs and the walks (five ZZ DEMO suppliers per journey) are not waitlisted while 0 real
+-- trades are open, and a real customer is never served on the strength of a demo supplier.
+-- THE PROBE SEAM: qd.trade_opening_fixture_counts, a session setting holding {"<trade>": n} for the real count and
+-- {"<trade>@fixture": n} for the count a demo customer sees, replaces the count for the trades it names. Only this file's
+-- probe sets it, inside its own rolled-back transaction (set_config(..., true)); it is never stored, and a verified
+-- supplier cannot be faked for a probe (fn_supplier_mandatory_six wants real documents).
+create or replace function public.fn_trade_verified_suppliers(p_trade text, p_with_fixtures boolean default false)
 returns integer language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   select coalesce(
-    (nullif(current_setting('qd.trade_opening_fixture_counts', true), '')::jsonb ->> p_trade)::int,
+    (nullif(current_setting('qd.trade_opening_fixture_counts', true), '')::jsonb ->> (p_trade || case when p_with_fixtures then '@fixture' else '' end))::int,
     (select count(distinct sc.supplier_id)::int
        from public.supplier_capabilities sc join public.leads l on l.id = sc.supplier_id
       where sc.confirmed_at is not null and p_trade = any(sc.trades)
-        and not coalesce(l.is_demo, false)
+        and (not coalesce(l.is_demo, false) or p_with_fixtures)
         and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)))
 $fn$;
-revoke execute on function public.fn_trade_verified_suppliers(text) from public, anon, authenticated;
-grant execute on function public.fn_trade_verified_suppliers(text) to service_role;
+revoke execute on function public.fn_trade_verified_suppliers(text, boolean) from public, anon, authenticated;
+grant execute on function public.fn_trade_verified_suppliers(text, boolean) to service_role;
 
 -- The taxonomy trades a request names: fn_taxonomy_trades_for (the resolver dispatch uses), kept to ACTIVE taxonomy codes
 -- only, so an intake slug that is not itself a trade ('general', 'combined') never counts as one.
@@ -145,16 +156,19 @@ grant execute on function public.fn_trade_codes_of(text[]) to service_role;
 
 -- Is this trade open to customers now? The tick's state when it holds one (hysteresis: open until under the floor), and a
 -- live count for a trade that crossed the threshold since the last tick, so a door never refuses a trade that is ready.
-create or replace function public.fn_trade_is_open(p_trade text)
+-- A ZZ DEMO customer (p_fixture): the trade is open at the floor of 5, counting demo suppliers with the real ones. The
+-- harness proves the journey, not the coverage rule; the real threshold and its hysteresis are untouched and tested apart.
+create or replace function public.fn_trade_is_open(p_trade text, p_fixture boolean default false)
 returns boolean language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   with r as (select open_at_suppliers, floor_suppliers from public.trade_opening_rule where id = 1),
-       n as (select public.fn_trade_verified_suppliers(p_trade) as v)
-  select case when exists (select 1 from public.trade_customer_opening o where o.trade = p_trade and o.is_open)
+       n as (select public.fn_trade_verified_suppliers(p_trade, p_fixture) as v)
+  select case when p_fixture then (select n.v >= r.floor_suppliers from n, r)
+              when exists (select 1 from public.trade_customer_opening o where o.trade = p_trade and o.is_open)
               then (select n.v >= r.floor_suppliers from n, r)
               else (select n.v >= r.open_at_suppliers from n, r) end
 $fn$;
-revoke execute on function public.fn_trade_is_open(text) from public, anon, authenticated;
-grant execute on function public.fn_trade_is_open(text) to service_role;
+revoke execute on function public.fn_trade_is_open(text, boolean) from public, anon, authenticated;
+grant execute on function public.fn_trade_is_open(text, boolean) to service_role;
 
 -- The honest words, in one place, both languages. p_kind: 'waiting' (said at the door) or 'opened' (the notice).
 create or replace function public.fn_trade_waitlist_message(p_kind text, p_lang text, p_trades text[], p_link text default null)
@@ -196,7 +210,7 @@ grant execute on function public.fn_trade_waitlist_message(text, text, text[], t
 
 -- THE DOORS' QUESTION. state: 'open' (every trade the request names is open: it proceeds as today), 'not_open' (at least
 -- one is not: the request waits), 'unclassified' (it names no taxonomy trade: it proceeds as before, see the header).
-create or replace function public.fn_trade_customer_gate(p_slugs text[], p_lang text default 'en')
+create or replace function public.fn_trade_customer_gate(p_slugs text[], p_lang text default 'en', p_fixture boolean default false)
 returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_codes text[] := public.fn_trade_codes_of(p_slugs); v_closed text[]; v_detail jsonb; r public.trade_opening_rule;
 begin
@@ -204,27 +218,27 @@ begin
   if cardinality(v_codes) = 0 then
     return jsonb_build_object('state', 'unclassified', 'codes', '[]'::jsonb, 'closed', '[]'::jsonb);
   end if;
-  select coalesce(array_agg(c order by c), '{}'::text[]) into v_closed from unnest(v_codes) c where not public.fn_trade_is_open(c);
-  select coalesce(jsonb_agg(jsonb_build_object('code', c, 'verified', public.fn_trade_verified_suppliers(c), 'open_at', r.open_at_suppliers) order by c), '[]'::jsonb)
+  select coalesce(array_agg(c order by c), '{}'::text[]) into v_closed from unnest(v_codes) c where not public.fn_trade_is_open(c, p_fixture);
+  select coalesce(jsonb_agg(jsonb_build_object('code', c, 'verified', public.fn_trade_verified_suppliers(c, p_fixture),
+           'open_at', case when p_fixture then r.floor_suppliers else r.open_at_suppliers end) order by c), '[]'::jsonb)
     into v_detail from unnest(v_closed) c;
   return jsonb_build_object('state', case when cardinality(v_closed) = 0 then 'open' else 'not_open' end,
-    'codes', to_jsonb(v_codes), 'closed', v_detail,
+    'codes', to_jsonb(v_codes), 'closed', v_detail, 'fixture', p_fixture,
     -- the caller's language, and both: a portal refusal carries message AND message_ar (portalText errText renders them)
     'message', case when cardinality(v_closed) > 0 then public.fn_trade_waitlist_message('waiting', p_lang, v_closed)->>'body' end,
     'message_en', case when cardinality(v_closed) > 0 then public.fn_trade_waitlist_message('waiting', 'en', v_closed)->>'body' end,
     'message_ar', case when cardinality(v_closed) > 0 then public.fn_trade_waitlist_message('waiting', 'ar', v_closed)->>'body' end);
 end $fn$;
-revoke execute on function public.fn_trade_customer_gate(text[], text) from public, anon, authenticated;
-grant execute on function public.fn_trade_customer_gate(text[], text) to service_role;
+revoke execute on function public.fn_trade_customer_gate(text[], text, boolean) from public, anon, authenticated;
+grant execute on function public.fn_trade_customer_gate(text[], text, boolean) to service_role;
 
 -- THE DOOR RECORDS THE WAITING CUSTOMER. One waiting row per (customer or number, trade); asking again is not a second row.
 create or replace function public.fn_trade_waitlist_join(p_slugs text[], p_channel text, p_customer uuid default null,
   p_phone text default null, p_lang text default 'en', p_intake uuid default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare g jsonb := public.fn_trade_customer_gate(p_slugs, p_lang); v_lang text := case when p_lang = 'ar' then 'ar' else 'en' end; v_n int;
-  v_customer uuid := p_customer; v_closed text[];
+declare g jsonb; v_lang text := case when p_lang = 'ar' then 'ar' else 'en' end; v_n int;
+  v_customer uuid := p_customer; v_closed text[]; v_fixture boolean;
 begin
-  if g->>'state' <> 'not_open' then return g || jsonb_build_object('waitlisted', false); end if;
   -- a WhatsApp number that belongs to an account is that customer: the notice then goes to the account (and its confirmed number)
   if v_customer is null and nullif(btrim(coalesce(p_phone, '')), '') is not null then
     select c.id into v_customer from public.customers c
@@ -233,6 +247,12 @@ begin
             or regexp_replace(coalesce(c.phone, ''), '[^0-9]', '', 'g') = regexp_replace(p_phone, '[^0-9]', '', 'g'))
      order by c.created_at limit 1;
   end if;
+  -- the estate's own demo markers: a ZZ DEMO customer (customers.is_demo, generated from the name and @example.invalid)
+  -- or the reserved fixture mobile block; nothing else makes a door count demo suppliers
+  v_fixture := (v_customer is not null and public.fn_customer_is_demo(v_customer))
+               or (p_phone is not null and public.fn_is_demo_phone(p_phone));
+  g := public.fn_trade_customer_gate(p_slugs, p_lang, v_fixture);
+  if g->>'state' <> 'not_open' then return g || jsonb_build_object('waitlisted', false); end if;
   if v_customer is null and p_channel = 'whatsapp' then
     select array_agg(e->>'code') into v_closed from jsonb_array_elements(g->'closed') e;
     g := g || jsonb_build_object('message', public.fn_trade_waitlist_message('waiting_visitor', v_lang, v_closed,
@@ -257,14 +277,16 @@ grant execute on function public.fn_trade_waitlist_join(text[], text, uuid, text
 -- this before any charge, on every reveal door. A request with no taxonomy trade is not gated (see the header).
 create or replace function public.fn_trade_reveal_allowed(p_inquiry uuid)
 returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-declare i public.inquiries; v_codes text[]; v_floor int := (select floor_suppliers from public.trade_opening_rule where id = 1); v_short jsonb;
+declare i public.inquiries; v_codes text[]; v_floor int := (select floor_suppliers from public.trade_opening_rule where id = 1); v_short jsonb; v_fixture boolean;
 begin
   select * into i from public.inquiries where id = p_inquiry;
   if not found then return jsonb_build_object('allowed', false, 'why', 'no such request'); end if;
+  -- a ZZ DEMO request (fn_inquiry_is_demo: the customer, the run tag, the fixture brief) counts demo suppliers; a real one never
+  v_fixture := public.fn_inquiry_is_demo(i.id);
   v_codes := public.fn_trade_codes_of(array_remove(array[i.category] || coalesce(i.trades, '{}'::text[]), null));
   select coalesce(jsonb_agg(jsonb_build_object('code', c, 'verified', n)), '[]'::jsonb) into v_short
-    from (select c, public.fn_trade_verified_suppliers(c) n from unnest(v_codes) c) x where n < v_floor;
-  return jsonb_build_object('allowed', jsonb_array_length(v_short) = 0, 'floor', v_floor, 'codes', to_jsonb(v_codes), 'below_floor', v_short);
+    from (select c, public.fn_trade_verified_suppliers(c, v_fixture) n from unnest(v_codes) c) x where n < v_floor;
+  return jsonb_build_object('allowed', jsonb_array_length(v_short) = 0, 'floor', v_floor, 'codes', to_jsonb(v_codes), 'below_floor', v_short, 'fixture', v_fixture);
 end $fn$;
 revoke execute on function public.fn_trade_reveal_allowed(uuid) from public, anon, authenticated;
 grant execute on function public.fn_trade_reveal_allowed(uuid) to service_role;

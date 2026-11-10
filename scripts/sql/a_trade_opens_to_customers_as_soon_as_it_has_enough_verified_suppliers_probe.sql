@@ -4,7 +4,7 @@
 -- The trade is one with no verified supplier today (abrasives_surface_finishing, measured 10 Nov 2026: 0), so its counts
 -- are the probe's own.
 do $probe$
-declare t text := 'abrasives_surface_finishing'; v_cust uuid; g jsonb; j jsonb; k jsonb; v_inq uuid; v_tick jsonb; v_lr jsonb;
+declare t text := 'abrasives_surface_finishing'; v_cust uuid; g jsonb; j jsonb; k jsonb; v_inq uuid; v_tick jsonb; v_lr jsonb; v_demo_trade text; v_real_inq uuid;
   v_real_wait_before int; v_founder_before int; v_mail_before int; v_bad text := ''; v_floor_refused boolean := false; i int;
 begin
   -- the real counting path, unseamed: no demo supplier counts, and today no real one is verified
@@ -41,7 +41,7 @@ begin
 
   -- 4. ten verified suppliers (the count seam: a verified supplier cannot be faked, see the main file): the trade opens,
   --    the reveal is allowed, the waiting fixture is told without a message
-  perform set_config('qd.trade_opening_fixture_counts', jsonb_build_object(t, 10)::text, true);
+  perform set_config('qd.trade_opening_fixture_counts', jsonb_build_object(t, 10, t || '@fixture', 10)::text, true);
   if public.fn_trade_verified_suppliers(t) <> 10 then v_bad := v_bad || ' seam-count=' || public.fn_trade_verified_suppliers(t); end if;
   if public.fn_trade_customer_gate(array[t], 'en')->>'state' <> 'open' then v_bad := v_bad || ' gate-at-10-not-open'; end if;
   if not coalesce((public.fn_trade_reveal_allowed(v_inq)->>'allowed')::boolean, false) then v_bad := v_bad || ' reveal-refused-at-10'; end if;
@@ -52,10 +52,10 @@ begin
   if (select status from public.customer_trade_waitlist where phone = '+971500000098') not in ('withdrawn', 'notified') then v_bad := v_bad || ' visitor-row-left-waiting'; end if;
 
   -- 5. hysteresis: 6 left stays open (>= the floor of 5); 4 left closes
-  perform set_config('qd.trade_opening_fixture_counts', jsonb_build_object(t, 6)::text, true);
+  perform set_config('qd.trade_opening_fixture_counts', jsonb_build_object(t, 6, t || '@fixture', 6)::text, true);
   perform public.fn_ceo_trade_opening_tick();
   if not (select is_open from public.trade_customer_opening where trade = t) then v_bad := v_bad || ' closed-at-6'; end if;
-  perform set_config('qd.trade_opening_fixture_counts', jsonb_build_object(t, 4)::text, true);
+  perform set_config('qd.trade_opening_fixture_counts', jsonb_build_object(t, 4, t || '@fixture', 4)::text, true);
   perform public.fn_ceo_trade_opening_tick();
   if (select is_open from public.trade_customer_opening where trade = t) then v_bad := v_bad || ' open-at-4'; end if;
   if coalesce((public.fn_trade_reveal_allowed(v_inq)->>'allowed')::boolean, true) then v_bad := v_bad || ' reveal-allowed-at-4'; end if;
@@ -76,6 +76,30 @@ begin
   if (select count(*) from public.notifications) <> v_mail_before then v_bad := v_bad || ' notifications+' || ((select count(*) from public.notifications) - v_mail_before); end if;
   if (select count(*) from public.customer_trade_waitlist w where w.customer_id is null and w.phone <> '+971500000098' or (w.customer_id is not null and not public.fn_customer_is_demo(w.customer_id))) <> v_real_wait_before then v_bad := v_bad || ' real-waitlist-touched'; end if;
 
+  -- 9. DEMO SUPPLIERS COUNT ONLY FOR A DEMO CUSTOMER (coordinator review). Unseamed, on today's rows: the one ZZ DEMO
+  --    matchable supplier counts for a demo request in its trade and never for a real one.
+  perform set_config('qd.trade_opening_fixture_counts', '', true);
+  select tt.code into v_demo_trade from public.supplier_capabilities sc join public.leads l on l.id = sc.supplier_id, unnest(sc.trades) tt(code)
+   where l.is_demo and sc.confirmed_at is not null
+     and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes) limit 1;
+  if v_demo_trade is not null and (public.fn_trade_verified_suppliers(v_demo_trade, true) < 1 or public.fn_trade_verified_suppliers(v_demo_trade, false) >= public.fn_trade_verified_suppliers(v_demo_trade, true)) then
+    v_bad := v_bad || ' demo-supplier-direction(' || v_demo_trade || ')'; end if;
+  --    Seamed, both directions: 5 demo suppliers and 0 real ones in the trade.
+  perform set_config('qd.trade_opening_fixture_counts', jsonb_build_object(t, 0, t || '@fixture', 5)::text, true);
+  update public.customer_trade_waitlist set status = 'withdrawn' where customer_id = v_cust and status = 'waiting';
+  j := public.fn_trade_waitlist_join(array[t], 'portal', v_cust, null, 'en', null);              -- a ZZ DEMO customer
+  if j->>'state' <> 'open' or coalesce((j->>'waitlisted')::boolean, true) then v_bad := v_bad || ' demo-customer-not-open:' || (j->>'state'); end if;
+  if not coalesce((public.fn_trade_reveal_allowed(v_inq)->>'allowed')::boolean, false) then v_bad := v_bad || ' demo-reveal-refused'; end if;
+  if public.fn_trade_customer_gate(array[t], 'en', false)->>'state' <> 'not_open' then v_bad := v_bad || ' real-door-open-on-demo-suppliers'; end if;
+  begin   -- a request no customer owns reads as real (fn_inquiry_is_demo false): its reveal must be refused
+    insert into public.inquiries (customer_id, category, trades, status, summary, lang, role_needed)
+    values (null, t, array[t], 'draft', 'ZZ DEMO trade opening probe, ownerless', 'en', 'supplier') returning id into v_real_inq;
+  exception when others then v_real_inq := null; end;
+  if v_real_inq is not null then
+    if public.fn_inquiry_is_demo(v_real_inq) then v_bad := v_bad || ' ownerless-read-as-demo'; end if;
+    if coalesce((public.fn_trade_reveal_allowed(v_real_inq)->>'allowed')::boolean, true) then v_bad := v_bad || ' real-reveal-allowed-on-demo-suppliers'; end if;
+  end if;
+
   if v_bad <> '' then raise exception 'CHK<<PROBE FAILED:%>>', v_bad; end if;
-  raise exception 'CHK<<PROBE OK trade opens at 10 (odds 0.8327), stays open at 6, closes at 4, floor 4 refused, reveal refused under 5, fixture told without a message, visitor asked to register, launch gate per trade, 0 notifications; tick %>>', v_tick;
+  raise exception 'CHK<<PROBE OK trade opens at 10 (odds 0.8327), stays open at 6, closes at 4, floor 4 refused, reveal refused under 5, fixture told without a message, visitor asked to register, launch gate per trade, 0 notifications; demo suppliers count for a demo customer only (real door closed, ownerless reveal %); tick %>>', case when v_real_inq is null then 'not insertable' else 'refused' end, v_tick;
 end $probe$;

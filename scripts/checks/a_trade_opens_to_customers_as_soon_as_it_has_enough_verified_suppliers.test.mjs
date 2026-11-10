@@ -52,7 +52,14 @@ test('B. the floor is the schema and a demo supplier never counts', () => {
   assert.match(src, /open_at_suppliers\s+integer not null check \(open_at_suppliers between 5 and 25\)/, 'the CEO can set the threshold outside 5..25');
   assert.match(src, /floor_suppliers\s+integer not null default 5 check \(floor_suppliers = 5\)/, 'the floor is no longer fixed at 5 in the schema');
   const count = src.match(/function public\.fn_trade_verified_suppliers\([\s\S]*?\$fn\$[\s\S]*?\$fn\$/)[0];
-  assert.match(count, /not coalesce\(l\.is_demo, false\)/, 'a demo supplier counts toward opening a trade');
+  assert.match(count, /\(not coalesce\(l\.is_demo, false\) or p_with_fixtures\)/, 'a demo supplier counts for a real customer, or never for a demo one');
+  // the fixture flag comes only from the estate's demo markers, never from a caller's word
+  const join = src.match(/function public\.fn_trade_waitlist_join\([\s\S]*?\$fn\$[\s\S]*?\$fn\$/)[0];
+  assert.match(join, /v_fixture := \(v_customer is not null and public\.fn_customer_is_demo\(v_customer\)\)\s+or \(p_phone is not null and public\.fn_is_demo_phone\(p_phone\)\)/, 'the door decides "demo" from something other than the demo markers');
+  const rev = src.match(/function public\.fn_trade_reveal_allowed\([\s\S]*?\$fn\$[\s\S]*?\$fn\$/)[0];
+  assert.match(rev, /v_fixture := public\.fn_inquiry_is_demo\(i\.id\)/, 'the reveal decides "demo" from something other than fn_inquiry_is_demo');
+  const tick = src.match(/function public\.fn_ceo_trade_opening_tick\([\s\S]*?\$fn\$[\s\S]*?\$fn\$/)[0];
+  assert.match(tick, /where sc\.confirmed_at is not null and not coalesce\(l\.is_demo, false\)/, 'the real opening state counts demo suppliers');
   assert.match(count, /confirmed_at is not null[\s\S]*fn_is_matchable\(/, 'the count is not the supply gap predicate (confirmed + matchable)');
   // hysteresis: opens at the threshold, closes only under the floor
   assert.match(src, /when o\.is_open then excluded\.verified_suppliers >= r\.floor_suppliers else excluded\.verified_suppliers >= excluded\.open_at/, 'opening/closing lost its hysteresis');
