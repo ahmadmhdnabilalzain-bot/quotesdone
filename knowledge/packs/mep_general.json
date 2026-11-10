@@ -463,14 +463,16 @@
       "body_en": "In the four northern emirates, electricity and water connections and load approvals are handled by Etihad Water and Electricity (EtihadWE, formerly FEWA), which took over FEWA's role under Federal Decree-Law No. 31 of 2020 and offers new service connections by consumption category and connection type. Building and MEP drawings are approved by each emirate's municipality (in Ras Al Khaimah, its municipality or public services department), and fire and life safety by civil defence under the UAE Fire and Life Safety Code. Free zones in these emirates approve works in their areas. Who obtains: a registered MEP contractor or consultant.",
       "body_ar": "في الإمارات الشمالية الأربع تتولى الاتحاد للماء والكهرباء (الهيئة الاتحادية للكهرباء والماء سابقاً) توصيلات الكهرباء والمياه واعتماد الأحمال، وقد تسلمت دور الهيئة الاتحادية بموجب المرسوم بقانون اتحادي رقم 31 لسنة 2020، وتقدم خدمة التوصيل الجديد حسب فئة الاستهلاك ونوع التوصيل. وتعتمد بلدية كل إمارة مخططات المبنى والأعمال الكهروميكانيكية (وفي رأس الخيمة بلديتها أو دائرة الخدمات العامة)، ويعتمد الدفاع المدني متطلبات السلامة وفق كود الإمارات للحماية من الحرائق. وتعتمد المناطق الحرة في هذه الإمارات الأعمال في مناطقها. من يحصل عليها: مقاول أعمال كهروميكانيكية مسجل أو استشاري.",
       "sources": [
-        "https://etihadwe.ae/en/About/Pages/About-Etihad-WE.aspx",
+        "https://www.etihadwe.ae/en/About/Pages/About-Etihad-WE.aspx",
         "https://www.etihadwe.ae/en",
-        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://u.ae/en/information-and-services/housing/public-utilities"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE was established in 2020 under Federal Decree-Law No. 31, replacing FEWA, serves Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah, and offers new service connections by consumption category and connection type, with a drawing approval service (etihadwe.ae, u.ae). Not confirmed on any reachable page: municipal approval of MEP drawings, civil defence approval and free-zone approvals. Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt)."
     },
     {
       "id": "mep_general:compare-quotes-cost-to-value",
@@ -592,8 +594,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 21,
-    "claims_checked": 116,
+    "fetched_urls": 24,
+    "claims_checked": 122,
     "corrected": [
       "mep_general:retention-dlp",
       "mep_general:bim-clash",
@@ -625,7 +627,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: mep_general:approvals-northern-emirates re-checked against official pages opened through the session network (3 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

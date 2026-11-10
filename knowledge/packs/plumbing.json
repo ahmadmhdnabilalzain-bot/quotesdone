@@ -917,17 +917,20 @@
       "kind": "authority_approval",
       "topic": "Plumbing approvals in Sharjah and the northern emirates",
       "topic_ar": "اعتمادات السباكة في الشارقة والإمارات الشمالية",
-      "body_en": "Sharjah: plumbing and drainage are approved with the building or modification permit by Sharjah Municipality, and water connection is through SEWA; the municipality issues an NOC for SEWA connection for dwelling units. Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah: the municipalities approve the drawings and EtihadWE provides water connections. Potable-water materials should be on the water authority's accepted list. Like-for-like repair in a private home needs no permit. Who obtains: the plumbing contractor or consultant.",
-      "body_ar": "في الشارقة: تُعتمد أعمال السباكة والصرف مع رخصة البناء أو التعديل من بلدية الشارقة، ويتم توصيل المياه عبر هيئة كهرباء ومياه وغاز الشارقة، وتصدر البلدية شهادة عدم ممانعة لتوصيل الهيئة للوحدات السكنية. في عجمان وأم القيوين ورأس الخيمة والفجيرة: تعتمد البلديات المخططات ويوفر الاتحاد للماء والكهرباء توصيلات المياه. ويجب أن تكون مواد مياه الشرب ضمن قائمة الجهة المقبولة. والإصلاح بالمثل في منزل خاص لا يحتاج إلى ترخيص. من يحصل عليها: مقاول السباكة أو الاستشاري.",
+      "body_en": "Sharjah: plumbing and drainage are approved with the building or modification permit by Sharjah Municipality, and water connection is through SEWA; the municipality issues an NOC for SEWA connection for dwelling units. Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah: the municipalities approve the drawings and EtihadWE provides water connections. Potable-water materials should be on the water authority's accepted list, and in Sharjah sewage and water pipes need Sharjah Municipality's Building Material Approval certificate. Like-for-like repair in a private home needs no permit. Who obtains: the plumbing contractor or consultant.",
+      "body_ar": "في الشارقة: تُعتمد أعمال السباكة والصرف مع رخصة البناء أو التعديل من بلدية الشارقة، ويتم توصيل المياه عبر هيئة كهرباء ومياه وغاز الشارقة، وتصدر البلدية شهادة عدم ممانعة لتوصيل الهيئة للوحدات السكنية. في عجمان وأم القيوين ورأس الخيمة والفجيرة: تعتمد البلديات المخططات ويوفر الاتحاد للماء والكهرباء توصيلات المياه. ويجب أن تكون مواد مياه الشرب ضمن قائمة الجهة المقبولة، وفي الشارقة تحتاج أنابيب الصرف والمياه إلى شهادة اعتماد مواد البناء من بلدية الشارقة. والإصلاح بالمثل في منزل خاص لا يحتاج إلى ترخيص. من يحصل عليها: مقاول السباكة أو الاستشاري.",
       "sources": [
-        "https://shjmun.gov.ae/servicedirectory/subServices/10",
+        "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
         "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
-        "https://www.etihadwe.ae/en"
+        "https://www.etihadwe.ae/en",
+        "https://www.sewa.gov.ae/en/about-us",
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e702"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: SEWA supplies water in Sharjah; EtihadWE supplies water in the northern emirates; Sharjah Municipality approves sewage and water pipes through its Building Material Approval certificate. Not confirmed on any reachable page: the municipality NOC for SEWA connection of dwelling units. Host(s) that could not be reached: portal.shjmun.gov.ae (blocked by the session network). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "plumbing:compare-quotes-cost-to-value",
@@ -1066,8 +1069,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 27,
-    "claims_checked": 210,
+    "fetched_urls": 31,
+    "claims_checked": 216,
     "corrected": [
       "plumbing:dubai-solar-water-heating-mandate",
       "plumbing:water-heater-energy-label",
@@ -1081,7 +1084,8 @@
       "plumbing:abu-dhabi-water-supply-regs",
       "plumbing:pressure-testing",
       "plumbing:abu-dhabi-tank-design-rules",
-      "plumbing:water-softeners"
+      "plumbing:water-softeners",
+      "plumbing:approvals-sharjah-northern"
     ],
     "removed": [],
     "still_unverified": [
@@ -1095,7 +1099,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: plumbing:approvals-sharjah-northern re-checked against official pages opened through the session network (4 URL(s) read, 6 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

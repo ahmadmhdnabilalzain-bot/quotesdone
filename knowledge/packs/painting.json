@@ -766,12 +766,14 @@
         "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
         "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
-        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit",
+        "https://www.dm.gov.ae/municipality-business/product-certification/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Al Sa'fat is mandatory for all new buildings in Dubai; Dubai Central Laboratory certifies low-emitting materials including paints, coatings, adhesives and sealants. Not confirmed on any reachable page: the Al Sa'fat VOC limits themselves, the DDA fit-out permit and civil defence approval of intumescent coatings. Host(s) that could not be reached: moei.gov.ae (blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt); dda.gov.ae (blocked by the session network)."
     },
     {
       "id": "painting:compare-quotes-cost-to-value",
@@ -924,8 +926,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 29,
-    "claims_checked": 74,
+    "fetched_urls": 31,
+    "claims_checked": 80,
     "corrected": [
       "painting:voc-green-building-uae",
       "painting:intumescent-vs-fire-retardant",
@@ -984,7 +986,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: painting:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }
