@@ -5,8 +5,8 @@
       "id": "tax_advisory:spec-checklist",
       "topic": "Tax advisory - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For tax advisory quotes to be compared like-for-like, every quoted line (services) must state: (1) tax type (VAT, corporate tax, excise); (2) scope (registration, returns, advisory, audit support, disputes); (3) entity details and number of entities; (4) FTA-registered tax agent; (5) period covered; (6) deliverables; (7) fee basis; (8) professional indemnity and confidentiality; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tax_advisory trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): tax type (VAT, corporate tax, excise); scope (registration, returns, advisory, audit support, disputes); entity details and number of entities; period covered; deliverables; fee basis. Before a firm price: returns and registrations can be priced firm from entity count and volume; advisory, health checks and disputes need the facts and documents, usually after a call or meeting, before a firm fee.",
-      "body_ar": "لكي تُقارن عروض الاستشارات الضريبية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع الضريبة (القيمة المضافة، أو ضريبة الشركات، أو الانتقائية)؛ (2) النطاق (تسجيل، أو إقرارات، أو استشارة، أو دعم تدقيق، أو منازعات)؛ (3) بيانات المنشأة وعددها؛ (4) وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب؛ (5) الفترة المشمولة؛ (6) المخرجات؛ (7) أساس الأتعاب؛ (8) تأمين المسؤولية المهنية والسرية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tax_advisory فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نوع الضريبة، والنطاق، وتفاصيل الكيانات والهيكل، والفترة، والمخرجات، وأساس الأتعاب. الإقرارات والتسجيلات تُسعّر من عدد الكيانات والحجم، أما الاستشارات والفحص والنزاعات فتحتاج الوقائع والمستندات بعد مكالمة أو اجتماع غالباً.",
+      "body_en": "For tax advisory quotes to be compared like-for-like, every quoted line (services) must state: (1) tax type (VAT, corporate tax, excise); (2) scope (registration, returns, advisory, audit support, disputes); (3) entity details and number of entities; (4) FTA-registered tax agent; (5) period covered; (6) deliverables; (7) fee basis; (8) professional indemnity and confidentiality; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tax_advisory trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): tax type (VAT, corporate tax, excise); scope (registration, returns, advisory, audit support, disputes); entity details and number of entities; period covered; deliverables; fee basis. Before a firm price: returns and registrations can be priced firm from entity count and volume; advisory, health checks and disputes need the facts and documents, usually after a call or meeting, before a firm fee. Supplier ask-back review (2026-11-10): the inquiry now also states Turnover and transaction volume (quote-blocking); State of the books and accounting system; Payment terms, so no supplier has to come back to the customer for them. deliverables is no longer quote-blocking: the scope already asked fixes what is delivered (returns, memo, filings); a separate answer adds no price detail. Quote-blocking after this review: tax type (VAT, corporate tax, excise); scope (registration, returns, advisory, audit support, disputes); entity details and number of entities; period covered; fee basis; Turnover and transaction volume.",
+      "body_ar": "لكي تُقارن عروض الاستشارات الضريبية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع الضريبة (القيمة المضافة، أو ضريبة الشركات، أو الانتقائية)؛ (2) النطاق (تسجيل، أو إقرارات، أو استشارة، أو دعم تدقيق، أو منازعات)؛ (3) بيانات المنشأة وعددها؛ (4) وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب؛ (5) الفترة المشمولة؛ (6) المخرجات؛ (7) أساس الأتعاب؛ (8) تأمين المسؤولية المهنية والسرية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tax_advisory فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نوع الضريبة، والنطاق، وتفاصيل الكيانات والهيكل، والفترة، والمخرجات، وأساس الأتعاب. الإقرارات والتسجيلات تُسعّر من عدد الكيانات والحجم، أما الاستشارات والفحص والنزاعات فتحتاج الوقائع والمستندات بعد مكالمة أو اجتماع غالباً. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً حجم الإيرادات وعدد المعاملات (مانع للتسعير)؛ حالة الدفاتر والنظام المحاسبي؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «المخرجات» مانعاً للتسعير: النطاق المطلوب أصلاً يحدد ما يُسلَّم من إقرارات أو مذكرات أو تقديمات؛ ولا يضيف بند منفصل معلومة للسعر.",
       "required_specs": [
         "tax type (VAT, corporate tax, excise)",
         "scope (registration, returns, advisory, audit support, disputes)",
@@ -18,7 +18,10 @@
         "professional indemnity and confidentiality",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Turnover and transaction volume",
+        "State of the books and accounting system",
+        "Payment terms"
       ],
       "sources": [
         "https://tax.gov.ae/en/services/tax.agents.aspx"
@@ -30,8 +33,8 @@
         "scope (registration, returns, advisory, audit support, disputes)",
         "entity details and number of entities",
         "period covered",
-        "deliverables",
-        "fee basis"
+        "fee basis",
+        "Turnover and transaction volume"
       ],
       "spec_guide": [
         {
@@ -74,7 +77,7 @@
           "why_needed_to_price": "Deliverables.",
           "uae_options": "returns; memo; filings",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "fee basis",
@@ -110,10 +113,31 @@
           "uae_options": "penalties; FTA fees",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "Turnover and transaction volume",
+          "why_needed_to_price": "Return preparation, corporate tax computations and health checks take time in proportion to revenue, the number of invoices and the number of bank accounts and related-party transactions.",
+          "uae_options": "Annual revenue band; invoices or transactions per month; number of bank accounts; related-party or intra-group transactions yes or no.",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "State of the books and accounting system",
+          "why_needed_to_price": "Books kept up to date on an accounting system can be reviewed quickly; books in arrears or on spreadsheets need clean-up first, which some advisers price in and others exclude.",
+          "uae_options": "Up to date on an accounting system; in arrears by a stated period; spreadsheets only; audited accounts available or not.",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "returns and registrations can be priced firm from entity count and volume; advisory, health checks and disputes need the facts and documents, usually after a call or meeting, before a firm fee.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "tax_advisory:uae-standards-and-approvals",

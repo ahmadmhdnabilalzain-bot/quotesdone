@@ -5,8 +5,8 @@
       "id": "tool_equipment_rental:spec-checklist",
       "topic": "Tool and equipment rental - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For tool and equipment rental quotes to be compared like-for-like, every quoted line (services) must state: (1) equipment type, model and capacity; (2) rental period and start date; (3) rate basis (daily, weekly, monthly); (4) with or without operator; (5) delivery and collection; (6) fuel and consumables; (7) third-party inspection certificate for lifting equipment; (8) insurance and damage liability; (9) breakdown replacement; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tool_equipment_rental trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): equipment type, model and capacity; rental period and start date; rate basis (daily, weekly, monthly); with or without operator; delivery and collection; fuel and consumables; third-party inspection certificate for lifting equipment; site location and access. Follow-up questions the answers trigger: equipment type, model and capacity: Generators bring the load profile and fuel tank size. rate basis (daily, weekly, monthly): Ask the hours per day and whether it runs nights. with or without operator: With operator brings the operator's licence/certificate, hours and overtime. Before a firm price: none; a firm rate is possible from the specs. Generator sizing for a new load may need the load list.",
-      "body_ar": "لكي تُقارن عروض تأجير الأدوات والمعدات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المعدات وطرازها وقدرتها؛ (2) مدة الإيجار وتاريخ البدء؛ (3) أساس السعر (يومي، أو أسبوعي، أو شهري)؛ (4) مع مشغل أو بدونه؛ (5) التسليم والاستلام؛ (6) الوقود والمستهلكات؛ (7) شهادة فحص من طرف ثالث لمعدات الرفع؛ (8) التأمين والمسؤولية عن الأضرار؛ (9) الاستبدال عند العطل؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tool_equipment_rental فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المعدة وطرازها وقدرتها، ومدة الإيجار وتاريخ البدء، وأساس السعر، ومع مشغل أم دونه، والتوصيل والاستلام، والوقود والمستهلكات، وشهادة الفحص من طرف ثالث لمعدات الرفع، وموقع العمل والوصول إليه. أسئلة المتابعة: المولدات تستلزم بيان الأحمال وسعة خزان الوقود، ويُسأل عن ساعات العمل اليومية والعمل الليلي، والإيجار مع مشغل يستلزم رخصة المشغل أو شهادته وساعاته والعمل الإضافي.",
+      "body_en": "For tool and equipment rental quotes to be compared like-for-like, every quoted line (services) must state: (1) equipment type, model and capacity; (2) rental period and start date; (3) rate basis (daily, weekly, monthly); (4) with or without operator; (5) delivery and collection; (6) fuel and consumables; (7) third-party inspection certificate for lifting equipment; (8) insurance and damage liability; (9) breakdown replacement; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tool_equipment_rental trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): equipment type, model and capacity; rental period and start date; rate basis (daily, weekly, monthly); with or without operator; delivery and collection; fuel and consumables; third-party inspection certificate for lifting equipment; site location and access. Follow-up questions the answers trigger: equipment type, model and capacity: Generators bring the load profile and fuel tank size. rate basis (daily, weekly, monthly): Ask the hours per day and whether it runs nights. with or without operator: With operator brings the operator's licence/certificate, hours and overtime. Before a firm price: none; a firm rate is possible from the specs. Generator sizing for a new load may need the load list. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. third-party inspection certificate for lifting equipment is no longer quote-blocking: the certificate is the supplier's to provide with the unit; the customer only states that one is required, which it always is for lifting equipment. Quote-blocking after this review: equipment type, model and capacity; rental period and start date; rate basis (daily, weekly, monthly); with or without operator; delivery and collection; fuel and consumables; site location and access.",
+      "body_ar": "لكي تُقارن عروض تأجير الأدوات والمعدات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المعدات وطرازها وقدرتها؛ (2) مدة الإيجار وتاريخ البدء؛ (3) أساس السعر (يومي، أو أسبوعي، أو شهري)؛ (4) مع مشغل أو بدونه؛ (5) التسليم والاستلام؛ (6) الوقود والمستهلكات؛ (7) شهادة فحص من طرف ثالث لمعدات الرفع؛ (8) التأمين والمسؤولية عن الأضرار؛ (9) الاستبدال عند العطل؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tool_equipment_rental فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المعدة وطرازها وقدرتها، ومدة الإيجار وتاريخ البدء، وأساس السعر، ومع مشغل أم دونه، والتوصيل والاستلام، والوقود والمستهلكات، وشهادة الفحص من طرف ثالث لمعدات الرفع، وموقع العمل والوصول إليه. أسئلة المتابعة: المولدات تستلزم بيان الأحمال وسعة خزان الوقود، ويُسأل عن ساعات العمل اليومية والعمل الليلي، والإيجار مع مشغل يستلزم رخصة المشغل أو شهادته وساعاته والعمل الإضافي. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «شهادة فحص طرف ثالث لمعدات الرفع» مانعاً للتسعير: الشهادة يقدّمها المورّد مع المعدة؛ ويكفي أن يذكر العميل أنها مطلوبة، وهي مطلوبة دائماً لمعدات الرفع.",
       "required_specs": [
         "equipment type, model and capacity",
         "rental period and start date",
@@ -20,7 +20,8 @@
         "contract duration and pricing basis",
         "service levels and response times",
         "exclusions",
-        "site location and access"
+        "site location and access",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/"
@@ -34,7 +35,6 @@
         "with or without operator",
         "delivery and collection",
         "fuel and consumables",
-        "third-party inspection certificate for lifting equipment",
         "site location and access"
       ],
       "spec_guide": [
@@ -82,7 +82,7 @@
         },
         {
           "spec": "third-party inspection certificate for lifting equipment",
-          "blocking": true,
+          "blocking": false,
           "why_needed_to_price": "Lifting equipment cannot be used without a valid certificate.",
           "uae_options": "Valid EIAC-accredited TPI certificate supplied with the unit.",
           "follow_up_if": ""
@@ -128,6 +128,13 @@
           "why_needed_to_price": "Location sets transport cost and permits.",
           "uae_options": "Emirate and area; access restrictions; free zone gate passes.",
           "follow_up_if": ""
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
