@@ -122,7 +122,7 @@ test('every conversation older than two hours has its PDF and its Dropbox queue 
   const q = `select public.fn_conversation_retention_breaches(interval '2 hours') as b`;
   const [r] = existsSync(join(ROOT, 'scripts/sql/pending/a_conversation_pdf_whose_message_was_deleted_is_counted_apart.txt'))
     ? await replaySql(readFileSync(join(ROOT, FIX), 'utf8') + '\n;\n' + q + ';', { retry: false, rows: true, label: 'conversation breaches (pending)' })
-    : await sql(q);
+    : await replaySql(q + ';', { retry: false, rows: true, label: 'conversation breaches' });
   const b = typeof r.b === 'string' ? JSON.parse(r.b) : r.b;
   assert.equal(Number(b.total), 0, 'not backed up: ' + JSON.stringify(b));
   if (Number(b.archived_source_gone) > 0) console.log(`INFO: ${b.archived_source_gone} archived PDF(s) whose message no longer exists, e.g. ${JSON.stringify(b.archived_source_gone_sample)}`);

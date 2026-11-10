@@ -96,7 +96,7 @@ test('the company block is complete, untruncated and carries every required fact
       (select supplier_reg_fee::text from public.pricing_config order by id limit 1) fee`;
   const [row] = budgetPending
     ? await replaySql(readFileSync(join(REPO, BUDGET), 'utf8') + '\n;\n' + q + ';', { retry: false, rows: true, label: 'company block (pending default budget)' })
-    : await sql(q);
+    : await replaySql(q + ';', { retry: false, rows: true, label: 'company block' });
   const c = typeof row.c === 'string' ? JSON.parse(row.c) : row.c;
 
   assert.equal(c.complete, true, `the block reports missing facts: ${JSON.stringify(c.missing)}`);
