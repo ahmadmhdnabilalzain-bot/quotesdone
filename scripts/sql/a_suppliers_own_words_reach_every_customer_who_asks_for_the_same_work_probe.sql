@@ -4,7 +4,9 @@
 -- raise exception 'CHK<<json>>', so every row it writes rolls back. session_replication_role = replica stops every trigger
 -- for this transaction only, so nothing it writes queues a message or a notice.
 --
--- ITS SUBJECTS CANNOT REACH A PERSON: the two matchable ZZ DEMO suppliers at @example.invalid that scripts/lib/demo_factory.mjs
+-- ITS SUBJECTS CANNOT REACH A PERSON: two matchable demo suppliers at @example.invalid that scripts/lib/demo_factory.mjs
+-- built, named 'ZZ DEMO ...' (makeSupplier) or 'QD Demo ...' (the bulk corpus, --corpus; 10 Nov 2026 the #1880 apply
+-- stopped here with only one ZZ DEMO left while 25 QD Demo corpus suppliers stood ready)
 -- built (it creates no supplier: an approved one needs the founder's mandatory six); their capability rows are rewritten here
 -- and roll back. No inquiry is created, nothing is matched into inquiry_matches, nothing is queued or sent. Every other
 -- supplier's capability and every lead are counted before and after and must not move.
@@ -94,7 +96,7 @@ begin
   -- their capability rows are rewritten for each row below and every change rolls back with the raise
   select array_agg(l.id order by l.id) into v_ids from (
     select l.id from public.leads l
-     where l.company_name ~* '^\s*zz\s*demo' and l.email like '%@example.invalid'
+     where l.company_name ~* '^\s*(zz|qd)\s*demo' and l.email like '%@example.invalid'
        and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)
      order by l.id limit 2) l;
   if coalesce(cardinality(v_ids), 0) < 2 then
