@@ -5,8 +5,8 @@
       "id": "laundry_services:spec-checklist",
       "topic": "Laundry services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For laundry services (trade code laundry_services only), every quoted line must state: Items and estimated volume; Process per item; Collection and delivery frequency; Turnaround time; Damage and loss liability; Pricing per piece or per kg; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): items and volume, process, collection frequency and turnaround. No site visit is needed.",
-      "body_ar": "في نشاط خدمات الغسيل (رمز النشاط laundry_services فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الأصناف والحجم التقديري؛ طريقة المعالجة لكل صنف؛ تكرار الاستلام والتسليم؛ مدة الإنجاز؛ المسؤولية عن التلف والفقد؛ التسعير بالقطعة أو بالكيلوغرام؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: القطع والكمية، ونوع المعالجة، وتكرار الاستلام، وزمن الإنجاز. ولا تلزم زيارة الموقع.",
+      "body_en": "For laundry services (trade code laundry_services only), every quoted line must state: Items and estimated volume; Process per item; Collection and delivery frequency; Turnaround time; Damage and loss liability; Pricing per piece or per kg; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): collection and delivery locations and emirate; items and volume, process, collection frequency and turnaround. No site visit is needed. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states collection and delivery locations and emirate.",
+      "body_ar": "في نشاط خدمات الغسيل (رمز النشاط laundry_services فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الأصناف والحجم التقديري؛ طريقة المعالجة لكل صنف؛ تكرار الاستلام والتسليم؛ مدة الإنجاز؛ المسؤولية عن التلف والفقد؛ التسعير بالقطعة أو بالكيلوغرام؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، والقطع والكمية، ونوع المعالجة، وتكرار الاستلام، وزمن الإنجاز. ولا تلزم زيارة الموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة.",
       "required_specs": [
         "Items and estimated volume",
         "Process per item",
@@ -19,7 +19,8 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "collection and delivery locations and emirate"
       ],
       "sources": [
         "https://www.dm.gov.ae/"
@@ -30,7 +31,8 @@
         "Items and estimated volume",
         "Process per item",
         "Collection and delivery frequency",
-        "Turnaround time"
+        "Turnaround time",
+        "collection and delivery locations and emirate"
       ],
       "spec_guide": [
         {
@@ -116,10 +118,18 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "collection and delivery locations and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": null
+      "site_visit_required_when": null,
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "laundry_services:uae-standards-and-approvals",

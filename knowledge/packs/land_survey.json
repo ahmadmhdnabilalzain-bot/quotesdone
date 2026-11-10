@@ -5,8 +5,8 @@
       "id": "land_survey:spec-checklist",
       "topic": "Land survey - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For land survey (trade code land_survey only), every quoted line must state: Survey type; Site area and location; Coordinate system and datum; Accuracy required; Surveyor licence; Deliverable formats; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Survey type; Site area and location; Surveyor licence; Deliverables and scope of work; Duration and schedule. Before a firm price: a firm price needs survey type, area and location; large, remote or marine sites need a site look or access check before a firm price.",
-      "body_ar": "في نشاط المساحة الأرضية (رمز النشاط land_survey فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المسح؛ مساحة الموقع ومكانه؛ نظام الإحداثيات والمرجع؛ الدقة المطلوبة؛ ترخيص المساح؛ صيغ المخرجات؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المسح، ومساحة الموقع وموقعه، والحاجة إلى مساح مرخص للتقديم للجهات، ونطاق العمل، والمدة. المواقع الكبيرة أو النائية أو البحرية تحتاج معاينة أو تحققاً من الوصول قبل السعر النهائي.",
+      "body_en": "For land survey (trade code land_survey only), every quoted line must state: Survey type; Site area and location; Coordinate system and datum; Accuracy required; Surveyor licence; Deliverable formats; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Survey type; Site area and location; Surveyor licence. Before a firm price: a firm price needs survey type, area and location; large, remote or marine sites need a site look or access check before a firm price. Not quote-blocking (the supplier states it, or quotes on its usual basis): Deliverables and scope of work; Duration and schedule.",
+      "body_ar": "في نشاط المساحة الأرضية (رمز النشاط land_survey فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المسح؛ مساحة الموقع ومكانه؛ نظام الإحداثيات والمرجع؛ الدقة المطلوبة؛ ترخيص المساح؛ صيغ المخرجات؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المسح، ومساحة الموقع وموقعه، والحاجة إلى مساح مرخص للتقديم للجهات. المواقع الكبيرة أو النائية أو البحرية تحتاج معاينة أو تحققاً من الوصول قبل السعر النهائي. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): نطاق العمل، والمدة.",
       "required_specs": [
         "Survey type",
         "Site area and location",
@@ -29,9 +29,7 @@
       "blocking": [
         "Survey type",
         "Site area and location",
-        "Surveyor licence",
-        "Deliverables and scope of work",
-        "Duration and schedule"
+        "Surveyor licence"
       ],
       "spec_guide": [
         {
@@ -81,7 +79,7 @@
           "why_needed_to_price": "Scope of work.",
           "uae_options": "written scope",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Licence and qualifications of the provider",
@@ -102,7 +100,7 @@
           "why_needed_to_price": "Duration and schedule.",
           "uae_options": "field days; delivery",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Pricing basis",
@@ -120,7 +118,8 @@
         }
       ],
       "site_visit_required_when": "a firm price needs survey type, area and location; large, remote or marine sites need a site look or access check before a firm price.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 0 spec(s) added, 2 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "land_survey:uae-standards-and-approvals",
