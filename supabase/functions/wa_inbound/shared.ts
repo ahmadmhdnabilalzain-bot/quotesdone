@@ -3,8 +3,10 @@
 // IT-engineer finding, the agent_runs logger and the throttled founder alert. Moved out of index.ts unchanged
 // (9 Nov 2026, customer_support: index.ts was one 1,589-line file); nothing here reads a request.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { inDbRegion } from '../_shared/db_region.ts';
 export const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-export const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
+// run in the database's region, not the caller's (_shared/db_region.ts: ~3 s of gateway work per call in us-east-1, ~0.4 s there)
+export const GATEWAY = inDbRegion(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway');
 export const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
 export async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
 // AN INTERNAL FAULT IS THE IT ENGINEER'S, NEVER THE CUSTOMER'S (22 Sep 2026). The person gets the

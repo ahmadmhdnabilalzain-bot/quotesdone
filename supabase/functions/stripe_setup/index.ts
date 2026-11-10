@@ -16,6 +16,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { HANDLED_STRIPE_EVENTS } from '../_shared/stripe_events.ts';
 import { observe } from '../_shared/observe.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { syncDomains, syncPaymentMethods } from './payment_methods.ts';
 import { BAD_TOKEN_LIMIT, BAD_TOKEN_WINDOW_MS, WEBHOOK_URL_SUFFIX, drift as driftFor, ours, planWebhookEnsure, sameSecret } from './webhook_plan.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -34,7 +35,7 @@ async function put(k:string,v:string){ await admin.from('app_secrets').upsert({ 
 const REQUIRED_EVENTS: string[] = [...HANDLED_STRIPE_EVENTS];
 
 async function stripe(path:string, sk:string, body?:URLSearchParams){
-  const r = await fetch('https://api.stripe.com/v1/'+path, {
+  const r = await timedFetch('https://api.stripe.com/v1/'+path, {
     method: body ? 'POST' : 'GET',
     headers: { 'Authorization':'Bearer '+sk, ...(body ? {'Content-Type':'application/x-www-form-urlencoded'} : {}) },
     body,
@@ -71,7 +72,7 @@ Deno.serve(observe('stripe_setup', async (req) => {
       const sk=await sec('stripe_secret_key');
       const mode = sk.startsWith('sk_live')?'LIVE':(sk.startsWith('sk_test')?'TEST':'none');
       if(!sk) return J({ ok:true, key_mode:'none' });
-      const ar=await fetch('https://api.stripe.com/v1/account',{headers:{'Authorization':'Bearer '+sk}}); const aj=await ar.json();
+      const ar=await timedFetch('https://api.stripe.com/v1/account',{headers:{'Authorization':'Bearer '+sk}}); const aj=await ar.json();
       return J({ ok:ar.ok, key_mode:mode, charges_enabled:aj?.charges_enabled??null, payouts_enabled:aj?.payouts_enabled??null, country:aj?.country||null, default_currency:aj?.default_currency||null });
     }
 
@@ -217,7 +218,7 @@ Deno.serve(observe('stripe_setup', async (req) => {
     const cur=await sec('stripe_secret_key');
     const mode = cur.startsWith('sk_live')?'LIVE':(cur.startsWith('sk_test')?'TEST':'none');
     let charges=null, payouts=null, country=null, cur3=null;
-    try{ const ar=await fetch('https://api.stripe.com/v1/account',{headers:{'Authorization':'Bearer '+cur}}); const aj=await ar.json(); charges=aj?.charges_enabled??null; payouts=aj?.payouts_enabled??null; country=aj?.country||null; cur3=aj?.default_currency||null; }catch(_e){}
+    try{ const ar=await timedFetch('https://api.stripe.com/v1/account',{headers:{'Authorization':'Bearer '+cur}}); const aj=await ar.json(); charges=aj?.charges_enabled??null; payouts=aj?.payouts_enabled??null; country=aj?.country||null; cur3=aj?.default_currency||null; }catch(_e){}
     return J({ ok:true, saved, warnings:warn, key_mode:mode, charges_enabled:charges, payouts_enabled:payouts, country, default_currency:cur3 });
   }catch(e){ return J({ ok:false, error:String((e as Error)?.message||e) },500); }
 }));

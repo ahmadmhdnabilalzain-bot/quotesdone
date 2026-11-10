@@ -14,7 +14,7 @@
 // changes nothing: the reply has already gone and the state stays as it was.
 // prevented by: supabase/functions/_shared/inquiry_reading.test.ts
 import { readSolution, solutionPatch, type Problem, type SolutionReading } from './solution_catalogue.ts';
-import { taxonomyBlock, validCodes, validServiceKeys, type TaxTrade, type TradeService } from './inquiry_trades.ts';
+import { placeTrades, taxonomyBlock, validCodes, validServiceKeys, type TaxTrade, type TradeService } from './inquiry_trades.ts';
 import type { StatePatch } from './inquiry_state.ts';
 
 export interface ReadingInput { taxonomy: TaxTrade[]; problems: Problem[]; services?: TradeService[]; lastSeat: string; message: string; heldCodes?: string[] }
@@ -46,7 +46,10 @@ export function parseReading(text: string | null | undefined, i: Pick<ReadingInp
   if (!m) return null;
   let o: Record<string, unknown>;
   try { o = JSON.parse(m[0]); } catch { return null; }
-  return { ...readSolution(o), trade_codes: validCodes(o.trade_codes, i.taxonomy), service_keys: validServiceKeys(o.service_keys, i.services) };
+  const codes = validCodes(o.trade_codes, i.taxonomy), keys = validServiceKeys(o.service_keys, i.services);
+  // The placement follows the services, as in the request chat (inquiry_trades.ts placeTrades, finding b1 of 10 Nov 2026).
+  const placed = codes.length ? placeTrades(codes, keys) : null;
+  return { ...readSolution(o), trade_codes: placed?.by === 'services' ? placed.codes : codes, service_keys: placed?.by === 'services' ? placed.keys : keys };
 }
 
 /** The state patch of a reading: the solution half (solution_catalogue.solutionPatch) plus the trade codes, and the service

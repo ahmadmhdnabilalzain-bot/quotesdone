@@ -1,0 +1,7 @@
+PASS [fixtures] fixtures of runs that are over are removed before this run starts — none left behind
+PASS [fixtures] demo customer complete (name, 18+ DOB, email+mobile verified, current terms signed) — is_demo=true dob=1990-01-15 email_verified=true phone_verified=true terms=v11/v11 signed=false
+FAIL [run] fixture setup failed — Error: demo supplier 156068: services_save_rewrite failed HTTP 500 {"error":"services_rewrite_write_failed","code":"services_rewrite_write_failed","detail":"can
+PASS [cleanup] zero leftovers — removed: notifications 4, comparison_candidate_v2 (table no longer exists) 0, agent_actions 3, documents 2, company_event (lead) 1, supplier_capabilities (fk su
+{"version":1,"ok":false,"complete":false,"truncated":false,"harness_signed_out":null,"tag":"e7ce0514","site":"https://quotesdone.com","project":"htdblwldjkcgjvmqkbeh","started":"2026-11-10T14-20-25","seconds":347,"journeys":["f"],"kept":false,"pass":3,"fail":1,"held":0,"skip":0,"report":"/tmp/claude-0/walks-out/f/2026-11-10T14-20-25/report.md","purge":null,"result":"/tmp/claude-0/walks-out/f/2026-11-10T14-20-25/result.json"}
+
+E2E 3 passed, 1 failed, 0 held, 0 skipped - report /tmp/claude-0/walks-out/f/2026-11-10T14-20-25/report.md

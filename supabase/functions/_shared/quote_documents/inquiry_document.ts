@@ -51,7 +51,7 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
   const date = (ar ? args.date_ar : args.date) || k.today();
   const trade = ar ? (arCategory(i.category) ?? k.loc(i.category).text) : enCategory(i.category);
   const emirate = ar ? (arEmirate(i.emirate) ?? k.loc(i.emirate).text) : String(i.emirate || '');
-  const received = i.created_at ? new Date(i.created_at).toLocaleDateString(ar ? 'ar-AE-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+  const received = i.created_at ? new Date(i.created_at).toLocaleDateString(ar ? 'ar-AE-u-nu-latn' : 'en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'long', year: 'numeric' }) : '—';
   // Customer free text: the reasoned Arabic, like the supplier's (see loc).
   const cust = (v: unknown, max: number): { text: string; sub?: string } => k.loc(v, max);
   const summary = cust(i.summary, 800);

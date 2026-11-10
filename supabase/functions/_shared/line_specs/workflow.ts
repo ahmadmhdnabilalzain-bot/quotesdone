@@ -30,7 +30,7 @@
 //
 // Written against a small repository interface so the workflow test runs entirely in memory: no
 // database, no network, and therefore no way to reach a real supplier.
-import { approvalNotice, assessQuote, validityOf, holdNotice, lineText, releasedNotice, SEAT, termItem, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
+import { approvalNotice, assessQuote, validityOf, holdNotice, lineText, releasedNotice, SEAT, SPEC_ATTR, termItem, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
 import { TRADES, type Attr } from './model.ts';
 import { applyReading, type QuoteReading } from '../reasoned_matching.ts';
 import { needsChecklist, withReasoned } from './reasoned_specs.ts';
@@ -234,20 +234,111 @@ export function termsAsked(missing: MissingItem[]): MissingItem[] {
   return terms;
 }
 
-/** What the supplier's fill-in form shows: every missing detail, with the values already read beside it. */
-export function formSchema(a: Assessment, _lines: Line[]) {
+// ── THE FORM IS THE RELEASE'S OWN QUESTION LIST (evidence run of 10 Nov 2026, ledger 1604, finding a) ──────────────
+// Four suppliers filled every field spec_hold showed, spec_fill answered complete:true, and spec_approve answered 409
+// still_missing: its precheck (the release review, supplier_api quote_review) asked line 1 and line 2 their exact
+// `specification`, which the form built from deskAssess alone had never shown, and the hold went back to open with
+// those items on it — still not on the form. So the desk now asks exactly what the release checks:
+//   * the form is deskAssess's missing PLUS every item the hold carries that is still open (openHeld) — the
+//     release review's items included, SPEC_ATTR included;
+//   * fillIn accepts and stores each such item: a line item on the line's spec, a desk term as before, and a
+//     release-review item (the VAT basis, prices in AED, why a BOQ line is unpriced or measured differently, what
+//     a total difference is) as the supplier's answer on the hold, which the release review then reads;
+//   * fillIn runs the release check itself before it says complete, so complete:true is the release's verdict.
+// An item is only ever accepted because the hold asked it: the hold is written by this desk, never by the caller.
+
+/** A release-review answer the supplier gave on the desk, keyed by the hold item's attr. */
+export type DeskAnswers = Record<string, string>;
+/** Not a field: a notice that the release review could not run (try again), or a revised quotation (itemised lines). */
+const NOT_A_FIELD = new Set(['review_unavailable', 'line_items']);
+/** The quote-level details deskAssess itself decides; an item with one of these attrs is open exactly when it is in `a.missing`. */
+const isDeskTerm = (attr: string) => ['delivery', 'installation_included', 'installation_detail', 'warranty_period', 'warranty_coverage', 'validity', 'price_ex_vat', 'line_items'].includes(attr) || attr.startsWith('component:');
+const itemKey = (m: Pick<MissingItem, 'scope' | 'line_no' | 'attr'>) => `${m.scope}|${m.scope === 'line' ? m.line_no : ''}|${m.attr}`;
+
+/** Every answer the supplier gave to a release-review item on this hold, the latest winning. */
+export function answersOf(hold: Pick<HoldRow, 'supplier_values'> | null | undefined): DeskAnswers {
+  const out: DeskAnswers = {};
+  for (const e of (Array.isArray(hold?.supplier_values) ? hold!.supplier_values : []) as { answers?: unknown }[]) {
+    if (e && e.answers && typeof e.answers === 'object' && !Array.isArray(e.answers)) for (const [k, v] of Object.entries(e.answers as Record<string, unknown>)) if (typeof v === 'string' && v.trim()) out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * The held items that are still open and that deskAssess does not already ask: a line item whose attribute is not
+ * one of the line's own (SPEC_ATTR on a line the desk read, a review's line detail) and is still blank on the line;
+ * a release-review term the supplier has not answered. A desk term is decided by `a` alone (it is in a.missing or
+ * it is answered), and a notice (review_unavailable) is never a field.
+ */
+export function openHeld(held: MissingItem[] | null | undefined, a: Assessment, lines: Line[], answers: DeskAnswers): MissingItem[] {
+  const asked = new Set(a.missing.map(itemKey));
+  const seen = new Set<string>();
+  const out: MissingItem[] = [];
+  for (const m of Array.isArray(held) ? held : []) {
+    const k = itemKey(m);
+    if (!m || asked.has(k) || seen.has(k) || NOT_A_FIELD.has(m.attr)) continue;
+    if (m.scope === 'line') {
+      const lr = a.lines.find((x) => x.line_no === m.line_no);
+      if (lr?.defs.some((d) => d.code === m.attr)) continue;              // the desk asks this attribute of the line itself
+      const l = lines.find((x) => x.line_no === m.line_no);
+      if (!l) continue;                                                    // the line is gone (a revised quotation)
+      if (String(l.spec?.[m.attr] ?? '').trim()) continue;                 // answered on the line
+      if (m.attr === SPEC_ATTR.code && String(l.specification ?? '').trim().length >= 2) continue;   // the line states it
+    } else {
+      if (isDeskTerm(m.attr)) continue;
+      if (answers[m.attr]) continue;
+    }
+    seen.add(k); out.push(m);
+  }
+  return out;
+}
+
+/** The attribute a held line item is filled in as: SPEC_ATTR for `specification`, otherwise the item's own words. */
+const heldAttr = (m: MissingItem): Attr => m.attr === SPEC_ATTR.code ? SPEC_ATTR
+  : { code: m.attr, en: m.label_en, ar: m.label_ar, type: m.type === 'number' ? 'number' : 'text', mandatory: true, ...(m.unit ? { unit: m.unit, unit_ar: m.unit_ar } : {}) };
+
+/** One release-review answer, by the SHAPE of what was typed: a listed choice exactly, else a statement with substance. */
+export function validateAnswer(m: MissingItem, raw: unknown): { ok: true; value: string } | { ok: false; code: FillError['code'] } {
+  const v = String(raw ?? '').replace(/\s+/g, ' ').trim();
+  if (m.options?.length) return m.options.includes(v) ? { ok: true, value: v } : { ok: false, code: 'vague' };
+  if (!v || !/[\p{L}\p{N}]/u.test(v) || v.length < 2) return { ok: false, code: 'vague' };
+  if (v.length > 200) return { ok: false, code: 'too_long' };
+  if (m.type === 'number') { const n = Number(v.replace(/[^\d.]/g, '')); return n > 0 ? { ok: true, value: String(n) } : { ok: false, code: 'not_a_number' }; }
+  return { ok: true, value: v };
+}
+
+/** What the supplier's fill-in form shows: every missing detail, with the values already read beside it, and every
+ * open item the hold carries (`extra`, from openHeld) — so the form is the set the release checks. */
+export function formSchema(a: Assessment, _lines: Line[], extra: MissingItem[] = []) {
+  const field = (x: Attr, l: { spec: Record<string, string>; missing: string[] }) => ({ attr: x.code, label_en: x.en, label_ar: x.ar, type: x.type, unit: x.unit ?? null, unit_ar: x.unit_ar ?? null, options: x.options ?? null, mandatory: x.mandatory, value: l.spec[x.code] ?? null, missing: l.missing.includes(x.code) });
+  const lines = a.lines.filter((l) => l.material && l.defs.length).map((l) => ({
+    line_no: l.line_no, description: l.description, trade: l.trade, trade_en: l.trade ? TRADES[l.trade].en : null, trade_ar: l.trade ? TRADES[l.trade].ar : null,
+    fields: l.defs.map((x) => field(x, l)),
+  }));
+  for (const m of extra.filter((x) => x.scope === 'line')) {
+    let entry = lines.find((x) => x.line_no === m.line_no);
+    if (!entry) {
+      const lr = a.lines.find((x) => x.line_no === m.line_no);
+      entry = { line_no: Number(m.line_no), description: lr?.description ?? m.description ?? '', trade: lr?.trade ?? null, trade_en: null, trade_ar: null, fields: [] };
+      lines.push(entry);
+    }
+    if (!entry.fields.some((f) => f.attr === m.attr)) entry.fields.push({ ...field(heldAttr(m), { spec: {}, missing: [m.attr] }) });
+  }
+  lines.sort((x, y) => x.line_no - y.line_no);
+  const terms = termsAsked(a.missing);
+  for (const m of extra.filter((x) => x.scope === 'quote' && !NOT_A_FIELD.has(x.attr))) if (!terms.some((t) => t.attr === m.attr)) terms.push(m);
   return {
-    lines: a.lines.filter((l) => l.material && l.defs.length).map((l) => ({
-      line_no: l.line_no, description: l.description, trade: l.trade, trade_en: l.trade ? TRADES[l.trade].en : null, trade_ar: l.trade ? TRADES[l.trade].ar : null,
-      fields: l.defs.map((x) => ({ attr: x.code, label_en: x.en, label_ar: x.ar, type: x.type, unit: x.unit ?? null, unit_ar: x.unit_ar ?? null, options: x.options ?? null, mandatory: x.mandatory, value: l.spec[x.code] ?? null, missing: l.missing.includes(x.code) })),
-    })),
-    terms: termsAsked(a.missing),
-    needs_itemised_lines: a.missing.some((m) => m.attr === 'line_items'),
+    lines,
+    terms,
+    needs_itemised_lines: a.missing.some((m) => m.attr === 'line_items') || extra.some((m) => m.attr === 'line_items'),
     values: a.terms,
   };
 }
 
 export type FillValues = { lines?: Record<string, Record<string, unknown>>; terms?: Record<string, unknown> };
+/** The release check (supplier_api's quotation review), asked by fillIn before it says complete and by approve before
+ * it releases. It reads the stored quote and the supplier's desk answers; null means release. */
+export type Precheck = (q: QuoteRow, answers: DeskAnswers) => Promise<{ missing: MissingItem[]; issues?: unknown[] } | null>;
 export type Standardised = {
   contract: 'standardised_quotation'; version: 1; quote_id: string; option_no: number; category: string | null; trade: string; currency: 'AED';
   /** The price EXCLUDING VAT. No VAT amount, VAT treatment or TRN is ever on this record. */
@@ -327,7 +418,7 @@ export type Render = (s: Standardised) => Promise<{ bucket: string; path: string
 export const arabicPending = (h: HoldRow | null | undefined) => !!(h?.regenerated && (h.regenerated as { arabic_pending?: boolean }).arabic_pending === true);
 
 /** WAY OUT (a): the supplier fills in what was missing on the portal. */
-export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier, values: FillValues, ctx: Ctx, render?: Render) {
+export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier, values: FillValues, ctx: Ctx, render?: Render, precheck?: Precheck) {
   const q = await repo.quote(quoteId);
   if (!q || Number(q.supplier_id) !== Number(supplier.id)) return { ok: false as const, code: 'not_found' as const };
   const hold = await repo.liveHold(quoteId);
@@ -335,12 +426,17 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const lines = await repo.lines(quoteId);
   const a0 = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity, nowOf(ctx));
   const errors: FillError[] = [];
+  // What the hold carries is asked too (the release review's items): each is accepted exactly as the form offered it.
+  const held: MissingItem[] = Array.isArray(hold.missing) ? hold.missing : [];
+  const prior = answersOf(hold);
+  const answers: DeskAnswers = {};
   const next = lines.map((l) => ({ ...l, spec: { ...(l.spec ?? {}) }, spec_source: { ...(l.spec_source ?? {}) } }));
   for (const [ln, vals] of Object.entries(values.lines ?? {})) {
     const lr = a0.lines.find((x) => x.line_no === Number(ln)); const l = next.find((x) => x.line_no === Number(ln));
     for (const [attr, raw] of Object.entries(vals ?? {})) {
       if (raw == null || String(raw).trim() === '') continue;
-      const def = lr?.defs.find((x) => x.code === attr);
+      const hi = held.find((m) => m.scope === 'line' && Number(m.line_no) === Number(ln) && m.attr === attr);
+      const def = lr?.defs.find((x) => x.code === attr) ?? (hi ? heldAttr(hi) : undefined);
       if (!def || !l) { errors.push({ scope: 'line', line_no: Number(ln), attr, code: 'unknown_attribute' }); continue; }
       const v = validateLineValue(def, raw);
       if (!v.ok) { errors.push({ scope: 'line', line_no: Number(ln), attr, code: v.code }); continue; }
@@ -350,6 +446,8 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const t = values.terms ?? {}; const tv: Record<string, string> = {};
   for (const [attr, raw] of Object.entries(t)) {
     if (raw == null || String(raw).trim() === '') continue;
+    const hi = held.find((m) => m.scope === 'quote' && m.attr === attr && !isDeskTerm(attr) && !NOT_A_FIELD.has(attr));
+    if (hi) { const v = validateAnswer(hi, raw); if (!v.ok) errors.push({ scope: 'quote', line_no: null, attr, code: v.code }); else answers[attr] = v.value; continue; }
     const v = validateTerm(attr, raw, nowOf(ctx));
     if (!v.ok) errors.push({ scope: 'quote', line_no: null, attr, code: v.code }); else tv[attr] = v.value;
   }
@@ -371,17 +469,37 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   }
   for (const [attr, v] of Object.entries(tv)) if (attr.startsWith('component:')) ts.components = { ...(ts.components ?? {}), [attr.slice('component:'.length)]: { value: v, source: 'supplier_portal' } };
   if (tv.price_ex_vat) { const n = Number(tv.price_ex_vat); patch.price_ex_vat = n; patch.quote_amount = n; patch.vat_treatment = 'confirmed_on_portal'; }
+  // The VAT basis, answered on the desk: stored where the release review reads it (quotes.vat_treatment). A total
+  // that excludes VAT, or a supplier not registered, is itself the ex-VAT figure (quote_review corrections.ts, the chat's rule).
+  else if (answers.vat) {
+    patch.vat_treatment = answers.vat;
+    if (answers.vat !== 'inclusive' && !(Number(q.price_ex_vat) > 0) && Number(q.quote_amount) > 0) patch.price_ex_vat = Number(q.quote_amount);
+  }
   patch.terms_spec = ts;
   const changed = next.filter((l, i) => JSON.stringify(l.spec) !== JSON.stringify(lines[i].spec ?? {})).map((l) => ({ line_no: l.line_no, spec: l.spec, spec_source: l.spec_source as Record<string, string> }));
   if (changed.length) await repo.saveLineSpecs(quoteId, changed);
   await repo.updateQuote(quoteId, patch);
-  const history = [...(hold.supplier_values ?? []), { at: nowIso(ctx), by: 'supplier', values }];
+  const history = [...(hold.supplier_values ?? []), { at: nowIso(ctx), by: 'supplier', values, ...(Object.keys(answers).length ? { answers } : {}) }];
+  const allAnswers = { ...prior, ...answers };
 
   const q1 = { ...q, ...patch } as QuoteRow;
   const a1 = deskAssess({ category: ctx.category, lines: next, terms: q1, requirements: ctx.requirements, checklist: ctx.checklist }, q1.validity, nowOf(ctx));
-  if (a1.held) {
-    await repo.updateHold(hold.id, { missing: a1.missing, state: 'open', supplier_values: history });
-    return { ok: true as const, complete: false as const, missing: a1.missing, schema: formSchema(a1, next) };
+  const still = openHeld(held, a1, next, allAnswers);
+  if (a1.held || still.length) {
+    const missing = [...a1.missing, ...still];
+    await repo.updateHold(hold.id, { missing, state: 'open', supplier_values: history });
+    return { ok: true as const, complete: false as const, missing, schema: formSchema(a1, next, still) };
+  }
+  // COMPLETE IS THE RELEASE'S VERDICT: the release check runs here, on the row as now stored, before the desk says
+  // complete. What it asks goes on the hold and on the form, so approve() can never ask a thing the form did not offer.
+  if (precheck) {
+    const pre = await precheck(q1, allAnswers);
+    if (pre && pre.missing.length) {
+      const extra = openHeld(pre.missing, a1, next, allAnswers);
+      const missing = [...pre.missing];
+      await repo.updateHold(hold.id, { missing, state: 'open', supplier_values: history });
+      return { ok: true as const, complete: false as const, missing, schema: formSchema(a1, next, extra.length ? extra : pre.missing), review_issues: pre.issues ?? null };
+    }
   }
   // Complete: the sales engineer regenerates the standardised quotation and asks the supplier to approve it.
   const record = standardise(q1, next, a1, ctx);
@@ -428,7 +546,7 @@ export async function finishArabic(repo: SpecRepo, quoteId: string, supplier: Su
 // not_awaiting_approval and the desk is shut with the quote unsent and nothing named to fix. A
 // precheck that returns items puts the hold back to 'open' carrying them, exactly as `a.held` does
 // above, so the supplier sees what to do and can fill it in. Returning null means release.
-export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplier, actorEmail: string, confirm: unknown, ctx: Ctx, accept: (q: QuoteRow) => Promise<boolean>, precheck?: (q: QuoteRow) => Promise<{ missing: MissingItem[]; issues?: unknown[] } | null>) {
+export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplier, actorEmail: string, confirm: unknown, ctx: Ctx, accept: (q: QuoteRow) => Promise<boolean>, precheck?: Precheck) {
   const q = await repo.quote(quoteId);
   if (!q || Number(q.supplier_id) !== Number(supplier.id)) return { ok: false as const, code: 'not_found' as const };
   const hold = await repo.liveHold(quoteId);
@@ -440,7 +558,7 @@ export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplie
   const a = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity, nowOf(ctx));
   if (a.held) { await repo.updateHold(hold.id, { state: 'open', missing: a.missing }); return { ok: false as const, code: 'still_missing' as const, missing: a.missing }; }
   if (precheck) {
-    const pre = await precheck(q);
+    const pre = await precheck(q, answersOf(hold));
     if (pre) {
       await repo.updateHold(hold.id, { state: 'open', missing: pre.missing });
       return { ok: false as const, code: 'still_missing' as const, missing: pre.missing, review_issues: pre.issues ?? null };

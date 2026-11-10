@@ -96,6 +96,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [deno --node-modules-dir=auto breaks next build (9 Nov)](deno-node-modules-auto-breaks-next-build.md) — two Reacts → useContext null on /_global-error; rm -rf node_modules && npm ci; use =none in a shared tree
 - [Docker and a local database in a cloud session (9 Nov)](docker-and-a-local-database-in-a-cloud-session.md) — dockerd &, mirror.gcr.io, --network=host + CA secret; `npm run db:local` rebuilds the whole public schema and measures it
 - [Checks read split code through a sources helper; oxlint not ESLint (9 Nov)](checks-read-split-code-through-a-sources-helper.md) — functionSource()/portal_sources; arabic hashes keyed by path; typescript-eslint refuses TS 7
+- [The database map is generated; regenerate it (10 Nov)](the-database-map-is-generated-and-must-be-regenerated.md) — docs/architecture/database/, scripts/architecture/database_map.mjs, npm test fails when stale or unmapped; canonical rule in scripts/lib/canonical_routines.mjs
 - [Identity shapes live in one list (3 Nov)](identity-shapes-live-in-one-list.md) — every scrubber runs _shared/identity_text.ts; measure with identity_never_leaks_before_reveal.mjs (480 trials)
 - [A brand is generalised at the customer door (10 Nov)](a-brand-is-generalised-at-the-customer-door-not-in-the-supplier-copy.md) — ledger 1588-1590: quote_generalise.ts on every pre-reveal surface, raw brand kept for the hold gate; review notes EN/AR; 24-trade corpus + pack-prose over-redaction
 - [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
@@ -130,7 +131,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A merge chain must read status contexts by state](a-merge-chain-must-read-status-contexts-by-state.md) — Vercel has state, no status/conclusion; gate the merge on 0 pending + 0 failed
 - [Parallel helpers need their own scratch folders](parallel-helpers-need-their-own-scratch-folders.md) — same-named q.mjs got overwritten; one helper ran another's script against production
 - [Post-deploy smokes overlap manual E2E](post-deploy-smokes-overlap-manual-e2e.md) — every main deploy starts a production E2E smoke; check none is running before a manual E2E
-- [Chromium in the cloud container cuts a request at ~30 s](chromium-in-the-cloud-container-cuts-requests-at-30-seconds.md) — 27 Oct: net::ERR_FAILED/MissingAllowOriginHeader while the server answers 200; check function_edge_logs and repeat from Node before calling it a defect; teardown needs 4-12 min
+- [Chromium in the cloud container cuts a request at ~30 s](chromium-in-the-cloud-container-cuts-requests-at-30-seconds.md) — 27 Oct: net::ERR_FAILED/MissingAllowOriginHeader while the server answers 200; check function_edge_logs and repeat from Node before calling it a defect; teardown needs 4-12 min; 10 Nov: QD_ROUTE_FUNCTIONS_VIA_NODE=1 routes the page's calls through Node
 - [An edge function has a CPU cap a deadline doesn't bound](an-edge-function-has-a-cpu-cap-a-deadline-does-not-bound.md) — #686's escaping hit 546 CPU-exceeded; the kill skips every finding path, so the job hung silently
 - [A dry run doesn't parse a file whose dependencies aren't live](a-dry-run-does-not-parse-a-file-whose-dependencies-are-not-live.md) — two extra `)` found only at apply
 - [Agent worktrees fill the founder's disk](agent-worktrees-fill-the-founders-disk.md) — 22 Sep: 341 × ~1 GB left 46 GB free; remove each worktree when its PR merges
@@ -143,7 +144,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [agent_runs is a cron log, not an employee log](agent-runs-is-a-cron-log-not-an-employee-log.md)
 - [No job or task without an agent](no-job-or-task-without-an-agent.md) — his rule, 7 Sep
 - [The org is two agents and no departments](the-org-is-two-agents-and-no-departments.md) — 7 Sep; since grown to 5 seats (ceo, customer_support, sales_engineer, accountant, it_engineer)
-- [CI green is not npm test green](ci-green-does-not-mean-npm-test-green.md) — the checks job has no token
+- [CI green is not npm test green](ci-green-does-not-mean-npm-test-green.md) — the checks job has no token; 10 Nov: the offline gate skips node checks, so run the ones naming a changed file and diff the failure set with main
 - [Checks retired with their subject](checks-retired-with-their-subject.md) — 13 retired; never soften a check to green
 - [Apify paused until ~Feb 2027](apify-paused-until-2027.md)
 - [The OS dashboard is still basic](os-dashboard-still-basic.md)
@@ -193,6 +194,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Build history index](build-history-index.md) — older build-state pointers (portal spec, audits, loop, funnel, knowledge plan)
 - [Idle LLM spend ≤ USD 1-2/day](idle-llm-spend-max-two-dollars.md) — 24 Sep, instr 986: internal-only ceiling ~AED 7; verify on production
 - [A chat turn is one streamed call on a clock](a-chat-turn-is-one-streamed-call-on-a-clock.md) — 27 Oct: portal turns 58-150 s + a 504 from think()'s serial calls; one conversation-route call, PORTAL_TURN_MS, client never r.json()s raw
+- [An edge call runs where its caller is](an-edge-call-runs-where-its-caller-is.md) — 10 Nov: WhatsApp p50 32 s; Twilio enters at us-east-1, DB is ap-southeast-1: gateway pre-provider p50 3.3 s vs 0.36 s; pin with _shared/db_region.ts inDbRegion
 - [An intake turn runs on one clock](an-intake-turn-runs-on-one-clock.md) — 27 Oct: interview turns 72-130 s (p95 98.5 s) vs a 30 s portal wait from think()'s serial exact-spec chain; 24 s clock, slow reads start alongside, portal retries with turn_id
 - [Chat model candidates only](chat-model-candidates-only.md) — 13 Oct, ledger 1217: Sonnet 5.5 / GPT-6.1 Sol / GPT-6 Luna Pro only; same price = always Pro (1218); never name the two excluded models to him
 - [Microsoft 365 app already exists](m365-app-already-exists.md) — 18 Oct: reuse the quotesdone.com M365 app (M365_* edge secrets); never ask him to register a new one

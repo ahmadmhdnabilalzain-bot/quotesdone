@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 import { LayoutDashboard, FileText, Files, MessagesSquare, FolderKanban, Sparkles, Building2, UserCircle, Boxes, Compass } from 'lucide-react';
 

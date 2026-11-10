@@ -1,14 +1,14 @@
-// @ts-nocheck
 'use client';
 import { boqNote, confidenceWord } from '@/lib/boqNotes';
 import { t, tf } from '../portalText';
 
 // The BOQ the reader pulled off the drawing, before Send. The customer is the only person who can
 // say it was read wrong, and they were shown a line count and nothing else.
-export function BoqTable({ boq, lang }) {
+// `boq` is the drawing reader's JSON as the server returns it; it has no declared type yet.
+export function BoqTable({ boq, lang }: { boq: any; lang: string }) {
   const rows = boq.boq.slice(0, 40);
-  const conf = (c) => confidenceWord(c, lang);
-  const list = (x) => (Array.isArray(x) ? x : x ? [x] : []).map((v) => (typeof v === 'string' ? v : v && (v.text || v.item || v.note || JSON.stringify(v)))).filter(Boolean);
+  const conf = (c: unknown) => confidenceWord(c, lang);
+  const list = (x: unknown): string[] => (Array.isArray(x) ? x : x ? [x] : []).map((v: any) => (typeof v === 'string' ? v : v && (v.text || v.item || v.note || JSON.stringify(v)))).filter(Boolean);
   const assumptions = list(boq.assumptions).map((s) => boqNote(s, lang)), missing = list(boq.missing_info).map((s) => boqNote(s, lang));
   return (
     <div className="rounded-2xl border border-border bg-card/60 p-3.5">
@@ -24,7 +24,7 @@ export function BoqTable({ boq, lang }) {
             <th scope="col" className="px-2.5 py-1.5 text-start font-semibold">{t(lang, 'nr_boq_unit')}</th>
             <th scope="col" className="px-2.5 py-1.5 text-end font-semibold">{t(lang, 'nr_boq_conf')}</th>
           </tr></thead>
-          <tbody>{rows.map((r, i) => (
+          <tbody>{rows.map((r: any, i: number) => (
             <tr key={i} className="border-t border-border/60">
               <td className="px-2.5 py-1.5 text-foreground">{r.description || r.item || r.name || '—'}</td>
               <td className="tabular px-2.5 py-1.5 text-end font-mono text-foreground">{r.qty ?? r.quantity ?? '—'}</td>

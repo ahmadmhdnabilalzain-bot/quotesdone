@@ -24,6 +24,7 @@ import { LevelledRows, Comparison } from './Comparison';
 import { QuoteCard } from './QuoteCard';
 import { Timeline, RequestTracker, QuoteSpread } from './Progress';
 import { DetailFacts } from './DetailFacts';
+import { SeparateQuotesAsk } from './SeparateQuotesAsk';
 
 function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, linkQuote }) {
   if (inq.is_combined && Array.isArray(inq.children)) { return (<Card id={'inq-' + inq.id} className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? ((inq.children.length === 2 ? 'طلبان منفصلان' : inq.children.length + (inq.children.length <= 10 ? ' طلبات منفصلة' : ' طلبًا منفصلًا')) + ' إلى موردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} terms={terms} focusQuote={focusQuote} focusInq={focusInq} linkQuote={linkQuote} />)}</div></Card>); }
@@ -151,6 +152,9 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
       {quotes.length >= 2 && <Comparison inqId={inq.id} token={token} lang={lang} />}
       {/* reached===0 is its own outcome here, never encouragement: matched_suppliers says which. */}
       <DiscoveryReachPanel inquiry={inq} lang={lang === 'ar' ? 'ar' : 'en'} />
+      {/* A request for one contractor that no single contractor matched: the customer is asked whether they want
+          separate quotes per trade (finding c of 10 Nov 2026; rulings 1021, 1025). Never split without their answer. */}
+      {inq.separate_quotes && !(Number(inq.matched_suppliers) > 0) ? <SeparateQuotesAsk inquiryId={inq.id} specialists={Number(inq.separate_quotes.specialists) || 0} lang={lang} token={token} call={call} onPosted={() => onChange()} /> : null}
       {quotes.length > 0
         // THE LEVELLED FRAME. Every quote the request received — not a shortlist — side by side on the
         // same columns, then each one in full with its own reveal. Identities stay sealed until paid.

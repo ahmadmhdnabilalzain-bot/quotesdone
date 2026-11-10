@@ -61,6 +61,17 @@ export const config = {
     '/terms/:path*', '/(ar|en)/terms/:path*',
     // Superseded Privacy, Refund and Disclaimer versions (/privacy/v1.6 etc. from 19 Oct 2026), for the same reason.
     '/privacy/:path*', '/(ar|en)/privacy/:path*', '/refund-policy/:path*', '/(ar|en)/refund-policy/:path*', '/disclaimer/:path*', '/(ar|en)/disclaimer/:path*',
-    '/blog/:path*', '/(ar|en)/blog/:path*'
+    '/blog/:path*', '/(ar|en)/blog/:path*',
+    // EVERY OTHER PATH, SO A WRONG URL GETS THE DESIGNED 404 (website audit 10 Nov 2026, customer_support).
+    // Measured on production: /zz-nope and /about/zz served the framework's bare white "404: This page could
+    // not be found." with no lang, no header and no way onward. A path no entry above names never reaches
+    // next-intl, so it is read as [locale]='zz-nope' and the layout rejects it before [locale]/[...rest] can
+    // render [locale]/not-found.tsx. /ar/zz-nope and /services/zz-nope already got the designed page.
+    // Left out: api and u (route handlers outside [locale]), m/ (the brand-storage rewrite in
+    // next.config.mjs), Next's and Vercel's own paths, any path with a dot (files in public/ and app/,
+    // robots.txt, sitemap.xml, favicon.ico), and the social cards: /en/opengraph-image is the og:image URL
+    // and next-intl would redirect it to the unprefixed path (next.config.mjs keeps the same exception).
+    // Kept by: scripts/checks/a_wrong_url_gets_the_designed_404_in_its_language.test.mjs.
+    '/((?!api|u/|m/|_next|_vercel|.*\\..*|.*(?:opengraph|twitter)-image).*)'
   ]
 };

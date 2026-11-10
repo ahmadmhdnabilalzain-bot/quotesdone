@@ -22,7 +22,7 @@
 // calling it — every buyer since was told their drawing had been attached when nothing ran).
 // Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { requireInternal } from '../_shared/internal_auth.ts';
+import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
@@ -59,7 +59,7 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
-const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+// secretOk() is the shared one, in ../_shared/internal_auth.ts.
 function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return null; } }
 // The byte helpers, MAXW (2600 px, kept not shrunk: founder instruction 580) and the server-box margin live
 // in _shared/drawing_redact_page.ts since 24 Sep 2026, with the deterministic page steps, so a test runs them.

@@ -283,6 +283,68 @@ export function kindOf(f: SpecField): Kind {
   return 'text';
 }
 
+// ── AN ANSWER IS RECORDED UNDER THE SPEC IT ANSWERS (evidence run of 10 Nov 2026, ledger 1604, finding b2) ─────────
+// The request chat asked "MEP scope" and the customer answered "We need it finished by 15 December 2026."; it asked
+// "Authority approvals and responsibility" and the customer answered "At least 2 years warranty on materials and
+// installation.". Each reply was stored as the answer to the question asked (a targeted free-text field keeps the reply
+// verbatim, below; a held spec is read the same way, slots.ts readHeldAnswer), the two blocking specs counted answered,
+// and the request went ready with 20/20 filled. The four UNIVERSAL kinds — a date or timeline, money, a warranty period,
+// an emirate — are recognised here by their own shape and vocabulary (the readers above, and the words of that kind
+// only). A reply that is ONLY a statement of one of them answers that kind, and never a field of another kind: it
+// leaves the asked spec open. Anything else is never decided by a word list here (ruling 890): it is the question's.
+export type UniversalKind = 'required_by' | 'budget' | 'warranty' | 'location';
+const FUNCTION_WORDS = new Set(('we i it its is are be will would should must can could need needs needed want wants like the a an and or of for to on in at by '
+  + 'before after within until till latest no not than our my me us this that please thanks thank you have has get got least minimum maximum max min '
+  + 'around about approx approximately roughly up from all also just only so as with any it\'s we\'d we\'re i\'d i\'m would\'ve '
+  + 'نحتاج نحتاجه نحتاجها نريد نريده نريدها أريد اريد يجب أن ان على الأقل الاقل أقل اقل في من إلى الى قبل بعد خلال حتى مع و أو او لا هذا هذه لدينا عندنا يكون تكون نحن').split(/\s+/));
+const KIND_WORDS: Record<UniversalKind, Set<string>> = {
+  required_by: new Set(('finished finish finishing done complete completed completion ready delivered delivery deliver start started starting handover handed deadline date time '
+    + 'day days week weeks month months year asap urgent urgently soon end early mid next tomorrow today st nd rd th '
+    + 'january february march april may june july august september october november december jan feb mar apr jun jul aug sep sept oct nov dec '
+    + 'ينتهي ننتهي الانتهاء انتهاء تسليم التسليم جاهز جاهزة موعد تاريخ يوم أيام ايام أسبوع اسبوع أسابيع شهر أشهر اشهر نهاية بداية '
+    + 'يناير فبراير مارس أبريل ابريل مايو يونيو يوليو أغسطس اغسطس سبتمبر أكتوبر اكتوبر نوفمبر ديسمبر').split(/\s+/)),
+  budget: new Set(('budget aed dhs dh dirham dirhams k thousand million total cost costs price spend spending max per '
+    + 'ميزانية الميزانية درهم دراهم ألف الف مليون تكلفة التكلفة سعر').split(/\s+/)),
+  warranty: new Set(('warranty warranties guarantee guaranteed year years yr yrs month months materials material installation install workmanship labour labor parts '
+    + 'defects defect covering cover covers coverage full comprehensive both '
+    + 'ضمان الضمان كفالة سنة سنتين سنتان سنوات عام عامين شهر أشهر المواد مواد التركيب تركيب العمالة الصنعة').split(/\s+/)),
+  location: new Set(('dubai abu dhabi sharjah ajman ras al khaimah umm quwain fujairah rak uaq auh dxb shj emirate uae '
+    + 'دبي أبوظبي ابوظبي أبو ظبي الشارقة شارقة عجمان رأس الخيمة راس أم ام القيوين الفجيرة الإمارات الامارات').split(/\s+/)),
+};
+// parseWhen reads English month names; an Arabic date is a day and a month name (the Arabic month names of KIND_WORDS).
+const AR_DATE = /\d{1,2}\s*(?:يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)/;
+const WARRANTY_SIGN = /\b(warrant(?:y|ies)|guarantee[d]?)\b|ضمان|كفالة/i;
+const tokensOf = (s: string) => normDigits(s).toLowerCase().replace(/[^\p{L}\p{N}'\s]+/gu, ' ').split(/\s+/).filter(Boolean);
+const bare = (w: string) => w.replace(/^(?:وال|بال|لل|ال|و)(?=\p{L}{2,})/u, '');
+/** The universal kind a reply is ONLY a statement of, or null (it says something else, or several things). */
+export function statementKind(text: string): UniversalKind | null {
+  const raw = String(text || '').trim();
+  if (!raw || raw.length > 240) return null;
+  const has: Record<UniversalKind, boolean> = {
+    warranty: WARRANTY_SIGN.test(raw), budget: !!parseBudget(raw), required_by: !!parseWhen(raw) || AR_DATE.test(normDigits(raw)), location: !!parseEmirate(raw),
+  };
+  // A warranty is a period, so its years are not a timeline; a money amount is not a date.
+  const order: UniversalKind[] = ['warranty', 'budget', 'required_by', 'location'];
+  for (const k of order) {
+    if (!has[k]) continue;
+    const content = tokensOf(raw).filter((w) => !/^\d/.test(w) && !FUNCTION_WORDS.has(w) && !FUNCTION_WORDS.has(bare(w)) && !KIND_WORDS[k].has(w) && !KIND_WORDS[k].has(bare(w)));
+    if (!content.length) return k;
+  }
+  return null;
+}
+/** The universal kind a FIELD asks, from its own key and question (our checklist's words, not the customer's), or null. */
+export function fieldKind(f: Pick<SpecField, 'key' | 'question'> & { label_en?: string | null }): UniversalKind | null {
+  const s = `${f.key || ''} ${f.question || ''} ${f.label_en || ''}`.toLowerCase();
+  if (/warrant|guarantee|ضمان/.test(s)) return 'warranty';
+  const k = kindOf(f as SpecField);
+  return k === 'when' ? 'required_by' : k === 'budget' ? 'budget' : k === 'emirate' ? 'location' : null;
+}
+/** The kind a reply answers INSTEAD of field `f` — non-null means it is not this field's answer, and `f` stays open. */
+export function answersAnotherKind(f: Pick<SpecField, 'key' | 'question'> & { label_en?: string | null }, text: string): UniversalKind | null {
+  const k = statementKind(text);
+  return k && k !== fieldKind(f) ? k : null;
+}
+
 /**
  * Parse `text` as the answer to field `f`.
  * `targeted` = this was the question just asked, so an answer that cannot be normalised is still
@@ -292,6 +354,8 @@ export function kindOf(f: SpecField): Kind {
 export function parseAnswer(f: SpecField, text: string, targeted: boolean): string | null {
   const raw = String(text || '').trim();
   if (!raw) return null;
+  // A reply that only states a date, money, a warranty or an emirate answers THAT, never another kind of field (b2).
+  if (answersAnotherKind(f, raw)) return null;
   const opts = Array.isArray(f.options) ? f.options.filter((o) => typeof o === 'string' && o) : [];
   const kind = kindOf(f);
   if (opts.length) {

@@ -6,6 +6,7 @@ import { PageHero, ContentsRail, takeByClass, anchorHeadings, textOf } from '@/c
 import { notFound } from 'next/navigation';
 import { buildMeta, textFromHtml } from '@/lib/seo';
 import { arDoc } from '@/lib/arabicDoc';
+import { closeUnclosedBody, dropFirstH1 } from '@/lib/docHtml';
 type Doc = { title: string; html: string };
 const DOCS = legal as unknown as Record<string, { en: Doc; ar: Doc }>;
 // An archived version of a document is stored under a slug that ends in the version — the page that
@@ -15,6 +16,8 @@ const DOCS = legal as unknown as Record<string, { en: Doc; ar: Doc }>;
 // path is now rebuilt from the slug, the superseded copies are noindex (the live agreement is the one
 // to index), and the version is in the title so the two are never mistaken for the same document.
 const ARCHIVED = /^(.*)-(v\d+(?:\.\d+)?)$/; // 19 Oct 2026: also /privacy/v1.6
+
+// Why the body is closed and its first <h1> dropped at render: src/lib/docHtml.ts.
 
 export function metaFor(slug: string, locale: string) {
   const e = DOCS[slug];
@@ -27,7 +30,7 @@ export function metaFor(slug: string, locale: string) {
     : d.title;
   // The description is the legal text, not the document switcher: textFromHtml(d.html) opened with
   // the nav ("Terms of Service Privacy Policy Supplier Agreement…") on every legal page (WEB-03).
-  const prose = (takeByClass(d.html, 'body')?.el ?? d.html).replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/i, '');
+  const prose = dropFirstH1(takeByClass(closeUnclosedBody(d.html), 'body')?.el ?? d.html);
   const body = textFromHtml(prose).replace(d.title, '').trim();
   const meta = buildMeta({ locale, path, title, description: body });
   return v ? { ...meta, robots: { index: false, follow: true } } : meta;
@@ -49,10 +52,10 @@ export function LegalDoc({ slug, locale, lead }: { slug: string; locale: string;
   if (!e) return notFound();
   const d = (e as any)[locale] || e.en;
   const t = locale === 'ar' ? L.ar : L.en;
-  const html = arDoc(d.html, locale);
+  const html = closeUnclosedBody(arDoc(d.html, locale));
   const nav = takeByClass(html, 'nav')?.el ?? '';
   const head = takeByClass(html, 'dochead')?.el ?? '';
-  const bodyEl = takeByClass(html, 'body')?.el ?? html;
+  const bodyEl = dropFirstH1(takeByClass(html, 'body')?.el ?? html);
   const note = takeByClass(html, 'note')?.el ?? '';
   const title = /<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(head)?.[1] ?? d.title;
   const meta = [...head.matchAll(/<div class="meta">([\s\S]*?)<\/div>/g)].map((m) => textOf(m[1]));

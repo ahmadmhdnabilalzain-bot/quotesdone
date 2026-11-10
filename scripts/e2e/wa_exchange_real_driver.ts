@@ -61,6 +61,11 @@ async function file(phone: string, mime: string, b64: string, caption: string) {
 }
 
 const out: Record<string, unknown> = {};
+// WHAT FINISHED SURVIVES A KILL (customer_support, 10 Nov 2026). The parent kills this process at its wall, and RESULT is
+// printed once, at the end: run fbc40fbd's 132 model calls (USD 0.55, every one ok) came back as "driver produced no
+// RESULT" with nothing to show. Every finished turn is written to cfg.partial every 5 s, so a killed run still says
+// which turns it reached and what they answered.
+if (cfg.partial) setInterval(() => { try { Deno.writeTextFileSync(cfg.partial, JSON.stringify(out)); } catch { /* the parent reports a missing file */ } }, 5000);
 const S = cfg.supplier, X = cfg.stranger;
 async function mediaTurns() {
   out.image = await file(S, 'image/png', cfg.pngB64, 'ZZ DEMO here is a photo');

@@ -21,6 +21,13 @@
 // silently runs unauthenticated because the database hiccuped is the failure this whole item is
 // about.
 
+// THE STORED SECRET MUST BE A REAL VALUE BEFORE ANY PRESENTED VALUE CAN EQUAL IT (fail-closed, 27 Jul 2026).
+// A function that still compares a presented secret with one read from app_secrets reads `undefined` or '' when that
+// read fails or the row is missing; compared strictly, a caller posting {} then matched and gained service-role
+// authority on a function that requires no JWT. secretOk() is the guard in front of every such comparison. It was
+// written out identically in 13 functions until 10 Nov 2026 (docs/engineering/duplicated-helpers.md); they import it.
+export const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 

@@ -108,7 +108,7 @@ export function PriceGuide({ slug }: { slug?: string }) {
               {res.bands.map((b) => (
                 <li key={b.item + b.low} className="flex flex-col gap-1 bg-navy-deep/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <span dir="ltr" className="text-start text-[13.5px] text-paper/90 rtl:text-end">{b.item}</span>
-                  <span className="shrink-0 font-mono text-[14px] font-semibold text-white">
+                  <span className="tabular shrink-0 font-mono text-[14px] font-semibold text-white">
                     <span dir="ltr">{money(b)}</span>
                     {b.unit && <span className="ms-1.5 font-sans text-[12px] font-normal text-muted">{t('per', { unit: units[b.unit] || b.unit })}</span>}
                   </span>

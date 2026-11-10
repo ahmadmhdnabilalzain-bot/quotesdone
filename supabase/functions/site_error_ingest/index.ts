@@ -26,9 +26,9 @@
 // Without the secret anyone could manufacture website faults through a public endpoint and page
 // the IT engineer.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { J } from '../_shared/json_response.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 
 // Length-independent comparison: a timing oracle on a shared secret is cheap to close.
 function sameSecret(a: string, b: string): boolean {

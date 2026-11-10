@@ -334,18 +334,24 @@ export async function mkAuthUser(run, email) {
   return { id: cu.id, email, password, jwt: tok.access_token ?? null };
 }
 
+// A REFUSED DELETE IS SAID, NOT SWALLOWED (customer_support, 10 Nov 2026). This counted only the deletes that
+// succeeded and dropped the rest without a word, so an auth user GoTrue refused to delete came back as 0: the teardown
+// summary read as if there were nothing to remove, while staleRunTags kept finding the tag by that user's email and
+// every sweep tried it again (run fafbabb3, 10 Nov 11:23Z: "comparison_candidate_v2 ... 0, customer_organization ...
+// 0", inside a 1,904 s sweep). Each refusal now comes back with its HTTP status.
 async function deleteAuthUsersByTag(tag) {
   const { SERVICE } = await keys();
   const rows = await mgmtRead(REF,
     `select id from auth.users where email like 'qd-${tag}-%@example.%' or email like 'delivered+qd-${tag}-%@resend.dev'`);
-  let n = 0;
+  let n = 0; const refused = [];
   for (const r of rows) {
     const d = await fetch(`${BASE}/auth/v1/admin/users/${r.id}`, {
       method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE },
     });
     if (d.ok) n++;
+    else refused.push(`${r.id} HTTP ${d.status} ${(await d.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 80)}`);
   }
-  return n;
+  return { n, refused };
 }
 
 // ---- customers -------------------------------------------------------------------------------
@@ -1554,14 +1560,19 @@ export async function teardown(run) {
 
   // 3. auth users last: the email pattern is the only handle on them once the rows are gone
   const users = await deleteAuthUsersByTag(tag);
-  if (users) counts.auth_users = users;
+  if (users.n) counts.auth_users = users.n;
+  if (users.refused.length) counts[`auth_users (delete refused: ${users.refused.join(' | ')})`] = users.refused.length;
   const objTotal = Object.values(objs).reduce((a, b) => a + b, 0);
   if (objTotal) counts.storage_objects = objTotal;
 
   const summary = Object.keys(counts).length
     ? Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(', ')
     : 'nothing to remove';
-  return { counts, objects: objs, summary };
+  // What this teardown actually removed: the labelled zeros (a dropped table, a deferred child) and the refusals
+  // are information, not removals. fixtures.sweepStaleRuns reads it to stop retrying a run it can remove nothing from.
+  const removed = Object.entries(counts).filter(([k]) => !/\((table no longer exists|deferred|delete refused)/.test(k))
+    .reduce((a, [, v]) => a + (Number(v) || 0), 0);
+  return { counts, objects: objs, summary, removed, refused: users.refused };
 }
 
 // ---- purge -----------------------------------------------------------------------------------

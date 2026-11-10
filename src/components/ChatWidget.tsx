@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { lookForStoredAnswer, noVerdict, readReply } from '@/lib/portalReply';
+// Render text safely: escape, then link URLs / e-mails / our own paths in ONE pass, each isolated in <bdi> for
+// right-to-left text (src/lib/chatRender.ts). The portal assistant imports the same function from there.
+import { render } from '@/lib/chatRender';
 
 // Was an inline `process.env.NEXT_PUBLIC_SUPABASE_URL || '<production ref>'`, which meant a
 // preview deployment missing the variable pointed the public chat widget at the LIVE database
@@ -30,22 +33,6 @@ const T = {
         photo: 'صورة', photoAdd: 'أرفق صورة أو مخططًا', photoOn: 'تم إرفاق الصورة', photoOnly: '(صورة)' }
 };
 
-// Render text safely: escape, then linkify emails / URLs / internal paths.
-// Each link is wrapped in <bdi> so it stays readable inside Arabic (right-to-left) text.
-//
-// EXPORTED because the portal now has an assistant surface of its own and a second copy of this
-// would be a second copy of the bidi rule. Half the UAE market reads the Arabic; an email address
-// or a +971 number rendered without isolation scrambles inside an RTL paragraph, and a rule that
-// exists twice is a rule that will be applied once.
-export function render(text: string) {
-  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  let h = esc(text);
-  h = h.replace(/(https?:\/\/[^\s<]+)/g, (m) => `<bdi><a href="${m}" target="_blank" rel="noopener noreferrer" style="color:#2DD4BF;font-weight:600">${m}</a></bdi>`);
-  h = h.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, (m) => `<bdi><a href="mailto:${m}" style="color:#2DD4BF;font-weight:600">${m}</a></bdi>`);
-  h = h.replace(/(^|[\s(])(\/(?:ar\/me|contact|me|portal|supplier|faq|services|blog|about)\/?)(?![\w-])/g, (_m, p, path) => `${p}<bdi><a href="${path}" style="color:#2DD4BF;font-weight:600">${path}</a></bdi>`);
-  h = h.replace(/(\+?\d[\d\s\-()]{6,}\d)/g, (m) => `<bdi>${m}</bdi>`);
-  return h.replace(/\n/g, '<br>');
-}
 
 export function ChatWidget() {
   const locale = useLocale();

@@ -2601,6 +2601,15 @@ begin
       -- ceoPlan), which writes these rows with their evidence. Named here so they are not no_evaluator.
       v_state := 'decided_by_the_plan'; v_detail := 'fn_ceo_plan_tick (the_ceo_plans_every_day_and_directs_the_seats.sql)';
 
+    when 'supplier_growth', 'supplier_growth_effect' then
+      -- 10 Nov 2026 (ceo; it_engineer): decided by their own duty. fn_ceo_growth_act (seat_duty ceo.supplier_growth,
+      -- hourly; the_ceo_holds_the_supplier_target_and_acts_within_bounded_powers.sql, #1879) moves a bounded power toward
+      -- the supplier target and writes supplier_growth through fn_ceo_plan_log, then fn_ceo_growth_review measures it and
+      -- writes supplier_growth_effect (worked, failed, no_signal, rolled_back). #1879 added both rules without telling
+      -- the evaluator, so every run answered ok:false "no evaluator" -- the third time (company_stage, directive_escalation).
+      v_state := 'decided_by_its_duty';
+      v_detail := 'fn_ceo_growth_act (seat_duty ceo.supplier_growth) writes supplier_growth; fn_ceo_growth_review writes supplier_growth_effect';
+
     else
       v_state := 'no_evaluator'; v_missing := v_missing || d.decision_key;
     end case;
@@ -9143,7 +9152,7 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_company_context(p_max_chars integer DEFAULT 16000, p_audience text DEFAULT 'internal'::text)
+CREATE OR REPLACE FUNCTION public.fn_company_context(p_max_chars integer DEFAULT 24000, p_audience text DEFAULT 'internal'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
@@ -11159,10 +11168,14 @@ AS $function$
     select v.source_table, v.source_id, v.channel from public.v_conversation_message v
      where not v.is_demo and v.occurred_at < now() - p_grace
        and not exists (select 1 from public.conversation_archive a where a.source_table = v.source_table and a.source_id = v.source_id)),
-  unqueued as (
-    select a.source_table, a.source_id from public.conversation_archive a
+  waiting as (
+    select a.source_table, a.source_id, v.source_id is not null as source_exists, coalesce(v.is_demo, false) as demo
+      from public.conversation_archive a
+      left join public.v_conversation_message v on v.source_table = a.source_table and v.source_id = a.source_id
      where a.archived_at < now() - p_grace
-       and not exists (select 1 from public.doc_backups b where b.dedupe_key = 'CONV:' || a.source_table || ':' || a.source_id))
+       and not exists (select 1 from public.doc_backups b where b.dedupe_key = 'CONV:' || a.source_table || ':' || a.source_id)),
+  unqueued as (select source_table, source_id from waiting where source_exists and not demo),
+  gone as (select source_table, source_id from waiting where not source_exists)
   select jsonb_build_object(
     'grace', p_grace::text,
     'emails_without_pdf', (select count(*) from unarchived where channel = 'email'),
@@ -11170,7 +11183,10 @@ AS $function$
     'pdfs_without_dropbox_row', (select count(*) from unqueued),
     'total', (select count(*) from unarchived) + (select count(*) from unqueued),
     'sample', (select coalesce(jsonb_agg(u.source_table || ':' || u.source_id), '[]'::jsonb)
-                 from (select source_table, source_id from unarchived union all select * from unqueued limit 10) u));
+                 from (select source_table, source_id from unarchived union all select * from unqueued limit 10) u),
+    'archived_source_gone', (select count(*) from gone),
+    'archived_source_gone_sample', (select coalesce(jsonb_agg(g.source_table || ':' || g.source_id), '[]'::jsonb)
+                                      from (select * from gone limit 10) g));
 $function$
 
 
@@ -13407,6 +13423,7 @@ declare h public.agent_actions; i public.inquiries; c public.customers; v_new in
         v_dest text; v_res jsonb; v_st text; v_lang text; v_qkey text; v_tries int; v_verdict text; v_outcome text;
         v_first_new timestamptz; v_ptold boolean; v_pwait boolean;
         n_closed int := 0; n_wait int := 0; n_failed int := 0; n_stuck int := 0; v_err jsonb := '[]'::jsonb;
+        v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';   -- 10 Nov 2026: ruling 1199
 begin
   for h in select * from public.agent_actions a
             where a.kind = 'handoff' and a.agent = 'sales_engineer' and a.status = 'pending'
@@ -13418,6 +13435,10 @@ begin
       v_ptold := null; v_pwait := null;
       select * into i from public.inquiries where id = (h.detail->>'inquiry_id')::uuid;
       select * into c from public.customers where id = i.customer_id;
+      -- ruling 1199 (10 Nov 2026): a demo request's chase is worked only under the duty's fixture switch, a real one only without it
+      if (coalesce(public.fn_inquiry_is_demo(i.id), false) or coalesce(public.fn_customer_is_demo(c.id), false)) is distinct from v_fx then
+        continue;
+      end if;
       v_due := coalesce((h.evidence->>'next_update_by')::timestamptz, (h.detail->>'next_update_by')::timestamptz, h.created_at + interval '24 hours');
       select w.language into v_lang from public.wa_conversation w where w.phone_e164 = h.detail->>'phone_digits';
       v_ar := case when v_lang in ('ar', 'en') then v_lang = 'ar' else coalesce(i.lang, c.locale) = 'ar' end;

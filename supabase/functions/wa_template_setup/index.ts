@@ -10,17 +10,18 @@
 // because the body finished with {{2}}. Both bodies below open AND close with literal text.
 // Keep that shape if you edit the copy.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { requireInternal } from '../_shared/internal_auth.ts';
+import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { WA_INVITE_BUTTONS, WA_INVITE_SAMPLE_TRADE, WA_INVITE_TEMPLATE_EN } from '../_shared/marketing_send_gate.ts';
+import { J } from '../_shared/json_response.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string | undefined) || undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
-const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+// secretOk() is the shared one, in ../_shared/internal_auth.ts.
 
 // 3 SEP 2026: one function, several templates. The key is chosen per call (body.key) from this
 // catalogue; the default stays the document-expiry notice this function was written for. Every body
@@ -208,7 +209,7 @@ Deno.serve(observe('wa_template_setup', async (req) => {
     if (action === 'msg_check') {
       const to = String(body.to || '');
       const url = 'https://api.twilio.com/2010-04-01/Accounts/' + acct + '/Messages.json?To=' + encodeURIComponent('whatsapp:' + to) + '&PageSize=5';
-      const r = await fetch(url, { headers: { 'Authorization': auth } });
+      const r = await timedFetch(url, { headers: { 'Authorization': auth } });
       const j = await r.json().catch(() => ({}));
       const msgs = (j?.messages || []).map((m: any) => ({
         sid: m.sid, to: m.to, status: m.status, error_code: m.error_code, error_message: m.error_message,
@@ -219,7 +220,7 @@ Deno.serve(observe('wa_template_setup', async (req) => {
     if (action === 'delete') {
       const sid = String(body.content_sid || '');
       if (!/^HX[0-9a-f]{32}$/i.test(sid)) return J({ error: 'bad_sid' }, 400);
-      const r = await fetch('https://content.twilio.com/v1/Content/' + sid, { method: 'DELETE', headers: { 'Authorization': auth } });
+      const r = await timedFetch('https://content.twilio.com/v1/Content/' + sid, { method: 'DELETE', headers: { 'Authorization': auth } });
       return J({ ok: r.ok, http: r.status, deleted: sid });
     }
 
@@ -251,7 +252,7 @@ Deno.serve(observe('wa_template_setup', async (req) => {
                          '2': (isAr ? cat.sample2_ar : cat.sample2_en) || cat.url },
             types: { 'twilio/text': { body: isAr ? cat.ar : cat.en } } };
 
-      const createRes = await fetch('https://content.twilio.com/v1/Content', {
+      const createRes = await timedFetch('https://content.twilio.com/v1/Content', {
         method: 'POST', headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
         body: JSON.stringify({ friendly_name: 'quotesdone_' + KEY + '_' + lang + '_' + stamp, language: lang, ...payload }) });
       const created = await createRes.json().catch(() => ({}));
@@ -261,7 +262,7 @@ Deno.serve(observe('wa_template_setup', async (req) => {
 
       // UTILITY for a transactional notice about the recipient's own account; AUTHENTICATION only for a one-time code (Meta refuses a code under any other category).
       const apprName = ('quotesdone_' + KEY + '_' + lang + '_' + stamp).toLowerCase().replace(/[^a-z0-9_]/g, '_');
-      const apprRes = await fetch('https://content.twilio.com/v1/Content/' + sid + '/ApprovalRequests/whatsapp', {
+      const apprRes = await timedFetch('https://content.twilio.com/v1/Content/' + sid + '/ApprovalRequests/whatsapp', {
         method: 'POST', headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: apprName, category }) });
       const appr = await apprRes.json().catch(() => ({}));
@@ -297,7 +298,7 @@ Deno.serve(observe('wa_template_setup', async (req) => {
       const entry = sids[KEY] || {};
       const out: Record<string, unknown> = {};
       for (const [lang, sid] of Object.entries(entry)) {
-        const r = await fetch('https://content.twilio.com/v1/Content/' + sid + '/ApprovalRequests', { headers: { 'Authorization': auth } });
+        const r = await timedFetch('https://content.twilio.com/v1/Content/' + sid + '/ApprovalRequests', { headers: { 'Authorization': auth } });
         const j = await r.json().catch(() => ({}));
         const st = String(j?.whatsapp?.status || j?.status || 'unknown');
         out[lang] = { sid, http: r.status, status: st, rejection_reason: j?.whatsapp?.rejection_reason || null };

@@ -29,6 +29,7 @@ import { Paperclip, Mic, Square, SendHorizontal, Sparkles, AlertTriangle, Siren,
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
+import { SeparateQuotesAsk } from './requests/SeparateQuotesAsk';
 import { mergeAttachment } from '@/lib/requestAttachments';
 import { supaRpcMaybeOne } from '@/lib/supaClient';
 import { specGuideText } from '@/lib/specGuide';
@@ -42,7 +43,7 @@ import { recognitionLangs, getRecognition, speechErrorKey } from './speech';
 
 // The recorder's WAV encoder is shared with the supplier Services tab (15 Sep 2026).
 import { blobToWavB64 } from '@/lib/wavEncode';
-import { DICT_NAME, fileB64, fileToImages, DOC_RE, REFUSED_DRAWING_RE, BOQ_ERR, qText, SLOW_TURN_MS, newTurnId, turnNotReached, readinessPct } from './newRequest/helpers';
+import { DICT_NAME, fileB64, fileToImages, DOC_RE, REFUSED_DRAWING_RE, BOQ_ERR, qText, SLOW_TURN_MS, newTurnId, turnNotReached, readinessPct, combineDefaultOf } from './newRequest/helpers';
 import { Fact, RequirementsCard } from './newRequest/RequirementsCard';
 import { ReadinessBar, QuestionChips } from './newRequest/Readiness';
 import { BoqTable } from './newRequest/BoqTable';
@@ -67,9 +68,11 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [brief, setBrief] = useState(null);
   const [ready, setReady] = useState(false);
   const [meta, setMeta] = useState({}); // what the last intake turn said about itself
-  // Ruling 1021 (founder): a project is never split without asking the customer first, and the default is ONE
-  // contractor. So the preselected answer is 'turnkey'; 'multi' (one request per trade) only when the customer picks it.
-  const [combineMode, setCombineMode] = useState('turnkey');
+  // ONE CONTRACTOR OR SEPARATE QUOTES IS ASKED, NEVER SILENT (evidence run of 10 Nov 2026, ledger 1604, finding c). The
+  // composer sent 'turnkey' for every brief naming two trades without the customer seeing the choice. Both choices are
+  // shown with a plain explanation; one contractor is preselected (standing rulings 1021 and 1025: ask the customer first,
+  // the default is one contractor), and what is sent is exactly the option shown. null = not changed by the customer.
+  const [combineMode, setCombineMode] = useState(null);
   const [edits, setEdits] = useState({}); // requirement key -> label the customer tapped on the summary card
   const [posted, setPosted] = useState(null); // set when create_inquiry answered ok and reached no supplier
   const [busy, setBusy] = useState(false);
@@ -444,12 +447,22 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   };
   const stopRec = () => { const r = recRef.current; try { if (r && r.sr) r.sr.stop(); else if (r && r.mr) r.mr.stop(); } catch (_e) {} setRec(false); };
 
+  // ONE POST PER PRESS (website audit 10 Nov 2026, customer_support). `busy` disables Send only after the
+  // next render, so a fast double tap could call create_inquiry twice before the button greyed out; the
+  // supplier QuoteForm closed the same window with a ref (#1563 review). The server's guard on intake_id
+  // stays the backstop; this stops the second request leaving the phone.
+  const posting = useRef(false);
   const submit = async (acceptTermsVersion = null) => {
+    if (posting.current) return;
+    posting.current = true;
+    try { await submitOnce(acceptTermsVersion); } finally { posting.current = false; }
+  };
+  const submitOnce = async (acceptTermsVersion = null) => {
     setBusy(true); setMsg('');
     const category = (brief && brief.category) || (drawing && drawing.boq && drawing.boq.category) || '';
     const firstUser = messages.find((m) => m.role === 'user' && m.text);
     const summary = (brief && brief.summary) || (firstUser ? firstUser.text.slice(0, 180) : category);
-    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, accept_terms_version: acceptTermsVersion || undefined, requirement_edits: edits, lang }, token).catch(() => null);
+    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? (combineMode || combineDefaultOf(brief)) : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, accept_terms_version: acceptTermsVersion || undefined, requirement_edits: edits, lang }, token).catch(() => null);
     setBusy(false);
     // THE HONEST AFTER-POST (14 Sep 2026). A request no registered supplier covers is still posted and
     // flagged to the team (customer_api flagCoverageGap), but the composer used to close with nothing
@@ -460,7 +473,14 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // One answer shape (customer_api, _shared/inquiry_posted.ts): matches is already summed over a
       // split's children, and inquiry_id is the request the customer made (the combined parent).
       const reached = Number(r.matches) || 0;
-      if (reached > 0) onDone(r); else setPosted({ none: true, id: r.inquiry_id || null });
+      // NO PART GOES TO NOBODY UNSAID: a split request whose part in one trade reached no supplier names that part
+      // (each such part is already flagged to the sales engineer as a coverage gap, customer_api flagCoverageGap).
+      const unreached = (Array.isArray(r.children) ? r.children : []).filter((c) => !(Number(c && c.matches) > 0)).map((c) => categoryLabel(c.trade, lang));
+      // A turnkey request no single contractor matched is NOT split by us: the customer is asked (routing.separate_offer
+      // counts the specialists who could quote it per trade; sales_engineer lib/turnkey_miss.ts).
+      const separate = reached === 0 && r.scope_type === 'turnkey' && r.routing && r.routing.separate_offer ? Number(r.routing.separate_offer.specialists) || 0 : 0;
+      if (reached > 0 && unreached.length) setPosted({ none: false, unreached, n: reached, id: r.inquiry_id || null, r });
+      else if (reached > 0) onDone(r); else setPosted({ none: true, id: r.inquiry_id || null, separate });
     }
     // Never a dead end: when the server says something is still open, the next question is fetched at
     // once instead of leaving the customer to guess what "more details" means.
@@ -479,8 +499,10 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   if (posted) return (
     <section dir={ar ? 'rtl' : 'ltr'} className="qd-panel mb-3.5 p-5 shadow-e2" aria-live="polite">
       <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{t(lang, 'nr_posted')}</h2>
-      <p className="mt-2 text-copy leading-relaxed text-foreground">{t(lang, 'nr_posted_none')}</p>
-      <Button size="lg" className="mt-4" onClick={() => onDone({ none: true, inquiry_id: posted.id })}>{t(lang, 'nr_posted_view')}</Button>
+      {posted.none ? <p className="mt-2 text-copy leading-relaxed text-foreground">{t(lang, 'nr_posted_none')}</p> : null}
+      {posted.none && posted.separate > 0 ? <SeparateQuotesAsk inquiryId={posted.id} specialists={posted.separate} lang={lang} token={token} call={call} onPosted={(j) => onDone(j)} /> : null}
+      {posted.unreached && posted.unreached.length ? <p className="mt-2 text-copy leading-relaxed text-foreground">{tf(lang, 'nr_posted_partial', { list: posted.unreached.join(ar ? '، ' : ', ') })}</p> : null}
+      <Button size="lg" className="mt-4" onClick={() => (posted.none ? onDone({ none: true, inquiry_id: posted.id }) : onDone(posted.r))}>{t(lang, 'nr_posted_view')}</Button>
     </section>
   );
   return (
@@ -599,7 +621,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                   <div className="mb-2 text-[12.5px] text-muted-foreground">{t(lang, 'nr_multi_q')}</div>
                   {[['turnkey', 'nr_multi_tk_h', 'nr_multi_tk_b'], ['multi', 'nr_multi_sep_h', 'nr_multi_sep_b']].map(([v, h, b]) => (
                     <label key={v} className="flex cursor-pointer items-start gap-2 rounded-md p-2 hover:bg-secondary/50">
-                      <input type="radio" name="combine" className="mt-1" checked={combineMode === v} onChange={() => setCombineMode(v)} />
+                      <input type="radio" name="combine" className="mt-1" checked={(combineMode || combineDefaultOf(brief)) === v} onChange={() => setCombineMode(v)} />
                       <span className="text-[12.5px] text-muted-foreground"><span className="font-semibold text-foreground">{t(lang, h)}</span> — {t(lang, b)}</span>
                     </label>
                   ))}

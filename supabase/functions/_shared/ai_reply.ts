@@ -236,7 +236,13 @@ const actionOf = (r: AiReplyRequest, content: string | null | undefined): string
 
 export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiReply> {
   const replyLang: 'en' | 'ar' = r.audience === 'supplier' ? 'en' : r.lang;
-  const brief = await companyBrief(deps.rpc, [], '', replyLang, r.blocks ?? [], undefined, { trade: replyTrade(r), supplier: r.audience === 'supplier' });
+  // THE BRIEF AND THE ROUTE ARE READ TOGETHER (customer_support, 10 Nov 2026): they were two database trips one after another
+  // before the first model call, ~0.25 s each from an edge worker outside ap-southeast-1 (_shared/db_region.ts). Neither reads the other.
+  const taskClass = r.taskClass ?? REPLY_CLASS;
+  const [brief, primary] = await Promise.all([
+    companyBrief(deps.rpc, [], '', replyLang, r.blocks ?? [], undefined, { trade: replyTrade(r), supplier: r.audience === 'supplier' }),
+    routePrimary(deps, taskClass, r.seat),
+  ]);
   const allowed = figureSource(brief) + '\n' + (r.facts ?? '') + '\n' + aiSystem(r, replyLang);   // the published contact is in the rules
   const known = briefNumbers(allowed);
   const must = (r.must ?? []).map((m) => String(m || '').trim()).filter(Boolean);
@@ -258,8 +264,6 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const input = (r.facts ? 'THIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000)
     + (prior.length ? '\n\nAN EARLIER ANSWER TO THIS MESSAGE COULD NOT BE SENT. It had these problems: ' + [...new Set(prior)].join('; ')
       + '. Write a complete answer that avoids every one of them and follows every rule in your instructions.' : '');
-  const taskClass = r.taskClass ?? REPLY_CLASS;
-  const primary = await routePrimary(deps, taskClass, r.seat);
   // Anthropic's 1-hour tier is a cache WRITE at 2x (the design's measured 1.27x on the voice call): asked only of an Anthropic
   // primary, or when the route could not be read (as before).
   const hourCache = !primary || primary.startsWith('anthropic/');
@@ -285,9 +289,16 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     if (keyed && res?.error === 'rate_limited') { calls = MAX_CALLS; rateLimited = true; attempts.push("rate_limited: the sender's bucket is spent"); }
     return res;
   };
+  // THE ESCALATE READING OF THIS MESSAGE, once a draft came back as the object (customer_support, 10 Nov 2026). A rewrite is asked
+  // to fix a draft's WORDS; the message, and so whether it needs a person, did not change. Measured on production (run f5d32825,
+  // "Do you cover glass balustrades?"): route:ok, rewrite:prose [internal_number], rewrite:ok [not the JSON object] - the second
+  // rewrite was a whole ~80k-token call (10-20 s) asked only to wrap a passing prose answer in JSON. A rewrite that comes back as
+  // finished prose is now the reply when an earlier draft of the same message gave the reading; every check still runs on it,
+  // and the reading is OR-ed across drafts, so an escalation is never lost (it is OR-ed with the router again in wa_inbound).
+  let readEscalate: boolean | null = null;
   const done = (text: string, content: string | null | undefined, model: string | null): AiReply => {
     const j = json(content);
-    return { reply: text, model, attempts, action: actionOf(r, content), ...(r.askEscalate ? { escalate: j.escalate === true } : {}) };
+    return { reply: text, model, attempts, action: actionOf(r, content), ...(r.askEscalate ? { escalate: j.escalate === true || readEscalate === true } : {}) };
   };
   // WAS THE MODEL UP? (founder_instruction 1339, 27 Oct 2026: "never replies without llm unless the server of open router
   // is down"). A caller may send its code-written fallback ONLY when no call reached a model: every failure was an outage
@@ -304,7 +315,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const proseIsReply = !r.actions?.length && !r.askEscalate;
   const read = (res: LlmReply | null): { text: string; prose: string } => {
     const text = parse(res?.content);
-    if (text) return { text, prose: '' };
+    if (text) { if (r.askEscalate) readEscalate = readEscalate === true || json(res?.content).escalate === true; return { text, prose: '' }; }
     const prose = proseOf(res?.content);
     return proseIsReply ? { text: prose, prose: '' } : { text: '', prose };
   };
@@ -321,6 +332,9 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     seen(res, text);
     attempts.push((counterpartModel ? 'other-family:' : 'route:') + (text ? 'ok' : prose ? 'prose, asked again for the object: ' + failedWhy(res) : 'failed ' + failedWhy(res)));
     while (text || prose) {
+      // prose after the reading is known needs no object: it is checked as the reply (see readEscalate). Never for actions:
+      // an action is this draft's own choice, so a prose draft there still carries none.
+      if (prose && readEscalate !== null && !r.actions?.length) { text = prose; prose = ''; seen(res, text); attempts.push('prose taken: the escalate reading came with an earlier draft'); }
       const bad = prose ? [NOT_THE_OBJECT] : check(text);
       if (!bad.length) return done(text, res?.content, res?.model ?? null);
       lastProblems = bad;

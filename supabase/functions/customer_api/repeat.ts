@@ -30,7 +30,10 @@ const DAY = 86400e3;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 /** What the customer may change before posting the copy (founder_instruction 1028: "edit it before submitting"). */
-export type RepeatEdits = { summary?: unknown; budget?: unknown; emirate?: unknown; required_by?: unknown };
+// sourcing: the customer's own answer to "No single contractor is available yet; would you like separate quotes per
+// trade?" (finding c of 10 Nov 2026). 'multi' turns a turnkey request of two or more trades into separate quotes per
+// trade; it is the ONLY way such a request is re-posted per trade (rulings 1021, 1025: the split is the customer's choice).
+export type RepeatEdits = { summary?: unknown; budget?: unknown; emirate?: unknown; required_by?: unknown; sourcing?: unknown };
 const txt = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
 
 export function repeatPlan(o: Original, now = new Date(), e: RepeatEdits = {}, checklistKeys: string[] = []) {
@@ -40,7 +43,8 @@ export function repeatPlan(o: Original, now = new Date(), e: RepeatEdits = {}, c
   for (const [k, v] of Object.entries(spec)) if (allow.has(k) && k !== 'customer_requirements') details[k] = v;
   const reqs = (spec.customer_requirements && typeof spec.customer_requirements === 'object') ? spec.customer_requirements as Record<string, any> : null;
   const trades = Array.isArray(o.trades) ? o.trades.map(String).filter(Boolean) : [];
-  const scope = o.scope_type === 'turnkey' ? 'turnkey' : (o.scope_type === 'multi' && trades.length > 1 ? 'multi' : 'single');
+  const choseSeparate = e.sourcing === 'multi' && o.scope_type === 'turnkey' && trades.length > 1;
+  const scope = choseSeparate ? 'multi' : o.scope_type === 'turnkey' ? 'turnkey' : (o.scope_type === 'multi' && trades.length > 1 ? 'multi' : 'single');
   const edits: Record<string, string> = {};
   const old = String(reqs?.required_by?.date || '');
   if (/^\d{4}-\d{2}-\d{2}$/.test(old) && Date.parse(old) < Date.parse(iso(now))) {
