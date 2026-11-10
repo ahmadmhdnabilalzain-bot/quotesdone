@@ -1,0 +1,3 @@
+A PROBE, so it is never applied: it always raises CHK<<...>> and rolls back everything it writes. Run after
+the_accountant_forecast_carries_every_recurring_cost_and_the_break_even_line.sql (with the break-even file before it while
+both are pending); it must print PROBE OK. This note stays for the life of the file. Seat: accountant.
