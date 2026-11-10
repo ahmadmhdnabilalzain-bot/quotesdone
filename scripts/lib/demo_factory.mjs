@@ -1424,6 +1424,22 @@ export async function teardown(run) {
     ['transactions', `delete from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}`],
     // The run's chat turns (chatTurnSql above): scoped through the run's customers and leads, so while they still exist.
     ...(await chatTurnSteps(tag)),
+    // WHAT A CHAT TURN OPENS BESIDE ITS ROWS (27 Oct 2026, customer_support; rebuilt 2 Nov 2026 on the chat-turn steps above).
+    // Every customer:<id> chat row opens a support profile and case (z50_support_wire_widget): 76 ZZ DEMO profiles and 113
+    // cases had piled up since 12 Oct, and chatTurnSteps removes the chat rows but not these. Support rows go by the run's
+    // own email and ids only.
+    ...(() => {
+      const PROF = `(select id from public.support_customer_profile where email like 'qd-${tag}-%@example.%' or customer_id in ${CUST} or lead_id in ${LEAD})`;
+      const CASES = `(select case_id from public.support_case where customer_profile_id in ${PROF})`;
+      return [
+        ['feedback (support)', `delete from public.feedback where case_id in ${CASES} or profile_id in ${PROF}`],
+        ['support_document_intake', `delete from public.support_document_intake where case_id in ${CASES}`],
+        ['support_notification', `delete from public.support_notification where case_id in ${CASES}`],
+        ['support_case (recovery link)', `update public.support_case set recovery_of_case_id = null where recovery_of_case_id in ${CASES}`],
+        ['support_case', `delete from public.support_case where case_id in ${CASES} and not exists (select 1 from public.refund_case rc where rc.case_id = support_case.case_id)`],
+        ['support_customer_profile', `delete from public.support_customer_profile where id in ${PROF}`],
+      ];
+    })(),
     // notifications names all three parents (inquiry_id, lead_id, quote_id) and has no children of
     // its own, so it goes first - after the quote is deleted the quote_id clause matches nothing.
     ['notifications', `delete from public.notifications where inquiry_id in ${INQ} or lead_id in ${LEAD} or quote_id in ${QUO} or to_email like 'qd-${tag}-%@example.%' or to_email like 'delivered+qd-${tag}-%@resend.dev'`],

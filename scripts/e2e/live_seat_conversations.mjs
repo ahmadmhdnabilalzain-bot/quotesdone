@@ -206,7 +206,17 @@ async function runSuite() {
     const file = join(OUT, `live_seat_conversations_${run.tag}.json`);
     writeFileSync(file, JSON.stringify({ ledger: 1200, surface: 'portal: sales_engineer assist', url, run_tag: run.tag, measured_at: new Date().toISOString(), spend, latency, outcomes: outcome, results }, null, 1));
     console.log(`spend ${JSON.stringify(spend)}\nlatency ${JSON.stringify(latency)}\noutcomes ${JSON.stringify(outcome)}\ntranscripts: ${file}\nnext: a Claude session scores each transcript -> score --results ${file} --judged <judged.json>`);
-  } finally { await closeRun(run).catch((e) => console.error('teardown: ' + e.message)); }
+  } finally {
+    // Every chat turn writes assistant_logs, sales_decision_log and support_reply_readability rows and opens a support
+    // case (27 Oct 2026: one session left ~270 of each and 97 unconfirmed gap tasks). closeRun removes them by the run's
+    // customers and run tag and counts what is left, gaps filed included; anything left fails the run.
+    const closed = await closeRun(run).catch((e) => ({ error: e.message }));
+    if (closed.error) { console.error('teardown: ' + closed.error); process.exitCode = 1; }
+    else {
+      console.log(`teardown: ${closed.removed?.summary}\nleftovers: ${JSON.stringify(closed.leftovers)}`);
+      if (closed.leftovers?.total || closed.leftovers?.knowledge_gaps_filed_error) process.exitCode = 1;
+    }
+  }
 }
 
 function score() {
