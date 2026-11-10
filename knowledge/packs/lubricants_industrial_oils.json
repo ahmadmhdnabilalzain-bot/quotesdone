@@ -6,8 +6,8 @@
       "topic": "Lubricants and industrial oils - what the buyer must state",
       "topic_ar": "الزيوت ومواد التشحيم الصناعية: ما يجب أن يحدده المشتري في كل بند",
       "kind": "spec_checklist",
-      "body_en": "For lubricants and industrial oils (trade code lubricants_industrial_oils only), every quoted line must state: Product type and brand; Viscosity grade; Performance specification or OEM approval; Pack size; Technical and safety data sheets; Batch and shelf life; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في الزيوت ومواد التشحيم الصناعية (رمز الحرفة lubricants_industrial_oils فقط)، يجب أن يذكر كل بند مسعّر ما يلي: نوع المنتج والعلامة التجارية؛ درجة اللزوجة؛ مواصفة الأداء أو اعتماد الشركة المصنعة للمعدة (OEM)؛ حجم العبوة؛ صحيفة البيانات الفنية وصحيفة بيانات السلامة؛ رقم التشغيلة ومدة الصلاحية؛ الكمية ووحدة القياس؛ المعيار المطبق وتقرير الاختبار؛ المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ الضمان أو فترة المسؤولية عن العيوب؛ مدة التوريد؛ الاستثناءات. عندما تُذكر هذه العناصر في كل بند، تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. أي بند لا يذكر جميع العناصر المطلوبة يُعلَّق حتى يُستكمل الناقص؛ ولا يُفترض، ولا تُستخدم قائمة حرفة أخرى بديلًا عنه.",
+      "body_en": "For lubricants and industrial oils (trade code lubricants_industrial_oils only), every quoted line must state: Product type and brand; Viscosity grade; Performance specification or OEM approval; Pack size; Technical and safety data sheets; Batch and shelf life; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Product type and brand; Viscosity grade; Performance specification or OEM approval; Pack size; Quantity and unit of measure. Follow-up questions the answers trigger: Product type and brand: If no brand is named, ask for the OEM approval the machine manual requires. Performance specification or OEM approval: Ask the equipment make and manual; warranties may require approved oil. Before a firm price: none; a firm price is possible from the specs. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Product type and brand; Viscosity grade; Performance specification or OEM approval; Pack size; Quantity and unit of measure.",
+      "body_ar": "في الزيوت ومواد التشحيم الصناعية (رمز الحرفة lubricants_industrial_oils فقط)، يجب أن يذكر كل بند مسعّر ما يلي: نوع المنتج والعلامة التجارية؛ درجة اللزوجة؛ مواصفة الأداء أو اعتماد الشركة المصنعة للمعدة (OEM)؛ حجم العبوة؛ صحيفة البيانات الفنية وصحيفة بيانات السلامة؛ رقم التشغيلة ومدة الصلاحية؛ الكمية ووحدة القياس؛ المعيار المطبق وتقرير الاختبار؛ المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ الضمان أو فترة المسؤولية عن العيوب؛ مدة التوريد؛ الاستثناءات. عندما تُذكر هذه العناصر في كل بند، تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. أي بند لا يذكر جميع العناصر المطلوبة يُعلَّق حتى يُستكمل الناقص؛ ولا يُفترض، ولا تُستخدم قائمة حرفة أخرى بديلًا عنه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المنتج وعلامته، ودرجة اللزوجة، ومواصفة الأداء أو اعتماد الصانع، وحجم العبوة، والكمية ووحدة القياس. أسئلة المتابعة: إذا لم تُحدد العلامة يُسأل عن اعتماد الصانع الذي يشترطه دليل الآلة، ويُسأل عن ماركة المعدة لأن الضمان قد يشترط زيتاً معتمداً. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Product type and brand",
         "Viscosity grade",
@@ -21,14 +21,132 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Used-oil collection",
+        "Payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Product type and brand",
+        "Viscosity grade",
+        "Performance specification or OEM approval",
+        "Pack size",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Product type and brand",
+          "blocking": true,
+          "why_needed_to_price": "Engine oil, hydraulic oil, gear oil, grease and metalworking fluid are different products.",
+          "uae_options": "Named product, or a type with an approval list.",
+          "follow_up_if": "If no brand is named, ask for the OEM approval the machine manual requires."
+        },
+        {
+          "spec": "Viscosity grade",
+          "blocking": true,
+          "why_needed_to_price": "Viscosity selects the product.",
+          "uae_options": "ISO VG 32/46/68/100/220/320; SAE 15W-40, 5W-30; NLGI 2 for grease.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Performance specification or OEM approval",
+          "blocking": true,
+          "why_needed_to_price": "API, ACEA and OEM approvals separate premium from basic oils.",
+          "uae_options": "API CK-4/SP, ACEA E8, DIN 51524 HLP, MAN/Volvo/MB approvals.",
+          "follow_up_if": "Ask the equipment make and manual; warranties may require approved oil."
+        },
+        {
+          "spec": "Pack size",
+          "blocking": true,
+          "why_needed_to_price": "Litre packs, pails, drums, IBCs and bulk are priced differently.",
+          "uae_options": "1/4/5 L, 18-20 L pail, 208 L drum, 1,000 L IBC, bulk.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Technical and safety data sheets",
+          "blocking": false,
+          "why_needed_to_price": "TDS and SDS are needed for approval and storage.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Batch and shelf life",
+          "blocking": false,
+          "why_needed_to_price": "Old stock and short shelf life are a risk.",
+          "uae_options": "Manufacturing date, shelf life.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "Litres vs drums vs kg breaks comparison.",
+          "uae_options": "Litres, drums, kg.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_needed_to_price": "Engine oils are a regulated product needing conformity.",
+          "uae_options": "ECAS certificate for engine oil held by the importer or blender.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Used-oil collection is often outside the price.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Used-oil collection",
+          "blocking": false,
+          "why_needed_to_price": "Licensed disposal of used oil has a cost or a rebate.",
+          "uae_options": "Collection by a licensed collector, or none.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": null
     },
     {
       "id": "lubricants_industrial_oils:uae-standards-and-approvals",
@@ -88,6 +206,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "lubricants_industrial_oils:authority-approvals",
+      "topic": "Lubricants: UAE conformity for engine oils and used-oil disposal",
+      "topic_ar": "مواد التشحيم: المطابقة الإماراتية لزيوت المحركات والتخلص من الزيوت المستعملة",
+      "kind": "authority_approval",
+      "body_en": "Engine oils sold in the UAE fall under MoIAT's conformity scheme: MoIAT's public product-conformity data lists ECAS certificates for \"lubricating oil for engine\", and certification bodies list lubricant oil within their ECAS scope. The importer or blender obtains and renews the certificate; the buyer can check it on MoIAT's conformity data. Whether industrial (non-engine) oils and greases are regulated was not established. Used oil is a hazardous waste: in Dubai, Dubai Municipality publishes a guideline on transport of lubricants and petroleum wastes, and collection must be by a licensed collector. Bulk storage of oils on site involves civil defence.",
+      "body_ar": "تخضع زيوت المحركات المباعة في الإمارات لنظام المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة: إذ تدرج بيانات المطابقة العامة لدى الوزارة شهادات ECAS لفئة \"زيت تشحيم المحركات\"، وتدرج جهات التقييم زيوت التشحيم ضمن نطاق شهادات ECAS لديها. ويحصل المستورد أو مصنع الخلط على الشهادة ويجددها، ويستطيع المشتري التحقق منها في بيانات المطابقة لدى الوزارة. ولم يثبت هل تخضع الزيوت الصناعية غير المخصصة للمحركات والشحوم للتنظيم. والزيت المستعمل نفاية خطرة: ففي دبي تنشر بلدية دبي دليلاً لنقل مخلفات الزيوت والمواد البترولية، ويجب أن يجمعه جامع مرخص. وتخزين الزيوت بكميات كبيرة في الموقع يخضع للدفاع المدني.",
+      "sources": [
+        "https://qc.moiat.gov.ae/en/open-data/product-conformity",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet lists 'Lubricants Oils' as a regulated category; DM Technical Guideline No. 11 on transport and handling of hazardous waste (dmpmedia.dm.gov.ae) requires transporters of oily waste in Dubai to hold an oily-waste collection permit and names used-lubricant collection services. Not confirmed on any page that opened: whether industrial non-engine oils and greases fall inside the lubricant category, MoIAT's public conformity data (qc.moiat.gov.ae is refused by the session network) and civil defence bulk storage."
+    },
+    {
+      "id": "lubricants_industrial_oils:quote-red-flags",
+      "topic": "Red flags in lubricant quotations",
+      "topic_ar": "علامات التحذير في عروض مواد التشحيم",
+      "kind": "quote_red_flag",
+      "body_en": "Check the exact product name and its approvals: a lower API or ACEA category, an oil \"meeting\" an OEM specification instead of being approved, or a private-label oil offered against a named brand are substitutions. Watch for drums of 180 or 200 L priced beside 208 L, old batches near shelf-life end, counterfeit packs of premium brands, no ECAS for engine oil, and price per litre vs per drum confusion.",
+      "body_ar": "تحقق من اسم المنتج الدقيق واعتماداته: فالفئة الأدنى من API أو ACEA، أو الزيت \"المطابق\" لمواصفة الصانع بدل المعتمد منه، أو زيت بعلامة خاصة معروض مقابل علامة محددة، كلها استبدالات. وانتبه إلى: براميل 180 أو 200 لتر مسعّرة بجانب 208 لترات، ودفعات قديمة قرب نهاية الصلاحية، وعبوات مقلدة لعلامات ممتازة، وغياب شهادة ECAS لزيت المحركات، والخلط بين السعر للتر والسعر للبرميل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "lubricants_industrial_oils:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying lubricants",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء مواد التشحيم",
+      "kind": "buyer_mistake",
+      "body_en": "Buying by viscosity alone and ignoring the OEM approval the warranty requires; mixing incompatible greases; ordering many products where a consolidated list would serve; buying cheap oil for high-value machines; and storing drums outdoors in UAE sun. Ask the machines, their manuals and the current products used.",
+      "body_ar": "الشراء باللزوجة وحدها وتجاهل اعتماد الصانع الذي يشترطه الضمان؛ وخلط شحوم غير متوافقة؛ وطلب منتجات كثيرة بينما تكفي قائمة موحدة؛ وشراء زيت رخيص لآلات عالية القيمة؛ وتخزين البراميل في شمس الإمارات. لذا يُسأل عن الآلات وأدلتها والمنتجات المستخدمة حالياً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "lubricants_industrial_oils:price-drivers",
+      "topic": "What legitimately moves lubricant prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار مواد التشحيم",
+      "kind": "price_driver",
+      "body_en": "Base oil (mineral, semi-synthetic, synthetic PAO/ester), performance level and OEM approvals, brand tier (international majors, national oil companies, private-label blenders), pack size, volume, and crude and base-oil markets. Synthetic oils cost more per litre but can extend drain intervals.",
+      "body_ar": "الزيت الأساسي (معدني أو شبه صناعي أو صناعي PAO أو إستر)، ومستوى الأداء واعتمادات الصانعين، وفئة العلامة (الشركات الدولية الكبرى أو شركات النفط الوطنية أو مصانع الخلط ذات العلامات الخاصة)، وحجم العبوة، والكمية، وأسواق النفط الخام والزيوت الأساسية. والزيوت الصناعية أغلى للتر لكنها قد تطيل فترات التبديل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "lubricants_industrial_oils:compare-quotes",
+      "topic": "Comparing lubricant quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض مواد التشحيم من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare price per litre at the same approval level and pack size. Where drain intervals differ (synthetic vs mineral), compare cost per operating hour including labour and downtime for changes. Check ECAS for engine oils and batch dates. Recommend the three compliant offers with the lowest cost per hour of protection.",
+      "body_ar": "قارن السعر للتر عند مستوى الاعتماد وحجم العبوة نفسيهما. وحيث تختلف فترات التبديل (صناعي أو معدني) قارن التكلفة لكل ساعة تشغيل شاملة العمالة والتوقف للتبديل. وتحقق من شهادة ECAS لزيوت المحركات وتواريخ الدفعات. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة لكل ساعة حماية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -130,7 +319,8 @@
     "removed": [],
     "still_unverified": [
       "lubricants_industrial_oils:spec-checklist",
-      "lubricants_industrial_oils:uae-standards-and-approvals"
+      "lubricants_industrial_oils:uae-standards-and-approvals",
+      "lubricants_industrial_oils:authority-approvals"
     ],
     "added": [
       "lubricants_industrial_oils:spec-checklist",
@@ -161,6 +351,27 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "lubricants_industrial_oils:quote-red-flags",
+      "lubricants_industrial_oils:buyer-mistakes",
+      "lubricants_industrial_oils:price-drivers",
+      "lubricants_industrial_oils:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "lubricants_industrial_oils:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

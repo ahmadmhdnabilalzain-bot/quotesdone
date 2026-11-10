@@ -5,8 +5,8 @@
       "id": "corrugated_packaging:spec-checklist",
       "topic": "Corrugated packaging - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for corrugated packaging must state: box style; internal dimensions; board grade and flute; strength requirement; printing; quantity; food-contact suitability; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة عبوات الكرتون المضلع: نوع العلبة؛ الأبعاد الداخلية؛ درجة الكرتون ونوع التضليع؛ متطلب المتانة؛ الطباعة؛ الكمية؛ الملاءمة لملامسة الغذاء؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for corrugated packaging must state: box style; internal dimensions; board grade and flute; strength requirement; printing; quantity; food-contact suitability; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): box style; internal dimensions; board grade and flute; printing; quantity. Follow-up questions the answers trigger: box style: Die-cut styles bring a cutting die cost. board grade and flute: If unknown, ask the weight packed and stacking height so the supplier can propose. strength requirement: Humid or container storage brings a higher safety factor. printing: Ask for artwork and Pantone references. food-contact suitability: Direct food contact brings the compliance documents. Before a firm price: a printed or die-cut box needs the artwork and dimensions; a new design benefits from a structural sample. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate and site; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة عبوات الكرتون المضلع: نوع العلبة؛ الأبعاد الداخلية؛ درجة الكرتون ونوع التضليع؛ متطلب المتانة؛ الطباعة؛ الكمية؛ الملاءمة لملامسة الغذاء؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: شكل الصندوق، والأبعاد الداخلية، ودرجة الكرتون والتموج، والطباعة، والكمية. أسئلة المتابعة: الأشكال المقصوصة بقالب تستلزم كلفة قالب، وإذا لم تُعرف الدرجة يُسأل عن الوزن المعبأ وارتفاع التكديس، والتخزين الرطب أو في الحاويات يستلزم معامل أمان أعلى، وتُطلب ملفات التصميم ومراجع بانتون، وملامسة الغذاء المباشرة تستلزم وثائق الامتثال. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "box style",
         "internal dimensions",
@@ -19,14 +19,125 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "box style",
+        "internal dimensions",
+        "board grade and flute",
+        "printing",
+        "quantity"
+      ],
+      "spec_guide": [
+        {
+          "spec": "box style",
+          "blocking": true,
+          "why_needed_to_price": "Style decides blank size and whether a cutting die is needed.",
+          "uae_options": "RSC (FEFCO 0201), die-cut, crash-lock, tray, telescopic.",
+          "follow_up_if": "Die-cut styles bring a cutting die cost."
+        },
+        {
+          "spec": "internal dimensions",
+          "blocking": true,
+          "why_needed_to_price": "Board area per box is the price basis.",
+          "uae_options": "L x W x H internal in mm.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "board grade and flute",
+          "blocking": true,
+          "why_needed_to_price": "Flute, wall and paper grades set strength and cost.",
+          "uae_options": "Single wall B/C/E; double wall BC/EB; kraft vs test liners; gsm per layer.",
+          "follow_up_if": "If unknown, ask the weight packed and stacking height so the supplier can propose."
+        },
+        {
+          "spec": "strength requirement",
+          "blocking": false,
+          "why_needed_to_price": "A stated ECT/BCT or burst target lets suppliers propose equivalent constructions.",
+          "uae_options": "ECT kN/m, BCT kgf, burst kPa.",
+          "follow_up_if": "Humid or container storage brings a higher safety factor."
+        },
+        {
+          "spec": "printing",
+          "blocking": true,
+          "why_needed_to_price": "Colours and coverage change plates and press.",
+          "uae_options": "Plain, 1-4 colour flexo, litho-laminated, digital.",
+          "follow_up_if": "Ask for artwork and Pantone references."
+        },
+        {
+          "spec": "quantity",
+          "blocking": true,
+          "why_needed_to_price": "MOQ and set-up dominate small runs.",
+          "uae_options": "Order quantity, annual volume.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "food-contact suitability",
+          "blocking": false,
+          "why_needed_to_price": "Direct food contact needs suitable liners and inks.",
+          "uae_options": "Indirect contact, direct contact with declaration.",
+          "follow_up_if": "Direct food contact brings the compliance documents."
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery and installation scope",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Flat-packed, palletised, delivered.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "warranty",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Cutting dies and plates are often extra.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "site_visit_required_when": "a printed or die-cut box needs the artwork and dimensions; a new design benefits from a structural sample."
     },
     {
       "id": "corrugated_packaging:uae-standards-and-approvals",
@@ -84,6 +195,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "corrugated_packaging:authority-approvals",
+      "topic": "Corrugated packaging: food-contact, plastic rules and export marking",
+      "topic_ar": "الكرتون المموج: ملامسة الغذاء وقواعد البلاستيك وعلامات التصدير",
+      "kind": "authority_approval",
+      "body_en": "Food-contact packaging is the regulated case. Search results report that food-contact materials are certified under MoIAT's conformity scheme (ECAS) against Cabinet Resolution No. 20 of 2015, for plastic, glass, ceramic, silicone, paper, metal and wood materials, through a MoIAT-notified body, with the certificate obtained by the manufacturer or importer, not the buyer; a 2023 MoIAT workshop on recycled plastic food packaging described quality-system documentation and migration tests at an accredited UAE laboratory. Dubai Municipality and ADAFSA in Abu Dhabi inspect food businesses, including their packaging. Plain corrugated shipping cartons for non-food goods need no UAE product approval. Cartons used as dangerous-goods packaging must be UN-specification packaging tested and marked for that use, which the converter certifies. ",
+      "body_ar": "التغليف الملامس للغذاء هو الحالة الخاضعة للتنظيم. إذ تفيد نتائج البحث بأن المواد الملامسة للغذاء تُعتمد ضمن نظام المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وفق قرار مجلس الوزراء رقم 20 لسنة 2015، للمواد البلاستيكية والزجاجية والخزفية والسيليكونية والورقية والمعدنية والخشبية، عبر جهة مخطرة لدى الوزارة، ويحصل على الشهادة المصنع أو المستورد لا المشتري؛ وتناولت ورشة عمل للوزارة عام 2023 حول تغليف الأغذية من البلاستيك المعاد تدويره توثيق نظام الجودة واختبارات الانتقال في مختبر إماراتي معتمد. وتفتش بلدية دبي وهيئة أبوظبي للزراعة والسلامة الغذائية منشآت الأغذية بما في ذلك تغليفها. ولا تحتاج كراتين الشحن المموجة العادية للبضائع غير الغذائية موافقة منتج في الإمارات. أما الكراتين المستخدمة عبوات للبضائع الخطرة فيجب أن تكون عبوات بمواصفة الأمم المتحدة مختبرة ومعلّمة لهذا الاستخدام، ويعتمدها المحوّل.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists food-contact material as a regulated product under Cabinet Resolution No. 20 of 2015, applied for by the holder of a UAE trade or industry licence with a test report from an accredited laboratory per Annex 1, the label per Annex 2, GMP compliance and an electronic declaration of conformity; MoIAT's news of 17 August 2023 on recycled plastic food packaging confirms quality-system documentation and migration tests at an accredited UAE laboratory; DM Guideline 100 lists food-contact materials among the consumer products DM registers before sale in Dubai. Not confirmed on any page that opened: the list of seven materials, the 'MoIAT-notified body' route, and ADAFSA's inspection of food businesses (www.adafsa.gov.ae is not on the session network) and the UN-specification rule for dangerous-goods cartons (not read on a UAE page)"
+    },
+    {
+      "id": "corrugated_packaging:quote-red-flags",
+      "topic": "Red flags in corrugated box quotations",
+      "topic_ar": "علامات التحذير في عروض الصناديق المموجة",
+      "kind": "quote_red_flag",
+      "body_en": "Check the board construction: a test liner offered for kraft, a lighter gsm, single wall for double wall, or a \"5-ply\" label without paper grades are downgrades. Watch for external dimensions quoted as internal, no ECT/BCT or burst value, cutting dies and printing plates charged later, MOQ above the order, overs of more than the agreed tolerance invoiced, and recycled board offered for direct food contact.",
+      "body_ar": "افحص تركيبة الكرتون: فعرض بطانة اختبار بدل الكرافت، أو وزن أخف، أو جدار مفرد بدل المزدوج، أو وصف \"5 طبقات\" دون درجات الورق، كلها تخفيض. وانتبه إلى: تسعير الأبعاد الخارجية على أنها داخلية، وغياب قيمة ECT أو BCT أو الانفجار، واحتساب قوالب القص وألواح الطباعة لاحقاً، وحد أدنى للطلب يتجاوز الكمية المطلوبة، وفوترة زيادة تفوق التفاوت المتفق عليه، وعرض كرتون معاد تدويره لملامسة الغذاء المباشرة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "corrugated_packaging:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying corrugated boxes",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الصناديق المموجة",
+      "kind": "buyer_mistake",
+      "body_en": "Specifying \"5-ply\" without paper grades, so suppliers quote very different strength; giving external instead of internal size; ignoring humidity in containers, which can halve box strength; ordering many SKUs in small runs, each with set-up; and approving artwork without a printed proof. Ask the product weight, how high boxes are stacked, and where they are stored.",
+      "body_ar": "تحديد \"5 طبقات\" دون درجات الورق فتأتي العروض بقوة مختلفة جداً؛ وإعطاء المقاس الخارجي بدل الداخلي؛ وتجاهل الرطوبة في الحاويات التي قد تنقص قوة الصندوق إلى النصف؛ وطلب أصناف كثيرة بكميات صغيرة لكل منها تجهيز؛ واعتماد التصميم دون بروفة مطبوعة. لذا يُسأل عن وزن المنتج وارتفاع تكديس الصناديق ومكان تخزينها.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "corrugated_packaging:price-drivers",
+      "topic": "What legitimately moves corrugated box prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الصناديق المموجة",
+      "kind": "price_driver",
+      "body_en": "Paper grades and gsm (kraft above test liner), flute and wall, box area, style and die cost, print colours and coverage, quantity and run length, kraft paper import prices and freight, and delivery.",
+      "body_ar": "درجات الورق وأوزانها (الكرافت أعلى من بطانة الاختبار)، والتموج والجدار، ومساحة الصندوق، والشكل وكلفة القالب، وألوان الطباعة ومساحتها، والكمية وطول التشغيل، وأسعار استيراد ورق الكرافت والشحن، والتوصيل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "corrugated_packaging:compare-quotes",
+      "topic": "Comparing corrugated box quotes like-for-like",
+      "topic_ar": "مقارنة عروض الصناديق المموجة على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare boxes with the same internal size, style, board construction (or the same tested ECT/BCT) and print; add one-off plate and die costs spread over the annual volume. Compare price per box delivered, MOQ and lead time. Recommend the three compliant offers with the lowest cost per box at the buyer's volume.",
+      "body_ar": "قارن صناديق بالمقاس الداخلي والشكل وتركيبة الكرتون (أو قيم ECT أو BCT المختبرة) والطباعة نفسها، وأضف كلفة الألواح والقوالب لمرة واحدة موزعة على الحجم السنوي. وقارن سعر الصندوق المسلّم والحد الأدنى ومدة التوريد. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة للصندوق عند حجم المشتري.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +307,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "corrugated_packaging:spec-checklist"
+      "corrugated_packaging:spec-checklist",
+      "corrugated_packaging:authority-approvals"
     ],
     "added": [
       "corrugated_packaging:spec-checklist",
@@ -156,6 +339,28 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "corrugated_packaging:quote-red-flags",
+      "corrugated_packaging:buyer-mistakes",
+      "corrugated_packaging:price-drivers",
+      "corrugated_packaging:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "corrugated_packaging:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

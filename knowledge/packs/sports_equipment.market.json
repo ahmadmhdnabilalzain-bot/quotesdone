@@ -28,8 +28,8 @@
       "topic": "Sports equipment: makes, brands, distributors and origins in the UAE",
       "topic_ar": "معدات رياضية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the retailers Sun & Sand Sports and Decathlon and common brands such as Nike, Adidas, Puma, Molten, Mikasa, Spalding, Wilson, Head, Babolat, Bullpadel, Yonex, Speedo and Mondo. Confirmed retailers and common brands: Sun & Sand Sports, Decathlon, Nike, Adidas, Puma, Molten, Mikasa, Spalding, Wilson, Head, Babolat, Bullpadel, Yonex, Speedo, Mondo. The brands' UAE distributors and padel court installers were not checked.",
-      "body_ar": "من متاجر المعدات الرياضية Sun & Sand Sports وDecathlon، ومن الماركات الشائعة Nike وAdidas وPuma وMolten وMikasa وSpalding وWilson وHead وBabolat وBullpadel وYonex وSpeedo وMondo. تجار التجزئة المؤكدون والعلامات الشائعة: Sun & Sand Sports، Decathlon، Nike، Adidas، Puma، Molten، Mikasa، Spalding، Wilson، Head، Babolat، Bullpadel، Yonex، Speedo، Mondo. ولم يُتحقق من موزعي العلامات في الإمارات ولا من مركّبي ملاعب البادل.",
+      "body_en": "This entry names the retailers Sun & Sand Sports and Decathlon and common brands such as Nike, Adidas, Puma, Molten, Mikasa, Spalding, Wilson, Head, Babolat, Bullpadel, Yonex, Speedo and Mondo. Confirmed retailers and common brands: Sun & Sand Sports, Decathlon, Nike, Adidas, Puma, Molten, Mikasa, Spalding, Wilson, Head, Babolat, Bullpadel, Yonex, Speedo, Mondo. The brands' UAE distributors and padel court installers were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Sun & Sand Sports = a UAE trading or retail name; Decathlon = a French trading name; Nike = a premium American brand; Adidas = a premium German brand; Puma = a mid-tier German brand; Molten = a premium Japanese brand; Mikasa = a premium Japanese brand; Spalding = a mid-tier American brand; Wilson = a premium American brand; Head = a premium Austrian brand; Babolat = a premium French brand; Bullpadel = a premium Spanish brand; Yonex = a premium Japanese brand; Speedo = a mid-tier British brand; Mondo = a premium Italian brand.",
+      "body_ar": "من متاجر المعدات الرياضية Sun & Sand Sports وDecathlon، ومن الماركات الشائعة Nike وAdidas وPuma وMolten وMikasa وSpalding وWilson وHead وBabolat وBullpadel وYonex وSpeedo وMondo. تجار التجزئة المؤكدون والعلامات الشائعة: Sun & Sand Sports، Decathlon، Nike، Adidas، Puma، Molten، Mikasa، Spalding، Wilson، Head، Babolat، Bullpadel، Yonex، Speedo، Mondo. ولم يُتحقق من موزعي العلامات في الإمارات ولا من مركّبي ملاعب البادل.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Sun & Sand Sports = اسم تجاري لتاجر أو موزع في الإمارات؛ Decathlon = اسم تجاري فرنسية؛ Nike = علامة أمريكية من الفئة الممتازة؛ Adidas = علامة ألمانية من الفئة الممتازة؛ Puma = علامة ألمانية من الفئة المتوسطة؛ Molten = علامة يابانية من الفئة الممتازة؛ Mikasa = علامة يابانية من الفئة الممتازة؛ Spalding = علامة أمريكية من الفئة المتوسطة؛ Wilson = علامة أمريكية من الفئة الممتازة؛ Head = علامة نمساوية من الفئة الممتازة؛ Babolat = علامة فرنسية من الفئة الممتازة؛ Bullpadel = علامة إسبانية من الفئة الممتازة؛ Yonex = علامة يابانية من الفئة الممتازة؛ Speedo = علامة بريطانية من الفئة المتوسطة؛ Mondo = علامة إيطالية من الفئة الممتازة.",
       "sources": [
         "https://padel.how/rules/official-fip-padel-rules/",
         "https://en-ae.sssports.com/about-us.html",
@@ -40,7 +40,114 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: FIP padel court is 20 m x 10 m with 4 m back walls (3 m glass plus 1 m mesh) -> confirmed | Sun & Sand Sports (since 1979, authorised Nike, adidas, PUMA retailer) and Decathlon operate in the UAE -> confirmed | Go Sport, Intersport, Adventure HQ, padel court builders -> removed: not confirmed. Not checked: Local installers of padel courts and current distributors for each brand were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: FIP padel court is 20 m x 10 m with 4 m back walls (3 m glass plus 1 m mesh) -> confirmed | Sun & Sand Sports (since 1979, authorised Nike, adidas, PUMA retailer) and Decathlon operate in the UAE -> confirmed | Go Sport, Intersport, Adventure HQ, padel court builders -> removed: not confirmed. Not checked: Local installers of padel courts and current distributors for each brand were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Sun & Sand Sports",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Decathlon",
+          "origin": "France",
+          "tier": "dealer",
+          "generic_en": "a French trading name",
+          "generic_ar": "اسم تجاري فرنسية"
+        },
+        {
+          "brand": "Nike",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Adidas",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Puma",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Molten",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mikasa",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Spalding",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Wilson",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Head",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium Austrian brand",
+          "generic_ar": "علامة نمساوية من الفئة الممتازة"
+        },
+        {
+          "brand": "Babolat",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bullpadel",
+          "origin": "Spain",
+          "tier": "premium",
+          "generic_en": "a premium Spanish brand",
+          "generic_ar": "علامة إسبانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Yonex",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Speedo",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Mondo",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "sports_equipment:uae-market-sizes",

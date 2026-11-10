@@ -27,8 +27,8 @@
       "topic": "Pallets (wood & plastic): makes, brands, distributors and origins in the UAE",
       "topic_ar": "الطبليات الخشبية والبلاستيكية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists who supplies pallets in the UAE: local wooden pallet factories, used-pallet traders, pooling and plastic pallet brands such as CHEP and Schoeller Allibert, and timber origins. Wooden pallets are made by many local factories in Sharjah (Al Sajaa, Industrial Area), Ajman, Umm Al Quwain, Jebel Ali and Musaffah, not checked by name; used-pallet traders recycle and repair. Pooling and plastic pallet brands: CHEP, Schoeller Allibert, Craemer, Cabka, Rehrig, Supreme, Nilkamal. Heat treatment is done by treatment providers registered with MOCCAE. Timber comes from Europe, Russia, New Zealand and Chile.",
-      "body_ar": "يأتي توريد الطبليات في الإمارات من مصانع الطبليات الخشبية المحلية وتجار الطبليات المستعملة وماركات تأجير الطبليات والطبليات البلاستيكية مثل CHEP وSchoeller Allibert، مع بيان منشأ الخشب. تصنع المنصات الخشبية مصانع محلية كثيرة في الشارقة (الصجعة والمنطقة الصناعية) وعجمان وأم القيوين وجبل علي ومصفح، ولم يُتحقق منها بالاسم، ويعيد تجار المنصات المستعملة تدويرها وإصلاحها. علامات التجميع والمنصات البلاستيكية: CHEP، Schoeller Allibert، Craemer، Cabka، Rehrig، Supreme، Nilkamal. وتتم المعالجة الحرارية لدى مقدمي معالجة مسجلين لدى وزارة التغير المناخي والبيئة. والخشب من أوروبا وروسيا ونيوزيلندا وتشيلي.",
+      "body_en": "This lists who supplies pallets in the UAE: local wooden pallet factories, used-pallet traders, pooling and plastic pallet brands such as CHEP and Schoeller Allibert, and timber origins. Wooden pallets are made by many local factories in Sharjah (Al Sajaa, Industrial Area), Ajman, Umm Al Quwain, Jebel Ali and Musaffah, not checked by name; used-pallet traders recycle and repair. Pooling and plastic pallet brands: CHEP, Schoeller Allibert, Craemer, Cabka, Rehrig, Supreme, Nilkamal. Heat treatment is done by treatment providers registered with MOCCAE. Timber comes from Europe, Russia, New Zealand and Chile.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): CHEP = a premium Australian brand; Schoeller Allibert = a premium Dutch brand; Craemer = a premium German brand; Cabka = a mid-tier Dutch brand.",
+      "body_ar": "يأتي توريد الطبليات في الإمارات من مصانع الطبليات الخشبية المحلية وتجار الطبليات المستعملة وماركات تأجير الطبليات والطبليات البلاستيكية مثل CHEP وSchoeller Allibert، مع بيان منشأ الخشب. تصنع المنصات الخشبية مصانع محلية كثيرة في الشارقة (الصجعة والمنطقة الصناعية) وعجمان وأم القيوين وجبل علي ومصفح، ولم يُتحقق منها بالاسم، ويعيد تجار المنصات المستعملة تدويرها وإصلاحها. علامات التجميع والمنصات البلاستيكية: CHEP، Schoeller Allibert، Craemer، Cabka، Rehrig، Supreme، Nilkamal. وتتم المعالجة الحرارية لدى مقدمي معالجة مسجلين لدى وزارة التغير المناخي والبيئة. والخشب من أوروبا وروسيا ونيوزيلندا وتشيلي.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): CHEP = علامة أسترالية من الفئة الممتازة؛ Schoeller Allibert = علامة هولندية من الفئة الممتازة؛ Craemer = علامة ألمانية من الفئة الممتازة؛ Cabka = علامة هولندية من الفئة المتوسطة.",
       "sources": [
         "https://en.wikipedia.org/wiki/ISPM_15",
         "https://www.chep.com/ae/en",
@@ -38,7 +38,37 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: ISPM 15 requires debarked, heat-treated or fumigated and marked wood packaging -> confirmed (secondary) | CHEP operates in the UAE -> confirmed (UAE site). Not checked: The current MOCCAE register of treatment providers and CHEP's UAE coverage were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: ISPM 15 requires debarked, heat-treated or fumigated and marked wood packaging -> confirmed (secondary) | CHEP operates in the UAE -> confirmed (UAE site). Not checked: The current MOCCAE register of treatment providers and CHEP's UAE coverage were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "CHEP",
+          "origin": "Australia",
+          "tier": "premium",
+          "generic_en": "a premium Australian brand",
+          "generic_ar": "علامة أسترالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Schoeller Allibert",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium Dutch brand",
+          "generic_ar": "علامة هولندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Craemer",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Cabka",
+          "origin": "Netherlands",
+          "tier": "mid",
+          "generic_en": "a mid-tier Dutch brand",
+          "generic_ar": "علامة هولندية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "pallets_wood_plastic:uae-market-sizes",

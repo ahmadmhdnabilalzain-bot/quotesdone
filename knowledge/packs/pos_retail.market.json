@@ -28,8 +28,8 @@
       "topic": "Point-of-sale & retail technology: makes, brands, distributors and origins in the UAE",
       "topic_ar": "أنظمة نقاط البيع وتقنيات التجزئة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the POS players in the UAE, the acquirer Network International, software such as Foodics and Oracle Micros, and hardware brands such as Sunmi, PAX and Verifone. Confirmed UAE acquirer and POS software, plus common POS and hardware brands: Network International, Foodics, Oracle Micros, LS Retail, Odoo, Sunmi, PAX, Verifone, Ingenico, Epson, Zebra. The other brands' UAE resellers were not checked. Payment terminals must come from CBUAE-licensed acquirers.",
-      "body_ar": "من أبرز الأسماء في أنظمة نقاط البيع بالإمارات جهة معالجة المدفوعات Network International، والبرامج مثل Foodics وOracle Micros، وماركات الأجهزة مثل Sunmi وPAX وVerifone. جهة التحصيل وبرنامج نقاط البيع المؤكدان في الإمارات، إضافة إلى علامات نقاط البيع والأجهزة الشائعة: Network International، Foodics، Oracle Micros، LS Retail، Odoo، Sunmi، PAX، Verifone، Ingenico، Epson، Zebra. ولم يُتحقق من موزعي العلامات الأخرى في الإمارات. ويجب أن تأتي أجهزة الدفع من جهات تحصيل مرخصة من المصرف المركزي.",
+      "body_en": "This lists the POS players in the UAE, the acquirer Network International, software such as Foodics and Oracle Micros, and hardware brands such as Sunmi, PAX and Verifone. Confirmed UAE acquirer and POS software, plus common POS and hardware brands: Network International, Foodics, Oracle Micros, LS Retail, Odoo, Sunmi, PAX, Verifone, Ingenico, Epson, Zebra. The other brands' UAE resellers were not checked. Payment terminals must come from CBUAE-licensed acquirers.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Network International = a UAE operator; Foodics = a mid-tier Saudi brand; Oracle Micros = a premium American brand; LS Retail = a premium Icelandic brand; Odoo = a mid-tier Belgian brand; Sunmi = an economy Chinese brand; PAX = a mid-tier Chinese brand; Verifone = a premium American brand; Ingenico = a premium French brand; Epson = a mid-tier Japanese brand; Zebra = a premium American brand.",
+      "body_ar": "من أبرز الأسماء في أنظمة نقاط البيع بالإمارات جهة معالجة المدفوعات Network International، والبرامج مثل Foodics وOracle Micros، وماركات الأجهزة مثل Sunmi وPAX وVerifone. جهة التحصيل وبرنامج نقاط البيع المؤكدان في الإمارات، إضافة إلى علامات نقاط البيع والأجهزة الشائعة: Network International، Foodics، Oracle Micros، LS Retail، Odoo، Sunmi، PAX، Verifone، Ingenico، Epson، Zebra. ولم يُتحقق من موزعي العلامات الأخرى في الإمارات. ويجب أن تأتي أجهزة الدفع من جهات تحصيل مرخصة من المصرف المركزي.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Network International = جهة تشغيل إماراتية؛ Foodics = علامة سعودية من الفئة المتوسطة؛ Oracle Micros = علامة أمريكية من الفئة الممتازة؛ LS Retail = علامة آيسلندية من الفئة الممتازة؛ Odoo = علامة بلجيكية من الفئة المتوسطة؛ Sunmi = علامة صينية من الفئة الاقتصادية؛ PAX = علامة صينية من الفئة المتوسطة؛ Verifone = علامة أمريكية من الفئة الممتازة؛ Ingenico = علامة فرنسية من الفئة الممتازة؛ Epson = علامة يابانية من الفئة المتوسطة؛ Zebra = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
         "https://www.network.ae/en",
@@ -40,7 +40,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: E-invoicing mandatory from 1 Jan 2027 (>= AED 50m) and 1 Jul 2027 (others) -> corrected | Network International offers merchant acquiring, POS and SoftPOS -> confirmed | Foodics serves the UAE (local support number) -> confirmed. Not checked: Which POS vendors have local UAE presence (some named are foreign platforms), the e-invoicing go-live date, and acquirer names after mergers were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: E-invoicing mandatory from 1 Jan 2027 (>= AED 50m) and 1 Jul 2027 (others) -> corrected | Network International offers merchant acquiring, POS and SoftPOS -> confirmed | Foodics serves the UAE (local support number) -> confirmed. Not checked: Which POS vendors have local UAE presence (some named are foreign platforms), the e-invoicing go-live date, and acquirer names after mergers were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Network International",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "Foodics",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Oracle Micros",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "LS Retail",
+          "origin": "Iceland",
+          "tier": "premium",
+          "generic_en": "a premium Icelandic brand",
+          "generic_ar": "علامة آيسلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Odoo",
+          "origin": "Belgium",
+          "tier": "mid",
+          "generic_en": "a mid-tier Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Sunmi",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "an economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "PAX",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Verifone",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Ingenico",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Epson",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Zebra",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "pos_retail:uae-market-sizes",

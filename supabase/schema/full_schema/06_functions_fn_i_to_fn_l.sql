@@ -8611,6 +8611,51 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_open_pull_requests_record(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  x jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb; v_idle numeric; v_age numeric; v_sql text; v_n int := 0;
+begin
+  if jsonb_typeof(p) is distinct from 'object' then
+    raise exception 'fn_it_open_pull_requests_record takes the object takeOpenPullRequests returns';
+  end if;
+  -- "could not look" is not "all clear": nothing is settled, nothing closes, and the duty stays due.
+  if p->>'basis' is distinct from 'measured' or jsonb_typeof(p->'stale') is distinct from 'array' then
+    return jsonb_build_object('recorded', false, 'reason', coalesce(p->>'reason', 'no measured reading'));
+  end if;
+
+  for x in select e from jsonb_array_elements(p->'stale') e loop
+    continue when (x->>'number') is null or (x->>'number') !~ '^[0-9]+$';
+    v_idle := coalesce((x->>'idle_hours')::numeric, 0);
+    v_age  := coalesce((x->>'age_hours')::numeric, 0);
+    v_sql  := x->>'touches_sql';
+    v_n := v_n + 1;
+    v_items := v_items || jsonb_build_object(
+      'item', 'pr:' || (x->>'number'), 'owner_seat', 'it_engineer', 'subject', 'pull request #' || (x->>'number'),
+      'blast', 'internal', 'affected', 1,
+      'title', 'Pull request #' || (x->>'number') || ' "' || public.fn_trim_at_word(coalesce(x->>'title', ''), 120) || '" has had no commit or update for '
+               || case when v_idle >= 48 then trim_scale(round(v_idle / 24, 1)) || ' days' else round(v_idle) || ' hours' end
+               || ' (open ' || case when v_age >= 48 then trim_scale(round(v_age / 24, 1)) || ' days' else round(v_age) || ' hours' end || ')'
+               || case v_sql when 'true' then '; its diff touches scripts/sql, so SQL is waiting to be applied'
+                             when 'false' then '; its diff does not touch scripts/sql'
+                             else '; its files could not be read, so whether SQL is waiting is unknown' end,
+      'evidence', jsonb_build_object('number', (x->>'number')::int, 'title', x->>'title', 'url', x->>'url', 'author', x->>'author',
+        'draft', coalesce((x->>'draft')::boolean, false), 'created_at', x->>'created_at', 'updated_at', x->>'updated_at',
+        'age_hours', v_age, 'idle_hours', v_idle, 'touches_sql', case v_sql when 'true' then true when 'false' then false else null end,
+        'sql_files', coalesce(x->'sql_files', '[]'::jsonb), 'open_count', p->'open_count', 'read_at', p->>'taken_at',
+        'close', 'Merge it, close it, or push to it: this finding closes by itself on the next daily run. Never apply its SQL from the branch (an_apply_from_an_open_pull_request_waits_for_its_merge.sql).'));
+  end loop;
+
+  v_res := jsonb_build_object('stale', v_n, 'open', p->'open_count', 'settle', public.fn_it_duty_settle('open_pull_requests', v_items));
+  perform public.fn_it_duty_ran('open_pull_requests', v_res);
+  return v_res || jsonb_build_object('closed', v_res->'settle'->'closed');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_otp_unblock(p_prefix text, p_reason text, p_by text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -9943,6 +9988,19 @@ begin
              || public.fn_trim_at_word(replace(coalesce(max(coalesce(r.result->>'why', r.result->'refused'->0->>'why')), 'its guardrail refused'), '_', ' '), 140)
       from public.it_safe_fix_run r where r.outcome = 'refused_by_guardrail' and r.ran_at > now() - interval '26 hours'
      group by r.family
+    union all
+    -- 5. pull requests open more than 7 days (10 Nov 2026, duty open_pull_requests): ONE line, numbers only (no title, so
+    --    no internal word reaches him). Age is the pull request's own, from the finding's evidence; the threshold is
+    --    it_threshold 'pr_founder_days'. Each one's finding closes by itself the day it is merged or closed.
+    select 1, count(*)::int,
+           count(*) || ' pull request(s) have been open for more than ' || public.fn_it_threshold('pr_founder_days')::int
+             || ' days without a merge: ' || string_agg('#' || (f.evidence->>'number'), ', ' order by (f.evidence->>'created_at')::timestamptz)
+             || case when count(*) filter (where f.evidence->>'touches_sql' = 'true') > 0
+                     then ' (' || count(*) filter (where f.evidence->>'touches_sql' = 'true') || ' carry SQL that was never applied)' else '' end
+      from public.it_engineer_finding f
+     where f.closed_at is null and f.issue_key like 'duty:open\_pull\_requests:pr:%'
+       and (f.evidence->>'created_at')::timestamptz < now() - make_interval(days => public.fn_it_threshold('pr_founder_days')::int)
+    having count(*) > 0
     union all
     -- 4. questions the model could not answer by their deadline, a person-facing one first
     select case when public.fn_held_question_is_person_facing(q.surface) then 0 else 4 end, count(*)::int,

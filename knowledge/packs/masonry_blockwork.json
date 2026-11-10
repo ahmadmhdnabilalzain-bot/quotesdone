@@ -6,8 +6,8 @@
       "topic": "Masonry and blockwork - what the buyer must state",
       "topic_ar": "أعمال البناء بالطابوق والبلوك: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For masonry and blockwork (trade code masonry_blockwork only), every quoted line must state: Block type and density; Block size; Compressive strength; Mortar mix; Wall thickness and area; Fire rating of walls; Lintels and reinforcement; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "عند طلب عروض أسعار لأعمال البناء بالطابوق (البلوك) (رمز النشاط masonry_blockwork فقط)، يجب أن يذكر كل بند: نوع الطابوق وكثافته؛ مقاس الطابوق؛ مقاومة الضغط؛ خلطة المونة؛ سماكة الجدار ومساحته؛ مقاومة الجدران للحريق؛ الأعتاب والتسليح؛ المخرجات ونطاق العمل؛ ترخيص المقاول ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ نطاق التركيب؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد؛ الاستثناءات. بهذه البنود تصبح عروض المقاولين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For masonry and blockwork (trade code masonry_blockwork only), every quoted line must state: Block type and density; Block size; Compressive strength; Mortar mix; Wall thickness and area; Fire rating of walls; Lintels and reinforcement; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): block type, wall thickness and area, labour-only or supply-and-lay, and the plaster scope. Supplier ask-back review (2026-11-10): the inquiry now also states Site location, floors and hoisting (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Block type and density; Wall thickness and area; Plaster scope (internal, external, thickness); Material supply by contractor or by client; Site location, floors and hoisting.",
+      "body_ar": "عند طلب عروض أسعار لأعمال البناء بالطابوق (البلوك) (رمز النشاط masonry_blockwork فقط)، يجب أن يذكر كل بند: نوع الطابوق وكثافته؛ مقاس الطابوق؛ مقاومة الضغط؛ خلطة المونة؛ سماكة الجدار ومساحته؛ مقاومة الجدران للحريق؛ الأعتاب والتسليح؛ المخرجات ونطاق العمل؛ ترخيص المقاول ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ نطاق التركيب؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد؛ الاستثناءات. بهذه البنود تصبح عروض المقاولين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع البلوك، وسماكة الجدار ومساحته، والعمالة فقط أو التوريد والتنفيذ، ونطاق اللياسة. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع العمل وعدد الطوابق ووسيلة الرفع (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Block type and density",
         "Block size",
@@ -24,7 +24,11 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Plaster scope (internal, external, thickness)",
+        "Material supply by contractor or by client",
+        "Site location, floors and hoisting",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/",
@@ -32,7 +36,158 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Block type and density",
+        "Wall thickness and area",
+        "Plaster scope (internal, external, thickness)",
+        "Material supply by contractor or by client",
+        "Site location, floors and hoisting"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Block type and density",
+          "why_needed_to_price": "Hollow, solid, thermal and AAC blocks differ in price and laying rate.",
+          "uae_options": "hollow; solid; thermal; AAC",
+          "follow_up_if": "Thermal block: ask whether it is needed for green-building compliance.",
+          "blocking": true
+        },
+        {
+          "spec": "Block size",
+          "why_needed_to_price": "Block size decides quantity and labour per square metre.",
+          "uae_options": "100, 150, 200, 250 mm thick blocks.",
+          "follow_up_if": "If wall thicknesses are not drawn, ask for the drawings.",
+          "blocking": false
+        },
+        {
+          "spec": "Compressive strength",
+          "why_needed_to_price": "Compressive strength decides block class and price.",
+          "uae_options": "7 or 10 N/mm2 typical.",
+          "follow_up_if": "If load-bearing, ask for the structural requirement.",
+          "blocking": false
+        },
+        {
+          "spec": "Mortar mix",
+          "why_needed_to_price": "Mortar mix decides material cost.",
+          "uae_options": "Site-mixed or ready mortar; mix ratio.",
+          "follow_up_if": "If not stated, the supplier assumes its standard mix.",
+          "blocking": false
+        },
+        {
+          "spec": "Wall thickness and area",
+          "why_needed_to_price": "Labour and material are priced per m2 by thickness.",
+          "uae_options": "100, 150, 200, 250 mm",
+          "follow_up_if": "No drawings: a site measurement is needed.",
+          "blocking": true
+        },
+        {
+          "spec": "Fire rating of walls",
+          "why_needed_to_price": "Rated walls need specific block and thickness.",
+          "uae_options": "per fire strategy",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lintels and reinforcement",
+          "why_needed_to_price": "Lintels, bed-joint reinforcement and tie columns add cost.",
+          "uae_options": "precast lintels; cast in situ",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "What the provider must actually hand over decides the hours and the price; an unclear scope makes every quote a guess.",
+          "uae_options": "Defined tasks, quantities, frequencies, reports and certificates; a scope document or bill of quantities.",
+          "follow_up_if": "If the buyer cannot describe the scope, ask for the site, the quantities and the end result wanted before pricing.",
+          "blocking": false
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and the qualifications of the team decide what it can be trusted to do.",
+          "uae_options": "Trade licence naming the activity; authority approval or registration; qualified supervisors and certified operatives.",
+          "follow_up_if": "If the licence or a required approval is missing or expired, the offer cannot be compared until it is provided.",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Response and fix times decide how many staff, vehicles and spares the provider must keep ready, which is most of a service price.",
+          "uae_options": "Emergency response within hours; scheduled work within agreed days; 24/7 or business-hours cover.",
+          "follow_up_if": "If the buyer needs 24/7 cover or penalties for missed response, say so: it is priced differently.",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "The length of the engagement and when work happens (hours, nights, phases) set labour, plant and overhead costs.",
+          "uae_options": "Fixed programme in weeks; phased handovers; daytime, night or Friday work; recurring schedule for services.",
+          "follow_up_if": "If work must avoid trading hours or occupants, state the permitted hours: night and weekend work is priced at a premium.",
+          "blocking": false
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "why_needed_to_price": "Supply-only and supply-install-commission are different prices; testing and commissioning are often left out silently.",
+          "uae_options": "Supply only; supply and install; install, test and commission with records and training.",
+          "follow_up_if": "If commissioning, testing or training is needed, state it so all quotes include it.",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "The defects period decides how long the provider must return at its own cost, which it prices in.",
+          "uae_options": "12 months defects liability is common on UAE works; longer warranties for specific systems by agreement.",
+          "follow_up_if": "If the buyer needs a longer period, ask for it priced separately.",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "Plaster scope (internal, external, thickness)",
+          "why_needed_to_price": "Plaster is often priced separately per m2.",
+          "uae_options": "internal; external; none",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Material supply by contractor or by client",
+          "why_needed_to_price": "Labour-only and supply-and-lay quotes are not comparable.",
+          "uae_options": "labour only; supply and lay",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Site location, floors and hoisting",
+          "why_needed_to_price": "The emirate and the site, the number of floors and whether a hoist or crane is available decide how blocks and mortar reach the work face and so the labour rate.",
+          "uae_options": "Site in a named emirate and area; ground floor only or a stated number of floors; hoist or crane provided by the main contractor or not.",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "masonry_blockwork:uae-standards-and-approvals",
@@ -92,6 +247,81 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "masonry_blockwork:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Blockwork: approvals per emirate",
+      "topic_ar": "أعمال البلوك: الاعتمادات في كل إمارة",
+      "body_en": "Blockwork has no permit of its own; it is part of the building permit and inspections. In Dubai, Al Sa'fat sets wall thermal performance for permitted buildings, which is why thermal blocks are specified, and Dubai Municipality (or Trakhees/DDA) inspects; in Abu Dhabi, Estidama applies through DMT; Sharjah and the northern emirates follow their municipal permits. Dubai Municipality certifies concrete blocks (batch certificates and factory assessment for block factories), and Sharjah Municipality issues a Building Material Approval certificate for new types of bricks. Fire-rated walls must match the civil defence-approved fire strategy. Internal non-structural partitions inside a private home generally need no permit, though structural changes do. Who obtains: the consultant and contractor; the block factory provides test reports.",
+      "body_ar": "ليس لأعمال البلوك ترخيص خاص بها، فهي جزء من رخصة البناء والتفتيش. ففي دبي يحدد نظام السعفات الأداء الحراري للجدران في المباني المرخّصة، ولهذا يُطلب البلوك الحراري، وتفتش بلدية دبي (أو تراخيص أو سلطة دبي للتطوير)، وفي أبوظبي ينطبق نظام استدامة عبر دائرة البلديات والنقل، وتتبع الشارقة والإمارات الشمالية تراخيص بلدياتها. وتعتمد بلدية دبي البلوك الخرساني (شهادات مطابقة للدفعات وتقييم مصانع البلوك)، وتصدر بلدية الشارقة شهادة اعتماد مواد البناء لأنواع الطوب الجديدة. ويجب أن تطابق الجدران المقاومة للحريق استراتيجية الحريق المعتمدة من الدفاع المدني. والقواطع الداخلية غير الإنشائية في منزل خاص لا تحتاج عموماً إلى ترخيص، بخلاف التعديلات الإنشائية. من يحصل عليها: الاستشاري والمقاول، ويقدم مصنع البلوك تقارير الفحص.",
+      "sources": [
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e702",
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf",
+        "https://www.dmt.gov.ae/en/adm/Media-Centre/News/08Jan2025"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Al Sa'fat is mandatory for all new buildings in Dubai since 19 October 2020; DM certificates of conformity for concrete block batches and factories; Sharjah Building Material Approval for new types of bricks. Not confirmed on any reachable page: the Estidama route and the civil defence fire strategy. Host(s) that could not be reached: moei.gov.ae (blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt); portal.shjmun.gov.ae (blocked by the session network). Corrected in body_en and body_ar to what the opened page says. Second page read 2026-11-10 (ledger 1597): Al Sa'fat 2nd edition (January 2023) section 501.01 sets external-wall U-values (0.57 W/m2K Silver, 0.42 Golden and Platinum), and Abu Dhabi City Municipality (January 2025) makes the Estidama Pearl rating essential for the building permit; both now confirmed. Still not confirmed: the civil defence fire strategy for rated walls (www.dcd.gov.ae resets every connection)."
+    },
+    {
+      "id": "masonry_blockwork:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in blockwork quotes",
+      "topic_ar": "علامات التحذير في عروض أعمال البلوك",
+      "body_en": "Watch for: block type downgraded (hollow instead of thermal or solid), rate per m2 without the thickness, plaster, lintels, tie columns, scaffolding or curing excluded, cement and sand \"by client\" hidden in a labour-only rate, and wastage not counted.",
+      "body_ar": "انتبه إلى: خفض نوع البلوك (مفرغ بدلاً من حراري أو مصمت)، وسعر للمتر المربع دون السماكة، واستثناء اللياسة أو الأعتاب أو الأعمدة الرابطة أو السقالات أو المعالجة بالماء، وإخفاء أن الإسمنت والرمل «على العميل» في سعر العمالة فقط، وعدم احتساب الهدر.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "masonry_blockwork:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in blockwork",
+      "topic_ar": "أخطاء شائعة لدى المشترين في أعمال البلوك",
+      "body_en": "Buyers compare labour-only and supply-and-lay rates as if equal, forget plaster, and skip curing in summer, so walls crack.",
+      "body_ar": "يقارن المشترون سعر العمالة فقط بسعر التوريد والتنفيذ كأنهما متساويان، وينسون اللياسة، ويتجاوزون المعالجة بالماء صيفاً فتتشقق الجدران.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "masonry_blockwork:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves blockwork prices",
+      "topic_ar": "ما الذي يغيّر أسعار أعمال البلوك بشكل مشروع",
+      "body_en": "Prices differ legitimately by block type and thickness, wall height (scaffolding), openings and corners, plaster type, site access, and summer working-hour limits.",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب نوع البلوك وسماكته، وارتفاع الجدار (السقالات)، والفتحات والزوايا، ونوع اللياسة، والوصول إلى الموقع، وقيود ساعات العمل صيفاً.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "masonry_blockwork:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing blockwork quotes like for like",
+      "topic_ar": "مقارنة عروض أعمال البلوك على أساس متكافئ",
+      "body_en": "Compare per m2 at the same block type and thickness, the same supply basis, with lintels, tie columns, plaster and scaffolding in or out alike. Value beyond price: factory test reports, a supervisor on site and curing included.",
+      "body_ar": "قارن لكل متر مربع بنوع البلوك وسماكته وأساس التوريد نفسه، مع معاملة الأعتاب والأعمدة الرابطة واللياسة والسقالات بالطريقة نفسها. القيمة إلى جانب السعر: تقارير فحص من المصنع، ومشرف في الموقع، ومعالجة بالماء مشمولة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -128,16 +358,24 @@
     }
   ],
   "verified": {
-    "fetched_urls": 3,
-    "claims_checked": 3,
-    "corrected": [],
+    "fetched_urls": 6,
+    "claims_checked": 9,
+    "corrected": [
+      "masonry_blockwork:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
-      "masonry_blockwork:spec-checklist"
+      "masonry_blockwork:spec-checklist",
+      "masonry_blockwork:approvals-per-emirate"
     ],
     "added": [
       "masonry_blockwork:spec-checklist",
-      "masonry_blockwork:uae-standards-and-approvals"
+      "masonry_blockwork:uae-standards-and-approvals",
+      "masonry_blockwork:approvals-per-emirate",
+      "masonry_blockwork:quote-red-flags",
+      "masonry_blockwork:buyer-mistakes",
+      "masonry_blockwork:price-drivers",
+      "masonry_blockwork:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
@@ -164,6 +402,26 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: masonry_blockwork:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 6 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "masonry_blockwork:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

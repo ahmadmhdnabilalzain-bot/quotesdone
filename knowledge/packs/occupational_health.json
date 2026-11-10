@@ -6,8 +6,8 @@
       "topic": "Occupational health & onsite medical services - what the buyer must state",
       "topic_ar": "الصحة المهنية والخدمات الطبية في الموقع: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For occupational health & onsite medical services (trade code occupational_health only), every quoted line must state: Service type; Number of employees or attendees covered; Sites and working hours; Staffing (doctor, nurse, paramedic) and their licences; Equipment and medicines supplied; Tests and examinations included; Reporting and records confidentiality; Response times; Contract duration; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الصحة المهنية والخدمات الطبية في الموقع (رمز النشاط occupational_health فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الخدمة؛ عدد الموظفين أو الحضور المشمولين؛ المواقع وساعات العمل؛ الكوادر (طبيب، ممرض، مسعف) وتراخيصهم؛ المعدات والأدوية الموردة؛ الفحوص والاختبارات المشمولة؛ التقارير وسرية السجلات؛ أزمنة الاستجابة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For occupational health & onsite medical services (trade code occupational_health only), every quoted line must state: Service type; Number of employees or attendees covered; Sites and working hours; Staffing (doctor, nurse, paramedic) and their licences; Equipment and medicines supplied; Tests and examinations included; Reporting and records confidentiality; Response times; Contract duration; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Service type; Number of employees or attendees covered; Sites and working hours; Staffing (doctor, nurse, paramedic) and their licences; Contract duration; Pricing basis. Before a firm price: a firm price needs service type, headcount, sites and hours and staffing level; a remote or industrial site clinic needs a site visit. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Service type; Number of employees or attendees covered; Sites and working hours; Staffing (doctor, nurse, paramedic) and their licences; Contract duration; Pricing basis.",
+      "body_ar": "في نشاط الصحة المهنية والخدمات الطبية في الموقع (رمز النشاط occupational_health فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الخدمة؛ عدد الموظفين أو الحضور المشمولين؛ المواقع وساعات العمل؛ الكوادر (طبيب، ممرض، مسعف) وتراخيصهم؛ المعدات والأدوية الموردة؛ الفحوص والاختبارات المشمولة؛ التقارير وسرية السجلات؛ أزمنة الاستجابة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الخدمة، والعدد المشمول، والمواقع والساعات، والكوادر وتراخيصها، ومدة العقد، وأساس التسعير. عيادة موقع صناعي أو نائي تحتاج زيارة موقع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Service type",
         "Number of employees or attendees covered",
@@ -19,15 +19,111 @@
         "Response times",
         "Contract duration",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Occupational_health_nursing"
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: occupational health nurses run pre-employment screening, care for ill or injured workers, risk assessment, case management and health promotion."
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: occupational health nurses run pre-employment screening, care for ill or injured workers, risk assessment, case management and health promotion.",
+      "blocking": [
+        "Service type",
+        "Number of employees or attendees covered",
+        "Sites and working hours",
+        "Staffing (doctor, nurse, paramedic) and their licences",
+        "Contract duration",
+        "Pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Service type",
+          "why_needed_to_price": "Service type defines the licence and staff.",
+          "uae_options": "onsite clinic; pre-employment medicals; event medical cover; health surveillance",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Number of employees or attendees covered",
+          "why_needed_to_price": "Number covered sets staffing.",
+          "uae_options": "employees; attendees",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Sites and working hours",
+          "why_needed_to_price": "Sites and hours.",
+          "uae_options": "locations; 24/7",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Staffing (doctor, nurse, paramedic) and their licences",
+          "why_needed_to_price": "Staffing and their licences are the main cost.",
+          "uae_options": "doctor; nurse; paramedic; licensed by the emirate",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Equipment and medicines supplied",
+          "why_needed_to_price": "Equipment and medicines.",
+          "uae_options": "AED; ambulance; stock",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Tests and examinations included",
+          "why_needed_to_price": "Tests included.",
+          "uae_options": "audiometry; spirometry; blood tests",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Reporting and records confidentiality",
+          "why_needed_to_price": "Records confidentiality.",
+          "uae_options": "medical records",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Response times",
+          "why_needed_to_price": "Response times.",
+          "uae_options": "minutes",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Contract duration",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "monthly; per head; per event",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "referrals; medicines",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs service type, headcount, sites and hours and staffing level; a remote or industrial site clinic needs a site visit."
     },
     {
       "id": "occupational_health:product-distinctions",
@@ -58,6 +154,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "occupational_health:authority-approvals",
+      "topic": "Occupational health & onsite medical services: licences, permits and approvals by emirate",
+      "topic_ar": "الصحة المهنية والخدمات الطبية في الموقع: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "In Dubai, a health facility must obtain a DHA facility licence before providing health services, and applications go through DHA's Sheryan licensing system; healthcare professionals are registered by DHA and the registration must be activated into a licence by a licensed hiring facility before they practise (DHA licensing manuals). An onsite clinic or medical service provider therefore needs a licensed facility and licensed staff. In Abu Dhabi the Department of Health licenses facilities and professionals, and the Abu Dhabi Occupational Safety and Health System Framework (ADOSH-SF, formerly OSHAD) sets occupational health requirements for workplaces; the Sharjah Health Authority regulates health in Sharjah and MOHAP federally. Ambulance services and event medical cover have their own approvals in each emirate. Ask the provider for the facility licence and each professional's licence.",
+      "body_ar": "في دبي يجب أن تحصل المنشأة الصحية على ترخيص منشأة من هيئة الصحة بدبي قبل تقديم الخدمات الصحية، وتُقدَّم الطلبات عبر نظام شريان للترخيص لدى الهيئة؛ وتسجل الهيئة المهنيين الصحيين ويجب تفعيل التسجيل إلى ترخيص من منشأة مرخصة توظفهم قبل الممارسة (أدلة الترخيص لدى الهيئة). لذا يحتاج مقدم خدمة العيادة في الموقع أو الخدمات الطبية إلى منشأة مرخصة وكوادر مرخصة. وفي أبوظبي ترخص دائرة الصحة المنشآت والمهنيين، ويحدد إطار نظام أبوظبي للسلامة والصحة المهنية (ADOSH-SF، المعروف سابقاً بـ OSHAD) متطلبات الصحة المهنية في أماكن العمل، وتنظم هيئة الشارقة الصحية القطاع الصحي في الشارقة، وتتولى الوزارة الدور الاتحادي. ولخدمات الإسعاف والتغطية الطبية للفعاليات موافقاتها في كل إمارة. اطلب من المزود ترخيص المنشأة وترخيص كل مهني.",
+      "sources": [
+        "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licesning%20Health%20Facility-202420241233143.pdf",
+        "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licensing%20Healthcare%20professionals-202420241212775.pdf",
+        "https://u.ae/en/information-and-services/health-and-fitness/Policy-and-governance/health-authorities"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DHA facility and professional licensing manuals (dha.gov.ae, read earlier); u.ae: DoH shapes and enforces the health regulatory framework in Abu Dhabi, DHA and the Sharjah Health Authority do so in their emirates, MOHAP federally; ADPHC's ADOSH-SF codes of practice apply to all employers in Abu Dhabi (CoP 26.0 read). Not confirmed on any page that opened: DoH licensing of occupational-health professionals as such, and ambulance and event medical approvals. Hosts that failed: www.doh.gov.ae (incomplete certificate chain, then HTTP 502); mohap.gov.ae (refused by the session network). Corrected: the Abu Dhabi framework is now ADOSH-SF (renamed from OSHAD-SF); Sharjah has its own health authority."
+    },
+    {
+      "id": "occupational_health:quote-red-flags",
+      "topic": "Occupational health & onsite medical services: red flags in supplier quotations",
+      "topic_ar": "الصحة المهنية والخدمات الطبية في الموقع: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for unlicensed staff or staff licensed in another emirate, a nurse priced where a doctor was asked, medicines and consumables extra, no backup cover for leave, and response times not guaranteed.",
+      "body_ar": "انتبه إلى كوادر غير مرخصة أو مرخصة في إمارة أخرى، وتسعير ممرض حيث طُلب طبيب، واحتساب الأدوية والمستهلكات إضافياً، وغياب البديل في الإجازات، وعدم ضمان أوقات الاستجابة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "occupational_health:buyer-mistakes",
+      "topic": "Occupational health & onsite medical services: common buyer mistakes",
+      "topic_ar": "الصحة المهنية والخدمات الطبية في الموقع: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Companies hire medical staff directly without a licensed facility, and compare monthly prices without staffing hours.",
+      "body_ar": "تعيّن الشركات كوادر طبية مباشرة دون منشأة مرخصة، وتقارن الأسعار الشهرية دون ساعات التوظيف.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "occupational_health:price-drivers",
+      "topic": "Occupational health & onsite medical services: what makes prices differ legitimately",
+      "topic_ar": "الصحة المهنية والخدمات الطبية في الموقع: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: staffing level and hours, sites, equipment, tests, licensing and response commitments.",
+      "body_ar": "العوامل: مستوى الكوادر وساعاتها، والمواقع، والمعدات، والفحوص، والترخيص، والتزامات الاستجابة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "occupational_health:compare-quotes-cost-to-value",
+      "topic": "Occupational health & onsite medical services: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الصحة المهنية والخدمات الطبية في الموقع: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same staffing hours, services and response times from licensed providers. Recommend three licensed providers.",
+      "body_ar": "قارن ساعات الكوادر والخدمات وأوقات الاستجابة نفسها من مزودين مرخصين. أوصِ بثلاثة مزودين مرخصين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -91,6 +257,46 @@
       903,
       1198,
       1209
-    ]
+    ],
+    "still_unverified": [
+      "occupational_health:authority-approvals"
+    ],
+    "expert_authored_unsourced": [
+      "occupational_health:quote-red-flags",
+      "occupational_health:buyer-mistakes",
+      "occupational_health:price-drivers",
+      "occupational_health:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "k3_pages_opened": [
+      "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licesning%20Health%20Facility-202420241233143.pdf",
+      "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licensing%20Healthcare%20professionals-202420241212775.pdf"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "occupational_health:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "occupational_health:authority-approvals"
+      ],
+      "urls_read": [
+        "https://u.ae/en/information-and-services/health-and-fitness/Policy-and-governance/health-authorities"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

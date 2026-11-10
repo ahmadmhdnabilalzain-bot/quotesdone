@@ -188,11 +188,14 @@
       "body_en": "In Abu Dhabi the equivalent framework is Estidama, administered by the Department of Municipalities and Transport, with the Pearl Building Rating System and the Pearl Villa Rating System. All new developments have been required since 2010 to achieve at least 1 Pearl, and government buildings 2 Pearls, and the envelope thermal performance is assessed through U-values for walls, roofs and floors, supported by an official villa U-value calculator. Search results in this research indicated roof and wall U-value limits of a similar order to Dubai's, but the official DMT pages could not be opened and the exact current figures are therefore not established in this pack. For a sales engineer the practical rule is the same as in Dubai: roof and wall insulation are selected to meet the U-value demanded by the project's Estidama compliance calculation, which the consultant prepares; the supplier contributes certified lambda values, thicknesses and fire classifications. Buyers on Abu Dhabi projects should state the Pearl rating target and the required U-values from their consultant, and suppliers should not quote a U-value for their product in isolation. Before relying on any number, obtain the current Pearl Villa or Building rating manual and U-value calculator directly from DMT. This entry should be upgraded once the official figures are verified from the DMT document.",
       "body_ar": "في أبوظبي يقابل ذلك إطار \"استدامة\" الذي تديره دائرة البلديات والنقل، ويضم نظام التقييم بدرجات اللؤلؤ للمباني ونظام التقييم للفلل. ويُشترط منذ 2010 أن تحقق جميع المشاريع الجديدة لؤلؤة واحدة على الأقل، والمباني الحكومية لؤلؤتين، ويُقيَّم الأداء الحراري للغلاف عبر قيم U للجدران والأسطح والأرضيات بالاستعانة بحاسبة رسمية لقيم U للفلل. وقد أشارت نتائج البحث إلى حدود لقيم U للأسطح والجدران قريبة في مستواها من حدود دبي، لكن تعذّر فتح صفحات الدائرة الرسمية، فالأرقام الحالية الدقيقة غير ثابتة في هذه الحزمة. والقاعدة العملية لمهندس المبيعات هي نفسها في دبي: يُختار عزل السطح والجدران لتحقيق قيمة U التي يتطلبها حساب الامتثال لاستدامة الذي يعدّه الاستشاري، ويقدم المورد قيم لامدا المعتمدة والسماكات وتصنيفات الحريق. على المشترين في مشاريع أبوظبي تحديد مستوى اللؤلؤ المستهدف وقيم U المطلوبة من استشاريهم، ولا ينبغي للمورد أن يعلن قيمة U لمنتجه منفرداً. وقبل الاعتماد على أي رقم يجب الحصول على دليل التقييم الحالي وحاسبة قيم U مباشرة من الدائرة. وينبغي تحديث هذا المدخل بعد التحقق من الأرقام الرسمية من وثيقة الدائرة.",
       "sources": [
-        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)"
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)",
+        "https://www.dmt.gov.ae/en/adm/Media-Centre/News/08Jan2025"
       ],
       "confidence": "low",
       "as_of": "2026-09-23",
-      "gap_kind": "technical"
+      "gap_kind": "technical",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Abu Dhabi City Municipality (DMT, 8 January 2025): its Sustainable Buildings Section applies the Estidama Pearl Rating System to buildings and villas; government-funded projects need at least two pearls and privately funded projects at least one, and meeting this is essential for the building permit; ratings combine mandatory and optional credits. Not confirmed on any page that opened: the 2010 start date of the mandate, the villa U-value calculator and the U-value figures (the entry already says the figures are not established).",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)"
     },
     {
       "id": "waterproofing:spray-pu-foam",
@@ -330,8 +333,8 @@
       "id": "waterproofing:spec-roof-waterproofing",
       "topic": "Spec checklist: roof waterproofing and insulation",
       "kind": "spec_checklist",
-      "body_en": "To quote a roof exactly, a supplier needs the roof described layer by layer and the performance targets stated. Start with the building and roof type: new or refurbishment, concrete slab or metal deck, exposed or protected (tiles, pavers, gravel, landscaping), and whether plant will be installed. Give the total area and a roof plan showing drains, overflows, upstands, plant bases and penetrations, since detailing drives cost. State the build-up: conventional or inverted, screed to falls (material and required fall), membrane system (bitumen SBS or APP with thickness and number of layers, PVC or TPO, liquid polyurethane, polyurea or other) with dry film thickness for liquids, insulation material, thickness or target U-value (for Dubai, the Al Sa'fat roof limit applies to the assembly), fire classification requirements, separation and protection layers, and the final finish. For refurbishment, state what exists and whether it is to be removed. Include testing (flood test or electronic leak detection), the warranty type and duration required, consultant approval requirements, access constraints, working-hour limits and the target start date. Ask suppliers to include typical details for upstands and drains. A roof enquiry with only an area and \"waterproofing required\" cannot be quoted like-for-like and should be held until these fields are provided.",
-      "body_ar": "لكي يسعّر المورد سطحاً بدقة، يحتاج إلى وصف السطح طبقةً طبقة وتحديد أهداف الأداء. ابدأ بنوع المبنى والسطح: جديد أم تجديد، بلاطة خرسانية أم سطح معدني، مكشوف أم محمي (بلاط أو بلوك أو حصى أو زراعة)، وهل ستُركَّب معدات عليه. اذكر المساحة الإجمالية وقدّم مخطط السطح مبيناً المصارف وفتحات الفائض والحواف القائمة وقواعد المعدات والاختراقات، لأن التفاصيل تحرك التكلفة. حدِّد المقطع: تقليدي أم مقلوب، وطبقة الميول (المادة والميل المطلوب)، ونظام الغشاء (بيتومين SBS أو APP مع السماكة وعدد الطبقات، أو PVC أو TPO، أو بولي يوريثان سائل، أو بولي يوريا أو غيرها) مع السماكة الجافة للأنظمة السائلة، ومادة العزل الحراري وسماكتها أو قيمة U المستهدفة (وفي دبي ينطبق حد السعفات للسطح على المقطع كاملاً)، ومتطلبات تصنيف الحريق، وطبقات الفصل والحماية، والتشطيب النهائي. وفي أعمال التجديد اذكر الموجود حالياً وهل ستتم إزالته. وأضف الاختبار المطلوب (غمر أو كشف تسرب إلكتروني)، ونوع الضمان ومدته، ومتطلبات اعتماد الاستشاري، وقيود الوصول، وحدود ساعات العمل، وتاريخ البدء المستهدف. واطلب من الموردين إرفاق التفاصيل النموذجية للحواف والمصارف. أما طلب السطح الذي يذكر المساحة فقط مع عبارة \"مطلوب عزل مائي\" فلا يمكن تسعيره بمقارنة عادلة، ويجب تعليقه حتى تُستكمل هذه البيانات.",
+      "body_en": "To quote a roof exactly, a supplier needs the roof described layer by layer and the performance targets stated. Start with the building and roof type: new or refurbishment, concrete slab or metal deck, exposed or protected (tiles, pavers, gravel, landscaping), and whether plant will be installed. Give the total area and a roof plan showing drains, overflows, upstands, plant bases and penetrations, since detailing drives cost. State the build-up: conventional or inverted, screed to falls (material and required fall), membrane system (bitumen SBS or APP with thickness and number of layers, PVC or TPO, liquid polyurethane, polyurea or other) with dry film thickness for liquids, insulation material, thickness or target U-value (for Dubai, the Al Sa'fat roof limit applies to the assembly), fire classification requirements, separation and protection layers, and the final finish. For refurbishment, state what exists and whether it is to be removed. Include testing (flood test or electronic leak detection), the warranty type and duration required, consultant approval requirements, access constraints, working-hour limits and the target start date. Ask suppliers to include typical details for upstands and drains. A roof enquiry with only an area and \"waterproofing required\" cannot be quoted like-for-like and should be held until these fields are provided.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): new or refurbishment, area, membrane system and insulation. Refurbishment needs a site inspection. Supplier ask-back review (2026-11-10): the inquiry now also states Site location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: roof type (new/refurbishment, concrete/metal deck); roof area (m2) and roof plan; membrane system and modifier/chemistry; insulation material and thickness or target U-value; Site location and emirate.",
+      "body_ar": "لكي يسعّر المورد سطحاً بدقة، يحتاج إلى وصف السطح طبقةً طبقة وتحديد أهداف الأداء. ابدأ بنوع المبنى والسطح: جديد أم تجديد، بلاطة خرسانية أم سطح معدني، مكشوف أم محمي (بلاط أو بلوك أو حصى أو زراعة)، وهل ستُركَّب معدات عليه. اذكر المساحة الإجمالية وقدّم مخطط السطح مبيناً المصارف وفتحات الفائض والحواف القائمة وقواعد المعدات والاختراقات، لأن التفاصيل تحرك التكلفة. حدِّد المقطع: تقليدي أم مقلوب، وطبقة الميول (المادة والميل المطلوب)، ونظام الغشاء (بيتومين SBS أو APP مع السماكة وعدد الطبقات، أو PVC أو TPO، أو بولي يوريثان سائل، أو بولي يوريا أو غيرها) مع السماكة الجافة للأنظمة السائلة، ومادة العزل الحراري وسماكتها أو قيمة U المستهدفة (وفي دبي ينطبق حد السعفات للسطح على المقطع كاملاً)، ومتطلبات تصنيف الحريق، وطبقات الفصل والحماية، والتشطيب النهائي. وفي أعمال التجديد اذكر الموجود حالياً وهل ستتم إزالته. وأضف الاختبار المطلوب (غمر أو كشف تسرب إلكتروني)، ونوع الضمان ومدته، ومتطلبات اعتماد الاستشاري، وقيود الوصول، وحدود ساعات العمل، وتاريخ البدء المستهدف. واطلب من الموردين إرفاق التفاصيل النموذجية للحواف والمصارف. أما طلب السطح الذي يذكر المساحة فقط مع عبارة \"مطلوب عزل مائي\" فلا يمكن تسعيره بمقارنة عادلة، ويجب تعليقه حتى تُستكمل هذه البيانات.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: سطح جديد أو إعادة تأهيل، والمساحة، ونظام الغشاء، والعزل الحراري. وإعادة التأهيل تحتاج إلى معاينة الموقع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع العمل والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "roof type (new/refurbishment, concrete/metal deck)",
         "roof area (m2) and roof plan",
@@ -348,7 +351,9 @@
         "testing required (flood test / electronic leak detection)",
         "warranty type and duration",
         "consultant/authority approval requirements",
-        "access, working hours and start date"
+        "access, working hours and start date",
+        "Site location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://www.bmigroup.com/uk/bmi-from-the-rooftop-blog/sbs-vs-app-roofing-explained/",
@@ -356,14 +361,151 @@
         "https://www.intertek.com/building/standards/astm-d5957-98/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "roof type (new/refurbishment, concrete/metal deck)",
+        "roof area (m2) and roof plan",
+        "membrane system and modifier/chemistry",
+        "insulation material and thickness or target U-value",
+        "Site location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "roof type (new/refurbishment, concrete/metal deck)",
+          "why_needed_to_price": "Refurbishment needs removal of the old system; metal decks need a different system.",
+          "uae_options": "new concrete; refurbishment; metal deck",
+          "follow_up_if": "Refurbishment: ask whether the old system is removed and whether there are leaks now.",
+          "blocking": true
+        },
+        {
+          "spec": "roof area (m2) and roof plan",
+          "why_needed_to_price": "Price is per m2 plus details.",
+          "uae_options": "measured",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "exposed or protected finish",
+          "why_needed_to_price": "Exposed and protected finishes need different systems.",
+          "uae_options": "Exposed membrane; protected under tiles.",
+          "follow_up_if": "If exposed, ask for UV-resistant system.",
+          "blocking": false
+        },
+        {
+          "spec": "build-up type (conventional or inverted)",
+          "why_needed_to_price": "Conventional and inverted build-ups differ.",
+          "uae_options": "Conventional; inverted.",
+          "follow_up_if": "If the inquiry is silent on build-up type (conventional or inverted), each supplier prices its own default; ask the buyer so every quote rests on the same build-up type (conventional or inverted).",
+          "blocking": false
+        },
+        {
+          "spec": "screed to falls material and required fall",
+          "why_needed_to_price": "Screed to falls adds material.",
+          "uae_options": "Foam concrete; sand-cement; fall %.",
+          "follow_up_if": "If the inquiry is silent on screed to falls material and required fall, each supplier prices its own default; ask the buyer so every quote rests on the same screed to falls material and required fall.",
+          "blocking": false
+        },
+        {
+          "spec": "membrane system and modifier/chemistry",
+          "why_needed_to_price": "Bituminous, liquid PU, PVC/TPO and cementitious systems differ widely.",
+          "uae_options": "APP/SBS bitumen; liquid PU/polyurea; PVC/TPO; cementitious",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "membrane thickness / dry film thickness and number of layers",
+          "why_needed_to_price": "Thickness and layers decide material.",
+          "uae_options": "mm or microns; layers.",
+          "follow_up_if": "If the inquiry is silent on membrane thickness / dry film thickness and number of layers, each supplier prices its own default; ask the buyer so every quote rests on the same membrane thickness / dry film thickness and number of layers.",
+          "blocking": false
+        },
+        {
+          "spec": "insulation material and thickness or target U-value",
+          "why_needed_to_price": "Insulation thickness drives cost and energy compliance.",
+          "uae_options": "XPS; PIR; PU foam; none",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "fire classification required",
+          "why_needed_to_price": "Fire classification may be required.",
+          "uae_options": "Broof classes.",
+          "follow_up_if": "If the project requires it, ask each supplier to include it and show its cost.",
+          "blocking": false
+        },
+        {
+          "spec": "number of drains, overflows, penetrations and upstand height",
+          "why_needed_to_price": "Details are labour-heavy and often where leaks start.",
+          "uae_options": "counted from the roof plan",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "protection and separation layers",
+          "why_needed_to_price": "Protection layers add cost.",
+          "uae_options": "Protection board; geotextile.",
+          "follow_up_if": "If the inquiry is silent on protection and separation layers, each supplier prices its own default; ask the buyer so every quote rests on the same protection and separation layers.",
+          "blocking": false
+        },
+        {
+          "spec": "existing system to remove (refurbishment)",
+          "why_needed_to_price": "Removing an old system adds cost.",
+          "uae_options": "Removal of existing.",
+          "follow_up_if": "If refurbishment, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "testing required (flood test / electronic leak detection)",
+          "why_needed_to_price": "Testing adds cost.",
+          "uae_options": "Flood test; electronic leak detection.",
+          "follow_up_if": "If the inquiry is silent on testing required (flood test / electronic leak detection), each supplier prices its own default; ask the buyer so every quote rests on the same testing required (flood test / electronic leak detection).",
+          "blocking": false
+        },
+        {
+          "spec": "warranty type and duration",
+          "why_needed_to_price": "Warranty type changes price.",
+          "uae_options": "Material or system warranty.",
+          "follow_up_if": "If the inquiry is silent on warranty type and duration, each supplier prices its own default; ask the buyer so every quote rests on the same warranty type and duration.",
+          "blocking": false
+        },
+        {
+          "spec": "consultant/authority approval requirements",
+          "why_needed_to_price": "Approvals take time.",
+          "uae_options": "Consultant or authority.",
+          "follow_up_if": "If the project requires it, ask each supplier to include it and show its cost.",
+          "blocking": false
+        },
+        {
+          "spec": "access, working hours and start date",
+          "why_needed_to_price": "Access and hours change cost.",
+          "uae_options": "Access; hours; start date.",
+          "follow_up_if": "If restricted, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "Site location and emirate",
+          "why_needed_to_price": "Mobilisation, travel, labour transport and the authority whose rules apply all follow the site, so the same scope is priced differently in Dubai, Abu Dhabi, the northern emirates or a remote site.",
+          "uae_options": "A named emirate and area or community; city, industrial area or remote site; one site or several.",
+          "follow_up_if": "If the site is in a free zone, port, airport or developer community with its own access rules, ask which passes or NOCs apply.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site visit is genuinely needed for refurbishment roofs to check the existing system, falls and leaks; new roofs can be priced from drawings.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "waterproofing:spec-basement-tanking",
       "topic": "Spec checklist: basement and below-grade waterproofing",
       "kind": "spec_checklist",
-      "body_en": "A basement waterproofing enquiry must let the supplier understand the water risk and the dryness required. First state the BS 8102 grade needed for each space (1A, 1B, 2 or 3), because a car park and a habitable basement need different systems. Provide the geotechnical data: groundwater level and its seasonal variation, whether the basement is under permanent hydrostatic pressure, and a groundwater chemistry analysis (salinity, sulphates, chlorides), which is essential in coastal UAE sites and decides whether products such as bentonite need a salt-resistant grade. State the protection type or combination designed: Type A membrane (with system: torch-on, self-adhered, pre-applied, bentonite, cementitious tanking), Type B structurally integral concrete (with crystalline or other admixture, waterstops and joint details), Type C cavity drainage (with sumps and pumps), or a combination. Give areas for raft underside, walls and podium, depth of basement, construction method (open excavation or piled or secant walls, which affects whether membranes can be applied externally), construction joint and pile head details, protection boards, and any required testing. Also state design responsibility (who certifies the waterproofing design), warranty type, and consultant approval process. Without the grade, groundwater level and chemistry, a basement quote is guesswork and should be held.",
-      "body_ar": "يجب أن يتيح طلب عزل القبو للمورد فهم مخاطر المياه ودرجة الجفاف المطلوبة. أولاً حدِّد درجة BS 8102 المطلوبة لكل فراغ (1A أو 1B أو 2 أو 3)، لأن موقف السيارات والقبو المأهول يحتاجان نظامين مختلفين. قدّم بيانات التربة: منسوب المياه الجوفية وتغيره الموسمي، وهل القبو تحت ضغط هيدروستاتيكي دائم، وتحليل كيمياء المياه الجوفية (الملوحة والكبريتات والكلوريدات)، وهو ضروري في المواقع الساحلية في الإمارات ويحدد هل تحتاج منتجات كالبنتونيت إلى درجة مقاومة للأملاح. واذكر نوع الحماية أو التركيبة المصممة: غشاء من النوع A (مع النظام: ملحوم باللهب، أو ذاتي اللصق، أو مركّب قبل الصب، أو بنتونيت، أو تكتيم أسمنتي)، أو خرسانة مدمجة الحماية من النوع B (مع الإضافة البلورية أو غيرها وموانع التسرب وتفاصيل الفواصل)، أو تصريف تجويفي من النوع C (مع الأحواض والمضخات)، أو تركيبة منها. وحدِّد مساحات أسفل اللبشة والجدران والبوديوم، وعمق القبو، وطريقة الإنشاء (حفر مفتوح أو جدران خوازيق أو جدران متقاطعة، وهذا يحدد إمكانية تطبيق الغشاء من الخارج)، وتفاصيل فواصل الصب ورؤوس الخوازيق، وألواح الحماية، وأي اختبار مطلوب. واذكر كذلك مسؤولية التصميم (من يعتمد تصميم العزل)، ونوع الضمان، وإجراءات اعتماد الاستشاري. ودون الدرجة ومنسوب المياه الجوفية وكيميائها يصبح تسعير القبو تخميناً، ويجب تعليقه.",
+      "body_en": "A basement waterproofing enquiry must let the supplier understand the water risk and the dryness required. First state the BS 8102 grade needed for each space (1A, 1B, 2 or 3), because a car park and a habitable basement need different systems. Provide the geotechnical data: groundwater level and its seasonal variation, whether the basement is under permanent hydrostatic pressure, and a groundwater chemistry analysis (salinity, sulphates, chlorides), which is essential in coastal UAE sites and decides whether products such as bentonite need a salt-resistant grade. State the protection type or combination designed: Type A membrane (with system: torch-on, self-adhered, pre-applied, bentonite, cementitious tanking), Type B structurally integral concrete (with crystalline or other admixture, waterstops and joint details), Type C cavity drainage (with sumps and pumps), or a combination. Give areas for raft underside, walls and podium, depth of basement, construction method (open excavation or piled or secant walls, which affects whether membranes can be applied externally), construction joint and pile head details, protection boards, and any required testing. Also state design responsibility (who certifies the waterproofing design), warranty type, and consultant approval process. Without the grade, groundwater level and chemistry, a basement quote is guesswork and should be held.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): grade per space, groundwater head from the soil report, areas and the protection type. Supplier ask-back review (2026-11-10): the inquiry now also states Site location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: BS 8102 grade per space (1A/1B/2/3); groundwater level and hydrostatic head; protection type(s) A/B/C or combination; areas: raft underside, walls, podium (m2); Site location and emirate.",
+      "body_ar": "يجب أن يتيح طلب عزل القبو للمورد فهم مخاطر المياه ودرجة الجفاف المطلوبة. أولاً حدِّد درجة BS 8102 المطلوبة لكل فراغ (1A أو 1B أو 2 أو 3)، لأن موقف السيارات والقبو المأهول يحتاجان نظامين مختلفين. قدّم بيانات التربة: منسوب المياه الجوفية وتغيره الموسمي، وهل القبو تحت ضغط هيدروستاتيكي دائم، وتحليل كيمياء المياه الجوفية (الملوحة والكبريتات والكلوريدات)، وهو ضروري في المواقع الساحلية في الإمارات ويحدد هل تحتاج منتجات كالبنتونيت إلى درجة مقاومة للأملاح. واذكر نوع الحماية أو التركيبة المصممة: غشاء من النوع A (مع النظام: ملحوم باللهب، أو ذاتي اللصق، أو مركّب قبل الصب، أو بنتونيت، أو تكتيم أسمنتي)، أو خرسانة مدمجة الحماية من النوع B (مع الإضافة البلورية أو غيرها وموانع التسرب وتفاصيل الفواصل)، أو تصريف تجويفي من النوع C (مع الأحواض والمضخات)، أو تركيبة منها. وحدِّد مساحات أسفل اللبشة والجدران والبوديوم، وعمق القبو، وطريقة الإنشاء (حفر مفتوح أو جدران خوازيق أو جدران متقاطعة، وهذا يحدد إمكانية تطبيق الغشاء من الخارج)، وتفاصيل فواصل الصب ورؤوس الخوازيق، وألواح الحماية، وأي اختبار مطلوب. واذكر كذلك مسؤولية التصميم (من يعتمد تصميم العزل)، ونوع الضمان، وإجراءات اعتماد الاستشاري. ودون الدرجة ومنسوب المياه الجوفية وكيميائها يصبح تسعير القبو تخميناً، ويجب تعليقه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الدرجة لكل مساحة، وضغط المياه الجوفية من تقرير التربة، والمساحات، ونوع الحماية. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع العمل والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "BS 8102 grade per space (1A/1B/2/3)",
         "groundwater level and hydrostatic head",
@@ -378,7 +520,9 @@
         "protection boards before backfill",
         "design responsibility and certification",
         "warranty type and duration",
-        "testing and consultant approval requirements"
+        "testing and consultant approval requirements",
+        "Site location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://clw.consulting/bs-8102-table-2-performance-grades/",
@@ -386,14 +530,137 @@
         "https://www.wrmeadows.com/clay-tite-bentonite-waterproofing-membrane/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "BS 8102 grade per space (1A/1B/2/3)",
+        "groundwater level and hydrostatic head",
+        "protection type(s) A/B/C or combination",
+        "areas: raft underside, walls, podium (m2)",
+        "Site location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "BS 8102 grade per space (1A/1B/2/3)",
+          "why_needed_to_price": "The grade sets how dry the basement must be and which protection types are needed.",
+          "uae_options": "grade 1A car park to grade 3 habitable",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "groundwater level and hydrostatic head",
+          "why_needed_to_price": "High water tables need heavier systems and dewatering during works.",
+          "uae_options": "from the soil report",
+          "follow_up_if": "No soil report: a price cannot be firm; ask for one.",
+          "blocking": true
+        },
+        {
+          "spec": "groundwater chemistry (salinity, sulphates, chlorides)",
+          "why_needed_to_price": "Aggressive groundwater needs resistant systems.",
+          "uae_options": "Salinity; sulphates; chlorides.",
+          "follow_up_if": "If no data, ask for a soil report.",
+          "blocking": false
+        },
+        {
+          "spec": "protection type(s) A/B/C or combination",
+          "why_needed_to_price": "Membrane, integral and drained protection are priced differently.",
+          "uae_options": "A barrier; B structurally integral; C drained",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "membrane system and thickness (if Type A)",
+          "why_needed_to_price": "Membrane system and thickness decide cost.",
+          "uae_options": "Membrane type; thickness.",
+          "follow_up_if": "If the inquiry is silent on membrane system and thickness (if type a), each supplier prices its own default; ask the buyer so every quote rests on the same membrane system and thickness (if type a).",
+          "blocking": false
+        },
+        {
+          "spec": "admixture, waterstops and joint details (if Type B)",
+          "why_needed_to_price": "Admixtures and waterstops add cost.",
+          "uae_options": "Admixture; waterstops; joints.",
+          "follow_up_if": "If the inquiry is silent on admixture, waterstops and joint details (if type b), each supplier prices its own default; ask the buyer so every quote rests on the same admixture, waterstops and joint details (if type b).",
+          "blocking": false
+        },
+        {
+          "spec": "cavity drain, sumps and pumps (if Type C)",
+          "why_needed_to_price": "Cavity drains need sumps and pumps.",
+          "uae_options": "Cavity drain; sumps; pumps.",
+          "follow_up_if": "If the inquiry is silent on cavity drain, sumps and pumps (if type c), each supplier prices its own default; ask the buyer so every quote rests on the same cavity drain, sumps and pumps (if type c).",
+          "blocking": false
+        },
+        {
+          "spec": "areas: raft underside, walls, podium (m2)",
+          "why_needed_to_price": "Price is per m2 per element.",
+          "uae_options": "measured from drawings",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "basement depth and construction method (open cut, piled/secant walls)",
+          "why_needed_to_price": "Depth and method decide system.",
+          "uae_options": "Open cut; secant walls.",
+          "follow_up_if": "If the inquiry is silent on basement depth and construction method (open cut, piled/secant walls), each supplier prices its own default; ask the buyer so every quote rests on the same basement depth and construction method (open cut, piled/secant walls).",
+          "blocking": false
+        },
+        {
+          "spec": "pile head and construction joint details",
+          "why_needed_to_price": "Pile heads and joints need details.",
+          "uae_options": "Pile head details.",
+          "follow_up_if": "If the inquiry is silent on pile head and construction joint details, each supplier prices its own default; ask the buyer so every quote rests on the same pile head and construction joint details.",
+          "blocking": false
+        },
+        {
+          "spec": "protection boards before backfill",
+          "why_needed_to_price": "Protection boards add cost.",
+          "uae_options": "Protection boards.",
+          "follow_up_if": "If the inquiry is silent on protection boards before backfill, each supplier prices its own default; ask the buyer so every quote rests on the same protection boards before backfill.",
+          "blocking": false
+        },
+        {
+          "spec": "design responsibility and certification",
+          "why_needed_to_price": "Design responsibility adds cost.",
+          "uae_options": "Design and certification.",
+          "follow_up_if": "If the inquiry is silent on design responsibility and certification, each supplier prices its own default; ask the buyer so every quote rests on the same design responsibility and certification.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty type and duration",
+          "why_needed_to_price": "Warranty type changes price.",
+          "uae_options": "Material or system warranty.",
+          "follow_up_if": "If the inquiry is silent on warranty type and duration, each supplier prices its own default; ask the buyer so every quote rests on the same warranty type and duration.",
+          "blocking": false
+        },
+        {
+          "spec": "testing and consultant approval requirements",
+          "why_needed_to_price": "Testing and approvals add cost.",
+          "uae_options": "Testing; approvals.",
+          "follow_up_if": "If the inquiry is silent on testing and consultant approval requirements, each supplier prices its own default; ask the buyer so every quote rests on the same testing and consultant approval requirements.",
+          "blocking": false
+        },
+        {
+          "spec": "Site location and emirate",
+          "why_needed_to_price": "Mobilisation, travel, labour transport and the authority whose rules apply all follow the site, so the same scope is priced differently in Dubai, Abu Dhabi, the northern emirates or a remote site.",
+          "uae_options": "A named emirate and area or community; city, industrial area or remote site; one site or several.",
+          "follow_up_if": "If the site is in a free zone, port, airport or developer community with its own access rules, ask which passes or NOCs apply.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": "A site visit is needed for existing basements with water ingress, to find the source before pricing a repair."
     },
     {
       "id": "waterproofing:spec-wet-area",
       "topic": "Spec checklist: wet-area waterproofing",
       "kind": "spec_checklist",
-      "body_en": "Wet-area waterproofing is small in area but high in leak consequences, especially in apartments where water reaches the unit below. For an exact quote the buyer should list each wet area by type (bathroom, shower, kitchen, laundry, balcony, plant room, pool deck) with floor area and the wall area to be treated, including full-height shower zones. State the substrate (concrete slab, existing tiles to be removed, screed) and whether screed to falls toward drains is included in scope. Give the number and type of floor drains and linear channels, pipe penetrations and sleeves, and door thresholds. Specify the membrane type (flexible cementitious, polyurethane, acrylic or sheet system) and its dry film thickness or sheet thickness, reinforcement tapes and corner pieces, drain connection method (clamping ring or bonded flange), and the upturn height at walls. Define compatibility with the tile adhesive and finishes to be laid on top, and who lays the protection screed and tiles. Include the flood test (duration, witnessed by whom, who pays re-tests), warranty type and duration, and whether the building is occupied, which affects working hours and noise. For refurbishment, say whether old waterproofing must be stripped. A request that just says \"bathroom waterproofing, 5 bathrooms\" cannot be priced like-for-like and should be held.",
-      "body_ar": "عزل المناطق الرطبة صغير المساحة لكن عواقب تسربه كبيرة، خصوصاً في الشقق حيث يصل الماء إلى الوحدة السفلية. وللحصول على عرض دقيق ينبغي للمشتري أن يسرد كل منطقة رطبة بنوعها (حمام، دش، مطبخ، غرفة غسيل، شرفة، غرفة معدات، سطح مسبح) مع مساحة الأرضية ومساحة الجدران المطلوب عزلها، بما في ذلك مناطق الدش بالارتفاع الكامل. وحدِّد السطح (بلاطة خرسانية، أو بلاط قائم تجب إزالته، أو طبقة ميول)، وهل تشمل الأعمال صب طبقة ميول نحو المصارف. واذكر عدد مصارف الأرضية ونوعها والقنوات الطولية واختراقات الأنابيب وجلبها وعتبات الأبواب. وحدِّد نوع الغشاء (أسمنتي مرن، أو بولي يوريثان، أو أكريليك، أو نظام لفائف) وسماكته الجافة أو سماكة اللفائف، وأشرطة التسليح وقطع الزوايا، وطريقة ربط المصرف (حلقة تثبيت أو شفة ملتصقة)، وارتفاع الرفع على الجدران. وبيّن التوافق مع لاصق البلاط والتشطيبات التي ستُركَّب فوقه، ومن يصب طبقة الحماية ويركّب البلاط. وأدرج اختبار الغمر (مدته، ومن يشهده، ومن يدفع إعادة الاختبار)، ونوع الضمان ومدته، وهل المبنى مأهول، لأن ذلك يؤثر على ساعات العمل والضوضاء. وفي أعمال التجديد وضّح هل يجب إزالة العزل القديم. أما طلب يقول \"عزل حمامات، 5 حمامات\" فقط فلا يمكن تسعيره بمقارنة عادلة، ويجب تعليقه.",
+      "body_en": "Wet-area waterproofing is small in area but high in leak consequences, especially in apartments where water reaches the unit below. For an exact quote the buyer should list each wet area by type (bathroom, shower, kitchen, laundry, balcony, plant room, pool deck) with floor area and the wall area to be treated, including full-height shower zones. State the substrate (concrete slab, existing tiles to be removed, screed) and whether screed to falls toward drains is included in scope. Give the number and type of floor drains and linear channels, pipe penetrations and sleeves, and door thresholds. Specify the membrane type (flexible cementitious, polyurethane, acrylic or sheet system) and its dry film thickness or sheet thickness, reinforcement tapes and corner pieces, drain connection method (clamping ring or bonded flange), and the upturn height at walls. Define compatibility with the tile adhesive and finishes to be laid on top, and who lays the protection screed and tiles. Include the flood test (duration, witnessed by whom, who pays re-tests), warranty type and duration, and whether the building is occupied, which affects working hours and noise. For refurbishment, say whether old waterproofing must be stripped. A request that just says \"bathroom waterproofing, 5 bathrooms\" cannot be priced like-for-like and should be held.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): number and type of wet areas, areas, substrate condition and membrane type. Supplier ask-back review (2026-11-10): the inquiry now also states Site location and emirate (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: wet area types and count; floor area and wall area per wet area (incl. shower full height); substrate and existing finishes to remove; membrane type and dry film/sheet thickness; Site location and emirate.",
+      "body_ar": "عزل المناطق الرطبة صغير المساحة لكن عواقب تسربه كبيرة، خصوصاً في الشقق حيث يصل الماء إلى الوحدة السفلية. وللحصول على عرض دقيق ينبغي للمشتري أن يسرد كل منطقة رطبة بنوعها (حمام، دش، مطبخ، غرفة غسيل، شرفة، غرفة معدات، سطح مسبح) مع مساحة الأرضية ومساحة الجدران المطلوب عزلها، بما في ذلك مناطق الدش بالارتفاع الكامل. وحدِّد السطح (بلاطة خرسانية، أو بلاط قائم تجب إزالته، أو طبقة ميول)، وهل تشمل الأعمال صب طبقة ميول نحو المصارف. واذكر عدد مصارف الأرضية ونوعها والقنوات الطولية واختراقات الأنابيب وجلبها وعتبات الأبواب. وحدِّد نوع الغشاء (أسمنتي مرن، أو بولي يوريثان، أو أكريليك، أو نظام لفائف) وسماكته الجافة أو سماكة اللفائف، وأشرطة التسليح وقطع الزوايا، وطريقة ربط المصرف (حلقة تثبيت أو شفة ملتصقة)، وارتفاع الرفع على الجدران. وبيّن التوافق مع لاصق البلاط والتشطيبات التي ستُركَّب فوقه، ومن يصب طبقة الحماية ويركّب البلاط. وأدرج اختبار الغمر (مدته، ومن يشهده، ومن يدفع إعادة الاختبار)، ونوع الضمان ومدته، وهل المبنى مأهول، لأن ذلك يؤثر على ساعات العمل والضوضاء. وفي أعمال التجديد وضّح هل يجب إزالة العزل القديم. أما طلب يقول \"عزل حمامات، 5 حمامات\" فقط فلا يمكن تسعيره بمقارنة عادلة، ويجب تعليقه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: عدد المناطق الرطبة ونوعها، والمساحات، وحالة السطح، ونوع الغشاء. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع العمل والإمارة (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "wet area types and count",
         "floor area and wall area per wet area (incl. shower full height)",
@@ -408,21 +675,146 @@
         "tile adhesive/finish compatibility and who lays protection",
         "flood test duration and witnessing",
         "warranty type and duration",
-        "occupied building / working-hour constraints"
+        "occupied building / working-hour constraints",
+        "Site location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://standards.iteh.ai/catalog/standards/cen/94ca6096-59bc-4b94-8102-bb3bbf4fe1f7/en-14891-2017",
         "https://gcc.sika.com/en/construction/waterproofing/liquid-applied-membrane/sikalastic-311-ae.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "wet area types and count",
+        "floor area and wall area per wet area (incl. shower full height)",
+        "substrate and existing finishes to remove",
+        "membrane type and dry film/sheet thickness",
+        "Site location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "wet area types and count",
+          "why_needed_to_price": "Each bathroom, kitchen and balcony is priced as a unit.",
+          "uae_options": "bathrooms; kitchens; balconies; plant rooms",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "floor area and wall area per wet area (incl. shower full height)",
+          "why_needed_to_price": "Area sets material.",
+          "uae_options": "measured",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "substrate and existing finishes to remove",
+          "why_needed_to_price": "Removing tiles adds labour and disposal.",
+          "uae_options": "new screed; existing tiles to remove",
+          "follow_up_if": "Existing bathroom: site visit or photos needed.",
+          "blocking": true
+        },
+        {
+          "spec": "screed to falls in scope (yes/no)",
+          "why_needed_to_price": "Screed to falls is often excluded.",
+          "uae_options": "Included or excluded.",
+          "follow_up_if": "If excluded, ask who does it.",
+          "blocking": false
+        },
+        {
+          "spec": "number/type of floor drains and linear channels",
+          "why_needed_to_price": "Drains and channels add details.",
+          "uae_options": "Floor drains; linear channels.",
+          "follow_up_if": "If the inquiry is silent on number/type of floor drains and linear channels, each supplier prices its own default; ask the buyer so every quote rests on the same number/type of floor drains and linear channels.",
+          "blocking": false
+        },
+        {
+          "spec": "pipe penetrations and door thresholds",
+          "why_needed_to_price": "Penetrations and thresholds need detailing.",
+          "uae_options": "Pipe collars; thresholds.",
+          "follow_up_if": "If the inquiry is silent on pipe penetrations and door thresholds, each supplier prices its own default; ask the buyer so every quote rests on the same pipe penetrations and door thresholds.",
+          "blocking": false
+        },
+        {
+          "spec": "membrane type and dry film/sheet thickness",
+          "why_needed_to_price": "Membrane chemistry and thickness set cost.",
+          "uae_options": "cementitious; liquid PU; sheet",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "reinforcement tape/corner pieces",
+          "why_needed_to_price": "Tapes and corners add cost.",
+          "uae_options": "Reinforcement tape; corners.",
+          "follow_up_if": "If the inquiry is silent on reinforcement tape/corner pieces, each supplier prices its own default; ask the buyer so every quote rests on the same reinforcement tape/corner pieces.",
+          "blocking": false
+        },
+        {
+          "spec": "drain connection method",
+          "why_needed_to_price": "Drain connections must be watertight.",
+          "uae_options": "Drain clamping rings.",
+          "follow_up_if": "If the inquiry is silent on drain connection method, each supplier prices its own default; ask the buyer so every quote rests on the same drain connection method.",
+          "blocking": false
+        },
+        {
+          "spec": "wall upturn height",
+          "why_needed_to_price": "Upturn height decides area.",
+          "uae_options": "Wall upturn height.",
+          "follow_up_if": "If showers, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "tile adhesive/finish compatibility and who lays protection",
+          "why_needed_to_price": "Tile compatibility matters.",
+          "uae_options": "Compatible adhesives.",
+          "follow_up_if": "If the inquiry is silent on tile adhesive/finish compatibility and who lays protection, each supplier prices its own default; ask the buyer so every quote rests on the same tile adhesive/finish compatibility and who lays protection.",
+          "blocking": false
+        },
+        {
+          "spec": "flood test duration and witnessing",
+          "why_needed_to_price": "Flood tests add time.",
+          "uae_options": "24-48 hours; witnessing.",
+          "follow_up_if": "If the inquiry is silent on flood test duration and witnessing, each supplier prices its own default; ask the buyer so every quote rests on the same flood test duration and witnessing.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty type and duration",
+          "why_needed_to_price": "Warranty changes price.",
+          "uae_options": "Material or system.",
+          "follow_up_if": "If the inquiry is silent on warranty type and duration, each supplier prices its own default; ask the buyer so every quote rests on the same warranty type and duration.",
+          "blocking": false
+        },
+        {
+          "spec": "occupied building / working-hour constraints",
+          "why_needed_to_price": "Occupied buildings limit hours.",
+          "uae_options": "Hours; access.",
+          "follow_up_if": "If occupied, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "Site location and emirate",
+          "why_needed_to_price": "Mobilisation, travel, labour transport and the authority whose rules apply all follow the site, so the same scope is priced differently in Dubai, Abu Dhabi, the northern emirates or a remote site.",
+          "uae_options": "A named emirate and area or community; city, industrial area or remote site; one site or several.",
+          "follow_up_if": "If the site is in a free zone, port, airport or developer community with its own access rules, ask which passes or NOCs apply.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "Repairs in existing bathrooms need a site visit or photos to see the substrate and leak source.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "waterproofing:spec-insulation-supply",
       "topic": "Spec checklist: thermal insulation supply",
       "kind": "spec_checklist",
-      "body_en": "For a supply-only or supply-and-install insulation enquiry, the buyer must describe the material and the performance so different products can be compared fairly. Start with the application: flat roof (inverted or conventional), pitched roof, external wall cavity, ETICS facade, internal lining, podium or below-ground, or ducts and pipes (which belong under HVAC insulation). State the material required or acceptable alternatives (XPS, EPS with grade, PIR/PU board, spray polyurethane foam, rock wool or glass wool), and the declared thermal conductivity limit with its test standard. Give either the thickness or the target U-value for the assembly, remembering that the U-value is calculated by the consultant for the whole build-up (for Dubai roofs and walls, the Al Sa'fat limits). Specify density or compressive strength (important for roofs with traffic or screed above), edge profile (square or shiplap), facing (foil, fleece, none), board size, water absorption requirement for wet applications, and fire classification (for example Euroclass rating or non-combustible requirement for facades and specific locations under UAE fire rules). Include quantity in square metres or cubic metres, delivery location and schedule, test certificates and approvals required for submittal, and whether fixings, adhesives or tapes are included. A quote giving only \"50 mm insulation board\" without material, lambda and fire class should be held.",
-      "body_ar": "في طلب توريد العزل الحراري فقط أو توريده وتركيبه، يجب أن يصف المشتري المادة والأداء حتى يمكن مقارنة المنتجات المختلفة بعدالة. ابدأ بالتطبيق: سطح مستوٍ (مقلوب أو تقليدي)، أو سطح مائل، أو تجويف جدار خارجي، أو نظام عزل واجهات خارجي، أو تبطين داخلي، أو بوديوم أو تحت الأرض، أو دكت وأنابيب (وهذه تتبع عزل التكييف). حدِّد المادة المطلوبة أو البدائل المقبولة (XPS، أو EPS مع درجته، أو ألواح PIR/PU، أو رغوة بولي يوريثان مرشوشة، أو صوف صخري أو زجاجي)، والحد الأقصى للموصلية الحرارية المعلنة مع مواصفة الاختبار. واذكر إما السماكة أو قيمة U المستهدفة للمقطع، مع مراعاة أن قيمة U يحسبها الاستشاري للمقطع كاملاً (وفي دبي تنطبق حدود السعفات للأسطح والجدران). وحدِّد الكثافة أو مقاومة الضغط (وهي مهمة للأسطح التي عليها حركة أو طبقة خرسانية)، وشكل الحافة (مستقيمة أو متداخلة)، والتغليف (ألمنيوم، نسيج، بدون)، ومقاس اللوح، ومتطلب امتصاص الماء في التطبيقات الرطبة، وتصنيف الحريق (مثل التصنيف الأوروبي أو اشتراط عدم القابلية للاحتراق في الواجهات والمواقع المحددة وفق اشتراطات الحريق في الإمارات). وأدرج الكمية بالمتر المربع أو المكعب، وموقع التسليم وجدوله، وشهادات الاختبار والاعتمادات المطلوبة للتقديم، وهل تشمل المثبتات أو اللواصق أو الأشرطة. والعرض الذي يذكر \"لوح عزل 50 ملم\" فقط دون المادة ولامدا وتصنيف الحريق يجب تعليقه.",
+      "body_en": "For a supply-only or supply-and-install insulation enquiry, the buyer must describe the material and the performance so different products can be compared fairly. Start with the application: flat roof (inverted or conventional), pitched roof, external wall cavity, ETICS facade, internal lining, podium or below-ground, or ducts and pipes (which belong under HVAC insulation). State the material required or acceptable alternatives (XPS, EPS with grade, PIR/PU board, spray polyurethane foam, rock wool or glass wool), and the declared thermal conductivity limit with its test standard. Give either the thickness or the target U-value for the assembly, remembering that the U-value is calculated by the consultant for the whole build-up (for Dubai roofs and walls, the Al Sa'fat limits). Specify density or compressive strength (important for roofs with traffic or screed above), edge profile (square or shiplap), facing (foil, fleece, none), board size, water absorption requirement for wet applications, and fire classification (for example Euroclass rating or non-combustible requirement for facades and specific locations under UAE fire rules). Include quantity in square metres or cubic metres, delivery location and schedule, test certificates and approvals required for submittal, and whether fixings, adhesives or tapes are included. A quote giving only \"50 mm insulation board\" without material, lambda and fire class should be held.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): application, thickness or U-value and quantity. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: application (roof inverted/conventional, wall, facade, podium, below-ground); thickness or target assembly U-value; quantity (m2 or m3).",
+      "body_ar": "في طلب توريد العزل الحراري فقط أو توريده وتركيبه، يجب أن يصف المشتري المادة والأداء حتى يمكن مقارنة المنتجات المختلفة بعدالة. ابدأ بالتطبيق: سطح مستوٍ (مقلوب أو تقليدي)، أو سطح مائل، أو تجويف جدار خارجي، أو نظام عزل واجهات خارجي، أو تبطين داخلي، أو بوديوم أو تحت الأرض، أو دكت وأنابيب (وهذه تتبع عزل التكييف). حدِّد المادة المطلوبة أو البدائل المقبولة (XPS، أو EPS مع درجته، أو ألواح PIR/PU، أو رغوة بولي يوريثان مرشوشة، أو صوف صخري أو زجاجي)، والحد الأقصى للموصلية الحرارية المعلنة مع مواصفة الاختبار. واذكر إما السماكة أو قيمة U المستهدفة للمقطع، مع مراعاة أن قيمة U يحسبها الاستشاري للمقطع كاملاً (وفي دبي تنطبق حدود السعفات للأسطح والجدران). وحدِّد الكثافة أو مقاومة الضغط (وهي مهمة للأسطح التي عليها حركة أو طبقة خرسانية)، وشكل الحافة (مستقيمة أو متداخلة)، والتغليف (ألمنيوم، نسيج، بدون)، ومقاس اللوح، ومتطلب امتصاص الماء في التطبيقات الرطبة، وتصنيف الحريق (مثل التصنيف الأوروبي أو اشتراط عدم القابلية للاحتراق في الواجهات والمواقع المحددة وفق اشتراطات الحريق في الإمارات). وأدرج الكمية بالمتر المربع أو المكعب، وموقع التسليم وجدوله، وشهادات الاختبار والاعتمادات المطلوبة للتقديم، وهل تشمل المثبتات أو اللواصق أو الأشرطة. والعرض الذي يذكر \"لوح عزل 50 ملم\" فقط دون المادة ولامدا وتصنيف الحريق يجب تعليقه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مجال الاستخدام، والسماكة أو قيمة U، والكمية. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "application (roof inverted/conventional, wall, facade, podium, below-ground)",
         "material or acceptable alternatives",
@@ -435,14 +827,115 @@
         "quantity (m2 or m3)",
         "delivery location and schedule",
         "certificates and approvals for submittal",
-        "fixings/adhesives/tapes included (yes/no)"
+        "fixings/adhesives/tapes included (yes/no)",
+        "Payment terms"
       ],
       "sources": [
         "https://bokka.pl/en/blog/pir-vs-eps-xps-vs-mineral-wool-comparison/",
         "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "application (roof inverted/conventional, wall, facade, podium, below-ground)",
+        "thickness or target assembly U-value",
+        "quantity (m2 or m3)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "application (roof inverted/conventional, wall, facade, podium, below-ground)",
+          "why_needed_to_price": "Application decides the board type and compressive strength.",
+          "uae_options": "inverted roof; wall; facade; below-ground",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "material or acceptable alternatives",
+          "why_needed_to_price": "Material choice decides price.",
+          "uae_options": "XPS, EPS, PIR, mineral wool.",
+          "follow_up_if": "If the inquiry is silent on material or acceptable alternatives, each supplier prices its own default; ask the buyer so every quote rests on the same material or acceptable alternatives.",
+          "blocking": false
+        },
+        {
+          "spec": "declared lambda (W/m.K) and test standard",
+          "why_needed_to_price": "Declared lambda decides thickness.",
+          "uae_options": "W/m.K; test standard.",
+          "follow_up_if": "If the inquiry is silent on declared lambda (w/m.k) and test standard, each supplier prices its own default; ask the buyer so every quote rests on the same declared lambda (w/m.k) and test standard.",
+          "blocking": false
+        },
+        {
+          "spec": "thickness or target assembly U-value",
+          "why_needed_to_price": "Thickness drives quantity and cost.",
+          "uae_options": "mm or U-value target",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "density / compressive strength",
+          "why_needed_to_price": "Density and strength decide use.",
+          "uae_options": "Density; compressive strength.",
+          "follow_up_if": "If under traffic, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "edge profile, facing and board size",
+          "why_needed_to_price": "Edge profile and facing change cost.",
+          "uae_options": "Edge; facing; board size.",
+          "follow_up_if": "If the inquiry is silent on edge profile, facing and board size, each supplier prices its own default; ask the buyer so every quote rests on the same edge profile, facing and board size.",
+          "blocking": false
+        },
+        {
+          "spec": "water absorption requirement",
+          "why_needed_to_price": "Water absorption matters for roofs.",
+          "uae_options": "Water absorption %.",
+          "follow_up_if": "If inverted roof, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "fire classification required",
+          "why_needed_to_price": "Facade insulation must meet the fire code; non-combustible products cost more.",
+          "uae_options": "per UAE fire code",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "quantity (m2 or m3)",
+          "why_needed_to_price": "Volume sets the price.",
+          "uae_options": "m2 at stated thickness",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "delivery location and schedule",
+          "why_needed_to_price": "Freight, unloading and the delivery pattern (one drop or several) are part of the price.",
+          "uae_options": "Single delivery; phased call-offs; delivered and offloaded to site or warehouse.",
+          "follow_up_if": "If deliveries must be phased or timed, state the schedule so it is priced in.",
+          "blocking": false
+        },
+        {
+          "spec": "certificates and approvals for submittal",
+          "why_needed_to_price": "Certificates are needed for submittal.",
+          "uae_options": "Certificates; approvals.",
+          "follow_up_if": "If a quote does not include it, ask for it before the quote is compared.",
+          "blocking": false
+        },
+        {
+          "spec": "fixings/adhesives/tapes included (yes/no)",
+          "why_needed_to_price": "Fixings and adhesives are often excluded.",
+          "uae_options": "Fixings; adhesives; tapes.",
+          "follow_up_if": "If the inquiry is silent on fixings/adhesives/tapes included (yes/no), each supplier prices its own default; ask the buyer so every quote rests on the same fixings/adhesives/tapes included (yes/no).",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "waterproofing:buyer-mistakes",
@@ -457,6 +950,41 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "waterproofing:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Waterproofing and insulation: approvals per emirate",
+      "topic_ar": "العزل المائي والحراري: الاعتمادات في كل إمارة",
+      "body_en": "Waterproofing has no permit of its own; it is approved as part of the building. In Dubai, roof and wall insulation on permitted buildings must meet Al Sa'fat U-values, checked by Dubai Municipality (or Trakhees/DDA where they control the plot); in Abu Dhabi, Estidama Pearl requirements apply through the DMT municipalities; Sharjah Municipality and the northern-emirate municipalities approve the drawings, and Sharjah Municipality also issues a Building Material Approval certificate for waterproofing and thermal insulation materials. Facade insulation must meet the fire classification of the UAE Fire and Life Safety Code, approved by the emirate's civil defence. Re-waterproofing an existing private roof normally needs no permit, though a community may require a work permit. Who obtains: the consultant or contractor; the applicator provides the manufacturer's approval and system certificates.",
+      "body_ar": "ليس للعزل المائي ترخيص خاص به، بل يُعتمد كجزء من المبنى. ففي دبي يجب أن يحقق عزل الأسطح والجدران في المباني المرخّصة قيم U في نظام السعفات، وتتحقق منها بلدية دبي (أو تراخيص أو سلطة دبي للتطوير حيث تتبع لها الأرض)، وفي أبوظبي تنطبق متطلبات استدامة عبر بلديات دائرة البلديات والنقل، وتعتمد بلدية الشارقة وبلديات الإمارات الشمالية المخططات، وتصدر بلدية الشارقة أيضاً شهادة اعتماد مواد البناء لمواد العزل المائي والحراري. ويجب أن يحقق عزل الواجهات تصنيف الحريق في كود الإمارات للحماية من الحرائق باعتماد الدفاع المدني في الإمارة. وإعادة عزل سطح خاص قائم لا تحتاج عادة إلى رخصة، وقد يطلب المجمع تصريح عمل. من يحصل عليها: الاستشاري أو المقاول، ويقدم المطبّق اعتماد الشركة المصنعة وشهادات النظام.",
+      "sources": [
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e702",
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf",
+        "https://www.dmt.gov.ae/en/adm/Media-Centre/News/08Jan2025"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Al Sa'fat 2nd edition section 501.01: roof U-value 0.3 W/m2K and external wall 0.57 (Silver) or 0.42 (Golden and Platinum) for new air-conditioned buildings; Abu Dhabi City Municipality: Estidama Pearl rating needed for the building permit; Sharjah Building Material Approval certificate for waterproofing and thermal insulation. Not confirmed on any page that opened: civil defence fire classification of facade insulation and the Trakhees and DDA checks of envelope values. Hosts that failed: www.dcd.gov.ae (connection reset by the site)."
+    },
+    {
+      "id": "waterproofing:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing waterproofing quotes like for like",
+      "topic_ar": "مقارنة عروض العزل على أساس متكافئ",
+      "body_en": "Compare per m2 for the same system, thickness and number of layers, with screed to falls, insulation, protection layer, details, flood test and removal of the old system treated alike. Then compare the warranty: who issues it (applicator or manufacturer), years, and whether it covers material and labour. Value beyond price: a manufacturer-approved applicator, a joint warranty, and a flood test witnessed before tiling.",
+      "body_ar": "قارن لكل متر مربع للنظام والسماكة وعدد الطبقات نفسها، مع معاملة طبقة الميول والعزل الحراري وطبقة الحماية والتفاصيل واختبار الغمر وإزالة النظام القديم بالطريقة نفسها. ثم قارن الضمان: من يصدره (المطبّق أو الشركة المصنعة)، وعدد السنوات، وهل يشمل المادة والعمالة. القيمة إلى جانب السعر: مطبّق معتمد من الشركة المصنعة، وضمان مشترك، واختبار غمر بحضور المشتري قبل التبليط.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -547,20 +1075,48 @@
     }
   ],
   "verified": {
-    "fetched_urls": 21,
-    "claims_checked": 147,
+    "fetched_urls": 23,
+    "claims_checked": 153,
     "corrected": [
       "waterproofing:insulation-xps-eps-pir-mineral-wool",
       "waterproofing:dubai-al-safat-u-values",
       "waterproofing:abu-dhabi-estidama-envelope",
       "waterproofing:cool-roof-coatings",
       "waterproofing:flood-test",
-      "waterproofing:detailing-upstands-drains"
+      "waterproofing:detailing-upstands-drains",
+      "waterproofing:approvals-per-emirate"
     ],
     "removed": [],
     "still_unverified": [
-      "waterproofing:abu-dhabi-estidama-envelope"
+      "waterproofing:abu-dhabi-estidama-envelope",
+      "waterproofing:approvals-per-emirate"
     ],
-    "note": "A8 Phase A verify 2026-09-23. Sources are only URLs fetched in this session; draft citations never opened (ASTM store 403s, homepages, dcd.gov.ae) were dropped. Low-confidence entries tagged gap_kind."
+    "note": "A8 Phase A verify 2026-09-23. Sources are only URLs fetched in this session; draft citations never opened (ASTM store 403s, homepages, dcd.gov.ae) were dropped. Low-confidence entries tagged gap_kind.",
+    "added": [
+      "waterproofing:approvals-per-emirate",
+      "waterproofing:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: waterproofing:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 6 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "waterproofing:approvals-per-emirate",
+        "waterproofing:abu-dhabi-estidama-envelope"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2023/01/Al-Safat-–-Dubai-Green-Building-System-2nd-editionJan2023.pdf",
+        "https://www.dmt.gov.ae/en/adm/Media-Centre/News/08Jan2025"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

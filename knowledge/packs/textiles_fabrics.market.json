@@ -28,8 +28,8 @@
       "topic": "Textiles & fabrics: makes, brands, distributors and origins in the UAE",
       "topic_ar": "أقمشة ومنسوجات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists fabric wholesalers and mill brands in the UAE, such as Samir Star Textile Trading and Toyobo, and the fabric trade centres in Bur Dubai, Deira, Sharjah and Ajman. Confirmed wholesaler and mill brands: Samir Star Textile Trading (Bur Dubai), Toyobo, Shikibo, Loro Piana, Vitale Barberis Canonico, Holland & Sherry. The fabric trade centres on the Bur Dubai Textile Souk and Meena Bazaar, Deira, Satwa, Sharjah and Ajman, with heavy re-export; the premium suiting mills' UAE agents were not checked.",
-      "body_ar": "من تجار جملة الأقمشة وعلامات المصانع في الإمارات Samir Star Textile Trading وToyobo، وتتركز تجارة الأقمشة في بر دبي وديرة والشارقة وعجمان. تاجر الجملة المؤكد وعلامات المصانع: Samir Star Textile Trading (Bur Dubai)، Toyobo، Shikibo، Loro Piana، Vitale Barberis Canonico، Holland & Sherry. وتتمركز تجارة الأقمشة في سوق الأقمشة ببر دبي وميناء بازار وديرة والسطوة والشارقة وعجمان، مع إعادة تصدير كبيرة؛ ولم يُتحقق من وكلاء مصانع أقمشة البدلات الفاخرة في الإمارات.",
+      "body_en": "This entry lists fabric wholesalers and mill brands in the UAE, such as Samir Star Textile Trading and Toyobo, and the fabric trade centres in Bur Dubai, Deira, Sharjah and Ajman. Confirmed wholesaler and mill brands: Samir Star Textile Trading (Bur Dubai), Toyobo, Shikibo, Loro Piana, Vitale Barberis Canonico, Holland & Sherry. The fabric trade centres on the Bur Dubai Textile Souk and Meena Bazaar, Deira, Satwa, Sharjah and Ajman, with heavy re-export; the premium suiting mills' UAE agents were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Samir Star Textile Trading = a UAE trading or retail name; Toyobo = a premium Japanese brand; Shikibo = a premium Japanese brand; Loro Piana = a luxury Italian brand; Vitale Barberis Canonico = a luxury Italian brand; Holland & Sherry = a luxury British brand.",
+      "body_ar": "من تجار جملة الأقمشة وعلامات المصانع في الإمارات Samir Star Textile Trading وToyobo، وتتركز تجارة الأقمشة في بر دبي وديرة والشارقة وعجمان. تاجر الجملة المؤكد وعلامات المصانع: Samir Star Textile Trading (Bur Dubai)، Toyobo، Shikibo، Loro Piana، Vitale Barberis Canonico، Holland & Sherry. وتتمركز تجارة الأقمشة في سوق الأقمشة ببر دبي وميناء بازار وديرة والسطوة والشارقة وعجمان، مع إعادة تصدير كبيرة؛ ولم يُتحقق من وكلاء مصانع أقمشة البدلات الفاخرة في الإمارات.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Samir Star Textile Trading = اسم تجاري لتاجر أو موزع في الإمارات؛ Toyobo = علامة يابانية من الفئة الممتازة؛ Shikibo = علامة يابانية من الفئة الممتازة؛ Loro Piana = علامة إيطالية من الفئة الفاخرة؛ Vitale Barberis Canonico = علامة إيطالية من الفئة الفاخرة؛ Holland & Sherry = علامة بريطانية من الفئة الفاخرة.",
       "sources": [
         "https://www.samirstartextile.com/",
         "https://www.canybo.ae/",
@@ -40,7 +40,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: The Textile Souk is in Bur Dubai by the Creek; wholesalers there sell Toyobo and Shikibo kandura fabric -> confirmed | Toyobo and Shikibo are Japanese mills whose fabric is used for kandura -> confirmed | Kanebo and Al Jazeera trading houses -> removed: not checked. Not checked: Which Japanese mills currently supply kandura fabric under which trade names, and roll lengths per mill, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: The Textile Souk is in Bur Dubai by the Creek; wholesalers there sell Toyobo and Shikibo kandura fabric -> confirmed | Toyobo and Shikibo are Japanese mills whose fabric is used for kandura -> confirmed | Kanebo and Al Jazeera trading houses -> removed: not checked. Not checked: Which Japanese mills currently supply kandura fabric under which trade names, and roll lengths per mill, were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Samir Star Textile Trading",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Toyobo",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Shikibo",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Loro Piana",
+          "origin": "Italy",
+          "tier": "luxury",
+          "generic_en": "a luxury Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Vitale Barberis Canonico",
+          "origin": "Italy",
+          "tier": "luxury",
+          "generic_en": "a luxury Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Holland & Sherry",
+          "origin": "UK",
+          "tier": "luxury",
+          "generic_en": "a luxury British brand",
+          "generic_ar": "علامة بريطانية من الفئة الفاخرة"
+        }
+      ]
     },
     {
       "id": "textiles_fabrics:uae-market-sizes",

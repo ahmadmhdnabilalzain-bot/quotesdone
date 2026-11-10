@@ -262,8 +262,8 @@
       "id": "aluminium:spec-checklist-windows-doors",
       "topic": "Spec checklist: aluminium windows and doors RFQ",
       "kind": "spec_checklist",
-      "body_en": "For a supplier to quote aluminium windows and doors exactly, the buyer must provide a window and door schedule and a small set of performance and material decisions. Without these, suppliers price different things and the lowest number is usually the least product. The schedule should list each type with a mark, overall width and height, quantity, opening type and direction, and location (floor, elevation, internal or external). Drawings or elevations help greatly, even simple sketches. The system must be named, or at least defined by performance: whether thermally broken, the target Uw, air, water and wind classes, and acoustic requirement where there is road or airport noise. Finish must be stated as type, colour and performance class, for example polyester powder Qualicoat Class 2 in a given RAL, or PVDF to AAMA 2605, or anodised 20 or 25 microns in a stated shade, and whether inside and outside colours differ. Glass must be specified per pane. Hardware must be defined: handle type and finish, locking (single point or multi-point), key-lock requirements, hinges or rollers, door closers, panic hardware for escape doors, and whether fly screens or security grilles are included. Also state the site location for delivery, whether installation, sealing to the wall and removal of old units are included, subframes, sill details, the warranty period expected for system, finish and glass, and whether the job needs authority or master developer approvals. Finally state the programme and whether samples, shop drawings and calculations are required before fabrication.",
-      "body_ar": "لكي يسعّر المورد النوافذ والأبواب الألمنيوم بدقة، يجب على المشتري تقديم جدول النوافذ والأبواب ومجموعة صغيرة من قرارات الأداء والمواد. وبدونها يسعّر الموردون أشياء مختلفة، ويكون الرقم الأقل عادة هو المنتج الأقل. يجب أن يذكر الجدول كل نوع برمز، والعرض والارتفاع الكليين، والكمية، ونوع الفتح واتجاهه، والموقع (الطابق، الواجهة، داخلي أو خارجي). وتساعد الرسومات أو الواجهات كثيراً ولو كانت رسومات بسيطة. يجب تسمية النظام أو على الأقل تعريفه بالأداء: هل هو معزول حرارياً، وقيمة Uw المستهدفة، وفئات الهواء والماء والرياح، ومتطلب العزل الصوتي عند وجود ضوضاء طرق أو مطار. ويجب ذكر التشطيب نوعاً ولوناً وفئة أداء، مثل بودرة بوليستر Qualicoat الفئة 2 بلون RAL محدد، أو PVDF وفق AAMA 2605، أو أنودة 20 أو 25 ميكرون بدرجة محددة، وهل يختلف اللون داخلاً وخارجاً. ويُحدد الزجاج لكل لوح. وتُعرّف الإكسسوارات: نوع المقبض وتشطيبه، والإقفال (نقطة واحدة أو متعدد)، ومتطلبات المفاتيح، والمفصلات أو العجلات، ومغلقات الأبواب، وأقفال الطوارئ لأبواب الهروب، وهل تشمل شبك الحشرات أو الحمايات. واذكر موقع التوريد، وهل يشمل العرض التركيب والإحكام مع الجدار وإزالة القديم، والإطارات الفرعية، وتفاصيل العتبات، ومدة الضمان المتوقعة للنظام والتشطيب والزجاج، وهل يحتاج العمل اعتمادات جهات أو مطور رئيسي. وأخيراً حدد البرنامج الزمني وهل يلزم تقديم عينات ورسومات تنفيذية وحسابات قبل التصنيع.",
+      "body_en": "For a supplier to quote aluminium windows and doors exactly, the buyer must provide a window and door schedule and a small set of performance and material decisions. Without these, suppliers price different things and the lowest number is usually the least product. The schedule should list each type with a mark, overall width and height, quantity, opening type and direction, and location (floor, elevation, internal or external). Drawings or elevations help greatly, even simple sketches. The system must be named, or at least defined by performance: whether thermally broken, the target Uw, air, water and wind classes, and acoustic requirement where there is road or airport noise. Finish must be stated as type, colour and performance class, for example polyester powder Qualicoat Class 2 in a given RAL, or PVDF to AAMA 2605, or anodised 20 or 25 microns in a stated shade, and whether inside and outside colours differ. Glass must be specified per pane. Hardware must be defined: handle type and finish, locking (single point or multi-point), key-lock requirements, hinges or rollers, door closers, panic hardware for escape doors, and whether fly screens or security grilles are included. Also state the site location for delivery, whether installation, sealing to the wall and removal of old units are included, subframes, sill details, the warranty period expected for system, finish and glass, and whether the job needs authority or master developer approvals. Finally state the programme and whether samples, shop drawings and calculations are required before fabrication.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): quantity per type; the schedule with sizes, opening types, the system or thermal performance, glass make-up and the supply/install scope. Replacement work always needs a site measurement before a firm price. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site access, hoisting and working hours; payment terms.",
+      "body_ar": "لكي يسعّر المورد النوافذ والأبواب الألمنيوم بدقة، يجب على المشتري تقديم جدول النوافذ والأبواب ومجموعة صغيرة من قرارات الأداء والمواد. وبدونها يسعّر الموردون أشياء مختلفة، ويكون الرقم الأقل عادة هو المنتج الأقل. يجب أن يذكر الجدول كل نوع برمز، والعرض والارتفاع الكليين، والكمية، ونوع الفتح واتجاهه، والموقع (الطابق، الواجهة، داخلي أو خارجي). وتساعد الرسومات أو الواجهات كثيراً ولو كانت رسومات بسيطة. يجب تسمية النظام أو على الأقل تعريفه بالأداء: هل هو معزول حرارياً، وقيمة Uw المستهدفة، وفئات الهواء والماء والرياح، ومتطلب العزل الصوتي عند وجود ضوضاء طرق أو مطار. ويجب ذكر التشطيب نوعاً ولوناً وفئة أداء، مثل بودرة بوليستر Qualicoat الفئة 2 بلون RAL محدد، أو PVDF وفق AAMA 2605، أو أنودة 20 أو 25 ميكرون بدرجة محددة، وهل يختلف اللون داخلاً وخارجاً. ويُحدد الزجاج لكل لوح. وتُعرّف الإكسسوارات: نوع المقبض وتشطيبه، والإقفال (نقطة واحدة أو متعدد)، ومتطلبات المفاتيح، والمفصلات أو العجلات، ومغلقات الأبواب، وأقفال الطوارئ لأبواب الهروب، وهل تشمل شبك الحشرات أو الحمايات. واذكر موقع التوريد، وهل يشمل العرض التركيب والإحكام مع الجدار وإزالة القديم، والإطارات الفرعية، وتفاصيل العتبات، ومدة الضمان المتوقعة للنظام والتشطيب والزجاج، وهل يحتاج العمل اعتمادات جهات أو مطور رئيسي. وأخيراً حدد البرنامج الزمني وهل يلزم تقديم عينات ورسومات تنفيذية وحسابات قبل التصنيع.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الكمية لكل نوع، وجدول النوافذ والأبواب بالمقاسات، وأنواع الفتح، والنظام أو الأداء الحراري، وتركيبة الزجاج، ونطاق التوريد والتركيب. أعمال الاستبدال تحتاج دائماً إلى قياس في الموقع قبل السعر النهائي. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً الوصول إلى الموقع وساعات العمل، وشروط الدفع.",
       "required_specs": [
         "window/door schedule with type marks",
         "width x height per type",
@@ -282,7 +282,9 @@
         "delivery site location",
         "warranty period required per component",
         "shop drawings, samples and calculations required",
-        "programme / required delivery date"
+        "programme / required delivery date",
+        "site access, hoisting and working hours",
+        "payment terms"
       ],
       "sources": [
         "https://www.intertek.com/building/standards/en-14351-1/",
@@ -290,14 +292,168 @@
         "https://geti-alu.com/en/blog/anodizing-thickness-control-iso7599"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "window/door schedule with type marks",
+        "width x height per type",
+        "opening type and direction",
+        "system name or performance (thermal break yes/no, Uw target)",
+        "glass make-up per pane",
+        "supply only or supply and install; removal of existing",
+        "quantity per type"
+      ],
+      "spec_guide": [
+        {
+          "spec": "window/door schedule with type marks",
+          "why_needed_to_price": "Each type has its own profile, hardware and labour; a total count cannot be priced.",
+          "uae_options": "schedule with type, size and quantity",
+          "follow_up_if": "No schedule: a site measurement or architectural drawings are needed.",
+          "blocking": true
+        },
+        {
+          "spec": "width x height per type",
+          "why_needed_to_price": "Price per unit and per m2 depends on the size; large sliders need heavier profiles.",
+          "uae_options": "measured or from drawings",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quantity per type",
+          "why_needed_to_price": "Price per unit falls with repetition; the same window type in 200 pieces is priced very differently from 5.",
+          "uae_options": "Window and door schedule by type mark with sizes and counts.",
+          "follow_up_if": "If there is no schedule, ask for the drawings or a measured list before quoting.",
+          "blocking": true
+        },
+        {
+          "spec": "opening type and direction",
+          "why_needed_to_price": "Sliding, casement, tilt-turn, lift-and-slide and folding systems differ greatly in cost.",
+          "uae_options": "fixed; sliding; casement; tilt-and-turn; lift-and-slide; folding",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "location/floor/elevation, internal or external",
+          "why_needed_to_price": "High floors need higher wind performance, hoisting and access; internal screens need none of that.",
+          "uae_options": "Ground floor, typical floor, high rise; internal or external elevation.",
+          "follow_up_if": "If units are above about 10 floors, ask for the design wind pressure.",
+          "blocking": false
+        },
+        {
+          "spec": "system name or performance (thermal break yes/no, Uw target)",
+          "why_needed_to_price": "Thermally broken systems cost more; without this, cheap non-thermal profiles will be quoted.",
+          "uae_options": "non-thermal; thermally broken; a named system or an equal",
+          "follow_up_if": "Ask whether Al Sa'fat or Estidama applies to the building.",
+          "blocking": true
+        },
+        {
+          "spec": "air/water/wind performance classes or design wind pressure",
+          "why_needed_to_price": "Higher air, water and wind classes need stronger profiles, better gaskets and testing, all of which raise the price.",
+          "uae_options": "EN 12207/12208/12210 classes or AAMA/ASTM ratings; project design wind pressure in Pa.",
+          "follow_up_if": "If no class is stated, ask the consultant for the façade performance specification.",
+          "blocking": false
+        },
+        {
+          "spec": "acoustic requirement (Rw/STC) if any",
+          "why_needed_to_price": "Acoustic targets need thicker or laminated acoustic glass and better seals, which change the system and price.",
+          "uae_options": "Rw 30-45 dB typical; laminated acoustic glass for roads and airports.",
+          "follow_up_if": "If the site is near a highway or flight path, ask whether an acoustic target applies.",
+          "blocking": false
+        },
+        {
+          "spec": "finish type, colour, performance class (Qualicoat class / AAMA 2603-2605 / Qualanod class)",
+          "why_needed_to_price": "PVDF and high-durability powder cost more than standard powder.",
+          "uae_options": "standard powder; super-durable powder; PVDF; anodised",
+          "follow_up_if": "Coastal: ask for a higher finish class.",
+          "blocking": false
+        },
+        {
+          "spec": "glass make-up per pane",
+          "why_needed_to_price": "Glass is often half the cost of a window.",
+          "uae_options": "single; double-glazed with low-e; laminated for safety",
+          "follow_up_if": "Ask the glazing spec or let the supplier propose one per the energy target.",
+          "blocking": true
+        },
+        {
+          "spec": "hardware: handles, locking, hinges/rollers, closers, panic hardware",
+          "why_needed_to_price": "Hardware ranges from basic local to European branded multipoint locking, and can be a large share of a door price.",
+          "uae_options": "Basic handles and rollers; branded multipoint locks; closers and panic bars on doors.",
+          "follow_up_if": "If not stated, ask for the hardware schedule or the level wanted (economy, mid, premium).",
+          "blocking": false
+        },
+        {
+          "spec": "fly screens / grilles included or not",
+          "why_needed_to_price": "Fly screens and grilles are separate items with their own price per unit.",
+          "uae_options": "Fixed, sliding, pleated or roller fly screens; security grilles.",
+          "follow_up_if": "If unstated, ask whether screens are wanted on all opening sashes.",
+          "blocking": false
+        },
+        {
+          "spec": "supply only or supply and install; removal of existing",
+          "why_needed_to_price": "Installation and removal of old frames are separate labour lines.",
+          "uae_options": "supply only; supply and install; with removal and making good",
+          "follow_up_if": "Replacement in an occupied home: ask about making good and protection.",
+          "blocking": true
+        },
+        {
+          "spec": "subframe and sill details",
+          "why_needed_to_price": "Subframes, sills and flashings are often excluded and then claimed as extras.",
+          "uae_options": "Galvanised steel or aluminium subframe; aluminium or stone sill.",
+          "follow_up_if": "If the openings are not ready, ask who supplies the subframe and sill.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery site location",
+          "why_needed_to_price": "Freight, hoisting and access differ by emirate and site, and are part of the installed price.",
+          "uae_options": "Site address, emirate and access constraints.",
+          "follow_up_if": "If the site is high rise or tight, ask whether a hoist or crane is available.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period required per component",
+          "why_needed_to_price": "Profiles, finish, glass and hardware carry different warranty periods, and longer periods are priced.",
+          "uae_options": "Finish 10-20 years, glass units 5-10 years, hardware 1-2 years, workmanship 1-2 years.",
+          "follow_up_if": "If the buyer needs one period for all, ask the supplier to state each component's period.",
+          "blocking": false
+        },
+        {
+          "spec": "shop drawings, samples and calculations required",
+          "why_needed_to_price": "Shop drawings, structural calculations and samples take engineering time and are often excluded from cheap quotes.",
+          "uae_options": "Shop drawings; stamped calculations; finish and glass samples; mock-up where specified.",
+          "follow_up_if": "If the consultant requires a mock-up or testing, state it so all quotes include it.",
+          "blocking": false
+        },
+        {
+          "spec": "programme / required delivery date",
+          "why_needed_to_price": "A short date may need ex-stock profiles or a premium for overtime.",
+          "uae_options": "Required delivery and installation dates; phased handover.",
+          "follow_up_if": "If the date is earlier than the quoted lead time, ask for the expedited cost.",
+          "blocking": false
+        },
+        {
+          "spec": "site access, hoisting and working hours",
+          "blocking": false,
+          "why_needed_to_price": "Night or weekend work, occupied premises, restricted delivery hours and gate passes change labour cost and programme.",
+          "uae_options": "Normal day shift; night or weekend only; occupied building; mall, community or free-zone permit hours; loading-bay booking.",
+          "follow_up_if": "Restricted hours bring the landlord or community permission the work needs."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "site_visit_required_when": "A site measurement is unavoidable before a firm price for replacement windows or when no dimensioned drawings exist.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 1 made quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "aluminium:spec-checklist-cladding",
       "topic": "Spec checklist: ACP / aluminium cladding RFQ",
       "kind": "spec_checklist",
-      "body_en": "Cladding quotations are frequently incomparable because one supplier prices panels only and another prices a complete tested system. To get exact prices the buyer needs to state the following. The panel material: ACP with FR or A2 core, or solid aluminium sheet, with thickness (for example 4 mm ACP with 0.5 mm skins, or 3 mm solid) and alloy where relevant. The required fire classification (for example A2-s1,d0 to EN 13501-1) and that the product and supplier must hold current Civil Defence approval and registration. The finish: PVDF two or three coat to AAMA 2605, or polyester powder, colour reference, metallic or solid, gloss level, and any special effect; note that metallic and directional finishes need panels installed in the same direction. Panel sizes and module layout, fixing method (riveted flat, hook-on cassette, routed and returned edges), joint width and whether joints are open, baffled or sealed. The substructure: bracket and rail material, anchor type into the wall, insulation type and thickness with fire class, membrane, and cavity barriers. The quantity in square metres measured on an agreed basis (net face area versus developed area including returns), the building height and use, which drive fire requirements, and the design wind pressure or the location for the engineer to derive it. Interfaces: windows, parapets, soffits, signage, lighting fixings, and flashing. Scope inclusions: shop drawings, structural calculations, samples, mock-up, testing, scaffolding or access equipment, protective film removal timing, and cleaning. Warranty terms for panel, finish and installation. Timeline, since coil-coated special colours may need a minimum order and longer lead time.",
-      "body_ar": "كثيراً ما تكون عروض التكسية غير قابلة للمقارنة لأن مورداً يسعّر الألواح فقط وآخر يسعّر نظاماً كاملاً مختبراً. وللحصول على أسعار دقيقة يجب على المشتري تحديد ما يلي. مادة اللوح: ACP بلبّ FR أو A2، أو صفائح ألمنيوم مصمتة، مع السماكة (مثل ACP بسماكة 4 مم بقشرتين 0.5 مم، أو مصمت 3 مم) والسبيكة حيث يلزم. تصنيف الحريق المطلوب (مثل A2-s1,d0 وفق EN 13501-1) واشتراط حمل المنتج والمورد اعتماد وتسجيل الدفاع المدني الساريين. التشطيب: PVDF بطبقتين أو ثلاث وفق AAMA 2605، أو بودرة بوليستر، ومرجع اللون، معدني أو مصمت، ودرجة اللمعان وأي تأثير خاص؛ مع ملاحظة أن التشطيبات المعدنية والاتجاهية تتطلب تركيب الألواح في الاتجاه نفسه. مقاسات الألواح وتوزيع الوحدات، وطريقة التثبيت (برشام مسطح، كاسيت معلّق، حواف مفرّزة ومثنية)، وعرض الفاصل وهل هو مفتوح أو محجوب أو مُحكم. الهيكل الحامل: مادة الكوابيل والقضبان، ونوع المثبت في الجدار، ونوع العزل وسماكته وفئة حريقه، والغشاء، وحواجز التجاويف. الكمية بالمتر المربع وفق أساس قياس متفق عليه (مساحة الوجه الصافية أو المساحة المفرودة مع الثنيات)، وارتفاع المبنى واستخدامه لأنهما يحددان متطلبات الحريق، وضغط الرياح التصميمي أو الموقع ليستنتجه المهندس. التقاطعات: النوافذ والستائر العلوية والأسقف السفلية واللافتات وتثبيت الإنارة والأغطية. شمول النطاق: الرسومات التنفيذية والحسابات الإنشائية والعينات والنموذج والاختبار والسقالات أو معدات الوصول وتوقيت إزالة الغشاء الواقي والتنظيف. شروط الضمان للوح والتشطيب والتركيب. والجدول الزمني، لأن الألوان الخاصة المطلية على اللفائف قد تحتاج حد طلب أدنى ومدة توريد أطول.",
+      "body_en": "Cladding quotations are frequently incomparable because one supplier prices panels only and another prices a complete tested system. To get exact prices the buyer needs to state the following. The panel material: ACP with FR or A2 core, or solid aluminium sheet, with thickness (for example 4 mm ACP with 0.5 mm skins, or 3 mm solid) and alloy where relevant. The required fire classification (for example A2-s1,d0 to EN 13501-1) and that the product and supplier must hold current Civil Defence approval and registration. The finish: PVDF two or three coat to AAMA 2605, or polyester powder, colour reference, metallic or solid, gloss level, and any special effect; note that metallic and directional finishes need panels installed in the same direction. Panel sizes and module layout, fixing method (riveted flat, hook-on cassette, routed and returned edges), joint width and whether joints are open, baffled or sealed. The substructure: bracket and rail material, anchor type into the wall, insulation type and thickness with fire class, membrane, and cavity barriers. The quantity in square metres measured on an agreed basis (net face area versus developed area including returns), the building height and use, which drive fire requirements, and the design wind pressure or the location for the engineer to derive it. Interfaces: windows, parapets, soffits, signage, lighting fixings, and flashing. Scope inclusions: shop drawings, structural calculations, samples, mock-up, testing, scaffolding or access equipment, protective film removal timing, and cleaning. Warranty terms for panel, finish and installation. Timeline, since coil-coated special colours may need a minimum order and longer lead time.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): supply only or supply and install; new build or re-cladding of an existing facade; panel type, fire classification, the area basis and the building height and use. Finish, substructure and access are priced options but often decide the real total. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states supply only or supply and install; new build or re-cladding of an existing facade; payment terms.",
+      "body_ar": "كثيراً ما تكون عروض التكسية غير قابلة للمقارنة لأن مورداً يسعّر الألواح فقط وآخر يسعّر نظاماً كاملاً مختبراً. وللحصول على أسعار دقيقة يجب على المشتري تحديد ما يلي. مادة اللوح: ACP بلبّ FR أو A2، أو صفائح ألمنيوم مصمتة، مع السماكة (مثل ACP بسماكة 4 مم بقشرتين 0.5 مم، أو مصمت 3 مم) والسبيكة حيث يلزم. تصنيف الحريق المطلوب (مثل A2-s1,d0 وفق EN 13501-1) واشتراط حمل المنتج والمورد اعتماد وتسجيل الدفاع المدني الساريين. التشطيب: PVDF بطبقتين أو ثلاث وفق AAMA 2605، أو بودرة بوليستر، ومرجع اللون، معدني أو مصمت، ودرجة اللمعان وأي تأثير خاص؛ مع ملاحظة أن التشطيبات المعدنية والاتجاهية تتطلب تركيب الألواح في الاتجاه نفسه. مقاسات الألواح وتوزيع الوحدات، وطريقة التثبيت (برشام مسطح، كاسيت معلّق، حواف مفرّزة ومثنية)، وعرض الفاصل وهل هو مفتوح أو محجوب أو مُحكم. الهيكل الحامل: مادة الكوابيل والقضبان، ونوع المثبت في الجدار، ونوع العزل وسماكته وفئة حريقه، والغشاء، وحواجز التجاويف. الكمية بالمتر المربع وفق أساس قياس متفق عليه (مساحة الوجه الصافية أو المساحة المفرودة مع الثنيات)، وارتفاع المبنى واستخدامه لأنهما يحددان متطلبات الحريق، وضغط الرياح التصميمي أو الموقع ليستنتجه المهندس. التقاطعات: النوافذ والستائر العلوية والأسقف السفلية واللافتات وتثبيت الإنارة والأغطية. شمول النطاق: الرسومات التنفيذية والحسابات الإنشائية والعينات والنموذج والاختبار والسقالات أو معدات الوصول وتوقيت إزالة الغشاء الواقي والتنظيف. شروط الضمان للوح والتشطيب والتركيب. والجدول الزمني، لأن الألوان الخاصة المطلية على اللفائف قد تحتاج حد طلب أدنى ومدة توريد أطول.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: توريد فقط أم توريد وتركيب، ومبنى جديد أم استبدال كسوة واجهة قائمة، ونوع اللوح، وتصنيف مقاومة الحريق، وأساس قياس المساحة، وارتفاع المبنى واستخدامه. أما التشطيب والهيكل الحامل ووسائل الوصول فهي خيارات مسعّرة لكنها كثيراً ما تحدد المجموع الحقيقي. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً توريد فقط أم توريد وتركيب، ومبنى جديد أم استبدال كسوة واجهة قائمة، وشروط الدفع.",
       "required_specs": [
         "panel type (ACP FR / ACP A2 / solid aluminium)",
         "panel and skin thickness",
@@ -318,7 +474,10 @@
         "shop drawings, calculations, samples, mock-up, testing in scope",
         "access equipment in scope",
         "warranty terms for panel, finish, installation",
-        "required programme"
+        "required programme",
+        "supply only or supply and install",
+        "new build or re-cladding of an existing facade",
+        "payment terms"
       ],
       "sources": [
         "https://alucopanel.net/alucopanel-a2/",
@@ -326,14 +485,188 @@
         "https://sundialpowdercoating.com/articles/coating-quality-standards-qualicoat-gsb-aama"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "panel type (ACP FR / ACP A2 / solid aluminium)",
+        "fire classification required (EN 13501-1 class)",
+        "area in m2 and measurement basis",
+        "building height and use",
+        "supply only or supply and install",
+        "new build or re-cladding of an existing facade"
+      ],
+      "spec_guide": [
+        {
+          "spec": "panel type (ACP FR / ACP A2 / solid aluminium)",
+          "why_needed_to_price": "Core type decides both fire compliance and price; A2 and solid panels cost more than FR.",
+          "uae_options": "ACP FR core; ACP A2 core; solid aluminium sheet",
+          "follow_up_if": "Building height and use decide what the fire code allows; ask the fire consultant.",
+          "blocking": true
+        },
+        {
+          "spec": "panel and skin thickness",
+          "why_needed_to_price": "Panel and skin thickness set the material cost and the span the panel can take.",
+          "uae_options": "4 mm panel with 0.5 mm skins typical; 3 mm aluminium solid sheet for some projects.",
+          "follow_up_if": "If thinner panels are offered, ask whether they meet the wind load and the fire class.",
+          "blocking": false
+        },
+        {
+          "spec": "fire classification required (EN 13501-1 class)",
+          "why_needed_to_price": "A panel without the required class cannot be approved by Civil Defence.",
+          "uae_options": "per the UAE Fire and Life Safety Code for the building",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Civil Defence product approval and supplier registration required",
+          "why_needed_to_price": "Only Civil Defence approved panels from a registered supplier can be installed, and approval cost differs by brand.",
+          "uae_options": "DCD-approved A2 or non-combustible core panels; registered supplier and installer.",
+          "follow_up_if": "If the supplier cannot show current approval for the exact product, the quote cannot be accepted.",
+          "blocking": false
+        },
+        {
+          "spec": "finish system and standard (PVDF AAMA 2605 / powder Qualicoat class)",
+          "why_needed_to_price": "PVDF and metallic or special colours cost more.",
+          "uae_options": "PVDF; polyester; anodised look; wood or stone effect",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "colour reference, gloss, metallic/directional",
+          "why_needed_to_price": "Metallic, directional and special colours cost more and must come from one batch.",
+          "uae_options": "RAL or brand colour code; gloss level; PVDF or FEVE coating.",
+          "follow_up_if": "If metallic or directional, ask for batch control and installation direction notes.",
+          "blocking": false
+        },
+        {
+          "spec": "panel sizes and module layout",
+          "why_needed_to_price": "Panel sizes and module layout drive wastage; non-standard sizes add cost.",
+          "uae_options": "Standard coil widths 1250 or 1500 mm; module from drawings.",
+          "follow_up_if": "If no layout exists, ask for elevations to estimate wastage.",
+          "blocking": false
+        },
+        {
+          "spec": "fixing method (riveted / cassette hook-on)",
+          "why_needed_to_price": "Cassette hook-on systems cost more than riveted panels but install faster and look cleaner.",
+          "uae_options": "Riveted; routed and returned cassette; hook-on concealed fix.",
+          "follow_up_if": "If not stated, ask the architect which system is intended.",
+          "blocking": false
+        },
+        {
+          "spec": "joint type and width",
+          "why_needed_to_price": "Open and sealed joints need different details and materials.",
+          "uae_options": "Open joint with backing; sealed joint with sealant; joint width 10-20 mm.",
+          "follow_up_if": "If sealed, ask for the sealant specification.",
+          "blocking": false
+        },
+        {
+          "spec": "substructure: brackets, rails, anchors, materials",
+          "why_needed_to_price": "Substructure and fixings can be a large share of the cost and are often excluded.",
+          "uae_options": "aluminium rails; galvanised steel; stainless anchors",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "insulation type, thickness and fire class",
+          "why_needed_to_price": "Insulation type and fire class are part of the facade fire approval and cost.",
+          "uae_options": "Mineral wool, non-combustible, density and thickness per U-value.",
+          "follow_up_if": "If combustible insulation is offered, ask for its fire test against the code.",
+          "blocking": false
+        },
+        {
+          "spec": "membrane and cavity barriers",
+          "why_needed_to_price": "Membranes and cavity barriers are needed for fire and moisture and are often left out.",
+          "uae_options": "Breather membrane; intumescent or mineral wool cavity barriers at floors.",
+          "follow_up_if": "If not mentioned, ask the supplier to confirm they are in the scope.",
+          "blocking": false
+        },
+        {
+          "spec": "area in m2 and measurement basis",
+          "why_needed_to_price": "Price per m2 depends on whether returns and folds are measured.",
+          "uae_options": "flat face area; developed area including returns",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "building height and use",
+          "why_needed_to_price": "Height affects the fire class, access equipment and wind load.",
+          "uae_options": "low-rise; mid-rise; high-rise",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "design wind pressure or project location",
+          "why_needed_to_price": "Wind pressure decides bracket spacing, subframe size and panel thickness.",
+          "uae_options": "Design wind pressure from the consultant, or project location and height.",
+          "follow_up_if": "If unknown, ask for building height and location so the supplier can estimate it.",
+          "blocking": false
+        },
+        {
+          "spec": "interfaces and flashings",
+          "why_needed_to_price": "Flashings, copings and interfaces with windows are labour-heavy and often excluded.",
+          "uae_options": "Parapet coping, window reveals, sills, corner details.",
+          "follow_up_if": "If interfaces are not drawn, ask who designs and supplies them.",
+          "blocking": false
+        },
+        {
+          "spec": "shop drawings, calculations, samples, mock-up, testing in scope",
+          "why_needed_to_price": "Shop drawings, calculations, samples, mock-ups and testing add engineering and time.",
+          "uae_options": "Shop drawings; stamped calculations; samples; mock-up; pull-out tests.",
+          "follow_up_if": "If any testing is required, state it so it is priced.",
+          "blocking": false
+        },
+        {
+          "spec": "access equipment in scope",
+          "why_needed_to_price": "Scaffolding, mast climbers or BMU use is a major cost.",
+          "uae_options": "scaffold; mast climber; BMU; rope access",
+          "follow_up_if": "High-rise: ask who provides the access.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty terms for panel, finish, installation",
+          "why_needed_to_price": "Panel, finish and installation warranties differ and longer terms are priced.",
+          "uae_options": "Coating 10-20 years; panel 10 years; workmanship 1-2 years.",
+          "follow_up_if": "If a single back-to-back warranty is required, ask for it explicitly.",
+          "blocking": false
+        },
+        {
+          "spec": "required programme",
+          "why_needed_to_price": "A tight programme may need more crews or air-freighted panels.",
+          "uae_options": "Start date, duration, phased elevations.",
+          "follow_up_if": "If the date is fixed, ask the supplier to confirm it in writing.",
+          "blocking": false
+        },
+        {
+          "spec": "supply only or supply and install",
+          "blocking": true,
+          "why_needed_to_price": "Installation, substructure fixing and access are often half the cladding price.",
+          "uae_options": "Supply only; supply and install; install only (free-issue panels).",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "new build or re-cladding of an existing facade",
+          "blocking": true,
+          "why_needed_to_price": "Re-cladding adds removal and disposal of the existing panels, substrate repair and work around occupants.",
+          "uae_options": "New build; replacement of existing panels (e.g. non-compliant ACP); partial repair.",
+          "follow_up_if": "Re-cladding brings the site survey noted below."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site survey is needed for re-cladding or replacement on an existing building, to see the substrate and existing fixings; new-build cladding can be priced from drawings.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "aluminium:spec-checklist-curtain-wall",
       "topic": "Spec checklist: curtain wall and structural glazing RFQ",
       "kind": "spec_checklist",
-      "body_en": "A curtain wall package is a design-and-build scope in most UAE projects, so the RFQ must fix the performance envelope within which the specialist designs. The minimum information is: architectural drawings with elevations, sections and typical details showing the grid, floor-to-floor heights, corners, entrances and openable vents; the intended system type (stick, unitised or semi-unitised) and visual type (captured, two-sided or four-sided structural silicone, toggle); the design wind pressures, or the building height, exposure and location so a wind consultant or engineer can derive them, plus any wind tunnel study results for towers; deflection limits for mullions and glass; movement allowances for slab deflection, interstorey drift and thermal movement; the glass make-up per type with performance values; thermal targets (area-weighted U-value, g-value) from the energy model or green building requirements; air, water and structural test requirements, including whether a laboratory performance mock-up to AAMA 501 sequence is required, and field testing to ASTM E1105 or AAMA 501.2; finish type and class for profiles; fire requirements at slab edges, including the tested perimeter fire barrier system and spandrel construction; access and maintenance provision, such as building maintenance unit restraint points; interfaces with stone, ACP, louvres and roof; and scope items including engineering calculations stamped by a qualified engineer, shop drawings, samples, visual mock-up, hoisting and scaffolding, protection and final cleaning. Warranty expectations should cover system watertightness, glass (IGU seal failure), finish and structural silicone separately. The programme should include design, approvals, testing, fabrication lead times and installation sequencing.",
-      "body_ar": "حزمة الواجهة الزجاجية الستائرية في معظم مشاريع الإمارات نطاق تصميم وتنفيذ، لذا يجب أن يثبّت طلب التسعير إطار الأداء الذي يصمم ضمنه المقاول المتخصص. الحد الأدنى من المعلومات: الرسومات المعمارية بالواجهات والقطاعات والتفاصيل النموذجية التي تبين الشبكة وارتفاعات الطوابق والزوايا والمداخل والفتحات القابلة للفتح؛ نوع النظام المقصود (قطع، موحّد، شبه موحّد) والنوع البصري (مثبت بالأغطية، سيليكون إنشائي ثنائي أو رباعي، توغل)؛ ضغوط الرياح التصميمية، أو ارتفاع المبنى والتعرض والموقع ليستنتجها استشاري الرياح أو المهندس، مع نتائج نفق الرياح للأبراج؛ حدود الانحراف للقوائم والزجاج؛ سماحات الحركة لانحراف البلاطة والإزاحة بين الطوابق والحركة الحرارية؛ تركيبة الزجاج لكل نوع مع قيم الأداء؛ الأهداف الحرارية (قيمة U المرجحة بالمساحة وقيمة g) من نموذج الطاقة أو متطلبات المباني الخضراء؛ متطلبات اختبار الهواء والماء والإنشائي، بما في ذلك هل يلزم نموذج أداء مخبري وفق تسلسل AAMA 501، واختبار ميداني وفق ASTM E1105 أو AAMA 501.2؛ نوع وفئة تشطيب المقاطع؛ متطلبات الحريق عند حواف البلاطات بما فيها نظام حاجز الحريق المحيطي المختبر وتكوين الأجزاء المعتمة؛ ترتيبات الوصول والصيانة مثل نقاط تثبيت وحدة صيانة المبنى؛ التقاطعات مع الحجر وACP واللوفرات والسطح؛ وبنود النطاق ومنها الحسابات الهندسية المختومة والرسومات التنفيذية والعينات والنموذج البصري والرفع والسقالات والحماية والتنظيف النهائي. ويجب أن تغطي توقعات الضمان إحكام النظام ضد الماء، والزجاج (فشل إحكام الوحدة العازلة)، والتشطيب، والسيليكون الإنشائي كلاً على حدة. ويشمل البرنامج التصميم والاعتمادات والاختبار ومدد التصنيع وتسلسل التركيب.",
+      "body_en": "A curtain wall package is a design-and-build scope in most UAE projects, so the RFQ must fix the performance envelope within which the specialist designs. The minimum information is: architectural drawings with elevations, sections and typical details showing the grid, floor-to-floor heights, corners, entrances and openable vents; the intended system type (stick, unitised or semi-unitised) and visual type (captured, two-sided or four-sided structural silicone, toggle); the design wind pressures, or the building height, exposure and location so a wind consultant or engineer can derive them, plus any wind tunnel study results for towers; deflection limits for mullions and glass; movement allowances for slab deflection, interstorey drift and thermal movement; the glass make-up per type with performance values; thermal targets (area-weighted U-value, g-value) from the energy model or green building requirements; air, water and structural test requirements, including whether a laboratory performance mock-up to AAMA 501 sequence is required, and field testing to ASTM E1105 or AAMA 501.2; finish type and class for profiles; fire requirements at slab edges, including the tested perimeter fire barrier system and spandrel construction; access and maintenance provision, such as building maintenance unit restraint points; interfaces with stone, ACP, louvres and roof; and scope items including engineering calculations stamped by a qualified engineer, shop drawings, samples, visual mock-up, hoisting and scaffolding, protection and final cleaning. Warranty expectations should cover system watertightness, glass (IGU seal failure), finish and structural silicone separately. The programme should include design, approvals, testing, fabrication lead times and installation sequencing.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): drawings, system type, design wind pressures and glass make-up. Testing and mock-ups are priced items that must be on every quote to compare. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states facade area in m2 and number of units; payment terms.",
+      "body_ar": "حزمة الواجهة الزجاجية الستائرية في معظم مشاريع الإمارات نطاق تصميم وتنفيذ، لذا يجب أن يثبّت طلب التسعير إطار الأداء الذي يصمم ضمنه المقاول المتخصص. الحد الأدنى من المعلومات: الرسومات المعمارية بالواجهات والقطاعات والتفاصيل النموذجية التي تبين الشبكة وارتفاعات الطوابق والزوايا والمداخل والفتحات القابلة للفتح؛ نوع النظام المقصود (قطع، موحّد، شبه موحّد) والنوع البصري (مثبت بالأغطية، سيليكون إنشائي ثنائي أو رباعي، توغل)؛ ضغوط الرياح التصميمية، أو ارتفاع المبنى والتعرض والموقع ليستنتجها استشاري الرياح أو المهندس، مع نتائج نفق الرياح للأبراج؛ حدود الانحراف للقوائم والزجاج؛ سماحات الحركة لانحراف البلاطة والإزاحة بين الطوابق والحركة الحرارية؛ تركيبة الزجاج لكل نوع مع قيم الأداء؛ الأهداف الحرارية (قيمة U المرجحة بالمساحة وقيمة g) من نموذج الطاقة أو متطلبات المباني الخضراء؛ متطلبات اختبار الهواء والماء والإنشائي، بما في ذلك هل يلزم نموذج أداء مخبري وفق تسلسل AAMA 501، واختبار ميداني وفق ASTM E1105 أو AAMA 501.2؛ نوع وفئة تشطيب المقاطع؛ متطلبات الحريق عند حواف البلاطات بما فيها نظام حاجز الحريق المحيطي المختبر وتكوين الأجزاء المعتمة؛ ترتيبات الوصول والصيانة مثل نقاط تثبيت وحدة صيانة المبنى؛ التقاطعات مع الحجر وACP واللوفرات والسطح؛ وبنود النطاق ومنها الحسابات الهندسية المختومة والرسومات التنفيذية والعينات والنموذج البصري والرفع والسقالات والحماية والتنظيف النهائي. ويجب أن تغطي توقعات الضمان إحكام النظام ضد الماء، والزجاج (فشل إحكام الوحدة العازلة)، والتشطيب، والسيليكون الإنشائي كلاً على حدة. ويشمل البرنامج التصميم والاعتمادات والاختبار ومدد التصنيع وتسلسل التركيب.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المخططات، ونوع النظام، وضغوط الرياح التصميمية، وتركيبة الزجاج. أما الاختبارات والنماذج التجريبية فهي بنود مسعّرة يجب أن ترد في كل عرض لتصح المقارنة. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً مساحة الواجهة بالمتر المربع وعدد الوحدات، وشروط الدفع.",
       "required_specs": [
         "architectural elevations, sections, typical details",
         "system type (stick / unitised / semi-unitised)",
@@ -351,7 +684,9 @@
         "stamped calculations, shop drawings, samples, visual mock-up",
         "hoisting, access, protection and cleaning in scope",
         "warranty per component",
-        "programme including testing and lead times"
+        "programme including testing and lead times",
+        "facade area in m2 and number of units",
+        "payment terms"
       ],
       "sources": [
         "https://www.ul.com/services/building-envelope-performance-mock-and-facade-testing",
@@ -359,7 +694,151 @@
         "https://wfmmedia.com/the-uae-approach-to-mitigate-facade-fire-risk-in-tall-buildings/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "architectural elevations, sections, typical details",
+        "system type (stick / unitised / semi-unitised)",
+        "design wind pressures or height, exposure, location, wind tunnel data",
+        "glass make-up and performance per type"
+      ],
+      "spec_guide": [
+        {
+          "spec": "architectural elevations, sections, typical details",
+          "why_needed_to_price": "Curtain wall is designed to the building; no firm price is possible without drawings.",
+          "uae_options": "tender drawings from the architect or facade consultant",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "system type (stick / unitised / semi-unitised)",
+          "why_needed_to_price": "Unitised systems cost more in fabrication but less on site; the choice changes the whole price.",
+          "uae_options": "stick; unitised; semi-unitised",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "glazing type (captured / 2-sided SSG / 4-sided SSG / toggle)",
+          "why_needed_to_price": "Captured, two-sided and four-sided structural glazing use different systems, silicone and testing, with very different costs.",
+          "uae_options": "Captured (pressure plate); 2-sided SSG; 4-sided SSG; toggle-fixed.",
+          "follow_up_if": "If not stated, ask for the elevations and the architect's intent.",
+          "blocking": false
+        },
+        {
+          "spec": "design wind pressures or height, exposure, location, wind tunnel data",
+          "why_needed_to_price": "Profile depth and glass thickness follow wind load.",
+          "uae_options": "from the structural or facade consultant",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "deflection limits",
+          "why_needed_to_price": "Tighter deflection limits need deeper mullions and more aluminium.",
+          "uae_options": "L/175 or L/200 with an absolute limit, per project specification.",
+          "follow_up_if": "If unknown, ask for the consultant's structural criteria.",
+          "blocking": false
+        },
+        {
+          "spec": "movement allowances (slab deflection, drift, thermal)",
+          "why_needed_to_price": "Movement allowances decide the stack joint and bracket design.",
+          "uae_options": "Slab deflection, inter-storey drift and thermal movement in mm.",
+          "follow_up_if": "If not given, ask for the structural engineer's figures.",
+          "blocking": false
+        },
+        {
+          "spec": "glass make-up and performance per type",
+          "why_needed_to_price": "Glass is a large share of the cost and decides energy compliance.",
+          "uae_options": "IGU make-up per type",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "thermal targets (U-value, g-value)",
+          "why_needed_to_price": "Thermal targets decide glass make-up and whether thermally broken profiles are needed.",
+          "uae_options": "U-value and g-value per Al Sa'fat or Estidama; thermally broken frames.",
+          "follow_up_if": "If no targets are stated, ask which green-building tier the project targets.",
+          "blocking": false
+        },
+        {
+          "spec": "testing: lab PMU (AAMA 501 / ASTM E283, E331, E330, E547) and field (ASTM E1105)",
+          "why_needed_to_price": "A performance mock-up test is a significant fixed cost.",
+          "uae_options": "lab PMU; field water tests; none for small works",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "profile finish type and class",
+          "why_needed_to_price": "Anodised and PVDF finishes, and their class, differ in price.",
+          "uae_options": "Powder coat, PVDF (2 or 3 coat), anodised AA20/AA25.",
+          "follow_up_if": "If not stated, ask for the finish specification and colour.",
+          "blocking": false
+        },
+        {
+          "spec": "slab-edge fire barrier and spandrel requirements",
+          "why_needed_to_price": "Slab-edge fire barriers and spandrel panels are part of the fire approval and are often excluded.",
+          "uae_options": "Mineral wool fire barrier, smoke seal, insulated spandrel back-pans.",
+          "follow_up_if": "If excluded, ask who supplies and installs them.",
+          "blocking": false
+        },
+        {
+          "spec": "BMU / maintenance access provisions",
+          "why_needed_to_price": "BMU restraints and maintenance access fixings must be built into the curtain wall.",
+          "uae_options": "BMU restraint points, anchors, cleaning access.",
+          "follow_up_if": "If a BMU is planned, ask for its layout so restraints are priced.",
+          "blocking": false
+        },
+        {
+          "spec": "interfaces with other trades",
+          "why_needed_to_price": "Interfaces with roofing, cladding and doors are where gaps and variations arise.",
+          "uae_options": "Interface details with other trades.",
+          "follow_up_if": "If the interface details are not drawn, ask who designs them.",
+          "blocking": false
+        },
+        {
+          "spec": "stamped calculations, shop drawings, samples, visual mock-up",
+          "why_needed_to_price": "Calculations, shop drawings, samples and mock-ups take engineering and time.",
+          "uae_options": "Stamped calculations; shop drawings; samples; visual mock-up.",
+          "follow_up_if": "If a performance mock-up is required, ask for it to be priced separately.",
+          "blocking": false
+        },
+        {
+          "spec": "hoisting, access, protection and cleaning in scope",
+          "why_needed_to_price": "Hoisting, access, protection and final cleaning are large site costs.",
+          "uae_options": "Tower crane use, hoists, mast climbers, protection film, final clean.",
+          "follow_up_if": "If the main contractor provides cranes, state it.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty per component",
+          "why_needed_to_price": "Glass, sealant, gaskets and profiles carry different warranties.",
+          "uae_options": "Glass units 10 years; silicone 10-20 years; system 10 years; workmanship.",
+          "follow_up_if": "If one warranty is required, ask the supplier to back it with manufacturers' warranties.",
+          "blocking": false
+        },
+        {
+          "spec": "programme including testing and lead times",
+          "why_needed_to_price": "Testing and long-lead glass set the programme; a short programme costs more.",
+          "uae_options": "Programme with design, testing, fabrication and installation stages.",
+          "follow_up_if": "If testing is required, ask how it affects the start of installation.",
+          "blocking": false
+        },
+        {
+          "spec": "facade area in m2 and number of units",
+          "blocking": false,
+          "why_needed_to_price": "Area and unit count set fabrication and installation cost; the elevations alone leave it to each supplier to measure differently.",
+          "uae_options": "Area per elevation in m2; number of unitised panels or stick bays.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for replacement or refurbishment of an existing curtain wall; new-build curtain wall is priced from drawings and specifications.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "aluminium:price-drivers",
@@ -484,6 +963,41 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "aluminium:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Aluminium windows, cladding and curtain wall: approvals per emirate",
+      "topic_ar": "نوافذ الألمنيوم والكسوة والواجهات الستائرية: الاعتمادات في كل إمارة",
+      "body_en": "Cladding is the most regulated part of this trade. Across the UAE the Fire and Life Safety Code sets the fire classification facade materials must meet; in Dubai, Dubai Civil Defence approves the product and registers the supplier and the installer, and Dubai Municipality (or Trakhees, DDA or a free-zone authority) issues the permit for a new facade. In Abu Dhabi the DMT municipalities issue permits and the Abu Dhabi Civil Defence Authority approves fire safety; occupancy certificates require civil defence clearance. Sharjah Municipality issues permits with civil defence approval as a supporting department; the northern emirates follow their municipalities and civil defence. Window replacement inside a private villa normally needs no permit, but changing the facade appearance in a community or tower needs the developer's or owners' association NOC. Who obtains: consultant or facade contractor; the supplier provides fire test reports and the approval certificate.",
+      "body_ar": "الكسوة هي أكثر أجزاء هذه الحرفة خضوعاً للتنظيم. ففي جميع الإمارات يحدد كود الإمارات للحماية من الحرائق وسلامة الأرواح تصنيف الحريق المطلوب لمواد الواجهات؛ وفي دبي يعتمد الدفاع المدني بدبي المنتج ويسجل المورد وشركة التركيب، وتصدر بلدية دبي (أو تراخيص أو سلطة دبي للتطوير أو سلطة المنطقة الحرة) رخصة الواجهة الجديدة. وفي أبوظبي تصدر بلديات دائرة البلديات والنقل التراخيص وتعتمد هيئة أبوظبي للدفاع المدني متطلبات السلامة من الحريق، وتشترط شهادات الإشغال موافقة الدفاع المدني. وتصدر بلدية الشارقة التراخيص مع موافقة الدفاع المدني كجهة مساندة، وتتبع الإمارات الشمالية بلدياتها وجهات الدفاع المدني فيها. واستبدال النوافذ داخل فيلا خاصة لا يحتاج عادة إلى رخصة، لكن تغيير مظهر الواجهة في مجمع أو برج يحتاج إلى عدم ممانعة من المطوّر أو جمعية الملاك. من يحصل عليها: الاستشاري أو مقاول الواجهات، ويقدم المورد تقارير اختبار الحريق وشهادة الاعتماد.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.dcd.gov.ae/portal/en/e-services/company-approval-services",
+        "https://www.dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
+        "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
+        "https://pcfc.ae/en/Service%20Documents/PCFC-TRK-CED-PS-CP-01,%20Client%20procedure%20for%20Obtaining%20Building%20Permits.pdf",
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Trakhees reviews and approves building permits within its jurisdiction (PCFC-TRK-CED-PS-CP-01 on pcfc.ae); DDA issues construction permits in its zones (dda.gov.ae); Sharjah Municipality permits with Civil Defense as a supporting department (shjmun.gov.ae). Not confirmed on any page that opened: the fire-code facade classification, Dubai Civil Defence product approval and supplier and installer registration, the Abu Dhabi Civil Defence Authority role and civil defence clearance for Abu Dhabi occupancy (DMT's occupancy programme names fire safety, not a civil defence clearance), and community NOCs. Hosts that failed: www.dcd.gov.ae (connection reset by the site, curl and Playwright)."
+    },
+    {
+      "id": "aluminium:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing aluminium and cladding quotes like for like",
+      "topic_ar": "مقارنة عروض الألمنيوم والكسوة على أساس متكافئ",
+      "body_en": "For windows, compare per type: the same opening type, profile system (thermal or not, profile series), glass make-up, finish class, hardware and installation. For cladding, compare per m2 on the same measurement basis, panel core and fire class, finish, substructure, insulation and access. Check whether each quote names the extruder or system house and the panel maker; a named European system and an unnamed local profile are different products. Value beyond price: a fabricator licensed by the system house, fire certificates for the exact panel, stamped calculations, and a warranty that names the finish and the installation separately.",
+      "body_ar": "في النوافذ قارن لكل نوع: نوع الفتح نفسه، ونظام القطاعات (بعازل حراري أو بدونه، وسلسلة القطاع)، وتركيبة الزجاج، وفئة التشطيب، والإكسسوارات، والتركيب. وفي الكسوة قارن لكل متر مربع على أساس القياس نفسه، ونوع قلب اللوح وفئة الحريق، والتشطيب، والهيكل الحامل، والعزل، ووسائل الوصول. تحقّق مما إذا كان كل عرض يذكر مصنع البثق أو صاحب النظام وصانع الألواح؛ فالنظام الأوروبي المسمّى والقطاع المحلي غير المسمّى منتجان مختلفان. القيمة إلى جانب السعر: مصنّع مرخّص من صاحب النظام، وشهادات حريق للوح نفسه، وحسابات إنشائية مختومة، وضمان يذكر التشطيب والتركيب كلاً على حدة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -576,8 +1090,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 23,
-    "claims_checked": 195,
+    "fetched_urls": 26,
+    "claims_checked": 203,
     "corrected": [
       "aluminium:extrusion-process-and-tolerances",
       "aluminium:thermal-break-profiles",
@@ -588,7 +1102,33 @@
       "aluminium:glass-in-aluminium-systems"
     ],
     "removed": [],
-    "still_unverified": [],
-    "note": "A8 Phase A verify 2026-09-23. Sources are only URLs fetched in this session; draft citations never opened (ASTM store 403s, homepages, dcd.gov.ae) were dropped. Low-confidence entries tagged gap_kind."
+    "still_unverified": [
+      "aluminium:approvals-per-emirate"
+    ],
+    "note": "A8 Phase A verify 2026-09-23. Sources are only URLs fetched in this session; draft citations never opened (ASTM store 403s, homepages, dcd.gov.ae) were dropped. Low-confidence entries tagged gap_kind.",
+    "added": [
+      "aluminium:approvals-per-emirate",
+      "aluminium:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: aluminium:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 8 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "aluminium:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

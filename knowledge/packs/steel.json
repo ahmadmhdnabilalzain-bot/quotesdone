@@ -228,8 +228,8 @@
       "id": "steel:rebar-spec-checklist",
       "topic": "Rebar purchase: what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "A rebar enquiry that says only \"steel bars, 20 tons\" cannot be quoted exactly. Before a supplier can price reinforcement accurately, the buyer must state the following. Standard and grade: BS 4449 B500B, B500C or ASTM A615 Grade 60 (or A706 where welding is required), exactly as on the structural drawings. Diameters and tonnage per diameter, because price per ton varies with bar size (small diameters often cost more per ton to roll and handle). Supply form: straight 12 m bars, or cut-and-bent to a bar bending schedule, in which case the schedule itself must be supplied along with the shape code standard (for example BS 8666) and the tolerance required. Whether coated bar is needed (epoxy-coated or galvanised rebar for aggressive exposure) or whether plain black bar is acceptable. Certification: EN 10204 3.1 mill certificates, heat traceability tags, and whether third-party testing of samples is required by the consultant. Delivery: site location, emirate, access restrictions, off-loading responsibility (crane or manual), and whether delivery is phased by pour. Accessories if included: tie wire, couplers (mechanical splices must name the system and approval), spacers and chairs. Commercial points: validity period (rebar prices move with scrap and billet markets, so quotes are typically short-dated), payment terms, and whether weights are theoretical (calculated from nominal mass per metre) or weighbridge. Mixing theoretical and actual weights is a common billing dispute.",
-      "body_ar": "طلب حديد تسليح يقول فقط \"حديد 20 طناً\" لا يمكن تسعيره بدقة. قبل أن يسعّر المورد التسليح بدقة يجب أن يحدد المشتري ما يلي: المواصفة والدرجة: BS 4449 B500B أو B500C أو ASTM A615 درجة 60 (أو A706 عند الحاجة للحام) كما هي في المخططات الإنشائية تماماً. والأقطار والكمية بالطن لكل قطر، لأن سعر الطن يختلف بالقطر (فالأقطار الصغيرة غالباً أعلى تكلفة للطن في الدرفلة والمناولة). وشكل التوريد: قضبان مستقيمة 12 م، أو مقصوصة ومثنية حسب جدول تفريد، وحينها يجب تقديم الجدول نفسه مع مواصفة أكواد الأشكال (مثل BS 8666) والتفاوت المطلوب. وهل يلزم حديد مطلي (مطلي بالإيبوكسي أو مجلفن للبيئات العدوانية) أم يكفي الحديد الأسود العادي. والشهادات: شهادات مصنع EN 10204 نوع 3.1 وبطاقات تتبع رقم الصبة، وهل يشترط الاستشاري فحص عينات لدى جهة ثالثة. والتسليم: موقع المشروع والإمارة وقيود الدخول ومسؤولية التنزيل (رافعة أو يدوي) وهل التسليم على دفعات حسب الصبّات. والملحقات إن وجدت: سلك الربط، والوصلات الميكانيكية (مع ذكر النظام واعتماده)، والفواصل والكراسي. نقاط تجارية: مدة صلاحية العرض (أسعار التسليح تتحرك مع أسواق الخردة والبليت فتكون العروض قصيرة الصلاحية عادة)، وشروط الدفع، وهل الأوزان نظرية (محسوبة من الكتلة الاسمية لكل متر) أم بالميزان. والخلط بين الوزن النظري والفعلي من أكثر نزاعات الفوترة شيوعاً.",
+      "body_en": "A rebar enquiry that says only \"steel bars, 20 tons\" cannot be quoted exactly. Before a supplier can price reinforcement accurately, the buyer must state the following. Standard and grade: BS 4449 B500B, B500C or ASTM A615 Grade 60 (or A706 where welding is required), exactly as on the structural drawings. Diameters and tonnage per diameter, because price per ton varies with bar size (small diameters often cost more per ton to roll and handle). Supply form: straight 12 m bars, or cut-and-bent to a bar bending schedule, in which case the schedule itself must be supplied along with the shape code standard (for example BS 8666) and the tolerance required. Whether coated bar is needed (epoxy-coated or galvanised rebar for aggressive exposure) or whether plain black bar is acceptable. Certification: EN 10204 3.1 mill certificates, heat traceability tags, and whether third-party testing of samples is required by the consultant. Delivery: site location, emirate, access restrictions, off-loading responsibility (crane or manual), and whether delivery is phased by pour. Accessories if included: tie wire, couplers (mechanical splices must name the system and approval), spacers and chairs. Commercial points: validity period (rebar prices move with scrap and billet markets, so quotes are typically short-dated), payment terms, and whether weights are theoretical (calculated from nominal mass per metre) or weighbridge. Mixing theoretical and actual weights is a common billing dispute.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): grade, tonnage per diameter, supply form and delivery site with phasing. No site visit needed; a BBS is unavoidable for cut-and-bent. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Standard and grade (BS 4449 B500B/B500C or ASTM A615 Gr 60 / A706); Diameters and tonnage per diameter; Supply form: straight 12 m bars or cut-and-bent with bar bending schedule and shape-code standard; Delivery site, emirate, access limits, off-loading responsibility, phasing.",
+      "body_ar": "طلب حديد تسليح يقول فقط \"حديد 20 طناً\" لا يمكن تسعيره بدقة. قبل أن يسعّر المورد التسليح بدقة يجب أن يحدد المشتري ما يلي: المواصفة والدرجة: BS 4449 B500B أو B500C أو ASTM A615 درجة 60 (أو A706 عند الحاجة للحام) كما هي في المخططات الإنشائية تماماً. والأقطار والكمية بالطن لكل قطر، لأن سعر الطن يختلف بالقطر (فالأقطار الصغيرة غالباً أعلى تكلفة للطن في الدرفلة والمناولة). وشكل التوريد: قضبان مستقيمة 12 م، أو مقصوصة ومثنية حسب جدول تفريد، وحينها يجب تقديم الجدول نفسه مع مواصفة أكواد الأشكال (مثل BS 8666) والتفاوت المطلوب. وهل يلزم حديد مطلي (مطلي بالإيبوكسي أو مجلفن للبيئات العدوانية) أم يكفي الحديد الأسود العادي. والشهادات: شهادات مصنع EN 10204 نوع 3.1 وبطاقات تتبع رقم الصبة، وهل يشترط الاستشاري فحص عينات لدى جهة ثالثة. والتسليم: موقع المشروع والإمارة وقيود الدخول ومسؤولية التنزيل (رافعة أو يدوي) وهل التسليم على دفعات حسب الصبّات. والملحقات إن وجدت: سلك الربط، والوصلات الميكانيكية (مع ذكر النظام واعتماده)، والفواصل والكراسي. نقاط تجارية: مدة صلاحية العرض (أسعار التسليح تتحرك مع أسواق الخردة والبليت فتكون العروض قصيرة الصلاحية عادة)، وشروط الدفع، وهل الأوزان نظرية (محسوبة من الكتلة الاسمية لكل متر) أم بالميزان. والخلط بين الوزن النظري والفعلي من أكثر نزاعات الفوترة شيوعاً.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الدرجة، والكمية لكل قطر، وشكل التوريد، وموقع التسليم ومراحله. لا تلزم زيارة الموقع، لكن جدول الثني ضروري للحديد المقصوص والمثني. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Standard and grade (BS 4449 B500B/B500C or ASTM A615 Gr 60 / A706)",
         "Diameters and tonnage per diameter",
@@ -238,7 +238,8 @@
         "Certification: EN 10204 3.1, heat tags, third-party testing if required",
         "Delivery site, emirate, access limits, off-loading responsibility, phasing",
         "Accessories: tie wire, couplers (system named), spacers/chairs",
-        "Weight basis: theoretical or weighbridge; quote validity period"
+        "Weight basis: theoretical or weighbridge; quote validity period",
+        "Payment terms"
       ],
       "sources": [
         "https://aljessoursteel.com/bs-4449-vs-astm-a615-reinforcement-steel-standard/",
@@ -246,7 +247,80 @@
         "https://blog.projectmaterials.com/epc-projects/testing-inspection/mill-test-certificates-3-1-2/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Standard and grade (BS 4449 B500B/B500C or ASTM A615 Gr 60 / A706)",
+        "Diameters and tonnage per diameter",
+        "Supply form: straight 12 m bars or cut-and-bent with bar bending schedule and shape-code standard",
+        "Delivery site, emirate, access limits, off-loading responsibility, phasing"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Standard and grade (BS 4449 B500B/B500C or ASTM A615 Gr 60 / A706)",
+          "why_needed_to_price": "Grades are not interchangeable on an approved design and carry different mill prices.",
+          "uae_options": "B500B; B500C; ASTM A615 Gr 60; A706",
+          "follow_up_if": "Unknown grade: ask the structural engineer.",
+          "blocking": true
+        },
+        {
+          "spec": "Diameters and tonnage per diameter",
+          "why_needed_to_price": "Small diameters carry an extra per tonne; the mix decides the price.",
+          "uae_options": "8 to 32 mm, 40 mm for heavy foundations",
+          "follow_up_if": "Only a total known: ask for the BBS.",
+          "blocking": true
+        },
+        {
+          "spec": "Supply form: straight 12 m bars or cut-and-bent with bar bending schedule and shape-code standard",
+          "why_needed_to_price": "Cut-and-bent adds fabrication and needs a BBS.",
+          "uae_options": "straight; cut-and-bent; coils",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Coating: black, epoxy-coated or galvanised",
+          "why_needed_to_price": "Coated bars cost more.",
+          "uae_options": "Black, epoxy-coated, galvanised.",
+          "follow_up_if": "If marine, ask for coating.",
+          "blocking": false
+        },
+        {
+          "spec": "Certification: EN 10204 3.1, heat tags, third-party testing if required",
+          "why_needed_to_price": "Certification level decides acceptance.",
+          "uae_options": "EN 10204 3.1; heat tags; tests.",
+          "follow_up_if": "If a quote does not include it, ask for it before the quote is compared.",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery site, emirate, access limits, off-loading responsibility, phasing",
+          "why_needed_to_price": "Transport and unloading cost follow site and phasing.",
+          "uae_options": "single or phased drops; crane truck",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Accessories: tie wire, couplers (system named), spacers/chairs",
+          "why_needed_to_price": "Accessories are often excluded.",
+          "uae_options": "Tie wire; couplers; spacers.",
+          "follow_up_if": "If the inquiry is silent on accessories: tie wire, couplers (system named), spacers/chairs, each supplier prices its own default; ask the buyer so every quote rests on the same accessories: tie wire, couplers (system named), spacers/chairs.",
+          "blocking": false
+        },
+        {
+          "spec": "Weight basis: theoretical or weighbridge; quote validity period",
+          "why_needed_to_price": "Weight basis and validity change price.",
+          "uae_options": "Theoretical or weighbridge; validity.",
+          "follow_up_if": "If the inquiry is silent on weight basis: theoretical or weighbridge; quote validity period, each supplier prices its own default; ask the buyer so every quote rests on the same weight basis: theoretical or weighbridge; quote validity period.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "steel:hdg-iso1461-a123",
@@ -399,8 +473,8 @@
       "id": "steel:handrail-spec-checklist",
       "topic": "Handrail/balustrade enquiry: what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "A balustrade or handrail can only be priced exactly when the buyer gives the following. Location and exposure: interior or exterior, floor level, distance from the sea, near a pool, which emirate and which authority (Dubai Municipality, Trakhees, free zone). This drives grade and code requirements. Material and grade: stainless 304, 316/316L or duplex; hot-dip galvanised mild steel with paint or powder coat; aluminium; or glass with metal fittings. Finish: for stainless, satin (grit or maximum Ra), hairline, mirror or PVD colour; for mild steel, galvanising standard plus paint/powder system and RAL colour. Design type: posts with infill bars, cables, perforated sheet, glass panels (clamp or channel system, glass type and thickness), and top rail profile and size. Dimensions: total running metres, height (at least 1200 mm on Dubai balconies and terraces), post spacing, number of corners, ends, returns and stairs (raking) sections. Fixing method and substrate: base plate on slab, side-fixed to slab edge, core-drilled, embedded; substrate type (concrete, steel, stone-clad); and whether the finish flooring is in place. Compliance: design load (at least 0.89 kN point load in Dubai), infill openings no more than 100 mm, non-climbable zone, whether structural calculations and a stamped shop drawing are required. Scope: supply only or supply and install, site measurement, shop drawings, scaffolding, protection and cleaning, and warranty. Without the grade and finish, stainless handrail prices from different suppliers cannot be compared.",
-      "body_ar": "لا يمكن تسعير الدرابزين أو المقابض بدقة إلا عندما يقدم المشتري ما يلي. الموقع وظروف التعرض: داخلي أم خارجي، والطابق، والبعد عن البحر، والقرب من مسبح، والإمارة والجهة المختصة (بلدية دبي، تراخيص، منطقة حرة)، وهذا يحدد الدرجة ومتطلبات الكود. المادة والدرجة: ستانلس 304 أو 316/316L أو مزدوج، أو حديد طري مجلفن بالغمس الساخن مع دهان أو بودرة، أو ألمنيوم، أو زجاج بتجهيزات معدنية. التشطيب: للستانلس ساتان (درجة الكاشط أو أقصى خشونة) أو شعري أو مرآوي أو ملون PVD، وللحديد الطري مواصفة الجلفنة ونظام الدهان أو البودرة ولون RAL. نوع التصميم: قوائم مع قضبان حشو، أو كابلات، أو صفائح مثقبة، أو ألواح زجاج (نظام ملاقط أو مجرى، ونوع الزجاج وسماكته)، ومقطع ومقاس المقبض العلوي. الأبعاد: إجمالي الأمتار الطولية، والارتفاع (1200 مم على الأقل في شرفات وتراسات دبي)، وتباعد القوائم، وعدد الزوايا والنهايات والارتدادات وأجزاء السلالم المائلة. طريقة التثبيت والسطح الحامل: لوح قاعدة على البلاطة، أو تثبيت جانبي على حافة البلاطة، أو حفر أسطواني، أو تضمين، ونوع السطح (خرسانة، حديد، مكسو بالحجر)، وهل الأرضية النهائية منفذة. المطابقة: حمل التصميم (0.89 كيلونيوتن نقطي على الأقل في دبي)، وفتحات الحشو لا تزيد عن 100 مم، والمنطقة غير القابلة للتسلق، وهل تُطلب حسابات إنشائية ومخططات تنفيذية مختومة. النطاق: توريد فقط أم توريد وتركيب، والقياس في الموقع، والمخططات التنفيذية، والسقالات، والحماية والتنظيف، والضمان. وبدون الدرجة والتشطيب لا يمكن مقارنة أسعار درابزين الستانلس بين الموردين.",
+      "body_en": "A balustrade or handrail can only be priced exactly when the buyer gives the following. Location and exposure: interior or exterior, floor level, distance from the sea, near a pool, which emirate and which authority (Dubai Municipality, Trakhees, free zone). This drives grade and code requirements. Material and grade: stainless 304, 316/316L or duplex; hot-dip galvanised mild steel with paint or powder coat; aluminium; or glass with metal fittings. Finish: for stainless, satin (grit or maximum Ra), hairline, mirror or PVD colour; for mild steel, galvanising standard plus paint/powder system and RAL colour. Design type: posts with infill bars, cables, perforated sheet, glass panels (clamp or channel system, glass type and thickness), and top rail profile and size. Dimensions: total running metres, height (at least 1200 mm on Dubai balconies and terraces), post spacing, number of corners, ends, returns and stairs (raking) sections. Fixing method and substrate: base plate on slab, side-fixed to slab edge, core-drilled, embedded; substrate type (concrete, steel, stone-clad); and whether the finish flooring is in place. Compliance: design load (at least 0.89 kN point load in Dubai), infill openings no more than 100 mm, non-climbable zone, whether structural calculations and a stamped shop drawing are required. Scope: supply only or supply and install, site measurement, shop drawings, scaffolding, protection and cleaning, and warranty. Without the grade and finish, stainless handrail prices from different suppliers cannot be compared.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): location and exposure, material and grade, measured runs and the infill design. A site measurement is needed without drawings. Supplier ask-back review (2026-11-10): the inquiry now also states Required start or delivery date; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Location, exposure (interior/exterior, distance to sea, pool), emirate and authority; Material and grade (SS 304/316L/duplex, HDG mild steel, aluminium, glass); Design type (bars, cables, perforated, glass system and glass spec) and top rail profile/size; Running metres, height, post spacing, corners/ends/returns, raking sections.",
+      "body_ar": "لا يمكن تسعير الدرابزين أو المقابض بدقة إلا عندما يقدم المشتري ما يلي. الموقع وظروف التعرض: داخلي أم خارجي، والطابق، والبعد عن البحر، والقرب من مسبح، والإمارة والجهة المختصة (بلدية دبي، تراخيص، منطقة حرة)، وهذا يحدد الدرجة ومتطلبات الكود. المادة والدرجة: ستانلس 304 أو 316/316L أو مزدوج، أو حديد طري مجلفن بالغمس الساخن مع دهان أو بودرة، أو ألمنيوم، أو زجاج بتجهيزات معدنية. التشطيب: للستانلس ساتان (درجة الكاشط أو أقصى خشونة) أو شعري أو مرآوي أو ملون PVD، وللحديد الطري مواصفة الجلفنة ونظام الدهان أو البودرة ولون RAL. نوع التصميم: قوائم مع قضبان حشو، أو كابلات، أو صفائح مثقبة، أو ألواح زجاج (نظام ملاقط أو مجرى، ونوع الزجاج وسماكته)، ومقطع ومقاس المقبض العلوي. الأبعاد: إجمالي الأمتار الطولية، والارتفاع (1200 مم على الأقل في شرفات وتراسات دبي)، وتباعد القوائم، وعدد الزوايا والنهايات والارتدادات وأجزاء السلالم المائلة. طريقة التثبيت والسطح الحامل: لوح قاعدة على البلاطة، أو تثبيت جانبي على حافة البلاطة، أو حفر أسطواني، أو تضمين، ونوع السطح (خرسانة، حديد، مكسو بالحجر)، وهل الأرضية النهائية منفذة. المطابقة: حمل التصميم (0.89 كيلونيوتن نقطي على الأقل في دبي)، وفتحات الحشو لا تزيد عن 100 مم، والمنطقة غير القابلة للتسلق، وهل تُطلب حسابات إنشائية ومخططات تنفيذية مختومة. النطاق: توريد فقط أم توريد وتركيب، والقياس في الموقع، والمخططات التنفيذية، والسقالات، والحماية والتنظيف، والضمان. وبدون الدرجة والتشطيب لا يمكن مقارنة أسعار درابزين الستانلس بين الموردين.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الموقع ودرجة التعرض، والمادة ودرجتها، والأطوال المقاسة، وتصميم الحشوة. ويلزم القياس في الموقع إذا لم تتوفر مخططات. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً تاريخ البدء أو التسليم المطلوب؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Location, exposure (interior/exterior, distance to sea, pool), emirate and authority",
         "Material and grade (SS 304/316L/duplex, HDG mild steel, aluminium, glass)",
@@ -409,7 +483,9 @@
         "Running metres, height, post spacing, corners/ends/returns, raking sections",
         "Fixing method and substrate; finished floor status",
         "Compliance: design load, max 100 mm openings, non-climbable zone, calculations and stamped shop drawings",
-        "Scope: supply or supply+install, site measure, drawings, access, protection, warranty"
+        "Scope: supply or supply+install, site measure, drawings, access, protection, warranty",
+        "Required start or delivery date",
+        "Payment terms"
       ],
       "sources": [
         "https://dda.gov.ae/-/media/F96E79E07DF5486CAD2A9614C3C7BDA8.pdf",
@@ -418,7 +494,87 @@
         "https://alloy-materials.com/304-stainless-steel-surface-finish/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Location, exposure (interior/exterior, distance to sea, pool), emirate and authority",
+        "Material and grade (SS 304/316L/duplex, HDG mild steel, aluminium, glass)",
+        "Design type (bars, cables, perforated, glass system and glass spec) and top rail profile/size",
+        "Running metres, height, post spacing, corners/ends/returns, raking sections"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Location, exposure (interior/exterior, distance to sea, pool), emirate and authority",
+          "why_needed_to_price": "Exposure decides the grade (304 vs 316L) and finish; the emirate decides the guard rules.",
+          "uae_options": "interior; exterior; coastal; pool",
+          "follow_up_if": "Coastal or pool: 316L or duplex with matching fixings.",
+          "blocking": true
+        },
+        {
+          "spec": "Material and grade (SS 304/316L/duplex, HDG mild steel, aluminium, glass)",
+          "why_needed_to_price": "Material is the main price difference per metre.",
+          "uae_options": "304; 316L; duplex; galvanised and painted mild steel; aluminium; glass",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Finish (satin grit or max Ra, hairline, mirror, PVD colour; or galvanising + paint/powder RAL)",
+          "why_needed_to_price": "Finish decides cost.",
+          "uae_options": "Satin, hairline, mirror, PVD; galvanising and paint.",
+          "follow_up_if": "If coastal, ask for 316.",
+          "blocking": false
+        },
+        {
+          "spec": "Design type (bars, cables, perforated, glass system and glass spec) and top rail profile/size",
+          "why_needed_to_price": "Infill type changes material and labour.",
+          "uae_options": "vertical bars; cables; perforated sheet; glass",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Running metres, height, post spacing, corners/ends/returns, raking sections",
+          "why_needed_to_price": "Price is per metre plus per corner and end; raking stairs cost more.",
+          "uae_options": "measured runs",
+          "follow_up_if": "No drawing: site measurement needed.",
+          "blocking": true
+        },
+        {
+          "spec": "Fixing method and substrate; finished floor status",
+          "why_needed_to_price": "Fixing and substrate decide labour.",
+          "uae_options": "Fixing; substrate; floor status.",
+          "follow_up_if": "If floors are unfinished, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "Compliance: design load, max 100 mm openings, non-climbable zone, calculations and stamped shop drawings",
+          "why_needed_to_price": "Code-compliant designs need calculations and may need heavier posts.",
+          "uae_options": "stamped calculation; standard detail",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Scope: supply or supply+install, site measure, drawings, access, protection, warranty",
+          "why_needed_to_price": "Scope decides price.",
+          "uae_options": "Supply or supply and install; measure; drawings.",
+          "follow_up_if": "If the inquiry is silent on scope: supply or supply+install, site measure, drawings, access, protection, warranty, each supplier prices its own default; ask the buyer so every quote rests on the same scope: supply or supply+install, site measure, drawings, access, protection, warranty.",
+          "blocking": false
+        },
+        {
+          "spec": "Required start or delivery date",
+          "why_needed_to_price": "A date earlier than the normal lead time or availability needs extra crew, stock reservation or faster freight, and a supplier that cannot meet it must say so before pricing.",
+          "uae_options": "A fixed date; within a stated number of days or weeks; flexible; phased dates for a project.",
+          "follow_up_if": "If the date is fixed and close, ask whether a phased or partial start is acceptable.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site measurement is unavoidable for a firm handrail price without dimensioned drawings.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "steel:staircases",
@@ -592,8 +748,8 @@
       "id": "steel:fabrication-spec-checklist",
       "topic": "Structural/misc steel fabrication enquiry: what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For a steel fabrication quote (frames, canopies, mezzanines, stairs, platforms, gates) to be exact rather than a guess, the buyer should state the following. Drawings: architectural and structural drawings with revision numbers, or at least dimensioned sketches; if design is needed, say so explicitly (design-and-build) and state design loads and codes. Material: steel grade and standard for each element (for example S355J2 to EN 10025-2, or ASTM A572 Gr 50), section sizes, plate thicknesses, bolt grades, and certification required (EN 10204 3.1 or 3.2). Quantities: member schedule or estimated tonnage, and whether pricing is lump sum, per ton or re-measurable. Fabrication standard: EN 1090 execution class or AWS D1.1/D1.6 as applicable, welding procedure and welder qualification requirements, and NDT scope and who performs it. Protection: hot-dip galvanising standard (ISO 1461 or ASTM A123), paint system to ISO 12944 with corrosivity category, durability, surface preparation and DFT, or powder coat; RAL colour; and fire protection requirement (fire rating in minutes, product approval, thickness schedule) where applicable. Site and erection: location and emirate, access, working hours, crane responsibility, anchor bolt supply and setting, grouting, site touch-up, and whether scaffolding and temporary works are included. Approvals: whether shop drawings, calculations and authority submissions (municipality, Civil Defence, community NOC) are in scope. Commercial: programme and key dates, payment terms, retention, warranty expectations, and quote validity.",
-      "body_ar": "حتى يكون عرض تصنيع الحديد (الهياكل، المظلات، الميزانينات، السلالم، المنصات، البوابات) دقيقاً لا تخمينياً، يجب أن يحدد المشتري ما يلي. المخططات: المخططات المعمارية والإنشائية بأرقام مراجعاتها، أو على الأقل رسومات بأبعاد؛ وإذا كان التصميم مطلوباً فيُذكر ذلك صراحة (تصميم وتنفيذ) مع أحمال التصميم والأكواد. المادة: درجة ومواصفة الحديد لكل عنصر (مثل S355J2 حسب EN 10025-2 أو ASTM A572 درجة 50)، ومقاسات المقاطع، وسماكات الألواح، ودرجات البراغي، والشهادة المطلوبة (EN 10204 نوع 3.1 أو 3.2). الكميات: جدول العناصر أو الحمولة التقديرية بالطن، وهل التسعير مقطوع أم بالطن أم بإعادة القياس. مواصفة التصنيع: فئة تنفيذ EN 1090 أو AWS D1.1/D1.6 حسب الحال، ومتطلبات إجراءات اللحام وتأهيل اللحامين، ونطاق الفحص غير الإتلافي ومن ينفذه. الحماية: مواصفة الجلفنة بالغمس الساخن (ISO 1461 أو ASTM A123)، أو نظام دهان وفق ISO 12944 مع فئة التآكل والمتانة وتحضير السطح والسماكة الجافة، أو طلاء البودرة؛ ولون RAL؛ ومتطلب الحماية من الحريق (المدة بالدقائق واعتماد المنتج وجدول السماكات) حيث ينطبق. الموقع والتركيب: الموقع والإمارة، والوصول، وساعات العمل، ومسؤولية الرافعة، وتوريد وتثبيت البراغي المثبتة، والحقن، وترميم الموقع، وهل السقالات والأعمال المؤقتة مشمولة. الاعتمادات: هل المخططات التنفيذية والحسابات والتقديم للجهات (البلدية، الدفاع المدني، عدم ممانعة المجتمع) ضمن النطاق. التجاري: البرنامج الزمني والتواريخ الرئيسية، وشروط الدفع، والمحتجزات، وتوقعات الضمان، وصلاحية العرض.",
+      "body_en": "For a steel fabrication quote (frames, canopies, mezzanines, stairs, platforms, gates) to be exact rather than a guess, the buyer should state the following. Drawings: architectural and structural drawings with revision numbers, or at least dimensioned sketches; if design is needed, say so explicitly (design-and-build) and state design loads and codes. Material: steel grade and standard for each element (for example S355J2 to EN 10025-2, or ASTM A572 Gr 50), section sizes, plate thicknesses, bolt grades, and certification required (EN 10204 3.1 or 3.2). Quantities: member schedule or estimated tonnage, and whether pricing is lump sum, per ton or re-measurable. Fabrication standard: EN 1090 execution class or AWS D1.1/D1.6 as applicable, welding procedure and welder qualification requirements, and NDT scope and who performs it. Protection: hot-dip galvanising standard (ISO 1461 or ASTM A123), paint system to ISO 12944 with corrosivity category, durability, surface preparation and DFT, or powder coat; RAL colour; and fire protection requirement (fire rating in minutes, product approval, thickness schedule) where applicable. Site and erection: location and emirate, access, working hours, crane responsibility, anchor bolt supply and setting, grouting, site touch-up, and whether scaffolding and temporary works are included. Approvals: whether shop drawings, calculations and authority submissions (municipality, Civil Defence, community NOC) are in scope. Commercial: programme and key dates, payment terms, retention, warranty expectations, and quote validity.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): drawings or a design brief, quantities and pricing basis, corrosion protection and the erection scope. Fire protection is a separate priced item. Supplier ask-back review (2026-11-10): a supplier can price firm from the required specs; nothing was added. Quote-blocking after this review: Drawings with revision, or dimensioned sketches; design-and-build if design is required (loads, codes); Quantities: member schedule/tonnage; pricing basis (lump sum, per ton, re-measure); Protection: HDG standard; ISO 12944 category, durability, prep and DFT; powder coat; RAL colour; Site/erection: location, access, cranes, anchor bolts, grouting, touch-up, scaffolding.",
+      "body_ar": "حتى يكون عرض تصنيع الحديد (الهياكل، المظلات، الميزانينات، السلالم، المنصات، البوابات) دقيقاً لا تخمينياً، يجب أن يحدد المشتري ما يلي. المخططات: المخططات المعمارية والإنشائية بأرقام مراجعاتها، أو على الأقل رسومات بأبعاد؛ وإذا كان التصميم مطلوباً فيُذكر ذلك صراحة (تصميم وتنفيذ) مع أحمال التصميم والأكواد. المادة: درجة ومواصفة الحديد لكل عنصر (مثل S355J2 حسب EN 10025-2 أو ASTM A572 درجة 50)، ومقاسات المقاطع، وسماكات الألواح، ودرجات البراغي، والشهادة المطلوبة (EN 10204 نوع 3.1 أو 3.2). الكميات: جدول العناصر أو الحمولة التقديرية بالطن، وهل التسعير مقطوع أم بالطن أم بإعادة القياس. مواصفة التصنيع: فئة تنفيذ EN 1090 أو AWS D1.1/D1.6 حسب الحال، ومتطلبات إجراءات اللحام وتأهيل اللحامين، ونطاق الفحص غير الإتلافي ومن ينفذه. الحماية: مواصفة الجلفنة بالغمس الساخن (ISO 1461 أو ASTM A123)، أو نظام دهان وفق ISO 12944 مع فئة التآكل والمتانة وتحضير السطح والسماكة الجافة، أو طلاء البودرة؛ ولون RAL؛ ومتطلب الحماية من الحريق (المدة بالدقائق واعتماد المنتج وجدول السماكات) حيث ينطبق. الموقع والتركيب: الموقع والإمارة، والوصول، وساعات العمل، ومسؤولية الرافعة، وتوريد وتثبيت البراغي المثبتة، والحقن، وترميم الموقع، وهل السقالات والأعمال المؤقتة مشمولة. الاعتمادات: هل المخططات التنفيذية والحسابات والتقديم للجهات (البلدية، الدفاع المدني، عدم ممانعة المجتمع) ضمن النطاق. التجاري: البرنامج الزمني والتواريخ الرئيسية، وشروط الدفع، والمحتجزات، وتوقعات الضمان، وصلاحية العرض.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المخططات أو متطلبات التصميم، والكميات وأساس التسعير، والحماية من التآكل، ونطاق التركيب. أما الحماية من الحريق فبند مسعّر مستقل. مراجعة من منظور المورّد (2026-11-10): يستطيع المورّد التسعير النهائي من المواصفات المطلوبة؛ ولم يُضف شيء.",
       "required_specs": [
         "Drawings with revision, or dimensioned sketches; design-and-build if design is required (loads, codes)",
         "Steel grade and standard per element (e.g. S355J2 EN 10025-2 / ASTM A572 Gr 50)",
@@ -616,14 +772,101 @@
         "https://blog.projectmaterials.com/epc-projects/testing-inspection/mill-test-certificates-3-1-2/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Drawings with revision, or dimensioned sketches; design-and-build if design is required (loads, codes)",
+        "Quantities: member schedule/tonnage; pricing basis (lump sum, per ton, re-measure)",
+        "Protection: HDG standard; ISO 12944 category, durability, prep and DFT; powder coat; RAL colour",
+        "Site/erection: location, access, cranes, anchor bolts, grouting, touch-up, scaffolding"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Drawings with revision, or dimensioned sketches; design-and-build if design is required (loads, codes)",
+          "why_needed_to_price": "Steel is priced from member sizes; without drawings the supplier must design first.",
+          "uae_options": "IFC drawings; sketches; design-and-build",
+          "follow_up_if": "Design-and-build: ask the loads, span and use so the engineer can size members.",
+          "blocking": true
+        },
+        {
+          "spec": "Steel grade and standard per element (e.g. S355J2 EN 10025-2 / ASTM A572 Gr 50)",
+          "why_needed_to_price": "Steel grade decides cost.",
+          "uae_options": "S355J2; ASTM A572.",
+          "follow_up_if": "If the inquiry is silent on steel grade and standard per element (e.g. s355j2 en 10025-2 / astm a572 gr 50), each supplier prices its own default; ask the buyer so every quote rests on the same steel grade and standard per element (e.g. s355j2 en 10025-2 / astm a572 gr 50).",
+          "blocking": false
+        },
+        {
+          "spec": "Section sizes, plate thicknesses, bolt grades",
+          "why_needed_to_price": "Section sizes and bolts decide tonnage.",
+          "uae_options": "Sections; plates; bolts.",
+          "follow_up_if": "If not stated, ask drawings.",
+          "blocking": false
+        },
+        {
+          "spec": "Certification level (EN 10204 3.1 or 3.2)",
+          "why_needed_to_price": "Certification level adds cost.",
+          "uae_options": "EN 10204 3.1 or 3.2.",
+          "follow_up_if": "If 3.2, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "Quantities: member schedule/tonnage; pricing basis (lump sum, per ton, re-measure)",
+          "why_needed_to_price": "The basis decides who carries quantity risk.",
+          "uae_options": "lump sum; per tonne; re-measure",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Fabrication standard: EN 1090 EXC class or AWS D1.1/D1.6; WPS/welder qualification; NDT scope",
+          "why_needed_to_price": "Fabrication standard and NDT add cost.",
+          "uae_options": "EN 1090 EXC; AWS D1.1; NDT.",
+          "follow_up_if": "If the inquiry is silent on fabrication standard: en 1090 exc class or aws d1.1/d1.6; wps/welder qualification; ndt scope, each supplier prices its own default; ask the buyer so every quote rests on the same fabrication standard: en 1090 exc class or aws d1.1/d1.6; wps/welder qualification; ndt scope.",
+          "blocking": false
+        },
+        {
+          "spec": "Protection: HDG standard; ISO 12944 category, durability, prep and DFT; powder coat; RAL colour",
+          "why_needed_to_price": "Galvanising or a paint system can add a large share to fabricated cost.",
+          "uae_options": "HDG; paint system by corrosivity category; powder coat",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Fire protection: rating in minutes, approved product, thickness schedule",
+          "why_needed_to_price": "Intumescent coating is priced per member by section factor and rating.",
+          "uae_options": "none; 30-120 minutes",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Site/erection: location, access, cranes, anchor bolts, grouting, touch-up, scaffolding",
+          "why_needed_to_price": "Erection and cranes are often excluded and priced separately.",
+          "uae_options": "supply only; supply and erect",
+          "follow_up_if": "Erection: ask about crane access and working height.",
+          "blocking": true
+        },
+        {
+          "spec": "Approvals in scope: shop drawings, calculations, municipality, Civil Defence, community NOC",
+          "why_needed_to_price": "Approvals add time.",
+          "uae_options": "Shop drawings; calcs; municipality; Civil Defence.",
+          "follow_up_if": "If a supplier excludes it, ask who provides it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "Commercial: programme, payment terms, retention, warranty, validity",
+          "why_needed_to_price": "Commercial terms change price.",
+          "uae_options": "Programme; payment; retention; warranty.",
+          "follow_up_if": "If the inquiry is silent on commercial: programme, payment terms, retention, warranty, validity, each supplier prices its own default; ask the buyer so every quote rests on the same commercial: programme, payment terms, retention, warranty, validity.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "steel:stainless-spec-checklist",
       "topic": "Stainless steel supply/fabrication enquiry: what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Stainless steel quotes vary more than almost any other metal because a few unstated details change both price and performance. A buyer should state: Grade, by name and EN number: 304 (1.4301), 304L (1.4307), 316 (1.4401), 316L (1.4404), duplex 2205 (1.4462), or ferritic 430 for dry indoor items. Never leave it as \"stainless\" or \"SS\". Product form and size: sheet or plate (thickness in millimetres with tolerance, sheet size), tube (outside diameter and wall thickness, round or square, welded or seamless, decorative or structural), bar, angle, or fabricated items. Finish: 2B, BA, No.4/satin (grit or maximum Ra), hairline, No.8 mirror, bead-blast or PVD colour (with base finish), and grain direction for visible exterior work; protective film requirement. Exposure: interior or exterior, coastal, pool, food contact, chemical cleaning, so the supplier can confirm the grade is appropriate. Fabrication details: welding process and standard (TIG to AWS D1.6 for structural stainless), weld finish (ground flush, blended, visible bead), post-weld cleaning (pickling, passivation, electropolishing), and fixings in matching grade. Certification: EN 10204 3.1 mill certificate traceable by heat number, and acceptance of XRF verification on delivery. Quantities and scope: supply only, fabrication, or supply and install; drawings; site measurement; packaging and protection. Maintenance: request a cleaning recommendation, particularly for coastal or pool areas. With these fields fixed, quotes become comparable and 201-for-304 substitution becomes detectable.",
-      "body_ar": "تتفاوت عروض الستانلس أكثر من أي معدن آخر تقريباً، لأن تفاصيل قليلة غير محددة تغير السعر والأداء معاً. على المشتري أن يحدد: الدرجة باسمها ورقمها الأوروبي: 304 (1.4301) أو 304L (1.4307) أو 316 (1.4401) أو 316L (1.4404) أو المزدوج 2205 (1.4462)، أو الفريتي 430 للقطع الداخلية الجافة. ولا يُترك الأمر أبداً بعبارة \"ستانلس\" أو \"SS\". شكل المنتج ومقاسه: صفائح أو ألواح (السماكة بالمليمتر مع التفاوت ومقاس اللوح)، أو أنابيب (القطر الخارجي وسماكة الجدار، دائرية أو مربعة، ملحومة أو دون لحام، زخرفية أو إنشائية)، أو قضبان، أو زوايا، أو قطع مصنعة. التشطيب: 2B أو BA أو No.4/ساتان (درجة الكاشط أو أقصى خشونة) أو شعري أو No.8 مرآوي أو مسفوع بالخرز أو ملون PVD (مع التشطيب الأساسي)، واتجاه الخطوط للأعمال الخارجية الظاهرة، ومتطلب غشاء الحماية. التعرض: داخلي أم خارجي، ساحلي، مسبح، ملامسة غذاء، تنظيف كيميائي، ليؤكد المورد ملاءمة الدرجة. تفاصيل التصنيع: طريقة اللحام ومواصفته (TIG وفق AWS D1.6 للستانلس الإنشائي)، وتشطيب اللحام (مجلخ مستوٍ، مدموج، خط ظاهر)، والتنظيف بعد اللحام (تخليل، تخميل، صقل كهربائي)، والمثبتات من درجة مطابقة. الشهادات: شهادة مصنع EN 10204 نوع 3.1 قابلة للتتبع برقم الصبة، وقبول التحقق بجهاز XRF عند الاستلام. الكميات والنطاق: توريد فقط، أو تصنيع، أو توريد وتركيب، والمخططات، والقياس في الموقع، والتغليف والحماية. الصيانة: طلب توصية تنظيف خاصة للمناطق الساحلية والمسابح. وبتثبيت هذه الحقول تصبح العروض قابلة للمقارنة ويصبح استبدال 201 بـ 304 قابلاً للكشف.",
+      "body_en": "Stainless steel quotes vary more than almost any other metal because a few unstated details change both price and performance. A buyer should state: Grade, by name and EN number: 304 (1.4301), 304L (1.4307), 316 (1.4401), 316L (1.4404), duplex 2205 (1.4462), or ferritic 430 for dry indoor items. Never leave it as \"stainless\" or \"SS\". Product form and size: sheet or plate (thickness in millimetres with tolerance, sheet size), tube (outside diameter and wall thickness, round or square, welded or seamless, decorative or structural), bar, angle, or fabricated items. Finish: 2B, BA, No.4/satin (grit or maximum Ra), hairline, No.8 mirror, bead-blast or PVD colour (with base finish), and grain direction for visible exterior work; protective film requirement. Exposure: interior or exterior, coastal, pool, food contact, chemical cleaning, so the supplier can confirm the grade is appropriate. Fabrication details: welding process and standard (TIG to AWS D1.6 for structural stainless), weld finish (ground flush, blended, visible bead), post-weld cleaning (pickling, passivation, electropolishing), and fixings in matching grade. Certification: EN 10204 3.1 mill certificate traceable by heat number, and acceptance of XRF verification on delivery. Quantities and scope: supply only, fabrication, or supply and install; drawings; site measurement; packaging and protection. Maintenance: request a cleaning recommendation, particularly for coastal or pool areas. With these fields fixed, quotes become comparable and 201-for-304 substitution becomes detectable.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): grade, product form and size, and finish. Certificates and XRF checks protect against substitution. Supplier ask-back review (2026-11-10): the inquiry now also states Quantity (weight, sheets, lengths or pieces) (quote-blocking); Delivery location and emirate; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Grade by name and EN number (304/1.4301, 316L/1.4404, 2205/1.4462, 430); Product form and size (sheet thickness mm + tolerance, tube OD x wall, welded/seamless, bar, angle); Finish (2B, BA, No.4 grit/max Ra, hairline, No.8, bead-blast, PVD colour + base) and grain direction; protective film; Quantity (weight, sheets, lengths or pieces).",
+      "body_ar": "تتفاوت عروض الستانلس أكثر من أي معدن آخر تقريباً، لأن تفاصيل قليلة غير محددة تغير السعر والأداء معاً. على المشتري أن يحدد: الدرجة باسمها ورقمها الأوروبي: 304 (1.4301) أو 304L (1.4307) أو 316 (1.4401) أو 316L (1.4404) أو المزدوج 2205 (1.4462)، أو الفريتي 430 للقطع الداخلية الجافة. ولا يُترك الأمر أبداً بعبارة \"ستانلس\" أو \"SS\". شكل المنتج ومقاسه: صفائح أو ألواح (السماكة بالمليمتر مع التفاوت ومقاس اللوح)، أو أنابيب (القطر الخارجي وسماكة الجدار، دائرية أو مربعة، ملحومة أو دون لحام، زخرفية أو إنشائية)، أو قضبان، أو زوايا، أو قطع مصنعة. التشطيب: 2B أو BA أو No.4/ساتان (درجة الكاشط أو أقصى خشونة) أو شعري أو No.8 مرآوي أو مسفوع بالخرز أو ملون PVD (مع التشطيب الأساسي)، واتجاه الخطوط للأعمال الخارجية الظاهرة، ومتطلب غشاء الحماية. التعرض: داخلي أم خارجي، ساحلي، مسبح، ملامسة غذاء، تنظيف كيميائي، ليؤكد المورد ملاءمة الدرجة. تفاصيل التصنيع: طريقة اللحام ومواصفته (TIG وفق AWS D1.6 للستانلس الإنشائي)، وتشطيب اللحام (مجلخ مستوٍ، مدموج، خط ظاهر)، والتنظيف بعد اللحام (تخليل، تخميل، صقل كهربائي)، والمثبتات من درجة مطابقة. الشهادات: شهادة مصنع EN 10204 نوع 3.1 قابلة للتتبع برقم الصبة، وقبول التحقق بجهاز XRF عند الاستلام. الكميات والنطاق: توريد فقط، أو تصنيع، أو توريد وتركيب، والمخططات، والقياس في الموقع، والتغليف والحماية. الصيانة: طلب توصية تنظيف خاصة للمناطق الساحلية والمسابح. وبتثبيت هذه الحقول تصبح العروض قابلة للمقارنة ويصبح استبدال 201 بـ 304 قابلاً للكشف.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الدرجة، وشكل المنتج ومقاسه، والتشطيب. وتحمي الشهادات وفحص XRF من استبدال الدرجة. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً الكمية (بالوزن أو الألواح أو الأطوال أو القطع) (مانع للتسعير)؛ موقع التسليم والإمارة؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Grade by name and EN number (304/1.4301, 316L/1.4404, 2205/1.4462, 430)",
         "Product form and size (sheet thickness mm + tolerance, tube OD x wall, welded/seamless, bar, angle)",
@@ -633,7 +876,10 @@
         "Fixings in matching grade",
         "EN 10204 3.1 certificate with heat traceability; XRF acceptance check",
         "Scope: supply, fabrication or supply+install; drawings; site measure; packaging/protection",
-        "Cleaning/maintenance recommendation"
+        "Cleaning/maintenance recommendation",
+        "Quantity (weight, sheets, lengths or pieces)",
+        "Delivery location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://walmaystainless.com/201-vs-304-stainless-steel-manganese-grades/",
@@ -644,7 +890,101 @@
         "https://ntmetals.com/blog/aws-d1-1-vs-d1-6-welder-qualification"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "Grade by name and EN number (304/1.4301, 316L/1.4404, 2205/1.4462, 430)",
+        "Product form and size (sheet thickness mm + tolerance, tube OD x wall, welded/seamless, bar, angle)",
+        "Finish (2B, BA, No.4 grit/max Ra, hairline, No.8, bead-blast, PVD colour + base) and grain direction; protective film",
+        "Quantity (weight, sheets, lengths or pieces)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Grade by name and EN number (304/1.4301, 316L/1.4404, 2205/1.4462, 430)",
+          "why_needed_to_price": "Grades differ greatly in price; 430 and 201 are cheaper and corrode faster.",
+          "uae_options": "304; 316L; duplex 2205; 430",
+          "follow_up_if": "Exterior or coastal: 316L at least.",
+          "blocking": true
+        },
+        {
+          "spec": "Product form and size (sheet thickness mm + tolerance, tube OD x wall, welded/seamless, bar, angle)",
+          "why_needed_to_price": "Form and wall thickness set weight and price.",
+          "uae_options": "sheet; tube; bar; angle",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Finish (2B, BA, No.4 grit/max Ra, hairline, No.8, bead-blast, PVD colour + base) and grain direction; protective film",
+          "why_needed_to_price": "Polished and PVD finishes add cost.",
+          "uae_options": "2B; No.4; hairline; mirror; PVD colours",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Exposure: interior/exterior, coastal, pool, food contact, cleaning chemicals",
+          "why_needed_to_price": "Exposure decides grade.",
+          "uae_options": "Interior, exterior, coastal, pool, food.",
+          "follow_up_if": "If coastal or pool, ask for 316.",
+          "blocking": false
+        },
+        {
+          "spec": "Welding process/standard (e.g. TIG, AWS D1.6), weld finish, post-weld pickling/passivation/electropolish",
+          "why_needed_to_price": "Welding and finishing add cost.",
+          "uae_options": "TIG; pickling; passivation; electropolish.",
+          "follow_up_if": "If the inquiry is silent on welding process/standard (e.g. tig, aws d1.6), weld finish, post-weld pickling/passivation/electropolish, each supplier prices its own default; ask the buyer so every quote rests on the same welding process/standard (e.g. tig, aws d1.6), weld finish, post-weld pickling/passivation/electropolish.",
+          "blocking": false
+        },
+        {
+          "spec": "Fixings in matching grade",
+          "why_needed_to_price": "Fixings must match grade.",
+          "uae_options": "Matching grade fixings.",
+          "follow_up_if": "If the inquiry is silent on fixings in matching grade, each supplier prices its own default; ask the buyer so every quote rests on the same fixings in matching grade.",
+          "blocking": false
+        },
+        {
+          "spec": "EN 10204 3.1 certificate with heat traceability; XRF acceptance check",
+          "why_needed_to_price": "Certificates and XRF checks guard against grade substitution.",
+          "uae_options": "mill certificate; XRF on delivery",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Scope: supply, fabrication or supply+install; drawings; site measure; packaging/protection",
+          "why_needed_to_price": "Scope decides price.",
+          "uae_options": "Supply; fabrication; install; drawings.",
+          "follow_up_if": "If the inquiry is silent on scope: supply, fabrication or supply+install; drawings; site measure; packaging/protection, each supplier prices its own default; ask the buyer so every quote rests on the same scope: supply, fabrication or supply+install; drawings; site measure; packaging/protection.",
+          "blocking": false
+        },
+        {
+          "spec": "Cleaning/maintenance recommendation",
+          "why_needed_to_price": "Cleaning advice protects the finish.",
+          "uae_options": "Cleaning recommendations.",
+          "follow_up_if": "If the inquiry is silent on cleaning/maintenance recommendation, each supplier prices its own default; ask the buyer so every quote rests on the same cleaning/maintenance recommendation.",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity (weight, sheets, lengths or pieces)",
+          "why_needed_to_price": "Stainless is priced by weight or by sheet and length, and the quantity sets the price break and whether it comes from stock or a mill order.",
+          "uae_options": "kg or tonnes; number of sheets of a size; lengths of tube or bar; pieces for fabricated items.",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Delivery location and emirate",
+          "why_needed_to_price": "Freight, offloading and the distance to site are part of a delivered price; a delivered price to Dubai is not the same as one to Al Dhafra or Fujairah.",
+          "uae_options": "Ex-warehouse collection; delivered to one address in a named emirate; delivered and offloaded; split deliveries to several sites.",
+          "follow_up_if": "If the site has access limits (time windows, small vehicles only, no forklift), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "site_visit_required_when": null
     },
     {
       "id": "steel:warranty-norms",
@@ -731,6 +1071,41 @@
       "confidence": "medium",
       "as_of": "2026-09-23",
       "gap_kind": "technical"
+    },
+    {
+      "id": "steel:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Steel structures and metalwork: approvals per emirate",
+      "topic_ar": "الهياكل الفولاذية والأعمال المعدنية: الاعتمادات في كل إمارة",
+      "body_en": "Steel supply needs no building permit, though in Dubai traders and manufacturers of reinforcing steel obtain a Dubai Municipality supplier registration certificate; structures need permits. A new steel building, shed, canopy or mezzanine needs the building permit of the emirate: Dubai Municipality (or Trakhees, DDA or the free-zone authority controlling the plot), the DMT municipalities in Abu Dhabi, Sharjah Municipality, and the municipalities of Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah. Fire protection of structural steel is reviewed by the civil defence of the emirate, and intumescent products must be approved. Handrails and balustrades follow the guard rules of the building code (in Dubai, the Dubai Building Code). Internal steelwork that does not change the structure in a private home normally needs no permit, but adding a mezzanine or roof structure does. Who obtains: the consultant or design-and-build contractor; the fabricator provides stamped calculations, material certificates and the fire-protection product approval.",
+      "body_ar": "توريد الحديد لا يحتاج إلى رخصة بناء، لكن تجار ومصنعي حديد التسليح في دبي يحصلون على شهادة تسجيل مورد من بلدية دبي، أما الهياكل فتحتاج إلى تراخيص. فالمبنى أو المستودع أو المظلة أو الميزانين الفولاذي الجديد يحتاج إلى رخصة البناء في الإمارة: بلدية دبي (أو تراخيص أو سلطة دبي للتطوير أو سلطة المنطقة الحرة صاحبة الولاية على الأرض)، وبلديات دائرة البلديات والنقل في أبوظبي، وبلدية الشارقة، وبلديات عجمان وأم القيوين ورأس الخيمة والفجيرة. ويراجع الدفاع المدني في الإمارة حماية الحديد الإنشائي من الحريق، ويجب أن تكون منتجات الطلاء المنتفخ معتمدة. وتتبع الدرابزينات والحواجز قواعد الحواجز في كود البناء (وفي دبي كود دبي للبناء). والأعمال المعدنية الداخلية التي لا تغيّر الهيكل في منزل خاص لا تحتاج عادة إلى رخصة، لكن إضافة ميزانين أو هيكل سقف تحتاج. من يحصل عليها: الاستشاري أو مقاول التصميم والتنفيذ، ويقدم المصنّع الحسابات الإنشائية المختومة وشهادات المواد واعتماد منتج الحماية من الحريق.",
+      "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/1999/Local%20Order%20No.%20(3)%20of%201999%20Regulating%20Construction%20Works.pdf",
+        "https://pcfc.ae/en/Service%20Documents/PCFC-TRK-CED-PS-CP-01,%20Client%20procedure%20for%20Obtaining%20Building%20Permits.pdf",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
+        "https://www.dm.gov.ae/municipality-business/buildings-regulation-permits-agency/",
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM issues a supplier registration certificate for reinforcing steel (DM services); Local Order No. 3 of 1999 and Decree No. 45 of 2021 on the Dubai Building Code are listed by DM; Sharjah new-project drawings need Civil Defense approval as a supporting department. Not confirmed on any reachable page: civil defence review of steel fire protection and the Trakhees permit. Host(s) that could not be reached: dlp.dubai.gov.ae (blocked by the session network); pcfc.ae (Trakhees; blocked, and www.trakhees.ae redirects there); www.dcd.gov.ae (connection reset by the site, every attempt); portal.shjmun.gov.ae (blocked by the session network). Corrected in body_en and body_ar to what the opened page says. Second page read 2026-11-10 (ledger 1597): Trakhees reviews and approves building permits within its jurisdiction (PCFC-TRK-CED-PS-CP-01, Rev. 03, January 2023, read on pcfc.ae) and Local Order No. 3 of 1999 (now read on dlp.dubai.gov.ae); both confirmed. Still not confirmed: civil defence review of steel fire protection (www.dcd.gov.ae resets every connection)."
+    },
+    {
+      "id": "steel:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing steel and metalwork quotes like for like",
+      "topic_ar": "مقارنة عروض الحديد والأعمال المعدنية على أساس متكافئ",
+      "body_en": "Normalise to the same basis: tonnage or metres at the same grade and certification, the same protection system and thickness, and fabrication, delivery, erection, cranes and touch-up treated alike. For stainless, the grade is the first check: a 201 or 430 quote is not comparable with 316L. For structures, compare whether the price is lump sum or per tonne (re-measure shifts quantity risk to the buyer). Value beyond price: an EN 1090 or AWS-qualified shop, mill certificates with heat numbers, a named paint or galvanising standard, and erection by the same company.",
+      "body_ar": "وحّد العروض على أساس واحد: الكمية بالطن أو بالمتر بالدرجة والشهادات نفسها، ونظام الحماية وسماكته نفسيهما، مع معاملة التصنيع والتوصيل والتركيب والرافعات والترميم بالطريقة نفسها. وفي الستانلس ستيل الدرجة أول ما يُفحص: فعرض بدرجة 201 أو 430 لا يقارن بعرض 316L. وفي الهياكل قارن هل السعر إجمالي مقطوع أم للطن (إعادة القياس تنقل مخاطر الكمية إلى المشتري). القيمة إلى جانب السعر: ورشة مؤهلة وفق EN 1090 أو AWS، وشهادات مصنع بأرقام الصبات، ومواصفة طلاء أو جلفنة محددة، وتركيب من الشركة نفسها.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -823,8 +1198,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 37,
-    "claims_checked": 312,
+    "fetched_urls": 41,
+    "claims_checked": 319,
     "corrected": [
       "steel:ss-duplex-2205",
       "steel:ss-finishes-polished",
@@ -842,11 +1217,38 @@
       "steel:civil-defence-touchpoints",
       "steel:erection",
       "steel:galvanic-corrosion",
-      "steel:bolts-anchors"
+      "steel:bolts-anchors",
+      "steel:approvals-per-emirate"
     ],
     "removed": [],
-    "still_unverified": [],
+    "still_unverified": [
+      "steel:approvals-per-emirate"
+    ],
     "batch": "A9",
-    "note": "Unsupported numbers removed or marked; K2 claim and UL test names removed as unverified."
+    "note": "Unsupported numbers removed or marked; K2 claim and UL test names removed as unverified.",
+    "added": [
+      "steel:approvals-per-emirate",
+      "steel:compare-quotes-cost-to-value"
+    ],
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: steel:approvals-per-emirate re-checked against official pages opened through the session network (4 URL(s) read, 7 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "steel:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://pcfc.ae/en/Service%20Documents/PCFC-TRK-CED-PS-CP-01,%20Client%20procedure%20for%20Obtaining%20Building%20Permits.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

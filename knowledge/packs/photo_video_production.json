@@ -5,8 +5,8 @@
       "id": "photo_video_production:spec-checklist",
       "topic": "Photo and video production - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For photo and video production quotes to be compared like-for-like, every quoted line (services) must state: (1) deliverables (number of photos, video length and versions); (2) shoot days and locations; (3) crew and equipment list; (4) output format and resolution; (5) editing, colour grading and revision rounds; (6) music, talent and usage rights; (7) ownership of raw footage; (8) filming permits; (9) delivery schedule; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the photo_video_production trade.",
-      "body_ar": "لكي تُقارن عروض إنتاج الصور والفيديو على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) المخرجات (عدد الصور، ومدة الفيديو، وعدد النسخ)؛ (2) أيام التصوير ومواقعه؛ (3) طاقم العمل وقائمة المعدات؛ (4) صيغة المخرجات ودقتها؛ (5) المونتاج وتصحيح الألوان وجولات التعديل؛ (6) حقوق الموسيقى والمشاركين والاستخدام؛ (7) ملكية المواد الخام؛ (8) تصاريح التصوير؛ (9) جدول التسليم؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة photo_video_production فقط.",
+      "body_en": "For photo and video production quotes to be compared like-for-like, every quoted line (services) must state: (1) deliverables (number of photos, video length and versions); (2) shoot days and locations; (3) crew and equipment list; (4) output format and resolution; (5) editing, colour grading and revision rounds; (6) music, talent and usage rights; (7) ownership of raw footage; (8) filming permits; (9) delivery schedule; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the photo_video_production trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): deliverables (number of photos, video length and versions); shoot days and locations; editing, colour grading and revision rounds; music, talent and usage rights. Before a firm price: a firm price needs deliverables, shoot days, locations and usage rights; anything beyond a simple shoot usually needs a treatment or a recce of the location. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: deliverables (number of photos, video length and versions); shoot days and locations; editing, colour grading and revision rounds; music, talent and usage rights.",
+      "body_ar": "لكي تُقارن عروض إنتاج الصور والفيديو على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) المخرجات (عدد الصور، ومدة الفيديو، وعدد النسخ)؛ (2) أيام التصوير ومواقعه؛ (3) طاقم العمل وقائمة المعدات؛ (4) صيغة المخرجات ودقتها؛ (5) المونتاج وتصحيح الألوان وجولات التعديل؛ (6) حقوق الموسيقى والمشاركين والاستخدام؛ (7) ملكية المواد الخام؛ (8) تصاريح التصوير؛ (9) جدول التسليم؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة photo_video_production فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المخرجات، وأيام التصوير والمواقع، والمونتاج وجولات التعديل، والموسيقى والمواهب وحقوق الاستخدام. ما يتجاوز التصوير البسيط يحتاج عادة تصوراً إخراجياً أو معاينة للموقع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "deliverables (number of photos, video length and versions)",
         "shoot days and locations",
@@ -19,13 +19,115 @@
         "delivery schedule",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://www.iso.org/standards.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "deliverables (number of photos, video length and versions)",
+        "shoot days and locations",
+        "editing, colour grading and revision rounds",
+        "music, talent and usage rights"
+      ],
+      "spec_guide": [
+        {
+          "spec": "deliverables (number of photos, video length and versions)",
+          "why_needed_to_price": "Deliverables are the unit priced.",
+          "uae_options": "number of photos; video length; versions; cut-downs",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "shoot days and locations",
+          "why_needed_to_price": "Shoot days and locations drive crew cost.",
+          "uae_options": "days; locations; studio",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "crew and equipment list",
+          "why_needed_to_price": "Crew and equipment.",
+          "uae_options": "camera; lighting; drone",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "output format and resolution",
+          "why_needed_to_price": "Output format.",
+          "uae_options": "4K; aspect ratios",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "editing, colour grading and revision rounds",
+          "why_needed_to_price": "Editing, grading and revisions.",
+          "uae_options": "rounds",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "music, talent and usage rights",
+          "why_needed_to_price": "Music, talent and usage rights add fees.",
+          "uae_options": "licensed music; models; usage term and territory",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "ownership of raw footage",
+          "why_needed_to_price": "Raw footage ownership.",
+          "uae_options": "included; extra",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "filming permits",
+          "why_needed_to_price": "Filming permits.",
+          "uae_options": "DFTC; location; drone",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery schedule",
+          "why_needed_to_price": "Delivery schedule.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "per day; per project",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "response",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "location fees; permits; travel",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs deliverables, shoot days, locations and usage rights; anything beyond a simple shoot usually needs a treatment or a recce of the location.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "photo_video_production:uae-standards-and-approvals",
@@ -69,6 +171,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "photo_video_production:authority-approvals",
+      "topic": "Photography & video production: licences, permits and approvals by emirate",
+      "topic_ar": "التصوير وإنتاج الفيديو: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Filming in public places in Dubai is permitted through the Dubai Film and TV Commission, and drone filming needs the civil aviation authority's approval; reports describe a 2024 agreement to speed drone permits for media professionals. GCAA's regulation CAR-UAC requires a UA Operator Authorisation, a document issued by GCAA, for commercial drone operations, and a UA pilot licence issued by GCAA or the emirate's Local Appropriate Authority (LAA), for which the applicant must normally be at least 18, a UAE resident and trained by an approved UA training operator. In Abu Dhabi, filming permits are reported to go through the Creative Media Authority. Talent and models need valid work status. The production company obtains permits; ask that they are in the quote.",
+      "body_ar": "يُسمح بالتصوير في الأماكن العامة في دبي عبر لجنة دبي للأفلام والتلفزيون، ويحتاج التصوير بالطائرات المسيّرة موافقة سلطة الطيران المدني، وتفيد التقارير باتفاقية في 2024 لتسريع تصاريح المسيّرات للإعلاميين. وتشترط لائحة الهيئة العامة للطيران المدني CAR-UAC تفويض مشغل للعمليات التجارية بالمسيّرات، وهو وثيقة تصدرها الهيئة، ورخصة طيار مسيّرة تصدرها الهيئة أو السلطة المحلية المختصة في الإمارة (LAA)، ويُشترط لها عادة ألا يقل عمر المتقدم عن 18 عاماً وأن يكون مقيماً في الدولة وأن يُكمل تدريباً لدى جهة تدريب معتمدة. وفي أبوظبي أُفيد بأن تصاريح التصوير تمر عبر هيئة الإعلام الإبداعي. ويحتاج المؤدون والعارضون إلى وضع عمل صالح. وتستخرج شركة الإنتاج التصاريح، فاطلب أن تكون ضمن العرض.",
+      "sources": [
+        "https://khaleejtimes.com/uae/dubai-new-initiative-to-ease-drone-licensing-for-media-professionals?amp=1",
+        "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: GCAA's CAR-UAC Issue 02 (gcaa.gov.ae): no operator may perform commercial UA operations without a valid UA Operator Authorisation, which the regulation defines as a document issued by GCAA; no one may operate a UA without a pilot licence issued by GCAA or the Local Appropriate Authority (LAA), for which the applicant must be at least 18 unless accepted otherwise, a UAE resident and trained by an approved UA training operator. Not confirmed on any page that opened: the Dubai Film and TV Commission permit, the 2024 drone-permit agreement for media (news report) and the Abu Dhabi Creative Media Authority route. Hosts that failed: khaleejtimes.com (refused by the session network, and not official). Corrected: the UA Operator Authorisation is issued by GCAA; it is the pilot licence (and airspace approvals) that GCAA or the emirate's Local Appropriate Authority issue; the LAA is the 'Local Appropriate Authority', not a 'local aviation authority'."
+    },
+    {
+      "id": "photo_video_production:quote-red-flags",
+      "topic": "Photography & video production: red flags in supplier quotations",
+      "topic_ar": "التصوير وإنتاج الفيديو: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for limited usage rights (social only, 1 year), unlicensed music, raw footage withheld, few revisions, drone shots without permits, and location and permit fees excluded.",
+      "body_ar": "انتبه إلى حقوق استخدام محدودة (للتواصل فقط ولسنة)، وموسيقى غير مرخصة، وحجب اللقطات الخام، وقلة التعديلات، ولقطات مسيّرة دون تصاريح، واستثناء رسوم المواقع والتصاريح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "photo_video_production:buyer-mistakes",
+      "topic": "Photography & video production: common buyer mistakes",
+      "topic_ar": "التصوير وإنتاج الفيديو: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients brief without a shot list or usage plan, then pay again for rights and cut-downs.",
+      "body_ar": "يقدم العملاء الموجز دون قائمة لقطات أو خطة استخدام، ثم يدفعون مجدداً للحقوق والنسخ المختصرة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "photo_video_production:price-drivers",
+      "topic": "Photography & video production: what makes prices differ legitimately",
+      "topic_ar": "التصوير وإنتاج الفيديو: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: crew size, days, equipment, locations, talent, post-production, rights and permits.",
+      "body_ar": "العوامل: حجم الطاقم، والأيام، والمعدات، والمواقع، والمواهب، وما بعد الإنتاج، والحقوق، والتصاريح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "photo_video_production:compare-quotes-cost-to-value",
+      "topic": "Photography & video production: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "التصوير وإنتاج الفيديو: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare total cost for the same deliverables, days, rights and revisions, with permits included. Recommend three with relevant reels.",
+      "body_ar": "قارن التكلفة الإجمالية للمخرجات والأيام والحقوق والتعديلات نفسها مع التصاريح. أوصِ بثلاثة عروض ذات أعمال سابقة مماثلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -107,11 +278,14 @@
   "verified": {
     "fetched_urls": 0,
     "claims_checked": 0,
-    "corrected": [],
+    "corrected": [
+      "photo_video_production:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "photo_video_production:spec-checklist",
-      "photo_video_production:uae-standards-and-approvals"
+      "photo_video_production:uae-standards-and-approvals",
+      "photo_video_production:authority-approvals"
     ],
     "added": [
       "photo_video_production:spec-checklist",
@@ -139,6 +313,42 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "photo_video_production:quote-red-flags",
+      "photo_video_production:buyer-mistakes",
+      "photo_video_production:price-drivers",
+      "photo_video_production:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "k3_pages_opened": [
+      "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "photo_video_production:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "photo_video_production:authority-approvals"
+      ],
+      "urls_read": [
+        "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

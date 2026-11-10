@@ -5,8 +5,8 @@
       "id": "general_contracting:spec-checklist",
       "topic": "General contracting - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for general contracting must state: project scope and drawings; bill of quantities; specifications; contractor classification; building permit responsibility; programme; subcontracted packages; insurance and bonds; defects liability period; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المقاولات العامة: نطاق المشروع والمخططات؛ جدول الكميات؛ المواصفات؛ تصنيف المقاول؛ مسؤولية رخصة البناء؛ البرنامج الزمني؛ الحزم المسندة لمقاولي الباطن؛ التأمين والضمانات؛ فترة المسؤولية عن العيوب؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for general contracting must state: project scope and drawings; bill of quantities; specifications; contractor classification; building permit responsibility; programme; subcontracted packages; insurance and bonds; defects liability period; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): drawings, location and authority, specifications and the soil report. A site visit is unavoidable for a lump sum. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states payment terms, advance and retention.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المقاولات العامة: نطاق المشروع والمخططات؛ جدول الكميات؛ المواصفات؛ تصنيف المقاول؛ مسؤولية رخصة البناء؛ البرنامج الزمني؛ الحزم المسندة لمقاولي الباطن؛ التأمين والضمانات؛ فترة المسؤولية عن العيوب؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المخططات، والموقع والجهة المختصة، والمواصفات، وتقرير التربة. وزيارة الموقع ضرورية للسعر الإجمالي المقطوع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً شروط الدفع والدفعة المقدمة والمحتجزات.",
       "required_specs": [
         "project scope and drawings",
         "bill of quantities",
@@ -21,14 +21,147 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "plot location, emirate and authority",
+        "soil report",
+        "payment terms, advance and retention"
       ],
       "sources": [
         "https://www.dm.gov.ae/municipality-business/",
         "https://www.dcd.gov.ae/portal/en/home.jsp"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "project scope and drawings",
+        "plot location, emirate and authority",
+        "specifications",
+        "soil report"
+      ],
+      "spec_guide": [
+        {
+          "spec": "project scope and drawings",
+          "why_needed_to_price": "A contractor prices drawings; without them only a rough rate per m2 is possible.",
+          "uae_options": "concept; permit; IFC drawings; design-and-build",
+          "follow_up_if": "No drawings: say whether design is in the contractor's scope.",
+          "blocking": true
+        },
+        {
+          "spec": "bill of quantities",
+          "why_needed_to_price": "A BOQ makes quotes comparable line by line.",
+          "uae_options": "consultant BOQ; contractor to prepare",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "specifications",
+          "why_needed_to_price": "Finish levels and MEP specifications change the price more than structure.",
+          "uae_options": "specification document; finishes schedule",
+          "follow_up_if": "Allowances instead of specs: the quote is a budget.",
+          "blocking": true
+        },
+        {
+          "spec": "contractor classification",
+          "why_needed_to_price": "Authorities limit project size by contractor grade.",
+          "uae_options": "per emirate classification",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "building permit responsibility",
+          "why_needed_to_price": "Permits and authority fees are a cost and a schedule risk.",
+          "uae_options": "owner's consultant; design-and-build contractor",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "programme",
+          "why_needed_to_price": "A tight programme raises labour and plant cost.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "subcontracted packages",
+          "why_needed_to_price": "Subcontracted packages carry the main contractor's markup.",
+          "uae_options": "MEP, facade, fit-out by nominated or domestic subcontractors.",
+          "follow_up_if": "If packages are nominated, ask for the markup.",
+          "blocking": false
+        },
+        {
+          "spec": "insurance and bonds",
+          "why_needed_to_price": "Insurance and bonds are a cost the contractor prices.",
+          "uae_options": "CAR, third-party, performance bond, advance payment guarantee.",
+          "follow_up_if": "If the buyer provides CAR, state it.",
+          "blocking": false
+        },
+        {
+          "spec": "defects liability period",
+          "why_needed_to_price": "The defects period decides how long the contractor returns at its cost.",
+          "uae_options": "12 months defects liability.",
+          "follow_up_if": "If a longer period is needed, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and unlicensed offers are often cheaper for that reason.",
+          "uae_options": "Trade licence for the activity in the emirate or free zone; authority approvals or registrations where the trade requires them.",
+          "follow_up_if": "If the licence does not name the activity or the emirate of the site, the offer cannot be accepted until it does.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels set the staffing, frequency and standby the provider must carry, and so most of the price.",
+          "uae_options": "Defined frequency, response time, attendance hours and measurable KPIs; penalties or service credits by agreement.",
+          "follow_up_if": "If no level is stated, ask the buyer for frequency and response expectations before comparing quotes.",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Mobilisation and overheads are spread over the term, so a short contract costs more per month than a long one.",
+          "uae_options": "Single job; 6 months; 1 year; 2-3 years with renewal and escalation terms.",
+          "follow_up_if": "If the term is open, ask the supplier to quote one year and state the price for each renewal year.",
+          "blocking": false
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "plot location, emirate and authority",
+          "why_needed_to_price": "Authority, logistics and labour cost follow the location.",
+          "uae_options": "emirate; community; free zone",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "soil report",
+          "why_needed_to_price": "Foundations cannot be firm without it.",
+          "uae_options": "available; to be done",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "payment terms, advance and retention",
+          "blocking": false,
+          "why_needed_to_price": "The advance, interim payment period and retention percentage set the contractor financing cost, which is priced in.",
+          "uae_options": "Advance against a guarantee; monthly interim valuations; milestone payments; retention and its release.",
+          "follow_up_if": ""
+        }
+      ],
+      "site_visit_required_when": "A site visit is unavoidable before a firm lump-sum price, to see access, levels, neighbours and existing services.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "general_contracting:uae-standards-and-approvals",
@@ -86,6 +219,85 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "general_contracting:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "General contracting: permits per emirate",
+      "topic_ar": "المقاولات العامة: التراخيص في كل إمارة",
+      "body_en": "Dubai: construction works need a Dubai Municipality permit under Local Order No. 3 of 1999 (or Trakhees, DDA or the free-zone authority where they control the plot); contractors must carry the insurance required by Executive Council Resolution No. 28 of 2022; Law No. 3 of 2026 on building quality and safety applies; excavation in the right of way needs RTA's eNOC, and occupying part of the right of way needs an RTA permit under Executive Council Resolution No. 54 of 2021; DEWA connection and Dubai Civil Defence approval are part of completion. Abu Dhabi: DMT municipalities issue permits through the municipal e-permitting system; in Abu Dhabi City, Abu Dhabi City Municipality's Circular 04/2022 requires a civil defence certificate for site offices, labour rest areas, storage areas and fuel tanks; occupancy needs civil defence and utility approvals. Sharjah: plans are submitted by licensed consultancy offices; SEWA, planning and civil defence approve as supporting departments. Northern emirates: municipal permits, civil defence and EtihadWE. Who obtains: normally the owner's consultant; the contractor in design-and-build.",
+      "body_ar": "في دبي: تحتاج أعمال البناء إلى ترخيص من بلدية دبي وفق الأمر المحلي رقم 3 لسنة 1999 (أو من تراخيص أو سلطة دبي للتطوير أو سلطة المنطقة الحرة حيث تتبع لها الأرض)، ويجب أن يحمل المقاول التأمين الذي يشترطه قرار المجلس التنفيذي رقم 28 لسنة 2022، وينطبق القانون رقم 3 لسنة 2026 بشأن جودة المباني وسلامتها، ويحتاج الحفر في حرم الطريق إلى شهادة عدم الممانعة الإلكترونية من هيئة الطرق والمواصلات، ويحتاج إشغال جزء منه إلى تصريح من الهيئة وفق قرار المجلس التنفيذي رقم 54 لسنة 2021، ويعد توصيل هيئة كهرباء ومياه دبي وموافقة الدفاع المدني جزءاً من الإنجاز. في أبوظبي: تصدر بلديات دائرة البلديات والنقل التراخيص عبر النظام الإلكتروني، وفي مدينة أبوظبي يشترط تعميم بلدية مدينة أبوظبي رقم 04/2022 شهادة من الدفاع المدني لمكاتب الموقع واستراحات العمال ومناطق التخزين وخزانات الوقود، ويحتاج الإشغال إلى موافقات الدفاع المدني والمرافق. في الشارقة: تقدّم المكاتب الاستشارية المرخّصة المخططات، وتعتمد هيئة كهرباء ومياه وغاز الشارقة والتخطيط والدفاع المدني كجهات مساندة. في الإمارات الشمالية: تراخيص البلدية والدفاع المدني والاتحاد للماء والكهرباء. من يحصل عليها: عادة استشاري المالك، والمقاول في عقود التصميم والتنفيذ.",
+      "sources": [
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/1999/Local%20Order%20No.%20(3)%20of%201999%20Regulating%20Construction%20Works.pdf",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2022/Executive%20Council%20Resolution%20No.%20(28)%20of%202022%20Concerning%20the%20Insurance%20Policy%20Required.html",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/2026/Law%20No.%20(3)%20of%202026%20Concerning%20the%20Quality%20and%20Safety%20of%20Buildings.html",
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=314",
+        "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/AboutUs/EHS/Circulars/004-2022.pdf",
+        "https://www.dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
+        "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
+        "https://www.etihadwe.ae/en",
+        "https://www.dm.gov.ae/municipality-business/buildings-regulation-permits-agency/",
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs",
+        "https://pcfc.ae/en/Service%20Documents/PCFC-TRK-CED-PS-CP-01,%20Client%20procedure%20for%20Obtaining%20Building%20Permits.pdf"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: Local Order No. 3 of 1999, Executive Council Resolution No. 28 of 2022 and Law No. 3 of 2026 (dlp.dubai.gov.ae); Trakhees approves building permits within its jurisdiction (PCFC-TRK-CED-PS-CP-01 on pcfc.ae); DDA issues construction permits in its zones (dda.gov.ae); RTA eNOC and Resolution No. 54 of 2021; Circular 04/2022; Sharjah supporting-department approvals; EtihadWE coverage. Not confirmed on any page that opened: DEWA connection and Dubai Civil Defence approval as completion steps, other free-zone authorities, the Abu Dhabi e-permitting system and the Abu Dhabi occupancy approvals. Hosts that failed: www.dcd.gov.ae (connection reset by the site); www.dewa.gov.ae (HTTP 403 from the site's firewall)."
+    },
+    {
+      "id": "general_contracting:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in general contracting quotes",
+      "topic_ar": "علامات التحذير في عروض المقاولات العامة",
+      "body_en": "Watch for: large provisional sums and prime-cost allowances that make a low total; exclusions of authority fees, utility connections, external works, MEP items or completion certificates; payment heavily front-loaded; no programme or a programme that ignores the summer midday break; a contractor whose classification is below the project size; and a defects period shorter than the market norm.",
+      "body_ar": "انتبه إلى: مبالغ احتياطية ومخصصات تكلفة أولية كبيرة تجعل المجموع منخفضاً، واستثناء رسوم الجهات أو توصيل المرافق أو الأعمال الخارجية أو بنود كهروميكانيكية أو شهادات الإنجاز، ودفعات مقدمة كبيرة، وغياب الجدول الزمني أو جدول يتجاهل استراحة منتصف النهار الصيفية، ومقاول تصنيفه أقل من حجم المشروع، وفترة صيانة أقصر من المعتاد في السوق.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "general_contracting:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in general contracting",
+      "topic_ar": "أخطاء شائعة لدى المشترين في المقاولات العامة",
+      "body_en": "Buyers ask for a price per square foot and treat it as a contract price; sign without a finishes schedule; pay advances without a guarantee; and skip the consultant's supervision to save fees.",
+      "body_ar": "يطلب المشترون سعراً للقدم المربعة ويعاملونه كسعر عقد، ويوقعون دون جدول تشطيبات، ويدفعون مقدمات دون ضمان، ويتخلون عن إشراف الاستشاري لتوفير الأتعاب.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "general_contracting:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves general contracting prices",
+      "topic_ar": "ما الذي يغيّر أسعار المقاولات العامة بشكل مشروع",
+      "body_en": "Prices differ legitimately by specification and finishes, structure and foundations (soil), MEP systems, programme, site access and logistics, contractor overheads and classification, and how risk is shared (lump sum versus re-measure).",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب المواصفات والتشطيبات، والهيكل والأساسات (التربة)، والأنظمة الكهروميكانيكية، والجدول الزمني، والوصول إلى الموقع واللوجستيات، والمصاريف العامة للمقاول وتصنيفه، وطريقة توزيع المخاطر (مقطوع أو إعادة قياس).",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "general_contracting:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing general contracting quotes like for like",
+      "topic_ar": "مقارنة عروض المقاولات العامة على أساس متكافئ",
+      "body_en": "Give every bidder the same drawings and BOQ, compare section by section, price each exclusion and allowance at a fair value, and normalise the programme. Value beyond price: comparable completed projects, in-house structure and finishing teams, classification, and realistic payment milestones.",
+      "body_ar": "أعط كل متنافس المخططات وجدول الكميات نفسيهما، وقارن قسماً بقسم، وسعّر كل استثناء ومخصص بقيمة عادلة، ووحّد الجدول الزمني. القيمة إلى جانب السعر: مشاريع مماثلة منجزة، وفرق داخلية للهيكل والتشطيب، والتصنيف، ودفعات واقعية.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -122,17 +334,25 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
-    "corrected": [],
+    "fetched_urls": 9,
+    "claims_checked": 13,
+    "corrected": [
+      "general_contracting:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
       "general_contracting:spec-checklist",
-      "general_contracting:uae-standards-and-approvals"
+      "general_contracting:uae-standards-and-approvals",
+      "general_contracting:approvals-per-emirate"
     ],
     "added": [
       "general_contracting:spec-checklist",
-      "general_contracting:uae-standards-and-approvals"
+      "general_contracting:uae-standards-and-approvals",
+      "general_contracting:approvals-per-emirate",
+      "general_contracting:quote-red-flags",
+      "general_contracting:buyer-mistakes",
+      "general_contracting:price-drivers",
+      "general_contracting:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
@@ -159,6 +379,26 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: general_contracting:approvals-per-emirate re-checked against official pages opened through the session network (8 URL(s) read, 12 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "general_contracting:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

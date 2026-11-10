@@ -9,8 +9,8 @@
       "topic": "Industrial machinery & plant equipment: brands and makers in this category",
       "topic_ar": "الآلات الصناعية ومعدات المصانع: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Engel (Austria) builds injection moulding machines and automation. KraussMaffei (Germany) makes injection moulding machines, extrusion equipment, reaction process machinery and automation. Arburg (Germany) makes plastic injection moulding machines and turnkey systems. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Engel (النمسا) تصنع آلات الحقن والأتمتة. KraussMaffei (ألمانيا) تصنع آلات الحقن ومعدات البثق وآلات عمليات التفاعل والأتمتة. Arburg (ألمانيا) تصنع آلات حقن البلاستيك وأنظمة التسليم الجاهز. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Engel (Austria) builds injection moulding machines and automation. KraussMaffei (Germany) makes injection moulding machines, extrusion equipment, reaction process machinery and automation. Arburg (Germany) makes plastic injection moulding machines and turnkey systems. Which local distributor carries each make was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Engel = a premium Austrian brand; KraussMaffei = a premium German brand; Arburg = a premium German brand.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Engel (النمسا) تصنع آلات الحقن والأتمتة. KraussMaffei (ألمانيا) تصنع آلات الحقن ومعدات البثق وآلات عمليات التفاعل والأتمتة. Arburg (ألمانيا) تصنع آلات حقن البلاستيك وأنظمة التسليم الجاهز. ولم يُتحقق من الموزع المحلي لكل علامة.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Engel = علامة نمساوية من الفئة الممتازة؛ KraussMaffei = علامة ألمانية من الفئة الممتازة؛ Arburg = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Engel_Austria",
         "https://en.wikipedia.org/wiki/KraussMaffei",
@@ -19,7 +19,30 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
-      "source_note": "Engel: https://en.wikipedia.org/wiki/Engel_Austria | KraussMaffei: https://en.wikipedia.org/wiki/KraussMaffei | Arburg: https://en.wikipedia.org/wiki/Arburg"
+      "source_note": "Engel: https://en.wikipedia.org/wiki/Engel_Austria | KraussMaffei: https://en.wikipedia.org/wiki/KraussMaffei | Arburg: https://en.wikipedia.org/wiki/Arburg brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Engel",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium Austrian brand",
+          "generic_ar": "علامة نمساوية من الفئة الممتازة"
+        },
+        {
+          "brand": "KraussMaffei",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Arburg",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     }
   ],
   "eval": [

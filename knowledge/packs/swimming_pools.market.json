@@ -26,8 +26,8 @@
       "topic": "Swimming pools & water features: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المسابح والنوافير المائية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the pool equipment and finish brands sold in the UAE, such as Pentair, Hayward and AstralPool, and where local pool contractors operate. Equipment and finish brands: Pentair, Hayward, AstralPool, Zodiac, Emaux, Waterco, Speck, Dryden Aqua, Bisazza, Trend, Ezarri. Their UAE distributors were not checked. Local pool contractors are numerous in Dubai (Al Quoz), Abu Dhabi and Sharjah, from large firms serving hotels and developers to villa pool builders. Chemicals come from local chemical traders. Origins: Europe, US brands made in several countries, Spain, Italy, China.",
-      "body_ar": "من ماركات معدات وتشطيبات المسابح المباعة في الإمارات Pentair وHayward وAstralPool، مع بيان أماكن عمل مقاولي المسابح المحليين. وماركات المعدات والتشطيبات: Pentair وHayward وAstralPool وZodiac وEmaux وWaterco وSpeck وDryden Aqua وBisazza وTrend وEzarri. ولم نتحقق من موزعيها في الإمارات. ومقاولو المسابح المحليون كثيرون في دبي (القوز) وأبوظبي والشارقة، من الشركات الكبيرة التي تخدم الفنادق والمطورين إلى منفذي مسابح الفلل. وتأتي الكيماويات من تجار الكيماويات المحليين. وبلدان المنشأ: أوروبا، وماركات أمريكية تُصنع في عدة دول، وإسبانيا وإيطاليا والصين.",
+      "body_en": "This entry lists the pool equipment and finish brands sold in the UAE, such as Pentair, Hayward and AstralPool, and where local pool contractors operate. Equipment and finish brands: Pentair, Hayward, AstralPool, Zodiac, Emaux, Waterco, Speck, Dryden Aqua, Bisazza, Trend, Ezarri. Their UAE distributors were not checked. Local pool contractors are numerous in Dubai (Al Quoz), Abu Dhabi and Sharjah, from large firms serving hotels and developers to villa pool builders. Chemicals come from local chemical traders. Origins: Europe, US brands made in several countries, Spain, Italy, China.\n\nOrigin and tier, for describing a quoted brand without naming it: Pentair - premium, USA; Hayward - premium, USA; AstralPool - mid, Spain; Zodiac - premium, France; Emaux - economy, China; Waterco - mid, Australia; Speck - premium, Germany; Dryden Aqua - premium, UK; Bisazza - luxury, Italy; Trend - premium, Italy; Ezarri - mid, Spain.",
+      "body_ar": "من ماركات معدات وتشطيبات المسابح المباعة في الإمارات Pentair وHayward وAstralPool، مع بيان أماكن عمل مقاولي المسابح المحليين. وماركات المعدات والتشطيبات: Pentair وHayward وAstralPool وZodiac وEmaux وWaterco وSpeck وDryden Aqua وBisazza وTrend وEzarri. ولم نتحقق من موزعيها في الإمارات. ومقاولو المسابح المحليون كثيرون في دبي (القوز) وأبوظبي والشارقة، من الشركات الكبيرة التي تخدم الفنادق والمطورين إلى منفذي مسابح الفلل. وتأتي الكيماويات من تجار الكيماويات المحليين. وبلدان المنشأ: أوروبا، وماركات أمريكية تُصنع في عدة دول، وإسبانيا وإيطاليا والصين.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Pentair: فئة ممتازة، الولايات المتحدة؛ Hayward: فئة ممتازة، الولايات المتحدة؛ AstralPool: فئة متوسطة، إسبانيا؛ Zodiac: فئة ممتازة، فرنسا؛ Emaux: فئة اقتصادية، الصين؛ Waterco: فئة متوسطة، أستراليا؛ Speck: فئة ممتازة، ألمانيا؛ Dryden Aqua: فئة ممتازة، المملكة المتحدة؛ Bisazza: فئة فاخرة، إيطاليا؛ Trend: فئة ممتازة، إيطاليا؛ Ezarri: فئة متوسطة، إسبانيا.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU34-ASPP2_Technical-Guidelines-for-Approval-of-Swimming-Pool-Plans_V4.pdf",
         "https://www.dm.gov.ae",
@@ -36,7 +36,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: villa pools need a DM permit and, in master communities, the developer NOC -> confirmed (DM Technical Guidelines for Approval of Swimming Pool Plans). Not checked: Current Dubai Municipality pool regulation version and local distributor appointments were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: villa pools need a DM permit and, in master communities, the developer NOC -> confirmed (DM Technical Guidelines for Approval of Swimming Pool Plans). Not checked: Current Dubai Municipality pool regulation version and local distributor appointments were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Pentair",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Hayward",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "AstralPool",
+          "origin": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid brand from Spain",
+          "generic_ar": "علامة متوسطة من إسبانيا"
+        },
+        {
+          "brand": "Zodiac",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Emaux",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy brand from China",
+          "generic_ar": "علامة اقتصادية من الصين"
+        },
+        {
+          "brand": "Waterco",
+          "origin": "Australia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Australia",
+          "generic_ar": "علامة متوسطة من أستراليا"
+        },
+        {
+          "brand": "Speck",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Dryden Aqua",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium brand from UK",
+          "generic_ar": "علامة ممتازة من المملكة المتحدة"
+        },
+        {
+          "brand": "Bisazza",
+          "origin": "Italy",
+          "tier": "luxury",
+          "generic_en": "a luxury brand from Italy",
+          "generic_ar": "علامة فاخرة من إيطاليا"
+        },
+        {
+          "brand": "Trend",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        },
+        {
+          "brand": "Ezarri",
+          "origin": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid brand from Spain",
+          "generic_ar": "علامة متوسطة من إسبانيا"
+        }
+      ]
     },
     {
       "id": "swimming_pools:uae-market-sizes",

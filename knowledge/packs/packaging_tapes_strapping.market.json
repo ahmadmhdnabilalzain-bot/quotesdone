@@ -9,8 +9,8 @@
       "topic": "Packaging tapes & strapping: brands and makers in this category",
       "topic_ar": "أشرطة التغليف والتربيط: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): 3M (United States) makes adhesive tapes including Scotch tape. tesa (Germany) makes adhesive tapes and other adhesive products. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): 3M (الولايات المتحدة) تصنع الأشرطة اللاصقة ومنها شريط Scotch. tesa (ألمانيا) تصنع الأشرطة اللاصقة ومنتجات لاصقة أخرى. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): 3M (United States) makes adhesive tapes including Scotch tape. tesa (Germany) makes adhesive tapes and other adhesive products. Which local distributor carries each make was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): 3M = a premium American brand; tesa = a premium German brand.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): 3M (الولايات المتحدة) تصنع الأشرطة اللاصقة ومنها شريط Scotch. tesa (ألمانيا) تصنع الأشرطة اللاصقة ومنتجات لاصقة أخرى. ولم يُتحقق من الموزع المحلي لكل علامة.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): 3M = علامة أمريكية من الفئة الممتازة؛ tesa = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://en.wikipedia.org/wiki/3M",
         "https://en.wikipedia.org/wiki/Tesa_SE"
@@ -18,7 +18,23 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
-      "source_note": "3M: https://en.wikipedia.org/wiki/3M | tesa: https://en.wikipedia.org/wiki/Tesa_SE"
+      "source_note": "3M: https://en.wikipedia.org/wiki/3M | tesa: https://en.wikipedia.org/wiki/Tesa_SE brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "3M",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "tesa",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     }
   ],
   "eval": [

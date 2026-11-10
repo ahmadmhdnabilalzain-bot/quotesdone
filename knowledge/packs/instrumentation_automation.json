@@ -5,8 +5,8 @@
       "id": "instrumentation_automation:spec-checklist",
       "topic": "Instrumentation and automation - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For instrumentation and automation (trade code instrumentation_automation only), every quoted line must state: Instrument or controller type; Measuring range and accuracy; Process connection and wetted materials; Output signal and protocol; Enclosure and hazardous-area rating; Calibration certificate; Configuration and programming scope; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الأجهزة الدقيقة والأتمتة (رمز النشاط instrumentation_automation فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الجهاز أو المتحكم؛ نطاق القياس والدقة؛ توصيل العملية والمواد الملامسة؛ إشارة الخرج والبروتوكول؛ درجة حماية الغلاف وتصنيف المناطق الخطرة؛ شهادة المعايرة؛ نطاق الإعداد والبرمجة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For instrumentation and automation (trade code instrumentation_automation only), every quoted line must state: Instrument or controller type; Measuring range and accuracy; Process connection and wetted materials; Output signal and protocol; Enclosure and hazardous-area rating; Calibration certificate; Configuration and programming scope; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Instrument or controller type; Measuring range and accuracy; Process connection and wetted materials; Output signal and protocol; Enclosure and hazardous-area rating; Configuration and programming scope; Quantity and unit of measure. Follow-up questions the answers trigger: Instrument or controller type: PLC/SCADA brings I/O count, redundancy and software licences. Process connection and wetted materials: Chemical or seawater service brings wetted-material choice. Enclosure and hazardous-area rating: Hazardous area brings zone, gas group and certificate scheme. Configuration and programming scope: Programming brings the control philosophy or I/O list. Applicable standard and test report: Safety functions bring SIL rating. UAE conformity or authority approval: Wireless devices bring TDRA type approval. Before a firm price: an automation or SCADA system needs the I/O list or control philosophy, and often a site survey, before a firm price; single instruments can be priced from a data sheet. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states payment terms.",
+      "body_ar": "في نشاط الأجهزة الدقيقة والأتمتة (رمز النشاط instrumentation_automation فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الجهاز أو المتحكم؛ نطاق القياس والدقة؛ توصيل العملية والمواد الملامسة؛ إشارة الخرج والبروتوكول؛ درجة حماية الغلاف وتصنيف المناطق الخطرة؛ شهادة المعايرة؛ نطاق الإعداد والبرمجة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الجهاز أو وحدة التحكم، ونطاق القياس والدقة، ووصلة العملية والمواد الملامسة، وإشارة الخرج والبروتوكول، ودرجة الحماية وتصنيف المنطقة الخطرة، ونطاق التهيئة والبرمجة، والكمية. أسئلة المتابعة: أنظمة PLC وSCADA تستلزم عدد نقاط الإدخال والإخراج والتكرار وتراخيص البرمجيات، والمناطق الخطرة تستلزم المنطقة ومجموعة الغاز، ووظائف السلامة تستلزم مستوى SIL، والأجهزة اللاسلكية تستلزم اعتماد هيئة تنظيم الاتصالات. نظام الأتمتة يحتاج قائمة نقاط الإدخال والإخراج أو فلسفة التحكم، وغالباً مسحاً للموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً شروط الدفع.",
       "required_specs": [
         "Instrument or controller type",
         "Measuring range and accuracy",
@@ -22,14 +22,140 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Instrument or controller type",
+        "Measuring range and accuracy",
+        "Process connection and wetted materials",
+        "Output signal and protocol",
+        "Enclosure and hazardous-area rating",
+        "Configuration and programming scope",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Instrument or controller type",
+          "blocking": true,
+          "why_needed_to_price": "Transmitter, flowmeter, analyser, PLC and SCADA are different products.",
+          "uae_options": "Pressure/temperature/level transmitter, magnetic/ultrasonic/Coriolis flowmeter, analyser, PLC, HMI, SCADA.",
+          "follow_up_if": "PLC/SCADA brings I/O count, redundancy and software licences."
+        },
+        {
+          "spec": "Measuring range and accuracy",
+          "blocking": true,
+          "why_needed_to_price": "Accuracy class and range select the model.",
+          "uae_options": "Range in engineering units; accuracy % of span or reading.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Process connection and wetted materials",
+          "blocking": true,
+          "why_needed_to_price": "Connections and wetted materials change price and compatibility.",
+          "uae_options": "Flange class or thread; 316L, Hastelloy, PTFE liner.",
+          "follow_up_if": "Chemical or seawater service brings wetted-material choice."
+        },
+        {
+          "spec": "Output signal and protocol",
+          "blocking": true,
+          "why_needed_to_price": "4-20 mA HART, Modbus, Profibus and Foundation Fieldbus are different electronics.",
+          "uae_options": "4-20 mA HART, Modbus RTU/TCP, Profibus, Profinet, FF.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Enclosure and hazardous-area rating",
+          "blocking": true,
+          "why_needed_to_price": "Ex-certified instruments cost more.",
+          "uae_options": "IP66/67; Ex d or Ex ia; zone and gas group.",
+          "follow_up_if": "Hazardous area brings zone, gas group and certificate scheme."
+        },
+        {
+          "spec": "Calibration certificate",
+          "blocking": false,
+          "why_needed_to_price": "Accredited calibration costs more than a factory certificate.",
+          "uae_options": "Factory certificate, ISO 17025 accredited calibration.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Configuration and programming scope",
+          "blocking": true,
+          "why_needed_to_price": "Engineering hours can exceed hardware cost in automation.",
+          "uae_options": "Pre-configured, on-site configuration, full PLC/SCADA programming.",
+          "follow_up_if": "Programming brings the control philosophy or I/O list."
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "Tag count and project size change engineering and hardware discounts.",
+          "uae_options": "Units, tags.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "IEC 61508/61511 SIL where safety-related.",
+          "follow_up_if": "Safety functions bring SIL rating."
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_needed_to_price": "Radio-enabled devices need TDRA type approval; electrical products may need ECAS.",
+          "uae_options": "",
+          "follow_up_if": "Wireless devices bring TDRA type approval."
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "blocking": false,
+          "why_needed_to_price": "Loop checks and commissioning are services.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Cables, glands, mounting brackets and software licences often excluded.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page.",
+      "site_visit_required_when": "an automation or SCADA system needs the I/O list or control philosophy, and often a site survey, before a firm price; single instruments can be priced from a data sheet."
     },
     {
       "id": "instrumentation_automation:uae-standards-and-approvals",
@@ -87,6 +213,78 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "instrumentation_automation:authority-approvals",
+      "topic": "Instrumentation and automation: TDRA, electrical conformity and hazardous areas",
+      "topic_ar": "الأجهزة والأتمتة: هيئة تنظيم الاتصالات والمطابقة الكهربائية والمناطق الخطرة",
+      "kind": "authority_approval",
+      "body_en": "Instruments and controllers with radio (wireless transmitters, gateways, cellular modems) need type approval from the Telecommunications and Digital Government Regulatory Authority (TDRA) before sale, obtained by the importer or manufacturer. Mains-powered panels and devices fall within the GCC low-voltage regulation adopted in 2019. Hazardous-area instruments carry IECEx or ATEX certification from the maker. Gas detection that forms part of a building fire and life-safety system is reviewed by the emirate's civil defence with that system. Legal-for-trade metering (custody transfer, weighing) falls under the national metrology rules.",
+      "body_ar": "الأجهزة ووحدات التحكم المزودة باتصال لاسلكي (أجهزة الإرسال اللاسلكية والبوابات والمودمات الخلوية) تحتاج اعتماد طراز من هيئة تنظيم الاتصالات والحكومة الرقمية قبل البيع، ويحصل عليه المستورد أو الصانع. واللوحات والأجهزة العاملة بالكهرباء تدخل ضمن اللائحة الخليجية للجهد المنخفض المعتمدة عام 2019. وأجهزة المناطق الخطرة تحمل شهادة IECEx أو ATEX من الصانع. وأجهزة كشف الغاز التي تكون جزءاً من نظام الحماية من الحريق في المبنى يراجعها الدفاع المدني في الإمارة مع ذلك النظام. وعدادات القياس التجاري (نقل الملكية والوزن) تخضع لأنظمة المقاييس الوطنية.",
+      "sources": [
+        "https://tdra.gov.ae",
+        "https://uaelegislation.gov.ae/en/legislations/2957",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: TDRA's Type Approval page: radio equipment must be registered (type approved) with TDRA before sale, and dealers, importers and manufacturers registered; MoIAT's regulated-products sheet lists low-voltage electrical products (G-Mark under Gulf regulation BD-142004-01). Not confirmed on any page that opened: Cabinet Resolution No. 6 of 2019 as the adoption instrument (uaelegislation.gov.ae serves a Cloudflare block page), IECEx or ATEX practice, civil defence review of gas detection and legal-for-trade metering."
+    },
+    {
+      "id": "instrumentation_automation:quote-red-flags",
+      "topic": "Red flags in instrumentation and automation quotations",
+      "topic_ar": "علامات التحذير في عروض الأجهزة والأتمتة",
+      "kind": "quote_red_flag",
+      "body_en": "Check the model code against the data sheet: a lower accuracy, a different wetted material, 4-20 mA without HART, or a non-Ex instrument for a classified area are substitutions. Watch for PLC/SCADA prices without software licences, engineering hours or I/O spares; \"equivalent\" analysers without a model; calibration certificates that are not accredited where accreditation was asked; missing TDRA approval for wireless devices; and cables, glands, brackets and commissioning excluded.",
+      "body_ar": "قارن رمز الطراز بورقة البيانات: فالدقة الأقل، أو المادة الملامسة المختلفة، أو إشارة 4-20 مللي أمبير دون HART، أو جهاز غير مصنف لمنطقة خطرة، كلها استبدالات. وانتبه إلى: أسعار أنظمة PLC وSCADA دون تراخيص البرمجيات أو ساعات الهندسة أو نقاط احتياطية؛ وأجهزة تحليل \"مكافئة\" دون طراز؛ وشهادات معايرة غير معتمدة حيث طُلب الاعتماد؛ وغياب اعتماد هيئة تنظيم الاتصالات للأجهزة اللاسلكية؛ واستثناء الكابلات والجلندات والحوامل والتشغيل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "instrumentation_automation:buyer-mistakes",
+      "topic": "Common buyer mistakes in instrumentation and automation",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الأجهزة والأتمتة",
+      "kind": "buyer_mistake",
+      "body_en": "Asking for \"a flowmeter\" without the fluid, pipe size, range and output; forgetting the hazardous-area classification; buying PLC hardware without the programming and software; mixing protocols that the control system cannot read; and skipping calibration on custody or compliance meters. Ask for the process data and the control system the device connects to.",
+      "body_ar": "طلب \"عداد تدفق\" دون السائل ومقاس الأنبوب والنطاق والخرج؛ ونسيان تصنيف المنطقة الخطرة؛ وشراء عتاد PLC دون البرمجة والبرمجيات؛ وخلط بروتوكولات لا يقرؤها نظام التحكم؛ والاستغناء عن المعايرة في عدادات نقل الملكية أو الامتثال. لذا تُطلب بيانات العملية ونظام التحكم الذي يتصل به الجهاز.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "instrumentation_automation:price-drivers",
+      "topic": "What legitimately moves instrumentation and automation prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الأجهزة والأتمتة",
+      "kind": "price_driver",
+      "body_en": "Measuring principle and accuracy, wetted materials, hazardous-area certification, communication protocol, SIL certification, brand tier, calibration level, and for systems the I/O count, redundancy, software licences and engineering hours.",
+      "body_ar": "مبدأ القياس والدقة، والمواد الملامسة، وشهادة المناطق الخطرة، وبروتوكول الاتصال، وشهادة SIL، وفئة العلامة، ومستوى المعايرة، وفي الأنظمة عدد نقاط الإدخال والإخراج والتكرار وتراخيص البرمجيات وساعات الهندسة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "instrumentation_automation:compare-quotes",
+      "topic": "Comparing instrumentation and automation quotes",
+      "topic_ar": "مقارنة عروض الأجهزة والأتمتة",
+      "kind": "comparison",
+      "body_en": "Compare instruments tag by tag against the data sheet; for systems compare the same I/O, the same software scope and the same engineering deliverables (FAT, SAT, documents). Then weigh life cost: spares, support, licence renewals and compatibility with the existing control system. Recommend the three fully compliant offers.",
+      "body_ar": "قارن الأجهزة رقماً تعريفياً برقم مقابل ورقة البيانات؛ وفي الأنظمة قارن نقاط الإدخال والإخراج نفسها ونطاق البرمجيات نفسه ومخرجات الهندسة نفسها (اختبار المصنع واختبار الموقع والوثائق). ثم زن تكلفة دورة الحياة: قطع الغيار والدعم وتجديد التراخيص والتوافق مع نظام التحكم القائم. ويوصى بأفضل ثلاثة عروض مطابقة بالكامل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -129,7 +327,8 @@
     "removed": [],
     "still_unverified": [
       "instrumentation_automation:spec-checklist",
-      "instrumentation_automation:uae-standards-and-approvals"
+      "instrumentation_automation:uae-standards-and-approvals",
+      "instrumentation_automation:authority-approvals"
     ],
     "added": [
       "instrumentation_automation:spec-checklist",
@@ -160,6 +359,27 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "instrumentation_automation:quote-red-flags",
+      "instrumentation_automation:buyer-mistakes",
+      "instrumentation_automation:price-drivers",
+      "instrumentation_automation:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "instrumentation_automation:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

@@ -26,8 +26,8 @@
       "topic": "Scaffolding & access: makes, brands, distributors and origins in the UAE",
       "topic_ar": "السقالات ومعدات الوصول: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names scaffolding, tower and cradle brands such as Layher, PERI, Doka, SGB, Altrad, RMD Kwikform, Zarges, Youngman, Sky Climber and Tractel, plus Asian copies, and where rental contractors cluster. System, tower and cradle brands in the market: Layher, PERI, Doka, SGB, Altrad, RMD Kwikform, Zarges, Youngman, Sky Climber, Tractel, Power Climber, plus Chinese and Indian cuplock, ringlock and ZLP cradle copies sold by local traders. Their UAE offices and distributors were not checked. Rental and erection contractors are concentrated in Sharjah, Dubai (Al Quoz, Jebel Ali) and Musaffah. Origins: Germany, Austria, the UK, China, India, and the UAE for locally made tube and plank.",
-      "body_ar": "من ماركات السقالات والأبراج والسلال المعلقة Layher وPERI وDoka وSGB وAltrad وRMD Kwikform وZarges وYoungman وSky Climber وTractel، إضافة إلى النسخ الآسيوية، مع بيان أماكن تركز مقاولي التأجير. علامات الأنظمة والأبراج والمنصات المعلقة في السوق: Layher، PERI، Doka، SGB، Altrad، RMD Kwikform، Zarges، Youngman، Sky Climber، Tractel، Power Climber، إضافة إلى نسخ صينية وهندية من الكابلوك والرينغلوك ومنصات ZLP يبيعها تجار محليون، ولم يُتحقق من مكاتبها أو موزعيها في الإمارات. ويتركز مقاولو التأجير والتركيب في الشارقة ودبي (القوز وجبل علي) ومصفح. المنشأ: ألمانيا، النمسا، المملكة المتحدة، الصين، الهند، والإمارات للأنابيب والألواح المصنوعة محلياً.",
+      "body_en": "This entry names scaffolding, tower and cradle brands such as Layher, PERI, Doka, SGB, Altrad, RMD Kwikform, Zarges, Youngman, Sky Climber and Tractel, plus Asian copies, and where rental contractors cluster. System, tower and cradle brands in the market: Layher, PERI, Doka, SGB, Altrad, RMD Kwikform, Zarges, Youngman, Sky Climber, Tractel, Power Climber, plus Chinese and Indian cuplock, ringlock and ZLP cradle copies sold by local traders. Their UAE offices and distributors were not checked. Rental and erection contractors are concentrated in Sharjah, Dubai (Al Quoz, Jebel Ali) and Musaffah. Origins: Germany, Austria, the UK, China, India, and the UAE for locally made tube and plank.\n\nOrigin and tier, for describing a quoted brand without naming it: Layher - premium, Germany; PERI - premium, Germany; Doka - premium, Austria; SGB - mid, UK; Altrad - mid, France; RMD Kwikform - mid, UK; Zarges - premium, Germany; Youngman - mid, UK; Sky Climber - premium, USA; Tractel - premium, France; Power Climber - premium, Belgium.",
+      "body_ar": "من ماركات السقالات والأبراج والسلال المعلقة Layher وPERI وDoka وSGB وAltrad وRMD Kwikform وZarges وYoungman وSky Climber وTractel، إضافة إلى النسخ الآسيوية، مع بيان أماكن تركز مقاولي التأجير. علامات الأنظمة والأبراج والمنصات المعلقة في السوق: Layher، PERI، Doka، SGB، Altrad، RMD Kwikform، Zarges، Youngman، Sky Climber، Tractel، Power Climber، إضافة إلى نسخ صينية وهندية من الكابلوك والرينغلوك ومنصات ZLP يبيعها تجار محليون، ولم يُتحقق من مكاتبها أو موزعيها في الإمارات. ويتركز مقاولو التأجير والتركيب في الشارقة ودبي (القوز وجبل علي) ومصفح. المنشأ: ألمانيا، النمسا، المملكة المتحدة، الصين، الهند، والإمارات للأنابيب والألواح المصنوعة محلياً.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Layher: فئة ممتازة، ألمانيا؛ PERI: فئة ممتازة، ألمانيا؛ Doka: فئة ممتازة، النمسا؛ SGB: فئة متوسطة، المملكة المتحدة؛ Altrad: فئة متوسطة، فرنسا؛ RMD Kwikform: فئة متوسطة، المملكة المتحدة؛ Zarges: فئة ممتازة، ألمانيا؛ Youngman: فئة متوسطة، المملكة المتحدة؛ Sky Climber: فئة ممتازة، الولايات المتحدة؛ Tractel: فئة ممتازة، فرنسا؛ Power Climber: فئة ممتازة، بلجيكا.",
       "sources": [
         "https://www.scaxa.ae/scaffolding/legal-requirements-uae/",
         "https://www.cencenelec.eu",
@@ -36,7 +36,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: third-party inspection of scaffolds in Dubai -> corrected and made specific: the DM Code of Construction Safety Practice requires supported and suspended scaffolds to be inspected by a DM-approved third party; certificate valid 6 months or until modified. Not checked: Current third-party inspection requirements per emirate and local distributors of each system were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: third-party inspection of scaffolds in Dubai -> corrected and made specific: the DM Code of Construction Safety Practice requires supported and suspended scaffolds to be inspected by a DM-approved third party; certificate valid 6 months or until modified. Not checked: Current third-party inspection requirements per emirate and local distributors of each system were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Layher",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "PERI",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Doka",
+          "origin": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium brand from Austria",
+          "generic_ar": "علامة ممتازة من النمسا"
+        },
+        {
+          "brand": "SGB",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Altrad",
+          "origin": "France",
+          "tier": "mid",
+          "generic_en": "a mid brand from France",
+          "generic_ar": "علامة متوسطة من فرنسا"
+        },
+        {
+          "brand": "RMD Kwikform",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Zarges",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Youngman",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Sky Climber",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Tractel",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Power Climber",
+          "origin": "Belgium",
+          "tier": "premium",
+          "generic_en": "a premium brand from Belgium",
+          "generic_ar": "علامة ممتازة من بلجيكا"
+        }
+      ]
     },
     {
       "id": "scaffolding:uae-market-sizes",

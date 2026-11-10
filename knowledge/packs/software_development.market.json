@@ -9,8 +9,8 @@
       "topic": "Software, web & app development: brands and makers in this category",
       "topic_ar": "تطوير البرمجيات والمواقع والتطبيقات: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Odoo (Belgium) is a business-management platform in a free Community edition (LGPLv3) and a proprietary Enterprise edition. Shopify (Canada) provides a cloud-based commerce platform for merchants. Flutter is Google's free, open-source toolkit for building apps for several platforms from one codebase. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Odoo (بلجيكا) منصة لإدارة الأعمال بإصدار مجتمعي مجاني (LGPLv3) وإصدار مؤسسي مملوك. Shopify (كندا) توفر منصة تجارة سحابية للتجار. Flutter أداة مجانية مفتوحة المصدر من Google لبناء التطبيقات لعدة منصات من شيفرة واحدة. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Odoo (Belgium) is a business-management platform in a free Community edition (LGPLv3) and a proprietary Enterprise edition. Shopify (Canada) provides a cloud-based commerce platform for merchants. Flutter is Google's free, open-source toolkit for building apps for several platforms from one codebase. Which local distributor carries each make was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Odoo = a mid-tier Belgian brand; Shopify = a premium Canadian brand; Flutter = a mid-tier American brand.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Odoo (بلجيكا) منصة لإدارة الأعمال بإصدار مجتمعي مجاني (LGPLv3) وإصدار مؤسسي مملوك. Shopify (كندا) توفر منصة تجارة سحابية للتجار. Flutter أداة مجانية مفتوحة المصدر من Google لبناء التطبيقات لعدة منصات من شيفرة واحدة. ولم يُتحقق من الموزع المحلي لكل علامة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Odoo = علامة بلجيكية من الفئة المتوسطة؛ Shopify = علامة كندية من الفئة الممتازة؛ Flutter = علامة أمريكية من الفئة المتوسطة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Odoo",
         "https://en.wikipedia.org/wiki/Shopify",
@@ -19,7 +19,30 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
-      "source_note": "Odoo: https://en.wikipedia.org/wiki/Odoo | Shopify: https://en.wikipedia.org/wiki/Shopify | Flutter: https://en.wikipedia.org/wiki/Flutter_(software)"
+      "source_note": "Odoo: https://en.wikipedia.org/wiki/Odoo | Shopify: https://en.wikipedia.org/wiki/Shopify | Flutter: https://en.wikipedia.org/wiki/Flutter_(software) brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Odoo",
+          "origin": "Belgium",
+          "tier": "mid",
+          "generic_en": "a mid-tier Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Shopify",
+          "origin": "Canada",
+          "tier": "premium",
+          "generic_en": "a premium Canadian brand",
+          "generic_ar": "علامة كندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Flutter",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        }
+      ]
     }
   ],
   "eval": [

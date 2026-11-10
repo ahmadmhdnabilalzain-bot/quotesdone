@@ -9,8 +9,8 @@
       "topic": "Drones & unmanned aircraft: brands and makers in this category",
       "topic_ar": "الطائرات بدون طيار (الدرون): العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): DJI (China) makes camera drones, agricultural spraying drones and gimbal and camera systems. Parrot (France) manufactures drones and has focused only on drones since 2017. Autel Robotics (China) makes consumer and commercial drones. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): DJI (الصين) تصنع طائرات التصوير وطائرات الرش الزراعي وأنظمة التثبيت والكاميرات. Parrot (فرنسا) تصنع الطائرات بدون طيار وتركز عليها حصراً منذ 2017. Autel Robotics (الصين) تصنع طائرات بدون طيار استهلاكية وتجارية. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): DJI (China) makes camera drones, agricultural spraying drones and gimbal and camera systems. Parrot (France) manufactures drones and has focused only on drones since 2017. Autel Robotics (China) makes consumer and commercial drones. Which local distributor carries each make was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): DJI = a premium Chinese brand; Parrot = a mid-tier French brand; Autel Robotics = a mid-tier Chinese brand.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): DJI (الصين) تصنع طائرات التصوير وطائرات الرش الزراعي وأنظمة التثبيت والكاميرات. Parrot (فرنسا) تصنع الطائرات بدون طيار وتركز عليها حصراً منذ 2017. Autel Robotics (الصين) تصنع طائرات بدون طيار استهلاكية وتجارية. ولم يُتحقق من الموزع المحلي لكل علامة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): DJI = علامة صينية من الفئة الممتازة؛ Parrot = علامة فرنسية من الفئة المتوسطة؛ Autel Robotics = علامة صينية من الفئة المتوسطة.",
       "sources": [
         "https://en.wikipedia.org/wiki/DJI",
         "https://en.wikipedia.org/wiki/Parrot_SA",
@@ -19,7 +19,30 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
-      "source_note": "DJI: https://en.wikipedia.org/wiki/DJI | Parrot: https://en.wikipedia.org/wiki/Parrot_SA | Autel Robotics: https://en.wikipedia.org/wiki/Autel_Robotics"
+      "source_note": "DJI: https://en.wikipedia.org/wiki/DJI | Parrot: https://en.wikipedia.org/wiki/Parrot_SA | Autel Robotics: https://en.wikipedia.org/wiki/Autel_Robotics brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "DJI",
+          "origin": "China",
+          "tier": "premium",
+          "generic_en": "a premium Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الممتازة"
+        },
+        {
+          "brand": "Parrot",
+          "origin": "France",
+          "tier": "mid",
+          "generic_en": "a mid-tier French brand",
+          "generic_ar": "علامة فرنسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Autel Robotics",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        }
+      ]
     }
   ],
   "eval": [

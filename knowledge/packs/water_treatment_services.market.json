@@ -27,8 +27,8 @@
       "topic": "Water treatment plant O&M & tank cleaning: makes, brands, distributors and origins in the UAE",
       "topic_ar": "تشغيل محطات المعالجة وتنظيف الخزانات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists water treatment service providers, chemical brands and labs in the UAE, such as Metito, Veolia, Ecolab (Nalco) and Dubai Central Laboratory, and that tank cleaners must be Dubai Municipality approved. Service providers, chemical brands and labs: Metito, Veolia, SUEZ, Ecolab (Nalco), Kurita, Solenis, BWA, Imdaad, Emrill, Farnek, Transguard, Dubai Central Laboratory. Tank cleaning must be done by a company approved by Dubai Municipality, and many approved SMEs do this work. Except for Metito, which firms operate plants was not checked. Private labs accredited to ISO 17025 also test water.",
-      "body_ar": "من مزودي خدمات معالجة المياه وماركات الكيماويات والمختبرات في الإمارات Metito وVeolia وEcolab (Nalco) ومختبر دبي المركزي، ويجب أن تكون شركات تنظيف الخزانات معتمدة من بلدية دبي. مزوّدو الخدمات وعلامات الكيماويات والمختبرات: Metito، Veolia، SUEZ، Ecolab (Nalco)، Kurita، Solenis، BWA، Imdaad، Emrill، Farnek، Transguard، Dubai Central Laboratory. ويجب أن تنفذ تنظيف الخزانات شركة معتمدة من بلدية دبي، وهناك شركات صغيرة معتمدة كثيرة. ولم يُتحقق من الشركات المشغلة للمحطات عدا Metito. وتفحص المياه أيضاً مختبرات خاصة معتمدة وفق ISO 17025.",
+      "body_en": "This entry lists water treatment service providers, chemical brands and labs in the UAE, such as Metito, Veolia, Ecolab (Nalco) and Dubai Central Laboratory, and that tank cleaners must be Dubai Municipality approved. Service providers, chemical brands and labs: Metito, Veolia, SUEZ, Ecolab (Nalco), Kurita, Solenis, BWA, Imdaad, Emrill, Farnek, Transguard, Dubai Central Laboratory. Tank cleaning must be done by a company approved by Dubai Municipality, and many approved SMEs do this work. Except for Metito, which firms operate plants was not checked. Private labs accredited to ISO 17025 also test water.\n\nOrigin and tier, for describing a quoted brand without naming it: Metito - premium, UAE; Veolia - premium, France; SUEZ - premium, France; Ecolab (Nalco) - premium, USA; Kurita - premium, Japan.",
+      "body_ar": "من مزودي خدمات معالجة المياه وماركات الكيماويات والمختبرات في الإمارات Metito وVeolia وEcolab (Nalco) ومختبر دبي المركزي، ويجب أن تكون شركات تنظيف الخزانات معتمدة من بلدية دبي. مزوّدو الخدمات وعلامات الكيماويات والمختبرات: Metito، Veolia، SUEZ، Ecolab (Nalco)، Kurita، Solenis، BWA، Imdaad، Emrill، Farnek، Transguard، Dubai Central Laboratory. ويجب أن تنفذ تنظيف الخزانات شركة معتمدة من بلدية دبي، وهناك شركات صغيرة معتمدة كثيرة. ولم يُتحقق من الشركات المشغلة للمحطات عدا Metito. وتفحص المياه أيضاً مختبرات خاصة معتمدة وفق ISO 17025.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Metito: فئة ممتازة، الإمارات؛ Veolia: فئة ممتازة، فرنسا؛ SUEZ: فئة ممتازة، فرنسا؛ Ecolab (Nalco): فئة ممتازة، الولايات المتحدة؛ Kurita: فئة ممتازة، اليابان.",
       "sources": [
         "https://www.yallafixit.ae/blog/water-tank-cleaning-dubai-municipality-compliance/",
         "https://www.metito.com/",
@@ -38,7 +38,44 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai tank cleaning frequency -> corrected: at least every 6 months by a DM-approved company, every 3 months for hotels, hospitals, schools and labour accommodation (secondary compliance guides; DM text not read) | Metito operates STPs and treatment plants -> confirmed. Not checked: The current required cleaning frequency for building water tanks in each emirate was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai tank cleaning frequency -> corrected: at least every 6 months by a DM-approved company, every 3 months for hotels, hospitals, schools and labour accommodation (secondary compliance guides; DM text not read) | Metito operates STPs and treatment plants -> confirmed. Not checked: The current required cleaning frequency for building water tanks in each emirate was not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Metito",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "Veolia",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "SUEZ",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Ecolab (Nalco)",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Kurita",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        }
+      ]
     },
     {
       "id": "water_treatment_services:uae-market-sizes",

@@ -25,8 +25,8 @@
       "topic": "Industrial machinery repair & maintenance: makes, brands, distributors and origins in the UAE",
       "topic_ar": "صيانة وإصلاح الآلات الصناعية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This explains where repair service comes from: maker service centres and dealers such as Siemens, ABB and Atlas Copco, and independent workshops in Sharjah, Ajman, Dubai and Musaffah. Service comes from maker service centres and dealers (Siemens, ABB, WEG, Atlas Copco, Grundfos, Al-Bahar (Caterpillar), SKF, Fluke, Emerson, Pruftechnik; the last four are condition-monitoring tool brands) and from independent workshops concentrated in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah/ICAD. Workshops were not checked by name, and neither were their approvals from asset owners.",
-      "body_ar": "تأتي خدمة إصلاح وصيانة الآلات من مراكز صيانة المصنعين والوكلاء مثل Siemens وABB وAtlas Copco، ومن ورش مستقلة في الشارقة وعجمان ودبي ومصفح. فالخدمة تأتي من مراكز صيانة المصنعين والوكلاء (Siemens، ABB، WEG، Atlas Copco، Grundfos، البحر (Caterpillar)، SKF، Fluke، Emerson، Pruftechnik؛ والأربع الأخيرة ماركات أدوات مراقبة الحالة)، ومن ورش مستقلة تتركز في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح/آيكاد. ولم نتحقق من الورش بالاسم، ولا من اعتماداتها لدى ملاك الأصول.",
+      "body_en": "This explains where repair service comes from: maker service centres and dealers such as Siemens, ABB and Atlas Copco, and independent workshops in Sharjah, Ajman, Dubai and Musaffah. Service comes from maker service centres and dealers (Siemens, ABB, WEG, Atlas Copco, Grundfos, Al-Bahar (Caterpillar), SKF, Fluke, Emerson, Pruftechnik; the last four are condition-monitoring tool brands) and from independent workshops concentrated in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah/ICAD. Workshops were not checked by name, and neither were their approvals from asset owners.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Siemens = a premium German brand; ABB = a premium Swiss brand; WEG = a mid-tier Brazilian brand; Atlas Copco = a premium Swedish brand; Grundfos = a premium Danish brand; Al-Bahar = an authorised dealer or distributor based in the UAE; SKF = a premium Swedish brand; Fluke = a premium American brand; Emerson = a premium American brand; Pruftechnik = a premium German brand.",
+      "body_ar": "تأتي خدمة إصلاح وصيانة الآلات من مراكز صيانة المصنعين والوكلاء مثل Siemens وABB وAtlas Copco، ومن ورش مستقلة في الشارقة وعجمان ودبي ومصفح. فالخدمة تأتي من مراكز صيانة المصنعين والوكلاء (Siemens، ABB، WEG، Atlas Copco، Grundfos، البحر (Caterpillar)، SKF، Fluke، Emerson، Pruftechnik؛ والأربع الأخيرة ماركات أدوات مراقبة الحالة)، ومن ورش مستقلة تتركز في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح/آيكاد. ولم نتحقق من الورش بالاسم، ولا من اعتماداتها لدى ملاك الأصول.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Siemens = علامة ألمانية من الفئة الممتازة؛ ABB = علامة سويسرية من الفئة الممتازة؛ WEG = علامة برازيلية من الفئة المتوسطة؛ Atlas Copco = علامة سويدية من الفئة الممتازة؛ Grundfos = علامة دنماركية من الفئة الممتازة؛ Al-Bahar = وكيل أو موزع معتمد مقره الإمارات؛ SKF = علامة سويدية من الفئة الممتازة؛ Fluke = علامة أمريكية من الفئة الممتازة؛ Emerson = علامة أمريكية من الفئة الممتازة؛ Pruftechnik = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://www.easa.com",
         "https://www.iso.org",
@@ -34,7 +34,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: ANSI/EASA AR100 is the recommended practice for motor repair -> confirmed. Not checked: Which independent workshops currently hold owner approvals was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: ANSI/EASA AR100 is the recommended practice for motor repair -> confirmed. Not checked: Which independent workshops currently hold owner approvals was not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Siemens",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "ABB",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "WEG",
+          "origin": "Brazil",
+          "tier": "mid",
+          "generic_en": "a mid-tier Brazilian brand",
+          "generic_ar": "علامة برازيلية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Atlas Copco",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Grundfos",
+          "origin": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "Al-Bahar",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "an authorised dealer or distributor based in the UAE",
+          "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
+        },
+        {
+          "brand": "SKF",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Fluke",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Emerson",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Pruftechnik",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "machinery_repair:uae-market-sizes",

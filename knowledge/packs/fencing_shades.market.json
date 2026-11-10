@@ -26,8 +26,8 @@
       "topic": "Fencing, shades & tensile structures: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الأسوار والمظلات والهياكل الشدية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Shade fabric brands such as Serge Ferrari, Mehler, Verseidag, Heytex, Sheerfill and Gale Pacific, fabricated by local shade contractors, with fencing mesh from local factories and imports. Fabric brands used for shades and tensile structures: Serge Ferrari, Mehler Texnologies, Verseidag, Heytex, Saint-Gobain Sheerfill, Gale Pacific, plus Chinese and Korean HDPE makers. Fabrication and installation is by local shade and tent contractors across Dubai, Sharjah, Ajman and Abu Dhabi, mostly on hot-dip galvanised steel frames. Fencing mesh comes from local wire-mesh factories and imports from China, India, Oman and Turkey.",
-      "body_ar": "من ماركات أقمشة المظلات Serge Ferrari وMehler وVerseidag وHeytex وSheerfill وGale Pacific، ويركّبها مقاولو المظلات المحليون، أما شبك الأسوار فيأتي من مصانع محلية ومن الاستيراد. علامات الأقمشة المستخدمة للمظلات والهياكل الشدية: Serge Ferrari، Mehler Texnologies، Verseidag، Heytex، Saint-Gobain Sheerfill، Gale Pacific، إضافة إلى مصنّعي HDPE صينيين وكوريين. ويتولى التصنيع والتركيب مقاولو مظلات وخيام محليون في دبي والشارقة وعجمان وأبوظبي، غالباً على هياكل فولاذية مجلفنة بالغمس الساخن. ويأتي شبك الأسوار من مصانع شبك محلية وواردات من الصين والهند وعُمان وتركيا.",
+      "body_en": "Shade fabric brands such as Serge Ferrari, Mehler, Verseidag, Heytex, Sheerfill and Gale Pacific, fabricated by local shade contractors, with fencing mesh from local factories and imports. Fabric brands used for shades and tensile structures: Serge Ferrari, Mehler Texnologies, Verseidag, Heytex, Saint-Gobain Sheerfill, Gale Pacific, plus Chinese and Korean HDPE makers. Fabrication and installation is by local shade and tent contractors across Dubai, Sharjah, Ajman and Abu Dhabi, mostly on hot-dip galvanised steel frames. Fencing mesh comes from local wire-mesh factories and imports from China, India, Oman and Turkey.\n\nOrigin and tier, for describing a quoted brand without naming it: Serge Ferrari - premium, France; Mehler Texnologies - premium, Germany; Verseidag - premium, Germany; Heytex - mid, Germany; Saint-Gobain Sheerfill - premium, France; Gale Pacific - mid, Australia.",
+      "body_ar": "من ماركات أقمشة المظلات Serge Ferrari وMehler وVerseidag وHeytex وSheerfill وGale Pacific، ويركّبها مقاولو المظلات المحليون، أما شبك الأسوار فيأتي من مصانع محلية ومن الاستيراد. علامات الأقمشة المستخدمة للمظلات والهياكل الشدية: Serge Ferrari، Mehler Texnologies، Verseidag، Heytex، Saint-Gobain Sheerfill، Gale Pacific، إضافة إلى مصنّعي HDPE صينيين وكوريين. ويتولى التصنيع والتركيب مقاولو مظلات وخيام محليون في دبي والشارقة وعجمان وأبوظبي، غالباً على هياكل فولاذية مجلفنة بالغمس الساخن. ويأتي شبك الأسوار من مصانع شبك محلية وواردات من الصين والهند وعُمان وتركيا.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Serge Ferrari: فئة ممتازة، فرنسا؛ Mehler Texnologies: فئة ممتازة، ألمانيا؛ Verseidag: فئة ممتازة، ألمانيا؛ Heytex: فئة متوسطة، ألمانيا؛ Saint-Gobain Sheerfill: فئة ممتازة، فرنسا؛ Gale Pacific: فئة متوسطة، أستراليا.",
       "sources": [
         "https://parkingshades.weebly.com/shades-fabrics-suppliers.html",
         "https://www.iso.org",
@@ -36,7 +36,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: PVC (Serge Ferrari, Mehler, Verseidag) and HDPE knitted fabrics used for UAE car-park shades on galvanised frames -> confirmed; Gale Pacific (Coolaroo) confirmed for HDPE; Emirates Galvanising and Monotec removed (not checked). Not checked: Current local distributors of each fabric brand and typical warranty terms offered by specific UAE fabricators were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: PVC (Serge Ferrari, Mehler, Verseidag) and HDPE knitted fabrics used for UAE car-park shades on galvanised frames -> confirmed; Gale Pacific (Coolaroo) confirmed for HDPE; Emirates Galvanising and Monotec removed (not checked). Not checked: Current local distributors of each fabric brand and typical warranty terms offered by specific UAE fabricators were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Serge Ferrari",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Mehler Texnologies",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Verseidag",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Heytex",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Saint-Gobain Sheerfill",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Gale Pacific",
+          "origin": "Australia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Australia",
+          "generic_ar": "علامة متوسطة من أستراليا"
+        }
+      ]
     },
     {
       "id": "fencing_shades:uae-market-sizes",

@@ -29,8 +29,8 @@
       "topic": "IT & Network Services: makes, brands, distributors and origins in the UAE",
       "topic_ar": "خدمات تقنية المعلومات والشبكات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names confirmed UAE IT providers and major platform vendors: Help AG, Khazna Data Centers, Microsoft, AWS, Oracle, Cisco and Fortinet. Confirmed UAE providers and major platform vendors: Help AG, Khazna Data Centers, Microsoft, AWS, Oracle, Cisco, Fortinet. The vendors' UAE cloud regions and partners were not checked on opened pages.",
-      "body_ar": "من مزودي تقنية المعلومات المؤكدين في الإمارات وكبار موردي المنصات Help AG وخزنة لمراكز البيانات وMicrosoft وAWS وOracle وCisco وFortinet. المزودون المؤكدون في الإمارات وكبار موردي المنصات: Help AG، Khazna Data Centers، Microsoft، AWS، Oracle، Cisco، Fortinet. ولم يُتحقق من المناطق السحابية للموردين وشركائهم في الإمارات عبر صفحات مفتوحة.",
+      "body_en": "This entry names confirmed UAE IT providers and major platform vendors: Help AG, Khazna Data Centers, Microsoft, AWS, Oracle, Cisco and Fortinet. Confirmed UAE providers and major platform vendors: Help AG, Khazna Data Centers, Microsoft, AWS, Oracle, Cisco, Fortinet. The vendors' UAE cloud regions and partners were not checked on opened pages.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Help AG = a UAE trading or retail name; Khazna Data Centers = a UAE operator; Microsoft = a premium American brand; AWS = a premium American brand; Oracle = a premium American brand; Cisco = a premium American brand; Fortinet = a premium American brand.",
+      "body_ar": "من مزودي تقنية المعلومات المؤكدين في الإمارات وكبار موردي المنصات Help AG وخزنة لمراكز البيانات وMicrosoft وAWS وOracle وCisco وFortinet. المزودون المؤكدون في الإمارات وكبار موردي المنصات: Help AG، Khazna Data Centers، Microsoft، AWS، Oracle، Cisco، Fortinet. ولم يُتحقق من المناطق السحابية للموردين وشركائهم في الإمارات عبر صفحات مفتوحة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Help AG = اسم تجاري لتاجر أو موزع في الإمارات؛ Khazna Data Centers = جهة تشغيل إماراتية؛ Microsoft = علامة أمريكية من الفئة الممتازة؛ AWS = علامة أمريكية من الفئة الممتازة؛ Oracle = علامة أمريكية من الفئة الممتازة؛ Cisco = علامة أمريكية من الفئة الممتازة؛ Fortinet = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://csc.gov.ae/en/",
         "https://www.helpag.com/",
@@ -42,7 +42,58 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: The UAE Cyber Security Council is the federal cybersecurity body -> confirmed | Help AG is a Dubai cybersecurity firm with SOCs in the UAE -> confirmed | Khazna is a UAE data centre provider -> confirmed | Injazat, GBM, Emitac, Moro Hub, Equinix Dubai -> removed: not checked. Not checked: Current cloud region names, the Cybersecurity Council URL, and current names of integrators after rebrands were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: The UAE Cyber Security Council is the federal cybersecurity body -> confirmed | Help AG is a Dubai cybersecurity firm with SOCs in the UAE -> confirmed | Khazna is a UAE data centre provider -> confirmed | Injazat, GBM, Emitac, Moro Hub, Equinix Dubai -> removed: not checked. Not checked: Current cloud region names, the Cybersecurity Council URL, and current names of integrators after rebrands were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Help AG",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Khazna Data Centers",
+          "origin": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "Microsoft",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "AWS",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Oracle",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Cisco",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Fortinet",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "it_services:uae-market-sizes",

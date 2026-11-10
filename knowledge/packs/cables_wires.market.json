@@ -28,8 +28,8 @@
       "topic": "Cables & wires: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الكابلات والأسلاك: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the cable makers and brands in the UAE, such as Ducab, Oman Cables, Nexans and Prysmian, and where cable traders cluster. Makers and brands: Ducab, Oman Cables, Nexans, Prysmian, LS Cable, Leoni, Lapp, Belden. Ducab, owned by the governments of Dubai and Abu Dhabi, makes cable in six UAE plants, and Oman Cables is widely sold here. The others are imported, and their UAE distributors were not checked. Cable traders cluster in Deira (Naif, Al Ras), Al Quoz and Sharjah Industrial Area. Chinese imports serve the low-cost trade.",
-      "body_ar": "من أبرز مصنعي وماركات الكابلات والأسلاك في الإمارات Ducab وOman Cables وNexans وPrysmian، مع بيان أماكن تركز تجار الكابلات. المصنعون والماركات: Ducab، Oman Cables، Nexans، Prysmian، LS Cable، Leoni، Lapp، Belden. تملك حكومتا دبي وأبوظبي شركة Ducab التي تصنع الكابلات في ستة مصانع داخل الإمارات، وتنتشر كابلات Oman Cables في السوق المحلي. أما البقية فمستوردة، ولم نتحقق من موزعيها في الإمارات. ويتركز تجار الكابلات في ديرة (نايف والراس) والقوز والمنطقة الصناعية بالشارقة، وتخدم الواردات الصينية السوق منخفض التكلفة.",
+      "body_en": "This entry names the cable makers and brands in the UAE, such as Ducab, Oman Cables, Nexans and Prysmian, and where cable traders cluster. Makers and brands: Ducab, Oman Cables, Nexans, Prysmian, LS Cable, Leoni, Lapp, Belden. Ducab, owned by the governments of Dubai and Abu Dhabi, makes cable in six UAE plants, and Oman Cables is widely sold here. The others are imported, and their UAE distributors were not checked. Cable traders cluster in Deira (Naif, Al Ras), Al Quoz and Sharjah Industrial Area. Chinese imports serve the low-cost trade.\n\nOrigin and tier, for describing a quoted brand without naming it: Ducab - premium, UAE; Oman Cables - mid, Oman; Nexans - premium, France; Prysmian - premium, Italy; LS Cable - mid, South Korea; Leoni - premium, Germany; Lapp - premium, Germany; Belden - premium, USA.",
+      "body_ar": "من أبرز مصنعي وماركات الكابلات والأسلاك في الإمارات Ducab وOman Cables وNexans وPrysmian، مع بيان أماكن تركز تجار الكابلات. المصنعون والماركات: Ducab، Oman Cables، Nexans، Prysmian، LS Cable، Leoni، Lapp، Belden. تملك حكومتا دبي وأبوظبي شركة Ducab التي تصنع الكابلات في ستة مصانع داخل الإمارات، وتنتشر كابلات Oman Cables في السوق المحلي. أما البقية فمستوردة، ولم نتحقق من موزعيها في الإمارات. ويتركز تجار الكابلات في ديرة (نايف والراس) والقوز والمنطقة الصناعية بالشارقة، وتخدم الواردات الصينية السوق منخفض التكلفة.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Ducab: فئة ممتازة، الإمارات؛ Oman Cables: فئة متوسطة، عُمان؛ Nexans: فئة ممتازة، فرنسا؛ Prysmian: فئة ممتازة، إيطاليا؛ LS Cable: فئة متوسطة، كوريا الجنوبية؛ Leoni: فئة ممتازة، ألمانيا؛ Lapp: فئة ممتازة، ألمانيا؛ Belden: فئة ممتازة، الولايات المتحدة.",
       "sources": [
         "https://ducab.com/",
         "https://spectrum-me.com/electrical.html",
@@ -40,7 +40,65 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Ducab makes cable in the UAE -> confirmed (Dubai and Abu Dhabi government owned, six UAE plants) | other regional makers -> confirmed Oman Cables sold in the UAE; RAK Cables, National Cables Industry, Emirates Cables, Riyadh Cables, Saudi Cable and Bahra removed (not confirmed). Not checked: Current utility approved-manufacturer lists and whether some named regional producers are still trading under those names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Ducab makes cable in the UAE -> confirmed (Dubai and Abu Dhabi government owned, six UAE plants) | other regional makers -> confirmed Oman Cables sold in the UAE; RAK Cables, National Cables Industry, Emirates Cables, Riyadh Cables, Saudi Cable and Bahra removed (not confirmed). Not checked: Current utility approved-manufacturer lists and whether some named regional producers are still trading under those names were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Ducab",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "Oman Cables",
+          "origin": "Oman",
+          "tier": "mid",
+          "generic_en": "a mid brand from Oman",
+          "generic_ar": "علامة متوسطة من عُمان"
+        },
+        {
+          "brand": "Nexans",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "Prysmian",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        },
+        {
+          "brand": "LS Cable",
+          "origin": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid brand from South Korea",
+          "generic_ar": "علامة متوسطة من كوريا الجنوبية"
+        },
+        {
+          "brand": "Leoni",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Lapp",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Belden",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        }
+      ]
     },
     {
       "id": "cables_wires:uae-market-sizes",

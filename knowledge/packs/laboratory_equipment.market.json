@@ -28,8 +28,8 @@
       "topic": "Laboratory equipment & chemicals: makes, brands, distributors and origins in the UAE",
       "topic_ar": "معدات ومواد مختبرات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names local offices and distributors, such as Thermo Fisher Scientific, Sigma Enterprises and Gulf Scientific Corporation, major instrument makers such as Agilent and Shimadzu, and key trade events. Confirmed local offices and distributors, and major instrument makers: Thermo Fisher Scientific (Dubai Science Park), Sigma Enterprises, Gulf Scientific Corporation, Agilent, Waters, Shimadzu, Mettler Toledo, Sartorius, Eppendorf, Bio-Rad, Roche Diagnostics, Sysmex, Merck. Apart from Thermo Fisher, the makers' UAE distributors were not checked. Medlab Middle East and Arab Health are key trade events.",
-      "body_ar": "تشمل معدات المختبرات في الإمارات مكاتب محلية وموزعين مثل Thermo Fisher Scientific وSigma Enterprises وGulf Scientific Corporation، وكبار مصنعي الأجهزة مثل Agilent وShimadzu، إضافة إلى أهم المعارض التجارية. المكاتب والموزعون المحليون المؤكدون، وكبرى شركات صناعة الأجهزة: Thermo Fisher Scientific (Dubai Science Park)، Sigma Enterprises، Gulf Scientific Corporation، Agilent، Waters، Shimadzu، Mettler Toledo، Sartorius، Eppendorf، Bio-Rad، Roche Diagnostics، Sysmex، Merck. وباستثناء ثيرمو فيشر، لم يُتحقق من موزعي الشركات في الإمارات. ويُعد معرضا ميدلاب الشرق الأوسط والصحة العربي من أهم الفعاليات التجارية.",
+      "body_en": "This entry names local offices and distributors, such as Thermo Fisher Scientific, Sigma Enterprises and Gulf Scientific Corporation, major instrument makers such as Agilent and Shimadzu, and key trade events. Confirmed local offices and distributors, and major instrument makers: Thermo Fisher Scientific (Dubai Science Park), Sigma Enterprises, Gulf Scientific Corporation, Agilent, Waters, Shimadzu, Mettler Toledo, Sartorius, Eppendorf, Bio-Rad, Roche Diagnostics, Sysmex, Merck. Apart from Thermo Fisher, the makers' UAE distributors were not checked. Medlab Middle East and Arab Health are key trade events.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Thermo Fisher Scientific = a premium American brand; Sigma Enterprises = a UAE trading or retail name; Gulf Scientific Corporation = a UAE trading or retail name; Agilent = a premium American brand; Waters = a premium American brand; Shimadzu = a premium Japanese brand; Mettler Toledo = a premium Swiss brand; Sartorius = a premium German brand; Eppendorf = a premium German brand; Bio-Rad = a premium American brand; Roche Diagnostics = a premium Swiss brand; Sysmex = a premium Japanese brand; Merck = a premium German brand.",
+      "body_ar": "تشمل معدات المختبرات في الإمارات مكاتب محلية وموزعين مثل Thermo Fisher Scientific وSigma Enterprises وGulf Scientific Corporation، وكبار مصنعي الأجهزة مثل Agilent وShimadzu، إضافة إلى أهم المعارض التجارية. المكاتب والموزعون المحليون المؤكدون، وكبرى شركات صناعة الأجهزة: Thermo Fisher Scientific (Dubai Science Park)، Sigma Enterprises، Gulf Scientific Corporation، Agilent، Waters، Shimadzu، Mettler Toledo، Sartorius، Eppendorf، Bio-Rad، Roche Diagnostics، Sysmex، Merck. وباستثناء ثيرمو فيشر، لم يُتحقق من موزعي الشركات في الإمارات. ويُعد معرضا ميدلاب الشرق الأوسط والصحة العربي من أهم الفعاليات التجارية.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Thermo Fisher Scientific = علامة أمريكية من الفئة الممتازة؛ Sigma Enterprises = اسم تجاري لتاجر أو موزع في الإمارات؛ Gulf Scientific Corporation = اسم تجاري لتاجر أو موزع في الإمارات؛ Agilent = علامة أمريكية من الفئة الممتازة؛ Waters = علامة أمريكية من الفئة الممتازة؛ Shimadzu = علامة يابانية من الفئة الممتازة؛ Mettler Toledo = علامة سويسرية من الفئة الممتازة؛ Sartorius = علامة ألمانية من الفئة الممتازة؛ Eppendorf = علامة ألمانية من الفئة الممتازة؛ Bio-Rad = علامة أمريكية من الفئة الممتازة؛ Roche Diagnostics = علامة سويسرية من الفئة الممتازة؛ Sysmex = علامة يابانية من الفئة الممتازة؛ Merck = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://www.ede.gov.ae/en/home",
         "https://gulf-scientific.com/partners/thermo-fisher-scientific/",
@@ -40,7 +40,100 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Clinical IVD analysers and reagents fall under the Emirates Drug Establishment -> confirmed | Thermo Fisher Scientific has a Middle East office in Dubai Science Park; Sigma Enterprises and Gulf Scientific Corporation distribute Thermo Fisher in the UAE; Agilent has a UAE contact office -> confirmed | Other named instrument brands' UAE distributors -> removed: not checked. Not checked: Current distributor appointments per brand and the exact permit authority for each controlled chemical category were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Clinical IVD analysers and reagents fall under the Emirates Drug Establishment -> confirmed | Thermo Fisher Scientific has a Middle East office in Dubai Science Park; Sigma Enterprises and Gulf Scientific Corporation distribute Thermo Fisher in the UAE; Agilent has a UAE contact office -> confirmed | Other named instrument brands' UAE distributors -> removed: not checked. Not checked: Current distributor appointments per brand and the exact permit authority for each controlled chemical category were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Thermo Fisher Scientific",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sigma Enterprises",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Gulf Scientific Corporation",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Agilent",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Waters",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Shimadzu",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mettler Toledo",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sartorius",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Eppendorf",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bio-Rad",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Roche Diagnostics",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sysmex",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Merck",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "laboratory_equipment:uae-market-sizes",

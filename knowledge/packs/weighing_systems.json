@@ -6,8 +6,8 @@
       "topic": "Weighing scales & weighbridges - what the buyer must state",
       "topic_ar": "موازين وجسور وزن: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For weighing scales & weighbridges (trade code weighing_systems only), every quoted line must state: Scale type and application; Capacity; Readability or division; Accuracy class; Platform or deck size; Load cell type and number; Indicator and connectivity; Environment and protection (IP); Legal-for-trade verification; Installation and civil works; Calibration certificate; Warranty and service; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط موازين وجسور وزن (رمز النشاط weighing_systems فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الميزان واستخدامه؛ السعة القصوى؛ دقة القراءة أو التقسيم؛ فئة الدقة؛ مقاس المنصة أو السطح؛ نوع خلايا الحمل وعددها؛ المؤشر والاتصال؛ البيئة ودرجة الحماية؛ التحقق للاستخدام التجاري القانوني؛ التركيب والأعمال المدنية؛ شهادة المعايرة؛ الضمان والخدمة؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For weighing scales & weighbridges (trade code weighing_systems only), every quoted line must state: Scale type and application; Capacity; Readability or division; Accuracy class; Platform or deck size; Load cell type and number; Indicator and connectivity; Environment and protection (IP); Legal-for-trade verification; Installation and civil works; Calibration certificate; Warranty and service; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Scale type and application; Capacity; Readability or division; Accuracy class; Platform or deck size; Legal-for-trade verification; Installation and civil works. Follow-up questions the answers trigger: Scale type and application: Weighbridges bring vehicle size and axle loads. Accuracy class: Trade use brings legal metrology verification. Installation and civil works: Weighbridges bring soil, foundation design and drainage. Before a firm price: a weighbridge needs a site visit for foundations, access and drainage before a firm price; standard scales can be priced from the specs. Supplier ask-back review (2026-11-10): the inquiry now also states Quantity of units (quote-blocking); Delivery location and emirate; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Scale type and application; Capacity; Readability or division; Accuracy class; Platform or deck size; Legal-for-trade verification; Installation and civil works; Quantity of units.",
+      "body_ar": "في نشاط موازين وجسور وزن (رمز النشاط weighing_systems فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الميزان واستخدامه؛ السعة القصوى؛ دقة القراءة أو التقسيم؛ فئة الدقة؛ مقاس المنصة أو السطح؛ نوع خلايا الحمل وعددها؛ المؤشر والاتصال؛ البيئة ودرجة الحماية؛ التحقق للاستخدام التجاري القانوني؛ التركيب والأعمال المدنية؛ شهادة المعايرة؛ الضمان والخدمة؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الميزان واستخدامه، والسعة، ودقة القراءة، وفئة الدقة، ومقاس السطح، والتحقق القانوني للاستخدام التجاري، والتركيب والأعمال المدنية. أسئلة المتابعة: موازين الشاحنات تستلزم مقاس المركبات وأحمال المحاور والتربة وتصميم القواعد والتصريف، والاستخدام التجاري يستلزم التحقق المترولوجي القانوني. ميزان الشاحنات يحتاج زيارة موقع قبل السعر النهائي. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً عدد الوحدات (مانع للتسعير)؛ موقع التسليم والإمارة؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Scale type and application",
         "Capacity",
@@ -21,15 +21,143 @@
         "Installation and civil works",
         "Calibration certificate",
         "Warranty and service",
-        "Lead time"
+        "Lead time",
+        "Quantity of units",
+        "Delivery location and emirate",
+        "Payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Weighbridge"
       ],
       "confidence": "medium",
       "as_of": "2026-10-19",
-      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: pit-mounted and surface-mounted weighbridges, axle scales, load cells as the sensing element."
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: pit-mounted and surface-mounted weighbridges, axle scales, load cells as the sensing element. spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "blocking": [
+        "Scale type and application",
+        "Capacity",
+        "Readability or division",
+        "Accuracy class",
+        "Platform or deck size",
+        "Legal-for-trade verification",
+        "Installation and civil works",
+        "Quantity of units"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Scale type and application",
+          "blocking": true,
+          "why_needed_to_price": "Bench, floor, platform, weighbridge, crane scale and checkweigher are different products.",
+          "uae_options": "Bench, floor, pallet, weighbridge (pit or surface), crane, checkweigher, lab balance.",
+          "follow_up_if": "Weighbridges bring vehicle size and axle loads."
+        },
+        {
+          "spec": "Capacity",
+          "blocking": true,
+          "why_needed_to_price": "Capacity sets the load cells and structure.",
+          "uae_options": "kg or tonnes.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Readability or division",
+          "blocking": true,
+          "why_needed_to_price": "Finer division needs better load cells and indicators.",
+          "uae_options": "e/d in g or kg.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Accuracy class",
+          "blocking": true,
+          "why_needed_to_price": "Class III vs class II and legal-for-trade approval change the product.",
+          "uae_options": "OIML R76 class I-IIII; legal-for-trade or process use.",
+          "follow_up_if": "Trade use brings legal metrology verification."
+        },
+        {
+          "spec": "Platform or deck size",
+          "blocking": true,
+          "why_needed_to_price": "Deck size and material set the structure.",
+          "uae_options": "Mild steel, stainless; dimensions; weighbridge length 12-24 m.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Load cell type and number",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Analogue or digital; stainless; IP68.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Indicator and connectivity",
+          "blocking": false,
+          "why_needed_to_price": "Printers, software and network add cost.",
+          "uae_options": "Indicator, printer, RS232/Ethernet, ERP integration.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Environment and protection (IP)",
+          "blocking": false,
+          "why_needed_to_price": "Washdown and outdoor sites need higher IP.",
+          "uae_options": "IP65-IP69K; stainless for food.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Legal-for-trade verification",
+          "blocking": true,
+          "why_needed_to_price": "Trade weighing needs legal metrology verification.",
+          "uae_options": "Initial and periodic verification by the competent authority.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Installation and civil works",
+          "blocking": true,
+          "why_needed_to_price": "Weighbridge foundations and pits can exceed the bridge cost.",
+          "uae_options": "Supply only; installation; foundations by others or supplier.",
+          "follow_up_if": "Weighbridges bring soil, foundation design and drainage."
+        },
+        {
+          "spec": "Calibration certificate",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "ISO 17025 accredited calibration.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Warranty and service",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Quantity of units",
+          "why_needed_to_price": "The number of units sets the price break and the delivery and installation labour.",
+          "uae_options": "Units per model or size.",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Delivery location and emirate",
+          "why_needed_to_price": "Freight, offloading and the distance to site are part of a delivered price; a delivered price to Dubai is not the same as one to Al Dhafra or Fujairah.",
+          "uae_options": "Ex-warehouse collection; delivered to one address in a named emirate; delivered and offloaded; split deliveries to several sites.",
+          "follow_up_if": "If the site has access limits (time windows, small vehicles only, no forklift), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a weighbridge needs a site visit for foundations, access and drainage before a firm price; standard scales can be priced from the specs."
     },
     {
       "id": "weighing_systems:product-distinctions",
@@ -60,6 +188,91 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "weighing_systems:authority-approvals",
+      "topic": "Weighing systems: legal metrology rules and verification by emirate",
+      "topic_ar": "أنظمة الوزن: قواعد المترولوجيا القانونية والتحقق حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Weighing instruments used in trade are regulated. Search results identify the Cabinet Resolution of 2023 on the technical regulation for non-automatic weighing instruments (reported as No. 84 of 2023, effective 1 August 2023), under which suppliers must ensure instruments comply when placing them on the market and owners of instruments used commercially must keep a valid verification mark; a secondary summary says periodic verification is annual. Automatic weighing instruments fall under a separate 2024 resolution on legal measuring instruments. In Dubai, Dubai Municipality provides legal metrology verification. The supplier provides a compliant instrument; the owner arranges verification.",
+      "body_ar": "أدوات الوزن المستخدمة في التجارة خاضعة للتنظيم. وتحدد نتائج البحث قرار مجلس الوزراء لسنة 2023 بشأن اللائحة الفنية لأدوات الوزن غير الآلية (ورد أنه رقم 84 لسنة 2023 ونافذ من 1 أغسطس 2023)، الذي يلزم الموردين بضمان مطابقة الأدوات عند طرحها في السوق، ويلزم مالكي الأدوات المستخدمة تجارياً بالاحتفاظ بعلامة تحقق سارية، ويذكر ملخص ثانوي أن التحقق الدوري سنوي. وتخضع أدوات الوزن الآلية لقرار منفصل صدر عام 2024 بشأن أدوات القياس القانونية. وفي دبي تقدم بلدية دبي خدمة التحقق المترولوجي القانوني. ويقدم المورد أداة مطابقة، ويرتب المالك التحقق.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2168",
+        "https://www.dm.gov.ae/municipality-business/legal-metrology-verification/",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM's legal-metrology page: Dubai Central Laboratory implements legal-metrology control of instruments used in commercial transactions in Dubai; MoIAT's regulated-products sheet lists legal measuring instruments. Not confirmed on any page that opened: Cabinet Resolution No. 84 of 2023 on non-automatic weighing instruments, its 1 August 2023 date, annual verification and the 2024 resolution (uaelegislation.gov.ae serves a Cloudflare block page)."
+    },
+    {
+      "id": "weighing_systems:quote-red-flags",
+      "topic": "Red flags in weighing system quotations",
+      "topic_ar": "علامات التحذير في عروض أنظمة الوزن",
+      "kind": "quote_red_flag",
+      "body_en": "Check accuracy class and division: a process-grade scale offered where legal-for-trade was asked, or a coarser division, is a substitution. Watch for mild-steel decks for wet or food areas, analogue load cells where digital was asked, weighbridges quoted without foundations, ramps or civil works, no verification or calibration included, software and printers extra, and an indicator from a different maker than the load cells without integration warranty.",
+      "body_ar": "افحص فئة الدقة ودقة القراءة: فعرض ميزان لأغراض العمليات حيث طُلب ميزان تجاري معتمد، أو دقة قراءة أخشن، استبدال. وانتبه إلى: أسطح من الفولاذ الطري لمناطق رطبة أو غذائية، وخلايا حمل تناظرية حيث طُلبت رقمية، وموازين شاحنات مسعّرة دون القواعد أو المنحدرات أو الأعمال المدنية، وعدم شمول التحقق أو المعايرة، واحتساب البرمجيات والطابعات إضافياً، ومؤشر من صانع مختلف عن خلايا الحمل دون ضمان للتكامل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "weighing_systems:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying scales and weighbridges",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الموازين وموازين الشاحنات",
+      "kind": "buyer_mistake",
+      "body_en": "Buying a scale for invoicing that is not approved for trade; choosing capacity far above the typical load, which loses resolution; forgetting civil works for weighbridges; and not budgeting annual verification and calibration. Ask what is weighed, the heaviest and lightest load, and whether the weight is used for billing.",
+      "body_ar": "شراء ميزان لإصدار الفواتير غير معتمد للاستخدام التجاري؛ واختيار سعة تفوق الحمل المعتاد كثيراً فتضيع دقة القراءة؛ ونسيان الأعمال المدنية لموازين الشاحنات؛ وعدم رصد ميزانية للتحقق والمعايرة السنويين. لذا يُسأل عما يوزن وأثقل وأخف حمل وهل يُستخدم الوزن في الفوترة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "weighing_systems:price-drivers",
+      "topic": "What legitimately moves weighing system prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار أنظمة الوزن",
+      "kind": "price_driver",
+      "body_en": "Capacity and accuracy class, legal-for-trade approval, deck size and material, load cell type, indicator and software, environmental protection, civil works for weighbridges, brand and origin, and verification and calibration services.",
+      "body_ar": "السعة وفئة الدقة، والاعتماد للاستخدام التجاري، ومقاس السطح ومادته، ونوع خلايا الحمل، والمؤشر والبرمجيات، ودرجة الحماية البيئية، والأعمال المدنية لموازين الشاحنات، والعلامة والمنشأ، وخدمات التحقق والمعايرة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "weighing_systems:compare-quotes",
+      "topic": "Comparing weighing system quotes like-for-like",
+      "topic_ar": "مقارنة عروض أنظمة الوزن على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Match capacity, division, class and legal-for-trade status, then put all offers on the same scope (installation, civil works, verification, software). Weigh local service and calibration support. Recommend the three compliant offers at the lowest installed cost.",
+      "body_ar": "طابق السعة ودقة القراءة والفئة وحالة الاعتماد التجاري، ثم وحّد نطاق العروض (التركيب والأعمال المدنية والتحقق والبرمجيات). وزن الخدمة المحلية ودعم المعايرة. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة تركيب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "weighing_systems:authority-dubai-legal-metrology",
+      "topic": "Weighing systems: legal metrology verification in Dubai",
+      "topic_ar": "أنظمة الوزن: التحقق المترولوجي القانوني في دبي",
+      "kind": "authority_approval",
+      "body_en": "In Dubai, Dubai Central Laboratory of Dubai Municipality implements legal metrology control for measuring instruments used in commercial transactions and in health and safety, under Cabinet Resolution No. 64 of 2022 on the National Metrology System and a cooperation and authorisation agreement with the Ministry of Industry and Advanced Technology. The instruments it monitors include electronic balances (with petrol pumps, taxi meters, medical devices and pre-packed goods). After verification the inspector fixes a green \"Verified\" sticker when the instrument complies, or a red \"Rejected\" sticker when it is unusable for customer transactions; fees follow Cabinet Resolution No. 13 of 2021. A scale used for selling by weight must therefore carry a valid green sticker; the owner arranges the verification, and the supplier should deliver an instrument that can pass it.",
+      "body_ar": "في دبي يطبق مختبر دبي المركزي التابع لبلدية دبي الرقابة المترولوجية القانونية على أدوات القياس المستخدمة في المعاملات التجارية وفي مجال الصحة والسلامة، بموجب قرار مجلس الوزراء رقم 64 لسنة 2022 بشأن المنظومة الوطنية للمقاييس واتفاقية تعاون وتفويض مع وزارة الصناعة والتكنولوجيا المتقدمة. ومن الأدوات التي يراقبها الموازين الإلكترونية (إلى جانب مضخات الوقود وعدادات سيارات الأجرة والأجهزة الطبية والسلع المعبأة مسبقاً). وبعد التحقق يضع المفتش ملصقاً أخضر \"تم التحقق\" إذا كانت الأداة مطابقة، أو ملصقاً أحمر \"مرفوض\" إذا كانت غير صالحة للمعاملات مع العملاء، وتُستوفى الرسوم وفق قرار مجلس الوزراء رقم 13 لسنة 2021. لذا يجب أن يحمل الميزان المستخدم في البيع بالوزن ملصقاً أخضر سارياً؛ ويرتب المالك التحقق، وعلى المورد تسليم أداة قادرة على اجتيازه.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/legal-metrology-verification/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590) from the Dubai Municipality page in sources, opened with curl that day; every claim in the body is read on that page.",
+      "source_note": "Opened 2026-11-10: Dubai Municipality, Legal Metrology Verification page (www.dm.gov.ae)."
     }
   ],
   "eval": [
@@ -93,6 +306,32 @@
       903,
       1198,
       1209
-    ]
+    ],
+    "still_unverified": [
+      "weighing_systems:authority-approvals"
+    ],
+    "expert_authored_unsourced": [
+      "weighing_systems:quote-red-flags",
+      "weighing_systems:buyer-mistakes",
+      "weighing_systems:price-drivers",
+      "weighing_systems:compare-quotes"
+    ],
+    "opened_10_nov_2026": [
+      "https://www.dm.gov.ae/municipality-business/legal-metrology-verification/"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "weighing_systems:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

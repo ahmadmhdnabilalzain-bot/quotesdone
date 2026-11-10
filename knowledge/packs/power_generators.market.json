@@ -28,8 +28,8 @@
       "topic": "Generators & Power Equipment: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المولدات ومعدات الطاقة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Generator dealers and brands in the UAE include Al-Bahar (Caterpillar), Cummins dealers, Aggreko, Perkins, FG Wilson, MTU, Kohler-SDMO and Himoinsa, with many sets packaged locally. Dealers, rental firms and brands: Al-Bahar (Caterpillar), Rich Motor Company (Cummins), Technopower (Cummins), Aggreko, Perkins, FG Wilson, Volvo Penta, MTU, Kohler-SDMO, Himoinsa, Aksa, Atlas Copco, Leroy-Somer, Stamford, Mecc Alte, Deep Sea, ComAp, Vertiv, Eaton, Socomec, Riello. For brands without a dealer named here, the dealers were not checked. Many gensets are packaged locally in Sharjah, Dubai and Jebel Ali. Origins: the UK, US brands, Germany, Japan, Turkey, China, and UAE assembly.",
-      "body_ar": "من وكلاء المولدات (الجنريترات) وماركاتها في الإمارات البحر (Caterpillar) ووكلاء Cummins وAggreko وPerkins وFG Wilson وMTU وKohler-SDMO وHimoinsa، ويُجمَّع كثير من المولدات محليًا. الوكلاء وشركات التأجير والماركات: البحر (Caterpillar)، وRich Motor Company (Cummins)، وTechnopower (Cummins)، وAggreko، وPerkins، وFG Wilson، وVolvo Penta، وMTU، وKohler-SDMO، وHimoinsa، وAksa، وAtlas Copco، وLeroy-Somer، وStamford، وMecc Alte، وDeep Sea، وComAp، وVertiv، وEaton، وSocomec، وRiello. وللماركات التي لم يُذكر لها وكيل هنا لم نتحقق من وكلائها. ويُجمَّع كثير من أطقم المولدات محليًا في الشارقة ودبي وجبل علي. دول المنشأ: المملكة المتحدة، وماركات أمريكية، وألمانيا، واليابان، وتركيا، والصين، والتجميع في الإمارات.",
+      "body_en": "Generator dealers and brands in the UAE include Al-Bahar (Caterpillar), Cummins dealers, Aggreko, Perkins, FG Wilson, MTU, Kohler-SDMO and Himoinsa, with many sets packaged locally. Dealers, rental firms and brands: Al-Bahar (Caterpillar), Rich Motor Company (Cummins), Technopower (Cummins), Aggreko, Perkins, FG Wilson, Volvo Penta, MTU, Kohler-SDMO, Himoinsa, Aksa, Atlas Copco, Leroy-Somer, Stamford, Mecc Alte, Deep Sea, ComAp, Vertiv, Eaton, Socomec, Riello. For brands without a dealer named here, the dealers were not checked. Many gensets are packaged locally in Sharjah, Dubai and Jebel Ali. Origins: the UK, US brands, Germany, Japan, Turkey, China, and UAE assembly.\n\nOrigin and tier, for describing a quoted brand without naming it: Caterpillar - premium, USA; Cummins - premium, USA; Aggreko - premium, UK; Perkins - mid, UK; FG Wilson - mid, UK; Volvo Penta - premium, Sweden; MTU - premium, Germany; Kohler-SDMO - mid, France; Himoinsa - mid, Spain.",
+      "body_ar": "من وكلاء المولدات (الجنريترات) وماركاتها في الإمارات البحر (Caterpillar) ووكلاء Cummins وAggreko وPerkins وFG Wilson وMTU وKohler-SDMO وHimoinsa، ويُجمَّع كثير من المولدات محليًا. الوكلاء وشركات التأجير والماركات: البحر (Caterpillar)، وRich Motor Company (Cummins)، وTechnopower (Cummins)، وAggreko، وPerkins، وFG Wilson، وVolvo Penta، وMTU، وKohler-SDMO، وHimoinsa، وAksa، وAtlas Copco، وLeroy-Somer، وStamford، وMecc Alte، وDeep Sea، وComAp، وVertiv، وEaton، وSocomec، وRiello. وللماركات التي لم يُذكر لها وكيل هنا لم نتحقق من وكلائها. ويُجمَّع كثير من أطقم المولدات محليًا في الشارقة ودبي وجبل علي. دول المنشأ: المملكة المتحدة، وماركات أمريكية، وألمانيا، واليابان، وتركيا، والصين، والتجميع في الإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Caterpillar: فئة ممتازة، الولايات المتحدة؛ Cummins: فئة ممتازة، الولايات المتحدة؛ Aggreko: فئة ممتازة، المملكة المتحدة؛ Perkins: فئة متوسطة، المملكة المتحدة؛ FG Wilson: فئة متوسطة، المملكة المتحدة؛ Volvo Penta: فئة ممتازة، السويد؛ MTU: فئة ممتازة، ألمانيا؛ Kohler-SDMO: فئة متوسطة، فرنسا؛ Himoinsa: فئة متوسطة، إسبانيا.",
       "sources": [
         "https://www.albahar.com/",
         "https://richmotor.com/cummins-generator-uae/",
@@ -40,7 +40,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar gensets via Al-Bahar -> confirmed | Cummins agents -> corrected: Rich Motor Company and Technopower are authorised Cummins generator agents; 'Cummins Arabia' removed | Aggreko rental -> confirmed (Aggreko Middle East, Jebel Ali). Not checked: Current dealer appointments for each brand in each emirate and local transformer makers' names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar gensets via Al-Bahar -> confirmed | Cummins agents -> corrected: Rich Motor Company and Technopower are authorised Cummins generator agents; 'Cummins Arabia' removed | Aggreko rental -> confirmed (Aggreko Middle East, Jebel Ali). Not checked: Current dealer appointments for each brand in each emirate and local transformer makers' names were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Caterpillar",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Cummins",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Aggreko",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium brand from UK",
+          "generic_ar": "علامة ممتازة من المملكة المتحدة"
+        },
+        {
+          "brand": "Perkins",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "FG Wilson",
+          "origin": "UK",
+          "tier": "mid",
+          "generic_en": "a mid brand from UK",
+          "generic_ar": "علامة متوسطة من المملكة المتحدة"
+        },
+        {
+          "brand": "Volvo Penta",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium brand from Sweden",
+          "generic_ar": "علامة ممتازة من السويد"
+        },
+        {
+          "brand": "MTU",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Kohler-SDMO",
+          "origin": "France",
+          "tier": "mid",
+          "generic_en": "a mid brand from France",
+          "generic_ar": "علامة متوسطة من فرنسا"
+        },
+        {
+          "brand": "Himoinsa",
+          "origin": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid brand from Spain",
+          "generic_ar": "علامة متوسطة من إسبانيا"
+        }
+      ]
     },
     {
       "id": "power_generators:uae-market-sizes",

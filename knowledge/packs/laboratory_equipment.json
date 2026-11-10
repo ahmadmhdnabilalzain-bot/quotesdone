@@ -5,8 +5,8 @@
       "id": "laboratory_equipment:spec-checklist",
       "topic": "Laboratory equipment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For laboratory equipment (trade code laboratory_equipment only), every quoted line must state: Instrument type, make and model; Performance specification; Power and utilities needed; Software and licences; Installation and qualification; Calibration certificate; User training; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط معدات المختبرات (رمز النشاط laboratory_equipment فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الجهاز والصانع والطراز؛ مواصفة الأداء؛ الطاقة والمرافق المطلوبة؛ البرمجيات والتراخيص؛ التركيب والتأهيل؛ شهادة المعايرة؛ تدريب المستخدمين؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For laboratory equipment (trade code laboratory_equipment only), every quoted line must state: Instrument type, make and model; Performance specification; Power and utilities needed; Software and licences; Installation and qualification; Calibration certificate; User training; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Instrument type, make and model; Performance specification; Installation and qualification; Quantity and unit of measure; Delivery terms and location. Before a firm price: a firm price needs model or full specification, configuration and qualification scope; large analysers need a site readiness check. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states payment terms.",
+      "body_ar": "في نشاط معدات المختبرات (رمز النشاط laboratory_equipment فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الجهاز والصانع والطراز؛ مواصفة الأداء؛ الطاقة والمرافق المطلوبة؛ البرمجيات والتراخيص؛ التركيب والتأهيل؛ شهادة المعايرة؛ تدريب المستخدمين؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الجهاز وعلامته وطرازه، ومواصفة الأداء، والتركيب والتأهيل، والكمية، والتسليم. المحللات الكبيرة تحتاج فحصاً لجاهزية الموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً شروط الدفع.",
       "required_specs": [
         "Instrument type, make and model",
         "Performance specification",
@@ -21,14 +21,132 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Instrument type, make and model",
+        "Performance specification",
+        "Installation and qualification",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Instrument type, make and model",
+          "why_needed_to_price": "Instrument type, make and model.",
+          "uae_options": "HPLC; GC-MS; analyser; centrifuge; balance",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Performance specification",
+          "why_needed_to_price": "Performance specification defines the configuration.",
+          "uae_options": "detectors; range; throughput",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Power and utilities needed",
+          "why_needed_to_price": "Utilities.",
+          "uae_options": "power; gases; water; UPS",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Software and licences",
+          "why_needed_to_price": "Software and licences.",
+          "uae_options": "seats; compliance (21 CFR Part 11)",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Installation and qualification",
+          "why_needed_to_price": "Installation and qualification.",
+          "uae_options": "IQ/OQ/PQ",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Calibration certificate",
+          "why_needed_to_price": "Calibration certificate.",
+          "uae_options": "ISO 17025",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "User training",
+          "why_needed_to_price": "Training.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "Standards.",
+          "uae_options": "reports",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "UAE approval.",
+          "uae_options": "EDE registration for IVD analysers",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Delivery and installation.",
+          "uae_options": "DDP; site readiness",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "years",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "weeks",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "consumables; gases",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "site_visit_required_when": "a firm price needs model or full specification, configuration and qualification scope; large analysers need a site readiness check.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "laboratory_equipment:uae-standards-and-approvals",
@@ -86,6 +204,78 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "laboratory_equipment:authority-approvals",
+      "topic": "Laboratory equipment & chemicals: licences, permits and approvals by emirate",
+      "topic_ar": "معدات ومواد مختبرات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "General laboratory instruments need no health registration, but in-vitro diagnostic analysers and reagents used on patients are medical devices that need UAE registration, now with the Emirates Drug Establishment. Chemicals and reagents may be controlled substances or hazardous materials needing permits (for example from the Ministry of Climate Change and Environment or the emirate's civil defence for storage); precursor chemicals have their own controls. Electrical instruments may need MoIAT conformity. Radiation sources (XRF, some analysers) need FANR licensing. These sector specifics were not opened in this session.",
+      "body_ar": "لا تحتاج الأجهزة المخبرية العامة إلى تسجيل صحي، لكن أجهزة التشخيص المخبري وكواشفها المستخدمة على المرضى أجهزة طبية تحتاج تسجيلاً في الدولة، وهو الآن لدى مؤسسة الإمارات للدواء. وقد تكون المواد الكيميائية والكواشف مواد خاضعة للرقابة أو مواد خطرة تحتاج تصاريح (مثلاً من وزارة التغير المناخي والبيئة أو الدفاع المدني في الإمارة للتخزين)، وللمواد الكيميائية الأولية ضوابطها. وقد تحتاج الأجهزة الكهربائية مطابقة من وزارة الصناعة. وتحتاج مصادر الإشعاع ترخيص الهيئة الاتحادية للرقابة النووية. ولم تُفتح هذه التفاصيل القطاعية في هذه الجلسة.",
+      "sources": [
+        "https://www.pureglobal.com/markets/uae",
+        "https://uppersetup.com/en/article/registering-medicines-and-medical-devices-in-the-uae-2026",
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification",
+        "https://www.ede.gov.ae/en/web/ede/w/import-permit-for-medical-materials-and-products",
+        "https://www.ede.gov.ae/en/w/classification-of-a-product"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: EDE: medical devices need marketing authorisation and EDE classifies products; EDE import permits cover chemical precursors, which need Ministry of Interior approval and an EDE registration certificate for precursor trading or end-user import; MoIAT's regulated-products sheet lists low-voltage electrical products. Not confirmed on any page that opened: that IVD analysers and reagents are classed as medical devices, MOCCAE and civil defence storage permits, and FANR licensing of radiation sources. Hosts that failed: fanr.gov.ae (refused by the session network); www.dcd.gov.ae (connection reset by the site)."
+    },
+    {
+      "id": "laboratory_equipment:quote-red-flags",
+      "topic": "Laboratory equipment & chemicals: red flags in supplier quotations",
+      "topic_ar": "معدات ومواد مختبرات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for configurations missing detectors or software, IQ/OQ excluded, refurbished demo units, service only from abroad, and consumables tied to the vendor.",
+      "body_ar": "انتبه إلى تهيئات تنقصها كواشف أو برامج، واستثناء التأهيل، ووحدات عرض مجددة، وخدمة من الخارج فقط، ومستهلكات مرتبطة بالمورد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "laboratory_equipment:buyer-mistakes",
+      "topic": "Laboratory equipment & chemicals: common buyer mistakes",
+      "topic_ar": "معدات ومواد مختبرات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Labs buy on instrument price and forget service, qualification and running consumables.",
+      "body_ar": "تشتري المختبرات بسعر الجهاز وتنسى الخدمة والتأهيل والمستهلكات التشغيلية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "laboratory_equipment:price-drivers",
+      "topic": "Laboratory equipment & chemicals: what makes prices differ legitimately",
+      "topic_ar": "معدات ومواد مختبرات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand, configuration, software compliance, qualification, service and consumables.",
+      "body_ar": "العوامل: العلامة، والتهيئة، وامتثال البرامج، والتأهيل، والخدمة، والمستهلكات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "laboratory_equipment:compare-quotes-cost-to-value",
+      "topic": "Laboratory equipment & chemicals: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "معدات ومواد مختبرات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same configuration with qualification, training, warranty and five-year running cost. Recommend three with local application support.",
+      "body_ar": "قارن التهيئة نفسها مع التأهيل والتدريب والضمان وتكلفة التشغيل لخمس سنوات. أوصِ بثلاثة عروض بدعم تطبيقي محلي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -128,7 +318,8 @@
     "removed": [],
     "still_unverified": [
       "laboratory_equipment:spec-checklist",
-      "laboratory_equipment:uae-standards-and-approvals"
+      "laboratory_equipment:uae-standards-and-approvals",
+      "laboratory_equipment:authority-approvals"
     ],
     "added": [
       "laboratory_equipment:spec-checklist",
@@ -159,6 +350,37 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "laboratory_equipment:quote-red-flags",
+      "laboratory_equipment:buyer-mistakes",
+      "laboratory_equipment:price-drivers",
+      "laboratory_equipment:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "laboratory_equipment:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.ede.gov.ae/en/web/ede/w/import-permit-for-medical-materials-and-products"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

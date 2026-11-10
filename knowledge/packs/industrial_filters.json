@@ -5,8 +5,8 @@
       "id": "industrial_filters:spec-checklist",
       "topic": "Industrial filters - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For industrial filters (trade code industrial_filters only), every quoted line must state: Filter type and application; Filtration efficiency class; Dimensions and frame; Media material; Airflow or flow rate and pressure drop; Equivalent to OEM part number; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الفلاتر الصناعية (رمز النشاط industrial_filters فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الفلتر وتطبيقه؛ فئة كفاءة الترشيح؛ الأبعاد والإطار؛ مادة وسط الترشيح؛ تدفق الهواء أو السائل وهبوط الضغط؛ المكافئ لرقم قطعة المصنّع الأصلي؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For industrial filters (trade code industrial_filters only), every quoted line must state: Filter type and application; Filtration efficiency class; Dimensions and frame; Media material; Airflow or flow rate and pressure drop; Equivalent to OEM part number; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Filter type and application; Filtration efficiency class; Dimensions and frame; Airflow or flow rate and pressure drop; Equivalent to OEM part number; Quantity and unit of measure. Follow-up questions the answers trigger: Filter type and application: Cleanrooms bring the room class; dust collectors bring the dust type and temperature. Media material: High-temperature or chemical service brings special media. Equivalent to OEM part number: If no number, ask for the old filter's label or dimensions. Before a firm price: none; a firm price is possible from the specs or the old filter's label. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states payment terms.",
+      "body_ar": "في نشاط الفلاتر الصناعية (رمز النشاط industrial_filters فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الفلتر وتطبيقه؛ فئة كفاءة الترشيح؛ الأبعاد والإطار؛ مادة وسط الترشيح؛ تدفق الهواء أو السائل وهبوط الضغط؛ المكافئ لرقم قطعة المصنّع الأصلي؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الفلتر واستخدامه، وفئة كفاءة الترشيح، والأبعاد والإطار، ومعدل تدفق الهواء أو السائل وهبوط الضغط، والرقم المكافئ لرقم قطعة الصانع، والكمية. أسئلة المتابعة: الغرف النظيفة تستلزم فئة الغرفة، ومجمعات الغبار تستلزم نوع الغبار ودرجة الحرارة، وإذا لم يتوفر رقم القطعة تُطلب بطاقة الفلتر القديم أو أبعاده. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً شروط الدفع.",
       "required_specs": [
         "Filter type and application",
         "Filtration efficiency class",
@@ -20,14 +20,125 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Filter type and application",
+        "Filtration efficiency class",
+        "Dimensions and frame",
+        "Airflow or flow rate and pressure drop",
+        "Equivalent to OEM part number",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Filter type and application",
+          "blocking": true,
+          "why_needed_to_price": "Air, liquid, dust-collector and engine filters are different products.",
+          "uae_options": "Panel, bag, HEPA, cartridge, dust-collector bag, hydraulic, fuel, water cartridge.",
+          "follow_up_if": "Cleanrooms bring the room class; dust collectors bring the dust type and temperature."
+        },
+        {
+          "spec": "Filtration efficiency class",
+          "blocking": true,
+          "why_needed_to_price": "Efficiency class is the main price axis.",
+          "uae_options": "ISO 16890 ePM1/ePM2.5/ePM10/Coarse; EN 1822 E10-U17; micron rating and beta ratio for liquids.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Dimensions and frame",
+          "blocking": true,
+          "why_needed_to_price": "Non-standard sizes are made to order.",
+          "uae_options": "W x H x D in mm; frame material (galvanised, aluminium, plastic).",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Media material",
+          "blocking": false,
+          "why_needed_to_price": "Glass fibre, synthetic, PTFE and cellulose differ in life and price.",
+          "uae_options": "",
+          "follow_up_if": "High-temperature or chemical service brings special media."
+        },
+        {
+          "spec": "Airflow or flow rate and pressure drop",
+          "blocking": true,
+          "why_needed_to_price": "Flow decides media area; pressure drop drives energy cost.",
+          "uae_options": "m3/h and initial/final pressure drop; l/min for liquids.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Equivalent to OEM part number",
+          "blocking": true,
+          "why_needed_to_price": "A replacement must cross-reference the OEM part.",
+          "uae_options": "OEM part number; approved equivalent.",
+          "follow_up_if": "If no number, ask for the old filter's label or dimensions."
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "Annual consumption changes the price per piece.",
+          "uae_options": "Pieces, sets, annual contract.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_needed_to_price": "Tested efficiency per ISO 16890 or EN 1822 is evidence of class.",
+          "uae_options": "ISO 16890 test report, EN 1822 scan test for HEPA.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_needed_to_price": "Normally none.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Replacement labour and disposal often excluded.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page.",
+      "site_visit_required_when": null
     },
     {
       "id": "industrial_filters:uae-standards-and-approvals",
@@ -87,6 +198,75 @@
       "gap_kind": "commercial",
       "verified": false,
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
+    },
+    {
+      "id": "industrial_filters:authority-approvals",
+      "topic": "Industrial filters: approvals that apply",
+      "topic_ar": "الفلاتر الصناعية: الموافقات المطبقة",
+      "kind": "authority_approval",
+      "body_en": "No UAE licence or conformity scheme was found for air or liquid filter elements. Requirements come from the application: HVAC filters in Dubai buildings follow the building and green-building rules the consultant applies; cleanroom filters follow the facility's GMP or ISO 14644 classification; filters in drinking-water treatment may need the water utility's approval where connected to its network. The supplier provides the test report proving the efficiency class.",
+      "body_ar": "لم يُعثر على ترخيص أو نظام مطابقة في الإمارات لعناصر فلاتر الهواء أو السوائل، وتأتي المتطلبات من التطبيق: ففلاتر التكييف في مباني دبي تتبع قواعد البناء والمباني الخضراء التي يطبقها الاستشاري، وفلاتر الغرف النظيفة تتبع تصنيف المنشأة وفق ممارسات التصنيع الجيد أو ISO 14644، وفلاتر معالجة مياه الشرب قد تحتاج موافقة جهة المياه عند ربطها بشبكتها. ويقدم المورد تقرير الاختبار الذي يثبت فئة الكفاءة.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold. No filter-specific UAE regulation was found by search.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet lists no filter-element category (it names vehicle spare parts generally, under Cabinet Resolution No. 12 of 2018), and MoIAT offers a voluntary conformity certificate for unregulated products (moiat.gov.ae). Not confirmed on any page that opened: the application-specific rules (green-building, GMP or ISO 14644, water-utility approval)."
+    },
+    {
+      "id": "industrial_filters:quote-red-flags",
+      "topic": "Red flags in filter quotations",
+      "topic_ar": "علامات التحذير في عروض الفلاتر",
+      "kind": "quote_red_flag",
+      "body_en": "Check the efficiency class against the request and the test basis: an old EN 779 \"F7\" is not the same as an ISO 16890 ePM1 class, and an \"H13\" without an EN 1822 test is unproven. Watch for fewer pockets or a shorter bag (less media), a lower frame depth, cellulose for synthetic media, \"equivalent\" cartridges without a cross-reference, prices per piece vs per set, and no pressure-drop figure.",
+      "body_ar": "قارن فئة الكفاءة بالطلب وبأساس الاختبار: فتصنيف F7 وفق EN 779 القديمة لا يساوي فئة ePM1 وفق ISO 16890، وفلتر \"H13\" دون اختبار EN 1822 غير مثبت. وانتبه إلى: جيوب أقل أو كيس أقصر (وسط ترشيح أقل)، وعمق إطار أقل، وسليلوز بدل الوسط الصناعي، وخراطيش \"مكافئة\" دون رقم مقابل، والخلط بين سعر القطعة وسعر الطقم، وغياب قيمة هبوط الضغط.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_filters:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying filters",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الفلاتر",
+      "kind": "buyer_mistake",
+      "body_en": "Buying the cheapest filter per piece when its higher pressure drop raises fan energy and it needs changing more often; ordering by class name from an old standard; and forgetting the pre-filter that protects an expensive final filter. Ask the application, the size and the class required by the consultant or the equipment maker.",
+      "body_ar": "شراء أرخص فلتر بالقطعة بينما يرفع هبوط ضغطه الأعلى طاقة المروحة ويحتاج تبديلاً أكثر؛ والطلب باسم فئة من مواصفة قديمة؛ ونسيان الفلتر الأولي الذي يحمي الفلتر النهائي المكلف. لذا يُسأل عن التطبيق والمقاس والفئة التي يشترطها الاستشاري أو صانع المعدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_filters:price-drivers",
+      "topic": "What legitimately moves filter prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الفلاتر",
+      "kind": "price_driver",
+      "body_en": "Efficiency class, media type and area, frame material, size (standard vs custom), testing (individually scan-tested HEPA), brand and origin, and volume or annual contracts.",
+      "body_ar": "فئة الكفاءة، ونوع وسط الترشيح ومساحته، ومادة الإطار، والمقاس (قياسي أم خاص)، والاختبار (فلاتر HEPA المختبرة فردياً)، والعلامة والمنشأ، والكمية أو العقود السنوية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_filters:compare-quotes",
+      "topic": "Comparing filter quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض الفلاتر من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare filters of the same tested class and size on life cost: purchase, change frequency (dust holding), labour and fan energy from pressure drop. Recommend the three compliant offers with the lowest annual cost, and list any class or media changes as deviations.",
+      "body_ar": "قارن الفلاتر من الفئة المختبرة والمقاس نفسيهما على أساس تكلفة دورة الحياة: الشراء، وتكرار التبديل (قدرة احتجاز الغبار)، والعمالة، وطاقة المروحة الناتجة عن هبوط الضغط. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة سنوية، مع إدراج أي تغيير في الفئة أو الوسط انحرافاً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -120,7 +300,8 @@
     "removed": [],
     "still_unverified": [
       "industrial_filters:spec-checklist",
-      "industrial_filters:uae-standards-and-approvals"
+      "industrial_filters:uae-standards-and-approvals",
+      "industrial_filters:authority-approvals"
     ],
     "added": [
       "industrial_filters:spec-checklist",
@@ -155,6 +336,27 @@
         "industrial_filters:lead-times",
         "industrial_filters:quotation-requirements"
       ]
+    },
+    "expert_authored_unsourced": [
+      "industrial_filters:quote-red-flags",
+      "industrial_filters:buyer-mistakes",
+      "industrial_filters:price-drivers",
+      "industrial_filters:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "industrial_filters:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

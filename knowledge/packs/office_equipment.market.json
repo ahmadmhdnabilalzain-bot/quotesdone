@@ -27,8 +27,8 @@
       "topic": "Office equipment & printing: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المعدات المكتبية والطباعة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names the office equipment brands sold in the UAE, such as Canon, HP, Ricoh, Konica Minolta and Xerox. Brands sold: Canon, HP, Ricoh, Konica Minolta, Kyocera, Xerox, Epson, Brother, Fellowes, HSM. Canon's regional operation was confirmed; the others' UAE dealers were not checked.",
-      "body_ar": "من أشهر ماركات المعدات المكتبية المباعة في الإمارات Canon وHP وRicoh وKonica Minolta وXerox. العلامات المباعة: Canon، HP، Ricoh، Konica Minolta، Kyocera، Xerox، Epson، Brother، Fellowes، HSM. وتم تأكيد العمليات الإقليمية لكانون؛ ولم يُتحقق من وكلاء العلامات الأخرى في الإمارات.",
+      "body_en": "This names the office equipment brands sold in the UAE, such as Canon, HP, Ricoh, Konica Minolta and Xerox. Brands sold: Canon, HP, Ricoh, Konica Minolta, Kyocera, Xerox, Epson, Brother, Fellowes, HSM. Canon's regional operation was confirmed; the others' UAE dealers were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Canon = a premium Japanese brand; HP = a premium American brand; Ricoh = a premium Japanese brand; Konica Minolta = a mid-tier Japanese brand; Kyocera = a mid-tier Japanese brand; Xerox = a premium American brand; Epson = a mid-tier Japanese brand; Brother = a mid-tier Japanese brand; Fellowes = a mid-tier American brand; HSM = a premium German brand.",
+      "body_ar": "من أشهر ماركات المعدات المكتبية المباعة في الإمارات Canon وHP وRicoh وKonica Minolta وXerox. العلامات المباعة: Canon، HP، Ricoh، Konica Minolta، Kyocera، Xerox، Epson، Brother، Fellowes، HSM. وتم تأكيد العمليات الإقليمية لكانون؛ ولم يُتحقق من وكلاء العلامات الأخرى في الإمارات.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Canon = علامة يابانية من الفئة الممتازة؛ HP = علامة أمريكية من الفئة الممتازة؛ Ricoh = علامة يابانية من الفئة الممتازة؛ Konica Minolta = علامة يابانية من الفئة المتوسطة؛ Kyocera = علامة يابانية من الفئة المتوسطة؛ Xerox = علامة أمريكية من الفئة الممتازة؛ Epson = علامة يابانية من الفئة المتوسطة؛ Brother = علامة يابانية من الفئة المتوسطة؛ Fellowes = علامة أمريكية من الفئة المتوسطة؛ HSM = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://en.canon-me.com/",
         "https://www.emitac.ae",
@@ -38,7 +38,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Canon Middle East sells in the UAE -> confirmed | Emitac and Juma Al Majid as dealers -> removed: not confirmed | DIN 66399 shredder security levels -> confirmed_domain_only. Not checked: Current dealership appointments per brand in the UAE were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Canon Middle East sells in the UAE -> confirmed | Emitac and Juma Al Majid as dealers -> removed: not confirmed | DIN 66399 shredder security levels -> confirmed_domain_only. Not checked: Current dealership appointments per brand in the UAE were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Canon",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "HP",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Ricoh",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Konica Minolta",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Kyocera",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Xerox",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Epson",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Brother",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Fellowes",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "HSM",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "office_equipment:uae-market-sizes",

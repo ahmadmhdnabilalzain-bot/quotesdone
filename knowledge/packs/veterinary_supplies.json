@@ -5,8 +5,8 @@
       "id": "veterinary_supplies:spec-checklist",
       "topic": "Veterinary supplies - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For veterinary supplies quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, strength and form; (2) species and indication; (3) UAE veterinary product registration; (4) pack size and quantity; (5) shelf life and storage conditions; (6) cold chain for vaccines; (7) licensed importer or distributor; (8) batch and certificate of analysis; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the veterinary_supplies trade.",
-      "body_ar": "لكي تُقارن عروض المستلزمات البيطرية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وتركيزه وشكله؛ (2) الحيوان المستهدف ودواعي الاستعمال؛ (3) تسجيل المنتج البيطري في الإمارات؛ (4) حجم العبوة والكمية؛ (5) مدة الصلاحية وظروف التخزين؛ (6) سلسلة التبريد للقاحات؛ (7) المستورد أو الموزع المرخص؛ (8) الدفعة وشهادة التحليل؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة veterinary_supplies فقط.",
+      "body_en": "For veterinary supplies quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, strength and form; (2) species and indication; (3) UAE veterinary product registration; (4) pack size and quantity; (5) shelf life and storage conditions; (6) cold chain for vaccines; (7) licensed importer or distributor; (8) batch and certificate of analysis; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the veterinary_supplies trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product name, strength and form; species and indication; UAE veterinary product registration; pack size and quantity; delivery terms and location. Before a firm price: a firm price needs product, species, registration, pack and quantity. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. UAE veterinary product registration is no longer quote-blocking: Registration is the supplier's to prove for the item it offers; the customer only states that it is required. Quote-blocking after this review: product name, strength and form; species and indication; pack size and quantity; delivery terms and location.",
+      "body_ar": "لكي تُقارن عروض المستلزمات البيطرية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وتركيزه وشكله؛ (2) الحيوان المستهدف ودواعي الاستعمال؛ (3) تسجيل المنتج البيطري في الإمارات؛ (4) حجم العبوة والكمية؛ (5) مدة الصلاحية وظروف التخزين؛ (6) سلسلة التبريد للقاحات؛ (7) المستورد أو الموزع المرخص؛ (8) الدفعة وشهادة التحليل؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة veterinary_supplies فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج وتركيزه، والنوع الحيواني والاستطباب، وتسجيل المنتج البيطري، وحجم العبوة والكمية، والتسليم. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «تسجيل المنتج البيطري في الإمارات» مانعاً للتسعير: يثبته المورّد للصنف الذي يعرضه؛ ويكفي أن يذكر العميل أنه مطلوب.",
       "required_specs": [
         "product name, strength and form",
         "species and indication",
@@ -19,13 +19,115 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://www.moccae.gov.ae/en/services.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "product name, strength and form",
+        "species and indication",
+        "pack size and quantity",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product name, strength and form",
+          "why_needed_to_price": "Product, strength and form.",
+          "uae_options": "name; strength",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "species and indication",
+          "why_needed_to_price": "Species and indication.",
+          "uae_options": "camels; poultry; pets; equine",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "UAE veterinary product registration",
+          "why_needed_to_price": "Veterinary product registration decides sale.",
+          "uae_options": "registration",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "pack size and quantity",
+          "why_needed_to_price": "Pack size and quantity.",
+          "uae_options": "packs",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "shelf life and storage conditions",
+          "why_needed_to_price": "Shelf life and storage.",
+          "uae_options": "months; temperature",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "cold chain for vaccines",
+          "why_needed_to_price": "Cold chain for vaccines.",
+          "uae_options": "2-8 C",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licensed importer or distributor",
+          "why_needed_to_price": "Licensed importer.",
+          "uae_options": "licence",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "batch and certificate of analysis",
+          "why_needed_to_price": "Batch and CoA.",
+          "uae_options": "documents",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "farm; clinic",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "stock",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "Returns.",
+          "uae_options": "terms",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "cold-chain transport",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs product, species, registration, pack and quantity.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "veterinary_supplies:uae-standards-and-approvals",
@@ -69,6 +171,78 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "veterinary_supplies:authority-approvals",
+      "topic": "Animal & veterinary supplies: licences, permits and approvals by emirate",
+      "topic_ar": "مستلزمات بيطرية وحيوانات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Veterinary products are registered with the Emirates Drug Establishment (EDE), which u.ae names as the federal regulator of veterinary products, fertilisers and pesticides: an EDE-licensed veterinary warehouse or veterinary-product factory applies to register each product so it can be imported and traded, the registration certificate runs five years, and the maker of an imported product must itself be registered with EDE. EDE also licenses veterinary drug warehouses and veterinary-product factories. EDE bans colistin (polymyxin E) in veterinary use and bans veterinary products containing metamizole (dipyrone) for food-producing animals. These duties were earlier held by the Ministry of Climate Change and Environment (MOCCAE), whose service pages for them no longer open; a legal source cites Federal Law No. 10 of 2017 for veterinary products, which this session did not read. Abu Dhabi also has the Agriculture and Food Safety Authority, and veterinary clinics are licensed by the emirate. Ask the supplier for the EDE registration of each product and the warehouse licence.",
+      "body_ar": "تُسجَّل المستحضرات البيطرية لدى مؤسسة الإمارات للدواء، التي تذكرها البوابة الرسمية u.ae جهةً اتحادية لتنظيم المنتجات البيطرية والأسمدة والمبيدات: إذ يتقدم المستودع البيطري أو مصنع المستحضرات البيطرية المرخّص من المؤسسة بطلب تسجيل كل مستحضر ليُسمح باستيراده وتداوله، وتسري شهادة التسجيل خمس سنوات، ويجب أن تكون الشركة المصنّعة للمستحضر المستورد مسجلة لدى المؤسسة. وترخّص المؤسسة أيضاً المستودعات الدوائية البيطرية ومصانع المستحضرات البيطرية. وتحظر المؤسسة استخدام الكوليستين (بوليميكسين E) في القطاع البيطري، وتحظر المستحضرات البيطرية التي تحتوي على الميتاميزول (الديبيرون) للحيوانات المنتجة للغذاء. وكانت هذه المهام سابقاً لدى وزارة التغير المناخي والبيئة، ولم تعد صفحات خدماتها هذه تُفتح؛ ويذكر مصدر قانوني القانون الاتحادي رقم 10 لسنة 2017 للمنتجات البيطرية، ولم يُطّلع عليه في هذه الجلسة. ولأبوظبي أيضاً هيئة الزراعة والسلامة الغذائية، وتُرخَّص العيادات البيطرية من الإمارة. اطلب من المورد تسجيل كل مستحضر لدى المؤسسة وترخيص المستودع.",
+      "sources": [
+        "https://www.zawya.com/en/legal/uaes-moccae-forms-committee-for-veterinary-products-registration-poyt7qa7",
+        "https://askthelaw.ae/?p=16638",
+        "https://www.ede.gov.ae/ar/w/%D8%AA%D8%B3%D8%AC%D9%8A%D9%84-%D9%85%D8%B3%D8%AA%D8%AD%D8%B6%D8%B1-%D8%A8%D9%8A%D8%B7%D8%B1%D9%8A",
+        "https://www.ede.gov.ae/ar/w/licensing-of-veterinary-products-facilities",
+        "https://u.ae/en/information-and-services/health-and-fitness/Policy-and-governance/health-authorities"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: EDE 'Veterinary product registration' (ede.gov.ae, Arabic page): veterinary warehouses and veterinary-product factories licensed by EDE apply to register veterinary products so they can be imported and traded, the certificate runs five years, the maker of an imported product must be registered with EDE, colistin is banned in veterinary use and metamizole (dipyrone) products for food-producing animals are banned; EDE 'Licensing of veterinary products facilities' licenses veterinary drug warehouses and factories; u.ae: EDE regulates veterinary products, fertilisers and pesticides. Not confirmed on any page that opened: Federal Law No. 10 of 2017, the ADAFSA role and the licensing of veterinary clinics by each emirate. Hosts that failed: www.moccae.gov.ae service pages (page-not-found, consistent with the services having moved); zawya.com and askthelaw.ae (refused by the session network, and not official). Corrected: veterinary product registration and veterinary warehouse licensing now sit with the Emirates Drug Establishment, not MOCCAE (EDE's own service pages)."
+    },
+    {
+      "id": "veterinary_supplies:quote-red-flags",
+      "topic": "Animal & veterinary supplies: red flags in supplier quotations",
+      "topic_ar": "مستلزمات بيطرية وحيوانات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for unregistered products, broken cold chain for vaccines, near-expiry stock, and human medicines offered for veterinary use without authorisation.",
+      "body_ar": "انتبه إلى منتجات غير مسجلة، وانقطاع سلسلة تبريد اللقاحات، ومخزون قارب على الانتهاء، وأدوية بشرية تُعرض للاستخدام البيطري دون ترخيص.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "veterinary_supplies:buyer-mistakes",
+      "topic": "Animal & veterinary supplies: common buyer mistakes",
+      "topic_ar": "مستلزمات بيطرية وحيوانات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Farms buy cheaper unregistered products and risk confiscation and animal health.",
+      "body_ar": "تشتري المزارع منتجات أرخص غير مسجلة فتخاطر بالمصادرة وصحة الحيوان.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "veterinary_supplies:price-drivers",
+      "topic": "Animal & veterinary supplies: what makes prices differ legitimately",
+      "topic_ar": "مستلزمات بيطرية وحيوانات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand, registration, cold chain, pack and volume.",
+      "body_ar": "العوامل: العلامة، والتسجيل، وسلسلة التبريد، والعبوة، والكمية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "veterinary_supplies:compare-quotes-cost-to-value",
+      "topic": "Animal & veterinary supplies: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "مستلزمات بيطرية وحيوانات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare registered products of the same strength and pack with cold-chain proof. Recommend three licensed suppliers.",
+      "body_ar": "قارن المنتجات المسجلة بالتركيز والعبوة نفسيهما مع إثبات سلسلة التبريد. أوصِ بثلاثة موردين مرخصين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -107,11 +281,14 @@
   "verified": {
     "fetched_urls": 0,
     "claims_checked": 0,
-    "corrected": [],
+    "corrected": [
+      "veterinary_supplies:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "veterinary_supplies:spec-checklist",
-      "veterinary_supplies:uae-standards-and-approvals"
+      "veterinary_supplies:uae-standards-and-approvals",
+      "veterinary_supplies:authority-approvals"
     ],
     "added": [
       "veterinary_supplies:spec-checklist",
@@ -139,6 +316,40 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "veterinary_supplies:quote-red-flags",
+      "veterinary_supplies:buyer-mistakes",
+      "veterinary_supplies:price-drivers",
+      "veterinary_supplies:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "veterinary_supplies:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "veterinary_supplies:authority-approvals"
+      ],
+      "urls_read": [
+        "https://www.ede.gov.ae/ar/w/%D8%AA%D8%B3%D8%AC%D9%8A%D9%84-%D9%85%D8%B3%D8%AA%D8%AD%D8%B6%D8%B1-%D8%A8%D9%8A%D8%B7%D8%B1%D9%8A",
+        "https://www.ede.gov.ae/ar/w/licensing-of-veterinary-products-facilities"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }
