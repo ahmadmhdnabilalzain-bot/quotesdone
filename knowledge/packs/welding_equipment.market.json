@@ -9,8 +9,8 @@
       "topic": "Welding equipment & consumables: brands and makers in this category",
       "topic_ar": "معدات ومستهلكات اللحام: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Lincoln Electric (United States) makes arc welding equipment, cutting equipment and robotic welding systems. ESAB (United States) makes welding and cutting equipment, gas control products and PPE. Fronius (Austria) makes welding equipment, solar inverters and battery chargers. Which local distributor carries each make was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Lincoln Electric = a premium American brand; ESAB = a premium American brand; Fronius = a premium Austrian brand; Miller = a premium American brand; Kemppi = a premium Finnish brand; Panasonic = a premium Japanese brand; Jasic = a economy Chinese brand; voestalpine Böhler Welding = a premium Austrian brand.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Lincoln Electric (الولايات المتحدة) تصنع معدات اللحام بالقوس ومعدات القطع وأنظمة اللحام الروبوتية. ESAB (الولايات المتحدة) تصنع معدات اللحام والقطع ومنتجات التحكم بالغاز ومعدات الوقاية. Fronius (النمسا) تصنع معدات اللحام وعواكس الطاقة الشمسية وشواحن البطاريات. ولم يُتحقق من الموزع المحلي لكل علامة.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Lincoln Electric = علامة أمريكية من الفئة الممتازة؛ ESAB = علامة أمريكية من الفئة الممتازة؛ Fronius = علامة نمساوية من الفئة الممتازة؛ Miller = علامة أمريكية من الفئة الممتازة؛ Kemppi = علامة فنلندية من الفئة الممتازة؛ Panasonic = علامة يابانية من الفئة الممتازة؛ Jasic = علامة صينية من الفئة الاقتصادية؛ voestalpine Böhler Welding = علامة نمساوية من الفئة الممتازة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Lincoln Electric (United States) makes arc welding equipment, cutting equipment and robotic welding systems. ESAB (United States) makes welding and cutting equipment, gas control products and PPE. Fronius (Austria) makes welding equipment, solar inverters and battery chargers. Which local distributor carries each make was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Lincoln Electric = a premium American brand; ESAB = a premium American brand; Fronius = a premium Austrian brand.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Lincoln Electric (الولايات المتحدة) تصنع معدات اللحام بالقوس ومعدات القطع وأنظمة اللحام الروبوتية. ESAB (الولايات المتحدة) تصنع معدات اللحام والقطع ومنتجات التحكم بالغاز ومعدات الوقاية. Fronius (النمسا) تصنع معدات اللحام وعواكس الطاقة الشمسية وشواحن البطاريات. ولم يُتحقق من الموزع المحلي لكل علامة.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Lincoln Electric = علامة أمريكية من الفئة الممتازة؛ ESAB = علامة أمريكية من الفئة الممتازة؛ Fronius = علامة نمساوية من الفئة الممتازة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Lincoln_Electric",
         "https://en.wikipedia.org/wiki/ESAB",
@@ -37,41 +37,6 @@
         },
         {
           "brand": "Fronius",
-          "origin_country": "Austria",
-          "tier": "premium",
-          "generic_en": "a premium Austrian brand",
-          "generic_ar": "علامة نمساوية من الفئة الممتازة"
-        },
-        {
-          "brand": "Miller",
-          "origin_country": "USA",
-          "tier": "premium",
-          "generic_en": "a premium American brand",
-          "generic_ar": "علامة أمريكية من الفئة الممتازة"
-        },
-        {
-          "brand": "Kemppi",
-          "origin_country": "Finland",
-          "tier": "premium",
-          "generic_en": "a premium Finnish brand",
-          "generic_ar": "علامة فنلندية من الفئة الممتازة"
-        },
-        {
-          "brand": "Panasonic",
-          "origin_country": "Japan",
-          "tier": "premium",
-          "generic_en": "a premium Japanese brand",
-          "generic_ar": "علامة يابانية من الفئة الممتازة"
-        },
-        {
-          "brand": "Jasic",
-          "origin_country": "China",
-          "tier": "economy",
-          "generic_en": "a economy Chinese brand",
-          "generic_ar": "علامة صينية من الفئة الاقتصادية"
-        },
-        {
-          "brand": "voestalpine Böhler Welding",
           "origin_country": "Austria",
           "tier": "premium",
           "generic_en": "a premium Austrian brand",

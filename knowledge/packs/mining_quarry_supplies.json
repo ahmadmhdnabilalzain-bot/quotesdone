@@ -5,8 +5,8 @@
       "id": "mining_quarry_supplies:spec-checklist",
       "topic": "Mining and quarry supplies - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For mining and quarry supplies (trade code mining_quarry_supplies only), every quoted line must state: Item and application; Machine it fits; Material and hardness; Dimensions; Wear life expectation; Certificate of conformity; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط مستلزمات المناجم والمحاجر (رمز النشاط mining_quarry_supplies فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الصنف وتطبيقه؛ الآلة التي يركب عليها؛ المادة والصلادة؛ الأبعاد؛ العمر المتوقع للتآكل؛ شهادة المطابقة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For mining and quarry supplies (trade code mining_quarry_supplies only), every quoted line must state: Item and application; Machine it fits; Material and hardness; Dimensions; Wear life expectation; Certificate of conformity; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item and application; Machine it fits; Material and hardness; Dimensions; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Machine it fits: Ask the serial or the OEM part number. Material and hardness: Ask the rock type and abrasiveness (limestone vs gabbro). UAE conformity or authority approval: Explosives bring the Ministry of Interior permit route. Before a firm price: a non-OEM wear part without a part number needs the worn part or a drawing; belt splicing needs a site visit.",
+      "body_ar": "في نشاط مستلزمات المناجم والمحاجر (رمز النشاط mining_quarry_supplies فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الصنف وتطبيقه؛ الآلة التي يركب عليها؛ المادة والصلادة؛ الأبعاد؛ العمر المتوقع للتآكل؛ شهادة المطابقة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الصنف واستخدامه، والآلة التي يركب عليها، والمادة والصلادة، والأبعاد، والكمية، والتسليم إلى موقع المحجر. أسئلة المتابعة: يُطلب الرقم التسلسلي أو رقم قطعة الصانع، ويُسأل عن نوع الصخر ودرجة كشطه، والمتفجرات تستلزم مسار تصريح وزارة الداخلية. قطعة التآكل البديلة دون رقم تحتاج القطعة البالية أو رسماً، ووصل السيور يحتاج زيارة موقع.",
       "required_specs": [
         "Item and application",
         "Machine it fits",
@@ -26,7 +26,110 @@
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Item and application",
+        "Machine it fits",
+        "Material and hardness",
+        "Dimensions",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Item and application",
+          "blocking": true,
+          "why_it_prices": "Crusher liners, screen media, drill bits, conveyor belts and explosives accessories are different products.",
+          "uae_options": "Jaw/cone liners, screen mesh, drill bits and rods, GET (teeth, edges), conveyor belts, idlers.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Machine it fits",
+          "blocking": true,
+          "why_it_prices": "Wear parts are model-specific.",
+          "uae_options": "Crusher/screen/drill make and model; part number.",
+          "follow_up": "Ask the serial or the OEM part number."
+        },
+        {
+          "spec": "Material and hardness",
+          "blocking": true,
+          "why_it_prices": "Manganese grade, chrome iron, rubber or polyurethane change price and life.",
+          "uae_options": "Mn14, Mn18, Mn22 with Cr; high-chrome iron; rubber, PU screen media; belt grade EP/ST.",
+          "follow_up": "Ask the rock type and abrasiveness (limestone vs gabbro)."
+        },
+        {
+          "spec": "Dimensions",
+          "blocking": true,
+          "why_it_prices": "Belts and screens are priced by size.",
+          "uae_options": "Belt width, ply and length; screen aperture and panel size.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Wear life expectation",
+          "blocking": false,
+          "why_it_prices": "Life per tonne is the real value measure.",
+          "uae_options": "Tonnes or hours per set.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Certificate of conformity",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Sets per year change foundry batching and price.",
+          "uae_options": "Sets, pieces, metres.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Belt standards (ISO 14890, DIN 22102).",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "Explosives and blasting accessories are controlled.",
+          "uae_options": "",
+          "follow_up": "Explosives bring the Ministry of Interior permit route."
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Quarries in Fujairah and RAK are remote; delivery adds cost.",
+          "uae_options": "Delivered quarry site.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Fitting, belt splicing and vulcanising are services.",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a non-OEM wear part without a part number needs the worn part or a drawing; belt splicing needs a site visit.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "mining_quarry_supplies:uae-standards-and-approvals",
@@ -83,6 +186,73 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "mining_quarry_supplies:authority-approvals",
+      "topic": "Mining and quarry supplies: explosives, quarry licences and approvals",
+      "topic_ar": "مستلزمات التعدين والمحاجر: المتفجرات وتراخيص المحاجر والموافقات",
+      "kind": "authority_approval",
+      "body_en": "Wear parts, belts and drill steel need no UAE product approval. Explosives and blasting are controlled: a federal text on uaelegislation.gov.ae (search result) states that using explosives or blasting requires a prior permit from the competent authority after Ministry of Interior approval, under Ministry of Interior supervision, and the federal environmental regulation for the quarrying industry (2014) requires blasting by competent personnel per Ministry of Interior rules. The quarry operator holds the quarry licence from the competent emirate authority; only licensed parties may supply or handle explosives, so a general supplier cannot quote them.",
+      "body_ar": "قطع التآكل والسيور وفولاذ الحفر لا تحتاج موافقة منتج في الإمارات. أما المتفجرات والتفجير فمنضبطة: إذ ينص نص اتحادي على بوابة التشريعات الإماراتية (وفق نتيجة البحث) على أن استخدام المتفجرات أو التفجير يتطلب تصريحاً مسبقاً من السلطة المختصة بعد موافقة وزارة الداخلية وتحت إشرافها، وتشترط اللائحة البيئية الاتحادية لصناعة المحاجر (2014) أن يتولى التفجير أشخاص مؤهلون وفق قواعد وزارة الداخلية. ويحمل مشغل المحجر ترخيص المحجر من السلطة المختصة في الإمارة؛ ولا يجوز توريد المتفجرات أو مناولتها إلا لجهات مرخصة، فلا يستطيع المورد العام تسعيرها.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/3895/download"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "mining_quarry_supplies:quote-red-flags",
+      "topic": "Red flags in quarry wear-part quotations",
+      "topic_ar": "علامات التحذير في عروض قطع التآكل للمحاجر",
+      "kind": "quote_red_flag",
+      "body_en": "Check manganese grade and chrome content against the request: Mn14 offered for Mn18Cr2 will wear faster. Watch for \"OEM equivalent\" liners without the profile drawing, a different tooth system, conveyor belts with fewer plies or lower cover grade, origin not stated (Chinese and Indian foundries vs European OEM), weights lower than OEM parts (less wear metal), and fitting excluded.",
+      "body_ar": "قارن درجة المنغنيز ونسبة الكروم بالطلب: فعرض Mn14 بدل Mn18Cr2 يعني تآكلاً أسرع. وانتبه إلى: بطانات \"مكافئة للصانع\" دون رسم المقطع، ونظام أسنان مختلف، وسيور نقل بطبقات أقل أو درجة غطاء أدنى، وعدم ذكر المنشأ (مسابك صينية وهندية مقابل الصانع الأوروبي)، وأوزان أقل من قطع الصانع (معدن تآكل أقل)، واستثناء التركيب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "mining_quarry_supplies:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying quarry supplies",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء مستلزمات المحاجر",
+      "kind": "buyer_mistake",
+      "body_en": "Buying wear parts by price per piece instead of cost per tonne crushed; not telling suppliers the rock type; mixing liner profiles that change the crusher's output; and ordering belts without the full specification of the existing belt. Ask the machine, the rock and the current part life.",
+      "body_ar": "شراء قطع التآكل بسعر القطعة بدل التكلفة لكل طن مكسر؛ وعدم إبلاغ الموردين بنوع الصخر؛ وخلط مقاطع بطانات تغير إنتاج الكسارة؛ وطلب السيور دون المواصفة الكاملة للسير القائم. لذا يُسأل عن الآلة والصخر وعمر القطعة الحالية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "mining_quarry_supplies:price-drivers",
+      "topic": "What legitimately moves quarry supply prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار مستلزمات المحاجر",
+      "kind": "price_driver",
+      "body_en": "Alloy grade and weight, OEM vs aftermarket, origin, rubber and steel-cord content in belts, size, quantity, and delivery to remote quarry sites.",
+      "body_ar": "درجة السبيكة والوزن، وأصلية من الصانع أم بديلة، والمنشأ، ومحتوى المطاط والأسلاك الفولاذية في السيور، والمقاس، والكمية، والتوصيل إلى مواقع المحاجر البعيدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "mining_quarry_supplies:compare-quotes",
+      "topic": "Comparing quarry wear-part quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض قطع التآكل للمحاجر من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare cost per tonne processed: price divided by expected life in tonnes, plus downtime for change-outs. Match grade, profile and weight. Recommend the three compliant offers with the lowest cost per tonne.",
+      "body_ar": "قارن التكلفة لكل طن معالج: السعر مقسوماً على العمر المتوقع بالأطنان، مضافاً إليه التوقف عند التبديل. وطابق الدرجة والمقطع والوزن. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة لكل طن.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -124,7 +294,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "mining_quarry_supplies:spec-checklist"
+      "mining_quarry_supplies:spec-checklist",
+      "mining_quarry_supplies:authority-approvals"
     ],
     "added": [
       "mining_quarry_supplies:spec-checklist",
@@ -155,6 +326,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "mining_quarry_supplies:quote-red-flags",
+      "mining_quarry_supplies:buyer-mistakes",
+      "mining_quarry_supplies:price-drivers",
+      "mining_quarry_supplies:compare-quotes"
+    ]
   }
 }

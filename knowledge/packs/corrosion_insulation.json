@@ -5,8 +5,8 @@
       "id": "corrosion_insulation:spec-checklist",
       "topic": "Corrosion protection and insulation - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for corrosion protection and insulation must state: system and product data sheets; surface preparation grade per ISO 8501-1; coating or insulation thickness; corrosivity category per ISO 12944; operating temperature; area or pipe lengths and sizes; cladding or jacketing; inspection and test plan; applicator qualifications; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الحماية من التآكل والعزل: النظام ونشرات المنتجات؛ درجة تحضير السطح وفق ISO 8501-1؛ سماكة الطلاء أو العزل؛ فئة التآكل وفق ISO 12944؛ درجة حرارة التشغيل؛ المساحة أو أطوال الأنابيب وأقطارها؛ التكسية أو الغلاف؛ خطة الفحص والاختبار؛ مؤهلات المنفذين؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for corrosion protection and insulation must state: system and product data sheets; surface preparation grade per ISO 8501-1; coating or insulation thickness; corrosivity category per ISO 12944; operating temperature; area or pipe lengths and sizes; cladding or jacketing; inspection and test plan; applicator qualifications; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): system and product data sheets; surface preparation grade per ISO 8501-1; coating or insulation thickness; operating temperature; area or pipe lengths and sizes; pricing basis; access and scaffolding. Follow-up questions the answers trigger: system and product data sheets: Ask whether the end user has an approved system or vendor list. surface preparation grade per ISO 8501-1: Blasting brings containment and abrasive restrictions on site. corrosivity category per ISO 12944: Coastal and offshore sites in the UAE are usually C5 or higher. operating temperature: Hot pipes bring CUI-resistant coating under insulation. Before a firm price: coating or insulation of existing plant needs a site survey to see condition, access and quantities before a firm price.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الحماية من التآكل والعزل: النظام ونشرات المنتجات؛ درجة تحضير السطح وفق ISO 8501-1؛ سماكة الطلاء أو العزل؛ فئة التآكل وفق ISO 12944؛ درجة حرارة التشغيل؛ المساحة أو أطوال الأنابيب وأقطارها؛ التكسية أو الغلاف؛ خطة الفحص والاختبار؛ مؤهلات المنفذين؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: النظام وصحائف بيانات المنتجات، ودرجة تحضير السطح وفق ISO 8501-1، وسماكة الطلاء أو العزل، ودرجة حرارة التشغيل، والمساحة أو أطوال الأنابيب ومقاساتها، وأساس التسعير، والوصول والسقالات. أسئلة المتابعة: يُسأل هل لدى المستخدم النهائي نظام أو قائمة موردين معتمدة، والسفع يستلزم الاحتواء وقيود المواد الكاشطة في الموقع، والمواقع الساحلية في الإمارات عادة من فئة C5 أو أعلى، والأنابيب الساخنة تستلزم طلاءً مقاوماً للتآكل تحت العزل. طلاء أو عزل منشأة قائمة يحتاج مسحاً للموقع قبل السعر النهائي.",
       "required_specs": [
         "system and product data sheets",
         "surface preparation grade per ISO 8501-1",
@@ -21,7 +21,8 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "access and scaffolding"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -29,7 +30,125 @@
         "https://www.dcd.gov.ae/portal/en/home.jsp"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "system and product data sheets",
+        "surface preparation grade per ISO 8501-1",
+        "coating or insulation thickness",
+        "operating temperature",
+        "area or pipe lengths and sizes",
+        "pricing basis",
+        "access and scaffolding"
+      ],
+      "spec_guide": [
+        {
+          "spec": "system and product data sheets",
+          "blocking": true,
+          "why_it_prices": "The coating or insulation system defines materials and coats.",
+          "uae_options": "Named system (primer/intermediate/finish) or insulation material (mineral wool, PIR, cellular glass, elastomeric, aerogel).",
+          "follow_up": "Ask whether the end user has an approved system or vendor list."
+        },
+        {
+          "spec": "surface preparation grade per ISO 8501-1",
+          "blocking": true,
+          "why_it_prices": "Blasting to Sa 2.5 vs hand tool St 2 is a large cost difference.",
+          "uae_options": "Sa 2.5, Sa 3, St 2/St 3; profile in µm.",
+          "follow_up": "Blasting brings containment and abrasive restrictions on site."
+        },
+        {
+          "spec": "coating or insulation thickness",
+          "blocking": true,
+          "why_it_prices": "DFT and insulation thickness set material quantity.",
+          "uae_options": "DFT per coat in µm; insulation 25-100 mm.",
+          "follow_up": ""
+        },
+        {
+          "spec": "corrosivity category per ISO 12944",
+          "blocking": false,
+          "why_it_prices": "C5 or CX systems are heavier than C3.",
+          "uae_options": "C3, C4, C5, CX; durability L/M/H/VH.",
+          "follow_up": "Coastal and offshore sites in the UAE are usually C5 or higher."
+        },
+        {
+          "spec": "operating temperature",
+          "blocking": true,
+          "why_it_prices": "Hot and cryogenic service need different systems.",
+          "uae_options": "Ambient, hot (above 120 °C), cryogenic, cycling.",
+          "follow_up": "Hot pipes bring CUI-resistant coating under insulation."
+        },
+        {
+          "spec": "area or pipe lengths and sizes",
+          "blocking": true,
+          "why_it_prices": "Quantity is priced by m2 or by metre per pipe size.",
+          "uae_options": "m2; metres per NPS; number of fittings and valves.",
+          "follow_up": ""
+        },
+        {
+          "spec": "cladding or jacketing",
+          "blocking": false,
+          "why_it_prices": "Aluminium, stainless or GRP cladding adds cost.",
+          "uae_options": "Aluminium 0.7-1.0 mm, SS, PVC, mastic.",
+          "follow_up": ""
+        },
+        {
+          "spec": "inspection and test plan",
+          "blocking": false,
+          "why_it_prices": "DFT, holiday and adhesion tests and third-party inspection add cost.",
+          "uae_options": "ITP with hold points, NACE/FROSIO inspector.",
+          "follow_up": ""
+        },
+        {
+          "spec": "applicator qualifications",
+          "blocking": false,
+          "why_it_prices": "Qualified applicators and approved contractors cost more.",
+          "uae_options": "NACE/AMPP or FROSIO inspector; manufacturer-approved applicator.",
+          "follow_up": ""
+        },
+        {
+          "spec": "licences held",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Trade licence for the activity; civil defence approval for fire-rated insulation.",
+          "follow_up": ""
+        },
+        {
+          "spec": "service levels",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "contract duration",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "pricing basis",
+          "blocking": true,
+          "why_it_prices": "Lump sum, per m2 and per metre prices are not comparable without quantities.",
+          "uae_options": "Lump sum, unit rates with quantities, day rates.",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Scaffolding, access, removal of old insulation and waste disposal are frequent exclusions.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "access and scaffolding",
+          "blocking": true,
+          "why_it_prices": "Access at height can cost as much as the coating.",
+          "uae_options": "Ground level, scaffolding by others, rope access, MEWP.",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "coating or insulation of existing plant needs a site survey to see condition, access and quantities before a firm price.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "corrosion_insulation:uae-standards-and-approvals",
@@ -88,6 +207,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "corrosion_insulation:authority-approvals",
+      "topic": "Corrosion protection and insulation: civil defence and end-user approvals",
+      "topic_ar": "الحماية من التآكل والعزل: موافقات الدفاع المدني والمستخدم النهائي",
+      "kind": "authority_approval",
+      "body_en": "Thermal and acoustic insulation used in buildings is a fire-performance matter under the UAE Fire and Life Safety Code, enforced by each emirate's civil defence, which approves or lists materials by their fire performance; the contractor or supplier obtains the material approval. Industrial coating and insulation on oil and gas plant follow the end user's specifications and approved-product and contractor lists (ADNOC group companies register vendors and score ICV). Surface preparation by blasting falls under workplace safety rules on dust and silica. Waste from removed insulation (asbestos in old plant) is a hazardous waste handled by licensed contractors.",
+      "body_ar": "العزل الحراري والصوتي المستخدم في المباني مسألة أداء في الحريق وفق كود الإمارات للحماية من الحرائق وسلامة الأرواح الذي يطبقه الدفاع المدني في كل إمارة، ويعتمد المواد أو يدرجها حسب أدائها في الحريق، ويحصل المقاول أو المورد على اعتماد المادة. أما الطلاء والعزل الصناعي في منشآت النفط والغاز فيتبع مواصفات المستخدم النهائي وقوائم المنتجات والمقاولين المعتمدين لديه (تسجل شركات مجموعة أدنوك الموردين وتقيّم القيمة المحلية المضافة). ويخضع تحضير السطح بالسفع لقواعد السلامة المهنية الخاصة بالغبار والسيليكا. ونفايات العزل المزال (ومنها الأسبستوس في المنشآت القديمة) نفايات خطرة يتولاها مقاولون مرخصون.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.adnoc.ae/en/incountry-value/unified-certification-process"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "corrosion_insulation:quote-red-flags",
+      "topic": "Red flags in coating and insulation quotations",
+      "topic_ar": "علامات التحذير في عروض الطلاء والعزل",
+      "kind": "quote_red_flag",
+      "body_en": "Check the system line by line: a cheaper primer or finish, fewer coats, lower DFT, or St 2 hand cleaning where Sa 2.5 blasting was asked are substitutions. Watch for \"equivalent\" products from a brand not on the end user's list, insulation of a lower density or thickness, aluminium cladding thinner than specified, no CUI coating under insulation on hot lines, unit rates without quantities, scaffolding and access excluded, and no ITP or third-party inspection.",
+      "body_ar": "افحص النظام بنداً بنداً: فالأساس أو الطبقة النهائية الأرخص، أو الطبقات الأقل، أو السماكة الجافة الأقل، أو التنظيف اليدوي St 2 حيث طُلب السفع Sa 2.5، كلها استبدالات. وانتبه إلى: منتجات \"مكافئة\" من علامة غير مدرجة في قائمة المستخدم النهائي، وعزل بكثافة أو سماكة أقل، وكسوة ألمنيوم أرق من المحدد، وغياب طلاء الحماية من التآكل تحت العزل في الخطوط الساخنة، وأسعار وحدات دون كميات، واستثناء السقالات والوصول، وغياب خطة الفحص والاختبار أو الفحص المستقل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "corrosion_insulation:buyer-mistakes",
+      "topic": "Common buyer mistakes in coating and insulation",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الطلاء والعزل",
+      "kind": "buyer_mistake",
+      "body_en": "Choosing a coating by price per litre rather than by system life in the UAE's C5 coastal climate; skipping surface preparation, which causes early failure; insulating hot pipes without a CUI-resistant coating; and comparing unit rates without the same quantities and access assumptions. Ask the environment, temperature, access and the expected life.",
+      "body_ar": "اختيار الطلاء بسعر اللتر بدل عمر النظام في المناخ الساحلي للإمارات من فئة C5؛ وإهمال تحضير السطح مما يسبب فشلاً مبكراً؛ وعزل الأنابيب الساخنة دون طلاء مقاوم للتآكل تحت العزل؛ ومقارنة أسعار الوحدات دون الكميات وافتراضات الوصول نفسها. لذا يُسأل عن البيئة والحرارة والوصول والعمر المتوقع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "corrosion_insulation:price-drivers",
+      "topic": "What legitimately moves coating and insulation prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الطلاء والعزل",
+      "kind": "price_driver",
+      "body_en": "Surface preparation method, coating system and DFT, insulation material, thickness and density, cladding, access (scaffolding, rope access, height), working conditions (live plant, permits, night work), inspection level, and removal and disposal of old material.",
+      "body_ar": "طريقة تحضير السطح، ونظام الطلاء وسماكته الجافة، ومادة العزل وسماكتها وكثافتها، والكسوة، والوصول (السقالات والحبال والارتفاع)، وظروف العمل (منشأة عاملة وتصاريح وعمل ليلي)، ومستوى الفحص، وإزالة المواد القديمة والتخلص منها.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "corrosion_insulation:compare-quotes",
+      "topic": "Comparing coating and insulation quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض الطلاء والعزل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Re-price every offer on the same bill of quantities, the same system and preparation grade, and the same access and inspection scope. Then compare cost per year of expected life, not price per m2. Recommend the three offers that meet the specification and approved lists in full.",
+      "body_ar": "أعد تسعير كل عرض على جدول الكميات نفسه والنظام ودرجة التحضير نفسيهما ونطاق الوصول والفحص نفسه. ثم قارن التكلفة لكل سنة من العمر المتوقع لا السعر للمتر المربع. ويوصى بأفضل ثلاثة عروض تستوفي المواصفة والقوائم المعتمدة بالكامل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -130,7 +317,8 @@
     "removed": [],
     "still_unverified": [
       "corrosion_insulation:spec-checklist",
-      "corrosion_insulation:uae-standards-and-approvals"
+      "corrosion_insulation:uae-standards-and-approvals",
+      "corrosion_insulation:authority-approvals"
     ],
     "added": [
       "corrosion_insulation:spec-checklist",
@@ -161,6 +349,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "corrosion_insulation:quote-red-flags",
+      "corrosion_insulation:buyer-mistakes",
+      "corrosion_insulation:price-drivers",
+      "corrosion_insulation:compare-quotes"
+    ]
   }
 }

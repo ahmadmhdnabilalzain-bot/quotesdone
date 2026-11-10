@@ -27,8 +27,8 @@
       "topic": "3D printing & rapid prototyping: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الطباعة ثلاثية الأبعاد والنماذج الأولية السريعة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the 3D printing brands in the UAE market, such as Stratasys, Formlabs, HP and EOS, and where distributors and integrators are based. Brands in the market: Immensa, Stratasys, UltiMaker, Formlabs, HP, EOS, 3D Systems, Markforged, Bambu Lab, Prusa, Creality, Raise3D, Nikon SLM Solutions, Farsoon, COBOD, Apis Cor. Which UAE distributor carries each brand was not checked. Distributors and integrators are in Dubai (JAFZA, Al Quoz, Dubai Investments Park), Sharjah and Abu Dhabi (Musaffah, ICAD).",
-      "body_ar": "أبرز علامات الطابعات ثلاثية الأبعاد في سوق الإمارات هي Stratasys وFormlabs وHP وEOS، مع بيان أماكن الموزعين ومكاملي الأنظمة. العلامات في السوق: Immensa، Stratasys، UltiMaker، Formlabs، HP، EOS، 3D Systems، Markforged، Bambu Lab، Prusa، Creality، Raise3D، Nikon SLM Solutions، Farsoon، COBOD، Apis Cor. ولم يُتحقق من الموزع الإماراتي لكل علامة. والموزعون والمكاملون في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة وأبوظبي (مصفح وICAD).",
+      "body_en": "This entry lists the 3D printing brands in the UAE market, such as Stratasys, Formlabs, HP and EOS, and where distributors and integrators are based. Brands in the market: Immensa, Stratasys, UltiMaker, Formlabs, HP, EOS, 3D Systems, Markforged, Bambu Lab, Prusa, Creality, Raise3D, Nikon SLM Solutions, Farsoon, COBOD, Apis Cor. Which UAE distributor carries each brand was not checked. Distributors and integrators are in Dubai (JAFZA, Al Quoz, Dubai Investments Park), Sharjah and Abu Dhabi (Musaffah, ICAD).\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Immensa = a mid-tier UAE supplier; Stratasys = a premium American brand; UltiMaker = a mid-tier Dutch brand; Formlabs = a premium American brand; HP = a premium American brand; EOS = a premium German brand; 3D Systems = a premium American brand; Markforged = a premium American brand; Bambu Lab = a economy Chinese brand; Prusa = a mid-tier Czech brand; Creality = a economy Chinese brand; Raise3D = a mid-tier American brand; Nikon SLM Solutions = a premium German brand; Farsoon = a mid-tier Chinese brand; COBOD = a premium Danish brand; Apis Cor = a mid-tier American brand.",
+      "body_ar": "أبرز علامات الطابعات ثلاثية الأبعاد في سوق الإمارات هي Stratasys وFormlabs وHP وEOS، مع بيان أماكن الموزعين ومكاملي الأنظمة. العلامات في السوق: Immensa، Stratasys، UltiMaker، Formlabs، HP، EOS، 3D Systems، Markforged، Bambu Lab، Prusa، Creality، Raise3D، Nikon SLM Solutions، Farsoon، COBOD، Apis Cor. ولم يُتحقق من الموزع الإماراتي لكل علامة. والموزعون والمكاملون في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة وأبوظبي (مصفح وICAD).\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Immensa = شركة توريد إماراتية من الفئة المتوسطة؛ Stratasys = علامة أمريكية من الفئة الممتازة؛ UltiMaker = علامة هولندية من الفئة المتوسطة؛ Formlabs = علامة أمريكية من الفئة الممتازة؛ HP = علامة أمريكية من الفئة الممتازة؛ EOS = علامة ألمانية من الفئة الممتازة؛ 3D Systems = علامة أمريكية من الفئة الممتازة؛ Markforged = علامة أمريكية من الفئة الممتازة؛ Bambu Lab = علامة صينية من الفئة الاقتصادية؛ Prusa = علامة تشيكية من الفئة المتوسطة؛ Creality = علامة صينية من الفئة الاقتصادية؛ Raise3D = علامة أمريكية من الفئة المتوسطة؛ Nikon SLM Solutions = علامة ألمانية من الفئة الممتازة؛ Farsoon = علامة صينية من الفئة المتوسطة؛ COBOD = علامة دنماركية من الفئة الممتازة؛ Apis Cor = علامة أمريكية من الفئة المتوسطة.",
       "sources": [
         "https://immensa.io/services/additive-manufacturing/",
         "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/strategies-plans-and-visions/industry-science-and-technology/dubai-3d-printing-strategy",
@@ -38,7 +38,121 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Immensa prints oil and gas spare parts for ADNOC Gas, Dubai-based -> confirmed (Dubai and Sharjah facilities) | Dubai 3D Printing Strategy targets 25% of buildings by 2030 -> confirmed. Not checked: Current status of named service bureaus and the current targets of the Dubai 3D printing strategy were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Immensa prints oil and gas spare parts for ADNOC Gas, Dubai-based -> confirmed (Dubai and Sharjah facilities) | Dubai 3D Printing Strategy targets 25% of buildings by 2030 -> confirmed. Not checked: Current status of named service bureaus and the current targets of the Dubai 3D printing strategy were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Immensa",
+          "origin_country": "UAE",
+          "tier": "supplier",
+          "generic_en": "a mid-tier UAE supplier",
+          "generic_ar": "شركة توريد إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Stratasys",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "UltiMaker",
+          "origin_country": "Netherlands",
+          "tier": "mid",
+          "generic_en": "a mid-tier Dutch brand",
+          "generic_ar": "علامة هولندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Formlabs",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "HP",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "EOS",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "3D Systems",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Markforged",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bambu Lab",
+          "origin_country": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Prusa",
+          "origin_country": "Czech Republic",
+          "tier": "mid",
+          "generic_en": "a mid-tier Czech brand",
+          "generic_ar": "علامة تشيكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Creality",
+          "origin_country": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Raise3D",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Nikon SLM Solutions",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Farsoon",
+          "origin_country": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "COBOD",
+          "origin_country": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "Apis Cor",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "additive_manufacturing:uae-market-sizes",

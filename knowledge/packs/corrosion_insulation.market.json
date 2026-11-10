@@ -26,8 +26,8 @@
       "topic": "Industrial insulation & corrosion protection: makes, brands, distributors and origins in the UAE",
       "topic_ar": "العزل الصناعي والحماية من التآكل: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names insulation and coating brands such as Rockwool, Armacell, Jotun and Hempel, cathodic protection names such as Corrpro and Denso, and where contractors cluster. Material and system brands: Rockwool, Knauf, Foamglas, Armacell, Aspen Aerogels, Johns Manville, Jotun, Hempel, International, Sherwin-Williams, PPG, Carboline, BAC, Corrpro, Denso, Trenton, Stopaq. Contractors are clustered in Abu Dhabi (Musaffah, ICAD, Ruwais), Jebel Ali and Sharjah (Hamriyah), and oil and gas work usually requires ADNOC or operator registration and AMPP or FROSIO certified inspectors. Local contractors and the brands' distributors were not checked by name.",
-      "body_ar": "من علامات العزل والطلاء المتداولة Rockwool وArmacell وJotun وHempel، ومن أسماء الحماية الكاثودية Corrpro وDenso، مع بيان أماكن تجمع المقاولين. علامات المواد والأنظمة: Rockwool، Knauf، Foamglas، Armacell، Aspen Aerogels، Johns Manville، Jotun، Hempel، International، Sherwin-Williams، PPG، Carboline، BAC، Corrpro، Denso، Trenton، Stopaq. ويتجمع المقاولون في أبوظبي (مصفح وICAD والرويس) وجبل علي والشارقة (الحمرية)، وتتطلب أعمال النفط والغاز عادة تسجيلاً لدى أدنوك أو المشغل ومفتشين معتمدين من AMPP أو FROSIO. ولم يُتحقق بالاسم من المقاولين المحليين وموزعي العلامات.",
+      "body_en": "This entry names insulation and coating brands such as Rockwool, Armacell, Jotun and Hempel, cathodic protection names such as Corrpro and Denso, and where contractors cluster. Material and system brands: Rockwool, Knauf, Foamglas, Armacell, Aspen Aerogels, Johns Manville, Jotun, Hempel, International, Sherwin-Williams, PPG, Carboline, BAC, Corrpro, Denso, Trenton, Stopaq. Contractors are clustered in Abu Dhabi (Musaffah, ICAD, Ruwais), Jebel Ali and Sharjah (Hamriyah), and oil and gas work usually requires ADNOC or operator registration and AMPP or FROSIO certified inspectors. Local contractors and the brands' distributors were not checked by name.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Rockwool = a premium Danish brand; Knauf = a premium German brand; Foamglas = a premium Belgian brand; Armacell = a premium Luxembourg-based brand; Aspen Aerogels = a premium American brand; Johns Manville = a premium American brand; Jotun = a premium Norwegian brand; Hempel = a premium Danish brand; International = a premium Dutch brand; Sherwin-Williams = a premium American brand; PPG = a premium American brand; Carboline = a premium American brand; BAC = a mid-tier British brand; Corrpro = a mid-tier American brand; Denso = a mid-tier British brand; Trenton = a mid-tier American brand; Stopaq = a mid-tier Dutch brand.",
+      "body_ar": "من علامات العزل والطلاء المتداولة Rockwool وArmacell وJotun وHempel، ومن أسماء الحماية الكاثودية Corrpro وDenso، مع بيان أماكن تجمع المقاولين. علامات المواد والأنظمة: Rockwool، Knauf، Foamglas، Armacell، Aspen Aerogels، Johns Manville، Jotun، Hempel، International، Sherwin-Williams، PPG، Carboline، BAC، Corrpro، Denso، Trenton، Stopaq. ويتجمع المقاولون في أبوظبي (مصفح وICAD والرويس) وجبل علي والشارقة (الحمرية)، وتتطلب أعمال النفط والغاز عادة تسجيلاً لدى أدنوك أو المشغل ومفتشين معتمدين من AMPP أو FROSIO. ولم يُتحقق بالاسم من المقاولين المحليين وموزعي العلامات.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Rockwool = علامة دنماركية من الفئة الممتازة؛ Knauf = علامة ألمانية من الفئة الممتازة؛ Foamglas = علامة بلجيكية من الفئة الممتازة؛ Armacell = علامة لوكسمبورغية من الفئة الممتازة؛ Aspen Aerogels = علامة أمريكية من الفئة الممتازة؛ Johns Manville = علامة أمريكية من الفئة الممتازة؛ Jotun = علامة نرويجية من الفئة الممتازة؛ Hempel = علامة دنماركية من الفئة الممتازة؛ International = علامة هولندية من الفئة الممتازة؛ Sherwin-Williams = علامة أمريكية من الفئة الممتازة؛ PPG = علامة أمريكية من الفئة الممتازة؛ Carboline = علامة أمريكية من الفئة الممتازة؛ BAC = علامة بريطانية من الفئة المتوسطة؛ Corrpro = علامة أمريكية من الفئة المتوسطة؛ Denso = علامة بريطانية من الفئة المتوسطة؛ Trenton = علامة أمريكية من الفئة المتوسطة؛ Stopaq = علامة هولندية من الفئة المتوسطة.",
       "sources": [
         "https://www.ampp.org",
         "https://www.adnoc.ae/en/incountry-value/unified-certification-process",
@@ -36,7 +36,128 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: AMPP (formerly NACE) is the coatings and corrosion body whose certifications are asked for -> confirmed | ADNOC ICV and supplier registration -> confirmed (search result). Not checked: ADNOC's current approved contractor lists and named CP suppliers' UAE presence were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: AMPP (formerly NACE) is the coatings and corrosion body whose certifications are asked for -> confirmed | ADNOC ICV and supplier registration -> confirmed (search result). Not checked: ADNOC's current approved contractor lists and named CP suppliers' UAE presence were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Rockwool",
+          "origin_country": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "Knauf",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Foamglas",
+          "origin_country": "Belgium",
+          "tier": "premium",
+          "generic_en": "a premium Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Armacell",
+          "origin_country": "Luxembourg",
+          "tier": "premium",
+          "generic_en": "a premium Luxembourg-based brand",
+          "generic_ar": "علامة لوكسمبورغية من الفئة الممتازة"
+        },
+        {
+          "brand": "Aspen Aerogels",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Johns Manville",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Jotun",
+          "origin_country": "Norway",
+          "tier": "premium",
+          "generic_en": "a premium Norwegian brand",
+          "generic_ar": "علامة نرويجية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hempel",
+          "origin_country": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "International",
+          "origin_country": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium Dutch brand",
+          "generic_ar": "علامة هولندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sherwin-Williams",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "PPG",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Carboline",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "BAC",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Corrpro",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Denso",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Trenton",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Stopaq",
+          "origin_country": "Netherlands",
+          "tier": "mid",
+          "generic_en": "a mid-tier Dutch brand",
+          "generic_ar": "علامة هولندية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "corrosion_insulation:uae-market-sizes",

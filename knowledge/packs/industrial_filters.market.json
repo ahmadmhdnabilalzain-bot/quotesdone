@@ -9,8 +9,8 @@
       "topic": "Industrial filters: brands and makers in this category",
       "topic_ar": "الفلاتر الصناعية: العلامات التجارية والصانعون في هذه الفئة",
       "kind": "uae_market_brands",
-      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Camfil (Sweden) makes air filters and clean-air products. Donaldson (United States) makes air and liquid filtration for engines, industry and aerospace. MANN+HUMMEL (Germany) makes liquid and air filter systems, intake systems and cabin air filters. Parker Hannifin (United States) makes filtration products among its motion-control lines. Which local distributor carries each make was not checked.",
-      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Camfil (السويد) تصنع فلاتر الهواء ومنتجات الهواء النظيف. Donaldson (الولايات المتحدة) تصنع فلاتر الهواء والسوائل للمحركات والصناعة والطيران. MANN+HUMMEL (ألمانيا) تصنع أنظمة فلاتر السوائل والهواء وأنظمة السحب وفلاتر هواء المقصورة. Parker Hannifin (الولايات المتحدة) تصنع منتجات الترشيح ضمن خطوط التحكم بالحركة. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Camfil (Sweden) makes air filters and clean-air products. Donaldson (United States) makes air and liquid filtration for engines, industry and aerospace. MANN+HUMMEL (Germany) makes liquid and air filter systems, intake systems and cabin air filters. Parker Hannifin (United States) makes filtration products among its motion-control lines. Which local distributor carries each make was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Camfil = a premium Swedish brand; Donaldson = a premium American brand; MANN+HUMMEL = a premium German brand; Parker Hannifin = a premium American brand.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Camfil (السويد) تصنع فلاتر الهواء ومنتجات الهواء النظيف. Donaldson (الولايات المتحدة) تصنع فلاتر الهواء والسوائل للمحركات والصناعة والطيران. MANN+HUMMEL (ألمانيا) تصنع أنظمة فلاتر السوائل والهواء وأنظمة السحب وفلاتر هواء المقصورة. Parker Hannifin (الولايات المتحدة) تصنع منتجات الترشيح ضمن خطوط التحكم بالحركة. ولم يُتحقق من الموزع المحلي لكل علامة.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Camfil = علامة سويدية من الفئة الممتازة؛ Donaldson = علامة أمريكية من الفئة الممتازة؛ MANN+HUMMEL = علامة ألمانية من الفئة الممتازة؛ Parker Hannifin = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Camfil",
         "https://en.wikipedia.org/wiki/Donaldson_Company",
@@ -20,7 +20,37 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
-      "source_note": "Camfil: https://en.wikipedia.org/wiki/Camfil | Donaldson: https://en.wikipedia.org/wiki/Donaldson_Company | MANN+HUMMEL: https://en.wikipedia.org/wiki/Mann%2BHummel | Parker: https://en.wikipedia.org/wiki/Parker_Hannifin"
+      "source_note": "Camfil: https://en.wikipedia.org/wiki/Camfil | Donaldson: https://en.wikipedia.org/wiki/Donaldson_Company | MANN+HUMMEL: https://en.wikipedia.org/wiki/Mann%2BHummel | Parker: https://en.wikipedia.org/wiki/Parker_Hannifin brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Camfil",
+          "origin_country": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Donaldson",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "MANN+HUMMEL",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Parker Hannifin",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "industrial_filters:uae-market-presence",

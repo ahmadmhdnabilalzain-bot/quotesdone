@@ -26,8 +26,8 @@
       "topic": "Castings & forgings: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المسبوكات والمطروقات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry describes who supplies castings and forgings in the UAE: local foundries, imported cover brands such as Saint-Gobain PAM and EJ, and the origins of flanges and fittings. Local foundries in Sharjah, Ajman, Jebel Ali, Hamriyah and Abu Dhabi (ICAD) make ductile iron manhole covers, gratings and general castings; these foundries were not checked by name. Imported cover brands include Saint-Gobain PAM, EJ. Flanges and fittings come from India, China, Italy, Germany and Korea, and valve castings from India and China. Flange and fitting traders are concentrated in Deira and Sharjah Industrial Area.",
-      "body_ar": "تُورَّد المسبوكات والمطروقات في الإمارات من مسابك محلية، ومن علامات أغطية مستوردة مثل Saint-Gobain PAM وEJ، مع بيان منشأ الفلنجات والوصلات. وتنتج المسابك المحلية في الشارقة وعجمان وجبل علي والحمرية وأبوظبي (مدينة أبوظبي الصناعية ICAD) أغطية المناهل والمشبكات من حديد الدكتايل والمسبوكات العامة، ولم نتحقق من هذه المسابك بأسمائها. ومن علامات الأغطية المستوردة Saint-Gobain PAM وEJ. وتأتي الفلنجات والوصلات من الهند والصين وإيطاليا وألمانيا وكوريا، ومسبوكات المحابس من الهند والصين. ويتركز تجار الفلنجات والوصلات في ديرة والمنطقة الصناعية بالشارقة.",
+      "body_en": "This entry describes who supplies castings and forgings in the UAE: local foundries, imported cover brands such as Saint-Gobain PAM and EJ, and the origins of flanges and fittings. Local foundries in Sharjah, Ajman, Jebel Ali, Hamriyah and Abu Dhabi (ICAD) make ductile iron manhole covers, gratings and general castings; these foundries were not checked by name. Imported cover brands include Saint-Gobain PAM, EJ. Flanges and fittings come from India, China, Italy, Germany and Korea, and valve castings from India and China. Flange and fitting traders are concentrated in Deira and Sharjah Industrial Area.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Saint-Gobain PAM = a premium French brand; EJ = a premium American brand.",
+      "body_ar": "تُورَّد المسبوكات والمطروقات في الإمارات من مسابك محلية، ومن علامات أغطية مستوردة مثل Saint-Gobain PAM وEJ، مع بيان منشأ الفلنجات والوصلات. وتنتج المسابك المحلية في الشارقة وعجمان وجبل علي والحمرية وأبوظبي (مدينة أبوظبي الصناعية ICAD) أغطية المناهل والمشبكات من حديد الدكتايل والمسبوكات العامة، ولم نتحقق من هذه المسابك بأسمائها. ومن علامات الأغطية المستوردة Saint-Gobain PAM وEJ. وتأتي الفلنجات والوصلات من الهند والصين وإيطاليا وألمانيا وكوريا، ومسبوكات المحابس من الهند والصين. ويتركز تجار الفلنجات والوصلات في ديرة والمنطقة الصناعية بالشارقة.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Saint-Gobain PAM = علامة فرنسية من الفئة الممتازة؛ EJ = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Manhole_cover",
         "https://www.cencenelec.eu",
@@ -36,7 +36,23 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN 124 load classes for manhole covers -> confirmed (secondary source) | named local foundries -> none named; kept generic. Not checked: Names and capacities of local UAE foundries were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 124 load classes for manhole covers -> confirmed (secondary source) | named local foundries -> none named; kept generic. Not checked: Names and capacities of local UAE foundries were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Saint-Gobain PAM",
+          "origin_country": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "EJ",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "castings_forgings:uae-market-sizes",

@@ -5,8 +5,8 @@
       "id": "cnc_machining:spec-checklist",
       "topic": "CNC machining - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for cnc machining must state: part drawing and revision; material and grade; quantity; tolerances per ISO 2768 or drawing; surface roughness; finishing or coating; inspection report; material certificate; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة التشغيل الآلي بالتحكم الرقمي: رسم القطعة ومراجعته؛ المادة ودرجتها؛ الكمية؛ التفاوتات وفق ISO 2768 أو الرسم؛ خشونة السطح؛ التشطيب أو الطلاء؛ تقرير الفحص؛ شهادة المادة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for cnc machining must state: part drawing and revision; material and grade; quantity; tolerances per ISO 2768 or drawing; surface roughness; finishing or coating; inspection report; material certificate; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): part drawing and revision; material and grade; quantity; tolerances per ISO 2768 or drawing. Follow-up questions the answers trigger: part drawing and revision: No drawing brings a sample part to measure and reverse-engineer. material and grade: Ask who supplies the material and whether a certificate is needed. Before a firm price: a machined part always needs the drawing or a sample part before a firm price.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة التشغيل الآلي بالتحكم الرقمي: رسم القطعة ومراجعته؛ المادة ودرجتها؛ الكمية؛ التفاوتات وفق ISO 2768 أو الرسم؛ خشونة السطح؛ التشطيب أو الطلاء؛ تقرير الفحص؛ شهادة المادة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: رسم القطعة ومراجعته، والمادة ودرجتها، والكمية، والتفاوتات وفق ISO 2768 أو الرسم. أسئلة المتابعة: إذا لم يتوفر رسم تُطلب قطعة عينة للقياس، ويُسأل من يورد المادة وهل تلزم شهادة. القطعة المشغّلة تحتاج دائماً الرسم أو عينة قبل السعر النهائي.",
       "required_specs": [
         "part drawing and revision",
         "material and grade",
@@ -27,7 +27,108 @@
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "part drawing and revision",
+        "material and grade",
+        "quantity",
+        "tolerances per ISO 2768 or drawing"
+      ],
+      "spec_guide": [
+        {
+          "spec": "part drawing and revision",
+          "blocking": true,
+          "why_it_prices": "Machining is priced from the drawing and the 3D model.",
+          "uae_options": "PDF with tolerances, STEP/IGES model, revision.",
+          "follow_up": "No drawing brings a sample part to measure and reverse-engineer."
+        },
+        {
+          "spec": "material and grade",
+          "blocking": true,
+          "why_it_prices": "Material sets stock cost and machining time.",
+          "uae_options": "Aluminium 6061/7075, SS304/316, 4140, brass, PEEK, Delrin, titanium.",
+          "follow_up": "Ask who supplies the material and whether a certificate is needed."
+        },
+        {
+          "spec": "quantity",
+          "blocking": true,
+          "why_it_prices": "Set-up is spread over quantity; one-offs cost far more each.",
+          "uae_options": "Prototype, batch, repeat annual quantity.",
+          "follow_up": ""
+        },
+        {
+          "spec": "tolerances per ISO 2768 or drawing",
+          "blocking": true,
+          "why_it_prices": "Tight tolerances need slower cutting, grinding and inspection.",
+          "uae_options": "ISO 2768-m/f general; specific tolerances; GD&T.",
+          "follow_up": ""
+        },
+        {
+          "spec": "surface roughness",
+          "blocking": false,
+          "why_it_prices": "Fine finishes need extra passes or grinding.",
+          "uae_options": "Ra 3.2, 1.6, 0.8 µm.",
+          "follow_up": ""
+        },
+        {
+          "spec": "finishing or coating",
+          "blocking": false,
+          "why_it_prices": "Anodising, plating and painting are outsourced cost.",
+          "uae_options": "Anodise (type II/III), zinc, nickel, chrome, powder coat, passivation.",
+          "follow_up": ""
+        },
+        {
+          "spec": "inspection report",
+          "blocking": false,
+          "why_it_prices": "CMM reports and first-article inspection cost time.",
+          "uae_options": "Visual, dimensional report, CMM, FAI.",
+          "follow_up": ""
+        },
+        {
+          "spec": "material certificate",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "EN 10204 3.1.",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "delivery and installation scope",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Material, coating and heat treatment are sometimes excluded.",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a machined part always needs the drawing or a sample part before a firm price.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "cnc_machining:uae-standards-and-approvals",
@@ -87,6 +188,73 @@
       "gap_kind": "commercial",
       "verified": false,
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
+    },
+    {
+      "id": "cnc_machining:authority-approvals",
+      "topic": "CNC machining: approvals that apply",
+      "topic_ar": "التشغيل الآلي CNC: الموافقات المطبقة",
+      "kind": "authority_approval",
+      "body_en": "No UAE product licence or conformity scheme applies to made-to-drawing machined parts: the controls are contractual. The buyer's drawing, material standard and inspection requirements govern, and the end user may add its own approved-vendor or approved-manufacturer list (ADNOC group companies, for example, register vendors and score the In-Country Value certificate in tenders). Parts for regulated sectors follow those sectors: aircraft parts need aviation release documents, pressure parts follow the pressure-equipment code named in the order. Goods produced in a free zone and delivered to the mainland pass customs at that point. This is the state as far as could be established by search.",
+      "body_ar": "لا يلزم ترخيص منتج أو نظام مطابقة في الإمارات لـالقطع المشغّلة آلياً المصنوعة حسب الرسم، فالضوابط تعاقدية: يحكمها رسم المشتري ومواصفة المادة ومتطلبات الفحص، وقد يضيف المستخدم النهائي قائمة موردين أو مصنّعين معتمدين (فشركات مجموعة أدنوك مثلاً تسجل الموردين وتقيّم شهادة القيمة المحلية المضافة في المناقصات). وتتبع قطع القطاعات المنظمة أنظمة قطاعاتها: فقطع الطائرات تحتاج وثائق إفراج جوية، وقطع الضغط تتبع كود معدات الضغط المذكور في الطلب. والبضائع المنتجة في منطقة حرة والمسلّمة إلى البر الرئيسي تمر بالجمارك عند ذلك. هذا ما أمكن التثبت منه بالبحث.",
+      "sources": [
+        "https://www.adnoc.ae/en/incountry-value/unified-certification-process"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "cnc_machining:quote-red-flags",
+      "topic": "Red flags in CNC machining quotations",
+      "topic_ar": "علامات التحذير في عروض التشغيل الآلي",
+      "kind": "quote_red_flag",
+      "body_en": "Check the material grade (6061 offered for 7075, 304 for 316), the drawing revision quoted, and that tolerances and finish were accepted without exceptions. Watch for \"as per drawing\" with notes excluding critical tolerances, coating or heat treatment excluded, material supplied by the buyer assumed, no inspection report, a one-off price presented as a batch price, and set-up or programming charged separately later.",
+      "body_ar": "تحقق من درجة المادة (6061 بدل 7075، أو 304 بدل 316)، ومن مراجعة الرسم المسعّرة، ومن قبول التفاوتات والتشطيب دون استثناءات. وانتبه إلى: عبارة \"حسب الرسم\" مع ملاحظات تستثني تفاوتات حرجة، واستثناء الطلاء أو المعالجة الحرارية، وافتراض أن المشتري يورد المادة، وغياب تقرير الفحص، وعرض سعر القطعة الواحدة على أنه سعر دفعة، واحتساب التجهيز أو البرمجة منفصلاً لاحقاً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "cnc_machining:buyer-mistakes",
+      "topic": "Common buyer mistakes when ordering machined parts",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند طلب القطع المشغّلة",
+      "kind": "buyer_mistake",
+      "body_en": "Putting tight tolerances on every dimension, which multiplies cost; sending a photo instead of a drawing; not stating the material grade; ordering one piece when several will be needed; and forgetting coating or heat treatment. Ask which dimensions are critical and how the part is used.",
+      "body_ar": "وضع تفاوتات ضيقة على كل الأبعاد مما يضاعف التكلفة؛ وإرسال صورة بدل رسم؛ وعدم ذكر درجة المادة؛ وطلب قطعة واحدة بينما ستلزم عدة قطع؛ ونسيان الطلاء أو المعالجة الحرارية. لذا يُسأل عن الأبعاد الحرجة وكيفية استخدام القطعة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "cnc_machining:price-drivers",
+      "topic": "What legitimately moves CNC machining prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار التشغيل الآلي",
+      "kind": "price_driver",
+      "body_en": "Material and stock size, machining time (complexity, number of set-ups, 5-axis work), tolerances and finish, quantity and set-up amortisation, secondary processes (heat treatment, coating), inspection level, and urgency.",
+      "body_ar": "المادة وحجم الخام، وزمن التشغيل (التعقيد وعدد مرات التثبيت والتشغيل خماسي المحاور)، والتفاوتات والتشطيب، والكمية وتوزيع كلفة التجهيز، والعمليات الثانوية (المعالجة الحرارية والطلاء)، ومستوى الفحص، والاستعجال.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "cnc_machining:compare-quotes",
+      "topic": "Comparing CNC machining quotes like-for-like",
+      "topic_ar": "مقارنة عروض التشغيل الآلي على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare the same drawing revision, material, quantity, finish and inspection, including material and secondary processes. A shop that took exceptions to tolerances is not comparable until they are resolved. Weigh capability (machine type, CMM) and on-time record. Recommend the three that accept the drawing in full at the lowest delivered price.",
+      "body_ar": "قارن مراجعة الرسم والمادة والكمية والتشطيب والفحص نفسها، شاملة المادة والعمليات الثانوية. والورشة التي تحفظت على التفاوتات لا تقارن حتى يُحسم التحفظ. وزن القدرات (نوع الآلات وجهاز القياس الإحداثي) وسجل الالتزام بالمواعيد. ويوصى بأفضل ثلاثة عروض تقبل الرسم بالكامل بأقل سعر تسليم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -119,7 +287,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "cnc_machining:spec-checklist"
+      "cnc_machining:spec-checklist",
+      "cnc_machining:authority-approvals"
     ],
     "added": [
       "cnc_machining:spec-checklist",
@@ -154,6 +323,12 @@
         "cnc_machining:lead-times",
         "cnc_machining:quotation-requirements"
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "cnc_machining:quote-red-flags",
+      "cnc_machining:buyer-mistakes",
+      "cnc_machining:price-drivers",
+      "cnc_machining:compare-quotes"
+    ]
   }
 }
