@@ -14,7 +14,7 @@
 -- amount_as_stated take the new figure (it is read as the price excluding VAT, the basis both columns already hold); the VAT
 -- amount keeps its rate (scaled with the price, so a 5 % VAT stays 5 % and a zero stays zero); a gross price and a discount
 -- the supplier stated for the OLD total are cleared rather than left describing a price that no longer exists (nothing is
--- invented). fn_supplier_apply_change (live body md5 dbe8fac1..., read 10 Nov) calls it and tells the supplier the figure is
+-- invented). fn_supplier_apply_change (live body md5 902e1db6..., read 10 Nov after #1908's a_supplier_cannot_reprice_a_quote_on_a_request_that_has_ended.sql) calls it and tells the supplier the figure is
 -- excluding VAT and that the line prices did not move.
 -- WHAT IT DOES NOT CHANGE: the quotation's lines (quote_items) - a WhatsApp sentence carries one figure, so the lines no
 -- longer add up to the new total; reported, and the supplier is told to send a revised quotation from the portal if they
@@ -90,7 +90,8 @@ begin
      and (p_quote_id is null or q.id = p_quote_id)
      and q.committed_at is null
      and coalesce(q.status,'') not in ('accepted','withdrawn','expired')
-     and coalesce(i.status,'') not in ('concluded','closed','cancelled','awarded')
+     -- 10 Nov 2026: the ends of a request, one list with _shared/request_closed.ts (two of the old four were statuses nothing writes)
+     and coalesce(i.status,'') not in ('completed','closed','cancelled','expired','lost')
      and not exists (select 1 from public.transactions t
                       where t.inquiry_id = q.inquiry_id and t.supplier_id = q.supplier_id
                         and t.revealed_at is not null);
@@ -134,7 +135,8 @@ begin
      and (p_quote_id is null or q.id = p_quote_id)
      and q.committed_at is null
      and coalesce(q.status,'') not in ('accepted','withdrawn','expired')
-     and coalesce(i.status,'') not in ('concluded','closed','cancelled','awarded')
+     -- 10 Nov 2026: the ends of a request, one list with _shared/request_closed.ts (two of the old four were statuses nothing writes)
+     and coalesce(i.status,'') not in ('completed','closed','cancelled','expired','lost')
      and not exists (select 1 from public.transactions t
                       where t.inquiry_id = q.inquiry_id and t.supplier_id = q.supplier_id
                         and t.revealed_at is not null);
