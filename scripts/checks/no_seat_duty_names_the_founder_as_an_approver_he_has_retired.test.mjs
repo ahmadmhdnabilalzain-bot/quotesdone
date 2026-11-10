@@ -21,7 +21,8 @@ const REGISTER = 'scripts/sql/the_marketing_seat_puts_its_plan_geo_articles_laun
 // The approvals the founder kept, each with the ruling that keeps it. Anything else that names him as approver fails.
 const KEPT = {
   'marketing.month_plan': 'ledger 1059 / 24 Sep 2026: the monthly social calendar is his one approval',
-  'marketing.launch_plan': '28 Sep 2026: the January 2027 launch plan goes to him for a one-shot approval from 1 December',
+  // marketing.launch_plan was kept here until ledger 1616 (10 Nov 2026): the CEO seat approves the January launch plan and
+  // the founder is only told in his daily brief (the_ceo_approves_the_january_launch_plan_and_the_founder_reads_it_in_his_brief.sql)
   'ceo.pricing_monitor': 'pricing is in the signed terms; a change is his (the proposal goes to him)',
 };
 const NAMES_HIM_APPROVER = /(to the founder for ["“]?approve|only his approval|founder approves|founder'?s approval|for his (one-shot )?approval|sent for approval)/i;
@@ -37,9 +38,20 @@ test('the registered article-release text names the CEO, in the file that regist
   assert.match(fix, /update public\.seat_duty\s+set what = 'One article draft a Dubai week is reviewed by the CEO seat/, 'the production fix is gone');
 });
 
+test('ledger 1616: the launch-plan duty names the CEO as approver, and its routine mails nobody', () => {
+  const f = readFileSync(path.join(REPO, 'scripts/sql/the_ceo_approves_the_january_launch_plan_and_the_founder_reads_it_in_his_brief.sql'), 'utf8');
+  const what = f.match(/update public\.seat_duty\s+set what = '([^']*(?:''[^']*)*)'/);
+  assert.ok(what, 'the launch-plan duty text is not set');
+  assert.doesNotMatch(what[1], NAMES_HIM_APPROVER, 'ledger 1616: the launch-plan duty names the founder as approver again');
+  const run = f.slice(f.indexOf('function public.fn_marketing_launch_plan_run('));
+  assert.doesNotMatch(run.split('$fn$')[1], /fn_marketing_mail_founder|fn_notify_founder/, 'ledger 1616: the launch plan is mailed to the founder again');
+  assert.match(run.split('$fn$')[1], /fn_ceo_decide_launch_plan\(d\.id\)/, 'the CEO does not decide the launch plan');
+});
+
 test('live: no enabled duty makes the founder an approver he has not kept', async (t) => {
   if (!token) { t.skip('no management token'); return; }
   if (pendingNotes().has(FILE)) { t.skip('pending: not applied yet'); return; }
+  if (pendingNotes().has('scripts/sql/the_ceo_approves_the_january_launch_plan_and_the_founder_reads_it_in_his_brief.sql')) { t.skip('pending: the ledger 1616 launch-plan text is not applied yet'); return; }
   const { sql } = await import('../lib/db.mjs');
   const rows = await sql(`select duty, what from public.seat_duty where enabled`, { readOnly: true });
   const bad = rows.filter((r) => NAMES_HIM_APPROVER.test(r.what || '') && !KEPT[r.duty]).map((r) => `${r.duty}: ${r.what}`);
