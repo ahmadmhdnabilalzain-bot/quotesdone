@@ -134,6 +134,13 @@ async function releaseHold(page, inquiryId) {
   return n;
 }
 
+// WHAT THE PORTAL WAS TOLD, NOT ONLY WHAT IT SHOWED (10 Nov 2026). Scenarios c and d failed on production with the
+// database showing a 200 (c: extract_quote 46 s; d: a held draft) and the screen showing neither the read nor the hold,
+// and nothing said which side dropped it. The answer to the browser is now part of the step's detail.
+const answerOf = (page, action, timeout = 300000) => page.waitForResponse((r) => r.url().includes('/functions/v1/supplier_api') && (r.request().postData() || '').includes(`"action":"${action}"`), { timeout })
+  .then(async (r) => { const j = await r.json().catch(() => null); return { http: r.status(), ok: j?.ok ?? null, code: j?.code ?? j?.error ?? null, total: j?.proposal?.total ?? j?.proposal?.amount ?? null, options: Array.isArray(j?.proposal?.options) ? j.proposal.options.length : null, status: j?.status ?? j?.quote?.status ?? null }; })
+  .catch((e) => ({ browser_got_no_answer: String(e.message).split('\n')[0].slice(0, 100) }));
+
 // The quote rows once they exist; a held one is released through the portal, then read again.
 async function settle(page, supplierId, inquiryId, min) {
   await waitFor(async () => (await quotesOf(supplierId, inquiryId)).length >= min, { timeoutMs: 120000 });
@@ -180,14 +187,16 @@ async function drive(browser, run, s, vp) {
       const d = await openJob(page, jobs.pdf); await openForm(page, d);
       const f = join(SHOTS, `${vp}_quotation.pdf`);
       writeFileSync(f, quotationPdf([{ title: 'Option 1', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21], ['Jotun Fenomastic matt emulsion 2 coats ceilings', 120, 19]] }]));
+      const told = answerOf(page, 'extract_quote');
       await d.locator('label', { hasText: 'Attach file' }).last().locator('input[type=file]').setInputFiles(f);
       await waitFor(async () => Number(await d.getByPlaceholder('Total amount (AED)').inputValue()) > 0, { timeoutMs: 300000, everyMs: 3000 });
       const read1 = await d.getByPlaceholder('Total amount (AED)').inputValue();
+      const readAnswer = await told;
       await d.locator('label', { hasText: 'The total above' }).locator('select').selectOption('exclusive');
       await d.getByRole('button', { name: 'Submit quote' }).click();
       const qs = await settle(page, supplier.leadId, jobs.pdf.id, 1);
       qs.forEach((r) => run.ids.quotes.add(r.id));
-      step('b. quote by uploading a quotation PDF', vp, qs[0]?.source === 'upload' && qs[0]?.status === 'submitted' && Math.abs(qs[0].amt - 11730) < 1, `read total ${read1}; ${JSON.stringify(qs)}`);
+      step('b. quote by uploading a quotation PDF', vp, qs[0]?.source === 'upload' && qs[0]?.status === 'submitted' && Math.abs(qs[0].amt - 11730) < 1, `read total ${read1}; extract_quote answered ${JSON.stringify(readAnswer)}; ${JSON.stringify(qs)}`);
       await shot('b_pdf_submitted');
     });
 
@@ -197,25 +206,28 @@ async function drive(browser, run, s, vp) {
       writeFileSync(f, quotationPdf([
         { title: 'Option 1 - Jotun Fenomastic', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21], ['Jotun Fenomastic matt emulsion 2 coats ceilings', 120, 19]] },
         { title: 'Option 2 - National Paints', lines: [['National Paints matt emulsion 2 coats internal walls', 450, 16], ['National Paints matt emulsion 2 coats ceilings', 120, 15]] }]));
+      const told = answerOf(page, 'extract_quote');
       await d.locator('label', { hasText: 'Attach file' }).last().locator('input[type=file]').setInputFiles(f);
       await waitFor(async () => Number(await d.getByPlaceholder('Total amount (AED)').inputValue()) > 0, { timeoutMs: 300000, everyMs: 3000 });
       const said = await d.innerText();
+      const readAnswer = await told;
       await d.locator('label', { hasText: 'The total above' }).locator('select').selectOption('exclusive');
       await d.getByRole('button', { name: 'Submit quote' }).click();
       const qs = await settle(page, supplier.leadId, jobs.options.id, 2);
       qs.forEach((r) => run.ids.quotes.add(r.id));
-      step('c. a quotation with two options', vp, qs.length === 2 && new Set(qs.map((r) => r.option_no)).size === 2, `split notice shown: ${/option/i.test(said)}; ${JSON.stringify(qs)}`);
+      step('c. a quotation with two options', vp, qs.length === 2 && new Set(qs.map((r) => r.option_no)).size === 2, `split notice shown: ${/option/i.test(said)}; extract_quote answered ${JSON.stringify(readAnswer)}; ${JSON.stringify(qs)}`);
       await shot('c_two_options');
     });
 
     await scen('d. incomplete specs are held', async () => {
       const d = await openJob(page, jobs.vague); await openForm(page, d);
       await fillTyped(d, { amount: 9000, lines: [['Painting works', 1, 'lot', 9000]], vague: true });
+      const told = answerOf(page, 'submit_quote', 120000);
       await d.getByRole('button', { name: 'Submit quote' }).click();
       const held = await page.getByText(/saved and on hold|saved as a draft|On hold/).first().waitFor({ timeout: 60000 }).then(() => true).catch(() => false);
       const qs = await quotesOf(supplier.leadId, jobs.vague.id); qs.forEach((r) => run.ids.quotes.add(r.id));
       const hold = qs[0] ? (await read(`select count(*)::int n from public.quote_spec_hold where quote_id = ${q(qs[0].id)}`))[0].n : 0;
-      step('d. incomplete specs are held', vp, held && qs[0]?.status === 'draft', `on-screen held=${held}; spec holds ${hold}; ${JSON.stringify(qs)}`);
+      step('d. incomplete specs are held', vp, held && qs[0]?.status === 'draft', `on-screen held=${held}; submit_quote answered ${JSON.stringify(await told)}; spec holds ${hold}; ${JSON.stringify(qs)}`);
       await shot('d_held');
     });
 

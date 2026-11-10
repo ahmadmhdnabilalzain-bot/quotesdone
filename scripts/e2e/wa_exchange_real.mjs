@@ -6,7 +6,7 @@
 // COST. A rehearsal window with models_allowed and cap_usd 2.5 bounds model spend; the spend is read back and printed.
 // The handler is this checkout's wa_inbound/index.ts run under Deno, so an UNDEPLOYED fix is exercised.
 import { spawnSync } from 'node:child_process';
-import { writeFileSync, mkdtempSync } from 'node:fs';
+import { writeFileSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 process.env.QD_FIXTURES = '1';
@@ -70,7 +70,8 @@ try {
   const { SERVICE } = await keys();
   const dir = mkdtempSync(join(tmpdir(), 'waexch-'));
   const cfg = join(dir, 'cfg.json');
-  writeFileSync(cfg, JSON.stringify({ url: `https://${REF}.supabase.co`, service: SERVICE, authToken: sec.twilio_auth_token, mediaOnly: MEDIA_ONLY, internals: [sec.cred_fn_wa_inbound, sec.cred_ops_wa_replay].filter(Boolean),
+  const partial = join(dir, 'partial.json');
+  writeFileSync(cfg, JSON.stringify({ partial, url: `https://${REF}.supabase.co`, service: SERVICE, authToken: sec.twilio_auth_token, mediaOnly: MEDIA_ONLY, internals: [sec.cred_fn_wa_inbound, sec.cred_ops_wa_replay].filter(Boolean),
     // EVERY run names its run and proves it (it_engineer, 3 Nov 2026), not only the scripted one: measured 48 exchange runs
     // on 2-3 Nov whose Twilio-signed turns carried no tag, so ai_gateway saw a stranger's WhatsApp and the window's cap
     // never applied. The driver puts the tag and the secret on every request it makes (wa_exchange_real_driver.ts).
@@ -78,9 +79,17 @@ try {
     pngB64: demoOfficePlanPng().toString('base64'),
     pdfB64: demoTradeLicence({ company: sup.companyName, licenceNo: 'ZZ-DEMO-000123' }).toString('base64') }));
   const r = spawnSync('deno', ['run', '--no-lock', '--node-modules-dir=auto', '--allow-net', '--allow-env', '--allow-read', 'scripts/e2e/wa_exchange_real_driver.ts', cfg],
-    { encoding: 'utf8', maxBuffer: 64 << 20, timeout: (MEDIA_ONLY ? 8 : SCRIPT ? 60 : 20) * 60 * 1000 });
+    // THE WALL FITS THE EXCHANGE (10 Nov 2026). The full exchange is ~37 turns at 10-28 s of model time each; run fbc40fbd
+    // was still on its file turns when the 20-minute wall killed it (15:17-15:37Z). 35 minutes for the full run;
+    // QD_WA_DRIVER_MIN overrides. The rehearsal cap, not the wall, is what bounds the spend.
+    { encoding: 'utf8', maxBuffer: 64 << 20, timeout: (Number(process.env.QD_WA_DRIVER_MIN) || (MEDIA_ONLY ? 8 : SCRIPT ? 60 : 35)) * 60 * 1000 });
   console.log((r.stderr || '').split('\n').filter((l) => /error|Error/.test(l)).slice(0, 8).join('\n'));
   const line = (r.stdout || '').split('\n').find((l) => l.startsWith('RESULT='));
+  if (!line) {
+    const got = (() => { try { return JSON.parse(readFileSync(partial, 'utf8')); } catch { return null; } })();
+    console.log('DRIVER_STOPPED ' + (r.signal ? 'killed by ' + r.signal : 'exit ' + r.status) + '; turns finished: ' + (got ? Object.keys(got).join(',') : 'none recorded'));
+    if (got) console.log('PARTIAL ' + JSON.stringify(got).slice(0, 4000));
+  }
   if (!line) throw new Error('driver produced no RESULT; stdout tail: ' + (r.stdout || '').slice(-600) + ' stderr tail: ' + (r.stderr || '').slice(-1200));
   result = JSON.parse(line.slice(7));
   if (SCRIPT) writeFileSync(process.env.QD_CONV_OUT, JSON.stringify(result.script));
