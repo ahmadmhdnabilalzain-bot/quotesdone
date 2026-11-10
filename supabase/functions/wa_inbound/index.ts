@@ -40,7 +40,7 @@
 //   general_turn.ts  the database answers first, the model words it, send, record, report
 import { observe } from '../_shared/observe.ts';
 import { ackThenWork, detach } from '../_shared/async_webhook.ts';
-import { admin, TW } from './shared.ts';
+import { admin, TW, withTurnSecrets } from './shared.ts';
 import { newTurn } from './turn.ts';
 import { acceptArrival } from './arrival.ts';
 import { makeSay } from './say.ts';
@@ -64,7 +64,10 @@ Deno.serve(observe('wa_inbound', async (req) => {
   return ackThenWork(TW(200), () => handleInbound(copy), 'wa_inbound');
 }));
 
-async function handleInbound(req: Request): Promise<Response> {
+// every setting is read once per turn (shared.ts withTurnSecrets, R7 10 Nov 2026)
+function handleInbound(req: Request): Promise<Response> { return withTurnSecrets(() => handleTurn(req)); }
+
+async function handleTurn(req: Request): Promise<Response> {
   const t = newTurn();
   const { logRun } = t;
   let crashed = false;

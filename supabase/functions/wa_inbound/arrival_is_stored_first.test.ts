@@ -18,11 +18,16 @@ Deno.test('wa_inbound stores an authenticated message on arrival, before any bra
   const provenance = code.indexOf('verifyProvenance(MessageSid');
   assert(provenance > 0 && provenance < arrival, 'the arrival row must follow authentication, never precede it');
   const after = code.slice(provenance, arrival);
-  // The only returns between authentication and the arrival row are the refusal paths, which store their own row.
+  // The only returns between authentication and the arrival row are the refusal paths, which store their own row, and (since
+  // 10 Nov 2026, R7: the redelivery guard runs AFTER authentication so a forgery cannot claim a MessageSid) a Twilio redelivery,
+  // whose message the first delivery already stored.
   for (const m of after.matchAll(/return TW\(/g)) {
     const before = after.slice(Math.max(0, m.index! - 2500), m.index!);
-    assert(/waInsert\(receivedAt/.test(before), 'a return between authentication and the arrival row stores nothing');
+    const redelivery = /if \(dupErr\) \{[\s\S]{0,300}$/.test(before);
+    assert(redelivery || /waInsert\(receivedAt/.test(before), 'a return between authentication and the arrival row stores nothing');
   }
+  const guard = code.indexOf("admin.from('wa_inbound_seen')");
+  assert(guard > provenance, 'the redelivery guard must follow authentication: a forged post would claim the MessageSid');
   // The arrival row is written by the FIRST phase the handler runs (arrival.ts); every later phase is called after it, and none of them
   // is in arrival.ts, so nothing below can answer, return or ask a model before the message is stored.
   const phases = ['acceptArrival(t, req)', 'makeSay(t)', 'specOfferReply(t)', 'identify(t)', 'startClassification(t)', 'answerFromTheMenu(t)', 'founderTurn(t)', 'mediaIn(t)', 'supplierDirective(t)', 'answerTurn(t)'];

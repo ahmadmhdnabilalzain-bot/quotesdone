@@ -19,7 +19,7 @@ import { invokeRequest, loadFunction, type Stub } from '../_shared/twilio_free_h
 const fn = () => loadFunction('wa_inbound', () => import('./index.ts'));
 const TOKEN = 'stub-secret-value-0123456789abcdef';
 const URL_SIGNED = 'https://db.invalid/functions/v1/wa_inbound';
-const CLASSIFY_MS = 300, REPLY_MS = 500, WELCOME_MS = 250;
+const CLASSIFY_MS = 600, REPLY_MS = 1000, WELCOME_MS = 500;   // long enough that harness overhead under a full suite stays small
 
 async function sign(params: Record<string, string>): Promise<string> {
   const data = URL_SIGNED + Object.keys(params).sort().map((k) => k + params[k]).join('');
@@ -96,7 +96,7 @@ Deno.test('a typed question whose first draft is prose: the reply runs beside th
   assert(replies[0].start < cls.end, 'the reply started before the classification answered: ' + JSON.stringify(w.calls));
   const row = w.msgs.find((m) => String(m.reply || '').includes('glass balustrades'));
   assert(row, 'the prose answer is the stored reply');
-  assert(ms < CLASSIFY_MS + 2 * REPLY_MS - 150, `hot path ${ms} ms: must be well under the main path C + 2R = ${CLASSIFY_MS + 2 * REPLY_MS} ms`);
+  assert(ms < CLASSIFY_MS + 2 * REPLY_MS - REPLY_MS / 2, `hot path ${ms} ms: must be well under the main path C + 2R = ${CLASSIFY_MS + 2 * REPLY_MS} ms`);
   console.log(`typed question: ${ms} ms (stub C=${CLASSIFY_MS} R=${REPLY_MS}; main path C+2R=${CLASSIFY_MS + 2 * REPLY_MS})`);
 });
 
@@ -108,7 +108,7 @@ Deno.test('"hi": the welcome line is drafted beside the classification (max(C, W
   assertEquals(welcome.length, 1, 'one welcome line, the drafted one: ' + JSON.stringify(w.calls));
   assert(welcome[0].start < cls.end, 'the welcome line started before the classification answered: ' + JSON.stringify(w.calls));
   assert(w.msgs.some((m) => (m.meta as Record<string, unknown>)?.route === 'menu_welcome' && /Hello, and welcome/.test(String(m.reply))), 'the welcome went out with the drafted line');
-  assert(ms < CLASSIFY_MS + WELCOME_MS - 100, `hot path ${ms} ms: must be under the main path C + W = ${CLASSIFY_MS + WELCOME_MS} ms`);
+  assert(ms < CLASSIFY_MS + WELCOME_MS - WELCOME_MS / 2, `hot path ${ms} ms: must be under the main path C + W = ${CLASSIFY_MS + WELCOME_MS} ms`);
   console.log(`"hi": ${ms} ms (stub C=${CLASSIFY_MS} W=${WELCOME_MS}; main path C+W=${CLASSIFY_MS + WELCOME_MS})`);
 });
 
