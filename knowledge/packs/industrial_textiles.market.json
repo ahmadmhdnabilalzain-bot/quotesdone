@@ -26,8 +26,8 @@
       "topic": "Industrial textiles & geosynthetics: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المنسوجات الصناعية والمواد التركيبية الأرضية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists geosynthetic brands such as Solmax, Naue, Huesker and Tensar, notes that specialist contractors install geomembranes, and where the products come from. Brands: Solmax, Naue, Huesker, Tensar, Maccaferri, Geofabrics, Propex, Agru, Atarfil, plus GCC, Chinese and Indian producers. Solmax, which owns TenCate and GSE, runs a Middle East site; the others' UAE channels were not checked. Geomembranes are installed by specialist welding contractors. Origins: Europe, Malaysia, Saudi Arabia, China, India, UAE.",
-      "body_ar": "من علامات المواد الجيوتركيبية Solmax وNaue وHuesker وTensar، ويتولى تركيب الأغشية الأرضية (geomembranes) مقاولون متخصصون، مع بيان منشأ المنتجات. والعلامات: Solmax وNaue وHuesker وTensar وMaccaferri وGeofabrics وPropex وAgru وAtarfil، إضافة إلى منتجين خليجيين وصينيين وهنود. وتملك Solmax علامتي TenCate وGSE ولها موقع في الشرق الأوسط، ولم نتحقق من قنوات العلامات الأخرى في الإمارات. ويركّب الأغشية الأرضية مقاولو لحام متخصصون. وبلدان المنشأ: أوروبا وماليزيا والسعودية والصين والهند والإمارات.",
+      "body_en": "This entry lists geosynthetic brands such as Solmax, Naue, Huesker and Tensar, notes that specialist contractors install geomembranes, and where the products come from. Brands: Solmax, Naue, Huesker, Tensar, Maccaferri, Geofabrics, Propex, Agru, Atarfil, plus GCC, Chinese and Indian producers. Solmax, which owns TenCate and GSE, runs a Middle East site; the others' UAE channels were not checked. Geomembranes are installed by specialist welding contractors. Origins: Europe, Malaysia, Saudi Arabia, China, India, UAE.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Solmax = a premium Canadian brand; Naue = a premium German brand; Huesker = a premium German brand; Tensar = a premium British brand; Maccaferri = a premium Italian brand; Geofabrics = a mid-tier Australian brand; Propex = a mid-tier American brand; Agru = a premium Austrian brand; Atarfil = a mid-tier Spanish brand.",
+      "body_ar": "من علامات المواد الجيوتركيبية Solmax وNaue وHuesker وTensar، ويتولى تركيب الأغشية الأرضية (geomembranes) مقاولون متخصصون، مع بيان منشأ المنتجات. والعلامات: Solmax وNaue وHuesker وTensar وMaccaferri وGeofabrics وPropex وAgru وAtarfil، إضافة إلى منتجين خليجيين وصينيين وهنود. وتملك Solmax علامتي TenCate وGSE ولها موقع في الشرق الأوسط، ولم نتحقق من قنوات العلامات الأخرى في الإمارات. ويركّب الأغشية الأرضية مقاولو لحام متخصصون. وبلدان المنشأ: أوروبا وماليزيا والسعودية والصين والهند والإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Solmax = علامة كندية من الفئة الممتازة؛ Naue = علامة ألمانية من الفئة الممتازة؛ Huesker = علامة ألمانية من الفئة الممتازة؛ Tensar = علامة بريطانية من الفئة الممتازة؛ Maccaferri = علامة إيطالية من الفئة الممتازة؛ Geofabrics = علامة أسترالية من الفئة المتوسطة؛ Propex = علامة أمريكية من الفئة المتوسطة؛ Agru = علامة نمساوية من الفئة الممتازة؛ Atarfil = علامة إسبانية من الفئة المتوسطة.",
       "sources": [
         "https://www.solmax.com/me/en",
         "https://www.iso.org",
@@ -36,7 +36,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Solmax (TenCate, GSE) serves the Middle East -> confirmed (Middle East site). Not checked: Names of UAE-based geotextile producers were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Solmax (TenCate, GSE) serves the Middle East -> confirmed (Middle East site). Not checked: Names of UAE-based geotextile producers were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Solmax",
+          "origin_country": "Canada",
+          "tier": "premium",
+          "generic_en": "a premium Canadian brand",
+          "generic_ar": "علامة كندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Naue",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Huesker",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Tensar",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Maccaferri",
+          "origin_country": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Geofabrics",
+          "origin_country": "Australia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Australian brand",
+          "generic_ar": "علامة أسترالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Propex",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Agru",
+          "origin_country": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium Austrian brand",
+          "generic_ar": "علامة نمساوية من الفئة الممتازة"
+        },
+        {
+          "brand": "Atarfil",
+          "origin_country": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid-tier Spanish brand",
+          "generic_ar": "علامة إسبانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "industrial_textiles:uae-market-sizes",

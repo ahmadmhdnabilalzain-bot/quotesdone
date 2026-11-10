@@ -5,8 +5,8 @@
       "id": "non_ferrous_metals:spec-checklist",
       "topic": "Non-ferrous metals - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For non-ferrous metals (trade code non_ferrous_metals only), every quoted line must state: Metal and alloy designation; Temper; Form and dimensions; Tolerance standard; Mill test certificate; Surface finish; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط المعادن غير الحديدية (رمز النشاط non_ferrous_metals فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المعدن ورمز السبيكة؛ حالة المعالجة؛ الشكل والأبعاد؛ معيار التفاوت؛ شهادة اختبار المصنع؛ تشطيب السطح؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For non-ferrous metals (trade code non_ferrous_metals only), every quoted line must state: Metal and alloy designation; Temper; Form and dimensions; Tolerance standard; Mill test certificate; Surface finish; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Metal and alloy designation; Temper; Form and dimensions; Quantity and unit of measure; Pricing basis. Follow-up questions the answers trigger: Form and dimensions: Custom extrusions bring a die cost and minimum quantity. Pricing basis: Ask whether the buyer wants a fixed price or an LME-linked formula. Before a firm price: none; a custom extrusion needs the profile drawing and a die quotation.",
+      "body_ar": "في نشاط المعادن غير الحديدية (رمز النشاط non_ferrous_metals فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المعدن ورمز السبيكة؛ حالة المعالجة؛ الشكل والأبعاد؛ معيار التفاوت؛ شهادة اختبار المصنع؛ تشطيب السطح؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المعدن ورمز السبيكة، والمعاملة الحرارية، والشكل والأبعاد، والكمية ووحدة القياس، وأساس التسعير. أسئلة المتابعة: المقاطع المبثوقة الخاصة تستلزم كلفة قالب وحداً أدنى للكمية، ويُسأل هل يريد المشتري سعراً ثابتاً أم معادلة مرتبطة ببورصة لندن للمعادن. المقطع المبثوق الخاص يحتاج رسم المقطع وعرض سعر للقالب.",
       "required_specs": [
         "Metal and alloy designation",
         "Temper",
@@ -20,14 +20,124 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Pricing basis"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Metal and alloy designation",
+        "Temper",
+        "Form and dimensions",
+        "Quantity and unit of measure",
+        "Pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Metal and alloy designation",
+          "blocking": true,
+          "why_it_prices": "Alloy sets metal cost and properties.",
+          "uae_options": "Aluminium 1050/5083/6061/6063; copper C101/C110; brass CZ121; bronze; zinc; nickel alloys.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Temper",
+          "blocking": true,
+          "why_it_prices": "Temper changes strength and processing.",
+          "uae_options": "O, H14, H32, T5, T6; half-hard copper.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Form and dimensions",
+          "blocking": true,
+          "why_it_prices": "Sheet, plate, extrusion, bar, tube, wire and ingot are priced differently.",
+          "uae_options": "Thickness x width x length; extrusion die number; diameter.",
+          "follow_up": "Custom extrusions bring a die cost and minimum quantity."
+        },
+        {
+          "spec": "Tolerance standard",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "EN 485, EN 755, ASTM B209.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Mill test certificate",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "EN 10204 3.1.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Surface finish",
+          "blocking": false,
+          "why_it_prices": "Anodising, powder coating and polishing add cost.",
+          "uae_options": "Mill finish, anodised (micron class), powder coated, brushed.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Priced per kg, per tonne or per piece; metal premium changes with quantity.",
+          "uae_options": "kg, tonnes, pieces, lengths.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Pricing basis",
+          "blocking": true,
+          "why_it_prices": "LME-linked prices need the reference date and premium; fixed prices need validity.",
+          "uae_options": "LME plus premium and conversion; fixed price with validity.",
+          "follow_up": "Ask whether the buyer wants a fixed price or an LME-linked formula."
+        }
+      ],
+      "firm_price_condition": "none; a custom extrusion needs the profile drawing and a die quotation.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "non_ferrous_metals:uae-standards-and-approvals",
@@ -85,6 +195,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "non_ferrous_metals:authority-approvals",
+      "topic": "Non-ferrous metals: approvals that apply",
+      "topic_ar": "المعادن غير الحديدية: الموافقات المطبقة",
+      "kind": "authority_approval",
+      "body_en": "No UAE licence or conformity scheme was found for aluminium, copper, brass or other non-ferrous mill products as such. Approvals follow the end product: facade and glazing systems are approved by the municipality and civil defence with the building, electrical cable made from copper or aluminium is electrical equipment, and metals for food contact (aluminium foil, containers) fall under the food-contact route. Scrap metal trading needs the trade licence activity and, for exports, customs procedures.",
+      "body_ar": "لم يُعثر على ترخيص أو نظام مطابقة في الإمارات لمنتجات مصانع الألمنيوم والنحاس والنحاس الأصفر والمعادن غير الحديدية الأخرى بذاتها، وتتبع الموافقات المنتج النهائي: فأنظمة الواجهات والزجاج تعتمدها البلدية والدفاع المدني مع المبنى، والكابلات الكهربائية المصنوعة من النحاس أو الألمنيوم معدات كهربائية، والمعادن الملامسة للغذاء (رقائق الألمنيوم والعبوات) تخضع لمسار ملامسة الغذاء. وتجارة الخردة تحتاج نشاط الرخصة التجارية، وفي التصدير الإجراءات الجمركية.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold. No non-ferrous-specific UAE regulation was found by search."
+    },
+    {
+      "id": "non_ferrous_metals:quote-red-flags",
+      "topic": "Red flags in non-ferrous metal quotations",
+      "topic_ar": "علامات التحذير في عروض المعادن غير الحديدية",
+      "kind": "quote_red_flag",
+      "body_en": "Check alloy and temper: 6063 offered for 6061, H14 for H32, or recycled-content alloy outside specification are substitutions. Watch for LME-linked prices without the averaging period or premium, prices per kg on nominal vs actual weight, thinner gauges within tolerance, anodising class lower than asked, die costs added later, and origin not stated.",
+      "body_ar": "افحص السبيكة والمعاملة: فعرض 6063 بدل 6061، أو H14 بدل H32، أو سبيكة بمحتوى معاد تدويره خارج المواصفة، كلها استبدالات. وانتبه إلى: أسعار مرتبطة ببورصة لندن دون فترة المتوسط أو العلاوة، والسعر بالكيلوغرام على الوزن الاسمي مقابل الفعلي، وسماكات أرق ضمن التفاوت، وفئة أنودة أدنى من المطلوبة، وإضافة كلفة القوالب لاحقاً، وعدم ذكر المنشأ.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "non_ferrous_metals:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying non-ferrous metals",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء المعادن غير الحديدية",
+      "kind": "buyer_mistake",
+      "body_en": "Comparing fixed prices with LME-linked ones; omitting the temper; ordering custom extrusions in quantities below the die minimum; and ignoring that metal prices move daily, so validity matters. Ask the use and the pricing preference.",
+      "body_ar": "مقارنة أسعار ثابتة بأسعار مرتبطة ببورصة لندن؛ وإغفال المعاملة الحرارية؛ وطلب مقاطع مبثوقة خاصة بكميات أقل من الحد الأدنى للقالب؛ وتجاهل أن أسعار المعادن تتحرك يومياً فتهم الصلاحية. لذا يُسأل عن الاستخدام وتفضيل طريقة التسعير.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "non_ferrous_metals:price-drivers",
+      "topic": "What legitimately moves non-ferrous metal prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار المعادن غير الحديدية",
+      "kind": "price_driver",
+      "body_en": "LME metal price, regional premium, alloy and temper, conversion cost by form, finish, quantity, origin and mill, and freight. Copper and nickel alloys move most with markets.",
+      "body_ar": "سعر المعدن في بورصة لندن، والعلاوة الإقليمية، والسبيكة والمعاملة، وكلفة التحويل حسب الشكل، والتشطيب، والكمية، والمنشأ والمصنع، والشحن. وسبائك النحاس والنيكل أكثرها تأثراً بالأسواق.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "non_ferrous_metals:compare-quotes",
+      "topic": "Comparing non-ferrous metal quotes like-for-like",
+      "topic_ar": "مقارنة عروض المعادن غير الحديدية على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Put all offers on the same basis: either fixed delivered prices on the same date, or LME reference plus premium plus conversion. Match alloy, temper, form, finish and certificates. Recommend the three compliant offers with the lowest delivered cost.",
+      "body_ar": "ضع العروض على أساس واحد: إما أسعار تسليم ثابتة في التاريخ نفسه، أو سعر بورصة لندن المرجعي مضافاً إليه العلاوة وكلفة التحويل. وطابق السبيكة والمعاملة والشكل والتشطيب والشهادات. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة تسليم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +305,8 @@
     "removed": [],
     "still_unverified": [
       "non_ferrous_metals:spec-checklist",
-      "non_ferrous_metals:uae-standards-and-approvals"
+      "non_ferrous_metals:uae-standards-and-approvals",
+      "non_ferrous_metals:authority-approvals"
     ],
     "added": [
       "non_ferrous_metals:spec-checklist",
@@ -158,6 +337,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "non_ferrous_metals:quote-red-flags",
+      "non_ferrous_metals:buyer-mistakes",
+      "non_ferrous_metals:price-drivers",
+      "non_ferrous_metals:compare-quotes"
+    ]
   }
 }

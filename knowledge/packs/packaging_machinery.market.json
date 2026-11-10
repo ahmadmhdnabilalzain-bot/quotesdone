@@ -25,8 +25,8 @@
       "topic": "Packaging machinery: makes, brands, distributors and origins in the UAE",
       "topic_ar": "آلات التعبئة والتغليف: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the packaging machinery brands sold in the UAE, such as Syntegon, IMA, Krones and Videojet, how agents sell them, and the main countries of origin. Brands: Syntegon, IMA, Krones, Sidel, ProMach, Robopac, Signode, Mosca, Videojet, Markem-Imaje, Domino, Herma, Fromm, Cyklop, Uhlmann, Marchesini, plus many Chinese, Indian, Turkish and Italian SME makers sold through agents in Sharjah, Dubai (DIP, JAFZA) and Abu Dhabi. The agents were not checked. Dubai exhibitions are common sourcing venues. Origins: Italy, Germany, China, India, Turkey, Taiwan.",
-      "body_ar": "من ماركات آلات التعبئة والتغليف المباعة في الإمارات Syntegon وIMA وKrones وVideojet، مع بيان طريقة بيعها عبر الوكلاء وأهم دول المنشأ. العلامات: Syntegon، IMA، Krones، Sidel، ProMach، Robopac، Signode، Mosca، Videojet، Markem-Imaje، Domino، Herma، Fromm، Cyklop، Uhlmann، Marchesini، إضافة إلى مصنّعين صغار كثيرين صينيين وهنود وأتراك وإيطاليين عبر وكلاء في الشارقة ودبي (مجمع دبي للاستثمار والمنطقة الحرة لجبل علي) وأبوظبي، ولم يُتحقق من الوكلاء. ومعارض دبي أماكن شائعة للتوريد. المنشأ: إيطاليا، ألمانيا، الصين، الهند، تركيا، تايوان.",
+      "body_en": "This lists the packaging machinery brands sold in the UAE, such as Syntegon, IMA, Krones and Videojet, how agents sell them, and the main countries of origin. Brands: Syntegon, IMA, Krones, Sidel, ProMach, Robopac, Signode, Mosca, Videojet, Markem-Imaje, Domino, Herma, Fromm, Cyklop, Uhlmann, Marchesini, plus many Chinese, Indian, Turkish and Italian SME makers sold through agents in Sharjah, Dubai (DIP, JAFZA) and Abu Dhabi. The agents were not checked. Dubai exhibitions are common sourcing venues. Origins: Italy, Germany, China, India, Turkey, Taiwan.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Syntegon = a premium German brand; IMA = a premium Italian brand; Krones = a premium German brand; Sidel = a premium French brand; ProMach = a mid-tier American brand; Robopac = a mid-tier Italian brand; Signode = a mid-tier American brand; Mosca = a mid-tier German brand; Videojet = a premium American brand; Markem-Imaje = a premium French brand; Domino = a premium British brand; Herma = a premium German brand; Fromm = a mid-tier Swiss brand; Cyklop = a mid-tier German brand; Uhlmann = a premium German brand; Marchesini = a premium Italian brand.",
+      "body_ar": "من ماركات آلات التعبئة والتغليف المباعة في الإمارات Syntegon وIMA وKrones وVideojet، مع بيان طريقة بيعها عبر الوكلاء وأهم دول المنشأ. العلامات: Syntegon، IMA، Krones، Sidel، ProMach، Robopac، Signode، Mosca، Videojet، Markem-Imaje، Domino، Herma، Fromm، Cyklop، Uhlmann، Marchesini، إضافة إلى مصنّعين صغار كثيرين صينيين وهنود وأتراك وإيطاليين عبر وكلاء في الشارقة ودبي (مجمع دبي للاستثمار والمنطقة الحرة لجبل علي) وأبوظبي، ولم يُتحقق من الوكلاء. ومعارض دبي أماكن شائعة للتوريد. المنشأ: إيطاليا، ألمانيا، الصين، الهند، تركيا، تايوان.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Syntegon = علامة ألمانية من الفئة الممتازة؛ IMA = علامة إيطالية من الفئة الممتازة؛ Krones = علامة ألمانية من الفئة الممتازة؛ Sidel = علامة فرنسية من الفئة الممتازة؛ ProMach = علامة أمريكية من الفئة المتوسطة؛ Robopac = علامة إيطالية من الفئة المتوسطة؛ Signode = علامة أمريكية من الفئة المتوسطة؛ Mosca = علامة ألمانية من الفئة المتوسطة؛ Videojet = علامة أمريكية من الفئة الممتازة؛ Markem-Imaje = علامة فرنسية من الفئة الممتازة؛ Domino = علامة بريطانية من الفئة الممتازة؛ Herma = علامة ألمانية من الفئة الممتازة؛ Fromm = علامة سويسرية من الفئة المتوسطة؛ Cyklop = علامة ألمانية من الفئة المتوسطة؛ Uhlmann = علامة ألمانية من الفئة الممتازة؛ Marchesini = علامة إيطالية من الفئة الممتازة.",
       "sources": [
         "https://www.syntegon.com",
         "https://single-market-economy.ec.europa.eu",
@@ -34,7 +34,121 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Syntegon supplies packaging lines -> confirmed (maker site; UAE agent not checked). Not checked: Local agents of each named maker were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Syntegon supplies packaging lines -> confirmed (maker site; UAE agent not checked). Not checked: Local agents of each named maker were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Syntegon",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "IMA",
+          "origin_country": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Krones",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sidel",
+          "origin_country": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "ProMach",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Robopac",
+          "origin_country": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Signode",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Mosca",
+          "origin_country": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Videojet",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Markem-Imaje",
+          "origin_country": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "Domino",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Herma",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Fromm",
+          "origin_country": "Switzerland",
+          "tier": "mid",
+          "generic_en": "a mid-tier Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Cyklop",
+          "origin_country": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Uhlmann",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Marchesini",
+          "origin_country": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "packaging_machinery:uae-market-sizes",

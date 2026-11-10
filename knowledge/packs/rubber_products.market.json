@@ -26,8 +26,8 @@
       "topic": "Rubber products & belts: makes, brands, distributors and origins in the UAE",
       "topic_ar": "منتجات المطاط والسيور: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names rubber product brands Fenner Dunlop, ContiTech, Bridgestone, Trelleborg, Parker, Gates, Semperit and Freudenberg, plus Asian sheet and hose makers, and where traders cluster. Brands: Fenner Dunlop, ContiTech, Bridgestone, Trelleborg, Parker, Gates, Semperit, Freudenberg, plus Malaysian, Thai, Indian and Chinese sheet and hose makers. Rubber traders and fabricators (gasket cutters, belt vulcanisers) in Deira, Sharjah Industrial Area, Ajman and Musaffah were not checked by name. Origins: Europe, Japan, Malaysia, Thailand, India, China.",
-      "body_ar": "من علامات المنتجات المطاطية Fenner Dunlop وContiTech وBridgestone وTrelleborg وParker وGates وSemperit وFreudenberg، إضافة إلى مصنعي الألواح والخراطيم الآسيويين وأماكن تجمع التجار. العلامات: Fenner Dunlop، ContiTech، Bridgestone، Trelleborg، Parker، Gates، Semperit، Freudenberg، إضافة إلى مصنّعي ألواح وخراطيم ماليزيين وتايلانديين وهنود وصينيين. ولم يُتحقق بالاسم من تجار ومصنّعي المطاط (قاطعي الحشوات ووصّالي السيور) في ديرة والمنطقة الصناعية بالشارقة وعجمان ومصفح. المنشأ: أوروبا، اليابان، ماليزيا، تايلاند، الهند، الصين.",
+      "body_en": "This entry names rubber product brands Fenner Dunlop, ContiTech, Bridgestone, Trelleborg, Parker, Gates, Semperit and Freudenberg, plus Asian sheet and hose makers, and where traders cluster. Brands: Fenner Dunlop, ContiTech, Bridgestone, Trelleborg, Parker, Gates, Semperit, Freudenberg, plus Malaysian, Thai, Indian and Chinese sheet and hose makers. Rubber traders and fabricators (gasket cutters, belt vulcanisers) in Deira, Sharjah Industrial Area, Ajman and Musaffah were not checked by name. Origins: Europe, Japan, Malaysia, Thailand, India, China.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Fenner Dunlop = a premium British brand; ContiTech = a premium German brand; Bridgestone = a premium Japanese brand; Trelleborg = a premium Swedish brand; Parker = a premium American brand; Gates = a premium American brand; Semperit = a premium Austrian brand; Freudenberg = a premium German brand.",
+      "body_ar": "من علامات المنتجات المطاطية Fenner Dunlop وContiTech وBridgestone وTrelleborg وParker وGates وSemperit وFreudenberg، إضافة إلى مصنعي الألواح والخراطيم الآسيويين وأماكن تجمع التجار. العلامات: Fenner Dunlop، ContiTech، Bridgestone، Trelleborg، Parker، Gates، Semperit، Freudenberg، إضافة إلى مصنّعي ألواح وخراطيم ماليزيين وتايلانديين وهنود وصينيين. ولم يُتحقق بالاسم من تجار ومصنّعي المطاط (قاطعي الحشوات ووصّالي السيور) في ديرة والمنطقة الصناعية بالشارقة وعجمان ومصفح. المنشأ: أوروبا، اليابان، ماليزيا، تايلاند، الهند، الصين.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Fenner Dunlop = علامة بريطانية من الفئة الممتازة؛ ContiTech = علامة ألمانية من الفئة الممتازة؛ Bridgestone = علامة يابانية من الفئة الممتازة؛ Trelleborg = علامة سويدية من الفئة الممتازة؛ Parker = علامة أمريكية من الفئة الممتازة؛ Gates = علامة أمريكية من الفئة الممتازة؛ Semperit = علامة نمساوية من الفئة الممتازة؛ Freudenberg = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://www.trelleborg.com/en",
         "https://www.cencenelec.eu",
@@ -36,7 +36,65 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Trelleborg engineered polymer solutions -> confirmed (maker site; UAE channel not checked). Not checked: Local fabricators' names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Trelleborg engineered polymer solutions -> confirmed (maker site; UAE channel not checked). Not checked: Local fabricators' names were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Fenner Dunlop",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "ContiTech",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bridgestone",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Trelleborg",
+          "origin_country": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Parker",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Gates",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Semperit",
+          "origin_country": "Austria",
+          "tier": "premium",
+          "generic_en": "a premium Austrian brand",
+          "generic_ar": "علامة نمساوية من الفئة الممتازة"
+        },
+        {
+          "brand": "Freudenberg",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "rubber_products:uae-market-sizes",

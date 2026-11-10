@@ -43,5 +43,8 @@ test('every brand profile has an origin and a tier the description can be built 
   for (const { f, p } of packs) for (const e of p.entries ?? []) for (const b of e.brand_profiles ?? []) {
     assert.ok(b.origin_country && ['economy', 'mid', 'premium', 'luxury', 'dealer', 'operator', 'supplier'].includes(b.tier), `${f} ${b.brand}`);
     assert.ok(!b.generic_en.includes(b.brand), `${f} ${b.brand}: the generic description repeats the brand`);
+    // A profile describes a brand the pack already names; it is not a way to add a market claim nobody checked.
+    const own = p.entries.map((x) => x.body_en.split('\n\nOrigin and tier')[0]).join(' ');
+    assert.ok(own.includes(b.brand.split(' (')[0]), `${f} ${b.brand}: profiled but not named in the pack's own text`);
   }
 });

@@ -27,8 +27,8 @@
       "topic": "Aluminium, copper & non-ferrous metals: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الألمنيوم والنحاس والمعادن غير الحديدية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names non-ferrous producers, including UAE makers Emirates Global Aluminium, Gulf Extrusions and Ducab, and where traders cluster. Producers: Emirates Global Aluminium, Gulf Extrusions, Ducab, Hindalco, Novelis, Alba, Ma'aden, Aurubis, KME, Mitsubishi Materials. EGA (primary aluminium), Gulf Extrusions and Ducab (copper rod and cable) are UAE producers. Traders cluster in Deira, Sharjah Industrial Area, Jebel Ali and Musaffah, and Dubai (DMCC) is a large non-ferrous trading hub. The UAE channels of the imported brands were not checked.",
-      "body_ar": "من منتجي المعادن غير الحديدية المصنعون الإماراتيون الإمارات العالمية للألمنيوم وGulf Extrusions وDucab، مع بيان أماكن تجمع التجار. المنتجون: Emirates Global Aluminium، Gulf Extrusions، Ducab، Hindalco، Novelis، Alba، Ma'aden، Aurubis، KME، Mitsubishi Materials. وEGA (الألمنيوم الأولي) وGulf Extrusions وDucab (قضبان النحاس والكابلات) منتجون إماراتيون. ويتجمع التجار في ديرة والمنطقة الصناعية بالشارقة وجبل علي ومصفح، ودبي (مركز دبي للسلع المتعددة) مركز كبير لتجارة المعادن غير الحديدية، ولم يُتحقق من قنوات العلامات المستوردة.",
+      "body_en": "This names non-ferrous producers, including UAE makers Emirates Global Aluminium, Gulf Extrusions and Ducab, and where traders cluster. Producers: Emirates Global Aluminium, Gulf Extrusions, Ducab, Hindalco, Novelis, Alba, Ma'aden, Aurubis, KME, Mitsubishi Materials. EGA (primary aluminium), Gulf Extrusions and Ducab (copper rod and cable) are UAE producers. Traders cluster in Deira, Sharjah Industrial Area, Jebel Ali and Musaffah, and Dubai (DMCC) is a large non-ferrous trading hub. The UAE channels of the imported brands were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Emirates Global Aluminium = a premium UAE brand; Gulf Extrusions = a mid-tier UAE brand; Ducab = a premium UAE brand; Hindalco = a mid-tier Indian brand; Novelis = a premium American brand; Alba = a premium Bahraini brand; Ma'aden = a premium Saudi brand; Aurubis = a premium German brand; KME = a premium German brand; Mitsubishi Materials = a premium Japanese brand.",
+      "body_ar": "من منتجي المعادن غير الحديدية المصنعون الإماراتيون الإمارات العالمية للألمنيوم وGulf Extrusions وDucab، مع بيان أماكن تجمع التجار. المنتجون: Emirates Global Aluminium، Gulf Extrusions، Ducab، Hindalco، Novelis، Alba، Ma'aden، Aurubis، KME، Mitsubishi Materials. وEGA (الألمنيوم الأولي) وGulf Extrusions وDucab (قضبان النحاس والكابلات) منتجون إماراتيون. ويتجمع التجار في ديرة والمنطقة الصناعية بالشارقة وجبل علي ومصفح، ودبي (مركز دبي للسلع المتعددة) مركز كبير لتجارة المعادن غير الحديدية، ولم يُتحقق من قنوات العلامات المستوردة.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Emirates Global Aluminium = علامة إماراتية من الفئة الممتازة؛ Gulf Extrusions = علامة إماراتية من الفئة المتوسطة؛ Ducab = علامة إماراتية من الفئة الممتازة؛ Hindalco = علامة هندية من الفئة المتوسطة؛ Novelis = علامة أمريكية من الفئة الممتازة؛ Alba = علامة بحرينية من الفئة الممتازة؛ Ma'aden = علامة سعودية من الفئة الممتازة؛ Aurubis = علامة ألمانية من الفئة الممتازة؛ KME = علامة ألمانية من الفئة الممتازة؛ Mitsubishi Materials = علامة يابانية من الفئة الممتازة.",
       "sources": [
         "https://www.ega.ae/en",
         "https://gulfex.com/",
@@ -38,7 +38,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EGA produces primary aluminium -> confirmed | Gulf Extrusions and Ducab -> confirmed. Not checked: Local copper tube makers' names and current premiums were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EGA produces primary aluminium -> confirmed | Gulf Extrusions and Ducab -> confirmed. Not checked: Local copper tube makers' names and current premiums were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Emirates Global Aluminium",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Gulf Extrusions",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Ducab",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hindalco",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Novelis",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Alba",
+          "origin_country": "Bahrain",
+          "tier": "premium",
+          "generic_en": "a premium Bahraini brand",
+          "generic_ar": "علامة بحرينية من الفئة الممتازة"
+        },
+        {
+          "brand": "Ma'aden",
+          "origin_country": "Saudi Arabia",
+          "tier": "premium",
+          "generic_en": "a premium Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة الممتازة"
+        },
+        {
+          "brand": "Aurubis",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "KME",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mitsubishi Materials",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "non_ferrous_metals:uae-market-sizes",

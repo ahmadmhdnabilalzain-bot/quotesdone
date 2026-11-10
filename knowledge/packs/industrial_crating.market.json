@@ -26,8 +26,8 @@
       "topic": "Export crating & industrial packing: makes, brands, distributors and origins in the UAE",
       "topic_ar": "صناديق التصدير والتغليف الصناعي: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry says where specialist packing companies work in the UAE and names forwarders and material brands such as DHL, DB Schenker, Kuehne+Nagel and Cortec. Specialist packing companies work in Jebel Ali, JAFZA, Dubai Industrial City, Sharjah (Hamriyah, Al Sajaa) and Abu Dhabi (Musaffah, KEZAD, Khalifa Port); they were not checked by name. Forwarders and material brands: DHL, DB Schenker, Kuehne+Nagel, Agility, Cortec, Branopac, Clariant. The forwarders' in-house packing units were not checked. Timber comes from Europe, Russia and New Zealand, and plywood from Asia.",
-      "body_ar": "يوضح هذا الجزء أماكن عمل شركات التغليف المتخصصة في الإمارات، ومن شركات الشحن وماركات المواد DHL وDB Schenker وKuehne+Nagel وCortec. تعمل شركات تغليف متخصصة في جبل علي والمنطقة الحرة لجبل علي ومدينة دبي الصناعية والشارقة (الحمرية والصجعة) وأبوظبي (مصفح وكيزاد وميناء خليفة)، ولم يُتحقق منها بالاسم. وكلاء الشحن وعلامات المواد: DHL، DB Schenker، Kuehne+Nagel، Agility، Cortec، Branopac، Clariant، ولم يُتحقق من وحدات التغليف لدى الوكلاء. والخشب من أوروبا وروسيا ونيوزيلندا، والأبلكاش من آسيا.",
+      "body_en": "This entry says where specialist packing companies work in the UAE and names forwarders and material brands such as DHL, DB Schenker, Kuehne+Nagel and Cortec. Specialist packing companies work in Jebel Ali, JAFZA, Dubai Industrial City, Sharjah (Hamriyah, Al Sajaa) and Abu Dhabi (Musaffah, KEZAD, Khalifa Port); they were not checked by name. Forwarders and material brands: DHL, DB Schenker, Kuehne+Nagel, Agility, Cortec, Branopac, Clariant. The forwarders' in-house packing units were not checked. Timber comes from Europe, Russia and New Zealand, and plywood from Asia.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): DHL = a premium German supplier; DB Schenker = a premium German supplier; Kuehne+Nagel = a premium Swiss supplier; Cortec = a premium American brand.",
+      "body_ar": "يوضح هذا الجزء أماكن عمل شركات التغليف المتخصصة في الإمارات، ومن شركات الشحن وماركات المواد DHL وDB Schenker وKuehne+Nagel وCortec. تعمل شركات تغليف متخصصة في جبل علي والمنطقة الحرة لجبل علي ومدينة دبي الصناعية والشارقة (الحمرية والصجعة) وأبوظبي (مصفح وكيزاد وميناء خليفة)، ولم يُتحقق منها بالاسم. وكلاء الشحن وعلامات المواد: DHL، DB Schenker، Kuehne+Nagel، Agility، Cortec، Branopac، Clariant، ولم يُتحقق من وحدات التغليف لدى الوكلاء. والخشب من أوروبا وروسيا ونيوزيلندا، والأبلكاش من آسيا.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): DHL = شركة توريد ألمانية من الفئة الممتازة؛ DB Schenker = شركة توريد ألمانية من الفئة الممتازة؛ Kuehne+Nagel = شركة توريد سويسرية من الفئة الممتازة؛ Cortec = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.ippc.int/en/core-activities/standards-setting/ispms/",
         "https://www.ippc.int",
@@ -36,7 +36,37 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: ISPM 15 is the IPPC standard for wood packaging -> confirmed. Not checked: Which forwarders currently operate in-house packing units in the UAE was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: ISPM 15 is the IPPC standard for wood packaging -> confirmed. Not checked: Which forwarders currently operate in-house packing units in the UAE was not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "DHL",
+          "origin_country": "Germany",
+          "tier": "supplier",
+          "generic_en": "a premium German supplier",
+          "generic_ar": "شركة توريد ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "DB Schenker",
+          "origin_country": "Germany",
+          "tier": "supplier",
+          "generic_en": "a premium German supplier",
+          "generic_ar": "شركة توريد ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Kuehne+Nagel",
+          "origin_country": "Switzerland",
+          "tier": "supplier",
+          "generic_en": "a premium Swiss supplier",
+          "generic_ar": "شركة توريد سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Cortec",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "industrial_crating:uae-market-sizes",

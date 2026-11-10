@@ -28,8 +28,8 @@
       "topic": "Steel stock & trading: makes, brands, distributors and origins in the UAE",
       "topic_ar": "تجارة الحديد والصلب: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the steel mills and brands sold in the UAE, including the UAE producers EMSTEEL, Conares and Al Ghurair Iron & Steel, and where stockists are concentrated. Mills and brands: EMSTEEL, Conares, Al Ghurair Iron & Steel, Tata Steel, JSW, POSCO, Hyundai Steel, Baosteel, Kardemir, Habas, Qatar Steel, Jindal Shadeed, SABIC Hadeed. EMSTEEL (Abu Dhabi), Conares (Jebel Ali) and Al Ghurair Iron & Steel (galvanised and coated coil) are UAE producers. The rest are imported, and the stockists were not checked by name. Stockists are concentrated in Jebel Ali, Sharjah (Industrial Area, Hamriyah), Ajman and Musaffah.",
-      "body_ar": "من مصانع الحديد وماركاته المباعة في الإمارات المنتجون المحليون EMSTEEL وكونارس والغرير للحديد والصلب، مع بيان المناطق التي يتركز فيها تجار مخزون الحديد. المصانع والماركات: EMSTEEL، Conares، Al Ghurair Iron & Steel، Tata Steel، JSW، POSCO، Hyundai Steel، Baosteel، Kardemir، Habas، Qatar Steel، Jindal Shadeed، SABIC Hadeed. وEMSTEEL (أبوظبي) وConares (جبل علي) وAl Ghurair Iron & Steel (لفائف مجلفنة ومطلية) منتجون إماراتيون، أما البقية فمستوردة، ولم نتحقق من تجار المخزون بالاسم. ويتركز تجار المخزون في جبل علي والشارقة (المنطقة الصناعية والحمرية) وعجمان ومصفح.",
+      "body_en": "This entry lists the steel mills and brands sold in the UAE, including the UAE producers EMSTEEL, Conares and Al Ghurair Iron & Steel, and where stockists are concentrated. Mills and brands: EMSTEEL, Conares, Al Ghurair Iron & Steel, Tata Steel, JSW, POSCO, Hyundai Steel, Baosteel, Kardemir, Habas, Qatar Steel, Jindal Shadeed, SABIC Hadeed. EMSTEEL (Abu Dhabi), Conares (Jebel Ali) and Al Ghurair Iron & Steel (galvanised and coated coil) are UAE producers. The rest are imported, and the stockists were not checked by name. Stockists are concentrated in Jebel Ali, Sharjah (Industrial Area, Hamriyah), Ajman and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): EMSTEEL = a premium UAE brand; Conares = a mid-tier UAE brand; Al Ghurair Iron & Steel = a mid-tier UAE brand; Tata Steel = a mid-tier Indian brand; JSW = a mid-tier Indian brand; POSCO = a premium South Korean brand; Hyundai Steel = a premium South Korean brand; Baosteel = a mid-tier Chinese brand; Kardemir = a mid-tier Turkish brand; Habas = a mid-tier Turkish brand; Qatar Steel = a mid-tier Qatari brand; Jindal Shadeed = a mid-tier Omani brand; SABIC Hadeed = a mid-tier Saudi brand.",
+      "body_ar": "من مصانع الحديد وماركاته المباعة في الإمارات المنتجون المحليون EMSTEEL وكونارس والغرير للحديد والصلب، مع بيان المناطق التي يتركز فيها تجار مخزون الحديد. المصانع والماركات: EMSTEEL، Conares، Al Ghurair Iron & Steel، Tata Steel، JSW، POSCO، Hyundai Steel، Baosteel، Kardemir، Habas، Qatar Steel، Jindal Shadeed، SABIC Hadeed. وEMSTEEL (أبوظبي) وConares (جبل علي) وAl Ghurair Iron & Steel (لفائف مجلفنة ومطلية) منتجون إماراتيون، أما البقية فمستوردة، ولم نتحقق من تجار المخزون بالاسم. ويتركز تجار المخزون في جبل علي والشارقة (المنطقة الصناعية والحمرية) وعجمان ومصفح.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): EMSTEEL = علامة إماراتية من الفئة الممتازة؛ Conares = علامة إماراتية من الفئة المتوسطة؛ Al Ghurair Iron & Steel = علامة إماراتية من الفئة المتوسطة؛ Tata Steel = علامة هندية من الفئة المتوسطة؛ JSW = علامة هندية من الفئة المتوسطة؛ POSCO = علامة كورية جنوبية من الفئة الممتازة؛ Hyundai Steel = علامة كورية جنوبية من الفئة الممتازة؛ Baosteel = علامة صينية من الفئة المتوسطة؛ Kardemir = علامة تركية من الفئة المتوسطة؛ Habas = علامة تركية من الفئة المتوسطة؛ Qatar Steel = علامة قطرية من الفئة المتوسطة؛ Jindal Shadeed = علامة عُمانية من الفئة المتوسطة؛ SABIC Hadeed = علامة سعودية من الفئة المتوسطة.",
       "sources": [
         "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
         "https://www.conares.com/about/",
@@ -40,7 +40,100 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EMSTEEL rebar and sections -> confirmed (renamed from Emirates Steel Arkan) | Conares (JAFZA) -> confirmed | Al Ghurair Iron & Steel -> confirmed; UTP and other pipe mills removed (not checked). Not checked: Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EMSTEEL rebar and sections -> confirmed (renamed from Emirates Steel Arkan) | Conares (JAFZA) -> confirmed | Al Ghurair Iron & Steel -> confirmed; UTP and other pipe mills removed (not checked). Not checked: Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "EMSTEEL",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "Conares",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Al Ghurair Iron & Steel",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Tata Steel",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "JSW",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "POSCO",
+          "origin_country": "South Korea",
+          "tier": "premium",
+          "generic_en": "a premium South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hyundai Steel",
+          "origin_country": "South Korea",
+          "tier": "premium",
+          "generic_en": "a premium South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
+        },
+        {
+          "brand": "Baosteel",
+          "origin_country": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Kardemir",
+          "origin_country": "Turkey",
+          "tier": "mid",
+          "generic_en": "a mid-tier Turkish brand",
+          "generic_ar": "علامة تركية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Habas",
+          "origin_country": "Turkey",
+          "tier": "mid",
+          "generic_en": "a mid-tier Turkish brand",
+          "generic_ar": "علامة تركية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Qatar Steel",
+          "origin_country": "Qatar",
+          "tier": "mid",
+          "generic_en": "a mid-tier Qatari brand",
+          "generic_ar": "علامة قطرية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Jindal Shadeed",
+          "origin_country": "Oman",
+          "tier": "mid",
+          "generic_en": "a mid-tier Omani brand",
+          "generic_ar": "علامة عُمانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "SABIC Hadeed",
+          "origin_country": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "steel_stock:uae-market-sizes",

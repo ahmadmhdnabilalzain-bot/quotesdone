@@ -5,8 +5,8 @@
       "id": "paper_board:spec-checklist",
       "topic": "Paper and board - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For paper and board (trade code paper_board only), every quoted line must state: Grade; Grammage; Caliper; Sheet size or reel width; Brightness or shade; Mill certificate; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الورق والكرتون (رمز النشاط paper_board فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الدرجة؛ الوزن الأساسي؛ السماكة؛ مقاس الورقة أو عرض البكرة؛ درجة البياض أو اللون؛ شهادة المصنع؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For paper and board (trade code paper_board only), every quoted line must state: Grade; Grammage; Caliper; Sheet size or reel width; Brightness or shade; Mill certificate; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Grade; Grammage; Sheet size or reel width; Quantity and unit of measure. Follow-up questions the answers trigger: Grade: Food packaging brings food-contact grade. Brand or mill: If specified, any other mill is a deviation. Before a firm price: none; a firm price is possible from the specs.",
+      "body_ar": "في نشاط الورق والكرتون (رمز النشاط paper_board فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الدرجة؛ الوزن الأساسي؛ السماكة؛ مقاس الورقة أو عرض البكرة؛ درجة البياض أو اللون؛ شهادة المصنع؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الدرجة، والوزن بالغرام للمتر المربع، ومقاس الورقة أو عرض البكرة، والكمية ووحدة القياس. أسئلة المتابعة: تغليف الأغذية يستلزم درجة ملائمة لملامسة الغذاء، وإذا حُدد مصنع فأي مصنع غيره انحراف.",
       "required_specs": [
         "Grade",
         "Grammage",
@@ -20,13 +20,122 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Brand or mill"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Grade",
+        "Grammage",
+        "Sheet size or reel width",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Grade",
+          "blocking": true,
+          "why_it_prices": "Each grade is a different mill product.",
+          "uae_options": "Copy paper, woodfree offset, coated art (gloss/matt), SBS, FBB, WLC/duplex, kraft liner, testliner, fluting, greaseproof.",
+          "follow_up": "Food packaging brings food-contact grade."
+        },
+        {
+          "spec": "Grammage",
+          "blocking": true,
+          "why_it_prices": "Price is per tonne; gsm decides sheets per tonne.",
+          "uae_options": "70-400 gsm.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Caliper",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Microns.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Sheet size or reel width",
+          "blocking": true,
+          "why_it_prices": "Size and format decide waste and conversion.",
+          "uae_options": "A4, SRA3, 70x100 cm, 65x90 cm; reel width and diameter.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Brightness or shade",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "ISO brightness, CIE whiteness.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Mill certificate",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "FSC/PEFC chain of custody, mill CoA.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Reams, sheets, tonnes and reels are not interchangeable.",
+          "uae_options": "Reams, cartons, sheets, tonnes, reels.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Brand or mill",
+          "blocking": false,
+          "why_it_prices": "Mill and brand change price and runnability.",
+          "uae_options": "Named mill, origin, or open.",
+          "follow_up": "If specified, any other mill is a deviation."
+        }
+      ],
+      "firm_price_condition": "none; a firm price is possible from the specs.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "paper_board:uae-standards-and-approvals",
@@ -83,6 +192,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "paper_board:authority-approvals",
+      "topic": "Paper and board: food-contact and single-use rules",
+      "topic_ar": "الورق والكرتون: ملامسة الغذاء وقواعد الاستخدام الواحد",
+      "kind": "authority_approval",
+      "body_en": "Printing and office paper needs no UAE approval. Paper and board for food contact fall under the food-contact route: Food-contact packaging is the regulated case. Search results report that food-contact materials are certified under MoIAT's conformity scheme (ECAS) against Cabinet Resolution No. 20 of 2015, for plastic, glass, ceramic, silicone, paper, metal and wood materials, through a MoIAT-notified body, with the certificate obtained by the manufacturer or importer, not the buyer; a 2023 MoIAT workshop on recycled plastic food packaging described quality-system documentation and migration tests at an accredited UAE laboratory. Dubai Municipality and ADAFSA in Abu Dhabi inspect food businesses, including their packaging. Search coverage of the 2026 single-use phase also reports a ban on single-use bags of any material, including paper below a minimum thickness, so paper for bags must be checked against the current rule.",
+      "body_ar": "ورق الطباعة والمكاتب لا يحتاج موافقة في الإمارات. أما الورق والكرتون الملامس للغذاء فيخضع لمسار ملامسة الغذاء: التغليف الملامس للغذاء هو الحالة الخاضعة للتنظيم. إذ تفيد نتائج البحث بأن المواد الملامسة للغذاء تُعتمد ضمن نظام المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وفق قرار مجلس الوزراء رقم 20 لسنة 2015، للمواد البلاستيكية والزجاجية والخزفية والسيليكونية والورقية والمعدنية والخشبية، عبر جهة مخطرة لدى الوزارة، ويحصل على الشهادة المصنع أو المستورد لا المشتري؛ وتناولت ورشة عمل للوزارة عام 2023 حول تغليف الأغذية من البلاستيك المعاد تدويره توثيق نظام الجودة واختبارات الانتقال في مختبر إماراتي معتمد. وتفتش بلدية دبي وهيئة أبوظبي للزراعة والسلامة الغذائية منشآت الأغذية بما في ذلك تغليفها. وتفيد التغطية الإعلامية للمرحلة الثانية لعام 2026 أيضاً بحظر الأكياس أحادية الاستخدام من أي مادة، ومنها الورق دون حد أدنى للسماكة، لذا يجب التحقق من ورق الأكياس مقابل القاعدة الحالية.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
+        "https://leap.unep.org/en/countries/ae/national-legislation/ministerial-resolution-no-380-2022-regarding-regulating-use",
+        "https://www.wam.ae/en/article/bn8qxpm-second-phase-nationwide-ban-import-trade"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "paper_board:quote-red-flags",
+      "topic": "Red flags in paper and board quotations",
+      "topic_ar": "علامات التحذير في عروض الورق والكرتون",
+      "kind": "quote_red_flag",
+      "body_en": "Check grade and gsm: 70 gsm offered for 80, WLC for FBB, recycled board for food contact, or a different mill under a known brand name are substitutions. Watch for ream counts other than 500 sheets, sheet sizes slightly smaller, price per tonne beside price per ream, moisture-damaged stock, and FSC claims without a certificate number.",
+      "body_ar": "افحص الدرجة والوزن: فعرض ورق 70 غراماً بدل 80، أو كرتون WLC بدل FBB، أو كرتون معاد تدويره لملامسة الغذاء، أو مصنع مختلف تحت اسم علامة معروفة، كلها استبدالات. وانتبه إلى: رزم بعدد أوراق غير 500، ومقاسات أصغر قليلاً، والسعر للطن بجانب السعر للرزمة، ومخزون تضرر بالرطوبة، وادعاءات FSC دون رقم شهادة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "paper_board:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying paper and board",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الورق والكرتون",
+      "kind": "buyer_mistake",
+      "body_en": "Comparing prices per ream across different gsm; choosing board grades for packaging without checking print and folding performance; storing paper in humid, non-air-conditioned warehouses; and buying recycled board for direct food contact. Ask the use, the printer or machine and the volume.",
+      "body_ar": "مقارنة أسعار الرزم بأوزان مختلفة؛ واختيار درجات كرتون للتغليف دون التحقق من أداء الطباعة والطي؛ وتخزين الورق في مستودعات رطبة غير مكيفة؛ وشراء كرتون معاد تدويره لملامسة الغذاء المباشرة. لذا يُسأل عن الاستخدام والطابعة أو الآلة والحجم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "paper_board:price-drivers",
+      "topic": "What legitimately moves paper and board prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الورق والكرتون",
+      "kind": "price_driver",
+      "body_en": "Pulp prices, grade (virgin fibre above recycled), gsm, coating, mill and origin, certification (FSC), quantity (pallets vs containers), freight, and conversion to sheets or reels.",
+      "body_ar": "أسعار اللب، والدرجة (الألياف البكر أعلى من المعاد تدويرها)، والوزن، والطلاء، والمصنع والمنشأ، والشهادات (FSC)، والكمية (منصات أم حاويات)، والشحن، والتحويل إلى أوراق أو بكرات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "paper_board:compare-quotes",
+      "topic": "Comparing paper and board quotes like-for-like",
+      "topic_ar": "مقارنة عروض الورق والكرتون على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Convert to price per tonne (or per 1,000 sheets of the same size and gsm), delivered, for the same grade and mill acceptability. Recommend the three compliant offers with the lowest delivered cost.",
+      "body_ar": "حوّل العروض إلى السعر للطن (أو لكل 1000 ورقة بالمقاس والوزن نفسيهما)، مسلّماً، للدرجة والمصنع المقبول نفسيهما. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة تسليم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +304,8 @@
     "removed": [],
     "still_unverified": [
       "paper_board:spec-checklist",
-      "paper_board:uae-standards-and-approvals"
+      "paper_board:uae-standards-and-approvals",
+      "paper_board:authority-approvals"
     ],
     "added": [
       "paper_board:spec-checklist",
@@ -156,6 +336,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "paper_board:quote-red-flags",
+      "paper_board:buyer-mistakes",
+      "paper_board:price-drivers",
+      "paper_board:compare-quotes"
+    ]
   }
 }

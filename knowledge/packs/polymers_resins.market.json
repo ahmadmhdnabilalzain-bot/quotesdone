@@ -25,8 +25,8 @@
       "topic": "Plastics & polymer raw materials: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المواد الخام البلاستيكية والبوليمرات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the polymer producers and masterbatch brands for the UAE, such as Borouge, SABIC and Ampacet, and where distributors and traders are based. Producers and masterbatch brands: Borouge, SABIC, Sipchem, Tasnee, Petro Rabigh, OQ, QAPCO, Q-Chem, EQUATE, Ampacet, Avient, Clariant. Borouge produces polyolefins at Ruwais, and the other producers are GCC petrochemical companies. Distributors and traders are in Jebel Ali, Sharjah (Hamriyah) and DMCC. Local compounders were not checked by name.",
-      "body_ar": "من منتجي البوليمرات وعلامات الماستر باتش للسوق الإماراتي بروج وسابك وAmpacet، مع بيان أماكن الموزعين والتجار. المنتجون وعلامات الماستر باتش: Borouge، SABIC، Sipchem، Tasnee، Petro Rabigh، OQ، QAPCO، Q-Chem، EQUATE، Ampacet، Avient، Clariant. وتنتج Borouge البولي أوليفينات في الرويس، والبقية منتجون بتروكيماويون خليجيون. والموزعون والتجار في جبل علي والشارقة (الحمرية) ومركز دبي للسلع المتعددة، ولم يُتحقق من المركّبين المحليين بالاسم.",
+      "body_en": "This lists the polymer producers and masterbatch brands for the UAE, such as Borouge, SABIC and Ampacet, and where distributors and traders are based. Producers and masterbatch brands: Borouge, SABIC, Sipchem, Tasnee, Petro Rabigh, OQ, QAPCO, Q-Chem, EQUATE, Ampacet, Avient, Clariant. Borouge produces polyolefins at Ruwais, and the other producers are GCC petrochemical companies. Distributors and traders are in Jebel Ali, Sharjah (Hamriyah) and DMCC. Local compounders were not checked by name.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Borouge = a premium UAE brand; SABIC = a premium Saudi brand; Sipchem = a mid-tier Saudi brand; Tasnee = a mid-tier Saudi brand; Petro Rabigh = a mid-tier Saudi brand; OQ = a mid-tier Omani brand; QAPCO = a mid-tier Qatari brand; Q-Chem = a mid-tier Qatari brand; EQUATE = a mid-tier Kuwaiti brand; Ampacet = a premium American brand; Avient = a premium American brand; Clariant = a premium Swiss brand.",
+      "body_ar": "من منتجي البوليمرات وعلامات الماستر باتش للسوق الإماراتي بروج وسابك وAmpacet، مع بيان أماكن الموزعين والتجار. المنتجون وعلامات الماستر باتش: Borouge، SABIC، Sipchem، Tasnee، Petro Rabigh، OQ، QAPCO، Q-Chem، EQUATE، Ampacet، Avient، Clariant. وتنتج Borouge البولي أوليفينات في الرويس، والبقية منتجون بتروكيماويون خليجيون. والموزعون والتجار في جبل علي والشارقة (الحمرية) ومركز دبي للسلع المتعددة، ولم يُتحقق من المركّبين المحليين بالاسم.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Borouge = علامة إماراتية من الفئة الممتازة؛ SABIC = علامة سعودية من الفئة الممتازة؛ Sipchem = علامة سعودية من الفئة المتوسطة؛ Tasnee = علامة سعودية من الفئة المتوسطة؛ Petro Rabigh = علامة سعودية من الفئة المتوسطة؛ OQ = علامة عُمانية من الفئة المتوسطة؛ QAPCO = علامة قطرية من الفئة المتوسطة؛ Q-Chem = علامة قطرية من الفئة المتوسطة؛ EQUATE = علامة كويتية من الفئة المتوسطة؛ Ampacet = علامة أمريكية من الفئة الممتازة؛ Avient = علامة أمريكية من الفئة الممتازة؛ Clariant = علامة سويسرية من الفئة الممتازة.",
       "sources": [
         "https://www.borouge.com",
         "https://www.sabic.com",
@@ -34,7 +34,93 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Borouge polyolefins, Ruwais -> confirmed. Not checked: Current Borouge grades and local masterbatch plants were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Borouge polyolefins, Ruwais -> confirmed. Not checked: Current Borouge grades and local masterbatch plants were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Borouge",
+          "origin_country": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        },
+        {
+          "brand": "SABIC",
+          "origin_country": "Saudi Arabia",
+          "tier": "premium",
+          "generic_en": "a premium Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sipchem",
+          "origin_country": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Tasnee",
+          "origin_country": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Petro Rabigh",
+          "origin_country": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة المتوسطة"
+        },
+        {
+          "brand": "OQ",
+          "origin_country": "Oman",
+          "tier": "mid",
+          "generic_en": "a mid-tier Omani brand",
+          "generic_ar": "علامة عُمانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "QAPCO",
+          "origin_country": "Qatar",
+          "tier": "mid",
+          "generic_en": "a mid-tier Qatari brand",
+          "generic_ar": "علامة قطرية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Q-Chem",
+          "origin_country": "Qatar",
+          "tier": "mid",
+          "generic_en": "a mid-tier Qatari brand",
+          "generic_ar": "علامة قطرية من الفئة المتوسطة"
+        },
+        {
+          "brand": "EQUATE",
+          "origin_country": "Kuwait",
+          "tier": "mid",
+          "generic_en": "a mid-tier Kuwaiti brand",
+          "generic_ar": "علامة كويتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Ampacet",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Avient",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Clariant",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "polymers_resins:uae-market-sizes",
