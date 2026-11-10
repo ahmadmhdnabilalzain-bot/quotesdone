@@ -61,8 +61,8 @@
       "id": "building_materials:rebar-spec-checklist",
       "topic": "What to state when ordering reinforcement steel",
       "kind": "spec_checklist",
-      "body_en": "A rebar enquiry must allow the supplier to price exactly and deliver compliant material. State the standard and grade (for example BS 4449 B500B or ASTM A615 Grade 60), bar diameters and tonnage per diameter, and whether you want straight stock lengths (commonly 12 m) or cut-and-bent to a bar bending schedule (BBS) with shape codes per BS 8666 or ACI detailing. If cut-and-bent, provide the BBS and confirm who prepares it. Specify any coating (epoxy, galvanised), mechanical couplers (type and whether the coupler supplier's approval is required), and accessories such as tie wire, chairs and spacers. Give delivery location, access for trucks and cranes, required delivery schedule in batches, and whether unloading is included. Ask for mill test certificates per heat, third-party test results if the consultant requires sampling at an accredited lab, MoIAT or emirate conformity, and origin. Commercial terms: price basis (per tonne, theoretical or actual weight), price validity given steel volatility, payment terms and tolerance on quantities. Missing grade or BBS details are the main causes of wrong deliveries. Verification note (23 Sep 2026): Standard and grade designations, and the requirement for a conformity certificate for regulated products (ECAS via MoIAT; CARES for rebar), are confirmed. Not established by a source fetched in this pass: the BS 8666 shape-code reference (not fetched).\n\nExpert interview (2026-11-10): A supplier cannot give a firm rebar price without the grade and standard, the tonnage per diameter, straight or cut-and-bent (with a BBS) and the delivery emirate and schedule; these four are quote-blocking. Coating, couplers and certification change the price but a supplier can quote options for them. No site visit is needed for supply; a drawing or BBS is unavoidable for cut-and-bent work.",
-      "body_ar": "يجب أن يسمح طلب حديد التسليح للمورّد بالتسعير الدقيق وتوريد مادة مطابقة. اذكر المواصفة والدرجة، مثل BS 4449 B500B أو ASTM A615 درجة 60، والأقطار والكمية بالطن لكل قطر، وهل تريد أطوالاً مستقيمة من المخزون، عادة 12 متراً، أم قصاً وثنياً وفق جدول تفريد الحديد بأكواد الأشكال في BS 8666 أو تفاصيل ACI. في حالة القص والثني قدم الجدول وحدد من يعده. حدد أي طلاء كالإيبوكسي أو الجلفنة، والوصلات الميكانيكية ونوعها وهل يلزم اعتماد مورّدها، والملحقات كسلك الربط والكراسي والفواصل. اذكر موقع التسليم ووصول الشاحنات والرافعات وجدول التوريد المطلوب على دفعات وهل التفريغ مشمول. اطلب شهادات اختبار المصنع لكل صبة، ونتائج اختبار طرف ثالث إذا اشترط الاستشاري أخذ عينات في مختبر معتمد، ومطابقة وزارة الصناعة أو الإمارة، والمنشأ. الشروط التجارية: أساس السعر بالطن وزناً نظرياً أو فعلياً، ومدة صلاحية السعر نظراً لتقلب أسعار الحديد، وشروط الدفع، والتفاوت المسموح في الكميات. غياب الدرجة أو تفاصيل جدول التفريد هو السبب الرئيسي لتوريدات خاطئة. ملاحظة تحقق (23 سبتمبر 2026): تأكدت تسميات المواصفات والدرجات، واشتراط شهادة مطابقة للمنتجات المنظمة (ECAS عبر وزارة الصناعة، وCARES لحديد التسليح). لم يثبت من مصدر رُجع إليه في هذه المراجعة: الإشارة إلى رموز الأشكال في BS 8666 (لم يُطَّلع عليها).\n\nمقابلة الخبير (2026-11-10): لا يستطيع المورد تقديم سعر نهائي لحديد التسليح دون معرفة الدرجة والمواصفة، والكمية بالطن لكل قطر، وهل التوريد قضبان مستقيمة أم مقصوصة ومثنية وفق جدول ثني القضبان، وإمارة التسليم وجدولها؛ وهذه الأربعة تمنع التسعير إن غابت. أما الطلاء والوصلات الميكانيكية والشهادات فتؤثر في السعر لكن يمكن للمورد تسعيرها كخيارات. لا تلزم زيارة للموقع في التوريد فقط، لكن المخطط أو جدول الثني ضروري للحديد المقصوص والمثني.",
+      "body_en": "A rebar enquiry must allow the supplier to price exactly and deliver compliant material. State the standard and grade (for example BS 4449 B500B or ASTM A615 Grade 60), bar diameters and tonnage per diameter, and whether you want straight stock lengths (commonly 12 m) or cut-and-bent to a bar bending schedule (BBS) with shape codes per BS 8666 or ACI detailing. If cut-and-bent, provide the BBS and confirm who prepares it. Specify any coating (epoxy, galvanised), mechanical couplers (type and whether the coupler supplier's approval is required), and accessories such as tie wire, chairs and spacers. Give delivery location, access for trucks and cranes, required delivery schedule in batches, and whether unloading is included. Ask for mill test certificates per heat, third-party test results if the consultant requires sampling at an accredited lab, MoIAT or emirate conformity, and origin. Commercial terms: price basis (per tonne, theoretical or actual weight), price validity given steel volatility, payment terms and tolerance on quantities. Missing grade or BBS details are the main causes of wrong deliveries. Verification note (23 Sep 2026): Standard and grade designations, and the requirement for a conformity certificate for regulated products (ECAS via MoIAT; CARES for rebar), are confirmed. Not established by a source fetched in this pass: the BS 8666 shape-code reference (not fetched).\n\nExpert interview (2026-11-10). Quote-blocking (a supplier cannot give a firm price without these): standard and grade; diameters and tonnage per diameter; stock lengths or cut-and-bent; delivery location and schedule.",
+      "body_ar": "يجب أن يسمح طلب حديد التسليح للمورّد بالتسعير الدقيق وتوريد مادة مطابقة. اذكر المواصفة والدرجة، مثل BS 4449 B500B أو ASTM A615 درجة 60، والأقطار والكمية بالطن لكل قطر، وهل تريد أطوالاً مستقيمة من المخزون، عادة 12 متراً، أم قصاً وثنياً وفق جدول تفريد الحديد بأكواد الأشكال في BS 8666 أو تفاصيل ACI. في حالة القص والثني قدم الجدول وحدد من يعده. حدد أي طلاء كالإيبوكسي أو الجلفنة، والوصلات الميكانيكية ونوعها وهل يلزم اعتماد مورّدها، والملحقات كسلك الربط والكراسي والفواصل. اذكر موقع التسليم ووصول الشاحنات والرافعات وجدول التوريد المطلوب على دفعات وهل التفريغ مشمول. اطلب شهادات اختبار المصنع لكل صبة، ونتائج اختبار طرف ثالث إذا اشترط الاستشاري أخذ عينات في مختبر معتمد، ومطابقة وزارة الصناعة أو الإمارة، والمنشأ. الشروط التجارية: أساس السعر بالطن وزناً نظرياً أو فعلياً، ومدة صلاحية السعر نظراً لتقلب أسعار الحديد، وشروط الدفع، والتفاوت المسموح في الكميات. غياب الدرجة أو تفاصيل جدول التفريد هو السبب الرئيسي لتوريدات خاطئة. ملاحظة تحقق (23 سبتمبر 2026): تأكدت تسميات المواصفات والدرجات، واشتراط شهادة مطابقة للمنتجات المنظمة (ECAS عبر وزارة الصناعة، وCARES لحديد التسليح). لم يثبت من مصدر رُجع إليه في هذه المراجعة: الإشارة إلى رموز الأشكال في BS 8666 (لم يُطَّلع عليها).\n\nمقابلة الخبير (2026-11-10). المواصفات المانعة للتسعير (لا يُعطى دونها سعر نهائي): المواصفة والرتبة؛ والأقطار والكمية بالطن لكل قطر؛ وأطوال المخزون أو القص والثني؛ وموقع التسليم وجدوله.",
       "required_specs": [
         "standard and grade",
         "diameters and tonnage per diameter",
@@ -116,11 +116,11 @@
           "blocking": true
         },
         {
-          "spec": "delivery location and schedule",
-          "why_needed_to_price": "Transport cost and truck size depend on the emirate, site access and the number of drops.",
-          "uae_options": "single drop; phased drops per pour; supplier crane truck or site crane",
-          "follow_up_if": "Restricted city sites: ask about truck-entry hours and who unloads.",
-          "blocking": true
+          "spec": "bar bending schedule (BBS) and shape code standard",
+          "why_needed_to_price": "Cut-and-bent work is priced from the bar bending schedule; without it the fabricator cannot count shapes, cuts and wastage.",
+          "uae_options": "BBS to BS 8666 shape codes, or to the project's shape code standard.",
+          "follow_up_if": "If no BBS exists, ask for the structural drawings and who prepares the BBS.",
+          "blocking": false
         },
         {
           "spec": "coating if any",
@@ -137,10 +137,45 @@
           "blocking": false
         },
         {
+          "spec": "accessories (tie wire, spacers, chairs)",
+          "why_needed_to_price": "Tie wire, spacers and chairs are small items that add up and are often left out.",
+          "uae_options": "Black annealed tie wire; concrete or plastic spacers; steel chairs.",
+          "follow_up_if": "If not stated, ask whether accessories are in the supplier's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery location and schedule",
+          "why_needed_to_price": "Transport cost and truck size depend on the emirate, site access and the number of drops.",
+          "uae_options": "single drop; phased drops per pour; supplier crane truck or site crane",
+          "follow_up_if": "Restricted city sites: ask about truck-entry hours and who unloads.",
+          "blocking": true
+        },
+        {
+          "spec": "unloading included",
+          "why_needed_to_price": "Offloading by the supplier's crane truck or by the site's crane changes the delivered price.",
+          "uae_options": "Supplier's lorry-mounted crane; site crane; manual offloading.",
+          "follow_up_if": "If the site has no crane or access is tight, state it.",
+          "blocking": false
+        },
+        {
           "spec": "mill test certificates per heat",
           "why_needed_to_price": "Consultants reject deliveries without traceable certificates; a supplier must know the certificate level to quote stock.",
           "uae_options": "EN 10204 3.1 mill certificate; third-party test at an accredited lab",
           "follow_up_if": "Government or consultant-led jobs: ask whether third-party testing per lot is required and who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "third-party testing requirement",
+          "why_needed_to_price": "Third-party testing of samples adds lab fees and time.",
+          "uae_options": "Tensile and bend tests at an accredited lab per heat or per tonnage.",
+          "follow_up_if": "If the consultant requires independent tests, ask who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "conformity certificate and origin",
+          "why_needed_to_price": "The origin and conformity certificate decide whether the steel is accepted on site, and prices differ by mill.",
+          "uae_options": "Local UAE mills, GCC or imported; MoIAT or DM conformity where required.",
+          "follow_up_if": "If the origin is not stated, ask for the mill name and certificate.",
           "blocking": false
         },
         {
@@ -149,9 +184,17 @@
           "uae_options": "theoretical weight per standard; weighbridge ticket",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "price validity",
+          "why_needed_to_price": "Steel prices move with the market; a short validity protects the supplier and a long one costs more.",
+          "uae_options": "Validity 7-30 days; price linked to an index for long contracts.",
+          "follow_up_if": "If the order will be called off over months, ask for an escalation clause.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "building_materials:concrete-blocks",
@@ -172,7 +215,7 @@
       "id": "building_materials:block-spec-checklist",
       "topic": "What to state when ordering blocks",
       "kind": "spec_checklist",
-      "body_en": "To price blocks exactly, the buyer should state: block type (hollow, solid, thermal, AAC), nominal dimensions (width x height x length, for example 200 x 200 x 400 mm), quantity by type, required compressive strength class and the standard or authority specification it must meet, density if relevant, and for thermal blocks the required U-value or thermal resistance with the test report or certificate accepted by the authority (Dubai Municipality or Estidama). State whether fire-rated blocks are needed and the rating. Ask for the factory's authority approval, product conformity certificate, and recent test reports from an accredited laboratory, and whether the consultant will require site sampling. Specify delivery location, pallets or loose, crane offloading or manual, delivery schedule, and whether matching mortar or thin-bed adhesive (for AAC) and accessories such as wall ties, lintels and expansion joint materials are included. Commercial items include price per piece or per square metre, breakage allowance, pallet deposit, and price validity. Thermal blocks from unapproved factories are a frequent cause of permit or inspection problems. Verification note (23 Sep 2026): Dubai Municipality certifies concrete blocks by batch and certifies block factories, which supports asking for the factory and batch certificates. Not established by a source fetched in this pass: the pallet-deposit and breakage-allowance practices.\n\nExpert interview (2026-11-10): Blocking: block type, dimensions, quantity per type and strength class. A supplier can add delivery options later. No site visit is needed; the wall drawing or a measured wall area is enough to quantify.",
+      "body_en": "To price blocks exactly, the buyer should state: block type (hollow, solid, thermal, AAC), nominal dimensions (width x height x length, for example 200 x 200 x 400 mm), quantity by type, required compressive strength class and the standard or authority specification it must meet, density if relevant, and for thermal blocks the required U-value or thermal resistance with the test report or certificate accepted by the authority (Dubai Municipality or Estidama). State whether fire-rated blocks are needed and the rating. Ask for the factory's authority approval, product conformity certificate, and recent test reports from an accredited laboratory, and whether the consultant will require site sampling. Specify delivery location, pallets or loose, crane offloading or manual, delivery schedule, and whether matching mortar or thin-bed adhesive (for AAC) and accessories such as wall ties, lintels and expansion joint materials are included. Commercial items include price per piece or per square metre, breakage allowance, pallet deposit, and price validity. Thermal blocks from unapproved factories are a frequent cause of permit or inspection problems. Verification note (23 Sep 2026): Dubai Municipality certifies concrete blocks by batch and certifies block factories, which supports asking for the factory and batch certificates. Not established by a source fetched in this pass: the pallet-deposit and breakage-allowance practices.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): block type, dimensions, quantity per type and strength class. A supplier can add delivery options later. No site visit is needed; the wall drawing or a measured wall area is enough to quantify.",
       "body_ar": "لتسعير البلوك بدقة يجب أن يحدد المشتري: نوع البلوك مفرغ أو مصمت أو حراري أو خلوي، والأبعاد الاسمية عرض × ارتفاع × طول مثل 200 × 200 × 400 ملم، والكمية لكل نوع، وفئة مقاومة الضغط المطلوبة والمواصفة أو مواصفة الجهة التي يجب أن يستوفيها، والكثافة عند الحاجة، وللبلوك الحراري معامل انتقال الحرارة أو المقاومة الحرارية المطلوبة مع تقرير الاختبار أو الشهادة المقبولة لدى الجهة، بلدية دبي أو استدامة. حدد هل يلزم بلوك مقاوم للحريق ودرجته. اطلب اعتماد المصنع لدى الجهة وشهادة مطابقة المنتج وتقارير اختبار حديثة من مختبر معتمد، وهل سيشترط الاستشاري أخذ عينات من الموقع. حدد موقع التسليم وهل على منصات أو سائب والتفريغ برافعة أو يدوياً وجدول التوريد وهل تشمل المونة المناسبة أو اللاصق الرقيق للبلوك الخلوي والملحقات كروابط الجدران والأعتاب ومواد فواصل التمدد. البنود التجارية: السعر للقطعة أو للمتر المربع، ونسبة الكسر المسموحة، وتأمين المنصات، وصلاحية السعر. البلوك الحراري من مصانع غير معتمدة سبب متكرر لمشاكل التصريح أو التفتيش. ملاحظة تحقق (23 سبتمبر 2026): تصدر بلدية دبي شهادات للبلوك الخرساني حسب الدفعة وللمصانع، وهذا يؤيد طلب شهادة المصنع وشهادة الدفعة. لم يثبت من مصدر رُجع إليه في هذه المراجعة: ممارسات تأمين المنصات ونسبة الكسر.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع البلوك وأبعاده والكمية لكل نوع وفئة مقاومة الضغط. يمكن للمورد إضافة خيارات التوصيل لاحقاً. لا تلزم زيارة الموقع، ويكفي مخطط الجدران أو مساحة الجدران المقاسة لحساب الكمية.",
       "required_specs": [
         "block type",
@@ -230,10 +273,38 @@
           "blocking": true
         },
         {
+          "spec": "density",
+          "why_needed_to_price": "Density decides weight, strength class and price per block.",
+          "uae_options": "Hollow, solid or lightweight blocks; density in kg/m3.",
+          "follow_up_if": "If not stated, ask the structural or architectural specification.",
+          "blocking": false
+        },
+        {
+          "spec": "U-value / thermal certificate (thermal blocks)",
+          "why_needed_to_price": "Thermal blocks with insulation inserts cost more and must carry a U-value certificate for Al Sa'fat or Estidama.",
+          "uae_options": "Insulated thermal blocks with a certified U-value.",
+          "follow_up_if": "If the wall is external, ask which U-value it must meet.",
+          "blocking": false
+        },
+        {
+          "spec": "fire rating if needed",
+          "why_needed_to_price": "Fire-rated blocks need a tested rating and cost more.",
+          "uae_options": "1, 2 or 4 hour fire rating by test.",
+          "follow_up_if": "If the wall is a fire wall, ask for the rating required.",
+          "blocking": false
+        },
+        {
           "spec": "factory authority approval",
           "why_needed_to_price": "Many consultants accept blocks only from a factory approved for the project emirate.",
           "uae_options": "factory approval in the project emirate; consultant material submittal",
           "follow_up_if": "Government or consultant-led jobs: ask which approval the consultant will check.",
+          "blocking": false
+        },
+        {
+          "spec": "test reports from accredited lab",
+          "why_needed_to_price": "Blocks from an accredited lab-tested batch are needed for approval and some cheap blocks have none.",
+          "uae_options": "Test reports from an EIAC-accredited lab; DM block batch certificate in Dubai.",
+          "follow_up_if": "If no test report is provided, the blocks cannot be approved.",
           "blocking": false
         },
         {
@@ -242,9 +313,24 @@
           "uae_options": "palletised with crane truck; manual offload; forklift on site",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "mortar/adhesive and accessories",
+          "why_needed_to_price": "Mortar, adhesive and accessories (wall ties, mesh) are separate items.",
+          "uae_options": "Ready-mixed mortar; thin-bed adhesive; wall ties and mesh.",
+          "follow_up_if": "If not stated, ask who supplies mortar and accessories.",
+          "blocking": false
+        },
+        {
+          "spec": "price basis and breakage allowance",
+          "why_needed_to_price": "Prices may be per block or per square metre and breakage allowances differ.",
+          "uae_options": "Price per block or per m2 of wall; breakage allowance 2-5%.",
+          "follow_up_if": "If quotes use different bases, restate them per m2 of wall.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "building_materials:aggregates",
@@ -277,7 +363,7 @@
       "id": "building_materials:ready-mix-spec-checklist",
       "topic": "What to state when ordering ready-mix concrete",
       "kind": "spec_checklist",
-      "body_en": "For an exact ready-mix quotation, provide the approved mix specification rather than just a grade. State strength class (cube or cylinder basis), exposure class or durability requirements, cement type and supplementary materials with ranges, maximum water-cement ratio, minimum cementitious content, maximum aggregate size, slump or flow at point of discharge, admixtures required (retarder, superplasticiser, waterproofing, corrosion inhibitor), maximum concrete temperature at placing (hot-weather concreting often requires chilled water or ice and night pours in the UAE), and any special type (self-compacting, fibre, lightweight, foamed, low-heat). Give volume per element and per pour, pour rate, pour dates and times, site location and travel time, pump requirement (boom or line pump, reach) or chute, and access for trucks. Include testing responsibilities: who takes cubes, how many, and which accredited lab tests them; and quality documentation such as delivery tickets with batch time. Commercial items: price per cubic metre by grade, pump charges, minimum load charges, waiting time charges, cancellation charges for late cancellations, and night-work surcharge. Verification note (23 Sep 2026): ASTM C494 admixture types (A water-reducing, B retarding and others) and ready-mix plant assessment by Dubai Municipality are confirmed. Not established by a source fetched in this pass: typical cancellation and night-work surcharges.\n\nExpert interview (2026-11-10): Blocking: strength class, exposure class or durability requirement, volume and pour rate, and site location with the schedule. Pumping, cooling and testing are priced options. No site visit is needed for a price; the plant may inspect access before a large pour.",
+      "body_en": "For an exact ready-mix quotation, provide the approved mix specification rather than just a grade. State strength class (cube or cylinder basis), exposure class or durability requirements, cement type and supplementary materials with ranges, maximum water-cement ratio, minimum cementitious content, maximum aggregate size, slump or flow at point of discharge, admixtures required (retarder, superplasticiser, waterproofing, corrosion inhibitor), maximum concrete temperature at placing (hot-weather concreting often requires chilled water or ice and night pours in the UAE), and any special type (self-compacting, fibre, lightweight, foamed, low-heat). Give volume per element and per pour, pour rate, pour dates and times, site location and travel time, pump requirement (boom or line pump, reach) or chute, and access for trucks. Include testing responsibilities: who takes cubes, how many, and which accredited lab tests them; and quality documentation such as delivery tickets with batch time. Commercial items: price per cubic metre by grade, pump charges, minimum load charges, waiting time charges, cancellation charges for late cancellations, and night-work surcharge. Verification note (23 Sep 2026): ASTM C494 admixture types (A water-reducing, B retarding and others) and ready-mix plant assessment by Dubai Municipality are confirmed. Not established by a source fetched in this pass: typical cancellation and night-work surcharges.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): strength class, exposure class or durability requirement, volume and pour rate, and site location with the schedule. Pumping, cooling and testing are priced options. No site visit is needed for a price; the plant may inspect access before a large pour.",
       "body_ar": "للحصول على عرض دقيق للخرسانة الجاهزة قدم مواصفة الخلطة المعتمدة لا مجرد الدرجة. اذكر فئة المقاومة على أساس المكعب أو الأسطوانة، وفئة التعرض أو متطلبات المتانة، ونوع الأسمنت والمواد المكملة ونطاقاتها، والحد الأقصى لنسبة الماء إلى الأسمنت، والحد الأدنى للمواد الأسمنتية، والحد الأقصى لحجم الركام، والهبوط أو الانسياب عند التفريغ، والإضافات المطلوبة من مؤخر وملدن فائق وعازل مائي ومانع تآكل، والحد الأقصى لحرارة الخرسانة عند الصب، إذ يتطلب الصب في الطقس الحار في الإمارات غالباً ماءً مبرداً أو ثلجاً وصبات ليلية، وأي نوع خاص كذاتية الدمك أو بالألياف أو خفيفة الوزن أو رغوية أو منخفضة الحرارة. اذكر الكمية لكل عنصر ولكل صبة ومعدل الصب ومواعيد الصب والموقع ومدة الوصول والحاجة لمضخة ذراع أو خطية ومداها أو مزراب ووصول الشاحنات. حدد مسؤوليات الاختبار: من يأخذ المكعبات وعددها وأي مختبر معتمد يختبرها، ووثائق الجودة كإيصالات التسليم بوقت الخلط. البنود التجارية: السعر للمتر المكعب لكل درجة، ورسوم المضخة، ورسوم الحمولة الدنيا، ورسوم الانتظار، ورسوم الإلغاء المتأخر، وعلاوة العمل الليلي. ملاحظة تحقق (23 سبتمبر 2026): تأكدت أنواع الإضافات في ASTM C494 (A مخفض للماء، وB مؤخر للشك وغيرها)، وتقييم بلدية دبي لمصانع الخرسانة الجاهزة. لم يثبت من مصدر رُجع إليه في هذه المراجعة: رسوم الإلغاء والعمل الليلي المعتادة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: فئة المقاومة، وفئة التعرض أو متطلبات الديمومة، والحجم ومعدل الصب، وموقع المشروع مع جدول الصب. أما الضخ والتبريد والفحوص فهي خيارات مسعّرة. لا تلزم زيارة للموقع لتقديم السعر، وقد يعاين المصنع الوصول قبل الصبات الكبيرة.",
       "required_specs": [
         "strength class (cube/cylinder)",
@@ -325,6 +411,62 @@
           "blocking": true
         },
         {
+          "spec": "cement type and SCMs",
+          "why_needed_to_price": "Cement type and supplementary materials (GGBS, fly ash, microsilica) change cost and durability.",
+          "uae_options": "OPC, SRC, OPC with GGBS or fly ash, microsilica for marine or aggressive soil.",
+          "follow_up_if": "If the soil is aggressive or near the sea, ask for the durability requirement.",
+          "blocking": false
+        },
+        {
+          "spec": "max w/c ratio",
+          "why_needed_to_price": "A lower water-cement ratio needs more cement or admixtures and costs more.",
+          "uae_options": "Max w/c 0.40-0.50 per exposure class.",
+          "follow_up_if": "If not stated, ask the consultant for the exposure class.",
+          "blocking": false
+        },
+        {
+          "spec": "min cementitious content",
+          "why_needed_to_price": "Minimum cementitious content sets the mix cost.",
+          "uae_options": "350-450 kg/m3 typical by grade and exposure.",
+          "follow_up_if": "If not stated, the supplier will quote its standard mix; ask for the specification.",
+          "blocking": false
+        },
+        {
+          "spec": "max aggregate size",
+          "why_needed_to_price": "Aggregate size affects pumping and mix design.",
+          "uae_options": "10, 20 mm; 10 mm for congested reinforcement.",
+          "follow_up_if": "If the concrete will be pumped through thin sections, ask for 10 mm.",
+          "blocking": false
+        },
+        {
+          "spec": "slump/flow",
+          "why_needed_to_price": "Higher slump or self-compacting flow needs admixtures and costs more.",
+          "uae_options": "Slump 75-150 mm; flow for SCC.",
+          "follow_up_if": "If the pour is congested or pumped, ask for the slump wanted.",
+          "blocking": false
+        },
+        {
+          "spec": "admixtures",
+          "why_needed_to_price": "Retarders, superplasticisers and waterproofing admixtures add cost per m3.",
+          "uae_options": "Retarder for hot weather; superplasticiser; crystalline waterproofing.",
+          "follow_up_if": "If the pour is in summer, ask about retarders and cooling.",
+          "blocking": false
+        },
+        {
+          "spec": "max placing temperature",
+          "why_needed_to_price": "Summer pours need chilled water or ice, which adds cost.",
+          "uae_options": "as specified, commonly a maximum concrete temperature at placing",
+          "follow_up_if": "Summer work: ask whether ice or chilled water is included.",
+          "blocking": false
+        },
+        {
+          "spec": "special concrete type",
+          "why_needed_to_price": "Special concretes (SCC, fibre, mass concrete with cooling) cost more.",
+          "uae_options": "SCC; fibre-reinforced; mass concrete with ice or chilled water.",
+          "follow_up_if": "If the pour is large or thick, ask about temperature control.",
+          "blocking": false
+        },
+        {
           "spec": "volume per pour and pour rate",
           "why_needed_to_price": "Batching-plant allocation, the number of trucks and the pump size follow the pour volume and rate.",
           "uae_options": "small pours from a few m3; mass pours in hundreds of m3",
@@ -346,21 +488,22 @@
           "blocking": false
         },
         {
-          "spec": "max placing temperature",
-          "why_needed_to_price": "Summer pours need chilled water or ice, which adds cost.",
-          "uae_options": "as specified, commonly a maximum concrete temperature at placing",
-          "follow_up_if": "Summer work: ask whether ice or chilled water is included.",
-          "blocking": false
-        },
-        {
           "spec": "testing responsibility and lab",
           "why_needed_to_price": "Cube sampling and lab fees are either in the supplier price or the buyer's.",
           "uae_options": "supplier samples; third-party accredited lab appointed by the consultant",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "price per m3 and extra charges",
+          "why_needed_to_price": "Extras (pump, small loads, waiting time, Friday or night pours) are where quotes differ.",
+          "uae_options": "Pump hire per pour; small-load surcharge; waiting time; night or Friday surcharge.",
+          "follow_up_if": "If the pour needs a pump or night pour, ask for those charges.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "building_materials:hot-weather-concrete",
@@ -758,18 +901,21 @@
       "kind": "authority_approval",
       "topic": "Building materials: approvals and certificates per emirate",
       "topic_ar": "مواد البناء: الاعتمادات والشهادات في كل إمارة",
-      "body_en": "A material supplier usually needs no permit of its own to sell; what applies is the project's approval of the material and the product's conformity. Federal: products on the regulated list of the Ministry of Industry and Advanced Technology (MoIAT) need a conformity certificate before sale, and test reports should come from labs accredited by EIAC. Dubai: Dubai Municipality issues the building permit and its product certification and the Dubai Central Laboratory test materials; the consultant approves each material submittal. In Trakhees areas (Nakheel, Dubai Maritime City, JAFZA) the permit comes from Trakhees instead. Abu Dhabi: the permit comes from the municipality under the Department of Municipalities and Transport (DMT); material approval runs through the consultant. Sharjah and the northern emirates: the municipality permit and the consultant's submittal approval apply; no supplier-level approval scheme for ordinary materials was confirmed in this session. Who obtains it: the supplier provides certificates and test reports, the contractor submits them, the consultant approves.",
-      "body_ar": "لا يحتاج مورد المواد عادة إلى تصريح خاص به للبيع؛ والمطلوب هو اعتماد المادة في المشروع ومطابقة المنتج. على المستوى الاتحادي: تحتاج المنتجات المدرجة في قائمة المنتجات الخاضعة للرقابة لدى وزارة الصناعة والتكنولوجيا المتقدمة إلى شهادة مطابقة قبل البيع، ويجب أن تصدر تقارير الفحص عن مختبرات معتمدة من مركز الإمارات الدولي للاعتماد. في دبي: تصدر بلدية دبي رخصة البناء ولديها نظام لاعتماد المنتجات، ويفحص مختبر دبي المركزي المواد، ويعتمد الاستشاري كل طلب اعتماد مادة. وفي مناطق تراخيص (نخيل، دبي البحرية، المنطقة الحرة لجبل علي) تصدر الرخصة من تراخيص. في أبوظبي: تصدر الرخصة من البلدية التابعة لدائرة البلديات والنقل، ويمر اعتماد المادة عبر الاستشاري. في الشارقة والإمارات الشمالية: تنطبق رخصة البلدية واعتماد الاستشاري للمواد، ولم يُتحقق في هذه الجلسة من وجود نظام اعتماد على مستوى المورد للمواد العادية. من يحصل عليه: يقدّم المورد الشهادات وتقارير الفحص، ويرفعها المقاول، ويعتمدها الاستشاري.",
+      "body_en": "A material supplier usually needs no permit of its own to sell; what applies is the project's approval of the material and the product's conformity. Federal: products on the regulated list of the Ministry of Industry and Advanced Technology (MoIAT) need a conformity certificate before sale, and test reports should come from labs accredited by EIAC. Dubai: Dubai Municipality issues the building permit and its product certification and the Dubai Central Laboratory test materials; the consultant approves each material submittal. In Trakhees areas (Nakheel, Dubai Maritime City, JAFZA) the permit comes from Trakhees instead. Abu Dhabi: the permit comes from the municipality under the Department of Municipalities and Transport (DMT); material approval runs through the consultant. Dubai Municipality also issues a supplier registration certificate to traders and manufacturers of reinforcing steel and solar water heating systems, and states that products identified in its regulations must be certified before they are used or sold in Dubai. Sharjah and the northern emirates: the municipality permit and the consultant's submittal approval apply; in addition, Sharjah Municipality issues a Building Material Approval certificate for waterproofing and thermal insulation materials, sewage and water pipes and new types of bricks, applied for by a holder of a valid Sharjah trade licence with the product specifications and tests. No such scheme was confirmed for the northern emirates. Who obtains it: the supplier provides certificates and test reports, the contractor submits them, the consultant approves.",
+      "body_ar": "لا يحتاج مورد المواد عادة إلى تصريح خاص به للبيع؛ والمطلوب هو اعتماد المادة في المشروع ومطابقة المنتج. على المستوى الاتحادي: تحتاج المنتجات المدرجة في قائمة المنتجات الخاضعة للرقابة لدى وزارة الصناعة والتكنولوجيا المتقدمة إلى شهادة مطابقة قبل البيع، ويجب أن تصدر تقارير الفحص عن مختبرات معتمدة من مركز الإمارات الدولي للاعتماد. في دبي: تصدر بلدية دبي رخصة البناء ولديها نظام لاعتماد المنتجات، ويفحص مختبر دبي المركزي المواد، ويعتمد الاستشاري كل طلب اعتماد مادة. وفي مناطق تراخيص (نخيل، دبي البحرية، المنطقة الحرة لجبل علي) تصدر الرخصة من تراخيص. في أبوظبي: تصدر الرخصة من البلدية التابعة لدائرة البلديات والنقل، ويمر اعتماد المادة عبر الاستشاري. وتصدر بلدية دبي أيضاً شهادة تسجيل مورد لتجار ومصنعي حديد التسليح وأنظمة تسخين المياه بالطاقة الشمسية، وتنص على أن المنتجات المحددة في لوائحها يجب اعتمادها قبل استخدامها أو بيعها في دبي. في الشارقة والإمارات الشمالية: تنطبق رخصة البلدية واعتماد الاستشاري للمواد، إضافة إلى ذلك وتصدر بلدية الشارقة شهادة اعتماد مواد البناء لمواد العزل المائي والحراري وأنابيب الصرف والمياه وأنواع الطوب الجديدة، ويتقدم بها صاحب رخصة تجارية سارية في الشارقة مع المواصفات والاختبارات. ولم يُتحقق من نظام مماثل في الإمارات الشمالية. من يحصل عليه: يقدّم المورد الشهادات وتقارير الفحص، ويرفعها المقاول، ويعتمدها الاستشاري.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://www.dm.gov.ae/dubai-municipality-services/",
         "https://pcfc.ae/en/Service%20Documents/PCFC-TRK-CED-PS-CP-01,%20Client%20procedure%20for%20Obtaining%20Building%20Permits.pdf",
-        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10"
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
+        "https://www.dm.gov.ae/municipality-business/product-certification/",
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e702"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Dubai Central Laboratory certifies building materials and DM regulations require identified products to be certified before use or sale (DM product certification page); DM supplier registration for reinforcing steel and solar water heaters (DM services list); Sharjah Building Material Approval certificate (shjmun.gov.ae service directory). Not confirmed on any reachable page: the MoIAT regulated-products list, EIAC accreditation of labs and the Trakhees areas. Host(s) that could not be reached: moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection); pcfc.ae (Trakhees; blocked, and www.trakhees.ae redirects there); portal.shjmun.gov.ae (blocked by the session network). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "building_materials:compare-quotes-cost-to-value",
@@ -879,10 +1025,11 @@
     }
   ],
   "verified": {
-    "fetched_urls": 40,
-    "claims_checked": 269,
+    "fetched_urls": 45,
+    "claims_checked": 278,
     "corrected": [
-      "building_materials:concrete-blocks"
+      "building_materials:concrete-blocks",
+      "building_materials:approvals-per-emirate"
     ],
     "removed": [],
     "still_unverified": [
@@ -903,7 +1050,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: building_materials:approvals-per-emirate re-checked against official pages opened through the session network (5 URL(s) read, 9 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

@@ -248,7 +248,7 @@
       "id": "landscaping:pool-spec-checklist",
       "topic": "What to state when requesting a swimming pool quote",
       "kind": "spec_checklist",
-      "body_en": "A pool contractor needs a defined brief to price exactly. State the location (emirate, community, authority), plot access for machinery, and whether the ground has a high water table. Give pool dimensions, shallow and deep depths, shape, and whether steps, benches, a baby pool, spa or jets are wanted. Define the edge type (skimmer, overflow, infinity), construction method (concrete or fibreglass), interior finish (mosaic, porcelain, plaster) and coping and deck material. Equipment: filtration type, pump (single or variable speed), disinfection (chlorine dosing or salt), automation, chiller or heat pump, lighting (LED, colour), and water features. Safety: fence or barrier per authority guidelines, cover if wanted, anti-entrapment drains. Scope: excavation and disposal, waterproofing, electrical supply from the villa DB, plumbing to the equipment room, backfilling, landscaping around, authority permit and consultant drawings, testing and commissioning, and handover training. Commercial: programme, payment milestones, warranty on structure, waterproofing, tiles and equipment, and first-year maintenance. Missing any of these produces non-comparable quotes.\n\nExpert interview (2026-11-10): Blocking: size and depth, edge type, construction method, site access and water table, and location. A site visit is unavoidable.",
+      "body_en": "A pool contractor needs a defined brief to price exactly. State the location (emirate, community, authority), plot access for machinery, and whether the ground has a high water table. Give pool dimensions, shallow and deep depths, shape, and whether steps, benches, a baby pool, spa or jets are wanted. Define the edge type (skimmer, overflow, infinity), construction method (concrete or fibreglass), interior finish (mosaic, porcelain, plaster) and coping and deck material. Equipment: filtration type, pump (single or variable speed), disinfection (chlorine dosing or salt), automation, chiller or heat pump, lighting (LED, colour), and water features. Safety: fence or barrier per authority guidelines, cover if wanted, anti-entrapment drains. Scope: excavation and disposal, waterproofing, electrical supply from the villa DB, plumbing to the equipment room, backfilling, landscaping around, authority permit and consultant drawings, testing and commissioning, and handover training. Commercial: programme, payment milestones, warranty on structure, waterproofing, tiles and equipment, and first-year maintenance. Missing any of these produces non-comparable quotes.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): size and depth, edge type, construction method, site access and water table, and location. A site visit is unavoidable.",
       "body_ar": "يحتاج مقاول المسابح إلى متطلبات محددة ليسعّر بدقة. اذكر الموقع، الإمارة والمجتمع والجهة، ووصول الآليات إلى القطعة، وهل منسوب المياه الجوفية مرتفع. حدد أبعاد المسبح والعمق الضحل والعميق والشكل، وهل تريد درجاً أو مقاعد أو مسبح أطفال أو سبا أو نفاثات. حدد نوع الحافة قشاط أو فائض أو لانهائي، وطريقة الإنشاء خرسانة أو ألياف زجاجية، والتشطيب الداخلي موزاييك أو بورسلين أو لياسة، ومادة الحواف والسطح المحيط. المعدات: نوع الفلترة، والمضخة أحادية أو متغيرة السرعة، والتعقيم بالكلور أو الملح، والأتمتة، والمبرد أو المضخة الحرارية، والإنارة LED وألوانها، والنوافير. السلامة: سياج أو حاجز وفق إرشادات الجهة، وغطاء إن رغبت، ومصارف مانعة للانحباس. النطاق: الحفر والتخلص من المخلفات، والعزل، وتغذية الكهرباء من لوحة الفيلا، والتمديدات إلى غرفة المعدات، والردم، والتنسيق حول المسبح، وتصريح الجهة ورسومات الاستشاري، والاختبار والتشغيل، والتدريب عند التسليم. التجاري: البرنامج الزمني ودفعات السداد والضمان على الهيكل والعزل والبلاط والمعدات وصيانة السنة الأولى. غياب أي منها ينتج عروضاً غير قابلة للمقارنة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المقاس والعمق، ونوع الحافة، وطريقة الإنشاء، والوصول إلى الموقع ومنسوب المياه الجوفية، والموقع. وزيارة الموقع ضرورية.",
       "required_specs": [
         "location and authority",
@@ -287,11 +287,32 @@
       ],
       "spec_guide": [
         {
+          "spec": "location and authority",
+          "why_needed_to_price": "The permit and approvals depend on emirate and community.",
+          "uae_options": "emirate and community",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "site access and water table",
+          "why_needed_to_price": "High water tables need dewatering; tight access raises cost.",
+          "uae_options": "site survey",
+          "follow_up_if": "High water table: dewatering and an anti-flotation design are needed.",
+          "blocking": true
+        },
+        {
           "spec": "dimensions and depths",
           "why_needed_to_price": "Excavation, concrete and finish all follow the size.",
           "uae_options": "length x width x depth",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "shape and features (steps, spa, baby pool)",
+          "why_needed_to_price": "Shape and features add cost.",
+          "uae_options": "Steps, spa, baby pool, infinity edge.",
+          "follow_up_if": "If features are wanted, list them.",
+          "blocking": false
         },
         {
           "spec": "edge type (skimmer/overflow/infinity)",
@@ -308,18 +329,95 @@
           "blocking": true
         },
         {
-          "spec": "site access and water table",
-          "why_needed_to_price": "High water tables need dewatering; tight access raises cost.",
-          "uae_options": "site survey",
-          "follow_up_if": "High water table: dewatering and an anti-flotation design are needed.",
-          "blocking": true
+          "spec": "interior finish",
+          "why_needed_to_price": "Interior finish decides cost and life.",
+          "uae_options": "Tiles; plaster; glass mosaic.",
+          "follow_up_if": "If mosaic, ask for the range.",
+          "blocking": false
         },
         {
-          "spec": "location and authority",
-          "why_needed_to_price": "The permit and approvals depend on emirate and community.",
-          "uae_options": "emirate and community",
-          "follow_up_if": "",
-          "blocking": true
+          "spec": "coping and deck material",
+          "why_needed_to_price": "Coping and deck materials add cost.",
+          "uae_options": "Stone, porcelain, timber.",
+          "follow_up_if": "If the inquiry is silent on coping and deck material, each supplier prices its own default; ask the buyer so every quote rests on the same coping and deck material.",
+          "blocking": false
+        },
+        {
+          "spec": "filtration and pump type",
+          "why_needed_to_price": "Filtration type and pump decide equipment cost.",
+          "uae_options": "Sand or cartridge filter; variable-speed pump.",
+          "follow_up_if": "If energy matters, ask for VSD.",
+          "blocking": false
+        },
+        {
+          "spec": "disinfection system",
+          "why_needed_to_price": "Disinfection system decides running cost.",
+          "uae_options": "Chlorine, salt chlorinator, UV.",
+          "follow_up_if": "If the inquiry is silent on disinfection system, each supplier prices its own default; ask the buyer so every quote rests on the same disinfection system.",
+          "blocking": false
+        },
+        {
+          "spec": "chiller/heat pump",
+          "why_needed_to_price": "A chiller or heat pump is needed for comfort.",
+          "uae_options": "Pool chiller; heat pump.",
+          "follow_up_if": "If summer use, ask for a chiller.",
+          "blocking": false
+        },
+        {
+          "spec": "lighting",
+          "why_needed_to_price": "Lighting adds cost.",
+          "uae_options": "LED pool lights.",
+          "follow_up_if": "If the inquiry is silent on lighting, each supplier prices its own default; ask the buyer so every quote rests on the same lighting.",
+          "blocking": false
+        },
+        {
+          "spec": "safety barrier and cover",
+          "why_needed_to_price": "Safety barriers and covers are required for some pools.",
+          "uae_options": "Fence; cover.",
+          "follow_up_if": "If children are present, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "excavation/disposal included",
+          "why_needed_to_price": "Excavation and disposal can be large costs.",
+          "uae_options": "Included or excluded.",
+          "follow_up_if": "If excluded, ask who does it.",
+          "blocking": false
+        },
+        {
+          "spec": "waterproofing system",
+          "why_needed_to_price": "Waterproofing system decides durability.",
+          "uae_options": "Cementitious or membrane.",
+          "follow_up_if": "If the inquiry is silent on waterproofing system, each supplier prices its own default; ask the buyer so every quote rests on the same waterproofing system.",
+          "blocking": false
+        },
+        {
+          "spec": "electrical and plumbing scope",
+          "why_needed_to_price": "Electrical and plumbing scope is often split.",
+          "uae_options": "By pool contractor or others.",
+          "follow_up_if": "If split, ask for scope.",
+          "blocking": false
+        },
+        {
+          "spec": "permit and consultant drawings",
+          "why_needed_to_price": "Permits and drawings take time.",
+          "uae_options": "DM pool approval; consultant drawings.",
+          "follow_up_if": "If excluded, ask who obtains.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty terms",
+          "why_needed_to_price": "Warranty terms change price.",
+          "uae_options": "Structure and equipment warranty.",
+          "follow_up_if": "If the inquiry is silent on warranty terms, each supplier prices its own default; ask the buyer so every quote rests on the same warranty terms.",
+          "blocking": false
+        },
+        {
+          "spec": "maintenance period",
+          "why_needed_to_price": "Maintenance period adds cost.",
+          "uae_options": "Free maintenance months.",
+          "follow_up_if": "If the buyer wants it, ask each supplier to price it as a separate line.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "A site visit is unavoidable before a firm pool price to check access, soil and services.",
@@ -329,7 +427,7 @@
       "id": "landscaping:landscape-spec-checklist",
       "topic": "What to state when requesting a landscaping quote",
       "kind": "spec_checklist",
-      "body_en": "For softscape and hardscape, the buyer should provide a landscape layout drawing or at least measured areas, and specify each element. Softscape: lawn area and grass type (natural variety or artificial turf specification), plant schedule with botanical names, sizes and quantities, trees and palms by species and clear trunk height, soil mix and depth, mulch or decorative gravel. Irrigation: water source, drip, bubbler and spray areas, controller type and number of zones, pipe material, tank and pump if required. Hardscape: paving type and thickness, sub-base, kerbs, stone or tile finishes, steps, walls, pergolas and shade, lighting (fixture type, IP rating, low-voltage or mains), water features, fencing, and outdoor kitchens. Also state site condition (existing debris to remove, levels), access, authority or master developer approval requirements, maintenance period after handover, plant replacement warranty, and whether as-built irrigation drawings will be supplied. Asking contractors to 'design and build' without these parameters produces wildly different quotes that cannot be compared.\n\nExpert interview (2026-11-10): Blocking: layout or measured areas, lawn type, plant schedule, irrigation water source and paving. A site visit is needed without a survey drawing.",
+      "body_en": "For softscape and hardscape, the buyer should provide a landscape layout drawing or at least measured areas, and specify each element. Softscape: lawn area and grass type (natural variety or artificial turf specification), plant schedule with botanical names, sizes and quantities, trees and palms by species and clear trunk height, soil mix and depth, mulch or decorative gravel. Irrigation: water source, drip, bubbler and spray areas, controller type and number of zones, pipe material, tank and pump if required. Hardscape: paving type and thickness, sub-base, kerbs, stone or tile finishes, steps, walls, pergolas and shade, lighting (fixture type, IP rating, low-voltage or mains), water features, fencing, and outdoor kitchens. Also state site condition (existing debris to remove, levels), access, authority or master developer approval requirements, maintenance period after handover, plant replacement warranty, and whether as-built irrigation drawings will be supplied. Asking contractors to 'design and build' without these parameters produces wildly different quotes that cannot be compared.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): layout or measured areas, lawn type, plant schedule, irrigation water source and paving. A site visit is needed without a survey drawing.",
       "body_ar": "للأعمال الزراعية والصلبة يجب أن يقدم المشتري رسماً لتنسيق الموقع أو على الأقل مساحات مقاسة، ويحدد كل عنصر. الأعمال الزراعية: مساحة العشب ونوعه، صنف طبيعي أو مواصفة العشب الصناعي، وجدول النباتات بالأسماء العلمية والأحجام والكميات، والأشجار والنخيل حسب النوع وارتفاع الجذع الصافي، وخلطة التربة وعمقها، والغطاء العضوي أو الحصى الزخرفي. الري: مصدر المياه، ومناطق التنقيط والفقاعات والرش، ونوع وحدة التحكم وعدد المناطق، ومادة الأنابيب، والخزان والمضخة عند الحاجة. الأعمال الصلبة: نوع البلاط وسماكته، وما تحت الأساس، والبردورات، وتشطيبات الحجر أو البلاط، والدرج، والجدران، والبرجولات والمظلات، والإنارة من نوع الوحدة ودرجة الحماية IP وجهد منخفض أو عادي، والنوافير، والأسوار، والمطابخ الخارجية. واذكر أيضاً حالة الموقع من مخلفات تجب إزالتها ومناسيب، والوصول، ومتطلبات موافقة الجهة أو المطور الرئيسي، وفترة الصيانة بعد التسليم، وضمان استبدال النباتات، وهل ستُسلَّم رسومات الري المنفذة. الطلب من المقاولين التصميم والتنفيذ دون هذه المعايير ينتج عروضاً متباينة جداً لا يمكن مقارنتها.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المخطط أو المساحات المقاسة، ونوع العشب، وجدول النباتات، ومصدر مياه الري، والرصف. وتلزم زيارة الموقع في غياب مخطط مساحي.",
       "required_specs": [
         "layout drawing or measured areas",
@@ -388,11 +486,39 @@
           "blocking": true
         },
         {
+          "spec": "palms/trees species and clear trunk height",
+          "why_needed_to_price": "Species and trunk height decide price per palm or tree.",
+          "uae_options": "Date palms with clear trunk height; tree species.",
+          "follow_up_if": "If not stated, ask for the plant schedule.",
+          "blocking": false
+        },
+        {
+          "spec": "soil mix and depth",
+          "why_needed_to_price": "Soil mix and depth decide quantity.",
+          "uae_options": "Sweet soil, compost; depth.",
+          "follow_up_if": "If the inquiry is silent on soil mix and depth, each supplier prices its own default; ask the buyer so every quote rests on the same soil mix and depth.",
+          "blocking": false
+        },
+        {
           "spec": "irrigation water source",
           "why_needed_to_price": "Potable, TSE or well water change the system and approvals.",
           "uae_options": "potable; TSE; borewell",
           "follow_up_if": "TSE: ask whether the community supplies it.",
           "blocking": true
+        },
+        {
+          "spec": "irrigation method per zone",
+          "why_needed_to_price": "Irrigation method decides material.",
+          "uae_options": "Drip, bubbler, sprinkler.",
+          "follow_up_if": "If not stated, ask per zone.",
+          "blocking": false
+        },
+        {
+          "spec": "controller type and zones",
+          "why_needed_to_price": "Controller type and zones decide cost.",
+          "uae_options": "Smart controller; zones.",
+          "follow_up_if": "If the inquiry is silent on controller type and zones, each supplier prices its own default; ask the buyer so every quote rests on the same controller type and zones.",
+          "blocking": false
         },
         {
           "spec": "paving type, thickness and sub-base",
@@ -402,6 +528,34 @@
           "blocking": true
         },
         {
+          "spec": "kerbs and edging",
+          "why_needed_to_price": "Kerbs and edging add cost.",
+          "uae_options": "Precast kerbs; steel edging.",
+          "follow_up_if": "If the inquiry is silent on kerbs and edging, each supplier prices its own default; ask the buyer so every quote rests on the same kerbs and edging.",
+          "blocking": false
+        },
+        {
+          "spec": "shade structures",
+          "why_needed_to_price": "Shade structures add cost.",
+          "uae_options": "Pergolas; shade sails.",
+          "follow_up_if": "If the buyer wants it, ask each supplier to price it as a separate line.",
+          "blocking": false
+        },
+        {
+          "spec": "lighting type and IP rating",
+          "why_needed_to_price": "Lighting must be IP-rated outdoors.",
+          "uae_options": "Bollards, uplights; IP65+.",
+          "follow_up_if": "If the inquiry is silent on lighting type and ip rating, each supplier prices its own default; ask the buyer so every quote rests on the same lighting type and ip rating.",
+          "blocking": false
+        },
+        {
+          "spec": "water features",
+          "why_needed_to_price": "Water features add cost.",
+          "uae_options": "Fountains; ponds.",
+          "follow_up_if": "If the buyer wants it, ask each supplier to price it as a separate line.",
+          "blocking": false
+        },
+        {
           "spec": "site clearance and levels",
           "why_needed_to_price": "Levelling and soil removal are often excluded.",
           "uae_options": "clear site; import soil; cut and fill",
@@ -409,10 +563,31 @@
           "blocking": false
         },
         {
+          "spec": "approvals required",
+          "why_needed_to_price": "Approvals take time.",
+          "uae_options": "Developer NOC; municipality.",
+          "follow_up_if": "If excluded, ask who obtains.",
+          "blocking": false
+        },
+        {
           "spec": "maintenance period",
           "why_needed_to_price": "Maintenance after handover is often priced separately.",
           "uae_options": "none; 3, 6, 12 months",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "plant replacement warranty",
+          "why_needed_to_price": "Plant replacement warranty adds cost.",
+          "uae_options": "3-12 months.",
+          "follow_up_if": "If the inquiry is silent on plant replacement warranty, each supplier prices its own default; ask the buyer so every quote rests on the same plant replacement warranty.",
+          "blocking": false
+        },
+        {
+          "spec": "as-built drawings",
+          "why_needed_to_price": "As-built drawings are needed for maintenance.",
+          "uae_options": "As-built drawings.",
+          "follow_up_if": "If a supplier excludes it, ask who provides it and at what cost.",
           "blocking": false
         }
       ],
@@ -547,12 +722,17 @@
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU34-ASPP2_Technical-Guidelines-for-Approval-of-Swimming-Pool-Plans_V4.pdf",
         "https://dmpmedia.dm.gov.ae/uploads/2022/03/DM-HSD-GU80_PRSPS2_Private-Swimming-Pools-Safety-Guidelines_V1-1.pdf",
-        "https://shjmun.gov.ae/servicedirectory/subServices/10"
+        "https://shjmun.gov.ae/servicedirectory/subServices/10",
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.dm.gov.ae/documents/hsd-gu34/",
+        "https://www.dm.gov.ae/documents/hsd-gu80/",
+        "https://www.dm.gov.ae/documents/hsd-gu81/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM approves private and public swimming pool drawings before construction and publishes Technical Guidelines 34 (pool plan approval), 80 (private pool safety) and 81 (public pool safety); DM approves connections to the Dubai irrigation network, done by DM-approved contractors. Not confirmed on any reachable page: the master-developer NOC, the online permit system and the pergola threshold. Host(s) that could not be reached: dmpmedia.dm.gov.ae (Dubai Municipality's PDF host; blocked, and the cited www.dm.gov.ae/wp-content PDF links now redirect to the home page)."
     },
     {
       "id": "landscaping:compare-quotes-cost-to-value",
@@ -655,8 +835,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 22,
-    "claims_checked": 135,
+    "fetched_urls": 26,
+    "claims_checked": 141,
     "corrected": [
       "landscaping:tse-irrigation",
       "landscaping:pool-filtration",
@@ -683,7 +863,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: landscaping:approvals-per-emirate re-checked against official pages opened through the session network (4 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

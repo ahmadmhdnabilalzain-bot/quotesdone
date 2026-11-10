@@ -5,7 +5,7 @@
       "id": "water_treatment:spec-checklist",
       "topic": "Water treatment equipment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For water treatment equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) system type (RO, softener, UV, filtration, dosing); (2) capacity in m3 per day; (3) raw water analysis; (4) treated water quality targets; (5) membrane and pump makes; (6) materials of construction; (7) control panel and automation; (8) installation and commissioning; (9) spares and consumables; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_treatment trade.\n\nExpert interview (2026-11-10): Blocking: system type, capacity, raw water analysis and treated water targets. A water test is unavoidable.",
+      "body_en": "For water treatment equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) system type (RO, softener, UV, filtration, dosing); (2) capacity in m3 per day; (3) raw water analysis; (4) treated water quality targets; (5) membrane and pump makes; (6) materials of construction; (7) control panel and automation; (8) installation and commissioning; (9) spares and consumables; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_treatment trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): system type, capacity, raw water analysis and treated water targets. A water test is unavoidable.",
       "body_ar": "لكي تُقارن عروض معدات معالجة المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع النظام (تناضح عكسي، أو منقي عسر، أو أشعة فوق بنفسجية، أو ترشيح، أو حقن كيماوي)؛ (2) السعة بالمتر المكعب يومياً؛ (3) تحليل المياه الخام؛ (4) أهداف جودة المياه المعالجة؛ (5) ماركة الأغشية والمضخات؛ (6) مواد التصنيع؛ (7) لوحة التحكم والأتمتة؛ (8) التركيب والتشغيل التجريبي؛ (9) قطع الغيار والمستهلكات؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_treatment فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع النظام، والسعة، وتحليل المياه الخام، وأهداف جودة المياه المعالجة. وفحص المياه ضروري.",
       "required_specs": [
         "system type (RO, softener, UV, filtration, dosing)",
@@ -64,10 +64,66 @@
           "blocking": true
         },
         {
+          "spec": "membrane and pump makes",
+          "why_needed_to_price": "Membrane and pump makes decide cost and quality.",
+          "uae_options": "Membrane and pump makes.",
+          "follow_up_if": "If the inquiry is silent on membrane and pump makes, each supplier prices its own default; ask the buyer so every quote rests on the same membrane and pump makes.",
+          "blocking": false
+        },
+        {
+          "spec": "materials of construction",
+          "why_needed_to_price": "Materials decide durability.",
+          "uae_options": "Stainless; FRP; uPVC.",
+          "follow_up_if": "If seawater, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "control panel and automation",
+          "why_needed_to_price": "Control panels and automation add cost.",
+          "uae_options": "PLC; HMI.",
+          "follow_up_if": "If the inquiry is silent on control panel and automation, each supplier prices its own default; ask the buyer so every quote rests on the same control panel and automation.",
+          "blocking": false
+        },
+        {
           "spec": "installation and commissioning",
           "why_needed_to_price": "Installation and plant-room works are often excluded.",
           "uae_options": "supply; install",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "spares and consumables",
+          "why_needed_to_price": "Spares and consumables are running costs.",
+          "uae_options": "Spares; chemicals; membranes.",
+          "follow_up_if": "If the inquiry is silent on spares and consumables, each supplier prices its own default; ask the buyer so every quote rests on the same spares and consumables.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Freight, unloading and the distance to site are part of the price; a delivered price to Dubai is not the same as one to Al Dhafra.",
+          "uae_options": "Ex-works or ex-warehouse; delivered to site within an emirate; delivered and offloaded; Incoterms for imports.",
+          "follow_up_if": "If the site is remote or has access limits (time windows, small vehicles only), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "The length and scope of the warranty change the supplier's risk and price; parts-only and parts-and-labour are not the same offer.",
+          "uae_options": "Manufacturer warranty 1-2 years; extended by agreement; workmanship warranty from the installer.",
+          "follow_up_if": "If the period is shorter than the buyer needs or excludes labour, ask for the extended option as a separate price.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
         }
       ],
@@ -142,12 +198,15 @@
         "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf",
         "https://www.dm.gov.ae/dubai-municipality-services/",
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
-        "https://www.etihadwe.ae/en"
+        "https://www.etihadwe.ae/en",
+        "https://www.sewa.gov.ae/en/about-us",
+        "https://u.ae/en/information-and-services/housing/public-utilities"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: SEWA supplies drinking water in Sharjah and EtihadWE in the northern emirates. Not confirmed on any reachable page: the Abu Dhabi Water Supply Regulations 2024, DM drinking-water rules and MoIAT conformity. Host(s) that could not be reached: www.doe.gov.ae (blocked by the session network); moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection)."
     },
     {
       "id": "water_treatment:quote-red-flags",
@@ -236,8 +295,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 2,
+    "fetched_urls": 5,
+    "claims_checked": 8,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -283,7 +342,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: water_treatment:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

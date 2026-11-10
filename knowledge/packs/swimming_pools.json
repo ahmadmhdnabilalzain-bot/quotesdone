@@ -5,7 +5,7 @@
       "id": "swimming_pools:spec-checklist",
       "topic": "Swimming pools - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For swimming pools quotes to be compared like-for-like, every quoted line (services) must state: (1) pool type and dimensions (length, width, depth); (2) structure (concrete, prefabricated); (3) waterproofing and finish (tiles, mosaic, plaster); (4) filtration system and turnover rate; (5) disinfection method; (6) pumps and equipment make; (7) heating or cooling; (8) lighting and electrical safety; (9) municipality pool approval; (10) maintenance contract; (11) contract duration and pricing basis; (12) service levels and response times; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the swimming_pools trade.\n\nExpert interview (2026-11-10): Blocking: new, renovation or maintenance; size and depth; edge type; private or public; structure; and site access with soil and water table. An infinity edge brings the balance tank, overflow and a structural engineer. A site visit is unavoidable for new pools and renovations.",
+      "body_en": "For swimming pools quotes to be compared like-for-like, every quoted line (services) must state: (1) pool type and dimensions (length, width, depth); (2) structure (concrete, prefabricated); (3) waterproofing and finish (tiles, mosaic, plaster); (4) filtration system and turnover rate; (5) disinfection method; (6) pumps and equipment make; (7) heating or cooling; (8) lighting and electrical safety; (9) municipality pool approval; (10) maintenance contract; (11) contract duration and pricing basis; (12) service levels and response times; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the swimming_pools trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): new, renovation or maintenance; size and depth; edge type; private or public; structure; and site access with soil and water table. An infinity edge brings the balance tank, overflow and a structural engineer. A site visit is unavoidable for new pools and renovations.",
       "body_ar": "لكي تُقارن عروض حمامات السباحة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المسبح وأبعاده (الطول، والعرض، والعمق)؛ (2) الهيكل (خرساني أو جاهز)؛ (3) العزل المائي والتشطيب (بلاط، أو فسيفساء، أو لياسة)؛ (4) نظام الترشيح ومعدل دوران المياه؛ (5) طريقة التعقيم؛ (6) ماركة المضخات والمعدات؛ (7) التسخين أو التبريد؛ (8) الإضاءة والسلامة الكهربائية؛ (9) موافقة البلدية على المسبح؛ (10) عقد الصيانة؛ (11) مدة العقد وأساس التسعير؛ (12) مستويات الخدمة وأزمنة الاستجابة؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة swimming_pools فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مسبح جديد أو تجديد أو صيانة، والمقاس والعمق، ونوع الحافة، وخاص أم عام، ونوع الإنشاء، والوصول إلى الموقع مع التربة ومنسوب المياه الجوفية. والحافة اللانهائية تستتبع خزان التوازن وقناة الفائض ومهندساً إنشائياً. وزيارة الموقع ضرورية للمسابح الجديدة والتجديد.",
       "required_specs": [
         "pool type and dimensions (length, width, depth)",
@@ -41,18 +41,95 @@
       ],
       "spec_guide": [
         {
-          "spec": "new pool, renovation or maintenance only",
-          "why_needed_to_price": "New build, renovation and maintenance are different services.",
-          "uae_options": "new; renovation (retile, equipment); weekly maintenance",
-          "follow_up_if": "Renovation: ask for photos and the age of the equipment.",
-          "blocking": true
-        },
-        {
           "spec": "pool type and dimensions (length, width, depth)",
           "why_needed_to_price": "Size sets excavation, concrete, finish and equipment.",
           "uae_options": "length x width x depth range",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "structure (concrete, prefabricated)",
+          "why_needed_to_price": "RC, shotcrete and prefab pools differ in cost.",
+          "uae_options": "RC; shotcrete; prefab/fibreglass",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "waterproofing and finish (tiles, mosaic, plaster)",
+          "why_needed_to_price": "Glass mosaic costs more than tile or plaster.",
+          "uae_options": "mosaic; porcelain; plaster/pebble",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "filtration system and turnover rate",
+          "why_needed_to_price": "Filtration and turnover decide equipment.",
+          "uae_options": "Sand or cartridge; turnover hours.",
+          "follow_up_if": "If public pool, ask for DM turnover.",
+          "blocking": false
+        },
+        {
+          "spec": "disinfection method",
+          "why_needed_to_price": "Disinfection method decides cost.",
+          "uae_options": "Chlorine; salt; UV.",
+          "follow_up_if": "If the inquiry is silent on disinfection method, each supplier prices its own default; ask the buyer so every quote rests on the same disinfection method.",
+          "blocking": false
+        },
+        {
+          "spec": "pumps and equipment make",
+          "why_needed_to_price": "Equipment make decides price.",
+          "uae_options": "Pump and filter makes.",
+          "follow_up_if": "If the inquiry is silent on pumps and equipment make, each supplier prices its own default; ask the buyer so every quote rests on the same pumps and equipment make.",
+          "blocking": false
+        },
+        {
+          "spec": "heating or cooling",
+          "why_needed_to_price": "Pool chillers are common in UAE summers and are priced separately.",
+          "uae_options": "none; heat pump; chiller",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "lighting and electrical safety",
+          "why_needed_to_price": "Lighting and electrical safety are required.",
+          "uae_options": "Low-voltage lights; bonding.",
+          "follow_up_if": "If the inquiry is silent on lighting and electrical safety, each supplier prices its own default; ask the buyer so every quote rests on the same lighting and electrical safety.",
+          "blocking": false
+        },
+        {
+          "spec": "municipality pool approval",
+          "why_needed_to_price": "Municipality approval is required.",
+          "uae_options": "DM or emirate pool approval.",
+          "follow_up_if": "If a supplier excludes it, ask who provides it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "maintenance contract",
+          "why_needed_to_price": "Maintenance is priced per visit or month.",
+          "uae_options": "weekly; twice weekly",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "A one-off job, a monthly fee and a multi-year contract carry different overheads and discounts; the unit of price must match to compare.",
+          "uae_options": "One-off lump sum; monthly or annual fee; per visit, per hour, per unit or per square metre; 1-3 year terms with renewal.",
+          "follow_up_if": "If the buyer is unsure of the term, ask for prices for one year and for a longer term, with any escalation stated.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Response and fix times decide how many staff, vehicles and spares the provider must keep ready, which is most of a service price.",
+          "uae_options": "Emergency response 2-4 hours in the same city; urgent next day; routine within agreed days; 24/7 or business hours.",
+          "follow_up_if": "If the buyer needs 24/7 cover or penalties for missed response, say so: it is priced differently.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
         },
         {
           "spec": "edge type (skimmer, overflow, infinity)",
@@ -69,13 +146,6 @@
           "blocking": true
         },
         {
-          "spec": "structure (concrete, prefabricated)",
-          "why_needed_to_price": "RC, shotcrete and prefab pools differ in cost.",
-          "uae_options": "RC; shotcrete; prefab/fibreglass",
-          "follow_up_if": "",
-          "blocking": true
-        },
-        {
           "spec": "site access, soil and water table",
           "why_needed_to_price": "Tight access and high water tables add dewatering and anti-flotation design.",
           "uae_options": "from site visit and soil report",
@@ -83,25 +153,11 @@
           "blocking": true
         },
         {
-          "spec": "waterproofing and finish (tiles, mosaic, plaster)",
-          "why_needed_to_price": "Glass mosaic costs more than tile or plaster.",
-          "uae_options": "mosaic; porcelain; plaster/pebble",
-          "follow_up_if": "",
-          "blocking": false
-        },
-        {
-          "spec": "heating or cooling",
-          "why_needed_to_price": "Pool chillers are common in UAE summers and are priced separately.",
-          "uae_options": "none; heat pump; chiller",
-          "follow_up_if": "",
-          "blocking": false
-        },
-        {
-          "spec": "maintenance contract",
-          "why_needed_to_price": "Maintenance is priced per visit or month.",
-          "uae_options": "weekly; twice weekly",
-          "follow_up_if": "",
-          "blocking": false
+          "spec": "new pool, renovation or maintenance only",
+          "why_needed_to_price": "New build, renovation and maintenance are different services.",
+          "uae_options": "new; renovation (retile, equipment); weekly maintenance",
+          "follow_up_if": "Renovation: ask for photos and the age of the equipment.",
+          "blocking": true
         }
       ],
       "site_visit_required_when": "A site visit is unavoidable before a firm price for any new pool or renovation, to check access, soil, services and the existing structure.",
@@ -173,12 +229,17 @@
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU34-ASPP2_Technical-Guidelines-for-Approval-of-Swimming-Pool-Plans_V4.pdf",
         "https://dmpmedia.dm.gov.ae/uploads/2022/03/DM-HSD-GU80_PRSPS2_Private-Swimming-Pools-Safety-Guidelines_V1-1.pdf",
-        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU81-PSPS2_Public-Swimming-Pools-Safety-Guidelines_V3-26-04-2024-003.pdf"
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU81-PSPS2_Public-Swimming-Pools-Safety-Guidelines_V3-26-04-2024-003.pdf",
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.dm.gov.ae/documents/hsd-gu34/",
+        "https://www.dm.gov.ae/documents/hsd-gu80/",
+        "https://www.dm.gov.ae/documents/hsd-gu81/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM approves private and public pool drawings before construction and publishes Technical Guidelines 34 (approval of pool plans, dated 25 Jul 2024), 80 (private pools safety) and 81 (public pools safety). Not confirmed on any reachable page: the content of the guidelines (DM e-service registration, Dubai Building Permits System, pool category) and the DDA/Trakhees permits. Host(s) that could not be reached: dmpmedia.dm.gov.ae (Dubai Municipality's PDF host; blocked, and the cited www.dm.gov.ae/wp-content PDF links now redirect to the home page)."
     },
     {
       "id": "swimming_pools:quote-red-flags",
@@ -274,8 +335,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
+    "fetched_urls": 5,
+    "claims_checked": 7,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -321,7 +382,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: swimming_pools:approvals-per-emirate re-checked against official pages opened through the session network (4 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

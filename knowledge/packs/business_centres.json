@@ -5,7 +5,7 @@
       "id": "business_centres:spec-checklist",
       "topic": "Business centres and serviced offices - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for business centres and serviced offices must state: space type; number of workstations or area; location; Ejari or tenancy registration; included services; meeting room allowance; access hours; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: space type, seats or area, location, tenancy registration and term. A viewing is advisable but not required to price.",
+      "body_en": "Each quoted service line for business centres and serviced offices must state: space type; number of workstations or area; location; Ejari or tenancy registration; included services; meeting room allowance; access hours; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): space type, seats or area, location, tenancy registration and term. A viewing is advisable but not required to price.",
       "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مراكز الأعمال والمكاتب المخدومة: نوع المساحة؛ عدد محطات العمل أو المساحة؛ الموقع؛ تسجيل إيجاري أو عقد الإيجار؛ الخدمات المشمولة؛ حصة غرف الاجتماعات؛ ساعات الدخول؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع المساحة، وعدد المقاعد أو المساحة، والموقع، وتسجيل الإيجار، والمدة. ويُستحسن المعاينة لكنها غير لازمة للتسعير.",
       "required_specs": [
         "space type",
@@ -63,6 +63,41 @@
           "blocking": true
         },
         {
+          "spec": "included services",
+          "why_needed_to_price": "Utilities, internet, reception and cleaning may be extra.",
+          "uae_options": "all-inclusive; base plus extras",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "meeting room allowance",
+          "why_needed_to_price": "Included meeting-room hours differ by package and extra hours are charged.",
+          "uae_options": "Hours per month included; extra hourly rates.",
+          "follow_up_if": "If the buyer needs regular meetings, ask for the included hours.",
+          "blocking": false
+        },
+        {
+          "spec": "access hours",
+          "why_needed_to_price": "24/7 access costs more than business hours.",
+          "uae_options": "Business hours; extended hours; 24/7 access card.",
+          "follow_up_if": "If the buyer works outside office hours, ask for 24/7 access.",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and unlicensed offers are often cheaper for that reason.",
+          "uae_options": "Trade licence for the activity in the emirate or free zone; authority approvals or registrations where the trade requires them.",
+          "follow_up_if": "If the licence does not name the activity or the emirate of the site, the offer cannot be accepted until it does.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels set the staffing, frequency and standby the provider must carry, and so most of the price.",
+          "uae_options": "Defined frequency, response time, attendance hours and measurable KPIs; penalties or service credits by agreement.",
+          "follow_up_if": "If no level is stated, ask the buyer for frequency and response expectations before comparing quotes.",
+          "blocking": false
+        },
+        {
           "spec": "contract duration",
           "why_needed_to_price": "Monthly, annual and multi-year rates differ.",
           "uae_options": "monthly; 6 months; annual",
@@ -70,14 +105,22 @@
           "blocking": true
         },
         {
-          "spec": "included services",
-          "why_needed_to_price": "Utilities, internet, reception and cleaning may be extra.",
-          "uae_options": "all-inclusive; base plus extras",
-          "follow_up_if": "",
+          "spec": "pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A visit is advisable before signing, to see the space, but a firm price can be given from the package and term."
     },
     {
       "id": "business_centres:uae-standards-and-approvals",
@@ -143,12 +186,15 @@
       "body_en": "A business centre must hold a trade licence for business-centre activity from the emirate's economic department or free-zone authority (in Dubai, the Department of Economy and Tourism or the free zone). For a company licence, many authorities require a registered tenancy: Ejari in Dubai and Tawtheeq in Abu Dhabi; free zones (for example DMCC, DAFZA, RAKEZ, IFZA) issue their own flexi-desk leases inside set-up packages. Whether a given flexi-desk supports visas depends on the authority's rules, which this session did not confirm per authority. Who obtains: the centre registers the tenancy; the customer uses it for licensing.",
       "body_ar": "يجب أن يحمل مركز الأعمال رخصة تجارية لنشاط مركز الأعمال من الدائرة الاقتصادية في الإمارة أو من سلطة المنطقة الحرة (في دبي دائرة الاقتصاد والسياحة أو المنطقة الحرة). ولترخيص الشركة تشترط جهات كثيرة إيجاراً مسجلاً: إيجاري في دبي وتوثيق في أبوظبي، وتصدر المناطق الحرة (مثل مركز دبي للسلع المتعددة والمنطقة الحرة لمطار دبي ومنطقة رأس الخيمة الاقتصادية والمنطقة الحرة الدولية بدبي) عقود المكاتب المرنة الخاصة بها ضمن باقات التأسيس. ويعتمد دعم المكتب المرن للتأشيرات على قواعد الجهة، ولم يُتحقق من ذلك لكل جهة في هذه الجلسة. من يسجّل: المركز يسجّل الإيجار، والعميل يستخدمه للترخيص.",
       "sources": [
-        "https://www.dubaidet.gov.ae/en/licences-and-permits"
+        "https://www.dubaidet.gov.ae/en/licences-and-permits",
+        "https://u.ae/en/information-and-services/business/Doing-business/doing-business-on-the-mainland/steps-to-start-a-business-on-the-mainland",
+        "https://u.ae/en/information-and-services/moving-to-the-uae/leasing-a-property-in-the-uae"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: a Dubai mainland licence application asks for a lease attested by RERA (Ejari), and Abu Dhabi tenancy contracts are registered in Tawtheeq (u.ae). Not confirmed on any reachable page: the Department of Economy and Tourism page and the free-zone flexi-desk rules. Host(s) that could not be reached: www.dubaidet.gov.ae (blocked by the session network)."
     },
     {
       "id": "business_centres:quote-red-flags",
@@ -237,8 +283,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 0,
-    "claims_checked": 0,
+    "fetched_urls": 2,
+    "claims_checked": 5,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -284,7 +330,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: business_centres:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 5 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

@@ -262,7 +262,7 @@
       "id": "glazing:spec-checklist-facade-igu",
       "topic": "Spec checklist: facade / window IGU",
       "kind": "spec_checklist",
-      "body_en": "To get an exact, comparable quote for insulating glass for windows or curtain wall, the buyer must describe every layer and the performance target, not just \"double glazing 24 mm\". Suppliers price very differently for heat-strengthened vs tempered, for soft-coat brands, for laminated inner panes, and for heat-soaking. Performance must be tied to a calculation standard so figures can be compared. Size range matters because jumbo sizes need special lines and handling and cost more per square metre. Quantities, delivery phasing and packaging (stillages/racks) affect price and lead time. If the project is in Dubai, request that performance sheets be suitable for Al Sa'fat submission. Always ask what warranty the processor gives on seal failure and coating, and what test certificates accompany delivery. A good request also names the glazing system the units go into (stick curtain wall, unitised, window or skylight), because this decides edge seal type, allowable bite and whether units are shop-glazed. Give the design wind pressure, or at least the building height and location, so the processor can check thickness. Say whether the consultant has already named a coating or wants equivalents offered, and whether a physical sample and a visual mock-up are needed before production.\n\nExpert interview (2026-11-10): Blocking: glass make-up per pane, coating, the performance targets and the piece schedule. Heat-soak, sealant and warranty are priceable options. No site visit for supply when a schedule exists; replacement units need site measurement.",
+      "body_en": "To get an exact, comparable quote for insulating glass for windows or curtain wall, the buyer must describe every layer and the performance target, not just \"double glazing 24 mm\". Suppliers price very differently for heat-strengthened vs tempered, for soft-coat brands, for laminated inner panes, and for heat-soaking. Performance must be tied to a calculation standard so figures can be compared. Size range matters because jumbo sizes need special lines and handling and cost more per square metre. Quantities, delivery phasing and packaging (stillages/racks) affect price and lead time. If the project is in Dubai, request that performance sheets be suitable for Al Sa'fat submission. Always ask what warranty the processor gives on seal failure and coating, and what test certificates accompany delivery. A good request also names the glazing system the units go into (stick curtain wall, unitised, window or skylight), because this decides edge seal type, allowable bite and whether units are shop-glazed. Give the design wind pressure, or at least the building height and location, so the processor can check thickness. Say whether the consultant has already named a coating or wants equivalents offered, and whether a physical sample and a visual mock-up are needed before production.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): glass make-up per pane, coating, the performance targets and the piece schedule. Heat-soak, sealant and warranty are priceable options. No site visit for supply when a schedule exists; replacement units need site measurement.",
       "body_ar": "للحصول على عرض سعر دقيق وقابل للمقارنة للزجاج العازل للنوافذ أو الحوائط الستائرية، يجب أن يصف المشتري كل طبقة والأداء المستهدف، لا أن يكتب «زجاج مزدوج ٢٤ ملم» فقط. فالموردون يسعّرون بشكل مختلف جداً بين المقوّى حرارياً والمقسّى، وبين علامات الطلاء الناعم، وللألواح الداخلية المصفّحة، وللنقع الحراري. يجب ربط الأداء بمعيار حساب معين ليمكن المقارنة. ونطاق المقاسات مهم لأن الألواح العملاقة تحتاج خطوط إنتاج ومناولة خاصة وتكلفتها أعلى للمتر المربع. الكميات وجدولة التوريد والتغليف (الحوامل) تؤثر على السعر ومدة التوريد. إذا كان المشروع في دبي، اطلب أن تكون نشرات الأداء مناسبة لتقديمها ضمن السعفات. واسأل دائماً عن ضمان المصنّع على فشل الإغلاق والطلاء، وشهادات الاختبار المرفقة بالتوريد. ويجب أن يذكر الطلب أيضاً نظام التركيب الذي ستوضع فيه الوحدات (حائط ستائري تقليدي أو وحدات جاهزة أو نوافذ أو مناور)، لأنه يحدد نوع المانع وعمق التثبيت المسموح وهل يتم التزجيج في المصنع. وقدّم ضغط الرياح التصميمي، أو على الأقل ارتفاع المبنى وموقعه، ليتمكن المصنّع من التحقق من السماكة. وبيّن هل حدد الاستشاري طلاءً معيناً أم يقبل بدائل مكافئة، وهل تلزم عينة فعلية ونموذج بصري قبل الإنتاج.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: تركيبة الزجاج لكل لوح، والطلاء، وقيم الأداء المستهدفة، وجدول القطع. أما اختبار التسخين والمادة اللاصقة الثانوية والضمان فيمكن تسعيرها كخيارات. لا تلزم زيارة الموقع للتوريد عند وجود جدول القطع، أما وحدات الاستبدال فتحتاج إلى قياس في الموقع.",
       "required_specs": [
         "outer pane: thickness, type (annealed/HS/tempered), tint, low-iron or clear",
@@ -308,6 +308,41 @@
           "blocking": true
         },
         {
+          "spec": "cavity width and gas fill (air/argon %)",
+          "why_needed_to_price": "Wider cavities and argon fill improve performance and cost more.",
+          "uae_options": "12-16 mm cavity; air or 90% argon.",
+          "follow_up_if": "If argon is required, ask for the fill certificate.",
+          "blocking": false
+        },
+        {
+          "spec": "spacer type (aluminium/warm-edge) and colour",
+          "why_needed_to_price": "Warm-edge spacers cost more than aluminium.",
+          "uae_options": "Aluminium or warm-edge spacer; colour.",
+          "follow_up_if": "If thermal performance matters, ask for warm-edge.",
+          "blocking": false
+        },
+        {
+          "spec": "inner pane: thickness, type, laminated make-up and interlayer if any",
+          "why_needed_to_price": "Laminated inner panes cost more.",
+          "uae_options": "Toughened or laminated inner pane; interlayer.",
+          "follow_up_if": "If safety or acoustics matter, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "secondary sealant (silicone required for SSG/UV-exposed edges)",
+          "why_needed_to_price": "Structural-silicone units cost more than polysulphide units.",
+          "uae_options": "silicone for structural glazing; polysulphide or PU otherwise",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "heat-soak test requirement (EN 14179)",
+          "why_needed_to_price": "Heat-soaking tempered glass reduces spontaneous breakage risk and adds cost.",
+          "uae_options": "required for tempered facade glass on many projects; not needed for annealed or HS",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
           "spec": "target Ug, SHGC, VLT, external reflectance and calculation standard",
           "why_needed_to_price": "Green-building compliance is shown by these values; without them any IGU can be offered.",
           "uae_options": "values from the facade consultant or Al Sa'fat / Estidama requirement",
@@ -322,17 +357,24 @@
           "blocking": true
         },
         {
-          "spec": "heat-soak test requirement (EN 14179)",
-          "why_needed_to_price": "Heat-soaking tempered glass reduces spontaneous breakage risk and adds cost.",
-          "uae_options": "required for tempered facade glass on many projects; not needed for annealed or HS",
-          "follow_up_if": "",
+          "spec": "edge work and any shaped/cut-out units",
+          "why_needed_to_price": "Shaped units and cut-outs are priced per unit.",
+          "uae_options": "Polished edges; shapes; cut-outs.",
+          "follow_up_if": "If any shapes exist, ask for templates.",
           "blocking": false
         },
         {
-          "spec": "secondary sealant (silicone required for SSG/UV-exposed edges)",
-          "why_needed_to_price": "Structural-silicone units cost more than polysulphide units.",
-          "uae_options": "silicone for structural glazing; polysulphide or PU otherwise",
-          "follow_up_if": "",
+          "spec": "applicable standards (EN 1279 / ASTM E2190) and certificates",
+          "why_needed_to_price": "Units certified to EN 1279 or ASTM E2190 cost more.",
+          "uae_options": "EN 1279; ASTM E2190 certificates.",
+          "follow_up_if": "If not certified, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery phasing, packaging and site location",
+          "why_needed_to_price": "Phased delivery and packing add cost.",
+          "uae_options": "Phased delivery; A-frames; site location.",
+          "follow_up_if": "If phased, state it.",
           "blocking": false
         },
         {
@@ -343,13 +385,14 @@
           "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for replacing units in an existing facade, to measure each opening."
     },
     {
       "id": "glazing:spec-checklist-balustrade",
       "topic": "Spec checklist: glass balustrade",
       "kind": "spec_checklist",
-      "body_en": "Balustrade quotes vary widely because some suppliers price glass only, others glass plus channel/spigots, and only some include structural calculations and installation. Height, run length, number and size of panels, and whether there is a top rail directly change the glass make-up. Location (internal, external, pool, sea-front) drives hardware grade and interlayer choice. The buyer should require a structural calculation and ask who stamps it. Low-iron glass, SGP interlayer and heat-soaking each add cost and lead time, so they must be stated up-front to compare like with like. Give a drawing or at least a plan showing corners, stairs and ends, because corner joints, raking panels on stairs and end panels change the fixing and glass sizes. Say what the slab edge or substrate is (concrete, steel beam, stone cladding, waterproofing membrane), since this decides the anchor type and whether a cast-in channel is needed. For pool and sea-front sites, state salt and chlorine exposure so the hardware grade and drainage of the base channel are right. For residential towers, confirm with the fire consultant which interlayer is allowed on external guards. Ask for the glass to be heat-soaked and for its certificate to be supplied with the calculation. Finally, say whether the quote should include removal of protection, cleaning and handover, and any mock-up the consultant wants to approve first.\n\nExpert interview (2026-11-10): Blocking: location and exposure, heights and run lengths, the system type and the glass make-up. Site measurement is needed without drawings.",
+      "body_en": "Balustrade quotes vary widely because some suppliers price glass only, others glass plus channel/spigots, and only some include structural calculations and installation. Height, run length, number and size of panels, and whether there is a top rail directly change the glass make-up. Location (internal, external, pool, sea-front) drives hardware grade and interlayer choice. The buyer should require a structural calculation and ask who stamps it. Low-iron glass, SGP interlayer and heat-soaking each add cost and lead time, so they must be stated up-front to compare like with like. Give a drawing or at least a plan showing corners, stairs and ends, because corner joints, raking panels on stairs and end panels change the fixing and glass sizes. Say what the slab edge or substrate is (concrete, steel beam, stone cladding, waterproofing membrane), since this decides the anchor type and whether a cast-in channel is needed. For pool and sea-front sites, state salt and chlorine exposure so the hardware grade and drainage of the base channel are right. For residential towers, confirm with the fire consultant which interlayer is allowed on external guards. Ask for the glass to be heat-soaked and for its certificate to be supplied with the calculation. Finally, say whether the quote should include removal of protection, cleaning and handover, and any mock-up the consultant wants to approve first.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): location and exposure, heights and run lengths, the system type and the glass make-up. Site measurement is needed without drawings.",
       "body_ar": "تتفاوت عروض الدرابزين كثيراً لأن بعض الموردين يسعّر الزجاج فقط، وآخرين الزجاج مع المجرى أو الحوامل، وقلة منهم تشمل الحسابات الإنشائية والتركيب. الارتفاع وطول المسار وعدد الألواح ومقاساتها ووجود الدرابزين العلوي تغيّر تركيبة الزجاج مباشرة. والموقع (داخلي، خارجي، مسبح، واجهة بحرية) يحدد درجة الإكسسوارات ونوع الطبقة الوسيطة. على المشتري أن يطلب حساباً إنشائياً ويسأل من يعتمده ويختمه. الزجاج منخفض الحديد وطبقة SGP والنقع الحراري كلها تضيف تكلفة ومدة، فيجب ذكرها مسبقاً لمقارنة العروض بشكل عادل. قدّم مخططاً أو على الأقل مسقطاً يبيّن الزوايا والسلالم والنهايات، لأن وصلات الزوايا والألواح المائلة على السلالم وألواح النهايات تغيّر طريقة التثبيت ومقاسات الزجاج. وحدّد نوع حافة البلاطة أو الأساس (خرسانة، جسر فولاذي، تكسية حجرية، غشاء عزل مائي)، لأنه يحدد نوع المثبتات وهل يلزم مجرى مصبوب مع الخرسانة. وفي مواقع المسابح والواجهات البحرية اذكر التعرض للملح والكلور لتُختار درجة الإكسسوارات وتصريف المجرى الأرضي بشكل صحيح. وفي الأبراج السكنية أكّد مع استشاري الحريق نوع الطبقة الوسيطة المسموح بها للدرابزين الخارجي. واطلب النقع الحراري للزجاج وتقديم شهادته مع الحساب الإنشائي. وأخيراً بيّن هل يشمل العرض إزالة الحماية والتنظيف والتسليم، وأي نموذج يريد الاستشاري اعتماده أولاً.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الموقع ودرجة التعرض، والارتفاعات وأطوال المقاطع، ونوع النظام، وتركيبة الزجاج. ويلزم القياس في الموقع إذا لم تتوفر مخططات.",
       "required_specs": [
         "location (internal/external/pool/coastal) and floor level",
@@ -401,6 +444,13 @@
           "blocking": true
         },
         {
+          "spec": "top rail / handrail required or not",
+          "why_needed_to_price": "A top rail adds hardware cost and is needed for some glass thicknesses.",
+          "uae_options": "Top rail or handrail; frameless.",
+          "follow_up_if": "If frameless, ask for the glass thickness calculation.",
+          "blocking": false
+        },
+        {
           "spec": "glass make-up (e.g. tempered laminated) and interlayer (PVB/SGP) and thickness",
           "why_needed_to_price": "Laminated glass with a structural interlayer is required on many balustrades and costs more.",
           "uae_options": "tempered laminated with PVB or SGP; monolithic tempered only where allowed",
@@ -408,10 +458,52 @@
           "blocking": true
         },
         {
+          "spec": "clear or low-iron glass",
+          "why_needed_to_price": "Low-iron glass costs more.",
+          "uae_options": "Clear or low-iron.",
+          "follow_up_if": "If the inquiry is silent on clear or low-iron glass, each supplier prices its own default; ask the buyer so every quote rests on the same clear or low-iron glass.",
+          "blocking": false
+        },
+        {
+          "spec": "heat-soak test",
+          "why_needed_to_price": "Heat-soaking reduces breakage risk and adds cost.",
+          "uae_options": "Heat-soak test.",
+          "follow_up_if": "If overhead or public, ask for it.",
+          "blocking": false
+        },
+        {
+          "spec": "hardware material grade (304/316) and finish",
+          "why_needed_to_price": "Grade 316 is needed near the sea.",
+          "uae_options": "304 or 316; finish.",
+          "follow_up_if": "If coastal, ask for 316.",
+          "blocking": false
+        },
+        {
           "spec": "structural calculation and design load basis, who stamps it",
           "why_needed_to_price": "A stamped calculation is a design cost and decides glass thickness.",
           "uae_options": "supplier engineer; consultant; none for internal low-risk",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "installation included, substrate (slab/steel/stone) and fixing method",
+          "why_needed_to_price": "Installation and substrate decide fixing method.",
+          "uae_options": "Slab, steel or stone; base shoe or spigots.",
+          "follow_up_if": "If the inquiry is silent on installation included, substrate (slab/steel/stone) and fixing method, each supplier prices its own default; ask the buyer so every quote rests on the same installation included, substrate (slab/steel/stone) and fixing method.",
+          "blocking": false
+        },
+        {
+          "spec": "edge finish and exposed-edge treatment",
+          "why_needed_to_price": "Edge finish adds cost.",
+          "uae_options": "Polished edges.",
+          "follow_up_if": "If exposed, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty on glass and hardware",
+          "why_needed_to_price": "Warranty terms change price.",
+          "uae_options": "Glass and hardware warranty.",
+          "follow_up_if": "If needed, ask the supplier to confirm its offer allows for it and at what cost.",
           "blocking": false
         }
       ],
@@ -422,7 +514,7 @@
       "id": "glazing:spec-checklist-shower-mirror",
       "topic": "Spec checklist: shower screen and mirror",
       "kind": "spec_checklist",
-      "body_en": "For bathroom glass the most common disputes are wrong sizes (glass cannot be adjusted after tempering), hardware finish mismatch and water leakage. The buyer should allow the supplier to site-measure after tiling is complete and approve a drawing before production. For mirrors, specify fixing and edge treatment because many bathroom mirror failures are edge corrosion from wrong adhesive. Give the supplier the exact position of taps, shower heads, niches and the tray or floor slope, because hinge and clamp positions must avoid them and the door must open outward or have enough clearance. Say whether walls are tiled over blockwork or over a board partition, since heavy frameless panels need solid fixing. State the water hardness concern if the client wants an easy-clean coating, and whether the glass is to be clear or low-iron, because clear 10 mm glass shows a green edge. For mirrors, give sizes, the wall finish behind them, and whether they sit in a wet zone; ask for copper-free mirror to EN 1036, clips or neutral-cure mirror silicone, and a safety backing film where people could hit them. Agree who seals the base of the shower screen and the warranty on leaks versus glass.\n\nExpert interview (2026-11-10): Blocking: configuration, glass thickness and type, and the measured sizes after tiling. A budget price is possible from sizes, but fabrication needs a site measurement.",
+      "body_en": "For bathroom glass the most common disputes are wrong sizes (glass cannot be adjusted after tempering), hardware finish mismatch and water leakage. The buyer should allow the supplier to site-measure after tiling is complete and approve a drawing before production. For mirrors, specify fixing and edge treatment because many bathroom mirror failures are edge corrosion from wrong adhesive. Give the supplier the exact position of taps, shower heads, niches and the tray or floor slope, because hinge and clamp positions must avoid them and the door must open outward or have enough clearance. Say whether walls are tiled over blockwork or over a board partition, since heavy frameless panels need solid fixing. State the water hardness concern if the client wants an easy-clean coating, and whether the glass is to be clear or low-iron, because clear 10 mm glass shows a green edge. For mirrors, give sizes, the wall finish behind them, and whether they sit in a wet zone; ask for copper-free mirror to EN 1036, clips or neutral-cure mirror silicone, and a safety backing film where people could hit them. Agree who seals the base of the shower screen and the warranty on leaks versus glass.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): configuration, glass thickness and type, and the measured sizes after tiling. A budget price is possible from sizes, but fabrication needs a site measurement.",
       "body_ar": "أكثر خلافات زجاج الحمامات شيوعاً: المقاسات الخاطئة (لا يمكن تعديل الزجاج بعد التقسية)، وعدم تطابق تشطيب الإكسسوارات، وتسرب المياه. يجب أن يسمح المشتري للمورد بأخذ القياسات في الموقع بعد انتهاء التبليط واعتماد رسم قبل التصنيع. وفي المرايا حدّد طريقة التثبيت ومعالجة الحواف لأن كثيراً من أعطال مرايا الحمامات تآكل للحواف بسبب لاصق غير مناسب. زوّد المورد بالمواقع الدقيقة للخلاطات ورؤوس الدش والتجاويف وحوض الأرضية أو ميلها، لأن مواقع المفصلات والمشابك يجب أن تتجنبها ولأن الباب يجب أن يُفتح للخارج أو يكون له خلوص كافٍ. وبيّن هل الجدران مبلطة فوق طابوق أم فوق قاطع ألواح، لأن الألواح الثقيلة بدون إطار تحتاج تثبيتاً متيناً. واذكر مشكلة عسر المياه إذا أراد العميل طلاءً سهل التنظيف، وهل يكون الزجاج شفافاً عادياً أم منخفض الحديد، لأن الزجاج الشفاف ١٠ ملم تظهر حافته خضراء. وللمرايا حدّد المقاسات وتشطيب الجدار خلفها وهل هي في منطقة رطبة، واطلب مرآة خالية من النحاس وفق EN 1036، ومشابك أو سيليكون محايد خاص بالمرايا، وغشاء أمان خلفي حيث يمكن الاصطدام بها. واتفق على من يحكم إغلاق قاعدة الكابينة وعلى الضمان ضد التسرب مقابل الضمان على الزجاج.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: شكل التركيب، وسماكة الزجاج ونوعه، والمقاسات بعد التبليط. يمكن تقديم سعر تقديري من المقاسات، لكن التصنيع يحتاج إلى قياس في الموقع.",
       "required_specs": [
         "configuration (fixed panel, hinged door, sliding, corner, walk-in) with drawing",
@@ -463,6 +555,34 @@
           "blocking": true
         },
         {
+          "spec": "privacy finish (frosted band/pattern) if any",
+          "why_needed_to_price": "Frosted bands or patterns add processing.",
+          "uae_options": "Frosted band; pattern.",
+          "follow_up_if": "If privacy is needed, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "easy-clean coating yes/no",
+          "why_needed_to_price": "Easy-clean coatings add cost.",
+          "uae_options": "Easy-clean coating.",
+          "follow_up_if": "If the buyer wants it, ask each supplier to price it as a separate line.",
+          "blocking": false
+        },
+        {
+          "spec": "hardware type, brand level, material (304/316/brass) and finish",
+          "why_needed_to_price": "Hinge and fitting quality varies widely; brass or 316 lasts longer in wet areas.",
+          "uae_options": "304, 316, brass; chrome, matt black, brushed gold",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "seals, magnetic strips, threshold/sill",
+          "why_needed_to_price": "Seals and thresholds are separate items.",
+          "uae_options": "Seals; magnetic strips; sills.",
+          "follow_up_if": "If the inquiry is silent on seals, magnetic strips, threshold/sill, each supplier prices its own default; ask the buyer so every quote rests on the same seals, magnetic strips, threshold/sill.",
+          "blocking": false
+        },
+        {
           "spec": "site measurement after tiling; wall substrate",
           "why_needed_to_price": "Shower glass is made to measure after tiling; out-of-square walls need adjustment.",
           "uae_options": "measured by supplier after tiling",
@@ -470,10 +590,24 @@
           "blocking": true
         },
         {
-          "spec": "hardware type, brand level, material (304/316/brass) and finish",
-          "why_needed_to_price": "Hinge and fitting quality varies widely; brass or 316 lasts longer in wet areas.",
-          "uae_options": "304, 316, brass; chrome, matt black, brushed gold",
-          "follow_up_if": "",
+          "spec": "mirror: thickness, copper-free, edge (polish/bevel), safety backing film, fixing (clips/neutral silicone), demister/lighting cut-outs",
+          "why_needed_to_price": "Mirror specification decides cost.",
+          "uae_options": "Thickness; copper-free; edges; safety film; demister; lighting.",
+          "follow_up_if": "If lighting or demister is wanted, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "heat-soak requirement",
+          "why_needed_to_price": "Heat-soaking reduces breakage risk.",
+          "uae_options": "Heat-soak test.",
+          "follow_up_if": "If the inquiry is silent on heat-soak requirement, each supplier prices its own default; ask the buyer so every quote rests on the same heat-soak requirement.",
+          "blocking": false
+        },
+        {
+          "spec": "installation and warranty",
+          "why_needed_to_price": "Installation and warranty change price.",
+          "uae_options": "Installation; warranty.",
+          "follow_up_if": "If supply only, state it.",
           "blocking": false
         }
       ],
@@ -484,7 +618,7 @@
       "id": "glazing:spec-checklist-fire-glass",
       "topic": "Spec checklist: fire-rated glazing",
       "kind": "spec_checklist",
-      "body_en": "A fire-rated glazing quote is only valid for a complete tested system. Ask the supplier for the test report and the Civil Defence listing for the exact glass-plus-frame combination, including maximum tested pane size — oversize panes are not covered. State whether the element is a door, partition or facade, and whether it must also be a safety glass or acoustic. Tell the supplier the required rating as stated in the approved fire strategy or Civil Defence drawings, not a guess, and whether the requirement is integrity only or integrity with insulation, because EI glass is several times the cost and weight of E glass. Give the wall construction around the opening and the fire side if the element is asymmetric, since some systems are tested from one side only. For doors, state leaf sizes, single or double leaf, vision panel size, and required hardware such as closers, panic bars and access control, all of which must also be fire rated. For external or sunlit locations, ask whether the intumescent glass needs UV protection. Ask for the installer's approval and for a completion certificate the contractor can hand to Civil Defence at inspection, plus the lead time, which is often long for EI glass.\n\nExpert interview (2026-11-10): Blocking: fire class and minutes, element type, the tested frame system and pane sizes within the tested size.",
+      "body_en": "A fire-rated glazing quote is only valid for a complete tested system. Ask the supplier for the test report and the Civil Defence listing for the exact glass-plus-frame combination, including maximum tested pane size — oversize panes are not covered. State whether the element is a door, partition or facade, and whether it must also be a safety glass or acoustic. Tell the supplier the required rating as stated in the approved fire strategy or Civil Defence drawings, not a guess, and whether the requirement is integrity only or integrity with insulation, because EI glass is several times the cost and weight of E glass. Give the wall construction around the opening and the fire side if the element is asymmetric, since some systems are tested from one side only. For doors, state leaf sizes, single or double leaf, vision panel size, and required hardware such as closers, panic bars and access control, all of which must also be fire rated. For external or sunlit locations, ask whether the intumescent glass needs UV protection. Ask for the installer's approval and for a completion certificate the contractor can hand to Civil Defence at inspection, plus the lead time, which is often long for EI glass.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): fire class and minutes, element type, the tested frame system and pane sizes within the tested size.",
       "body_ar": "عرض سعر الزجاج المقاوم للحريق لا يصح إلا لنظام مختبَر كامل. اطلب من المورد تقرير الاختبار وإدراج الدفاع المدني للتركيبة المحددة من الزجاج والإطار، بما في ذلك أقصى مقاس لوح مختبر — فالألواح الأكبر غير مشمولة. حدّد هل العنصر باب أم قاطع أم واجهة، وهل يجب أن يكون أيضاً زجاج أمان أو عازلاً للصوت. أخبر المورد بالتصنيف المطلوب كما هو في استراتيجية الحريق المعتمدة أو مخططات الدفاع المدني لا بالتخمين، وهل المطلوب سلامة فقط أم سلامة مع عزل، لأن زجاج EI أغلى وأثقل من زجاج E بأضعاف. وحدّد تكوين الجدار حول الفتحة وجهة الحريق إذا كان العنصر غير متماثل، لأن بعض الأنظمة مختبرة من جهة واحدة فقط. وللأبواب حدّد مقاسات الدرف، وفردية أم مزدوجة، ومقاس نافذة الرؤية، والإكسسوارات المطلوبة كالمغلقات وقضبان الطوارئ والتحكم بالدخول، ويجب أن تكون كلها مصنفة ضد الحريق أيضاً. وللمواقع الخارجية أو المعرضة للشمس اسأل هل يحتاج الزجاج المنتفخ حماية من الأشعة فوق البنفسجية. واطلب اعتماد المركّب وشهادة إنجاز يسلمها المقاول للدفاع المدني عند التفتيش، إضافة إلى مدة التوريد التي تكون طويلة غالباً لزجاج EI.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: فئة مقاومة الحريق ومدتها بالدقائق، ونوع العنصر، ونظام الإطار المختبر، وأبعاد الألواح ضمن الأبعاد المختبرة.",
       "required_specs": [
         "classification required (E/EW/EI) and minutes",
@@ -539,14 +673,43 @@
           "blocking": true
         },
         {
+          "spec": "internal or external / UV exposure",
+          "why_needed_to_price": "External or UV-exposed fire glass needs special interlayers.",
+          "uae_options": "Internal or external; UV-stable.",
+          "follow_up_if": "If external, ask for UV-resistant product.",
+          "blocking": false
+        },
+        {
+          "spec": "impact safety class and acoustic needs",
+          "why_needed_to_price": "Impact and acoustic needs change the make-up.",
+          "uae_options": "Impact class; Rw dB.",
+          "follow_up_if": "If high traffic, ask for impact class.",
+          "blocking": false
+        },
+        {
           "spec": "Civil Defence approval/listing and test report",
           "why_needed_to_price": "Without the listing the installation fails inspection.",
           "uae_options": "Civil Defence approval in the project emirate",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "hardware for doors (closers, locks) with fire rating",
+          "why_needed_to_price": "Door hardware must be fire-rated.",
+          "uae_options": "Fire-rated closers and locks.",
+          "follow_up_if": "If the inquiry is silent on hardware for doors (closers, locks) with fire rating, each supplier prices its own default; ask the buyer so every quote rests on the same hardware for doors (closers, locks) with fire rating.",
+          "blocking": false
+        },
+        {
+          "spec": "installation by approved installer and certificate",
+          "why_needed_to_price": "Only approved installers may install fire glazing.",
+          "uae_options": "Approved installer certificate.",
+          "follow_up_if": "If not approved, it cannot be accepted.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for retrofitting fire glazing into existing openings, to check frames and walls."
     },
     {
       "id": "glazing:buyer-mistakes",
@@ -676,12 +839,15 @@
         "https://www.dcd.gov.ae/portal/en/e-services/company-approval-services",
         "https://www.dcd.gov.ae/portal/en/preventive-safety/dcdlicensing/dcd-approved-international-testing-labs.jsp",
         "https://www.tamm.abudhabi/en/life-events/business/Manage-your-Business/economic-licence/PrinttheCertificateofCompliancewithPreventiveSafetyRequirements",
-        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10"
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
+        "https://www.dm.gov.ae/municipality-business/product-certification/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Al Sa'fat is mandatory (Silver) for all new buildings in Dubai since 19 October 2020, and Dubai Central Laboratory certifies glazed glass. Not confirmed on any reachable page: the civil defence approval of fire-rated glazing and approved installers, Estidama, and the Trakhees/DDA areas. Host(s) that could not be reached: moei.gov.ae (blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt); www.tamm.abudhabi (blocked by the session network); portal.shjmun.gov.ae (blocked by the session network)."
     },
     {
       "id": "glazing:compare-quotes-cost-to-value",
@@ -790,8 +956,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 21,
-    "claims_checked": 143,
+    "fetched_urls": 23,
+    "claims_checked": 150,
     "corrected": [
       "glazing:tempered-vs-heat-strengthened-vs-annealed",
       "glazing:argon-spacers",
@@ -812,7 +978,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: glazing:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 7 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

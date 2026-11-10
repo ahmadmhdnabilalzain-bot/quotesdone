@@ -5,7 +5,7 @@
       "id": "cables_wires:spec-checklist",
       "topic": "Cables and wires - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for cables and wires must state: cable type and construction; conductor material and size; number of cores; voltage rating; insulation and sheath material; product standard such as IEC 60502; fire performance; armour; length and drum size; utility approval; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: type, conductor and size, cores, insulation, armour and lengths. No site visit is needed.",
+      "body_en": "Each quoted product line for cables and wires must state: cable type and construction; conductor material and size; number of cores; voltage rating; insulation and sheath material; product standard such as IEC 60502; fire performance; armour; length and drum size; utility approval; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): type, conductor and size, cores, insulation, armour and lengths. No site visit is needed.",
       "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة الكابلات والأسلاك: نوع الكابل وتركيبه؛ مادة الموصل ومقطعه؛ عدد الأقطاب؛ الجهد المقنن؛ مادة العزل والغلاف؛ معيار المنتج مثل IEC 60502؛ الأداء في الحريق؛ التدريع؛ الطول وحجم البكرة؛ موافقة هيئة الكهرباء؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: النوع، والموصل والمقاس، وعدد القلوب، والعزل، والتسليح، والأطوال. ولا تلزم زيارة الموقع.",
       "required_specs": [
         "cable type and construction",
@@ -62,11 +62,32 @@
           "blocking": true
         },
         {
+          "spec": "voltage rating",
+          "why_needed_to_price": "Voltage rating decides insulation thickness and price.",
+          "uae_options": "300/500 V, 450/750 V, 0.6/1 kV, medium voltage.",
+          "follow_up_if": "If not stated, ask for the circuit voltage and the cable schedule.",
+          "blocking": false
+        },
+        {
           "spec": "insulation and sheath material",
           "why_needed_to_price": "XLPE/LSZH costs more than PVC.",
           "uae_options": "PVC; XLPE; LSZH",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "product standard such as IEC 60502",
+          "why_needed_to_price": "Cables to IEC, BS or other standards are different products and prices.",
+          "uae_options": "IEC 60502, BS 5467, BS 6724, BS 7211, IEC 60227.",
+          "follow_up_if": "If no standard is named, ask the consultant's specification.",
+          "blocking": false
+        },
+        {
+          "spec": "fire performance",
+          "why_needed_to_price": "Fire-resistant cables for life-safety circuits are a different, costlier product.",
+          "uae_options": "standard; LSZH; fire-resistant",
+          "follow_up_if": "Fire alarm or emergency circuits: ask for the fire-resistance class.",
+          "blocking": false
         },
         {
           "spec": "armour",
@@ -83,21 +104,50 @@
           "blocking": true
         },
         {
-          "spec": "fire performance",
-          "why_needed_to_price": "Fire-resistant cables for life-safety circuits are a different, costlier product.",
-          "uae_options": "standard; LSZH; fire-resistant",
-          "follow_up_if": "Fire alarm or emergency circuits: ask for the fire-resistance class.",
-          "blocking": false
-        },
-        {
           "spec": "utility approval",
           "why_needed_to_price": "Cables at the connection must be on the utility list.",
           "uae_options": "DEWA/ADDC/SEWA/EtihadWE list",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "why_needed_to_price": "A product or service without the approval the emirate requires cannot be used on the project, so the cost of approvals must be in or out of the price explicitly.",
+          "uae_options": "MoIAT conformity (ECAS/EQM) for regulated products; civil defence listing for fire-related items; utility approval (DEWA, ADDC/AADC, SEWA, EtihadWE); municipality approval.",
+          "follow_up_if": "If the supplier has no current certificate for this exact product, ask who obtains it, how long it takes and who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery and installation scope",
+          "why_needed_to_price": "Supply-only, supply-and-deliver and supply-and-install are different prices; unloading, hoisting and installation are where quotes silently differ.",
+          "uae_options": "Ex-works; delivered to site (kerbside); delivered and offloaded; supplied and installed; tested and commissioned.",
+          "follow_up_if": "If installation is wanted, state the site, floor and access; if supply only, state who unloads and moves the goods into place.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty",
+          "why_needed_to_price": "Warranty length and whether it covers parts only or parts and labour change the risk the buyer carries and the price of the offer.",
+          "uae_options": "Manufacturer warranty 1-2 years as standard; extended warranty by agreement; installer workmanship warranty separate.",
+          "follow_up_if": "If the warranty is shorter than the buyer needs, or excludes labour or call-outs, ask for the extended option as a separate price.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "cables_wires:uae-standards-and-approvals",
@@ -163,18 +213,20 @@
       "kind": "authority_approval",
       "topic": "Cables: approvals per emirate",
       "topic_ar": "الكابلات: الاعتمادات في كل إمارة",
-      "body_en": "Cables sold in the UAE that fall under MoIAT's regulated products need a conformity certificate. Cables for utility connections and networks must be makes approved by the utility: DEWA in Dubai, ADDC/AADC in Abu Dhabi, SEWA in Sharjah and EtihadWE in Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah. Fire-resistant cables for life-safety systems must meet the UAE Fire and Life Safety Code and be accepted by the emirate's civil defence. Who obtains: the maker or importer; the contractor submits to the consultant and utility.",
-      "body_ar": "تحتاج الكابلات المباعة في الدولة والمدرجة ضمن المنتجات الخاضعة للرقابة لدى وزارة الصناعة والتكنولوجيا المتقدمة إلى شهادة مطابقة. ويجب أن تكون كابلات توصيلات وشبكات الجهات من علامات معتمدة لديها: هيئة كهرباء ومياه دبي، وشركتا التوزيع في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة، والاتحاد للماء والكهرباء في عجمان وأم القيوين ورأس الخيمة والفجيرة. ويجب أن تحقق الكابلات المقاومة للحريق لأنظمة السلامة كود الإمارات للحماية من الحرائق وأن يقبلها الدفاع المدني في الإمارة. من يحصل عليها: الصانع أو المستورد، ويقدم المقاول الاعتمادات للاستشاري والجهة.",
+      "body_en": "Cables sold in the UAE that fall under MoIAT's regulated products need a conformity certificate. Cables for utility connections and networks must be makes approved by the utility: DEWA in Dubai, ADDC/AADC in Abu Dhabi (now merged as TAQA Distribution), SEWA in Sharjah and EtihadWE in Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah. Fire-resistant cables for life-safety systems must meet the UAE Fire and Life Safety Code and be accepted by the emirate's civil defence. Who obtains: the maker or importer; the contractor submits to the consultant and utility.",
+      "body_ar": "تحتاج الكابلات المباعة في الدولة والمدرجة ضمن المنتجات الخاضعة للرقابة لدى وزارة الصناعة والتكنولوجيا المتقدمة إلى شهادة مطابقة. ويجب أن تكون كابلات توصيلات وشبكات الجهات من علامات معتمدة لديها: هيئة كهرباء ومياه دبي، وشركتا التوزيع في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة، والاتحاد للماء والكهرباء في عجمان وأم القيوين ورأس الخيمة والفجيرة. ويجب أن تحقق الكابلات المقاومة للحريق لأنظمة السلامة كود الإمارات للحماية من الحرائق وأن يقبلها الدفاع المدني في الإمارة. وقد دُمجت شركة أبوظبي للتوزيع وشركة العين للتوزيع في شركة «طاقة للتوزيع» المسؤولة عن شبكات الكهرباء والمياه في إمارة أبوظبي. من يحصل عليها: الصانع أو المستورد، ويقدم المقاول الاعتمادات للاستشاري والجهة.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/E-Library/ADDC-requirement-for-issuing-NOC-online.pdf",
         "https://www.etihadwe.ae/en",
-        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://u.ae/en/information-and-services/housing/public-utilities"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE covers Ajman, Umm Al Quwain, Ras Al Khaimah and Fujairah and publishes an approved vendor list (etihadwe.ae); the ADDC NOC requirements were read; ADDC and AADC are merged into TAQA Distribution (u.ae). Not confirmed on any reachable page: MoIAT conformity, the DEWA approved-makes list and civil defence acceptance of fire-resistant cable. Host(s) that could not be reached: moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection); www.dewa.gov.ae (HTTP 403 from the site; dewa.gov.ae blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "cables_wires:quote-red-flags",
@@ -263,9 +315,11 @@
     }
   ],
   "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 1,
-    "corrected": [],
+    "fetched_urls": 5,
+    "claims_checked": 7,
+    "corrected": [
+      "cables_wires:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
       "cables_wires:spec-checklist",
@@ -310,7 +364,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: cables_wires:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 6 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

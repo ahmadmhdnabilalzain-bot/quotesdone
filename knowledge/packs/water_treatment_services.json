@@ -5,7 +5,7 @@
       "id": "water_treatment_services:spec-checklist",
       "topic": "Water treatment services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For water treatment services quotes to be compared like-for-like, every quoted line (services) must state: (1) system served (cooling tower, chiller, boiler, pool, potable tank); (2) chemical programme and products; (3) visit frequency; (4) tests per visit and parameters; (5) Legionella risk assessment and testing; (6) tank cleaning and disinfection; (7) accredited laboratory for samples; (8) service reports; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_treatment_services trade.\n\nExpert interview (2026-11-10): Blocking: systems served, visit frequency and the chemical basis.",
+      "body_en": "For water treatment services quotes to be compared like-for-like, every quoted line (services) must state: (1) system served (cooling tower, chiller, boiler, pool, potable tank); (2) chemical programme and products; (3) visit frequency; (4) tests per visit and parameters; (5) Legionella risk assessment and testing; (6) tank cleaning and disinfection; (7) accredited laboratory for samples; (8) service reports; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_treatment_services trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): systems served, visit frequency and the chemical basis.",
       "body_ar": "لكي تُقارن عروض خدمات معالجة المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) النظام المخدوم (برج تبريد، أو مبرد، أو غلاية، أو مسبح، أو خزان مياه شرب)؛ (2) البرنامج الكيماوي والمواد؛ (3) تكرار الزيارات؛ (4) الاختبارات لكل زيارة والمؤشرات؛ (5) تقييم مخاطر الليجيونيلا واختبارها؛ (6) تنظيف الخزانات وتعقيمها؛ (7) مختبر معتمد للعينات؛ (8) تقارير الخدمة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_treatment_services فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الأنظمة المخدومة، وتكرار الزيارات، وأساس احتساب المواد الكيميائية.",
       "required_specs": [
         "system served (cooling tower, chiller, boiler, pool, potable tank)",
@@ -40,6 +40,13 @@
           "blocking": true
         },
         {
+          "spec": "chemical programme and products",
+          "why_needed_to_price": "Chemicals may be in the price or billed on use.",
+          "uae_options": "included; per kg",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
           "spec": "visit frequency",
           "why_needed_to_price": "Visits set labour.",
           "uae_options": "weekly; monthly",
@@ -47,11 +54,11 @@
           "blocking": true
         },
         {
-          "spec": "chemical programme and products",
-          "why_needed_to_price": "Chemicals may be in the price or billed on use.",
-          "uae_options": "included; per kg",
-          "follow_up_if": "",
-          "blocking": true
+          "spec": "tests per visit and parameters",
+          "why_needed_to_price": "Tests per visit decide cost.",
+          "uae_options": "Parameters tested.",
+          "follow_up_if": "If the inquiry is silent on tests per visit and parameters, each supplier prices its own default; ask the buyer so every quote rests on the same tests per visit and parameters.",
+          "blocking": false
         },
         {
           "spec": "Legionella risk assessment and testing",
@@ -65,6 +72,41 @@
           "why_needed_to_price": "Tank cleaning is priced per tank by size.",
           "uae_options": "per tank; frequency",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "accredited laboratory for samples",
+          "why_needed_to_price": "Accredited labs are required.",
+          "uae_options": "EIAC-accredited lab.",
+          "follow_up_if": "If not, results may be rejected.",
+          "blocking": false
+        },
+        {
+          "spec": "service reports",
+          "why_needed_to_price": "Service reports add admin.",
+          "uae_options": "Reports per visit.",
+          "follow_up_if": "If the inquiry is silent on service reports, each supplier prices its own default; ask the buyer so every quote rests on the same service reports.",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "A one-off job, a monthly fee and a multi-year contract carry different overheads and discounts; the unit of price must match to compare.",
+          "uae_options": "One-off lump sum; monthly or annual fee; per visit, per hour, per unit or per square metre; 1-3 year terms with renewal.",
+          "follow_up_if": "If the buyer is unsure of the term, ask for prices for one year and for a longer term, with any escalation stated.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Response and fix times decide how many staff, vehicles and spares the provider must keep ready, which is most of a service price.",
+          "uae_options": "Emergency response 2-4 hours in the same city; urgent next day; routine within agreed days; 24/7 or business hours.",
+          "follow_up_if": "If the buyer needs 24/7 cover or penalties for missed response, say so: it is priced differently.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
         }
       ],
@@ -139,12 +181,14 @@
       "body_ar": "في دبي: يجب أن تكون شركات تنظيف خزانات المياه معتمدة من بلدية دبي التي تحدد قواعد تنظيف الخزانات وتعقيمها في المباني. في أبوظبي: تغطي لوائح إمداد المياه 2024 الصادرة عن دائرة الطاقة جودة المياه في الإمداد مع شركات التوزيع، ولم يُتحقق في صفحة رسمية في هذه الجلسة من قواعد الصحة العامة لأبراج التبريد والليجيونيلا. في الشارقة والإمارات الشمالية: تنطبق قواعد الصحة العامة البلدية. ويجب أن تصدر الفحوص المخبرية عن مختبر معتمد من مركز الإمارات الدولي للاعتماد. من يحصل عليه: شركة الخدمة، ويحتفظ مالك المبنى بالسجلات.",
       "sources": [
         "https://www.dm.gov.ae/dubai-municipality-services/",
-        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf"
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf",
+        "https://www.dm.gov.ae/municipality-business/technical-guidelines-list/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM approval is required to clean water tanks (DM services, approval for food-related establishments), and DM publishes Technical Guideline 44 on Legionella control in water systems. Not confirmed on any reachable page: the Abu Dhabi Water Supply Regulations 2024 and the content of the DM tank-cleaning rules. Host(s) that could not be reached: www.doe.gov.ae (blocked by the session network); dmpmedia.dm.gov.ae (Dubai Municipality's PDF host; blocked, and the cited www.dm.gov.ae/wp-content PDF links now redirect to the home page)."
     },
     {
       "id": "water_treatment_services:quote-red-flags",
@@ -233,8 +277,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
+    "fetched_urls": 3,
+    "claims_checked": 6,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -280,7 +324,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: water_treatment_services:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 5 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

@@ -5,7 +5,7 @@
       "id": "joinery:spec-checklist",
       "topic": "Joinery - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For joinery (trade code joinery only), every quoted line must state: Item per joinery schedule; Dimensions from site measurement; Core material and thickness; Veneer, laminate or paint finish; Ironmongery and hardware; Fire rating where required; Shop drawings approval; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Blocking: the item list, the dimensions (drawings or site measurement), core material, finish and hardware tier. Fire rating, internals and wet-area board change the price but can be priced as options. A site measurement is unavoidable for a firm price when there are no dimensioned drawings.",
+      "body_en": "For joinery (trade code joinery only), every quoted line must state: Item per joinery schedule; Dimensions from site measurement; Core material and thickness; Veneer, laminate or paint finish; Ironmongery and hardware; Fire rating where required; Shop drawings approval; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): the item list, the dimensions (drawings or site measurement), core material, finish and hardware tier. Fire rating, internals and wet-area board change the price but can be priced as options. A site measurement is unavoidable for a firm price when there are no dimensioned drawings.",
       "body_ar": "في نشاط أعمال النجارة (رمز النشاط joinery فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: البند حسب جدول النجارة؛ الأبعاد من القياس الموقعي؛ المادة الأساسية وسماكتها؛ تشطيب القشرة أو اللامينيت أو الدهان؛ الإكسسوارات والمعدات؛ تصنيف مقاومة الحريق عند الطلب؛ اعتماد مخططات التصنيع؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: قائمة القطع، والأبعاد (من المخططات أو القياس في الموقع)، والمادة الأساسية، والتشطيب، وفئة الإكسسوارات المعدنية. أما مقاومة الحريق والتجهيزات الداخلية والألواح المقاومة للرطوبة فتغير السعر ويمكن تسعيرها كخيارات. القياس في الموقع ضروري لتقديم سعر نهائي إذا لم تتوفر مخططات بأبعاد.",
       "required_specs": [
         "Item per joinery schedule",
@@ -44,11 +44,11 @@
       ],
       "spec_guide": [
         {
-          "spec": "Item type (wardrobe, kitchen, door, vanity, panelling, reception counter)",
-          "why_needed_to_price": "Each item has its own workshop route, hardware and installation time.",
-          "uae_options": "wardrobes; kitchens; doors and frames; vanities; wall panelling; counters and loose furniture",
-          "follow_up_if": "Kitchen: ask about the worktop material, appliances (supplied by whom) and sink cut-outs.",
-          "blocking": true
+          "spec": "Item per joinery schedule",
+          "why_needed_to_price": "Each item on the joinery schedule is priced separately.",
+          "uae_options": "Joinery schedule with item codes and drawings.",
+          "follow_up_if": "If no schedule exists, ask for drawings.",
+          "blocking": false
         },
         {
           "spec": "Dimensions from site measurement",
@@ -79,13 +79,6 @@
           "blocking": true
         },
         {
-          "spec": "Internal fittings and accessories per item",
-          "why_needed_to_price": "Wardrobe and kitchen internals (drawers, pull-outs, rails, lighting) add cost per item.",
-          "uae_options": "shelves only; drawers; pull-out baskets; LED strips; mirrors",
-          "follow_up_if": "",
-          "blocking": false
-        },
-        {
           "spec": "Fire rating where required",
           "why_needed_to_price": "Fire-rated doors and panelling need tested and Civil Defence-approved assemblies, at a much higher cost.",
           "uae_options": "none; 30, 60, 90, 120 minutes for doors and screens",
@@ -96,6 +89,83 @@
           "spec": "Shop drawings approval",
           "why_needed_to_price": "Shop drawings and samples take design time and decide what is built.",
           "uae_options": "supplier produces shop drawings and samples for approval",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "What the provider must actually hand over decides the hours and the price; an unclear scope makes every quote a guess.",
+          "uae_options": "Defined tasks, quantities, frequencies, reports and certificates; a scope document or bill of quantities.",
+          "follow_up_if": "If the buyer cannot describe the scope, ask for the site, the quantities and the end result wanted before pricing.",
+          "blocking": false
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and the qualifications of the team decide what it can be trusted to do.",
+          "uae_options": "Trade licence naming the activity; authority approval or registration; qualified supervisors and certified operatives.",
+          "follow_up_if": "If the licence or a required approval is missing or expired, the offer cannot be compared until it is provided.",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Response and fix times decide how many staff, vehicles and spares the provider must keep ready, which is most of a service price.",
+          "uae_options": "Emergency response within hours; scheduled work within agreed days; 24/7 or business-hours cover.",
+          "follow_up_if": "If the buyer needs 24/7 cover or penalties for missed response, say so: it is priced differently.",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "The length of the engagement and when work happens (hours, nights, phases) set labour, plant and overhead costs.",
+          "uae_options": "Fixed programme in weeks; phased handovers; daytime, night or Friday work; recurring schedule for services.",
+          "follow_up_if": "If work must avoid trading hours or occupants, state the permitted hours: night and weekend work is priced at a premium.",
+          "blocking": false
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "why_needed_to_price": "Supply-only and supply-install-commission are different prices; testing and commissioning are often left out silently.",
+          "uae_options": "Supply only; supply and install; install, test and commission with records and training.",
+          "follow_up_if": "If commissioning, testing or training is needed, state it so all quotes include it.",
+          "blocking": false
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "The defects period decides how long the provider must return at its own cost, which it prices in.",
+          "uae_options": "12 months defects liability is common on UAE works; longer warranties for specific systems by agreement.",
+          "follow_up_if": "If the buyer needs a longer period, ask for it priced separately.",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "Item type (wardrobe, kitchen, door, vanity, panelling, reception counter)",
+          "why_needed_to_price": "Each item has its own workshop route, hardware and installation time.",
+          "uae_options": "wardrobes; kitchens; doors and frames; vanities; wall panelling; counters and loose furniture",
+          "follow_up_if": "Kitchen: ask about the worktop material, appliances (supplied by whom) and sink cut-outs.",
+          "blocking": true
+        },
+        {
+          "spec": "Internal fittings and accessories per item",
+          "why_needed_to_price": "Wardrobe and kitchen internals (drawers, pull-outs, rails, lighting) add cost per item.",
+          "uae_options": "shelves only; drawers; pull-out baskets; LED strips; mirrors",
           "follow_up_if": "",
           "blocking": false
         },
@@ -233,12 +303,14 @@
         "https://www.dcd.gov.ae/portal/en/e-services/company-approval-services",
         "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit",
         "https://www.tamm.abudhabi/en/life-events/business/Manage-your-Business/economic-licence/PrinttheCertificateofCompliancewithPreventiveSafetyRequirements",
-        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10"
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e6ea"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Sharjah's interior design permit requires Civil Defense approval according to the activity. Not confirmed on any reachable page: Dubai Civil Defence product registration, the DDA fit-out permit and master-developer NOCs. Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt); dda.gov.ae (blocked by the session network); www.tamm.abudhabi (blocked by the session network); portal.shjmun.gov.ae (blocked by the session network)."
     },
     {
       "id": "joinery:quote-red-flags",
@@ -334,8 +406,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 3,
-    "claims_checked": 3,
+    "fetched_urls": 4,
+    "claims_checked": 9,
     "corrected": [],
     "removed": [],
     "still_unverified": [
@@ -420,7 +492,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: joinery:approvals-per-emirate re-checked against official pages opened through the session network (1 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

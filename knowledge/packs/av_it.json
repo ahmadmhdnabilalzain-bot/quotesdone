@@ -292,7 +292,7 @@
       "id": "av_it:spec-led-wall",
       "topic": "Spec checklist: LED video wall",
       "kind": "spec_checklist",
-      "body_en": "A supplier cannot quote an LED wall accurately from 'a big screen for the lobby'. The enquiry must fix the active area and aspect ratio, the pixel pitch or the target resolution (and minimum viewing distance to justify it), and whether it is indoor or outdoor. Brightness in nits, refresh rate (camera-facing walls need high refresh), encapsulation (SMD, GOB or COB), and service access (front service is essential when the wall sits against a wall with no rear corridor) change both the product and the structure. The processor or controller and its inputs (HDMI 2.0, 12G-SDI, fibre) determine what content sources can be shown, and whether scaling or multi-window is needed. Structural support (ground stack, wall mount, hanging frame or custom steel) and who designs and certifies it must be stated, as must power supply and heat load for the MEP team. Spares policy: request a percentage of spare modules and power supplies from the same production batch. Warranty years, on-site response time, and expected LED lifetime to half brightness complete the specification. For outdoor walls add IP rating, wind load, municipality permit responsibility and content-control (dimming schedule). Verification note (23 Sep 2026): checklist fields follow the verified pixel-pitch entry.\n\nExpert interview (2026-11-10): Blocking: indoor or outdoor, size and pixel pitch.",
+      "body_en": "A supplier cannot quote an LED wall accurately from 'a big screen for the lobby'. The enquiry must fix the active area and aspect ratio, the pixel pitch or the target resolution (and minimum viewing distance to justify it), and whether it is indoor or outdoor. Brightness in nits, refresh rate (camera-facing walls need high refresh), encapsulation (SMD, GOB or COB), and service access (front service is essential when the wall sits against a wall with no rear corridor) change both the product and the structure. The processor or controller and its inputs (HDMI 2.0, 12G-SDI, fibre) determine what content sources can be shown, and whether scaling or multi-window is needed. Structural support (ground stack, wall mount, hanging frame or custom steel) and who designs and certifies it must be stated, as must power supply and heat load for the MEP team. Spares policy: request a percentage of spare modules and power supplies from the same production batch. Warranty years, on-site response time, and expected LED lifetime to half brightness complete the specification. For outdoor walls add IP rating, wind load, municipality permit responsibility and content-control (dimming schedule). Verification note (23 Sep 2026): checklist fields follow the verified pixel-pitch entry.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): indoor or outdoor, size and pixel pitch.",
       "body_ar": "لا يمكن للمورد تسعير شاشة LED بدقة من عبارة «شاشة كبيرة للردهة». يجب أن يحدد الطلب المساحة الفعلية ونسبة الأبعاد، والمسافة بين البكسلات أو الدقة المستهدفة (وأقل مسافة مشاهدة تبررها)، وهل الشاشة داخلية أم خارجية. والسطوع بالنِت، ومعدل التحديث (الشاشات المواجهة للكاميرات تحتاج معدلاً عالياً)، وتقنية التغليف (SMD أو GOB أو COB)، وطريقة الصيانة (الصيانة الأمامية ضرورية إذا كانت الشاشة ملاصقة لجدار بلا ممر خلفي) تغيّر المنتج والهيكل معاً. ووحدة المعالجة ومداخلها (HDMI 2.0 و12G-SDI والألياف) تحدد مصادر المحتوى الممكن عرضها، وهل يلزم تكبير الصورة أو تعدد النوافذ. ويجب تحديد الهيكل الحامل (قائم على الأرض أو مثبت على الجدار أو معلق أو إطار فولاذي خاص) ومن يصممه ويعتمده، والتغذية الكهربائية والحمل الحراري لفريق الأعمال الكهروميكانيكية. وسياسة قطع الغيار: اطلب نسبة من الوحدات ومزودات الطاقة الاحتياطية من الدفعة الإنتاجية نفسها. ويكتمل الوصف بمدة الضمان، وزمن الاستجابة في الموقع، والعمر المتوقع للثنائيات حتى نصف السطوع. وللشاشات الخارجية أضف درجة الحماية، وحمل الرياح، ومسؤولية تصريح البلدية، وجدول التعتيم. ملاحظة التحقق (23 سبتمبر 2026): حقول القائمة مبنية على مدخل المسافة بين البكسلات بعد التحقق.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: داخلي أو خارجي، والمقاس، ودقة البكسل.",
       "required_specs": [
         "indoor_or_outdoor",
@@ -343,15 +343,100 @@
           "uae_options": "0.9 to 10 mm",
           "follow_up_if": "Unknown: ask the minimum viewing distance.",
           "blocking": true
+        },
+        {
+          "spec": "min_viewing_distance_m",
+          "why_needed_to_price": "The minimum viewing distance sets the pixel pitch, and pitch is the main price driver of an LED wall.",
+          "uae_options": "Pitch in mm roughly equals the minimum comfortable distance in metres.",
+          "follow_up_if": "If the buyer does not know, ask for the room size and where the nearest viewer sits.",
+          "blocking": false
+        },
+        {
+          "spec": "brightness_nits",
+          "why_needed_to_price": "Brightness must suit the ambient light; outdoor walls need far higher nits and cost more.",
+          "uae_options": "Indoor 600-1,200 nits; outdoor 5,000 nits and above.",
+          "follow_up_if": "If the wall faces daylight or glazing, ask for a higher brightness.",
+          "blocking": false
+        },
+        {
+          "spec": "refresh_rate_hz",
+          "why_needed_to_price": "A high refresh rate is needed where cameras film the wall and costs more.",
+          "uae_options": "1,920 Hz basic; 3,840 Hz or more for broadcast and camera use.",
+          "follow_up_if": "If the wall will be filmed or broadcast, ask for 3,840 Hz or higher.",
+          "blocking": false
+        },
+        {
+          "spec": "encapsulation_smd_gob_cob",
+          "why_needed_to_price": "SMD, GOB and COB encapsulations differ in robustness and price.",
+          "uae_options": "SMD; GOB (glue-on-board) for touch areas; COB for fine pitch.",
+          "follow_up_if": "If the wall is within reach of people, ask for GOB or COB.",
+          "blocking": false
+        },
+        {
+          "spec": "front_or_rear_service",
+          "why_needed_to_price": "Front-service walls can sit against a wall; rear-service walls need a maintenance corridor.",
+          "uae_options": "Front service (magnetic modules); rear service with a walkway.",
+          "follow_up_if": "If there is no space behind, ask for front-service cabinets.",
+          "blocking": false
+        },
+        {
+          "spec": "processor_inputs_and_multiwindow",
+          "why_needed_to_price": "Processor inputs and multi-window ability decide the controller and its price.",
+          "uae_options": "Number and type of inputs (HDMI, SDI, DP); multi-window; 4K.",
+          "follow_up_if": "If several sources must show at once, state how many.",
+          "blocking": false
+        },
+        {
+          "spec": "mounting_structure_and_who_certifies",
+          "why_needed_to_price": "The mounting structure and its engineering are often outside the LED quote.",
+          "uae_options": "Wall-mounted, floor-standing, flown; structure certified by an engineer.",
+          "follow_up_if": "If the structure is excluded, ask who designs and certifies it.",
+          "blocking": false
+        },
+        {
+          "spec": "power_and_heat_load",
+          "why_needed_to_price": "Power and heat load decide the electrical supply and the air conditioning needed.",
+          "uae_options": "Average and maximum kW; BTU heat load.",
+          "follow_up_if": "If the room is small, ask the supplier for the heat load so cooling can be checked.",
+          "blocking": false
+        },
+        {
+          "spec": "ip_rating_for_outdoor",
+          "why_needed_to_price": "Outdoor walls need IP-rated cabinets, which cost more.",
+          "uae_options": "IP65 front and IP54 rear typical for outdoor.",
+          "follow_up_if": "If the wall is outdoors or semi-outdoors, state it.",
+          "blocking": false
+        },
+        {
+          "spec": "spare_modules_percent_same_batch",
+          "why_needed_to_price": "Spare modules from the same batch avoid colour mismatch and are priced as extra stock.",
+          "uae_options": "2-5% spare modules and power supplies from the same batch.",
+          "follow_up_if": "If no spares are offered, ask for them priced.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty_years_and_onsite_response",
+          "why_needed_to_price": "Warranty years and on-site response decide how much support the integrator must carry.",
+          "uae_options": "2-5 years parts; on-site response within 24-72 hours.",
+          "follow_up_if": "If the wall is business-critical, ask for on-site response times.",
+          "blocking": false
+        },
+        {
+          "spec": "content_control_or_cms",
+          "why_needed_to_price": "Content management software and its licences are a separate cost.",
+          "uae_options": "Local playback; networked CMS with licence term.",
+          "follow_up_if": "If content changes often, ask for the CMS and its annual licence.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed when the wall is retrofitted onto an existing structure or the power and data routes are unknown."
     },
     {
       "id": "av_it:spec-conference-room",
       "topic": "Spec checklist: meeting / conference room AV",
       "kind": "spec_checklist",
-      "body_en": "For a meeting-room AV quote to be comparable, state the room dimensions and ceiling height, seating count and layout, and wall and ceiling finishes (glass and hard surfaces change the microphone and acoustic design). Name the conferencing platform (Microsoft Teams Rooms, Zoom Rooms, Google Meet, or BYOD only) and whether devices must be on that platform's certified list. State display count and size or ask the supplier to size them to the farthest viewer, whether interactive touch is required, and the camera requirement (fixed, PTZ, speaker tracking, content camera). Define microphone type (ceiling array, table, wireless handheld for presenters), speaker type, and any need for voice lift or hearing-assistance. List the sources (laptops HDMI/USB-C, wireless presentation, PCs), control (touch panel, scheduling panel outside the room), and integrations (room booking, lighting, blinds). Clarify who provides the network ports, power, containment and furniture cut-outs, and whether platform licences, warranty extensions and a support contract are included and for how long. Finally, require commissioning documentation, as-built drawings, user training and a defined acceptance test. Verification note (23 Sep 2026): checklist fields follow the verified conference-room entry.\n\nExpert interview (2026-11-10): Blocking: room size, seat count and conferencing platform.",
+      "body_en": "For a meeting-room AV quote to be comparable, state the room dimensions and ceiling height, seating count and layout, and wall and ceiling finishes (glass and hard surfaces change the microphone and acoustic design). Name the conferencing platform (Microsoft Teams Rooms, Zoom Rooms, Google Meet, or BYOD only) and whether devices must be on that platform's certified list. State display count and size or ask the supplier to size them to the farthest viewer, whether interactive touch is required, and the camera requirement (fixed, PTZ, speaker tracking, content camera). Define microphone type (ceiling array, table, wireless handheld for presenters), speaker type, and any need for voice lift or hearing-assistance. List the sources (laptops HDMI/USB-C, wireless presentation, PCs), control (touch panel, scheduling panel outside the room), and integrations (room booking, lighting, blinds). Clarify who provides the network ports, power, containment and furniture cut-outs, and whether platform licences, warranty extensions and a support contract are included and for how long. Finally, require commissioning documentation, as-built drawings, user training and a defined acceptance test. Verification note (23 Sep 2026): checklist fields follow the verified conference-room entry.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): room size, seat count and conferencing platform.",
       "body_ar": "لكي تكون عروض أسعار أنظمة غرف الاجتماعات قابلة للمقارنة، حدد أبعاد الغرفة وارتفاع السقف، وعدد المقاعد وتوزيعها، وتشطيبات الجدران والسقف (فالزجاج والأسطح الصلبة تغير تصميم الميكروفونات والصوتيات). اذكر منصة المؤتمرات (Microsoft Teams Rooms أو Zoom Rooms أو Google Meet أو التوصيل بالجهاز الشخصي فقط) وهل يجب أن تكون الأجهزة ضمن قائمة الاعتماد لتلك المنصة. حدد عدد الشاشات ومقاسها أو اطلب من المورد تحديدها حسب أبعد مشاهد، وهل يلزم اللمس التفاعلي، ومتطلبات الكاميرا (ثابتة أو PTZ أو تتبع المتحدث أو كاميرا للمحتوى). وحدد نوع الميكروفونات (مصفوفة سقفية أو مكتبية أو لاسلكية يدوية للمقدم)، ونوع السماعات، وأي حاجة لتقوية الصوت أو أنظمة مساعدة السمع. واذكر المصادر (حواسيب عبر HDMI أو USB-C، والعرض اللاسلكي، والحواسيب الثابتة)، والتحكم (لوحة لمس، ولوحة حجز خارج الغرفة)، والربط (حجز الغرف والإضاءة والستائر). ووضح من يوفر منافذ الشبكة والكهرباء والمسارات وفتحات الأثاث، وهل تشمل الأسعار تراخيص المنصة وتمديد الضمان وعقد الدعم ولأي مدة. وأخيراً اشترط وثائق التشغيل والمخططات النهائية وتدريب المستخدمين واختبار قبول محدداً. ملاحظة التحقق (23 سبتمبر 2026): حقول القائمة مبنية على مدخل غرف الاجتماعات بعد التحقق.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مقاس الغرفة، وعدد المقاعد، ومنصة المؤتمرات.",
       "required_specs": [
         "room_dimensions_and_ceiling_height",
@@ -397,20 +482,105 @@
           "blocking": true
         },
         {
+          "spec": "wall_ceiling_finishes",
+          "why_needed_to_price": "Hard walls and ceilings change the acoustic treatment, mounting and cable routes.",
+          "uae_options": "Gypsum, glass, concrete; open ceiling or false ceiling.",
+          "follow_up_if": "If the room is glass-walled, ask whether acoustic treatment is wanted.",
+          "blocking": false
+        },
+        {
           "spec": "conferencing_platform_and_certification",
           "why_needed_to_price": "Teams, Zoom or other platforms need certified devices.",
           "uae_options": "Teams; Zoom; BYOD",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "display_count_size_or_farthest_viewer",
+          "why_needed_to_price": "Display count and size come from the farthest viewer, and drive a large share of the price.",
+          "uae_options": "One or two displays; 65-98 inch; projector for large rooms.",
+          "follow_up_if": "If unknown, ask for the room length and seat count.",
+          "blocking": false
+        },
+        {
+          "spec": "interactive_touch_required",
+          "why_needed_to_price": "Interactive touch displays cost much more than standard displays.",
+          "uae_options": "Standard display; interactive touch display; separate whiteboard.",
+          "follow_up_if": "If touch is wanted, ask how it will be used.",
+          "blocking": false
+        },
+        {
+          "spec": "camera_type",
+          "why_needed_to_price": "PTZ, fixed, and auto-framing cameras differ in price and coverage.",
+          "uae_options": "Fixed wide-angle; PTZ; intelligent auto-framing bar.",
+          "follow_up_if": "If the room is over about 8 seats, ask for a PTZ or tracking camera.",
+          "blocking": false
+        },
+        {
+          "spec": "microphone_type",
+          "why_needed_to_price": "Ceiling array, table and beamforming microphones differ widely in price.",
+          "uae_options": "Table boundary mics; ceiling array; beamforming ceiling mic.",
+          "follow_up_if": "If the ceiling is high or open, ask the supplier to confirm coverage.",
+          "blocking": false
+        },
+        {
+          "spec": "speaker_type_and_voice_lift",
+          "why_needed_to_price": "Voice lift and ceiling speakers add amplifiers and processing.",
+          "uae_options": "Display speakers; ceiling speakers; voice lift in large rooms.",
+          "follow_up_if": "If the room is large, ask whether voice reinforcement is needed.",
+          "blocking": false
+        },
+        {
+          "spec": "sources_and_wireless_presentation",
+          "why_needed_to_price": "Wired and wireless presentation systems are separate items.",
+          "uae_options": "HDMI/USB-C table connection; wireless presentation dongles or app.",
+          "follow_up_if": "If guests present often, ask for wireless presentation.",
+          "blocking": false
+        },
+        {
+          "spec": "control_and_room_booking",
+          "why_needed_to_price": "Control processors and room booking panels add hardware and licences.",
+          "uae_options": "Simple one-touch; control processor with touch panel; booking panel.",
+          "follow_up_if": "If room booking is wanted, state the calendar system.",
+          "blocking": false
+        },
+        {
+          "spec": "integrations_lighting_blinds",
+          "why_needed_to_price": "Lighting and blind integration needs control interfaces and coordination.",
+          "uae_options": "Integration with lighting and blinds via control system.",
+          "follow_up_if": "If integration is wanted, ask for the lighting and blind makes.",
+          "blocking": false
+        },
+        {
+          "spec": "network_power_containment_by_whom",
+          "why_needed_to_price": "Network points, power and containment are often by others.",
+          "uae_options": "By the AV integrator; by the electrical or IT contractor.",
+          "follow_up_if": "If by others, ask the supplier to list exactly what they need.",
+          "blocking": false
+        },
+        {
+          "spec": "licences_and_support_term",
+          "why_needed_to_price": "Platform licences (Teams Rooms, Zoom Rooms) and support terms are annual costs.",
+          "uae_options": "Microsoft Teams Rooms or Zoom Rooms licence; support 1-3 years.",
+          "follow_up_if": "If the platform is not chosen, ask the buyer which one the company uses.",
+          "blocking": false
+        },
+        {
+          "spec": "commissioning_and_training",
+          "why_needed_to_price": "Commissioning, programming and training take engineering time and are sometimes excluded.",
+          "uae_options": "Configuration, testing, user training, as-built documents.",
+          "follow_up_if": "If not stated, ask the supplier to confirm commissioning and training are included.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for an existing room, to check ceiling void, wall construction and containment; a new room can be priced from drawings."
     },
     {
       "id": "av_it:spec-pa-voice-evac",
       "topic": "Spec checklist: PA / background music / voice evacuation",
       "kind": "spec_checklist",
-      "body_en": "State first whether the system is background music and paging only, or a certified voice alarm system; the second must be EN 54-16/EN 54-24 (or UL-listed per NFPA 72 on US-based projects) and Civil Defence approved, which changes everything from amplifiers to cable. Give the number of zones and their use (offices, car park, retail, back of house, outdoor), approximate areas and ceiling heights or drawings, and required sound level and intelligibility target (STI). List loudspeaker types per zone (ceiling, pendant, horn for car parks and plant rooms, wall, IP-rated outdoor) and their tap settings or let the designer calculate them. Specify distribution (100 V line), amplifier redundancy (N+1 or standby), battery standby and alarm durations, and fire-resistant cable category. Define the fire alarm interface and cause-and-effect matrix, paging microphones (all-call and zone selection), music sources, local volume controls (which must be overridden in emergency), and any network or Dante requirement. Add pre-recorded evacuation and alert messages in Arabic and English, testing and STI measurement, Civil Defence approval responsibility, and the maintenance contract term. Verification note (23 Sep 2026): standards named are confirmed; Civil Defence approval rules were not established from a fetched source.\n\nExpert interview (2026-11-10): Blocking: BGM or certified voice alarm, zones and areas.",
+      "body_en": "State first whether the system is background music and paging only, or a certified voice alarm system; the second must be EN 54-16/EN 54-24 (or UL-listed per NFPA 72 on US-based projects) and Civil Defence approved, which changes everything from amplifiers to cable. Give the number of zones and their use (offices, car park, retail, back of house, outdoor), approximate areas and ceiling heights or drawings, and required sound level and intelligibility target (STI). List loudspeaker types per zone (ceiling, pendant, horn for car parks and plant rooms, wall, IP-rated outdoor) and their tap settings or let the designer calculate them. Specify distribution (100 V line), amplifier redundancy (N+1 or standby), battery standby and alarm durations, and fire-resistant cable category. Define the fire alarm interface and cause-and-effect matrix, paging microphones (all-call and zone selection), music sources, local volume controls (which must be overridden in emergency), and any network or Dante requirement. Add pre-recorded evacuation and alert messages in Arabic and English, testing and STI measurement, Civil Defence approval responsibility, and the maintenance contract term. Verification note (23 Sep 2026): standards named are confirmed; Civil Defence approval rules were not established from a fetched source.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): BGM or certified voice alarm, zones and areas.",
       "body_ar": "حدد أولاً هل النظام للموسيقى الخلفية والنداء فقط أم نظام إنذار صوتي معتمد؛ فالثاني يجب أن يكون وفق EN 54-16 وEN 54-24 (أو مدرجاً لدى UL وفق NFPA 72 في المشاريع ذات المرجعية الأمريكية) ومعتمداً من الدفاع المدني، وهذا يغير كل شيء من المضخمات إلى الكوابل. اذكر عدد المناطق واستخدامها (مكاتب، مواقف، محلات، مناطق خدمية، خارجية)، والمساحات التقريبية وارتفاعات الأسقف أو المخططات، ومستوى الصوت المطلوب وهدف وضوح الكلام (STI). وحدد أنواع السماعات لكل منطقة (سقفية، معلقة، بوقية للمواقف وغرف المعدات، جدارية، خارجية بدرجة حماية) ونقاط قدرتها أو اترك حسابها للمصمم. وحدد طريقة التوزيع (خط 100 فولت)، واحتياط المضخمات، ومدة البطاريات في الاحتياط والإنذار، وفئة الكابل المقاوم للحريق. وعرّف الربط مع إنذار الحريق ومصفوفة السبب والنتيجة، وميكروفونات النداء (نداء عام واختيار المناطق)، ومصادر الموسيقى، ومتحكمات الصوت المحلية (التي يجب تجاوزها في الطوارئ)، وأي متطلبات شبكية أو Dante. وأضف رسائل الإخلاء والتنبيه المسجلة بالعربية والإنجليزية، والاختبار وقياس وضوح الكلام، ومسؤولية الحصول على اعتماد الدفاع المدني، ومدة عقد الصيانة. ملاحظة التحقق (23 سبتمبر 2026): المعايير المذكورة مؤكدة؛ ولم تثبت قواعد اعتماد الدفاع المدني من مصدر تم فحصه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موسيقى خلفية أو إنذار صوتي معتمد، والمناطق، والمساحات.",
       "required_specs": [
         "bgm_paging_only_or_certified_voice_alarm",
@@ -450,6 +620,13 @@
           "blocking": true
         },
         {
+          "spec": "standard_en54_or_nfpa72",
+          "why_needed_to_price": "Voice alarm to EN 54 or NFPA 72 uses certified components that cost more than commercial PA.",
+          "uae_options": "EN 54-16/24 certified voice alarm; NFPA 72 for some projects.",
+          "follow_up_if": "If the consultant's specification is not available, ask which standard Civil Defence will review against.",
+          "blocking": false
+        },
+        {
           "spec": "zone_count_and_use",
           "why_needed_to_price": "Amplifier channels follow zones.",
           "uae_options": "zones",
@@ -462,15 +639,100 @@
           "uae_options": "drawings",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "spl_and_sti_target",
+          "why_needed_to_price": "SPL and speech intelligibility targets decide speaker count and layout.",
+          "uae_options": "Speech transmission index STI 0.5 or more; SPL above ambient by 10 dB.",
+          "follow_up_if": "If areas are noisy, ask for the ambient noise levels.",
+          "blocking": false
+        },
+        {
+          "spec": "loudspeaker_types_per_zone",
+          "why_needed_to_price": "Speaker types per zone (ceiling, horn, column, pendant) differ in price.",
+          "uae_options": "Ceiling, wall, horn for outdoor and plant rooms, column for halls.",
+          "follow_up_if": "If zone layouts are not given, ask for drawings with room uses.",
+          "blocking": false
+        },
+        {
+          "spec": "line_voltage_and_taps",
+          "why_needed_to_price": "100 V line systems and tap settings decide amplifier sizing.",
+          "uae_options": "100 V or 70 V line; speaker taps 1.5-6 W.",
+          "follow_up_if": "If not stated, the supplier assumes 100 V; ask them to confirm.",
+          "blocking": false
+        },
+        {
+          "spec": "amplifier_redundancy",
+          "why_needed_to_price": "Amplifier redundancy (N+1) is required for voice alarm and adds hardware.",
+          "uae_options": "Standby amplifiers with automatic changeover.",
+          "follow_up_if": "If the system is voice alarm, ask the supplier to confirm redundancy.",
+          "blocking": false
+        },
+        {
+          "spec": "battery_standby_and_alarm_duration",
+          "why_needed_to_price": "Battery standby and alarm duration decide battery size.",
+          "uae_options": "24 hours standby plus 30 minutes alarm typical under EN 54-4.",
+          "follow_up_if": "If the authority requires longer, state it.",
+          "blocking": false
+        },
+        {
+          "spec": "fire_resistant_cable_category",
+          "why_needed_to_price": "Fire-resistant cable category is a large share of material cost.",
+          "uae_options": "Enhanced fire-resistant cable (PH120) for voice alarm.",
+          "follow_up_if": "If not stated, ask the consultant which category is required.",
+          "blocking": false
+        },
+        {
+          "spec": "fire_alarm_interface_and_cause_effect",
+          "why_needed_to_price": "The fire alarm interface and the cause-and-effect matrix decide zoning and programming.",
+          "uae_options": "Monitored interface to the fire alarm panel; cause-and-effect from the fire engineer.",
+          "follow_up_if": "If no cause-and-effect exists, ask who provides it.",
+          "blocking": false
+        },
+        {
+          "spec": "paging_stations",
+          "why_needed_to_price": "Paging stations add hardware per location.",
+          "uae_options": "Fire microphone at the fire command centre; zone paging desks.",
+          "follow_up_if": "If several paging points are needed, state where.",
+          "blocking": false
+        },
+        {
+          "spec": "music_sources_and_local_volume_controls",
+          "why_needed_to_price": "Music sources and local volume controls add equipment per zone.",
+          "uae_options": "Music players, streaming, local volume controls with priority override.",
+          "follow_up_if": "If tenants need their own music, ask for local inputs.",
+          "blocking": false
+        },
+        {
+          "spec": "arabic_english_messages",
+          "why_needed_to_price": "Pre-recorded bilingual messages need recording and programming.",
+          "uae_options": "Arabic and English evacuation and alert messages.",
+          "follow_up_if": "If messages are not supplied, ask who records them.",
+          "blocking": false
+        },
+        {
+          "spec": "civil_defence_approval_by_whom",
+          "why_needed_to_price": "The approval submission and inspection take time and fees.",
+          "uae_options": "Contractor submits to Civil Defence; consultant approves design.",
+          "follow_up_if": "If the supplier excludes approvals, ask who obtains them.",
+          "blocking": false
+        },
+        {
+          "spec": "maintenance_term",
+          "why_needed_to_price": "A maintenance term adds periodic testing and is priced per year.",
+          "uae_options": "Quarterly or six-monthly testing; annual contract.",
+          "follow_up_if": "If maintenance is required, ask for the annual price.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for an existing building, to check cable routes, zones and the fire alarm panel."
     },
     {
       "id": "av_it:spec-structured-cabling",
       "topic": "Spec checklist: structured cabling and network",
       "kind": "spec_checklist",
-      "body_en": "A cabling enquiry must give the number of outlets (data, voice, Wi-Fi AP, CCTV, AV points) per floor or by drawing, and the category (Cat6 or Cat6A) with shielding (U/UTP, F/UTP, S/FTP) and jacket (LSZH). State whether a named manufacturer's certified system and extended warranty (typically 20-25 years) is required, because that dictates installer certification and component brand consistency. Define the backbone: fibre type (OM4 or OS2), core count, and copper backbone for voice if any. Give telecom room locations, rack sizes and quantities, patch panels, cable managers and PDUs. Clarify containment responsibility (trays, conduits, floor boxes) and whether the MEP contractor provides it. Specify testing: 100% permanent link certification with a named tester class and submission of native test files, fibre OTDR and loss testing, labelling scheme (per TIA-606) and as-built drawings. For active equipment, list switch port counts, PoE budget, uplink speeds, stacking/redundancy, Wi-Fi AP count or survey scope, firewall throughput, and licensing term. Also confirm service-provider (etisalat/du) requirements for the building entry and main telecom room, and TDRA approval for any wireless equipment. Verification note (23 Sep 2026): TIA-606 labelling and the certifier requirements are confirmed; warranty length is manufacturer-specific.\n\nExpert interview (2026-11-10): Blocking: outlet counts and cable category.",
+      "body_en": "A cabling enquiry must give the number of outlets (data, voice, Wi-Fi AP, CCTV, AV points) per floor or by drawing, and the category (Cat6 or Cat6A) with shielding (U/UTP, F/UTP, S/FTP) and jacket (LSZH). State whether a named manufacturer's certified system and extended warranty (typically 20-25 years) is required, because that dictates installer certification and component brand consistency. Define the backbone: fibre type (OM4 or OS2), core count, and copper backbone for voice if any. Give telecom room locations, rack sizes and quantities, patch panels, cable managers and PDUs. Clarify containment responsibility (trays, conduits, floor boxes) and whether the MEP contractor provides it. Specify testing: 100% permanent link certification with a named tester class and submission of native test files, fibre OTDR and loss testing, labelling scheme (per TIA-606) and as-built drawings. For active equipment, list switch port counts, PoE budget, uplink speeds, stacking/redundancy, Wi-Fi AP count or survey scope, firewall throughput, and licensing term. Also confirm service-provider (etisalat/du) requirements for the building entry and main telecom room, and TDRA approval for any wireless equipment. Verification note (23 Sep 2026): TIA-606 labelling and the certifier requirements are confirmed; warranty length is manufacturer-specific.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): outlet counts and cable category.",
       "body_ar": "يجب أن يتضمن طلب الكابلات عدد المخارج (بيانات، صوت، نقاط واي فاي، كاميرات، نقاط صوت وصورة) لكل طابق أو حسب المخططات، والفئة (Cat6 أو Cat6A) مع نوع التدريع (U/UTP أو F/UTP أو S/FTP) والغلاف (LSZH). وحدد هل يلزم نظام معتمد من مصنع بعينه مع ضمان ممتد (عادةً 20 إلى 25 سنة)، لأن ذلك يفرض اعتماد المركّب وتوحيد علامة المكونات. وعرّف الربط الرئيسي: نوع الألياف (OM4 أو OS2)، وعدد الشعيرات، والكابل النحاسي الرئيسي للصوت إن وجد. واذكر مواقع غرف الاتصالات، ومقاسات الخزائن وعددها، ولوحات التوصيل، ومنظمات الكوابل، ووحدات توزيع الطاقة. ووضح مسؤولية المسارات (الحوامل والأنابيب وصناديق الأرضيات) وهل يوفرها مقاول الأعمال الكهروميكانيكية. وحدد الاختبار: فحص 100% من الوصلات الدائمة بجهاز من فئة محددة وتسليم ملفات الاختبار الأصلية، واختبار OTDR والفقد للألياف، ونظام الترقيم (وفق TIA-606)، والمخططات النهائية. وللأجهزة النشطة اذكر عدد منافذ المحولات، وميزانية PoE، وسرعات الربط، والتكديس أو الاحتياط، وعدد نقاط الواي فاي أو نطاق المسح، وسرعة الجدار الناري، ومدة التراخيص. وتأكد كذلك من اشتراطات مزود الخدمة (اتصالات أو دو) لمدخل المبنى وغرفة الاتصالات الرئيسية، ومن اعتماد الهيئة لأي معدات لاسلكية. ملاحظة التحقق (23 سبتمبر 2026): تأكد معيار الترقيم TIA-606 ومتطلبات جهاز الاعتماد؛ ومدة الضمان تختلف حسب المصنّع.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: أعداد المخارج، وفئة الكابل.",
       "required_specs": [
         "outlet_counts_by_type_and_floor",
@@ -517,14 +779,99 @@
           "blocking": true
         },
         {
+          "spec": "shielding_type",
+          "why_needed_to_price": "Shielded cabling costs more and needs shielded components end to end.",
+          "uae_options": "U/UTP; F/UTP; S/FTP.",
+          "follow_up_if": "If the site has electrical noise or a shielded standard, ask the consultant.",
+          "blocking": false
+        },
+        {
+          "spec": "jacket_lszh",
+          "why_needed_to_price": "LSZH jackets are required in most UAE buildings for fire safety.",
+          "uae_options": "LSZH (low smoke zero halogen); PVC only where allowed.",
+          "follow_up_if": "If not stated, ask the supplier to confirm LSZH.",
+          "blocking": false
+        },
+        {
           "spec": "certified_system_and_warranty_years",
           "why_needed_to_price": "Certified systems need certified installers.",
           "uae_options": "certified system",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "backbone_fibre_type_and_core_count",
+          "why_needed_to_price": "Fibre type and core count decide backbone material and splicing cost.",
+          "uae_options": "OM3/OM4 multimode or OS2 singlemode; 12-48 cores.",
+          "follow_up_if": "If distances exceed 300 m, ask for singlemode.",
+          "blocking": false
+        },
+        {
+          "spec": "telecom_room_locations_and_rack_sizes",
+          "why_needed_to_price": "Telecom room locations and rack sizes decide cable lengths and rack cost.",
+          "uae_options": "Main and floor telecom rooms; 42U or 47U racks.",
+          "follow_up_if": "If rooms are not shown, ask for floor plans.",
+          "blocking": false
+        },
+        {
+          "spec": "containment_by_whom",
+          "why_needed_to_price": "Containment (trays, conduits) is a large cost and often by others.",
+          "uae_options": "By the cabling contractor; by the electrical contractor.",
+          "follow_up_if": "If by others, ask the supplier what containment they assume.",
+          "blocking": false
+        },
+        {
+          "spec": "testing_scope_and_native_files",
+          "why_needed_to_price": "Testing with native files and certification proves the system and is often required for the manufacturer warranty.",
+          "uae_options": "Fluke or equivalent tests with native files; manufacturer certification.",
+          "follow_up_if": "If the warranty is required, ask for certified testing.",
+          "blocking": false
+        },
+        {
+          "spec": "labelling_standard",
+          "why_needed_to_price": "A labelling standard adds labour and printed labels.",
+          "uae_options": "TIA-606 labelling; client scheme.",
+          "follow_up_if": "If the client has a scheme, provide it.",
+          "blocking": false
+        },
+        {
+          "spec": "switch_ports_poe_uplinks",
+          "why_needed_to_price": "Switch ports, PoE budget and uplinks size the active equipment.",
+          "uae_options": "Number of ports; PoE/PoE+ budget; 10G uplinks.",
+          "follow_up_if": "If cameras and access points are on PoE, ask for the PoE budget.",
+          "blocking": false
+        },
+        {
+          "spec": "wifi_ap_count_or_survey",
+          "why_needed_to_price": "Wi-Fi access point count comes from a survey or floor area.",
+          "uae_options": "Predictive or on-site survey; number of access points.",
+          "follow_up_if": "If no survey exists, ask whether one is to be done and priced.",
+          "blocking": false
+        },
+        {
+          "spec": "licence_term",
+          "why_needed_to_price": "Licence terms for switches, controllers and support are annual costs.",
+          "uae_options": "1, 3 or 5 year licence and support.",
+          "follow_up_if": "If not stated, ask for licence costs per year.",
+          "blocking": false
+        },
+        {
+          "spec": "service_provider_requirements",
+          "why_needed_to_price": "Service provider requirements (e&, du) decide entry ducts, rooms and cabling.",
+          "uae_options": "Operator lead-in ducts and FTTx requirements.",
+          "follow_up_if": "If the building is new, ask whether operator approvals are in scope.",
+          "blocking": false
+        },
+        {
+          "spec": "tdra_approval_for_wireless",
+          "why_needed_to_price": "Wireless devices must be TDRA type-approved, which some cheap imports are not.",
+          "uae_options": "TDRA type-approved access points and radios.",
+          "follow_up_if": "If the supplier cannot show TDRA approval, the item cannot be accepted.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for an occupied or existing building, to check containment, telecom rooms and access hours."
     },
     {
       "id": "av_it:buyer-mistakes",
@@ -672,8 +1019,9 @@
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Not confirmed on any reachable page: TDRA type approval and dealer registration, civil defence approval of voice evacuation, SIRA scope. Host(s) that could not be reached: tdra.gov.ae (blocked; www.tdra.gov.ae redirects there); www.dcd.gov.ae (connection reset by the site, every attempt); www.sira.gov.ae (blocked by the session network)."
     },
     {
       "id": "av_it:compare-quotes-cost-to-value",
@@ -780,7 +1128,7 @@
   ],
   "verified": {
     "fetched_urls": 34,
-    "claims_checked": 224,
+    "claims_checked": 230,
     "corrected": [
       "av_it:led-wall-pixel-pitch",
       "av_it:projector-lumens",
@@ -819,7 +1167,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: av_it:approvals-per-emirate re-checked against official pages opened through the session network (0 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

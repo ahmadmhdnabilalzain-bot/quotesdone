@@ -5,7 +5,7 @@
       "id": "fuel_diesel:spec-checklist",
       "topic": "Fuel and diesel supply - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for fuel and diesel supply must state: fuel grade; specification and sulphur content; quantity per delivery; delivery frequency; metering and delivery note; certificate of quality; tank and site safety; price basis; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: grade, specification, drop size, frequency and the price basis.",
+      "body_en": "Each quoted product line for fuel and diesel supply must state: fuel grade; specification and sulphur content; quantity per delivery; delivery frequency; metering and delivery note; certificate of quality; tank and site safety; price basis; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): grade, specification, drop size, frequency and the price basis.",
       "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة توريد الوقود والديزل: درجة الوقود؛ المواصفة ومحتوى الكبريت؛ الكمية لكل توريد؛ تكرار التوريد؛ القياس ومذكرة التسليم؛ شهادة الجودة؛ سلامة الخزان والموقع؛ أساس السعر؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الدرجة، والمواصفة، وكمية التسليم، والتكرار، وأساس التسعير.",
       "required_specs": [
         "fuel grade",
@@ -65,17 +65,17 @@
           "blocking": true
         },
         {
-          "spec": "price basis",
-          "why_needed_to_price": "Fixed, monthly-indexed or spot pricing must be stated.",
-          "uae_options": "fixed; indexed to the official monthly price; spot",
-          "follow_up_if": "",
-          "blocking": true
-        },
-        {
           "spec": "metering and delivery note",
           "why_needed_to_price": "Metered deliveries protect against short delivery.",
           "uae_options": "calibrated meter; dip",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "certificate of quality",
+          "why_needed_to_price": "A certificate of quality proves the fuel grade and sulphur content.",
+          "uae_options": "Certificate of quality per delivery; EN 590 or local standard.",
+          "follow_up_if": "If no certificate is offered, ask for it.",
           "blocking": false
         },
         {
@@ -84,9 +84,52 @@
           "uae_options": "tank size; access",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "price basis",
+          "why_needed_to_price": "Fixed, monthly-indexed or spot pricing must be stated.",
+          "uae_options": "fixed; indexed to the official monthly price; spot",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "why_needed_to_price": "A product or service without the approval the emirate requires cannot be used on the project, so the cost of approvals must be in or out of the price explicitly.",
+          "uae_options": "MoIAT conformity (ECAS/EQM) for regulated products; civil defence listing for fire-related items; utility approval (DEWA, ADDC/AADC, SEWA, EtihadWE); municipality approval.",
+          "follow_up_if": "If the supplier has no current certificate for this exact product, ask who obtains it, how long it takes and who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery and installation scope",
+          "why_needed_to_price": "Supply-only, supply-and-deliver and supply-and-install are different prices; unloading, hoisting and installation are where quotes silently differ.",
+          "uae_options": "Ex-works; delivered to site (kerbside); delivered and offloaded; supplied and installed; tested and commissioned.",
+          "follow_up_if": "If installation is wanted, state the site, floor and access; if supply only, state who unloads and moves the goods into place.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty",
+          "why_needed_to_price": "Warranty length and whether it covers parts only or parts and labour change the risk the buyer carries and the price of the offer.",
+          "uae_options": "Manufacturer warranty 1-2 years as standard; extended warranty by agreement; installer workmanship warranty separate.",
+          "follow_up_if": "If the warranty is shorter than the buyer needs, or excludes labour or call-outs, ask for the extended option as a separate price.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "fuel_diesel:uae-standards-and-approvals",
@@ -150,16 +193,17 @@
       "kind": "authority_approval",
       "topic": "Diesel supply and storage: approvals per emirate",
       "topic_ar": "توريد الديزل وتخزينه: الاعتمادات في كل إمارة",
-      "body_en": "Diesel may only be traded by licensed distributors; the trading licence is issued by the emirate, under federal petroleum-products rules of the Ministry of Energy and Infrastructure, which this session did not read. On-site storage tanks need civil defence approval under the UAE Fire and Life Safety Code; in Abu Dhabi, DMT Circular 04/2022 requires a civil defence certificate for fuel tanks on construction sites. A diesel tank for a building generator is part of the building's civil defence approval. Who obtains: the distributor holds the trading licence; the site owner obtains the tank approval.",
-      "body_ar": "لا يجوز تداول الديزل إلا عبر موزعين مرخّصين، وتصدر رخصة التداول في الإمارة وفق القواعد الاتحادية للمنتجات البترولية لدى وزارة الطاقة والبنية التحتية، ولم يُطّلع عليها في هذه الجلسة. وتحتاج خزانات التخزين في الموقع إلى موافقة الدفاع المدني وفق كود الإمارات للحماية من الحرائق، وفي أبوظبي يشترط تعميم دائرة البلديات والنقل 04/2022 شهادة من الدفاع المدني لخزانات الوقود في مواقع البناء. وخزان الديزل لمولد المبنى جزء من موافقة الدفاع المدني للمبنى. من يحصل عليها: الموزع يحمل رخصة التداول، ومالك الموقع يحصل على موافقة الخزان.",
+      "body_en": "Diesel may only be traded by licensed distributors; the trading licence is issued by the emirate, under federal petroleum-products rules of the Ministry of Energy and Infrastructure, which this session did not read. On-site storage tanks need civil defence approval under the UAE Fire and Life Safety Code; in Abu Dhabi City, Abu Dhabi City Municipality's Circular 04/2022 (published by DMT) requires a civil defence certificate for fuel tanks on construction sites. A diesel tank for a building generator is part of the building's civil defence approval. Who obtains: the distributor holds the trading licence; the site owner obtains the tank approval.",
+      "body_ar": "لا يجوز تداول الديزل إلا عبر موزعين مرخّصين، وتصدر رخصة التداول في الإمارة وفق القواعد الاتحادية للمنتجات البترولية لدى وزارة الطاقة والبنية التحتية، ولم يُطّلع عليها في هذه الجلسة. وتحتاج خزانات التخزين في الموقع إلى موافقة الدفاع المدني وفق كود الإمارات للحماية من الحرائق، وفي مدينة أبوظبي يشترط تعميم بلدية مدينة أبوظبي رقم 04/2022 (المنشور لدى دائرة البلديات والنقل) شهادة من الدفاع المدني لخزانات الوقود في مواقع البناء. وخزان الديزل لمولد المبنى جزء من موافقة الدفاع المدني للمبنى. من يحصل عليها: الموزع يحمل رخصة التداول، ومالك الموقع يحصل على موافقة الخزان.",
       "sources": [
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
         "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/AboutUs/EHS/Circulars/004-2022.pdf"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: Circular 04/2022 of Abu Dhabi City Municipality, addressed to consultants, contractors and developers within Abu Dhabi City, requires a civil defence certificate for fuel tanks on construction sites. Not confirmed on any reachable page: the petroleum-products trading licence and the fire-code tank approval. Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "fuel_diesel:quote-red-flags",
@@ -248,9 +292,11 @@
     }
   ],
   "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 1,
-    "corrected": [],
+    "fetched_urls": 3,
+    "claims_checked": 6,
+    "corrected": [
+      "fuel_diesel:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
       "fuel_diesel:spec-checklist",
@@ -294,7 +340,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: fuel_diesel:approvals-per-emirate re-checked against official pages opened through the session network (1 URL(s) read, 5 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

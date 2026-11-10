@@ -59,7 +59,7 @@
       "id": "scaffolding:spec-checklist-access",
       "topic": "What to state when requesting an access scaffold quote",
       "kind": "spec_checklist",
-      "body_en": "A scaffolding supplier can only price exactly if the enquiry fixes the geometry, the duty and the commercial terms. Geometry: elevation lengths and heights, number of working lifts, whether it wraps corners, returns or roof edges, and ground conditions (soil, slab, roof, slope). Duty: the trade using it and the required load class, whether materials will be stored on it, and whether loading bays or hoist openings are needed. Access: stair towers versus ladders, as stair towers are usually required for larger or longer-duration works. Protection: debris netting, sheeting, fans, toe boards, and whether a public footpath needs a gantry. Ties: whether anchors may be drilled into the facade and who repairs holes. Commercial: hire period in weeks, whether erection and dismantling are included, inspection frequency, alterations charged or included, transport, and who provides the design calculation and drawing. Ask for the system type and whether the price is lump sum, per square metre, or per cubic metre, and what happens when the hire period overruns. Verification note (23 Sep 2026): OSHAD CoP 26 requires planning for loads, access, edge protection and wind, which supports the checklist fields.\n\nExpert interview (2026-11-10): Blocking: elevation sizes, load class, hire period, erection and dismantling scope and the base condition. A site visit is needed beyond a simple tower.",
+      "body_en": "A scaffolding supplier can only price exactly if the enquiry fixes the geometry, the duty and the commercial terms. Geometry: elevation lengths and heights, number of working lifts, whether it wraps corners, returns or roof edges, and ground conditions (soil, slab, roof, slope). Duty: the trade using it and the required load class, whether materials will be stored on it, and whether loading bays or hoist openings are needed. Access: stair towers versus ladders, as stair towers are usually required for larger or longer-duration works. Protection: debris netting, sheeting, fans, toe boards, and whether a public footpath needs a gantry. Ties: whether anchors may be drilled into the facade and who repairs holes. Commercial: hire period in weeks, whether erection and dismantling are included, inspection frequency, alterations charged or included, transport, and who provides the design calculation and drawing. Ask for the system type and whether the price is lump sum, per square metre, or per cubic metre, and what happens when the hire period overruns. Verification note (23 Sep 2026): OSHAD CoP 26 requires planning for loads, access, edge protection and wind, which supports the checklist fields.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): elevation sizes, load class, hire period, erection and dismantling scope and the base condition. A site visit is needed beyond a simple tower.",
       "body_ar": "لا يستطيع مورّد السقالات التسعير بدقة إلا إذا حدد الطلب الأبعاد ونوع الاستخدام والشروط التجارية. الأبعاد: أطوال وارتفاعات الواجهات وعدد طوابق العمل وهل تلتف حول الزوايا أو حواف السطح، وطبيعة الأرض من تربة أو بلاطة أو سطح أو ميل. الاستخدام: المهنة التي ستعمل عليها وفئة الحمل المطلوبة وهل ستُخزَّن مواد عليها وهل تلزم منصات تحميل أو فتحات رافعة. الوصول: أبراج سلالم أم سلالم يدوية، إذ تُشترط أبراج السلالم عادة للأعمال الكبيرة أو الطويلة. الحماية: شباك الحطام والأغطية والمظلات وألواح القدم وهل يلزم ممر مسقوف لرصيف عام. الربط: هل يسمح بالحفر في الواجهة لتثبيت المراسي ومن يصلح الثقوب. التجاري: مدة الإيجار بالأسابيع وهل التركيب والفك مشمولان وتكرار الفحص والتعديلات مشمولة أم بمقابل والنقل ومن يقدم الحسابات الإنشائية والرسم. واسأل عن نوع النظام وهل السعر مقطوع أم بالمتر المربع أم المكعب وما الذي يحدث عند تجاوز مدة الإيجار. ملاحظة تحقق (23 سبتمبر 2026): يشترط دليل أوشاد 26 التخطيط للأحمال والوصول وحماية الحواف والرياح، وهذا يؤيد بنود القائمة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: أبعاد الواجهات، وفئة الحمل، ومدة الاستئجار، ونطاق التركيب والفك، وحالة القاعدة. وتلزم زيارة الموقع لأي شيء يتجاوز برجاً بسيطاً.",
       "required_specs": [
         "elevation lengths and heights",
@@ -98,11 +98,46 @@
           "blocking": true
         },
         {
+          "spec": "number of working lifts",
+          "why_needed_to_price": "Working lifts decide boards and labour.",
+          "uae_options": "Number of lifts.",
+          "follow_up_if": "If the inquiry is silent on number of working lifts, each supplier prices its own default; ask the buyer so every quote rests on the same number of working lifts.",
+          "blocking": false
+        },
+        {
           "spec": "load class / trade using it",
           "why_needed_to_price": "Heavier duty (masonry, cladding) needs closer standards and more material.",
           "uae_options": "light inspection; general; heavy duty",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "ground/base condition",
+          "why_needed_to_price": "Soft ground or roofs need base plates, sole boards or a design.",
+          "uae_options": "concrete; soil; roof",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "access type (stair tower or ladder)",
+          "why_needed_to_price": "Stair towers cost more than ladders.",
+          "uae_options": "Stair tower or ladder.",
+          "follow_up_if": "If many users, ask for stairs.",
+          "blocking": false
+        },
+        {
+          "spec": "netting/sheeting/fans/gantry",
+          "why_needed_to_price": "Netting, sheeting, fans and gantries add cost.",
+          "uae_options": "Netting; sheeting; fans; gantry.",
+          "follow_up_if": "If near the public, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "tie method and permission to drill",
+          "why_needed_to_price": "Without ties a buttressed or heavier design is needed.",
+          "uae_options": "drilled ties; through ties; buttress",
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "hire period in weeks",
@@ -119,17 +154,10 @@
           "blocking": true
         },
         {
-          "spec": "ground/base condition",
-          "why_needed_to_price": "Soft ground or roofs need base plates, sole boards or a design.",
-          "uae_options": "concrete; soil; roof",
-          "follow_up_if": "",
-          "blocking": true
-        },
-        {
-          "spec": "tie method and permission to drill",
-          "why_needed_to_price": "Without ties a buttressed or heavier design is needed.",
-          "uae_options": "drilled ties; through ties; buttress",
-          "follow_up_if": "",
+          "spec": "inspection and alteration terms",
+          "why_needed_to_price": "Inspection and alteration terms decide cost.",
+          "uae_options": "Weekly inspection; alterations.",
+          "follow_up_if": "If the inquiry is silent on inspection and alteration terms, each supplier prices its own default; ask the buyer so every quote rests on the same inspection and alteration terms.",
           "blocking": false
         },
         {
@@ -137,6 +165,20 @@
           "why_needed_to_price": "Tall or loaded scaffolds need a design.",
           "uae_options": "standard configuration; designed scaffold",
           "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "system type preference",
+          "why_needed_to_price": "System type decides cost.",
+          "uae_options": "Tube and fitting; system scaffold.",
+          "follow_up_if": "If the inquiry is silent on system type preference, each supplier prices its own default; ask the buyer so every quote rests on the same system type preference.",
+          "blocking": false
+        },
+        {
+          "spec": "site location and working hours restrictions",
+          "why_needed_to_price": "Location and hours decide cost.",
+          "uae_options": "Site; hours.",
+          "follow_up_if": "If restricted, ask the supplier to confirm its offer allows for it and at what cost.",
           "blocking": false
         }
       ],
@@ -414,8 +456,8 @@
       "id": "scaffolding:insurance-liability",
       "topic": "Insurance and liability for scaffolding contractors",
       "kind": "spec_checklist",
-      "body_en": "Because scaffold failures can injure workers and the public, the buyer should verify the supplier's insurance and contractual liability before award. Ask for third-party liability insurance with a limit appropriate to the project and a policy wording that does not exclude work at height or scaffolding activity, employer's liability or workmen's compensation for the crew as required by UAE law, and, for supply-and-erect contracts, professional indemnity if the supplier provides the design. The main contractor's contractor's-all-risks policy may or may not extend to subcontractors' equipment; hire equipment is often excluded, so the hire company's own cover matters. The contract should state who is responsible for the scaffold's stability and for damage to the building from ties and anchors, and define responsibility if other trades misuse or alter it. Buyers should also confirm the company's trade licence covers scaffolding activity and, where required, the firm's approval by the relevant authority or client. Verification note (23 Sep 2026): Insurance terms are contract practice. Not established by a source fetched in this pass: the insurance and licensing requirements.\n\nExpert interview (2026-11-10): Blocking: a policy that does not exclude work at height.",
-      "body_ar": "لأن فشل السقالات قد يصيب العمال والجمهور، يجب على المشتري التحقق من تأمين المورّد ومسؤوليته التعاقدية قبل الترسية. اطلب تأمين المسؤولية تجاه الغير بحد مناسب للمشروع وبصيغة وثيقة لا تستثني العمل على المرتفعات أو نشاط السقالات، وتأمين مسؤولية صاحب العمل أو تعويض العمال للفريق كما يقتضي القانون الإماراتي، وفي عقود التوريد والنصب تأمين المسؤولية المهنية إذا قدم المورّد التصميم. قد تشمل وثيقة جميع أخطار المقاول لدى المقاول الرئيسي معدات المقاولين من الباطن وقد لا تشملها، وغالباً تُستثنى المعدات المؤجرة، لذا يهم تأمين شركة التأجير نفسها. يجب أن يحدد العقد المسؤول عن ثبات السقالة وعن أضرار المبنى من الروابط والمراسي، وأن يحدد المسؤولية إذا أساءت المهن الأخرى استخدامها أو عدّلتها. كما يتأكد المشتري أن الرخصة التجارية للشركة تشمل نشاط السقالات، وعند الحاجة اعتماد الشركة لدى الجهة أو العميل المعني. ملاحظة تحقق (23 سبتمبر 2026): شروط التأمين ممارسة تعاقدية. لم يثبت من مصدر رُجع إليه في هذه المراجعة: متطلبات التأمين والترخيص.\n\nمقابلة الخبير (2026-11-10): البند المانع: وثيقة تأمين لا تستثني العمل على المرتفعات.",
+      "body_en": "Because scaffold failures can injure workers and the public, the buyer should verify the supplier's insurance and contractual liability before award. Ask for third-party liability insurance with a limit appropriate to the project and a policy wording that does not exclude work at height or scaffolding activity, employer's liability or workmen's compensation for the crew as required by UAE law, and, for supply-and-erect contracts, professional indemnity if the supplier provides the design. The main contractor's contractor's-all-risks policy may or may not extend to subcontractors' equipment; hire equipment is often excluded, so the hire company's own cover matters. The contract should state who is responsible for the scaffold's stability and for damage to the building from ties and anchors, and define responsibility if other trades misuse or alter it. Buyers should also confirm the company's trade licence covers scaffolding activity and, where required, the firm's approval by the relevant authority or client. Verification note (23 Sep 2026): Insurance terms are contract practice. Not established by a source fetched in this pass: the insurance and licensing requirements.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): a policy that does not exclude work at height.",
+      "body_ar": "لأن فشل السقالات قد يصيب العمال والجمهور، يجب على المشتري التحقق من تأمين المورّد ومسؤوليته التعاقدية قبل الترسية. اطلب تأمين المسؤولية تجاه الغير بحد مناسب للمشروع وبصيغة وثيقة لا تستثني العمل على المرتفعات أو نشاط السقالات، وتأمين مسؤولية صاحب العمل أو تعويض العمال للفريق كما يقتضي القانون الإماراتي، وفي عقود التوريد والنصب تأمين المسؤولية المهنية إذا قدم المورّد التصميم. قد تشمل وثيقة جميع أخطار المقاول لدى المقاول الرئيسي معدات المقاولين من الباطن وقد لا تشملها، وغالباً تُستثنى المعدات المؤجرة، لذا يهم تأمين شركة التأجير نفسها. يجب أن يحدد العقد المسؤول عن ثبات السقالة وعن أضرار المبنى من الروابط والمراسي، وأن يحدد المسؤولية إذا أساءت المهن الأخرى استخدامها أو عدّلتها. كما يتأكد المشتري أن الرخصة التجارية للشركة تشمل نشاط السقالات، وعند الحاجة اعتماد الشركة لدى الجهة أو العميل المعني. ملاحظة تحقق (23 سبتمبر 2026): شروط التأمين ممارسة تعاقدية. لم يثبت من مصدر رُجع إليه في هذه المراجعة: متطلبات التأمين والترخيص.\n\nمقابلة الخبير (2026-11-10). المواصفات المانعة للتسعير (لا يُعطى دونها سعر نهائي): وثيقة تأمين لا تستثني العمل على المرتفعات.",
       "required_specs": [
         "third-party liability limit",
         "work-at-height not excluded",
@@ -447,9 +489,45 @@
           "uae_options": "confirm in the policy wording",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "workmen's compensation for crew",
+          "why_needed_to_price": "Workmen's compensation is required for the crew.",
+          "uae_options": "Workmen's compensation.",
+          "follow_up_if": "If not shown, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "professional indemnity if design supplied",
+          "why_needed_to_price": "PI cover is needed when the contractor designs.",
+          "uae_options": "Professional indemnity.",
+          "follow_up_if": "If design is supplied, ask the supplier to confirm its offer allows for it and at what cost.",
+          "blocking": false
+        },
+        {
+          "spec": "trade licence activity covers scaffolding",
+          "why_needed_to_price": "The licence must cover scaffolding.",
+          "uae_options": "Trade licence activity.",
+          "follow_up_if": "If not, the offer cannot be accepted.",
+          "blocking": false
+        },
+        {
+          "spec": "authority/client approval where required",
+          "why_needed_to_price": "Some authorities and clients require approval.",
+          "uae_options": "Authority or client approval.",
+          "follow_up_if": "If the project requires it, ask each supplier to include it and show its cost.",
+          "blocking": false
+        },
+        {
+          "spec": "responsibility for ties/anchor damage",
+          "why_needed_to_price": "Damage to ties and anchors must be assigned.",
+          "uae_options": "Responsibility for ties and anchor damage.",
+          "follow_up_if": "If the inquiry is silent on responsibility for ties/anchor damage, each supplier prices its own default; ask the buyer so every quote rests on the same responsibility for ties/anchor damage.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null
     },
     {
       "id": "scaffolding:approvals-per-emirate",
@@ -460,13 +538,15 @@
       "body_ar": "في أبوظبي: يتضمن إطار نظام إدارة السلامة والصحة المهنية التابع لمركز أبوظبي للصحة العامة مدونة ممارسة للسقالات (COP 26) تغطي التصميم والتركيب بأشخاص أكفاء والفحص والوسم، وتطبقها دائرة البلديات والنقل في مواقع البناء. في دبي: تنظم بلدية دبي السلامة في مواقع البناء، وتُفحص السقالات من قبل فاحصين أكفاء أو طرف ثالث، ويحتاج استخدام جزء من الطريق العام أو الرصيف للسقالة إلى إذن هيئة الطرق والمواصلات. في الشارقة والإمارات الشمالية: تنطبق قواعد السلامة البلدية في البناء، ولم يُتحقق من القاعدة المحددة للسقالات في هذه الجلسة. والسقالة داخل قطعة أرض خاصة للصيانة لا تحتاج إلى ترخيص، وقد يطلبه المجمع. من يحصل عليها: مقاول السقالات (التصميم والفحص والبطاقات) والمقاول الرئيسي (تصاريح الطريق والموقع).",
       "sources": [
         "https://www.adphc.gov.ae/-/media/Project/ADPHC/ADPHC/PDF/OSHAD-SF/Codes-of-Practise/2026/COP-260--Scaffolding-v41-English.pdf",
-        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=3704531",
-        "https://www.dm.gov.ae/dubai-municipality-services/"
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=314",
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.dm.gov.ae/municipality-business/technical-guidelines-list/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: RTA permits use of part of the right of way (footpath, parking, hard shoulder) for construction or maintenance works; DM publishes technical guidelines on mobile access towers (74) and safe use of ladders (73). Not confirmed on any reachable page: the OSHAD scaffolding code. Host(s) that could not be reached: www.adphc.gov.ae (blocked by the session network)."
     },
     {
       "id": "scaffolding:compare-quotes-cost-to-value",
@@ -570,8 +650,8 @@
     }
   ],
   "verified": {
-    "fetched_urls": 17,
-    "claims_checked": 151,
+    "fetched_urls": 20,
+    "claims_checked": 156,
     "corrected": [
       "scaffolding:load-classes",
       "scaffolding:mobile-towers",
@@ -596,7 +676,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: scaffolding:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 5 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }
