@@ -1,8 +1,0 @@
-Committed, NOT applied (ported from PR #1703 on 10 Nov 2026 by it_engineer; the PR had a MANIFEST line for apply-at-merge,
-replaced here by this note so the founder decides the apply). Replay-safe: add column if not exists, comment, CREATE OR
-REPLACE of fn_it_engineer_knowledge_recall_exam (the canonical body of a_seats_own_pack_fills_half_of_every_retrieval.sql,
-re-diffed 10 Nov: only the recall expression differs), and the revoke restated for its one signature; no transaction control.
-Until it is applied, do NOT run scripts/kb/load_knowledge_eval_questions.mjs: it now writes the expected_any column this
-file adds. To apply: node scripts/apply_sql.mjs scripts/sql/an_any_mode_eval_question_is_answered_by_any_of_its_entries.sql
---apply --ddl, then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit, then run
-node scripts/kb/load_knowledge_eval_questions.mjs. Seat: it_engineer.

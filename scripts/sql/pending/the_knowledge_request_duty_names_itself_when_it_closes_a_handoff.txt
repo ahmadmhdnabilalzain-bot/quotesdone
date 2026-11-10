@@ -1,8 +1,0 @@
-Committed, NOT applied (ported from PR #1784, it_engineer, on 10 Nov 2026; the PR had MANIFEST lines for apply-at-merge,
-replaced here by this note so the founder decides the apply). Replay-safe: one CREATE OR REPLACE of
-fn_customer_support_knowledge_request_tick (keeps its ACL), the canonical body of
-customer_support_closes_every_knowledge_request_by_a_deadline.sql re-diffed 10 Nov with only the two set_config lines added
-(the originator names itself as closer, so fn_seat_handoff stops raising P0001 on a pending knowledge.request handoff).
-Still needed on 10 Nov: the live body in today's schema mirror lacks those lines. To apply: node scripts/apply_sql.mjs
-scripts/sql/the_knowledge_request_duty_names_itself_when_it_closes_a_handoff.sql --apply --ddl, then delete this note and
-append the file to the END of scripts/sql/MANIFEST.txt in the same commit. Seat: customer_support (the duty's owner).
