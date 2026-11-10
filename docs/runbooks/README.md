@@ -13,4 +13,5 @@ predate this folder live in [../it/](../it/): [ROLLBACK.md](../it/ROLLBACK.md) a
 | [docker.md](docker.md) | Running the site, the checks and a shell in Docker; graceful shutdown; troubleshooting |
 | [cloud-sessions.md](cloud-sessions.md) | Running Claude Code on this repo from claude.ai/code |
 | [keys.md](keys.md) | Every key a session needs, where to copy it from, where it is stored (names only) |
+| [admin-two-step-sign-in.md](admin-two-step-sign-in.md) | Admin two-step sign-in (authenticator app): enrolment at /admin, recovering a lost phone, the release steps |
 | [kb_chunks_rewrite.md](kb_chunks_rewrite.md) | Giving `public.kb_chunks` dead space back to the disk (copy-and-swap) |

@@ -93,8 +93,8 @@ const SECURITY_HEADERS = [
 // page files export; src/lib/seo.ts appShellMeta() gives them the matching <meta name=robots>.
 const NOINDEX = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
 // /supplier is the public supplier sales page (indexable, its own canonical); only the signed-in
-// shells are noindexed.
-const APP_SHELLS = ['/me', '/portal'];
+// shells are noindexed. /admin is the two-step admin sign-in (security audit 10 Nov 2026, item 1): never indexed either.
+const APP_SHELLS = ['/me', '/portal', '/admin'];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
