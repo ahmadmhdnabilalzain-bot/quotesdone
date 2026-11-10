@@ -67,11 +67,11 @@ test('no surface spells its own short list of closed statuses', () => {
 test('the SQL routines that refuse a closed request refuse every status on the list', async () => {
   const { canonicalBody } = await import('../lib/canonical_body.mjs');
   const want = listIn(read('supabase/functions/_shared/request_closed.ts'));
-  for (const fn of ['fn_cancel_inquiry', 'fn_edit_inquiry', 'fn_inquiry_add_missing_specs', 'fn_customer_concierge_held']) {
+  for (const fn of ['fn_cancel_inquiry', 'fn_edit_inquiry', 'fn_inquiry_add_missing_specs', 'fn_customer_concierge_held', 'fn_supplier_apply_change']) {
     const { file, body } = canonicalBody(fn);
     const code = body.replace(/--[^\n]*/g, '');
     const seen = new Set();
-    for (const m of code.matchAll(/status(?:\s*,\s*''\s*\))?\s*(?:in\s*\(([^)]*)\)|=\s*'([a-z_]+)')/g)) {
+    for (const m of code.matchAll(/(?<!q\.)status(?:\s*,\s*''\s*\))?\s*(?:(?:not\s+)?in\s*\(([^)]*)\)|=\s*'([a-z_]+)')/g)) {
       if (m[1]) for (const s of m[1].matchAll(/'([a-z_]+)'/g)) seen.add(s[1]); else seen.add(m[2]);
     }
     const missing = want.filter((s) => !seen.has(s));
