@@ -36,7 +36,8 @@ export async function setRegistration(leadId: number, touch = true) {
 // leads.claimed_by — but at sign-up no lead is claimed by that address yet (create_company or claim
 // runs afterwards), so owner_email_verified stayed false for every self-registered and every invited
 // supplier, and the e-mail item of the mandatory six could never be ticked. The durable proof is the
-// used login OTP in email_verifications; it is read once when the company becomes this account's.
+// VERIFIED login OTP in email_verifications (verified_at, not used_at: see emailProven); it is read once when
+// the company becomes this account's.
 
 // THE POST THAT BROUGHT THEM (sales_engineer with marketing, 23 Sep 2026, instruction 865). When a company
 // becomes an account's (create_company or claim), the first visit's UTM the browser kept (src/lib/firstTouch.ts)
@@ -46,7 +47,12 @@ export async function recordFirstTouch(leadId: number, touch: unknown): Promise<
   const r = await admin.rpc('fn_marketing_first_touch_record', { p_lead_id: leadId, p_touch: touch }).then((x) => x, (e) => ({ error: { message: String(e) } }));
   if (r.error) console.error('first touch not recorded for lead ' + leadId + ': ' + r.error.message);
 }
+// ONE DEFINITION (10 Nov 2026, customer_support; scripts/sql/an_email_is_proven_only_by_a_code_that_was_verified.sql): a code
+// for this address that was VERIFIED (email_verifications.verified_at, set by fn_login_otp_email_verify's 'ok' path only).
+// used_at is not proof: a resend and the attempt cap set it too. create_company (claim and insert) and the /portal?t= claim
+// all ask this; a failed read is "not proven", never a guess.
 export async function emailProven(email: string) {
-  const { data } = await admin.from('email_verifications').select('id').eq('email', email).eq('purpose', 'login').not('used_at', 'is', null).limit(1);
-  return !!(data && data.length);
+  const { data, error } = await admin.rpc('fn_email_proven', { p_email: email });
+  if (error) { console.error('emailProven: fn_email_proven failed —', error.message); return false; }
+  return data === true;
 }

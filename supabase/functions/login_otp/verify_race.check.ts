@@ -13,6 +13,8 @@ import postgres from 'npm:postgres@3.4.5';
 
 const PG_URL = Deno.env.get('QD_OTP_RACE_PG');
 const FILE = new URL('../../../scripts/sql/a_sign_in_code_is_counted_compared_and_spent_in_one_statement.sql', import.meta.url);
+// The verify that wins the apply order since 10 Nov 2026 (it adds verified_at on the 'ok' path): loaded after FILE.
+const PROVEN = new URL('../../../scripts/sql/an_email_is_proven_only_by_a_code_that_was_verified.sql', import.meta.url);
 
 Deno.test({ name: 'a sign-in code survives at most 5 guesses and verifies once under 20 parallel calls', ignore: !PG_URL, fn: async () => {
   const sql = postgres(PG_URL!, { max: 25, onnotice: () => {} });
@@ -27,6 +29,7 @@ Deno.test({ name: 'a sign-in code survives at most 5 guesses and verifies once u
         token text unique, token_hash text, attempts int default 0, used_at timestamptz, expires_at timestamptz,
         created_at timestamptz default now());`);
     await sql.unsafe(await Deno.readTextFile(FILE));
+    await sql.unsafe(await Deno.readTextFile(PROVEN));
 
     const issue = async (email: string) => {
       await sql`insert into public.email_verifications (email, purpose, token_hash, expires_at)

@@ -341,7 +341,10 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // row.token is only set for codes issued before hashing shipped on 27 Jul 2026
       const match = row.token_hash ? ((await otpHash(c)) === row.token_hash) : (!!row.token && c === row.token);
       if (!match) { await admin.from('email_verifications').update({ attempts: (row.attempts || 0) + 1 }).eq('id', row.id); return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400); }
-      await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
+      // verified_at: this code was entered RIGHT, the one mark public.fn_email_proven counts (10 Nov 2026,
+      // an_email_is_proven_only_by_a_code_that_was_verified.sql); the burn above sets used_at only.
+      const at = new Date().toISOString();
+      await admin.from('email_verifications').update({ used_at: at, verified_at: at }).eq('id', row.id);
       // 27 Jul 2026: 'state' no longer creates the customers row as a side effect of a read, so this
       // must not assume one exists — an .update() on a missing row silently persists nothing and the
       // user would loop on the verify step forever. Insert it, falling back to update on a race.
