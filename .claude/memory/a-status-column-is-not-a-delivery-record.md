@@ -37,3 +37,12 @@ This is the same shape as [[connected-is-a-claim-not-a-measurement]] and
 [[zero-cannot-tell-a-dead-guard-from-an-idle-system]]: a derived rate off a fabricated denominator
 ("0 of 161 registered") reads as a business finding when the true statement is "nothing was sent,
 so there is no rate". See also [[never-state-what-you-have-not-measured]].
+
+**2 Nov 2026, the M365 lane.** Graph's sendMail answers 202 with no id, so all 52 M365 invitations read provider_status NULL.
+Now resilience_ping reads each one back from supplier@'s Sent Items by internetMessageId and writes 'sent' (Exchange sent it;
+never 'delivered', which Graph cannot see). A delivery report that quotes a send's exact Message-ID writes 'undelivered'
+'bounce:<code>' (`fn_mail_bounce_marks_its_send`), only by In-Reply-To, with a standalone 5.x.x code (Gmail: its ?p= token).
+Believed senders, for the status and for marking a lead: our tenant's Exchange stamped X-MS-Exchange-Organization-AuthAs:
+Internal (netorgft20811795 / quotesdone.com only), or Gmail's authenticated mailer-daemon. Never Is-Ndr, ARC, a DMARC pass
+for quotesdone.com (shared SPF senders) or another tenant. Whether Graph shows AuthAs on an NDR: run the read-only
+sales_engineer action 'm365_ndr_headers' after deploy.

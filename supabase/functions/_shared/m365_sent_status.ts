@@ -1,0 +1,127 @@
+// AN M365 SEND SAYS WHETHER IT LEFT (2 Nov 2026, sales_engineer; scripts/sql/an_m365_invitation_says_whether_it_left_and_whether_it_bounced.sql).
+//
+// Graph's sendMail answers 202 with no id and sends no later event, so every invitation from supplier@ read provider_status
+// NULL for good (46 of 46 since 29 Oct, measured 2 Nov). This asks Graph, each resilience_ping beat, for up to CLAIM sends
+// in the mailbox's Sent Items by the internetMessageId send_outbox gave them (m365_lane.ts messageIdFor), and records what
+// Graph answers through fn_m365_sent_status_record: found = 'sent' at Graph's sentDateTime; a 200 with no such message =
+// one try, 'unreadable' after five; a refused token, 429, 5xx or timeout is no answer and is never counted (review of
+// #1792). It never writes 'delivered': Sent Items proves Exchange sent it, nothing more. A
+// bounce is written by fn_mail_bounce_marks_its_send from the delivery report the reply reader hands in.
+// Same app and secrets as the reply reader (MS_TENANT_ID / MS_CLIENT_ID / MS_CLIENT_SECRET, Mail.ReadWrite). Counts only:
+// resilience_ping is public.
+import { graphToken, headersOf, M365_INBOUND_PREFIX, type Fetch, type GraphMessage } from './m365_reply_inbox.ts';
+import { exchangeInternal, stampHeaders, tenantStampOf } from './suppression_policy.ts';
+
+export const CLAIM = 20;
+export const REPORTS = 10;
+export const BUDGET_MS = 20_000;
+const GRAPH = 'https://graph.microsoft.com/v1.0';
+const SECRET_NAMES = ['MS_TENANT_ID', 'MS_CLIENT_ID', 'MS_CLIENT_SECRET'] as const;
+
+export type Claimed = { notification_id: number; message_id: string };
+export type SentDeps = {
+  fetchFn: Fetch;
+  env: (k: string) => string | undefined;
+  mailbox: string | undefined;
+  claim: (limit: number) => Promise<Claimed[]>;
+  record: (id: number, found: boolean, sentAt: string | null, http: number | null, code: string | null) => Promise<unknown>;
+  /** fn_mail_bounce_headers_due / _record: delivery reports stored without the tenant's stamp. */
+  headersDue?: (limit: number) => Promise<Array<{ inbound_id: number; graph_id: string }>>;
+  headersRecord?: (inboundId: number, exchangeInternal: boolean) => Promise<unknown>;
+  now?: () => number;
+};
+
+/** The Sent Items query for one Message-ID (OData string literal: a single quote is doubled). */
+export function sentItemsUrl(mailbox: string, messageId: string): string {
+  return `${GRAPH}/users/${encodeURIComponent(mailbox)}/mailFolders/sentitems/messages?` + new URLSearchParams({
+    $filter: `internetMessageId eq '${messageId.replace(/'/g, "''")}'`, $select: 'id,internetMessageId,sentDateTime', $top: '1',
+  }).toString();
+}
+
+/** One beat. Never throws. */
+export async function pollM365SentStatus(d: SentDeps): Promise<Record<string, unknown>> {
+  const now = d.now || Date.now;
+  const t0 = now();
+  const c = { claimed: 0, sent: 0, not_found: 0, failed: 0, deferred: 0 };
+  const mailbox = String(d.mailbox || '').trim().toLowerCase();
+  if (!/^[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(mailbox)) return { ok: true, held: 'invite_m365_mailbox is not an address', ...c };
+  const [tenant, client, secret] = SECRET_NAMES.map((k) => String(d.env(k) || '').trim());
+  if (!tenant || !client || !secret) return { ok: true, held: 'edge secrets not set', ...c };
+  let rows: Claimed[], reports: Array<{ inbound_id: number; graph_id: string }> = [];
+  try { rows = await d.claim(CLAIM); } catch (e) { return { ok: false, why: 'claim: ' + String((e as Error)?.message || e).slice(0, 160), ...c }; }
+  try { reports = d.headersDue ? await d.headersDue(REPORTS) : []; } catch (_e) { reports = []; }
+  c.claimed = rows.length;
+  if (!rows.length && !reports.length) return { ok: true, ...c };
+  let auth: Record<string, string>;
+  try { auth = { Authorization: 'Bearer ' + await graphToken(d.fetchFn, tenant, client, secret), Prefer: 'IdType="ImmutableId"' }; }
+  catch (e) {
+    // an outage, not an answer about any send: nothing is recorded, and the claim's stamp asks them again in 30 minutes
+    return { ok: false, why: String((e as Error)?.message || e).split(secret).join('[redacted]').slice(0, 200), ...c };
+  }
+  for (const r of rows) {
+    if (now() - t0 > BUDGET_MS) { c.deferred++; continue; }   // claimed, so asked again in 30 minutes
+    let found = false, sentAt: string | null = null, http: number | null = null, code: string | null = null;
+    try {
+      const res = await d.fetchFn(sentItemsUrl(mailbox, r.message_id), { headers: auth });
+      http = res.status;
+      if (res.ok) {
+        const j = await res.json().catch(() => ({})) as { value?: Array<{ internetMessageId?: string; sentDateTime?: string }> };
+        const hit = (j.value || []).find((m) => m?.internetMessageId === r.message_id);
+        found = !!hit; sentAt = hit?.sentDateTime || null;
+        if (!found) code = 'm365:not_in_sent_items';
+      } else { await res.body?.cancel(); code = 'http:' + res.status; }
+    } catch (_e) { code = 'm365:no_answer'; }
+    try { await d.record(r.notification_id, found, sentAt, http, code); } catch (_e) { c.failed++; continue; }
+    if (found) c.sent++; else if (code === 'm365:not_in_sent_items') c.not_found++; else c.failed++;
+  }
+  // A delivery report stored before resend_inbound captured the tenant's stamp: its headers, read again by its Graph id
+  // (immutable, as the reply reader stored it). 404: Graph no longer has it, recorded false. Anything else: next beat.
+  const h = { reread: 0, stamped: 0 };
+  for (const r of reports) {
+    if (now() - t0 > BUDGET_MS || !d.headersRecord) break;
+    try {
+      const res = await d.fetchFn(`${GRAPH}/users/${encodeURIComponent(mailbox)}/messages/${encodeURIComponent(r.graph_id)}?$select=from,internetMessageHeaders`, { headers: auth });
+      if (res.status === 404) { await res.body?.cancel(); await d.headersRecord(r.inbound_id, false); h.reread++; continue; }
+      if (!res.ok) { await res.body?.cancel(); continue; }
+      const m = await res.json() as GraphMessage;
+      const hdr = headersOf(m.internetMessageHeaders);
+      const stamped = exchangeInternal(M365_INBOUND_PREFIX + r.graph_id, stampHeaders((k) => hdr[k]), String(m.from?.emailAddress?.address || ''));
+      await d.headersRecord(r.inbound_id, stamped);
+      h.reread++; if (stamped) h.stamped++;
+    } catch (_e) { /* next beat */ }
+  }
+  return { ok: true, ...c, reports_reread: h.reread, reports_stamped: h.stamped };
+}
+
+/** READ-ONLY (review of #1792): for each delivery report's internetMessageId, which of the stamp headers Graph returns for it
+ *  in supplier@'s mailbox, and which proof tenantStampOf would accept. Writes nothing; values are cut to what the decision
+ *  reads (AuthAs, and whether a pass verdict names the sender's domain). Run after deploy: sales_engineer action
+ *  'm365_ndr_headers'. */
+export async function measureNdrHeaders(d: Pick<SentDeps, 'fetchFn' | 'env' | 'mailbox'> & { messageIds: string[] }): Promise<Record<string, unknown>> {
+  const mailbox = String(d.mailbox || '').trim().toLowerCase();
+  const [tenant, client, secret] = SECRET_NAMES.map((k) => String(d.env(k) || '').trim());
+  if (!mailbox || !tenant || !client || !secret) return { ok: false, why: 'mailbox or edge secrets not set' };
+  let auth: Record<string, string>;
+  try { auth = { Authorization: 'Bearer ' + await graphToken(d.fetchFn, tenant, client, secret) }; }
+  catch (e) { return { ok: false, why: String((e as Error)?.message || e).split(secret).join('[redacted]').slice(0, 200) }; }
+  const readings: Array<Record<string, unknown>> = [];
+  for (const id of d.messageIds.slice(0, 25)) {
+    const url = `${GRAPH}/users/${encodeURIComponent(mailbox)}/messages?` + new URLSearchParams({
+      $filter: `internetMessageId eq '${id.replace(/'/g, "''")}'`, $select: 'id,from,internetMessageId,internetMessageHeaders', $top: '1' }).toString();
+    try {
+      const res = await d.fetchFn(url, { headers: auth });
+      if (!res.ok) { await res.body?.cancel(); readings.push({ message_id: id, http: res.status }); continue; }
+      const m = ((await res.json()) as { value?: GraphMessage[] }).value?.[0];
+      if (!m) { readings.push({ message_id: id, http: 200, found: false }); continue; }
+      const hdr = headersOf(m.internetMessageHeaders);
+      const s = stampHeaders((k) => hdr[k]);
+      const from = String(m.from?.emailAddress?.address || '');
+      const ar = [s.authResults, s.arcResults].filter(Boolean).join(';').toLowerCase();
+      readings.push({ message_id: id, http: 200, found: true, from_domain: from.split('@')[1] || null, auth_as: s.authAs,
+        is_ndr: s.isNdr !== null, auth_results: !!s.authResults, arc_results: !!s.arcResults,
+        pass_for_sender_domain: /\b(dmarc|compauth)=pass\b/.test(ar) && ar.includes('header.from=' + (from.split('@')[1] || '').toLowerCase()),
+        recognised: tenantStampOf(M365_INBOUND_PREFIX + m.id, s, from) });
+    } catch (_e) { readings.push({ message_id: id, http: null }); }
+  }
+  return { ok: true, writes: 0, readings };
+}

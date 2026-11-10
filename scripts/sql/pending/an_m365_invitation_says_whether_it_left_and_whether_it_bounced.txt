@@ -1,0 +1,13 @@
+Committed, NOT applied (ported from PR #1792, sales_engineer, on 10 Nov 2026 by it_engineer; the PR had a MANIFEST line for
+apply-at-merge, replaced here by this note so the founder decides the apply). Replay-safe: six CREATE OR REPLACE routines,
+each with its revoke for its one signature; fn_supplier_mailbox_mail_gets_its_owner is the canonical body of
+a_delivery_report_in_the_supplier_mailbox_leaves_the_review_queue.sql (re-diffed 10 Nov: only the three edits of #1792);
+the backfill re-runs fn_mail_bounce_marks_its_send over existing reports, which writes the same result twice; no
+transaction control.
+DECISION FOR THE FOUNDER before the apply: the edited owner routine no longer lets any authenticated sender mark a lead
+'bounced'; only our tenant's stamped Exchange (by the exact In-Reply-To) or Gmail's authenticated mailer-daemon does.
+ORDER: apply this file BEFORE deploying resilience_ping (ticks/it_engineer/integrations.ts calls fn_m365_sent_status_claim and
+fn_mail_bounce_headers_due; deployed first, the itintegrations step fails every beat). resend_inbound and sales_engineer
+are safe to deploy either way. To apply: node scripts/apply_sql.mjs
+scripts/sql/an_m365_invitation_says_whether_it_left_and_whether_it_bounced.sql --apply --ddl, then delete this note and
+append the file to the END of scripts/sql/MANIFEST.txt in the same commit. Seat: sales_engineer.
