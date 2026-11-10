@@ -29,8 +29,8 @@
       "topic": "Books & educational materials: makes, brands, distributors and origins in the UAE",
       "topic_ar": "كتب ووسائل تعليمية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names UAE booksellers and major publishers, such as Kinokuniya, Magrudy's, Pearson and Oxford University Press, and the main book fairs. Confirmed UAE booksellers and major publishers: Books Kinokuniya (Dubai Mall), Magrudy's, Jarir Bookstore, Pearson, Oxford University Press, Cambridge University Press, HarperCollins (Collins), Hodder Education, McGraw Hill, Scholastic, Macmillan Education. The publishers' UAE distributor appointments were not checked. The Sharjah International Book Fair and Abu Dhabi International Book Fair are the main trade events.",
-      "body_ar": "من أبرز المكتبات ودور النشر الكبرى في الإمارات Kinokuniya وMagrudy's وPearson وOxford University Press، إضافة إلى معارض الكتاب الرئيسية. باعة الكتب المؤكدون في الإمارات وكبرى دور النشر: Books Kinokuniya (Dubai Mall)، Magrudy's، Jarir Bookstore، Pearson، Oxford University Press، Cambridge University Press، HarperCollins (Collins)، Hodder Education، McGraw Hill، Scholastic، Macmillan Education. ولم يُتحقق من تعيينات موزعي دور النشر في الإمارات. ويُعد معرض الشارقة الدولي للكتاب ومعرض أبوظبي الدولي للكتاب أهم فعاليات التجارة.",
+      "body_en": "This entry names UAE booksellers and major publishers, such as Kinokuniya, Magrudy's, Pearson and Oxford University Press, and the main book fairs. Confirmed UAE booksellers and major publishers: Books Kinokuniya (Dubai Mall), Magrudy's, Jarir Bookstore, Pearson, Oxford University Press, Cambridge University Press, HarperCollins (Collins), Hodder Education, McGraw Hill, Scholastic, Macmillan Education. The publishers' UAE distributor appointments were not checked. The Sharjah International Book Fair and Abu Dhabi International Book Fair are the main trade events.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Books Kinokuniya = a Japanese trading name; Magrudy's = a UAE trading or retail name; Jarir Bookstore = a Saudi trading name; Pearson = a premium British brand; Oxford University Press = a premium British brand; Cambridge University Press = a premium British brand; HarperCollins (Collins) = a premium American brand; Hodder Education = a mid-tier British brand; McGraw Hill = a premium American brand; Scholastic = a mid-tier American brand; Macmillan Education = a mid-tier British brand.",
+      "body_ar": "من أبرز المكتبات ودور النشر الكبرى في الإمارات Kinokuniya وMagrudy's وPearson وOxford University Press، إضافة إلى معارض الكتاب الرئيسية. باعة الكتب المؤكدون في الإمارات وكبرى دور النشر: Books Kinokuniya (Dubai Mall)، Magrudy's، Jarir Bookstore، Pearson، Oxford University Press، Cambridge University Press، HarperCollins (Collins)، Hodder Education، McGraw Hill، Scholastic، Macmillan Education. ولم يُتحقق من تعيينات موزعي دور النشر في الإمارات. ويُعد معرض الشارقة الدولي للكتاب ومعرض أبوظبي الدولي للكتاب أهم فعاليات التجارة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Books Kinokuniya = اسم تجاري يابانية؛ Magrudy's = اسم تجاري لتاجر أو موزع في الإمارات؛ Jarir Bookstore = اسم تجاري سعودية؛ Pearson = علامة بريطانية من الفئة الممتازة؛ Oxford University Press = علامة بريطانية من الفئة الممتازة؛ Cambridge University Press = علامة بريطانية من الفئة الممتازة؛ HarperCollins (Collins) = علامة أمريكية من الفئة الممتازة؛ Hodder Education = علامة بريطانية من الفئة المتوسطة؛ McGraw Hill = علامة أمريكية من الفئة الممتازة؛ Scholastic = علامة أمريكية من الفئة المتوسطة؛ Macmillan Education = علامة بريطانية من الفئة المتوسطة.",
       "sources": [
         "https://www.nma.gov.ae/en/services/permit-for-circulating-publications-within-the-country",
         "https://www.propertyfinder.ae/blog/book-stores-abu-dhabi/",
@@ -42,7 +42,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Printing and circulating publications needs a media permit; book importers/distributors need a media licence with the book import and distribution activity -> confirmed: the circulation permit is now published under the National Media Authority site; the authority name should be checked at quoting | Kinokuniya (Dubai Mall, with a Dubai Sales Office for institutions), Magrudy's (UAE chain incl. school supplies) and Jarir (Saudi chain) sell books in the UAE -> confirmed | Virgin Megastore, Jashanmal bookstores, Kalimat and Hachette Antoine as channels -> removed: not checked. Not checked: The UAE Media Council URL, current exclusive distributor for each publisher, and school book approval procedures per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Printing and circulating publications needs a media permit; book importers/distributors need a media licence with the book import and distribution activity -> confirmed: the circulation permit is now published under the National Media Authority site; the authority name should be checked at quoting | Kinokuniya (Dubai Mall, with a Dubai Sales Office for institutions), Magrudy's (UAE chain incl. school supplies) and Jarir (Saudi chain) sell books in the UAE -> confirmed | Virgin Megastore, Jashanmal bookstores, Kalimat and Hachette Antoine as channels -> removed: not checked. Not checked: The UAE Media Council URL, current exclusive distributor for each publisher, and school book approval procedures per emirate were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "Books Kinokuniya",
+          "origin_country": "Japan",
+          "tier": "dealer",
+          "generic_en": "a Japanese trading name",
+          "generic_ar": "اسم تجاري يابانية"
+        },
+        {
+          "brand": "Magrudy's",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Jarir Bookstore",
+          "origin_country": "Saudi Arabia",
+          "tier": "dealer",
+          "generic_en": "a Saudi trading name",
+          "generic_ar": "اسم تجاري سعودية"
+        },
+        {
+          "brand": "Pearson",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Oxford University Press",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Cambridge University Press",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "HarperCollins (Collins)",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hodder Education",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "McGraw Hill",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Scholastic",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Macmillan Education",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "books_educational:uae-market-sizes",

@@ -28,8 +28,8 @@
       "topic": "Stationery & office supplies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "قرطاسية ومستلزمات مكاتب: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names UAE business suppliers Office One, FetchOffice and OfficeStationery.ae and brands such as Double A, PaperOne, Pilot, Uni-ball, BIC, Faber-Castell, Staedtler, HP, Canon, Epson and 3M Post-it. Confirmed UAE B2B suppliers and brands sold: Office One, FetchOffice, OfficeStationery.ae, Double A, PaperOne, Pilot, Uni-ball, BIC, Faber-Castell, Staedtler, HP, Canon, Epson, 3M Post-it. The brands' UAE distributors were not checked. Wholesalers also operate in Deira and Sharjah.",
-      "body_ar": "من موردي القرطاسية للشركات في الإمارات Office One وFetchOffice وOfficeStationery.ae، ومن العلامات Double A وPaperOne وPilot وUni-ball وBIC وFaber-Castell وStaedtler وHP وCanon وEpson و3M Post-it. موردو الشركات المؤكدون في الإمارات والعلامات المباعة: Office One، FetchOffice، OfficeStationery.ae، Double A، PaperOne، Pilot، Uni-ball، BIC، Faber-Castell، Staedtler، HP، Canon، Epson، 3M Post-it. ولم يُتحقق من موزعي العلامات في الإمارات. ويعمل تجار الجملة أيضاً في ديرة والشارقة.",
+      "body_en": "This entry names UAE business suppliers Office One, FetchOffice and OfficeStationery.ae and brands such as Double A, PaperOne, Pilot, Uni-ball, BIC, Faber-Castell, Staedtler, HP, Canon, Epson and 3M Post-it. Confirmed UAE B2B suppliers and brands sold: Office One, FetchOffice, OfficeStationery.ae, Double A, PaperOne, Pilot, Uni-ball, BIC, Faber-Castell, Staedtler, HP, Canon, Epson, 3M Post-it. The brands' UAE distributors were not checked. Wholesalers also operate in Deira and Sharjah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Office One = a UAE trading or retail name; FetchOffice = a UAE trading or retail name; OfficeStationery.ae = a UAE trading or retail name; Double A = a premium Thai brand; PaperOne = a mid-tier Indonesian brand; Pilot = a mid-tier Japanese brand; Uni-ball = a mid-tier Japanese brand; BIC = an economy French brand; Faber-Castell = a premium German brand; Staedtler = a mid-tier German brand; HP = a premium American brand; Canon = a premium Japanese brand; Epson = a premium Japanese brand; 3M Post-it = a mid-tier American brand.",
+      "body_ar": "من موردي القرطاسية للشركات في الإمارات Office One وFetchOffice وOfficeStationery.ae، ومن العلامات Double A وPaperOne وPilot وUni-ball وBIC وFaber-Castell وStaedtler وHP وCanon وEpson و3M Post-it. موردو الشركات المؤكدون في الإمارات والعلامات المباعة: Office One، FetchOffice، OfficeStationery.ae، Double A، PaperOne، Pilot، Uni-ball، BIC، Faber-Castell، Staedtler، HP، Canon، Epson، 3M Post-it. ولم يُتحقق من موزعي العلامات في الإمارات. ويعمل تجار الجملة أيضاً في ديرة والشارقة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Office One = اسم تجاري لتاجر أو موزع في الإمارات؛ FetchOffice = اسم تجاري لتاجر أو موزع في الإمارات؛ OfficeStationery.ae = اسم تجاري لتاجر أو موزع في الإمارات؛ Double A = علامة تايلندية من الفئة الممتازة؛ PaperOne = علامة إندونيسية من الفئة المتوسطة؛ Pilot = علامة يابانية من الفئة المتوسطة؛ Uni-ball = علامة يابانية من الفئة المتوسطة؛ BIC = علامة فرنسية من الفئة الاقتصادية؛ Faber-Castell = علامة ألمانية من الفئة الممتازة؛ Staedtler = علامة ألمانية من الفئة المتوسطة؛ HP = علامة أمريكية من الفئة الممتازة؛ Canon = علامة يابانية من الفئة الممتازة؛ Epson = علامة يابانية من الفئة الممتازة؛ 3M Post-it = علامة أمريكية من الفئة المتوسطة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Units_of_paper_quantity",
         "https://www.officeoneuae.com/",
@@ -40,7 +40,107 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: A ream is 500 sheets; standard office paper is A4 80 gsm -> confirmed | B2B office supply companies in the UAE include Office One, FetchOffice and OfficeStationery.ae -> confirmed | WHSmith, Jarir, Emirates Stationery as B2B suppliers -> removed: not confirmed. Not checked: Named wholesalers are market examples; current distributor appointments and company stamp licensing rules per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: A ream is 500 sheets; standard office paper is A4 80 gsm -> confirmed | B2B office supply companies in the UAE include Office One, FetchOffice and OfficeStationery.ae -> confirmed | WHSmith, Jarir, Emirates Stationery as B2B suppliers -> removed: not confirmed. Not checked: Named wholesalers are market examples; current distributor appointments and company stamp licensing rules per emirate were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "Office One",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "FetchOffice",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "OfficeStationery.ae",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Double A",
+          "origin_country": "Thailand",
+          "tier": "premium",
+          "generic_en": "a premium Thai brand",
+          "generic_ar": "علامة تايلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "PaperOne",
+          "origin_country": "Indonesia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indonesian brand",
+          "generic_ar": "علامة إندونيسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Pilot",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Uni-ball",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "BIC",
+          "origin_country": "France",
+          "tier": "economy",
+          "generic_en": "an economy French brand",
+          "generic_ar": "علامة فرنسية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Faber-Castell",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Staedtler",
+          "origin_country": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "HP",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Canon",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Epson",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "3M Post-it",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "stationery_office_supplies:uae-market-sizes",

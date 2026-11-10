@@ -28,8 +28,8 @@
       "topic": "Beauty & salon equipment: makes, brands, distributors and origins in the UAE",
       "topic_ar": "معدات صالونات وتجميل: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names UAE salon suppliers Nazih Cosmetics and Cosmetica Beauty Trading and brands including Takara Belmont, Maletti, Wahl, BaByliss PRO, Dyson and GHD, and where salon suppliers cluster. Confirmed UAE salon suppliers and brands: Nazih Cosmetics, Cosmetica Beauty Trading, Takara Belmont, Maletti, Wahl, BaByliss PRO, Dyson, GHD. Apart from the furniture brands carried by the named suppliers, UAE distributors were not checked. Salon suppliers cluster in Deira, Karama, Al Quoz, Sharjah and Abu Dhabi.",
-      "body_ar": "من موردي الصالونات في الإمارات Nazih Cosmetics وCosmetica Beauty Trading، ومن العلامات Takara Belmont وMaletti وWahl وBaByliss PRO وDyson وGHD، مع بيان أماكن تجمع الموردين. موردو الصالونات المؤكدون في الإمارات والعلامات: Nazih Cosmetics، Cosmetica Beauty Trading، Takara Belmont، Maletti، Wahl، BaByliss PRO، Dyson، GHD. وباستثناء علامات الأثاث التي يحملها الموردون المذكورون، لم يُتحقق من الموزعين في الإمارات. ويتجمع موردو الصالونات في ديرة والكرامة والقوز والشارقة وأبوظبي.",
+      "body_en": "This entry names UAE salon suppliers Nazih Cosmetics and Cosmetica Beauty Trading and brands including Takara Belmont, Maletti, Wahl, BaByliss PRO, Dyson and GHD, and where salon suppliers cluster. Confirmed UAE salon suppliers and brands: Nazih Cosmetics, Cosmetica Beauty Trading, Takara Belmont, Maletti, Wahl, BaByliss PRO, Dyson, GHD. Apart from the furniture brands carried by the named suppliers, UAE distributors were not checked. Salon suppliers cluster in Deira, Karama, Al Quoz, Sharjah and Abu Dhabi.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Nazih Cosmetics = a UAE trading or retail name; Cosmetica Beauty Trading = a UAE trading or retail name; Takara Belmont = a premium Japanese brand; Maletti = a luxury Italian brand; Wahl = a mid-tier American brand; BaByliss PRO = a mid-tier French brand; Dyson = a premium British brand; GHD = a premium British brand.",
+      "body_ar": "من موردي الصالونات في الإمارات Nazih Cosmetics وCosmetica Beauty Trading، ومن العلامات Takara Belmont وMaletti وWahl وBaByliss PRO وDyson وGHD، مع بيان أماكن تجمع الموردين. موردو الصالونات المؤكدون في الإمارات والعلامات: Nazih Cosmetics، Cosmetica Beauty Trading، Takara Belmont، Maletti، Wahl، BaByliss PRO، Dyson، GHD. وباستثناء علامات الأثاث التي يحملها الموردون المذكورون، لم يُتحقق من الموزعين في الإمارات. ويتجمع موردو الصالونات في ديرة والكرامة والقوز والشارقة وأبوظبي.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Nazih Cosmetics = اسم تجاري لتاجر أو موزع في الإمارات؛ Cosmetica Beauty Trading = اسم تجاري لتاجر أو موزع في الإمارات؛ Takara Belmont = علامة يابانية من الفئة الممتازة؛ Maletti = علامة إيطالية من الفئة الفاخرة؛ Wahl = علامة أمريكية من الفئة المتوسطة؛ BaByliss PRO = علامة فرنسية من الفئة المتوسطة؛ Dyson = علامة بريطانية من الفئة الممتازة؛ GHD = علامة بريطانية من الفئة الممتازة.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2021/01/DM-HSD-GU75-IS2_Ideal-Salon-Technical-Guideline_V2.1.pdf",
         "https://www.ede.gov.ae/en/home",
@@ -40,7 +40,65 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai salons need a DET licence plus Dubai Municipality approval covering hygiene, sterilisation (autoclave or approved sterilant) and premises -> confirmed | Energy-based aesthetic devices are medical devices regulated by the Emirates Drug Establishment -> confirmed | Nazih Cosmetics and Moda Salon Interiors supply Takara Belmont and Maletti salon furniture -> confirmed. Not checked: The Emirates Drug Establishment URL and the exact device classes it registers, and UAE distributors for named brands, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai salons need a DET licence plus Dubai Municipality approval covering hygiene, sterilisation (autoclave or approved sterilant) and premises -> confirmed | Energy-based aesthetic devices are medical devices regulated by the Emirates Drug Establishment -> confirmed | Nazih Cosmetics and Moda Salon Interiors supply Takara Belmont and Maletti salon furniture -> confirmed. Not checked: The Emirates Drug Establishment URL and the exact device classes it registers, and UAE distributors for named brands, were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "Nazih Cosmetics",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Cosmetica Beauty Trading",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Takara Belmont",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Maletti",
+          "origin_country": "Italy",
+          "tier": "luxury",
+          "generic_en": "a luxury Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Wahl",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "BaByliss PRO",
+          "origin_country": "France",
+          "tier": "mid",
+          "generic_en": "a mid-tier French brand",
+          "generic_ar": "علامة فرنسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Dyson",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "GHD",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "salon_equipment:uae-market-sizes",

@@ -28,8 +28,8 @@
       "topic": "Fitness & gym equipment: makes, brands, distributors and origins in the UAE",
       "topic_ar": "أجهزة اللياقة البدنية والصالات الرياضية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Fitness brands and retailers in the UAE, such as Technogym, Life Fitness, Hammer Strength, Precor, Matrix, Cybex, Concept2, Eleiko, Sun & Sand Sports and Decathlon. Brands and confirmed retailers: Technogym, Life Fitness, Hammer Strength, Precor, Matrix (Johnson Health Tech), Cybex, Concept2, Eleiko, Sun & Sand Sports, Decathlon. Technogym runs its own Dubai showroom; the other brands' UAE distributors were not checked.",
-      "body_ar": "من أبرز ماركات ومتاجر أجهزة اللياقة في الإمارات Technogym وLife Fitness وHammer Strength وPrecor وMatrix وCybex وConcept2 وEleiko وSun & Sand Sports وDecathlon. العلامات وتجار التجزئة المؤكدون: Technogym، Life Fitness، Hammer Strength، Precor، Matrix (Johnson Health Tech)، Cybex، Concept2، Eleiko، Sun & Sand Sports، Decathlon. وتدير تكنوجيم صالة عرض خاصة بها في دبي؛ ولم يُتحقق من موزعي العلامات الأخرى في الإمارات.",
+      "body_en": "Fitness brands and retailers in the UAE, such as Technogym, Life Fitness, Hammer Strength, Precor, Matrix, Cybex, Concept2, Eleiko, Sun & Sand Sports and Decathlon. Brands and confirmed retailers: Technogym, Life Fitness, Hammer Strength, Precor, Matrix (Johnson Health Tech), Cybex, Concept2, Eleiko, Sun & Sand Sports, Decathlon. Technogym runs its own Dubai showroom; the other brands' UAE distributors were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Technogym = a luxury Italian brand; Life Fitness = a premium American brand; Hammer Strength = a premium American brand; Precor = a premium American brand; Matrix (Johnson Health Tech) = a premium Taiwanese brand; Cybex = a premium American brand; Concept2 = a premium American brand; Eleiko = a premium Swedish brand; Sun & Sand Sports = a UAE trading or retail name; Decathlon = a French trading name.",
+      "body_ar": "من أبرز ماركات ومتاجر أجهزة اللياقة في الإمارات Technogym وLife Fitness وHammer Strength وPrecor وMatrix وCybex وConcept2 وEleiko وSun & Sand Sports وDecathlon. العلامات وتجار التجزئة المؤكدون: Technogym، Life Fitness، Hammer Strength، Precor، Matrix (Johnson Health Tech)، Cybex، Concept2، Eleiko، Sun & Sand Sports، Decathlon. وتدير تكنوجيم صالة عرض خاصة بها في دبي؛ ولم يُتحقق من موزعي العلامات الأخرى في الإمارات.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Technogym = علامة إيطالية من الفئة الفاخرة؛ Life Fitness = علامة أمريكية من الفئة الممتازة؛ Hammer Strength = علامة أمريكية من الفئة الممتازة؛ Precor = علامة أمريكية من الفئة الممتازة؛ Matrix (Johnson Health Tech) = علامة تايوانية من الفئة الممتازة؛ Cybex = علامة أمريكية من الفئة الممتازة؛ Concept2 = علامة أمريكية من الفئة الممتازة؛ Eleiko = علامة سويدية من الفئة الممتازة؛ Sun & Sand Sports = اسم تجاري لتاجر أو موزع في الإمارات؛ Decathlon = اسم تجاري فرنسية.",
       "sources": [
         "https://www.iso.org/standard/81908.html",
         "https://www.technogym.com/en-AE/technogym-dubai/",
@@ -40,7 +40,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20957 classes: S for commercial/studio, H for home; A/B/C are accuracy classes -> confirmed | Technogym has a Dubai showroom and experience centre on Jumeirah Street -> confirmed | Techno Sport distributor, Leejam as buyer -> removed: not confirmed. Not checked: Current exclusive UAE distributors for each brand and typical lead times were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20957 classes: S for commercial/studio, H for home; A/B/C are accuracy classes -> confirmed | Technogym has a Dubai showroom and experience centre on Jumeirah Street -> confirmed | Techno Sport distributor, Leejam as buyer -> removed: not confirmed. Not checked: Current exclusive UAE distributors for each brand and typical lead times were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "Technogym",
+          "origin_country": "Italy",
+          "tier": "luxury",
+          "generic_en": "a luxury Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Life Fitness",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hammer Strength",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Precor",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Matrix (Johnson Health Tech)",
+          "origin_country": "Taiwan",
+          "tier": "premium",
+          "generic_en": "a premium Taiwanese brand",
+          "generic_ar": "علامة تايوانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Cybex",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Concept2",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Eleiko",
+          "origin_country": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sun & Sand Sports",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Decathlon",
+          "origin_country": "France",
+          "tier": "dealer",
+          "generic_en": "a French trading name",
+          "generic_ar": "اسم تجاري فرنسية"
+        }
+      ]
     },
     {
       "id": "fitness_equipment:uae-market-sizes",

@@ -5,8 +5,8 @@
       "id": "textiles_fabrics:spec-checklist",
       "topic": "Textiles and fabrics - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For textiles and fabrics quotes to be compared like-for-like, every quoted line (goods) must state: (1) fibre composition in percent; (2) fabric construction (woven, knit) and weight in g/m2; (3) width in cm; (4) colour and colour fastness; (5) finish (flame retardant, water repellent); (6) quantity in metres; (7) end use; (8) test report for required properties; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the textiles_fabrics trade.",
-      "body_ar": "لكي تُقارن عروض المنسوجات والأقمشة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) تركيب الألياف بالنسبة المئوية؛ (2) بنية القماش (منسوج أو محبوك) ووزنه بالغرام للمتر المربع؛ (3) العرض بالسنتيمتر؛ (4) اللون وثباته؛ (5) التشطيب (مقاوم للهب أو طارد للماء)؛ (6) الكمية بالأمتار؛ (7) الاستخدام النهائي؛ (8) تقرير الاختبار للخصائص المطلوبة؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة textiles_fabrics فقط.",
+      "body_en": "For textiles and fabrics quotes to be compared like-for-like, every quoted line (goods) must state: (1) fibre composition in percent; (2) fabric construction (woven, knit) and weight in g/m2; (3) width in cm; (4) colour and colour fastness; (5) finish (flame retardant, water repellent); (6) quantity in metres; (7) end use; (8) test report for required properties; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the textiles_fabrics trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): fibre composition in percent; fabric construction (woven, knit) and weight in g/m2; width in cm; colour and colour fastness; quantity in metres; delivery terms and location. Follow-up questions the answers trigger: fabric construction (woven, knit) and weight in g/m2: Ask a swatch or the article number if known; colour and colour fastness: Pantone: lab dip needed; finish (flame retardant, water repellent): FR: ask the end-use standard. Before a firm price: stock fabrics can be priced firm from article, colour and metres; custom colours or finishes need a lab dip or strike-off approved before the price is firm, and a new fabric needs a swatch.",
+      "body_ar": "لكي تُقارن عروض المنسوجات والأقمشة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) تركيب الألياف بالنسبة المئوية؛ (2) بنية القماش (منسوج أو محبوك) ووزنه بالغرام للمتر المربع؛ (3) العرض بالسنتيمتر؛ (4) اللون وثباته؛ (5) التشطيب (مقاوم للهب أو طارد للماء)؛ (6) الكمية بالأمتار؛ (7) الاستخدام النهائي؛ (8) تقرير الاختبار للخصائص المطلوبة؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة textiles_fabrics فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: تركيب الألياف بالنسبة المئوية، والبنية والوزن، والعرض، واللون ودرجات الثبات، والكمية بالأمتار، وشروط التسليم. أسئلة المتابعة: الألوان حسب بانتون تستلزم عيّنة صباغة، والتشطيب المقاوم للحريق يستلزم معيار الاستخدام النهائي. الأقمشة المتوفرة تُسعّر نهائياً، أما الألوان أو التشطيبات الخاصة فتحتاج اعتماد عيّنة صباغة أو طباعة أولاً.",
       "required_specs": [
         "fibre composition in percent",
         "fabric construction (woven, knit) and weight in g/m2",
@@ -27,7 +27,102 @@
         "https://www.iso.org/standards.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "fibre composition in percent",
+        "fabric construction (woven, knit) and weight in g/m2",
+        "width in cm",
+        "colour and colour fastness",
+        "quantity in metres",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "fibre composition in percent",
+          "blocking": true,
+          "why_it_prices": "Fibre content is the base of the price.",
+          "uae_options": "% cotton, polyester, viscose, wool, linen, blends",
+          "follow_up": ""
+        },
+        {
+          "spec": "fabric construction (woven, knit) and weight in g/m2",
+          "blocking": true,
+          "why_it_prices": "Construction and weight fix the fabric.",
+          "uae_options": "woven or knit; weave type; g/m2",
+          "follow_up": "Ask a swatch or the article number if known."
+        },
+        {
+          "spec": "width in cm",
+          "blocking": true,
+          "why_it_prices": "Width changes metres needed.",
+          "uae_options": "110-320 cm",
+          "follow_up": ""
+        },
+        {
+          "spec": "colour and colour fastness",
+          "blocking": true,
+          "why_it_prices": "Colour and fastness grades decide dyeing cost.",
+          "uae_options": "stock colour; lab dip; fastness to light, wash, rubbing grades",
+          "follow_up": "Pantone: lab dip needed."
+        },
+        {
+          "spec": "finish (flame retardant, water repellent)",
+          "blocking": false,
+          "why_it_prices": "Special finishes add cost and need test proof.",
+          "uae_options": "FR; water repellent; anti-bacterial; easy care",
+          "follow_up": "FR: ask the end-use standard."
+        },
+        {
+          "spec": "quantity in metres",
+          "blocking": true,
+          "why_it_prices": "Metres ordered set price breaks and MOQ.",
+          "uae_options": "metres per colour",
+          "follow_up": ""
+        },
+        {
+          "spec": "end use",
+          "blocking": false,
+          "why_it_prices": "End use guides the right fabric.",
+          "uae_options": "apparel; uniforms; upholstery; curtains; technical",
+          "follow_up": ""
+        },
+        {
+          "spec": "test report for required properties",
+          "blocking": false,
+          "why_it_prices": "Test reports prove properties.",
+          "uae_options": "accredited lab report",
+          "follow_up": ""
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivery terms matter for import lots.",
+          "uae_options": "ex-warehouse Dubai; CIF; DDP",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "Mill orders take weeks or months.",
+          "uae_options": "stock; mill order",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_it_prices": "Claims period for defects.",
+          "uae_options": "days after delivery",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "cutting; customs duty for free-zone stock",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "stock fabrics can be priced firm from article, colour and metres; custom colours or finishes need a lab dip or strike-off approved before the price is firm, and a new fabric needs a swatch."
     },
     {
       "id": "textiles_fabrics:uae-standards-and-approvals",
@@ -84,6 +179,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "textiles_fabrics:authority-approvals",
+      "topic": "Textiles & fabrics: licences, permits and approvals by emirate",
+      "topic_ar": "أقمشة ومنسوجات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Textile products are covered by the UAE scheme for the control of textile products (Cabinet Resolution; 2019 and 2024 texts appear on the UAE legislation portal), administered by MoIAT, which sets labelling requirements for fibre composition and care by reference to standards in its annex. Fabric sold by the metre between businesses for further manufacture may be treated differently from finished goods; the scope article was not opened in this session. Fabrics used in buildings (curtains, upholstery, wallcoverings) must meet the fire performance asked under the UAE Fire and Life Safety Code, checked by the civil defence of the emirate during fit-out approval. Goods moving from a free-zone warehouse into the mainland pass customs. The importer holds the certificates.",
+      "body_ar": "تخضع المنتجات النسيجية للنظام الإماراتي للرقابة على المنتجات النسيجية (بقرار من مجلس الوزراء؛ يظهر على بوابة التشريعات نصّا 2019 و2024)، الذي تديره وزارة الصناعة والتكنولوجيا المتقدمة ويحدد متطلبات بطاقة نسبة الألياف والعناية بالإحالة إلى المعايير في ملحقه. وقد يُعامل القماش المبيع بالمتر بين الشركات لغرض التصنيع معاملة مختلفة عن المنتجات النهائية، ولم تُفتح مادة النطاق في هذه الجلسة. ويجب أن تستوفي الأقمشة المستخدمة في المباني (الستائر والتنجيد وأغطية الجدران) أداء مقاومة الحريق المطلوب وفق كود الإمارات للحماية من الحرائق، ويتحقق منه الدفاع المدني في الإمارة عند اعتماد التجهيز. وتمر البضائع المنقولة من مستودع منطقة حرة إلى البر الرئيسي بالجمارك. ويحوز المستورد الشهادات.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2802/download",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "textiles_fabrics:quote-red-flags",
+      "topic": "Textiles & fabrics: red flags in supplier quotations",
+      "topic_ar": "أقمشة ومنسوجات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a lower weight than quoted, a blend with more polyester than stated, a narrower width (more metres needed), shade variation between rolls with no shade band agreement, FR finish without a test report for the end-use standard, and minimums per colour hidden in the terms. Ask the mill or origin when the buyer named one.",
+      "body_ar": "انتبه إلى وزن أقل من المعروض، وخليط بنسبة بوليستر أعلى من المذكور، وعرض أضيق (يتطلب أمتاراً أكثر)، وتفاوت درجة اللون بين اللفائف دون اتفاق على نطاق الدرجات، وتشطيب مقاوم للحريق دون تقرير اختبار لمعيار الاستخدام، وحد أدنى لكل لون مخفي في الشروط. واسأل عن المصنع أو المنشأ إذا حدده المشتري.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "textiles_fabrics:buyer-mistakes",
+      "topic": "Textiles & fabrics: common buyer mistakes",
+      "topic_ar": "أقمشة ومنسوجات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers often order by colour name without a swatch, ignore width when comparing price per metre, and do not inspect shade consistency on arrival.",
+      "body_ar": "كثيراً ما يطلب المشترون باسم اللون دون عيّنة، ويتجاهلون العرض عند مقارنة سعر المتر، ولا يفحصون تجانس اللون عند الوصول.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "textiles_fabrics:price-drivers",
+      "topic": "Textiles & fabrics: what makes prices differ legitimately",
+      "topic_ar": "أقمشة ومنسوجات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: fibre and yarn quality, construction, weight, width, dyeing and finishing, mill reputation and origin, metres per colour, and freight and duties.",
+      "body_ar": "العوامل: جودة الألياف والخيوط، والبنية، والوزن، والعرض، والصباغة والتشطيب، وسمعة المصنع ومنشؤه، والأمتار لكل لون، والشحن والرسوم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "textiles_fabrics:compare-quotes-cost-to-value",
+      "topic": "Textiles & fabrics: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "أقمشة ومنسوجات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare price per usable square metre (price per metre divided by width), at the same fibre, weight and finish, with test reports where properties matter. Recommend three that match the swatch and test requirements.",
+      "body_ar": "قارن السعر لكل متر مربع قابل للاستخدام (سعر المتر مقسوماً على العرض) بالألياف والوزن والتشطيب نفسها، مع تقارير الاختبار حيث تهم الخصائص. أوصِ بثلاثة عروض تطابق العيّنة ومتطلبات الاختبار.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +289,8 @@
     "removed": [],
     "still_unverified": [
       "textiles_fabrics:spec-checklist",
-      "textiles_fabrics:uae-standards-and-approvals"
+      "textiles_fabrics:uae-standards-and-approvals",
+      "textiles_fabrics:authority-approvals"
     ],
     "added": [
       "textiles_fabrics:spec-checklist",
@@ -157,6 +321,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "textiles_fabrics:quote-red-flags",
+      "textiles_fabrics:buyer-mistakes",
+      "textiles_fabrics:price-drivers",
+      "textiles_fabrics:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

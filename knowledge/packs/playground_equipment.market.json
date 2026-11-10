@@ -28,8 +28,8 @@
       "topic": "Playground equipment: makes, brands, distributors and origins in the UAE",
       "topic_ar": "ألعاب ومعدات ملاعب أطفال: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the playground brands confirmed in the UAE, KOMPAN, HAGS and Gebal Group, and how other brands are supplied through landscaping and playground contractors. Confirmed UAE players: KOMPAN, HAGS (HAGSAE), Gebal Group. Other European and Chinese, Turkish and Indian brands are supplied by landscaping and playground contractors; their UAE representation was not checked.",
-      "body_ar": "العلامات المؤكدة لمعدات ملاعب الأطفال في الإمارات هي KOMPAN وHAGS وGebal Group، أما العلامات الأخرى فتُورَّد عبر مقاولي تنسيق الحدائق والملاعب. اللاعبون المؤكدون في الإمارات: KOMPAN، HAGS (HAGSAE)، Gebal Group. ويورد مقاولو تنسيق الحدائق والملاعب علامات أوروبية وصينية وتركية وهندية أخرى لم يُتحقق من تمثيلها في الإمارات.",
+      "body_en": "This lists the playground brands confirmed in the UAE, KOMPAN, HAGS and Gebal Group, and how other brands are supplied through landscaping and playground contractors. Confirmed UAE players: KOMPAN, HAGS (HAGSAE), Gebal Group. Other European and Chinese, Turkish and Indian brands are supplied by landscaping and playground contractors; their UAE representation was not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): KOMPAN = a premium Danish brand; HAGS (HAGSAE) = a premium Swedish brand; Gebal Group = a UAE trading or retail name.",
+      "body_ar": "العلامات المؤكدة لمعدات ملاعب الأطفال في الإمارات هي KOMPAN وHAGS وGebal Group، أما العلامات الأخرى فتُورَّد عبر مقاولي تنسيق الحدائق والملاعب. اللاعبون المؤكدون في الإمارات: KOMPAN، HAGS (HAGSAE)، Gebal Group. ويورد مقاولو تنسيق الحدائق والملاعب علامات أوروبية وصينية وتركية وهندية أخرى لم يُتحقق من تمثيلها في الإمارات.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): KOMPAN = علامة دنماركية من الفئة الممتازة؛ HAGS (HAGSAE) = علامة سويدية من الفئة الممتازة؛ Gebal Group = اسم تجاري لتاجر أو موزع في الإمارات.",
       "sources": [
         "https://gebalgroup.com/playground-equipment-safety-standards-uae/",
         "https://www.kompan.com/en/ae",
@@ -40,7 +40,30 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Municipality, Trakhees, KHDA and ADEK recognise EN 1176 (equipment) and EN 1177 (surfacing); DM guidelines ask for about 70-80% shade over active play zones -> confirmed | KOMPAN has a UAE office in Dubai; HAGS is represented by HAGSAE in Barsha Heights -> confirmed | Playworld, Landscape Structures, Lappset UAE presence -> removed: not checked. Not checked: Current UAE distributors of named brands and each municipality's specific park playground specification were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Municipality, Trakhees, KHDA and ADEK recognise EN 1176 (equipment) and EN 1177 (surfacing); DM guidelines ask for about 70-80% shade over active play zones -> confirmed | KOMPAN has a UAE office in Dubai; HAGS is represented by HAGSAE in Barsha Heights -> confirmed | Playworld, Landscape Structures, Lappset UAE presence -> removed: not checked. Not checked: Current UAE distributors of named brands and each municipality's specific park playground specification were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "KOMPAN",
+          "origin_country": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "HAGS (HAGSAE)",
+          "origin_country": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Gebal Group",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        }
+      ]
     },
     {
       "id": "playground_equipment:uae-market-sizes",

@@ -5,8 +5,8 @@
       "id": "water_dispensers:spec-checklist",
       "topic": "Water dispensers - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For water dispensers quotes to be compared like-for-like, every quoted line (goods) must state: (1) dispenser type (bottle top, bottom load, point of use); (2) hot, cold and room temperature functions; (3) cooling and heating capacity; (4) power rating and energy label; (5) filtration stages for point of use; (6) child lock; (7) conformity certificate; (8) bottle supply and sanitising service; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_dispensers trade.",
-      "body_ar": "لكي تُقارن عروض موزعات المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الموزع (قارورة علوية، أو تحميل سفلي، أو متصل بالشبكة)؛ (2) وظائف الماء الساخن والبارد وبدرجة الغرفة؛ (3) قدرة التبريد والتسخين؛ (4) القدرة الكهربائية وملصق كفاءة الطاقة؛ (5) مراحل الترشيح للموزع المتصل؛ (6) قفل الأطفال؛ (7) شهادة المطابقة؛ (8) توريد القوارير وخدمة التعقيم؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_dispensers فقط.",
+      "body_en": "For water dispensers quotes to be compared like-for-like, every quoted line (goods) must state: (1) dispenser type (bottle top, bottom load, point of use); (2) hot, cold and room temperature functions; (3) cooling and heating capacity; (4) power rating and energy label; (5) filtration stages for point of use; (6) child lock; (7) conformity certificate; (8) bottle supply and sanitising service; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_dispensers trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): dispenser type (bottle top, bottom load, point of use); hot, cold and room temperature functions; filtration stages for point of use; bottle supply and sanitising service; delivery terms and location. Follow-up questions the answers trigger: dispenser type (bottle top, bottom load, point of use): Mains-fed: ask whether a water point and drain are near; cooling and heating capacity: Ask number of users; filtration stages for point of use: RO: ask drain and water pressure. Before a firm price: a firm price needs unit type, functions, quantity and, for mains-fed units, the filtration and plumbing scope; mains-fed installation in an existing office usually needs a site check of water point and drain.",
+      "body_ar": "لكي تُقارن عروض موزعات المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الموزع (قارورة علوية، أو تحميل سفلي، أو متصل بالشبكة)؛ (2) وظائف الماء الساخن والبارد وبدرجة الغرفة؛ (3) قدرة التبريد والتسخين؛ (4) القدرة الكهربائية وملصق كفاءة الطاقة؛ (5) مراحل الترشيح للموزع المتصل؛ (6) قفل الأطفال؛ (7) شهادة المطابقة؛ (8) توريد القوارير وخدمة التعقيم؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_dispensers فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الموزع، ووظائف الحار والبارد، ومراحل الفلترة للموزعات الموصولة بالشبكة، وتوريد العبوات وخدمة التعقيم، والتسليم والتركيب. أسئلة المتابعة: الموزع الموصول بالشبكة يستلزم وجود نقطة مياه وصرف قريبة، والتناضح العكسي يستلزم معرفة ضغط المياه. التركيب الموصول بالشبكة في مكتب قائم يحتاج غالباً فحصاً للموقع.",
       "required_specs": [
         "dispenser type (bottle top, bottom load, point of use)",
         "hot, cold and room temperature functions",
@@ -26,7 +26,101 @@
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "dispenser type (bottle top, bottom load, point of use)",
+        "hot, cold and room temperature functions",
+        "filtration stages for point of use",
+        "bottle supply and sanitising service",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "dispenser type (bottle top, bottom load, point of use)",
+          "blocking": true,
+          "why_it_prices": "Bottle-top, bottom-load and mains-fed point-of-use units are different products and service models.",
+          "uae_options": "top-load 5-gallon; bottom-load; mains-fed POU with filter",
+          "follow_up": "Mains-fed: ask whether a water point and drain are near."
+        },
+        {
+          "spec": "hot, cold and room temperature functions",
+          "blocking": true,
+          "why_it_prices": "Hot, cold and ambient functions change the model.",
+          "uae_options": "hot and cold; cold only; hot, cold and ambient",
+          "follow_up": ""
+        },
+        {
+          "spec": "cooling and heating capacity",
+          "blocking": false,
+          "why_it_prices": "Capacity matters in offices with many users.",
+          "uae_options": "litres per hour cold; hot tank litres",
+          "follow_up": "Ask number of users."
+        },
+        {
+          "spec": "power rating and energy label",
+          "blocking": false,
+          "why_it_prices": "Power and energy label show running cost.",
+          "uae_options": "watts; label where applicable",
+          "follow_up": ""
+        },
+        {
+          "spec": "filtration stages for point of use",
+          "blocking": true,
+          "why_it_prices": "Filtration stages define the POU unit and the service cost.",
+          "uae_options": "sediment; carbon; RO; UV",
+          "follow_up": "RO: ask drain and water pressure."
+        },
+        {
+          "spec": "child lock",
+          "blocking": false,
+          "why_it_prices": "Child lock on hot tap is a safety option.",
+          "uae_options": "yes; no",
+          "follow_up": ""
+        },
+        {
+          "spec": "conformity certificate",
+          "blocking": false,
+          "why_it_prices": "Electrical equipment may need MoIAT conformity.",
+          "uae_options": "ECAS/EQM certificate",
+          "follow_up": ""
+        },
+        {
+          "spec": "bottle supply and sanitising service",
+          "blocking": true,
+          "why_it_prices": "Bottle supply and sanitising visits are the main recurring cost.",
+          "uae_options": "bottles per week; sanitising every few months; filter changes",
+          "follow_up": ""
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivery and installation per site.",
+          "uae_options": "per floor; per branch",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "Stock vs import.",
+          "uae_options": "stock",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_it_prices": "Warranty on compressor and heater.",
+          "uae_options": "months",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "plumbing; bottle deposit",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a firm price needs unit type, functions, quantity and, for mains-fed units, the filtration and plumbing scope; mains-fed installation in an existing office usually needs a site check of water point and drain."
     },
     {
       "id": "water_dispensers:uae-standards-and-approvals",
@@ -85,6 +179,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "water_dispensers:authority-approvals",
+      "topic": "Water dispensers & coolers: licences, permits and approvals by emirate",
+      "topic_ar": "برادات وموزعات مياه: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Bottled drinking water sold in the UAE is regulated under the UAE system for the control of drinking water (Cabinet Decision 26 of 2013 as reported), which refers to the mandatory standard UAE.S GSO 1025 and the Emirates Quality Mark, administered by MoIAT; in Dubai the product and label are also registered with Dubai Municipality (reported by a secondary source). The dispenser itself is electrical equipment; where MoIAT lists it as regulated the importer holds a conformity certificate. Dubai Municipality is reported to limit the number of times a 5-gallon bottle may be reused and to require a tracking sticker. Abu Dhabi City Municipality has reported a permit requirement before installing public drinking water dispensers. The water company and importer hold these approvals; ask for the EQM certificate of the water brand.",
+      "body_ar": "تخضع مياه الشرب المعبأة المبيعة في الدولة للنظام الإماراتي للرقابة على مياه الشرب (قرار مجلس الوزراء رقم 26 لسنة 2013 بحسب ما أُفيد)، الذي يحيل إلى المواصفة الإلزامية UAE.S GSO 1025 وعلامة الجودة الإماراتية التي تديرها وزارة الصناعة والتكنولوجيا المتقدمة، وفي دبي يُسجَّل المنتج وبطاقته أيضاً لدى بلدية دبي (بحسب مصدر ثانوي). والموزع نفسه معدات كهربائية، فإذا أُدرج ضمن المنتجات المنظمة حاز المستورد شهادة مطابقة. وأُفيد بأن بلدية دبي تحدد عدد مرات إعادة استخدام عبوة الخمسة غالونات وتشترط ملصق تتبع. وأفادت بلدية مدينة أبوظبي باشتراط تصريح قبل تركيب موزعات مياه الشرب العامة. وتحوز شركة المياه والمستورد هذه الموافقات؛ فاطلب شهادة علامة الجودة لعلامة المياه.",
+      "sources": [
+        "https://leap.unep.org/en/countries/ae/national-legislation/decision-council-ministers-no-26-2013-uae-system-control-drinking",
+        "https://www.businessdubai.ae/blogs/water-bottling-company-dubai",
+        "https://gulfnews.com/uae/environment/obtain-permit-for-water-dispensers-1.61210931"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "water_dispensers:quote-red-flags",
+      "topic": "Water dispensers & coolers: red flags in supplier quotations",
+      "topic_ar": "برادات وموزعات مياه: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a \"free dispenser\" tied to a minimum bottle volume or a long contract, bottle deposits not stated, sanitising not included, filter replacement for POU units charged separately at unknown intervals, RO units without stated wastewater and drain need, and refurbished units. Check that the water brand holds the Emirates Quality Mark.",
+      "body_ar": "انتبه إلى \"موزع مجاني\" مرتبط بحد أدنى من العبوات أو بعقد طويل، وعدم ذكر تأمين العبوات، وعدم شمول التعقيم، واحتساب تغيير الفلاتر في الموزعات الموصولة بالشبكة منفصلاً وبفترات غير معروفة، ووحدات التناضح العكسي دون ذكر مياه الرفض والحاجة للصرف، والوحدات المجددة. وتحقق من حيازة علامة المياه لعلامة الجودة الإماراتية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "water_dispensers:buyer-mistakes",
+      "topic": "Water dispensers & coolers: common buyer mistakes",
+      "topic_ar": "برادات وموزعات مياه: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Offices compare the dispenser price and forget the yearly cost of bottles or filters, choose bottled supply where a mains-fed unit would be cheaper and lighter on logistics, and neglect sanitising.",
+      "body_ar": "تقارن المكاتب سعر الموزع وتنسى التكلفة السنوية للعبوات أو الفلاتر، وتختار التوريد بالعبوات حيث يكون الموزع الموصول بالشبكة أرخص وأخف في الإمداد، وتهمل التعقيم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "water_dispensers:price-drivers",
+      "topic": "Water dispensers & coolers: what makes prices differ legitimately",
+      "topic_ar": "برادات وموزعات مياه: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: unit type, compressor or thermoelectric cooling, filtration stages, materials (stainless tanks), brand, service plan, bottle price and volume, contract length.",
+      "body_ar": "العوامل: نوع الوحدة، والتبريد بالضاغط أو الكهروحراري، ومراحل الفلترة، والمواد (خزانات من الفولاذ المقاوم للصدأ)، والعلامة، وخطة الخدمة، وسعر العبوة وحجم الاستهلاك، ومدة العقد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "water_dispensers:compare-quotes-cost-to-value",
+      "topic": "Water dispensers & coolers: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "برادات وموزعات مياه: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the yearly cost of water, not the unit price: unit plus bottles or filters, sanitising and service over the contract. Then weigh capacity, hygiene of the design and service response. Recommend the three with the lowest total yearly cost that meet users and hygiene needs.",
+      "body_ar": "قارن التكلفة السنوية للمياه لا سعر الوحدة: الوحدة مع العبوات أو الفلاتر والتعقيم والخدمة على مدى العقد. ثم زن السعة ونظافة التصميم وسرعة الخدمة. أوصِ بالعروض الثلاثة الأقل تكلفة سنوية التي تلبي احتياج المستخدمين والنظافة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +290,8 @@
     "removed": [],
     "still_unverified": [
       "water_dispensers:spec-checklist",
-      "water_dispensers:uae-standards-and-approvals"
+      "water_dispensers:uae-standards-and-approvals",
+      "water_dispensers:authority-approvals"
     ],
     "added": [
       "water_dispensers:spec-checklist",
@@ -158,6 +322,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "water_dispensers:quote-red-flags",
+      "water_dispensers:buyer-mistakes",
+      "water_dispensers:price-drivers",
+      "water_dispensers:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

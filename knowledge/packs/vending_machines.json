@@ -5,8 +5,8 @@
       "id": "vending_machines:spec-checklist",
       "topic": "Vending machines - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For vending machines quotes to be compared like-for-like, every quoted line (goods) must state: (1) machine type (snack, drinks, coffee, fresh food); (2) capacity (selections and items); (3) dimensions and power rating (230 V); (4) payment systems (cash, card, NFC); (5) refrigeration temperature; (6) supply model (purchase, placement, operated); (7) restocking and service frequency; (8) food permit for the location; (9) conformity certificate; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the vending_machines trade.",
-      "body_ar": "لكي تُقارن عروض آلات البيع الذاتي على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الآلة (وجبات خفيفة، أو مشروبات، أو قهوة، أو أغذية طازجة)؛ (2) السعة (عدد الخيارات والأصناف)؛ (3) الأبعاد والقدرة الكهربائية (230 فولت)؛ (4) أنظمة الدفع (نقدي، أو بطاقة، أو لاتلامسي)؛ (5) درجة حرارة التبريد؛ (6) نموذج التوريد (شراء، أو وضع، أو تشغيل كامل)؛ (7) تكرار التعبئة والخدمة؛ (8) تصريح الغذاء للموقع؛ (9) شهادة المطابقة؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة vending_machines فقط.",
+      "body_en": "For vending machines quotes to be compared like-for-like, every quoted line (goods) must state: (1) machine type (snack, drinks, coffee, fresh food); (2) capacity (selections and items); (3) dimensions and power rating (230 V); (4) payment systems (cash, card, NFC); (5) refrigeration temperature; (6) supply model (purchase, placement, operated); (7) restocking and service frequency; (8) food permit for the location; (9) conformity certificate; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the vending_machines trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): machine type (snack, drinks, coffee, fresh food); capacity (selections and items); payment systems (cash, card, NFC); supply model (purchase, placement, operated); restocking and service frequency; delivery terms and location. Follow-up questions the answers trigger: machine type (snack, drinks, coffee, fresh food): Ask what will be sold and to how many users per day; dimensions and power rating (230 V): Ask whether a dedicated socket exists; payment systems (cash, card, NFC): Card: ask who holds the payment merchant account; supply model (purchase, placement, operated): Placement: ask expected daily footfall, which the operator uses to decide; food permit for the location: Ask who holds the permit: operator or host. Before a firm price: a firm price for a purchased machine needs type, selections, payment system and refrigeration; a placement or operated offer is firmed only after the operator sees the site and footfall (a site visit or footfall data).",
+      "body_ar": "لكي تُقارن عروض آلات البيع الذاتي على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الآلة (وجبات خفيفة، أو مشروبات، أو قهوة، أو أغذية طازجة)؛ (2) السعة (عدد الخيارات والأصناف)؛ (3) الأبعاد والقدرة الكهربائية (230 فولت)؛ (4) أنظمة الدفع (نقدي، أو بطاقة، أو لاتلامسي)؛ (5) درجة حرارة التبريد؛ (6) نموذج التوريد (شراء، أو وضع، أو تشغيل كامل)؛ (7) تكرار التعبئة والخدمة؛ (8) تصريح الغذاء للموقع؛ (9) شهادة المطابقة؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة vending_machines فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الآلة، والسعة، وأنظمة الدفع، ونموذج التوريد (شراء أو تركيب مجاني بعمولة أو تشغيل كامل)، ووتيرة التعبئة والصيانة، والتسليم. أسئلة المتابعة: يُسأل عما سيُباع وعدد المستخدمين يومياً، والدفع بالبطاقة يستلزم معرفة من يملك حساب التاجر، ونموذج التركيب يستلزم بيانات الحركة اليومية. عروض التركيب أو التشغيل لا تُثبَّت إلا بعد معاينة المشغّل للموقع أو بيانات الحركة.",
       "required_specs": [
         "machine type (snack, drinks, coffee, fresh food)",
         "capacity (selections and items)",
@@ -27,7 +27,109 @@
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "machine type (snack, drinks, coffee, fresh food)",
+        "capacity (selections and items)",
+        "payment systems (cash, card, NFC)",
+        "supply model (purchase, placement, operated)",
+        "restocking and service frequency",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "machine type (snack, drinks, coffee, fresh food)",
+          "blocking": true,
+          "why_it_prices": "Snack, cold drink, coffee and fresh-food machines are different machines and prices.",
+          "uae_options": "spiral snack; can/bottle; bean-to-cup coffee; fresh food; combo",
+          "follow_up": "Ask what will be sold and to how many users per day."
+        },
+        {
+          "spec": "capacity (selections and items)",
+          "blocking": true,
+          "why_it_prices": "Selections and item capacity set cabinet size and price.",
+          "uae_options": "number of selections; items per load",
+          "follow_up": ""
+        },
+        {
+          "spec": "dimensions and power rating (230 V)",
+          "blocking": false,
+          "why_it_prices": "Footprint and power decide placement.",
+          "uae_options": "W x D x H; 230 V single phase; socket within reach",
+          "follow_up": "Ask whether a dedicated socket exists."
+        },
+        {
+          "spec": "payment systems (cash, card, NFC)",
+          "blocking": true,
+          "why_it_prices": "Cashless readers and telemetry add hardware and monthly fees.",
+          "uae_options": "coins; notes; card; NFC/mobile wallet; telemetry",
+          "follow_up": "Card: ask who holds the payment merchant account."
+        },
+        {
+          "spec": "refrigeration temperature",
+          "blocking": false,
+          "why_it_prices": "Chilled or frozen products need refrigerated machines.",
+          "uae_options": "ambient; chilled; frozen",
+          "follow_up": ""
+        },
+        {
+          "spec": "supply model (purchase, placement, operated)",
+          "blocking": true,
+          "why_it_prices": "Purchase, free placement with commission and full operation are different commercial offers.",
+          "uae_options": "outright purchase; lease; placement by operator; operated with refill",
+          "follow_up": "Placement: ask expected daily footfall, which the operator uses to decide."
+        },
+        {
+          "spec": "restocking and service frequency",
+          "blocking": true,
+          "why_it_prices": "Refill and service visits are the main running cost in operated models.",
+          "uae_options": "daily; weekly; on telemetry alert",
+          "follow_up": ""
+        },
+        {
+          "spec": "food permit for the location",
+          "blocking": false,
+          "why_it_prices": "Selling food from a machine can need the food authority's approval in the emirate.",
+          "uae_options": "operator's food permit",
+          "follow_up": "Ask who holds the permit: operator or host."
+        },
+        {
+          "spec": "conformity certificate",
+          "blocking": false,
+          "why_it_prices": "Electrical equipment may need MoIAT conformity.",
+          "uae_options": "ECAS/EQM certificate",
+          "follow_up": ""
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivery into the building and siting change cost.",
+          "uae_options": "ground floor; upper floor; office tower loading bay",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "Imported machines take longer.",
+          "uae_options": "stock; imported",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_it_prices": "Warranty differs between purchase and operated models.",
+          "uae_options": "parts; labour; operator replaces",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "stock of products; electricity; internet for telemetry",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a firm price for a purchased machine needs type, selections, payment system and refrigeration; a placement or operated offer is firmed only after the operator sees the site and footfall (a site visit or footfall data)."
     },
     {
       "id": "vending_machines:uae-standards-and-approvals",
@@ -85,6 +187,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "vending_machines:authority-approvals",
+      "topic": "Vending & coffee machines: licences, permits and approvals by emirate",
+      "topic_ar": "آلات البيع الذاتي والقهوة: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "A vending machine is electrical equipment; where MoIAT lists it as regulated the importer holds the conformity certificate (ECAS or EQM). Selling food or drinks from it is a food activity: the operator needs a trade licence covering vending and, depending on the emirate and the products, the food authority's approval (Dubai Municipality food safety department in Dubai; the Abu Dhabi Agriculture and Food Safety Authority in Abu Dhabi; the municipality elsewhere). Fresh-food machines face stricter temperature and labelling rules than packaged snacks. Card payments need an acquiring agreement with a UAE payment provider. The operator, not the host site, normally holds these approvals; ask for them in the quote. The emirate-specific rule for each product type was not opened in this session.",
+      "body_ar": "آلة البيع الذاتي معدات كهربائية، وإذا أدرجتها وزارة الصناعة والتكنولوجيا المتقدمة ضمن المنتجات المنظمة حاز المستورد شهادة المطابقة (ECAS أو EQM). وبيع الطعام أو المشروبات منها نشاط غذائي: يحتاج المشغّل إلى رخصة تجارية تشمل البيع الآلي، وبحسب الإمارة والمنتجات إلى موافقة جهة سلامة الغذاء (إدارة سلامة الغذاء في بلدية دبي، وهيئة أبوظبي للزراعة والسلامة الغذائية، والبلدية في الإمارات الأخرى). وتخضع آلات الطعام الطازج لقواعد أشد في الحرارة والبطاقات من الوجبات الخفيفة المعبأة. ويحتاج الدفع بالبطاقة إلى اتفاقية مع مزود دفع في الدولة. ويحوز المشغّل لا الموقع المضيف هذه الموافقات عادة، فاطلبها في العرض. ولم تُفتح في هذه الجلسة القاعدة الخاصة بكل إمارة لكل نوع منتج.",
+      "sources": [
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "vending_machines:quote-red-flags",
+      "topic": "Vending & coffee machines: red flags in supplier quotations",
+      "topic_ar": "آلات البيع الذاتي والقهوة: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Look for refurbished machines offered as new, cashless readers excluded or charged monthly without saying so, telemetry fees, commission rates tied to minimum sales, a placement contract with auto-renewal and early-termination charges, the host paying electricity without a credit, restocking frequency vague, and no food permit named for fresh food. In a purchase, check warranty on the refrigeration unit and payment hardware separately.",
+      "body_ar": "ابحث عن آلات مجددة معروضة على أنها جديدة، وقارئات دفع إلكتروني مستثناة أو مُحتسبة شهرياً دون تصريح، ورسوم القياس عن بعد، ونسب عمولة مرتبطة بحد أدنى للمبيعات، وعقد تركيب يتجدد تلقائياً مع رسوم إنهاء مبكر، وتحمّل الموقع المضيف للكهرباء دون مقابل، وغموض وتيرة التعبئة، وعدم ذكر تصريح غذائي للأطعمة الطازجة. وفي الشراء تحقق من ضمان وحدة التبريد وأجهزة الدفع كلاً على حدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "vending_machines:buyer-mistakes",
+      "topic": "Vending & coffee machines: common buyer mistakes",
+      "topic_ar": "آلات البيع الذاتي والقهوة: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Hosts often accept a free placement without reading the contract term, exclusivity and auto-renewal, choose a machine without card payment, and do not check who is responsible for food safety and complaints.",
+      "body_ar": "كثيراً ما يقبل أصحاب المواقع التركيب المجاني دون قراءة مدة العقد والحصرية والتجديد التلقائي، ويختارون آلة دون دفع بالبطاقة، ولا يتحققون ممن يتحمل مسؤولية سلامة الغذاء والشكاوى.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "vending_machines:price-drivers",
+      "topic": "Vending & coffee machines: what makes prices differ legitimately",
+      "topic_ar": "آلات البيع الذاتي والقهوة: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: machine type and brand, new or refurbished, refrigeration, payment and telemetry hardware, commercial model (purchase, lease, placement), service frequency, product range and the commission split.",
+      "body_ar": "العوامل: نوع الآلة وعلامتها، وجديدة أم مجددة، والتبريد، وأجهزة الدفع والقياس عن بعد، والنموذج التجاري (شراء أو تأجير أو تركيب)، ووتيرة الصيانة، وتشكيلة المنتجات، وتقسيم العمولة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "vending_machines:compare-quotes-cost-to-value",
+      "topic": "Vending & coffee machines: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "آلات البيع الذاتي والقهوة: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare on the same model: for purchase, total cost of machine, payment hardware, warranty and service; for placement or operated offers, the commission or fee, product prices to users, service level, contract length and exit terms. Recommend the three with the clearest terms and service commitment, not only the highest commission.",
+      "body_ar": "قارن على النموذج نفسه: في الشراء التكلفة الإجمالية للآلة وأجهزة الدفع والضمان والصيانة، وفي عروض التركيب أو التشغيل العمولة أو الرسوم، وأسعار المنتجات للمستخدمين، ومستوى الخدمة، ومدة العقد وشروط الخروج. أوصِ بالعروض الثلاثة الأوضح شروطاً والتزاماً بالخدمة، لا بأعلى عمولة فقط.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +297,8 @@
     "removed": [],
     "still_unverified": [
       "vending_machines:spec-checklist",
-      "vending_machines:uae-standards-and-approvals"
+      "vending_machines:uae-standards-and-approvals",
+      "vending_machines:authority-approvals"
     ],
     "added": [
       "vending_machines:spec-checklist",
@@ -158,6 +329,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "vending_machines:quote-red-flags",
+      "vending_machines:buyer-mistakes",
+      "vending_machines:price-drivers",
+      "vending_machines:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

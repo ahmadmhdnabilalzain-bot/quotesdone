@@ -5,8 +5,8 @@
       "id": "home_appliances:spec-checklist",
       "topic": "Home appliances - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For home appliances (trade code home_appliances only), every quoted line must state: Appliance type, brand and model; Capacity or size; Energy efficiency label rating; Voltage and frequency; Built-in or freestanding; Colour and finish; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الأجهزة المنزلية (رمز النشاط home_appliances فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الجهاز والعلامة والطراز؛ السعة أو الحجم؛ تصنيف ملصق كفاءة الطاقة؛ الجهد والتردد؛ مدمج أو قائم بذاته؛ اللون والتشطيب؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For home appliances (trade code home_appliances only), every quoted line must state: Appliance type, brand and model; Capacity or size; Energy efficiency label rating; Voltage and frequency; Built-in or freestanding; Colour and finish; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Appliance type, brand and model; Capacity or size; Voltage and frequency; Quantity and unit of measure; UAE conformity or authority approval; Delivery terms and location. Follow-up questions the answers trigger: Appliance type, brand and model: If no model, ask capacity and budget tier; Built-in or freestanding: Built-in: ask the cut-out sizes; UAE conformity or authority approval: Ask the certificate number per model. Before a firm price: a firm price needs exact models (or capacity and tier), quantity, delivery and installation scope; built-in appliances need cut-out dimensions.",
+      "body_ar": "في نشاط الأجهزة المنزلية (رمز النشاط home_appliances فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الجهاز والعلامة والطراز؛ السعة أو الحجم؛ تصنيف ملصق كفاءة الطاقة؛ الجهد والتردد؛ مدمج أو قائم بذاته؛ اللون والتشطيب؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الجهاز وعلامته وطرازه، والسعة أو الحجم، والجهد والتردد، والكمية، وشهادة المطابقة وبطاقة الطاقة، ونطاق التسليم والتركيب. أسئلة المتابعة: إذا لم يُحدد طراز يُسأل عن السعة والفئة السعرية، والأجهزة المدمجة تستلزم مقاسات الفتحات. لا يُعطى سعر نهائي دون الطرازات والكمية ونطاق التركيب.",
       "required_specs": [
         "Appliance type, brand and model",
         "Capacity or size",
@@ -29,7 +29,116 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Appliance type, brand and model",
+        "Capacity or size",
+        "Voltage and frequency",
+        "Quantity and unit of measure",
+        "UAE conformity or authority approval",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Appliance type, brand and model",
+          "blocking": true,
+          "why_it_prices": "Brand and model fix the price; \"equivalent\" is not comparable.",
+          "uae_options": "exact model codes",
+          "follow_up": "If no model, ask capacity and budget tier."
+        },
+        {
+          "spec": "Capacity or size",
+          "blocking": true,
+          "why_it_prices": "Capacity or size defines the product.",
+          "uae_options": "litres; kg; inches; BTU",
+          "follow_up": ""
+        },
+        {
+          "spec": "Energy efficiency label rating",
+          "blocking": false,
+          "why_it_prices": "Energy label rating changes price and running cost.",
+          "uae_options": "MoIAT star rating",
+          "follow_up": ""
+        },
+        {
+          "spec": "Voltage and frequency",
+          "blocking": true,
+          "why_it_prices": "UAE models run on 220-240 V 50 Hz; grey imports may not.",
+          "uae_options": "220-240 V 50 Hz",
+          "follow_up": ""
+        },
+        {
+          "spec": "Built-in or freestanding",
+          "blocking": false,
+          "why_it_prices": "Built-in units need cabinet dimensions.",
+          "uae_options": "built-in; freestanding",
+          "follow_up": "Built-in: ask the cut-out sizes."
+        },
+        {
+          "spec": "Colour and finish",
+          "blocking": false,
+          "why_it_prices": "Colour and finish.",
+          "uae_options": "stainless; black; white",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Quantity sets the wholesale price.",
+          "uae_options": "per model",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "Standards and test reports.",
+          "uae_options": "IEC 60335",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": true,
+          "why_it_prices": "Regulated appliances must carry MoIAT conformity and energy label.",
+          "uae_options": "ECAS/EQM; energy label",
+          "follow_up": "Ask the certificate number per model."
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivery and installation per site add cost.",
+          "uae_options": "DDP; installation; old unit removal",
+          "follow_up": ""
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "blocking": false,
+          "why_it_prices": "Installation of built-in and split units is skilled work.",
+          "uae_options": "installation by brand service",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "Warranty must be the UAE manufacturer warranty.",
+          "uae_options": "years; compressor/motor longer",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "Stock vs import.",
+          "uae_options": "stock",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "plumbing; electrical points",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a firm price needs exact models (or capacity and tier), quantity, delivery and installation scope; built-in appliances need cut-out dimensions."
     },
     {
       "id": "home_appliances:uae-standards-and-approvals",
@@ -75,6 +184,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "home_appliances:authority-approvals",
+      "topic": "Home appliances wholesale: licences, permits and approvals by emirate",
+      "topic_ar": "جملة أجهزة منزلية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Home appliances are regulated products in the UAE. MoIAT requires a conformity certificate (ECAS or EQM) for appliance types on its regulated list before sale, obtained by the importer or brand owner through a notified body, and runs the energy efficiency labelling scheme (UAE.S 5010 series): air conditioners, refrigerators and freezers, washing machines and dryers carry a star label, with label serial numbers registered with MoIAT. Dubai Municipality and the emirates' consumer protection departments enforce product safety at retail. A wholesale buyer should ask for the certificate number of each model; grey-market imports without it can be held at customs or refused for sale.",
+      "body_ar": "الأجهزة المنزلية منتجات منظمة في الإمارات. إذ تشترط وزارة الصناعة والتكنولوجيا المتقدمة شهادة مطابقة (ECAS أو EQM) لأنواع الأجهزة المدرجة في قائمتها قبل البيع، ويستخرجها المستورد أو مالك العلامة عبر جهة مقبولة، وتدير الوزارة نظام بطاقة كفاءة الطاقة (سلسلة المواصفة UAE.S 5010): فالمكيفات والثلاجات والمجمدات والغسالات والمجففات تحمل بطاقة نجوم بأرقام تسلسلية مسجلة لدى الوزارة. وتطبق بلدية دبي وإدارات حماية المستهلك في الإمارات سلامة المنتجات في البيع بالتجزئة. وينبغي لمشتري الجملة طلب رقم الشهادة لكل طراز، فالاستيراد الموازي دونها قد يُحجز في الجمارك أو يُمنع بيعه.",
+      "sources": [
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification",
+        "https://www.tuv.com/market-access-services/en/certification-filter/uae-moiat-energy-efficiency-standardization-labeling-(eesl).html",
+        "https://uaelegislation.gov.ae/en/legislations/2481/regulations/842/download"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "home_appliances:quote-red-flags",
+      "topic": "Home appliances wholesale: red flags in supplier quotations",
+      "topic_ar": "جملة أجهزة منزلية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for grey-market or export models without the UAE warranty or ECAS certificate, models for other voltages or with non-UAE plugs, older-year models at \"new\" prices, energy label of a different model, refurbished or display units, and installation excluded. A brand known as Korean or Japanese may be made elsewhere; state origin if the buyer asked.",
+      "body_ar": "انتبه إلى طرازات الاستيراد الموازي أو التصدير دون ضمان محلي أو شهادة ECAS، وطرازات لجهد آخر أو بقوابس غير إماراتية، وطرازات سنوات سابقة بأسعار \"جديدة\"، وبطاقة طاقة لطراز آخر، ووحدات مجددة أو معروضة، واستثناء التركيب. وقد تُصنّع علامة معروفة بأنها كورية أو يابانية في بلد آخر؛ فاذكر المنشأ إذا طلبه المشتري.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "home_appliances:buyer-mistakes",
+      "topic": "Home appliances wholesale: common buyer mistakes",
+      "topic_ar": "جملة أجهزة منزلية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers often compare models from different years and capacities, ignore the running cost shown by the energy label, and buy grey imports to save a little and lose the warranty.",
+      "body_ar": "كثيراً ما يقارن المشترون طرازات من سنوات وسعات مختلفة، ويتجاهلون تكلفة التشغيل الظاهرة في بطاقة الطاقة، ويشترون من الاستيراد الموازي لتوفير قليل فيفقدون الضمان.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "home_appliances:price-drivers",
+      "topic": "Home appliances wholesale: what makes prices differ legitimately",
+      "topic_ar": "جملة أجهزة منزلية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand, model year, capacity, energy rating, features, origin, quantity, distributor channel (authorised or parallel), delivery and installation.",
+      "body_ar": "العوامل: العلامة، وسنة الطراز، والسعة، وتصنيف الطاقة، والمزايا، والمنشأ، والكمية، وقناة التوزيع (معتمدة أو موازية)، والتسليم والتركيب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "home_appliances:compare-quotes-cost-to-value",
+      "topic": "Home appliances wholesale: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "جملة أجهزة منزلية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare identical model codes, or equal capacity and energy rating, with UAE warranty and certificates, delivered and installed. Add running cost from the label for high-use appliances. Recommend three authorised offers.",
+      "body_ar": "قارن رموز الطرازات المتطابقة أو السعة وتصنيف الطاقة المتساويين، مع الضمان المحلي والشهادات، مسلّمة ومركبة. وأضف تكلفة التشغيل من البطاقة للأجهزة كثيفة الاستخدام. أوصِ بثلاثة عروض من قنوات معتمدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -117,7 +295,8 @@
     "removed": [],
     "still_unverified": [
       "home_appliances:spec-checklist",
-      "home_appliances:uae-standards-and-approvals"
+      "home_appliances:uae-standards-and-approvals",
+      "home_appliances:authority-approvals"
     ],
     "added": [
       "home_appliances:spec-checklist",
@@ -145,6 +324,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "home_appliances:quote-red-flags",
+      "home_appliances:buyer-mistakes",
+      "home_appliances:price-drivers",
+      "home_appliances:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

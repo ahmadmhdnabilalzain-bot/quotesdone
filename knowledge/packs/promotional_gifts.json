@@ -5,8 +5,8 @@
       "id": "promotional_gifts:spec-checklist",
       "topic": "Promotional gifts - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For promotional gifts quotes to be compared like-for-like, every quoted line (goods) must state: (1) item description and model; (2) material and colour; (3) size or capacity; (4) branding method (print, engrave, emboss) and number of colours; (5) logo position and size; (6) quantity per item; (7) individual packaging; (8) sample or proof approval; (9) conformity for electronics (power banks, chargers); (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the promotional_gifts trade.",
-      "body_ar": "لكي تُقارن عروض الهدايا الترويجية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) وصف الصنف وطرازه؛ (2) المادة واللون؛ (3) المقاس أو السعة؛ (4) طريقة وضع الشعار (طباعة، أو حفر، أو نقش بارز) وعدد الألوان؛ (5) موقع الشعار وحجمه؛ (6) الكمية لكل صنف؛ (7) التغليف الفردي؛ (8) اعتماد العينة أو البروفة؛ (9) المطابقة للأجهزة الإلكترونية (بطاريات متنقلة وشواحن)؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة promotional_gifts فقط.",
+      "body_en": "For promotional gifts quotes to be compared like-for-like, every quoted line (goods) must state: (1) item description and model; (2) material and colour; (3) size or capacity; (4) branding method (print, engrave, emboss) and number of colours; (5) logo position and size; (6) quantity per item; (7) individual packaging; (8) sample or proof approval; (9) conformity for electronics (power banks, chargers); (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the promotional_gifts trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): item description and model; material and colour; branding method (print, engrave, emboss) and number of colours; quantity per item; sample or proof approval; delivery terms and location. Follow-up questions the answers trigger: item description and model: Ask for a reference photo or catalogue code; branding method (print, engrave, emboss) and number of colours: Ask the logo file; conformity for electronics (power banks, chargers): Power banks: ask the certificate. Before a firm price: a firm price needs item, model, branding method and colours, quantity and delivery date; it is final only after the proof (and for custom items a sample) is approved.",
+      "body_ar": "لكي تُقارن عروض الهدايا الترويجية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) وصف الصنف وطرازه؛ (2) المادة واللون؛ (3) المقاس أو السعة؛ (4) طريقة وضع الشعار (طباعة، أو حفر، أو نقش بارز) وعدد الألوان؛ (5) موقع الشعار وحجمه؛ (6) الكمية لكل صنف؛ (7) التغليف الفردي؛ (8) اعتماد العينة أو البروفة؛ (9) المطابقة للأجهزة الإلكترونية (بطاريات متنقلة وشواحن)؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة promotional_gifts فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: وصف الصنف وطرازه، والمادة واللون، وطريقة الطباعة وعدد الألوان، والكمية، واعتماد البروفة أو العيّنة، وموعد التسليم. أسئلة المتابعة: يُطلب ملف الشعار، والإلكترونيات كبنوك الطاقة تستلزم شهادة المطابقة. لا يصبح السعر نهائياً إلا بعد اعتماد البروفة، والأصناف الخاصة تحتاج عيّنة.",
       "required_specs": [
         "item description and model",
         "material and colour",
@@ -26,7 +26,109 @@
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "item description and model",
+        "material and colour",
+        "branding method (print, engrave, emboss) and number of colours",
+        "quantity per item",
+        "sample or proof approval",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "item description and model",
+          "blocking": true,
+          "why_it_prices": "Each item and model has its own blank price.",
+          "uae_options": "pen; notebook; bottle; power bank; bag; apparel; gift set",
+          "follow_up": "Ask for a reference photo or catalogue code."
+        },
+        {
+          "spec": "material and colour",
+          "blocking": true,
+          "why_it_prices": "Material and colour change the blank.",
+          "uae_options": "plastic; metal; bamboo; leather; PU",
+          "follow_up": ""
+        },
+        {
+          "spec": "size or capacity",
+          "blocking": false,
+          "why_it_prices": "Size or capacity defines the item.",
+          "uae_options": "ml; mAh; A5/A4",
+          "follow_up": ""
+        },
+        {
+          "spec": "branding method (print, engrave, emboss) and number of colours",
+          "blocking": true,
+          "why_it_prices": "Branding method and colours change unit cost and set-up.",
+          "uae_options": "screen print; pad print; laser engraving; embossing; full colour",
+          "follow_up": "Ask the logo file."
+        },
+        {
+          "spec": "logo position and size",
+          "blocking": false,
+          "why_it_prices": "Logo size and positions add cost.",
+          "uae_options": "one or more positions",
+          "follow_up": ""
+        },
+        {
+          "spec": "quantity per item",
+          "blocking": true,
+          "why_it_prices": "Quantity sets MOQ and price breaks.",
+          "uae_options": "per item",
+          "follow_up": ""
+        },
+        {
+          "spec": "individual packaging",
+          "blocking": false,
+          "why_it_prices": "Gift boxes and sleeves add cost.",
+          "uae_options": "polybag; gift box; sleeve",
+          "follow_up": ""
+        },
+        {
+          "spec": "sample or proof approval",
+          "blocking": true,
+          "why_it_prices": "A proof or sample must be approved before production.",
+          "uae_options": "digital proof; physical sample",
+          "follow_up": ""
+        },
+        {
+          "spec": "conformity for electronics (power banks, chargers)",
+          "blocking": false,
+          "why_it_prices": "Electronic gifts need conformity.",
+          "uae_options": "power banks, chargers: MoIAT certificate",
+          "follow_up": "Power banks: ask the certificate."
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivery date is often fixed to an event.",
+          "uae_options": "event date; location",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "Lead time for imported custom items is long.",
+          "uae_options": "stock blanks; custom import",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_it_prices": "Warranty mostly on electronics.",
+          "uae_options": "months",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "set-up charges; delivery to multiple sites",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a firm price needs item, model, branding method and colours, quantity and delivery date; it is final only after the proof (and for custom items a sample) is approved."
     },
     {
       "id": "promotional_gifts:uae-standards-and-approvals",
@@ -84,6 +186,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "promotional_gifts:authority-approvals",
+      "topic": "Promotional & corporate gifts: licences, permits and approvals by emirate",
+      "topic_ar": "هدايا دعائية وهدايا شركات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Most promotional gifts need no approval. Electronic gifts (power banks, chargers, speakers, USB devices) are electrical equipment that MoIAT regulates where listed, and the importer must hold a conformity certificate; wireless items (Bluetooth speakers and earbuds) also need TDRA type approval held by the importer. Printed content on gifts, calendars and diaries is media content within the UAE Media Council's remit. Textile gifts fall under the textile labelling scheme. Gifts for children must meet the toy safety rules. Ask the supplier for the certificate numbers on electronic items.",
+      "body_ar": "لا تحتاج معظم الهدايا الدعائية إلى موافقة. أما الهدايا الإلكترونية (بنوك الطاقة والشواحن ومكبرات الصوت وأجهزة USB) فهي معدات كهربائية تنظمها وزارة الصناعة والتكنولوجيا المتقدمة إذا كانت مدرجة، ويجب أن يحوز المستورد شهادة مطابقة، وتحتاج الأجهزة اللاسلكية (مكبرات وسماعات البلوتوث) أيضاً اعتماداً نوعياً من هيئة تنظيم الاتصالات والحكومة الرقمية يحوزه المستورد. والمحتوى المطبوع على الهدايا والتقويمات والمفكرات محتوى إعلامي يقع ضمن اختصاص مجلس الإمارات للإعلام. وتخضع الهدايا النسيجية لنظام بطاقات المنسوجات، والهدايا للأطفال لقواعد سلامة الألعاب. اطلب من المورد أرقام الشهادات للأصناف الإلكترونية.",
+      "sources": [
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification",
+        "https://www.tuvsud.com/en/services/product-certification/global-market-access/united-arab-emirates",
+        "https://uaelegislation.gov.ae/en/legislations/2802/download"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "promotional_gifts:quote-red-flags",
+      "topic": "Promotional & corporate gifts: red flags in supplier quotations",
+      "topic_ar": "هدايا دعائية وهدايا شركات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Look for set-up, screen and plate charges not included, one-colour price shown when the logo has several colours, smaller print area, power banks with overstated mAh or no certificate, different material than the sample, MOQ higher than the quantity asked, delivery after the event date, and \"brand\" items that are look-alikes.",
+      "body_ar": "ابحث عن رسوم الإعداد والشاشات والقوالب غير المشمولة، وسعر لون واحد بينما للشعار عدة ألوان، ومساحة طباعة أصغر، وبنوك طاقة بسعة مبالغ فيها أو بلا شهادة، ومادة تختلف عن العيّنة، وحد أدنى للطلب أعلى من الكمية المطلوبة، وتسليم بعد موعد الفعالية، وأصناف \"ماركة\" مقلدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "promotional_gifts:buyer-mistakes",
+      "topic": "Promotional & corporate gifts: common buyer mistakes",
+      "topic_ar": "هدايا دعائية وهدايا شركات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers often approve from a screen without a physical sample, order too late for the event, and forget packaging and delivery to several offices.",
+      "body_ar": "كثيراً ما يعتمد المشترون من الشاشة دون عيّنة فعلية، ويطلبون متأخرين عن الفعالية، وينسون التغليف والتسليم إلى عدة مكاتب.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "promotional_gifts:price-drivers",
+      "topic": "Promotional & corporate gifts: what makes prices differ legitimately",
+      "topic_ar": "هدايا دعائية وهدايا شركات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: blank brand and material, branding method, colours and positions, quantity, packaging, set-up charges, air or sea freight for imported custom items, and rush delivery.",
+      "body_ar": "العوامل: علامة الصنف الخام ومادته، وطريقة الطباعة، والألوان والمواضع، والكمية، والتغليف، ورسوم الإعداد، والشحن الجوي أو البحري للأصناف المستوردة الخاصة، والتسليم العاجل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "promotional_gifts:compare-quotes-cost-to-value",
+      "topic": "Promotional & corporate gifts: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "هدايا دعائية وهدايا شركات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the total landed and branded price per piece including set-up and packaging, for the same item, branding and quantity, delivered by the event date. Value is the quality of the blank and print and reliability of the date. Recommend three with approved samples.",
+      "body_ar": "قارن السعر الإجمالي للقطعة مطبوعة ومسلّمة شاملاً الإعداد والتغليف، للصنف والطباعة والكمية نفسها، والتسليم قبل موعد الفعالية. والقيمة هي جودة الصنف والطباعة والالتزام بالموعد. أوصِ بثلاثة عروض ذات عيّنات معتمدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +297,8 @@
     "removed": [],
     "still_unverified": [
       "promotional_gifts:spec-checklist",
-      "promotional_gifts:uae-standards-and-approvals"
+      "promotional_gifts:uae-standards-and-approvals",
+      "promotional_gifts:authority-approvals"
     ],
     "added": [
       "promotional_gifts:spec-checklist",
@@ -157,6 +329,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "promotional_gifts:quote-red-flags",
+      "promotional_gifts:buyer-mistakes",
+      "promotional_gifts:price-drivers",
+      "promotional_gifts:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

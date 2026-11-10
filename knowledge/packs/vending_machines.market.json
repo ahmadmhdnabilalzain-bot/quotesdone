@@ -28,8 +28,8 @@
       "topic": "Vending & coffee machines: makes, brands, distributors and origins in the UAE",
       "topic_ar": "آلات البيع الذاتي والقهوة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "UAE vending operators include First Class Vending, Wendor and Vendohmatic, with machine brands such as Crane, Azkoyen, Evoca (Necta, Saeco), Bianchi and TCN, mostly in Al Quoz, Deira and Sharjah. Confirmed UAE operators and common machine brands: First Class Vending, Wendor, Vendohmatic, Crane Merchandising Systems, Azkoyen, Evoca (Necta, Saeco), Bianchi Vending, TCN. The machine brands' UAE dealers were not checked. Suppliers are concentrated in Al Quoz, Deira and Sharjah.",
-      "body_ar": "من مشغلي مكائن البيع الذاتي (الفندنغ) في الإمارات First Class Vending وWendor وVendohmatic، ومن ماركات المكائن Crane وAzkoyen وEvoca (Necta وSaeco) وBianchi وTCN، ويتركز أغلبهم في القوز وديرة والشارقة. المشغلون المؤكدون في الإمارات وماركات المكائن الشائعة: First Class Vending، Wendor، Vendohmatic، Crane Merchandising Systems، Azkoyen، Evoca (Necta، Saeco)، Bianchi Vending، TCN. ولم نتحقق من وكلاء ماركات المكائن في الإمارات. ويتركز الموردون في القوز وديرة والشارقة.",
+      "body_en": "UAE vending operators include First Class Vending, Wendor and Vendohmatic, with machine brands such as Crane, Azkoyen, Evoca (Necta, Saeco), Bianchi and TCN, mostly in Al Quoz, Deira and Sharjah. Confirmed UAE operators and common machine brands: First Class Vending, Wendor, Vendohmatic, Crane Merchandising Systems, Azkoyen, Evoca (Necta, Saeco), Bianchi Vending, TCN. The machine brands' UAE dealers were not checked. Suppliers are concentrated in Al Quoz, Deira and Sharjah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): First Class Vending = a UAE operator; Wendor = a UAE operator; Vendohmatic = a UAE operator; Crane Merchandising Systems = a premium American brand; Azkoyen = a premium Spanish brand; Evoca (Necta, Saeco) = a premium Italian brand; Bianchi Vending = a mid-tier Italian brand; TCN = an economy Chinese brand.",
+      "body_ar": "من مشغلي مكائن البيع الذاتي (الفندنغ) في الإمارات First Class Vending وWendor وVendohmatic، ومن ماركات المكائن Crane وAzkoyen وEvoca (Necta وSaeco) وBianchi وTCN، ويتركز أغلبهم في القوز وديرة والشارقة. المشغلون المؤكدون في الإمارات وماركات المكائن الشائعة: First Class Vending، Wendor، Vendohmatic، Crane Merchandising Systems، Azkoyen، Evoca (Necta، Saeco)، Bianchi Vending، TCN. ولم نتحقق من وكلاء ماركات المكائن في الإمارات. ويتركز الموردون في القوز وديرة والشارقة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): First Class Vending = جهة تشغيل إماراتية؛ Wendor = جهة تشغيل إماراتية؛ Vendohmatic = جهة تشغيل إماراتية؛ Crane Merchandising Systems = علامة أمريكية من الفئة الممتازة؛ Azkoyen = علامة إسبانية من الفئة الممتازة؛ Evoca (Necta, Saeco) = علامة إيطالية من الفئة الممتازة؛ Bianchi Vending = علامة إيطالية من الفئة المتوسطة؛ TCN = علامة صينية من الفئة الاقتصادية.",
       "sources": [
         "https://wendor.ai/blog/vending-machine-business-dubai/",
         "https://first-classvending.com/",
@@ -40,7 +40,65 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Food vending in Dubai needs a food activity on the trade licence and a Dubai Municipality food permit (applications on the DM website since Dec 2024) -> confirmed | Vending operators in the UAE include First Class Vending (since 2005), Wendor and Vendohmatic -> confirmed | Coca-Cola and Pepsi bottler vending arms -> removed: not checked. Not checked: Specific UAE vending operators and whether each municipality issues a distinct vending machine permit were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Food vending in Dubai needs a food activity on the trade licence and a Dubai Municipality food permit (applications on the DM website since Dec 2024) -> confirmed | Vending operators in the UAE include First Class Vending (since 2005), Wendor and Vendohmatic -> confirmed | Coca-Cola and Pepsi bottler vending arms -> removed: not checked. Not checked: Specific UAE vending operators and whether each municipality issues a distinct vending machine permit were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "First Class Vending",
+          "origin_country": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "Wendor",
+          "origin_country": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "Vendohmatic",
+          "origin_country": "UAE",
+          "tier": "operator",
+          "generic_en": "a UAE operator",
+          "generic_ar": "جهة تشغيل إماراتية"
+        },
+        {
+          "brand": "Crane Merchandising Systems",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Azkoyen",
+          "origin_country": "Spain",
+          "tier": "premium",
+          "generic_en": "a premium Spanish brand",
+          "generic_ar": "علامة إسبانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Evoca (Necta, Saeco)",
+          "origin_country": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bianchi Vending",
+          "origin_country": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "TCN",
+          "origin_country": "China",
+          "tier": "economy",
+          "generic_en": "an economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        }
+      ]
     },
     {
       "id": "vending_machines:uae-market-sizes",
