@@ -131,7 +131,7 @@ begin
   update public.site_uptime_check c
      set status_code = h.status_code,
          ms = greatest(0, round(extract(epoch from (h.created - c.checked_at)) * 1000))::int,
-         ok = (h.status_code = 200 and not coalesce(h.timed_out, false) and h.error_msg is null),
+         ok = coalesce(h.status_code = 200 and not coalesce(h.timed_out, false) and h.error_msg is null, false),
          error = case when h.status_code = 200 and not coalesce(h.timed_out, false) and h.error_msg is null then null
                       else left(coalesce(nullif(btrim(h.error_msg), ''),
                                          case when h.timed_out then 'timed out after 10 s' end,
@@ -192,13 +192,21 @@ begin
   -- One finding per condition, raised once and kept while it lasts; the settle closes whatever is no longer listed.
   v_settle := public.fn_it_duty_settle('site_uptime', v_items);
 
-  -- c. THE FOUNDER: paged when the outage opens, told once when it ends if he was paged about it.
-  if v_action = 'open' then
+  -- c. THE FOUNDER: paged once per outage, told once when it ends if he was paged about it.
+  --    The page block runs on 'open' AND 'keep' (review of #1874, 9 Nov 2026): a site that comes back for one check and
+  --    falls again within the hour reopens the same finding with a new started_at, the hour's hold stops the page at
+  --    'open', and every later tick is 'keep'. Running only on 'open' left that second outage unpaged however long it
+  --    lasted. Now each tick of an open outage asks: was he already paged for THIS outage (its started_at)? If not, page
+  --    as soon as the hour's hold allows. The not-exists keeps fn_notify_founder from writing a 'deduped' row every tick.
+  if v_action in ('open', 'keep') then
     select floor(extract(epoch from started_at))::bigint into v_epoch from public.it_engineer_finding where issue_key = v_key;
     if exists (select 1 from public.founder_alerts f
+                where f.dedupe_key = 'site_uptime_down:' || v_epoch and f.channel = 'email') then
+      v_page := jsonb_build_object('paged', false, 'why', 'already paged for this outage');
+    elsif exists (select 1 from public.founder_alerts f
                 where f.dedupe_key like 'site_uptime_down:%' and f.channel in ('email', 'whatsapp')
                   and f.created_at > now() - interval '1 hour') then
-      v_page := jsonb_build_object('paged', false, 'why', 'a website-down page already went out in the last hour');
+      v_page := jsonb_build_object('paged', false, 'why', 'a website-down page already went out in the last hour; this outage pages when the hour has passed');
     else
       v_page := public.fn_notify_founder(
         p_event => 'THE WEBSITE IS DOWN: quotesdone.com is not answering',

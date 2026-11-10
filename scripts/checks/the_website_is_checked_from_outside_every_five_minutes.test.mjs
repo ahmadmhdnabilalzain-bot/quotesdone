@@ -50,7 +50,9 @@ test('the tick calls the APEX /api/health with a timeout, and treats only 200 as
   assert.doesNotMatch(tick, /www\.quotesdone\.com/, 'the tick must not call www (308)');
   assert.match(tick, /net\.http_get\(url := c_url,[^;]*timeout_milliseconds := \d+\)/, 'the request must carry a timeout');
   assert.match(tick, /from net\._http_response h/, 'the tick must read pg_net answers to earlier requests');
-  assert.match(tick, /ok = \(h\.status_code = 200 and not coalesce\(h\.timed_out, false\) and h\.error_msg is null\)/,
+  // coalesce(…, false) since review of #1874: pg_net returning no status, no error and no timeout is a failure, not a NULL
+  // that silently drops out of the decision.
+  assert.match(tick, /ok = coalesce\(h\.status_code = 200 and not coalesce\(h\.timed_out, false\) and h\.error_msg is null, false\)/,
     'only a 200 with no timeout and no error is up: a 404 from a missing route is a failure');
   assert.match(tick, /checked_at < now\(\) - interval '14 days' order by id limit \d+/, 'the 14-day purge must be batched');
 });
@@ -82,4 +84,11 @@ test('the checks table and the routines are closed to browser roles', () => {
 test('the monitor arms itself only after the first 200, so a deploy in progress never pages anyone', () => {
   assert.match(both, /if v_action = 'open' and not exists \(select 1 from public\.site_uptime_check where url = c_url and ok\) then\s+v_action := 'none';/,
     'fn_site_uptime_tick must not open a finding before the url has ever answered 200');
+});
+
+test('an outage that reopens within the hour still pages: the page path runs on open AND keep, once per outage', () => {
+  assert.match(both, /if v_action in \('open', 'keep'\) then\s+select floor\(extract\(epoch from started_at\)\)::bigint into v_epoch/,
+    'the page block must run while the outage is kept open, not only on the tick that opens it');
+  assert.match(both, /f\.dedupe_key = 'site_uptime_down:' \|\| v_epoch and f\.channel = 'email'\) then\s+v_page := jsonb_build_object\('paged', false, 'why', 'already paged for this outage'\)/,
+    'once paged for this outage, no further page and no deduped row every tick');
 });
