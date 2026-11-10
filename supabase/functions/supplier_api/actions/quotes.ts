@@ -29,7 +29,7 @@ import { newOptionRefusal } from '../new_option.ts';
 import { type ActionCtx, J, SUPA_URL, admin, failed, logged, secretVal } from '../context.ts';
 import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
 import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
-import { acceptLive, acceptRule, kickDelivery, notifyNewQuote, supersedeQualityHold, supplierOf } from '../lib/quote_acceptance.ts';
+import { acceptLive, acceptRule, kickDelivery, notifyNewQuote, storeReviewNotes, supersedeQualityHold, supplierOf } from '../lib/quote_acceptance.ts';
 import { regenRender } from '../lib/arabic_quotation.ts';
 
 export async function quoteActions(c: ActionCtx): Promise<Response | undefined> {
@@ -449,7 +449,7 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           continue;
         }
         const live = await acceptLive(qid, String(inquiryId), false);
-        if (live.accepted) anyAccepted = true;
+        if (live.accepted) { anyAccepted = true; await storeReviewNotes(qid, String(inquiryId)); }
         results.push({ quote_id: qid, option_no: p.option_no, held: false, ...live });
       }
       if (anyAccepted) await notifyNewQuote(String(inquiryId));

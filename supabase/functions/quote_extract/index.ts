@@ -1,5 +1,6 @@
 // quote_extract - reads a supplier's uploaded quotation (page images and/or PDF) and returns an
-// ANONYMIZED standardized quote. Masks company identity AND brand/model/identity-revealing terms.
+// ANONYMIZED standardized quote. Masks company identity AND brand/model/identity-revealing terms; a brand becomes
+// '<tier> <origin> brand' (_shared/quote_generalise.ts, founder ledger 1589).
 // Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
 //
 // A vision read of the supplier's own document. It returns ok:false with 'unreadable_quotation' or
@@ -14,6 +15,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { scrubIdentityText } from '../_shared/identity_text.ts';
+import { generaliseText, type GeneraliseCtx } from '../_shared/quote_generalise.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { quoteFromExtracted, quoteText } from './quote_from_document.ts';
 import { defaultDeps } from '../_shared/think.ts';
@@ -46,7 +48,12 @@ function scrub(s: unknown): string {
   // 3 Nov 2026: the shared identity shapes too (_shared/identity_text.ts), whatever the model left in.
   return scrubIdentityText(t, '█').trim();
 }
-const SYS = `You read a supplier's price QUOTATION for a UAE building / fit-out job and convert it into an ANONYMOUS standardized quote for QuotesDone, a marketplace where the customer must PAY to reveal the supplier. The customer must NOT be able to identify the supplier from anything you output.\n\nRead EVERY page and EVERY line item carefully. Extract all commercial figures, then REWRITE every text field so it cannot reveal who the supplier is.\n\nMASK / REMOVE:\n- Company name, logo wording, letterhead, slogan, person names, signatures, stamps.\n- Phone, email, website, address, social handles, trade-license / TRN / VAT numbers, bank details.\n- Brand names, manufacturer names, product model names or numbers, and any proprietary or exclusive product line a customer could search online to identify a specific seller (e.g. a named ceramic line, a named tap/mixer brand, a named pump model). Replace with a neutral equivalent that preserves the spec and quality tier, e.g. 'premium branded 120x60 porcelain', 'premium branded mixer', 'premium variable-speed pump'.\n- Any unusually distinctive wording that could fingerprint the supplier.\n\nKEEP (these matter for comparing quotes): amounts, currency, quantities, dimensions/sizes, generic material & spec, quality tier (standard / premium), finish, lead time, validity, payment terms, warranty, scope, conditions, exclusions.\n\nReturn STRICT JSON only, no prose:\n{\"amount\":number,\"currency\":\"AED\",\"line_items\":[{\"description\":string,\"qty\":string,\"amount\":number}],\"lead_time\":string,\"validity\":string,\"payment_terms\":string,\"warranty\":string,\"scope\":string,\"conditions\":string,\"exclusions\":string,\"notes\":string,\"description_anonymized\":string,\"masked_terms\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\namount = the GRAND TOTAL of the whole quotation (sum / stated total), not a single line. Every string field must ALREADY be anonymized. masked_terms = the original identity-revealing strings you removed (shown ONLY to the supplier for review, never to the customer). If a value is absent, use an empty string (or [] for line_items).`;
+// 10 Nov 2026 (founder ledger 1588-1590, sales_engineer): the replacement rule names ORIGIN and TIER. It said
+// "premium branded mixer", which kept the tier and lost the origin, so a customer who asked for Italian origin could
+// not see that the supplier quoted Chinese; and it was written for "a UAE building / fit-out job" while the estate
+// serves every trade except food and beverage. Whatever the model returns is generalised again by
+// _shared/quote_generalise.ts below (the same module the deterministic path and every pre-reveal surface run).
+const SYS = `You read a supplier's price QUOTATION for a UAE business purchase and convert it into an ANONYMOUS standardized quote for QuotesDone, a B2B procurement marketplace for every trade except food and beverage: building and fit-out works, MEP, equipment and machinery, materials, chemicals, packaging, vehicles and staff transport, IT and telecom, facilities services, and professional services (consultancy, accounting, legal, marketing). The customer must PAY to reveal the supplier, so the customer must NOT be able to identify the supplier from anything you output.\n\nRead EVERY page and EVERY line item carefully. Extract all commercial figures, then REWRITE every text field so it cannot reveal who the supplier is.\n\nMASK / REMOVE:\n- Company name, logo wording, letterhead, slogan, person names, signatures, stamps.\n- Phone, email, website, address, social handles, trade-license / TRN / VAT numbers, bank details.\n- Brand names, manufacturer names, product model names or numbers, catalogue / SKU / part codes, and any proprietary or exclusive product line or service programme a customer could search online to identify a specific seller (a named tile collection, a named tap or mixer brand, a named pump model, a branded consultancy method).\n- Any unusually distinctive wording that could fingerprint the supplier.\n\nTHE REPLACEMENT MUST BE FACTUALLY CORRECT AND KEEP ORIGIN AND TIER. Replace each brand with '<tier> <origin> brand' where origin is the country the BRAND comes from and tier is its market position (premium / mid-range / economy): a named German premium mixer becomes 'premium German brand mixer'; a named Italian porcelain collection becomes 'premium Italian brand 120x60 porcelain'; a named Japanese inverter becomes 'Japanese brand inverter'; a named Chinese panel becomes 'Chinese brand 550 W solar panel'. NEVER guess an origin: if you are not certain where a brand comes from, write 'branded' with the tier only if the quotation itself states it ('premium branded mixer'). A model number or SKU becomes nothing (keep the product noun and its specification). Keep the country of MANUFACTURE exactly as the quotation states it ('made in China', 'origin: Italy') in that line's country_of_origin.\n\nKEEP (these matter for comparing quotes): amounts, currency, quantities, units, dimensions/sizes, generic material & spec, grades and standards (SS316, C40, IP65, EN/BS/ISO numbers), quality tier, finish, origin, lead time, validity, payment terms, warranty, scope, conditions, exclusions.\n\nReturn STRICT JSON only, no prose:\n{\"amount\":number,\"currency\":\"AED\",\"line_items\":[{\"description\":string,\"qty\":string,\"amount\":number,\"country_of_origin\":string}],\"lead_time\":string,\"validity\":string,\"payment_terms\":string,\"warranty\":string,\"scope\":string,\"conditions\":string,\"exclusions\":string,\"notes\":string,\"description_anonymized\":string,\"masked_terms\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\namount = the GRAND TOTAL of the whole quotation (sum / stated total), not a single line. Every string field must ALREADY be anonymized. masked_terms = the original identity-revealing strings you removed, brands and model numbers included (shown ONLY to the supplier for review, never to the customer). If a value is absent, use an empty string (or [] for line_items).`;
 
 function dataUrl(b64: string, mime: string){ return `data:${mime};base64,${String(b64).replace(/^data:[^;]+;base64,/,'')}`; }
 
@@ -134,13 +141,21 @@ Deno.serve(observe('quote_extract', async (req) => {
       aiParseOk = !!(ai && typeof ai === 'object' && Object.keys(ai).length > 0);
     } catch (e) { const d = await detQuote('ai_exception'); if (d) return d; await logRun('error', { quote_extracted: 0, pages: aiPages, ai_ok: 0 }, 'quote_extract threw while calling the vision model (' + String((e as Error)?.message || e).slice(0, 140) + '), so a supplier quotation was never converted into a comparable quote — the customer will see one fewer price and assume that supplier did not respond.'); return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
 
+    // THE MODEL'S MASKING IS CHECKED, NOT TRUSTED (10 Nov 2026, ledger 1589). Every field it returns runs the shared
+    // generaliser: a brand it left in becomes "<tier> <origin> brand", a model number is withheld, and the terms it
+    // reported as masked are themselves searched for (a residue of "Grohe Eurosmart" in another field is caught).
+    if (!Array.isArray(ai.masked_terms)) ai.masked_terms = [];
+    // A reported term that reads as a make (words, no contact shape) is searched for as a brand; a short code as a model.
+    const reported = ai.masked_terms.map((x: unknown) => String(x).trim()).filter((x: string) => x.length >= 3 && x.length <= 60 && !/[@:/]|\d{7,}/.test(x));
+    const genCtx: GeneraliseCtx = { supplierNames: Array.isArray(body.supplier_terms) ? body.supplier_terms.map((x: unknown) => String(x)) : [],
+      brands: reported.filter((x: string) => !/\d/.test(x) && x.split(/\s+/).length <= 4), models: reported.filter((x: string) => /\d/.test(x) && /[A-Za-z]/.test(x) && x.length <= 30) };
+    const gen = (v: unknown) => { const r = generaliseText(scrub(v), genCtx); for (const t of r.replaced) if (!ai.masked_terms.includes(t.term)) ai.masked_terms.push(t.term); return r.text; };
     const textFields = ['lead_time','validity','payment_terms','warranty','scope','conditions','exclusions','notes','description_anonymized'];
-    for (const f of textFields) ai[f] = scrub(ai[f]);
-    if (Array.isArray(ai.line_items)) ai.line_items = ai.line_items.map((li: any) => ({ description: scrub(li?.description), qty: String(li?.qty||''), amount: Number(li?.amount)||null }));
+    for (const f of textFields) ai[f] = gen(ai[f]);
+    if (Array.isArray(ai.line_items)) ai.line_items = ai.line_items.map((li: any) => ({ description: gen(li?.description), qty: String(li?.qty||''), amount: Number(li?.amount)||null, ...(li?.country_of_origin ? { country_of_origin: String(li.country_of_origin).slice(0, 80) } : {}) }));
     else ai.line_items = [];
     ai.amount = Number(ai.amount) || null;
     ai.currency = 'AED';
-    if (!Array.isArray(ai.masked_terms)) ai.masked_terms = [];
     const _amountOk = ai.amount != null;
     const _okRun = aiParseOk && _amountOk;
     let _note = '';

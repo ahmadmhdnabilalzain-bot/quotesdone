@@ -83,7 +83,8 @@ export function heldQuoteIds(
 export async function itemsByQuote(admin: Admin, quoteIds: string[]): Promise<Record<string, ItemRow[]>> {
   const out: Record<string, ItemRow[]> = {};
   if (!quoteIds.length) return out;
-  const COLS = 'quote_id,line_no,description,brand,model,specification,qty,unit,unit_price,labour,install,amount,notes,spec,spec_source';
+  // country_of_origin: read by the sales engineer's review notes (quote_review_notes.ts, ledger 1588), never shown raw by this.
+  const COLS = 'quote_id,line_no,description,brand,model,specification,qty,unit,unit_price,labour,install,amount,country_of_origin,notes,spec,spec_source';
   const CHUNK = 25;     // quote ids per request — keeps the URL short and the page small
   const PAGE = 1000;    // rows per page; paged until a short page says the chunk is exhausted
   for (let i = 0; i < quoteIds.length; i += CHUNK) {
