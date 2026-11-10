@@ -158,6 +158,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 ## State of the build
+- [CHECKPOINT 10 Nov — cleanup merged, Actions OFF, OpenRouter out of credit](checkpoint-10-nov-cleanup-merged-actions-off-credit-out.md) — READ FIRST: #1874 live (DB 3.55 GB, model on HF, uptime monitor); #1876 then #1877 then the PR-drain branch merge in that order, gated and deployed by the session; founder top-up owed; real-AI verification list
 - [CHECKPOINT 9 Nov — code cleanup + Supabase cost forensics](checkpoint-9-nov-cleanup-and-cost.md) — READ FIRST: PR #1874; DB clean-up applies at merge; model egress cause measured, HF switch waits on a write token; proxy-injected + NODE_USE_ENV_PROXY=1
 - [CHECKPOINT 4 Nov — weekly limit hit mid PR drain](checkpoint-4-nov-handover-pr-drain.md) — READ FIRST: 1392 proved with real AI and ready; older PRs mid-merge; 1720 DB check; Windows sign-in token fix not yet a PR; owed items
 - [CHECKPOINT 3 Nov — hand-over for the week of 4 Nov](checkpoint-3-nov-handover-week-of-4-nov.md) — READ FIRST: invitations exclude Yahoo/Microsoft (make it explicit), what went live 3 Nov, every open PR and its next step
