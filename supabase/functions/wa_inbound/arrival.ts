@@ -8,7 +8,7 @@ import { isOwnNumber } from '../_shared/twilio_inbound_signature.ts';
 import { isStop } from '../_shared/marketing_send_gate.ts';
 import { admin, alertThrottled, itFinding, sec, TW } from './shared.ts';
 import { verifyProvenance, verifyTwilioSignature } from './signature.ts';
-import { waRow } from './wa_row.ts';
+import { mediaItems, waRow } from './wa_row.ts';
 import type { WaTurn } from './turn.ts';
 
 export async function acceptArrival(t: WaTurn, req: Request): Promise<Response | undefined> {
@@ -24,6 +24,7 @@ export async function acceptArrival(t: WaTurn, req: Request): Promise<Response |
   // True only when X-Twilio-Signature verified: the one proof a founder setting change accepts (directive_gate.ts).
   let signatureVerified = false;
   const formParams: Record<string, string> = {}; // every POST param, needed for signature validation
+  let locationOf: Record<string, string> | null = null; // the JSON path's location fields (the form path reads formParams)
   const ct = req.headers.get('content-type') || '';
 
   if (ct.includes('application/json')) {
@@ -43,6 +44,7 @@ export async function acceptArrival(t: WaTurn, req: Request): Promise<Response |
     }
     From = j.From || ''; Body = j.Body || ''; Profile = j.ProfileName || ''; MessageSid = j.MessageSid || '';
     ListId = String(j.ListId || ''); ButtonPayload = String(j.ButtonPayload || '');
+    locationOf = { Latitude: String(j.Latitude ?? ''), Longitude: String(j.Longitude ?? ''), Address: String(j.Address ?? ''), Label: String(j.Label ?? '') };
     for (let i = 0; i < Number(j.NumMedia || 0) && i < 5; i++) {
       if (j['MediaUrl' + i]) media.push({ url: String(j['MediaUrl' + i]), mime: String(j['MediaContentType' + i] || '') });
     }
@@ -58,6 +60,13 @@ export async function acceptArrival(t: WaTurn, req: Request): Promise<Response |
       if (u) media.push({ url: u, mime: p.get('MediaContentType' + i) || '' });
     }
   }
+  // A SHARED LOCATION IS A MESSAGE (it_engineer, 10 Nov 2026, channels audit). WhatsApp sends a location pin with an EMPTY Body and
+  // no media, only Latitude / Longitude (Address and Label when the pin names a place), so the guard below dropped it before the
+  // redelivery guard, the arrival row or any log: a customer who shared their site was stored nowhere and answered never. It is
+  // now the turn's text, in our own fixed words (what they shared, never a reading of it); the signature still covers every
+  // posted parameter (formParams), because Body is rebuilt here, after they were collected.
+  // prevented by: the_whole_exchange.test.ts (a shared location is stored and answered).
+  if (!Body && !media.length) Body = locationText(ct.includes('application/json') ? null : formParams, locationOf);
   // A WhatsApp attachment usually arrives with an EMPTY Body — the caption is optional. The
   // original guard returned 200 and dropped it, which is the whole of why an attached trade
   // licence achieved nothing even before the media params went unread.
@@ -142,7 +151,7 @@ export async function acceptArrival(t: WaTurn, req: Request): Promise<Response |
     const { data: arr, error: arrErr } = await admin.from('wa_messages').insert(waRow(receivedAt, {
       wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '',
       lang: /[؀-ۿ]/.test(Body) ? 'ar' : 'en', escalated: false, sent: false,
-      meta: { stage: 'received', provenance_verified: true, message_sid: MessageSid || null, media: media.length } })).select('id').single();
+      meta: { stage: 'received', provenance_verified: true, message_sid: MessageSid || null, media: media.length, ...(media.length ? { media_items: mediaItems(media) } : {}) } })).select('id').single();
     if (arrErr) await logRun('error', { arrival_saved: 0 }, 'wa_inbound could not store an authenticated message on arrival: ' + arrErr.message + '. The turn continues and writes its row at the end, as before.');
     else { t.arrivalId = (arr as { id: number }).id; t.messageSidSeen = MessageSid; }
   }
@@ -174,4 +183,13 @@ export async function acceptArrival(t: WaTurn, req: Request): Promise<Response |
     if (repErr) await logRun('error', { invite_reply: 0 }, 'a WhatsApp message from a possible supplier lead was not filed: ' + repErr.message + '; the turn continues.');
   }
   Object.assign(t, { From, Body, Profile, MessageSid, ListId, ButtonPayload, media, internalCaller, signatureVerified });
+}
+
+/** A WhatsApp location pin as the turn's text: "Shared a location: <label>, <address> (lat, long)"; '' when the request carries none. */
+export function locationText(form: Record<string, string> | null, json: Record<string, string> | null): string {
+  const f = form ?? json ?? {};
+  const lat = String(f.Latitude || '').trim(), lng = String(f.Longitude || '').trim();
+  if (!/^-?\d{1,3}(\.\d+)?$/.test(lat) || !/^-?\d{1,3}(\.\d+)?$/.test(lng)) return '';
+  const place = [f.Label, f.Address].map((x) => String(x || '').trim().slice(0, 200)).filter(Boolean).join(', ');
+  return 'Shared a location: ' + (place ? place + ' ' : '') + '(' + lat + ', ' + lng + ')';
 }

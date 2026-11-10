@@ -38,7 +38,13 @@ import { SUPA_URL } from '@/lib/supaEnv';
 import { isUp } from '@/lib/uptime';
 import { cronAuthorized } from '@/lib/cronAuth';
 
-const PING = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/resilience_ping';
+// THE TICK RUNS BESIDE THE DATABASE (it_engineer, 10 Nov 2026). Supabase runs a function in the region nearest its caller, and
+// this route is a Vercel cron in the United States, so every resilience_ping tick ran in us-east-1 (agent_runs fn:resilience_ping
+// counts.region, 8-10 Nov: 192 of 192, avg 75.8 s) and so did everything it calls: send_whatsapp p50 9.4 s there against 0.66 s in
+// ap-southeast-1, send_outbox 4.4 s against 0.35 s, dropbox_backup 20 s against 4.5 s. That tick drains the outbox and the
+// WhatsApp queue and sends a held WhatsApp turn's written answer, so customers waited on the Pacific. The callee reads only the
+// pathname (_shared/db_region.ts). prevented by: scripts/checks/a_provider_or_scheduler_entry_runs_in_the_database_region.test.mjs
+const PING = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/resilience_ping?forceFunctionRegion=ap-southeast-1';
 
 // THE EXTERNAL UPTIME SLI (28 Sep 2026, it_engineer). Each run checks every public origin from
 // OUTSIDE Supabase and writes one edge_health_probe row per origin, fn_key 'uptime:<url>'. The

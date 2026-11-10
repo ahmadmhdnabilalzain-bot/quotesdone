@@ -194,6 +194,49 @@ Deno.test('a voice note is not told to send a trade licence', async () => {
   assert(!/trade licence as a PDF/i.test(s), 'and is not told to ask for a PDF licence');
 });
 
+// A KNOWN CUSTOMER'S VOICE NOTE IS ANSWERED AS THAT CUSTOMER, IN THEIR CONVERSATION'S LANGUAGE (it_engineer, 10 Nov 2026, channels
+// audit). media_in.ts asked the model as a 'visitor' whenever the number held no supplier lead, and always in English: a signed-in
+// customer writing in Arabic who then spoke a voice note was answered as a stranger, in English. Red on main.
+Deno.test("a known customer's voice note is answered as that customer, in the conversation's language", async () => {
+  const w = world({ audience: 'customer', name: 'ZZ DEMO Customer', claimed: true });
+  const C = 'whatsapp:+971500000033';
+  await inbound(w, C, 'ZZ DEMO أريد عرض سعر لتركيب مظلة سيارات في الفيلا');
+  const r = await inbound(w, C, '', { NumMedia: '1', MediaUrl0: 'https://api.twilio.com/2010-04-01/Accounts/AC/Messages/MM/Media/ME1', MediaContentType0: 'audio/ogg' });
+  const s = shown(r.gw);
+  assert(/voice note/i.test(s), 'the model is told it was a voice note');
+  assert(s.includes('answering a customer on whatsapp'), 'it is asked as the customer the number belongs to, not a visitor');
+  assert(!s.includes('answering a visitor on whatsapp'), 'never as a stranger');
+  assert(!/Reply in UAE English/.test(s), 'and not forced into English when the conversation is Arabic');
+});
+
+// WHAT THE VOICE NOTE WAS IS KEPT (it_engineer, 10 Nov 2026). Nothing transcribes WhatsApp audio yet, and the arrival row kept only
+// a count ("media": 1): the Twilio media reference was in no table, so the day transcription exists nothing could be heard again,
+// and a person reading the conversation could not find the recording. The arrival row now names each attachment. Red on main.
+Deno.test('the arrival row keeps a reference to every attachment, so a voice note can be heard later', async () => {
+  const w = world();
+  const url = 'https://api.twilio.com/2010-04-01/Accounts/AC/Messages/MM/Media/ME2';
+  await inbound(w, A, '', { NumMedia: '1', MediaUrl0: url, MediaContentType0: 'audio/ogg' });
+  const row = w.msgs.find((m) => m.wa_from === A && JSON.stringify(m.meta ?? {}).includes('ME2'));
+  assert(row, 'no wa_messages row names the attachment: ' + JSON.stringify(w.msgs.map((m) => m.meta)));
+  const items = (row!.meta as { media_items?: { url: string; mime: string }[] }).media_items ?? [];
+  assertEquals(items, [{ url, mime: 'audio/ogg' }]);
+});
+
+// A SHARED LOCATION IS A MESSAGE (it_engineer, 10 Nov 2026, channels audit). WhatsApp sends a location pin with an EMPTY Body and
+// no media, only Latitude / Longitude (and Address / Label when the pin names a place). arrival.ts returned 200 at
+// "!Body && !media.length" before the redelivery guard, the arrival row or any log: a customer who shared their site's location
+// was stored nowhere, answered never, and nothing recorded that they wrote. Red on main.
+Deno.test('a shared location is stored and answered, never dropped at the door', async () => {
+  const w = world({ audience: 'customer', name: 'ZZ DEMO Customer', claimed: true });
+  const C = 'whatsapp:+971500000034';
+  const r = await inbound(w, C, '', { Latitude: '25.0657', Longitude: '55.1713', Address: 'ZZ DEMO Villa 12, Dubai Hills', Label: 'ZZ DEMO site' });
+  assertEquals(r.status, 200);
+  const rows = w.msgs.filter((m) => m.wa_from === C);
+  assertEquals(rows.length, 1, 'the location turn is stored once');
+  assert(/25\.0657/.test(String(rows[0].inbound)) && /55\.1713/.test(String(rows[0].inbound)), 'with the coordinates they shared: ' + String(rows[0].inbound));
+  assert(r.gw.length > 0, 'and the model is asked to answer it');
+});
+
 // The real exchange on main (run 41528725657): after four licence turns the model added "If it is your trade licence, you
 // can also send it as a PDF or a clear photo" to the voice-note reply. Here the stub model does exactly that on its first
 // draft; the draft must be refused and rewritten, and only the clean one stored. On the pre-fix handler the first draft
