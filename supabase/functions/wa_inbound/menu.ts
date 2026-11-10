@@ -242,7 +242,9 @@ export function optionReply(id: MenuId, lang: Lang, ctx: MenuContext, now: Date 
             : 'Your supplier account' + co + ' is verified. You can manage quotation requests and your quotes in the supplier portal:\n' + supplierPortal)
           : (ar
             ? 'تسجيل حسابكم' + co + ' لم يكتمل التحقق منه بعد. تفضلوا باستكمال الخطوات المتبقية في بوابة الموردين، ويستغرق التحقق حتى 3 أيام عمل بعد اكتمال المستندات:\n' + supplierPortal
-            : 'Your registration' + co + ' is not verified yet. Please complete the remaining steps in the supplier portal; verification takes up to 3 working days once the documents are complete:\n' + supplierPortal);
+            // 10 Nov 2026: verification is the automatic gate (pricing_config.auto_approve_suppliers is on), so no
+            // "up to 3 working days" is promised; it is checked again the moment an item lands
+            : 'Your registration' + co + ' is not verified yet. Please complete the remaining steps in the supplier portal; your registration is checked again automatically the moment each one is saved:\n' + supplierPortal);
       }
       return ar
         ? 'يسجل الموردون مجانًا برخصة تجارية سارية في دولة الإمارات، دون أي عمولة على الأعمال التي يفوزون بها. للتسجيل:\n' + join + '\nيستغرق التحقق حتى 3 أيام عمل.'

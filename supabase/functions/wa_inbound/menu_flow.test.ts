@@ -335,6 +335,22 @@ Deno.test('supplier option: a verified supplier gets the portal, an unverified o
   assertMatch(no.sent[0].body, /not verified yet/);
 });
 
+Deno.test('a supplier writing Arabic is answered in English: the menu, its list and the supplier option', async () => {
+  const s = harness({ ctx: { audience: 'supplier', name: 'ZZ DEMO Trading LLC', approved: false } });
+  await menuTurn(s.d, msg('السلام عليكم', 'supplier'));
+  assert(s.sent.length > 0, 'nothing was sent');
+  for (const m of s.sent) assertEquals(/[\u0600-\u06FF]/.test(m.body), false, 'a supplier was sent Arabic: ' + m.body.slice(0, 80));
+  assertEquals((s.rows[0] as { lang: string }).lang, 'en');
+  const o = harness({ ctx: { audience: 'supplier', name: 'ZZ DEMO Co', approved: false } });
+  await menuTurn(o.d, msg('ما هو وضع تسجيلي', 'supplier', { listId: 'qd_supplier' }));
+  assertMatch(o.sent[0].body, /not verified yet/);
+  assertEquals(/3 working days/.test(o.sent[0].body), false, 'the automatic gate has no three-day wait');
+  // control: a customer writing Arabic is still answered in Arabic
+  const c = harness({ ctx: { audience: 'customer', name: null } });
+  await menuTurn(c.d, msg('السلام عليكم', 'customer'));
+  assertEquals((c.rows[0] as { lang: string }).lang, 'ar');
+});
+
 Deno.test('report a problem: the next message becomes a case and the reference is confirmed', async () => {
   const h = harness({ history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
   await menuTurn(h.d, msg('5'));
@@ -726,7 +742,8 @@ Deno.test('777: a size question from ANY number gets the capability answer, neve
       assert(noCount(body), aud + ': ' + q + ' carries a digit: ' + body);
       assert(!INTERNAL.test(body), q + ': internal wording');
       assertEquals(h.asked.length, 0, aud + ': ' + q + ' must not even read the figures');
-      if (lang === 'ar') {
+      // a supplier is answered in English whatever he wrote in (founder ruling 1008; replyLang, 10 Nov 2026)
+      if (lang === 'ar' && aud !== 'supplier') {
         assertMatch(body, /نطابق كل طلب عرض سعر مع موردين موثّقين[\s\S]*لطلب عرض سعر:\nhttps:\/\/quotesdone\.com\/ar\/me\?new=1[\s\S]*«قائمة»/);
       } else {
         assertMatch(body, /We match each quotation request to verified suppliers across the UAE in the exact trade[\s\S]*To request a quotation: https:\/\/quotesdone\.com\/me\?new=1\n\nReply MENU/);
