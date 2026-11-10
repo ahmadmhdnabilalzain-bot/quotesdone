@@ -26,7 +26,15 @@ const PROBE = `scripts/sql/${NAME}_probe.sql`;
 export const SUBJECT = /\b(?:from|join|update|into)\s+(?:public\.)?(customers|leads|inquiries|quotes|transactions|support_case|inquiry_intake)\b/i;
 export const DEMO = /is_demo|_is_fixture\b|p_include_fixtures|qd\.duty_fixtures/i;
 const strip = (s) => s.replace(/--[^\n]*/g, '').replace(/'(?:[^']|'')*'/g, "''");
-export function readsDemoRows(body) { const b = strip(body); const m = SUBJECT.exec(b); return m && !DEMO.test(b) ? m[1] : null; }
+// A duty's own fixture switch is read as current_setting('qd.duty_fixtures', true): a string literal, which strip() blanks.
+// 10 Nov 2026: so the switch this header names as a predicate could never count, and fn_customer_support_public_complaint_tick
+// (which selects (text like 'ZZ DEMO%') = v_fx) read as a demo reader. The switch is looked for with comments removed only.
+const SWITCH = /current_setting\(\s*'qd\.duty_fixtures'/i;
+export function readsDemoRows(body) {
+  const b = strip(body); const m = SUBJECT.exec(b);
+  if (!m || DEMO.test(b) || SWITCH.test(body.replace(/--[^\n]*/g, ''))) return null;
+  return m[1];
+}
 
 function canonical(fn) {
   const re = new RegExp(`create or replace function public\\.${fn}\\(`, 'i');
@@ -42,6 +50,8 @@ test('the rule itself: a subject read without the predicate is caught, with it i
   assert.equal(readsDemoRows('select 1 from public.customers c where not c.is_demo'), null);
   assert.equal(readsDemoRows("select 'from customers'"), null);
   assert.equal(readsDemoRows('-- from leads\nselect 1'), null);
+  assert.equal(readsDemoRows("v_fx boolean := current_setting('qd.duty_fixtures', true) = 'on'; select 1 from support_case"), null);
+  assert.equal(readsDemoRows("-- current_setting('qd.duty_fixtures', true)\nselect 1 from support_case"), 'support_case');
 });
 
 for (const fn of ['fn_support_case_idle_close', 'fn_ceo_pricing_monitor', 'fn_accountant_ubo_rescreen', 'fn_sales_engineer_comparison_kpi',
@@ -53,6 +63,14 @@ for (const fn of ['fn_support_case_idle_close', 'fn_ceo_pricing_monitor', 'fn_ac
 
 // ceo.pricing_evidence (C08) was registered after the 12 Oct sweep and read demo rows until
 // scripts/sql/the_ceo_pricing_evidence_reads_only_real_rows.sql (27 Oct 2026).
+// The two #1844 duties (3 Nov 2026) that read customers / inquiries with no predicate until
+// scripts/sql/two_customer_support_duties_read_only_their_own_kind_of_row.sql (10 Nov 2026).
+for (const fn of ['fn_customer_support_closes_status_chases', 'fn_wa_human_request_email_followup', 'fn_customer_support_public_complaint_tick']) {
+  test(`${fn} (found 10 Nov 2026) excludes demo rows`, () => {
+    assert.equal(readsDemoRows(canonical(fn)), null, `${fn} reads a subject table with no demo predicate`);
+  });
+}
+
 test('fn_ceo_pricing_evidence (found 27 Oct 2026) excludes demo rows', () => {
   assert.equal(readsDemoRows(canonical('fn_ceo_pricing_evidence')), null, 'fn_ceo_pricing_evidence reads a subject table with no demo predicate');
 });
@@ -111,7 +129,11 @@ test('production: every enabled seat duty that reads a subject table carries the
   const rows = await sql(`select d.duty, d.routine, p.prosrc from public.seat_duty d
     join pg_proc p on p.proname = d.routine and p.pronamespace = 'public'::regnamespace where d.enabled`);
   assert.ok(rows.length > 0, 'no enabled seat duty was read');
-  const bad = rows.map((r) => [r.duty, r.routine, readsDemoRows(r.prosrc)]).filter((x) => x[2]);
+  // a routine whose fix is committed and pending is judged on that canonical body (10 Nov 2026); the rest on production's
+  const pendingDefines = (fn) => [...pendingNotes().keys()].some((f) => existsSync(join(ROOT, f))
+    && new RegExp(`create or replace function public\\.${fn}\\(`, 'i').test(R(f)));
+  const fixed = (fn) => (pendingDefines(fn) ? canonical(fn) : null);
+  const bad = rows.map((r) => [r.duty, r.routine, readsDemoRows(fixed(r.routine) ?? r.prosrc)]).filter((x) => x[2]);
   assert.deepEqual(bad, [], 'duties reading demo rows: ' + bad.map((x) => `${x[0]} (${x[1]} reads ${x[2]})`).join(', '));
 });
 
