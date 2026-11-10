@@ -24,7 +24,7 @@
 // status differs from the status the model wrote its sentence for, the sentence is replaced by one
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
-import { orderFields, questionText, parseAnswer, isUnknown, type Lang, type SpecField } from './interview.ts';
+import { orderFields, questionText, parseAnswer, isUnknown, answersAnotherKind, type Lang, type SpecField, type UniversalKind } from './interview.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
@@ -34,7 +34,9 @@ import type { Dialect } from '../_shared/inquiry_state.ts';
 const asText = (v: unknown) => (typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')).trim();
 const filled = (v: unknown) => v !== undefined && v !== null && !['', '{}', '[]', 'null'].includes(asText(v));
 
-export type SlotState = { details: Record<string, string>; missingKeys: string[]; missing: string[]; complete: boolean; exhausted: string[]; held: boolean };
+export type SlotState = { details: Record<string, string>; missingKeys: string[]; missing: string[]; complete: boolean; exhausted: string[]; held: boolean;
+  /** Values the model filed under a spec they do not answer (finding b2): not recorded there, the spec stays open. */
+  misfiled?: { key: string; reason: 'answers_another_kind' | 'no_customer_words'; kind?: UniversalKind }[] };
 
 // ── A QUESTION IS NOT ASKED FOREVER (12 Oct 2026, sales_engineer) ─────────────────────────────────
 // MEASURED. Stage-2 run f4294be8: C9 (waterproofing, EN) was asked "Is there a leak now, or is this to
@@ -230,22 +232,55 @@ export function openTurnsByKey(turns: any[]): Record<string, number> {
 // quote is held), the other keys are still asked, and when only such keys are left the intake is held for the sales
 // engineer (the spec.not_sure handoff). `unknownKeys` comes from the conversation's state: what the customer said they do
 // not know, on this turn or any earlier one, on this surface or the portal chat it was carried from.
-export function reconcileSlots(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, modelOut: any, lang: Lang, openTurns: Record<string, number> = {}, unknownKeys: Iterable<string> = []): SlotState {
+// AN ANSWER COUNTS ONLY UNDER THE SPEC IT ANSWERS (evidence run of 10 Nov 2026, ledger 1604, finding b2). The model filed
+// "We need it finished by 15 December 2026." under spec_mep_scope and "At least 2 years warranty ..." under
+// spec_authority_approvals_and_responsibility, and both counted. A value the model adds THIS turn under a checklist key
+// is now recorded only when:
+//   * it is not ONLY a statement of another universal kind (a date, money, a warranty period, an emirate; interview.ts
+//     answersAnotherKind) — such a value answers that kind, and is filed under the checklist's own field for it when
+//     there is one; the asked spec stays open;
+//   * when the model cites the customer's words (its structured "spec_evidence": {key: quote}), the quote is the
+//     customer's own words (verbatim in what they wrote) and passes the same guard. A key the model filled without a
+//     quote, on a turn where it cited others, is not recorded.
+// "Customer does not know: supplier to advise" is an explicit answer and always counts. What earlier turns recorded is
+// never re-judged here.
+const SUPPLIER_TO_ADVISE_TEXT = 'Customer does not know: supplier to advise';
+const squash = (s: string) => String(s || '').toLowerCase().replace(/[\s\u00a0]+/g, ' ').replace(/[“”"'’‘]/g, '').trim();
+const UNIVERSAL_FIELD_KEY: Record<UniversalKind, string[]> = { required_by: ['required_by', 'timeline'], budget: ['budget'], warranty: ['warranty'], location: ['location', 'emirate'] };
+export function reconcileSlots(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, modelOut: any, lang: Lang, openTurns: Record<string, number> = {}, unknownKeys: Iterable<string> = [], customerText?: string | null): SlotState {
   const unknown = new Set([...unknownKeys].map(String));
   const details: Record<string, string> = {};
   for (const [k, v] of Object.entries(prevDetails || {})) if (filled(v)) details[k] = asText(v);
   const b = modelOut && typeof modelOut.brief === 'object' && modelOut.brief ? modelOut.brief : {};
   const det = b.details && typeof b.details === 'object' ? b.details : {};
   const keys = new Set(checklist.map((f) => f && f.key).filter(Boolean) as string[]);
-  for (const [k, v] of Object.entries(det)) if (filled(v)) details[k] = asText(v);
+  const evidence = modelOut && modelOut.spec_evidence && typeof modelOut.spec_evidence === 'object' && !Array.isArray(modelOut.spec_evidence) ? modelOut.spec_evidence as Record<string, unknown> : null;
+  const said = customerText != null ? squash(customerText) : null;
+  const misfiled: NonNullable<SlotState['misfiled']> = [];
+  const put = (k: string, v: unknown) => {
+    const text = asText(v);
+    const f = checklist.find((x) => x && String(x.key) === k);
+    if (!f || text === SUPPLIER_TO_ADVISE_TEXT || details[k] === text) { details[k] = text; return; }
+    const ev = evidence ? asText(evidence[k] ?? '') : '';
+    const kind = answersAnotherKind(f, text) || (ev ? answersAnotherKind(f, ev) : null);
+    if (kind) {
+      misfiled.push({ key: k, reason: 'answers_another_kind', kind });
+      const home = UNIVERSAL_FIELD_KEY[kind].find((h) => keys.has(h) && !filled(details[h]));
+      if (home) details[home] = text;
+      return;
+    }
+    if (evidence && said !== null && (!ev || !said.includes(squash(ev)))) { misfiled.push({ key: k, reason: 'no_customer_words' }); return; }
+    details[k] = text;
+  };
+  for (const [k, v] of Object.entries(det)) if (filled(v)) put(k, v);
   // A checklist key the model put at the top of the brief (brief.location) instead of under details.
-  for (const k of keys) if (!(k in details) && filled(b[k])) details[k] = asText(b[k]);
+  for (const k of keys) if (!(k in details) && filled(b[k])) put(k, b[k]);
   const required = orderFields(checklist).filter((o) => o.f.required && o.f.key);
   const open = required.filter((o) => !(String(o.f.key) in details));
   const exhausted = open.map((o) => String(o.f.key)).filter((k) => (openTurns[k] || 0) >= MAX_OPEN_TURNS || unknown.has(k));
   const askable = open.filter((o) => !exhausted.includes(String(o.f.key)));
   return {
-    details, exhausted,
+    details, exhausted, ...(misfiled.length ? { misfiled } : {}),
     missingKeys: open.map((o) => String(o.f.key)),
     missing: askable.map((o) => questionText(o.f, lang)),
     complete: open.length === 0,
@@ -269,14 +304,16 @@ export function replyFromState(status: string, firstMissingQuestion: string | nu
  * row's, and the reply is rebuilt whenever the status differs from the one the model wrote it for.
  * `briefOf` builds a brief from the slots when the model sent none (index.ts passes buildBrief).
  */
-export function settleModelTurn(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, out: any, lang: Lang, briefOf: (details: Record<string, string>) => any, openTurns: Record<string, number> = {}, unknownKeys: Iterable<string> = []): SlotState {
-  const sl = reconcileSlots(checklist, prevDetails, out, lang, openTurns, unknownKeys);
+export function settleModelTurn(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, out: any, lang: Lang, briefOf: (details: Record<string, string>) => any, openTurns: Record<string, number> = {}, unknownKeys: Iterable<string> = [], customerText?: string | null): SlotState {
+  const sl = reconcileSlots(checklist, prevDetails, out, lang, openTurns, unknownKeys, customerText);
   const modelStatus = out.status;
   const modelAsked = Array.isArray(out.questions) && out.questions.some((q: unknown) => String(q ?? '').trim() !== '');
   // claims_ready: the model's own structured flag saying its sentence tells the customer the request is
   // ready/complete/about to be shared. A missing flag is read as a claim (it cannot be shown false).
   const claimsReady = out.claims_ready !== false;
   out.status = sl.complete ? 'ready' : sl.held ? 'held' : 'needs_info';
+  // A value not recorded (misfiled) leaves the model's brief too: the brief carries only what the slots hold.
+  if (out.brief && typeof out.brief === 'object' && out.brief.details && typeof out.brief.details === 'object') for (const m of sl.misfiled ?? []) delete out.brief.details[m.key];
   if (sl.complete) {
     const base = out.brief && typeof out.brief === 'object' ? out.brief : briefOf(sl.details);
     out.brief = { ...base, details: { ...(base.details || {}), ...sl.details } };
