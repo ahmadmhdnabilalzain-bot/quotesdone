@@ -11,7 +11,7 @@
 // Restored 9 Sep 2026 (deleted by the 137-function sweep, 182308b). Of the five this one degraded
 // best: supplier_api saw a 502 and showed the manual form.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { requireInternal } from '../_shared/internal_auth.ts';
+import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { scrubIdentityText } from '../_shared/identity_text.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
@@ -20,6 +20,7 @@ import { defaultDeps } from '../_shared/think.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { pageB64, pageMime } from '../_shared/licence_extract.ts';
 import { DATA_NOT_INSTRUCTIONS, untrustedBlock } from '../_shared/untrusted.ts';
+import { J } from '../_shared/json_response.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -29,14 +30,13 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
       started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() });
   } catch (_e) { /* never let logging break the function */ }
 }
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
-const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+// secretOk() is the shared one, in ../_shared/internal_auth.ts.
 function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return {}; } }
 function scrub(s: unknown): string {
   let t = String(s == null ? '' : s);

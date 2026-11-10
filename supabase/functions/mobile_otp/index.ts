@@ -6,7 +6,7 @@ import { siteCors } from '../_shared/site_origins.ts';
 // Authed via the customer's Supabase JWT. verify_jwt=false (validates JWT internally).
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { requireInternal } from '../_shared/internal_auth.ts';
+import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { prefixBlocked } from '../_shared/otp_guard.ts';
@@ -19,7 +19,7 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
-const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+// secretOk() is the shared one, in ../_shared/internal_auth.ts.
 function normPhone(p: string){ let s = String(p||'').trim().replace(/[^0-9+]/g,''); if(!s) return ''; if(s.startsWith('00')) s='+'+s.slice(2); if(!s.startsWith('+')){ if(s.startsWith('0')) s='+971'+s.slice(1); else if(s.startsWith('971')) s='+'+s; else s='+'+s; } return s; }
 
 async function verifyCreds(){ return { svc: await sec('twilio_verify_service_sid'), ks: await sec('twilio_api_key_sid'), kk: await sec('twilio_api_key_secret') }; }

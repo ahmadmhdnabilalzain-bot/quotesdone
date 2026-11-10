@@ -14,7 +14,7 @@
 // Not supported: IFC / RVT / DGN, never (founder ruling 1000, 28 Sep 2026: drawings are PDF, DWG and DXF
 // only). sanitizeOrMessage is given SAFE_CAD, which is dwg + dxf only, so such a file is refused as unsupported_type.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { requireInternal } from '../_shared/internal_auth.ts';
+import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -26,7 +26,7 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
-const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+// secretOk() is the shared one, in ../_shared/internal_auth.ts.
 async function jf(url: string, opts: any, ms: number){ const c = new AbortController(); const t = setTimeout(() => c.abort(), ms); try { return await fetch(url, { ...opts, signal: c.signal }); } finally { clearTimeout(t); } }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

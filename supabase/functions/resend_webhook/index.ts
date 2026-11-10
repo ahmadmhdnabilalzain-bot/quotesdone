@@ -18,8 +18,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { inviteStatusFor } from './invite_status.ts';
 import { deliveryOutcome } from './delivery_status.ts';
+import { J } from '../_shared/json_response.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {

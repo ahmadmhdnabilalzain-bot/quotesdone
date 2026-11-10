@@ -1,4 +1,4 @@
-import { requireInternal } from '../_shared/internal_auth.ts';
+import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 // doc_extract — universal Document Intelligence extractor.
 // Pulls {text, specifications, brands[], models[], dates[], quantities[], certifications[]}
 // from a registered document, and indexes non-sensitive docs into kb_chunks.
@@ -27,7 +27,7 @@ const j = (o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:co
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
-const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+// secretOk() is the shared one, in ../_shared/internal_auth.ts.
 
 // index these kinds into the shared KB (non customer-identifying capability text).
 // WHAT MAY ENTER THE SHARED LIBRARY. kb_chunks is read by kb_query, which inquiry_intake calls with
