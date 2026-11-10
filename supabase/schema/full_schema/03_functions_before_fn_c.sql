@@ -11705,7 +11705,7 @@ CREATE OR REPLACE FUNCTION public.fn_assign_founding_rank()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_limit int; v_rank int;
 begin
@@ -11716,10 +11716,13 @@ begin
   if coalesce(new.banned,false) is true then return new; end if;
   if coalesce(new.approval_status,'') in ('rejected','action_required') then return new; end if;
 
-  v_limit := coalesce((select nullif(value,'')::int from public.app_secrets where key='founding_free_limit'), 1000);
+  -- Serialise rank assignment so two concurrent verifications cannot take the same number - but never WAIT for it.
+  -- The lock is held to the end of whichever transaction took it; a long one (a probe, a bulk fix) used to stall every
+  -- approval behind it (10 Nov 2026: two 8 s statement timeouts and a 40 s confirm). Busy = approve now, rank in the
+  -- minute (fn_sales_engineer_reruns_held_verifications). A rank taken in the same transaction re-enters the lock.
+  if not pg_try_advisory_xact_lock(hashtext('qd_founding_rank')) then return new; end if;
 
-  -- Serialise rank assignment so two concurrent verifications cannot take the same number.
-  perform pg_advisory_xact_lock(hashtext('qd_founding_rank'));
+  v_limit := coalesce((select nullif(value,'')::int from public.app_secrets where key='founding_free_limit'), 1000);
   select coalesce(max(founding_rank),0) + 1 into v_rank from public.leads;
 
   new.founding_rank := v_rank;

@@ -23,6 +23,7 @@
 // (_shared/reasoned_matching.ts reasonedOffers), never by this comparison.
 import { assessQuote, componentAttr, componentOnLine, customerAnswer, customerRequires, lineDefs, MATERIAL_ATTRS, requestedValue, type Line, type Requirements, type Terms } from './assess.ts';
 import { attrsOf, COMPOSITE, normText, TRADES, tradeOfCategory, type Attr } from './model.ts';
+import { generaliseText } from '../quote_generalise.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 
 // optional_not_stated: the detail applies to this product and another supplier may state it, but it is
@@ -74,8 +75,13 @@ function flagOf(applies: boolean, value: string | null, requested: string | null
   if (!requested) return 'stated';
   return same(value, requested) ? 'match' : 'differs';
 }
-const cellOf = (quote_id: string, applies: boolean, value: string | null, requested: string | null, noPref: boolean, extra: Partial<Cell> = {}): Cell => {
-  const flag = flagOf(applies, value, requested, noPref);
+// AN ACCEPTED ALTERNATIVE IS NAMED GENERICALLY (founder ledger 1589, 10 Nov 2026). quote_compare generalises the
+// technical table before the customer sees it, so the alternatives the no-exact-spec offer lists — and the value the
+// customer accepts — read "premium German brand", not the make. A quote whose stored brand generalises to the accepted
+// words therefore matches it; without this the customer's own acceptance would show as a deviation forever.
+const sameOrGeneric = (v: string, r: string) => sameValue(v, r) || sameValue(generaliseText(v).text, r);
+const cellOf = (quote_id: string, applies: boolean, value: string | null, requested: string | null, noPref: boolean, extra: Partial<Cell> = {}, same = sameValue): Cell => {
+  const flag = flagOf(applies, value, requested, noPref, same);
   return { quote_id, value: safe(value), source: null, quote_line_no: null, flag, marker: MARKER[flag], ...extra };
 };
 
@@ -162,7 +168,7 @@ export function technicalComparison(input: { category: string | null; request_li
         if (!l.spec[a.code] && !owed && l.asked.includes(a.code)) {
           return { ...cellOf(q.quote_id, true, null, baseline, noPref, { source: null, quote_line_no: ln }), flag: 'optional_not_stated' as Flag, marker: MARKER.optional_not_stated };
         }
-        return cellOf(q.quote_id, owed || !!l.spec[a.code], l.spec[a.code] ?? null, baseline, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln });
+        return cellOf(q.quote_id, owed || !!l.spec[a.code], l.spec[a.code] ?? null, baseline, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln }, rq?.source === 'accepted' ? sameOrGeneric : sameValue);
       });
       return { code: a.code, label_en: a.en, label_ar: a.ar, unit: a.unit ?? null, unit_ar: a.unit_ar ?? null, mandatory: defs.some((d) => d.code === a.code && d.mandatory), requested: rq && !noPref ? rq.value : null, requested_source: rq?.source ?? null, cells };
     }).filter((row) => row.mandatory || row.requested || row.requested_source || row.cells.some((c) => c.value));
