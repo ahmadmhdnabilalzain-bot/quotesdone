@@ -369,7 +369,10 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         }
         // ONE ANSWER SHAPE (_shared/inquiry_posted.ts): inquiry_id is the parent, the stable id of
         // what the customer asked for; child_ids / quotable_ids are what suppliers quote on.
-        return J({ ...postedSplit(res.parentId, res.children.map((c) => ({ ...c, label: labelize(c.trade) })), distinctTrades), concierge: await confirmRequest(res.parentId) });
+        // A part the matcher did not answer waits for the re-match (lib/rematch.ts): the portal says so for that part.
+        const { data: waitingKids } = await admin.from('inquiries').select('id').eq('parent_inquiry_id', res.parentId).eq('routing->>matcher_unavailable', 'true');
+        const waitingIds = new Set((waitingKids || []).map((k: { id: string }) => String(k.id)));
+        return J({ ...postedSplit(res.parentId, res.children.map((c) => ({ ...c, label: labelize(c.trade), matching: waitingIds.has(String(c.inquiry_id)) })), distinctTrades), concierge: await confirmRequest(res.parentId) });
       }
 
       if (wantTurnkey) {

@@ -20,6 +20,28 @@ export async function specOfferTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// A REQUEST THE MATCHER COULD NOT REACH IS MATCHED AGAIN (sales_engineer, 10 Nov 2026; customer_api/lib/rematch.ts).
+// It rides the specoffer step — the sales engineer's existing 15-minute beat — rather than a new step or cron: both are
+// "a request is waiting on the sales engineer, ask again when its clock comes". The two run side by side and the step is
+// nested, so a failing re-match is its own finding (duty:heartbeat:specoffer.rematch), never hidden by a passing offer.
+export async function rematchTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_resilience_ping');
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const r = await fetch(FN + '/customer_api', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
+      body: JSON.stringify({ __secret: secret, action: 'rematch_waiting', limit: 5 }), signal: AbortSignal.timeout(50000),
+    });
+    const j = await r.json().catch(() => null);
+    return j && j.ok === false ? { ok: false, error: String(j.error || 'rematch failed'), result: j } : { status: r.status, result: j };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+export async function specOfferAndRematchTick(): Promise<unknown> {
+  const [spec_offer, rematch] = await Promise.all([specOfferTick(), rematchTick()]);
+  return { spec_offer, rematch };
+}
+
 // THE SALES ENGINEER'S DAILY SUPPLIER OUTREACH LEFT THIS TICK ON 28 OCT 2026 (sales_engineer). It ran here as the step
 // `supplierOutreach` from 21 Sep, through PostgREST, where the authenticator's statement_timeout is 8 s. The held path
 // fits; an open day does not (measured 28 Oct: enqueue_supplier_invites alone took 13.4 s), so on the first open day
