@@ -149,7 +149,7 @@ test('the invitation goes to the number that opted in, never to a lead number no
 });
 
 test('send_whatsapp re-reads the opt-in for the exact number as a marketing row leaves', () => {
-  const src = read('supabase/functions/send_whatsapp/index.ts');
+  const src = functionSource('send_whatsapp');
   assert.match(src, /from\('supplier_whatsapp_optin'\)\.select\('id'\)\.eq\('phone', String\(n\.to_phone/);
   assert.match(src, /no recorded WhatsApp opt-in for this number/);
 });

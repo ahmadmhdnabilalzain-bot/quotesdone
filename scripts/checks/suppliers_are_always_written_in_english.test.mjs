@@ -114,7 +114,7 @@ test('the schema carries the rule: the supplier guard trigger and the inquiry la
 test('the senders never frame or template a supplier message in Arabic', () => {
   const outbox = code(read('supabase/functions/send_outbox/index.ts').replace(/\/\/.*$/gm, ''));
   assert.match(outbox, /const arMail = !internal && !supplierSide && n\.lang === 'ar'/, 'send_outbox: a supplier mail can get the Arabic frame');
-  const wa = read('supabase/functions/send_whatsapp/index.ts').replace(/\/\/.*$/gm, '');
+  const wa = functionSource('send_whatsapp').replace(/\/\/.*$/gm, '');
   assert.match(wa, /const wlang = n\.lang === 'ar' && n\.to_role !== 'supplier' \? 'ar' : 'en'/, 'send_whatsapp: a supplier can get the Arabic template');
   assert.match(read('supabase/functions/_shared/registered_locale.ts'), /export const SUPPLIER_LOCALE: Locale = 'en';/);
 });

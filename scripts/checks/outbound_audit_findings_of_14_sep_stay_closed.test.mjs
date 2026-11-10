@@ -66,7 +66,7 @@ test('4. contact_submit is rate limited per IP and per address before anything i
 // submitted. What this test protects is unchanged and is the part that mattered — a row that cannot
 // go yet says WHY instead of sitting silently, and the email twin is queued first and is the record.
 test('5. a supplier_account_notice row with no approved template says why, and the email carries it', () => {
-  const src = R('supabase/functions/send_whatsapp/index.ts');
+  const src = functionSource('send_whatsapp');
   assert.match(src, /return 'supplier_account_notice'/);
   assert.match(src, /key === 'supplier_account_notice'\) await admin\.from\('notifications'\)\.update\(\{ last_error: AWAITING_TEMPLATE_NOTE \}\)/);
   assert.match(src, /AWAITING_TEMPLATE_NOTE = 'awaiting template: /);

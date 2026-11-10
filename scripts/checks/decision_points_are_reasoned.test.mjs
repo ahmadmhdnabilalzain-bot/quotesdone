@@ -30,7 +30,7 @@ import { functionSource, sharedModuleSource } from '../lib/function_sources.mjs'
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 // A proof that names one of these index.ts files means the whole function: index.ts plus the modules it was split into.
-const WHOLE_FN = /^supabase\/functions\/(resilience_ping|customer_api|supplier_api|sales_engineer|wa_inbound|accountant|inquiry_intake|resend_inbound|supplier_portal)\/index\.ts$/;
+const WHOLE_FN = /^supabase\/functions\/(resilience_ping|customer_api|supplier_api|sales_engineer|wa_inbound|accountant|inquiry_intake|resend_inbound|supplier_portal|send_whatsapp)\/index\.ts$/;
 // _shared/quote_documents.ts is a barrel since 9 Nov 2026: a proof that names it means the barrel plus _shared/quote_documents/.
 const SPLIT_SHARED = /^supabase\/functions\/_shared\/(quote_documents)\.ts$/;
 const REGISTRY = JSON.parse(read('supabase/functions/_shared/decision_points.json'));
