@@ -4184,6 +4184,11 @@ begin
             where a.kind = 'handoff' and a.detail->>'type' = 'delivery.request'
               and a.created_at < now() - interval '2 hours' and a.created_at > now() - interval '7 days'
               and not (a.detail ? 'loop') and a.title not ilike '%ZZ DEMO%'
+              -- 10 Nov 2026: a request already DONE with a result that is not a failure is finished work. 16 handoffs closed
+              -- as record_removed (the queued notification was deleted afterwards) carry no loop key and each became a
+              -- finding; the 2 to 4 Nov burst was 2,757 of them. A failure result is still raised.
+              and not (a.status = 'done' and a.detail->>'result' is not null
+                       and a.detail->>'result' not in ('not_sent', 'no_response_confirmation', 'sent_unconfirmed'))
               -- 2 Nov 2026: a send whose not_before is ahead (18 queued invitations held to 4 Nov) is on a schedule, not lost.
               and not exists (select 1 from public.notifications n where n.id = (a.evidence->>'notification_id')::bigint and n.not_before > now())
               -- 22 Sep 2026: a founder-bound request customer_support holds for the 19:00 Dubai IT digest
@@ -4382,7 +4387,8 @@ begin
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
   values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duties', 'result', v_out), null);
   return v_out;
-end $function$
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_duties_due()
@@ -8327,6 +8333,32 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_open_problems()
+ RETURNS TABLE(problem text, alerts integer, needs_founder boolean, founder_title text, started_at timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with o as (
+    select f.issue_key, f.title, f.started_at,
+           coalesce(substring(f.issue_key from '^[^:]+(?::[^:]+)?'), f.issue_key) as problem,
+           -- The IT digest's rule, in its order (fn_customer_support_sends_the_it_digest).
+           (    not public.fn_it_credential_founder_required(f.issue_key, f.title, f.evidence)
+            and not (f.issue_key like 'duty:integration:%' and f.evidence->>'notify' is distinct from 'true')
+            and coalesce((select c.to_founder and c.founder_category in ('money', 'destructive_production_change', 'fact_only_he_holds')
+                            from public.it_founder_decision_class c
+                           where f.issue_key like c.issue_key_like
+                           order by c.to_founder, length(c.issue_key_like) desc limit 1), false)) as his
+      from public.fn_it_open_findings() f)
+  select o.problem, count(*)::int, bool_or(o.his),
+         (array_agg(public.fn_trim_at_word(regexp_replace(o.title, '[.\s]+$', ''), 120) order by o.started_at, o.issue_key)
+            filter (where o.his))[1],
+         min(o.started_at)
+    from o
+   group by o.problem
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_otp_unblock(p_prefix text, p_reason text, p_by text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -9419,7 +9451,11 @@ AS $function$
     'budget_spent', case when p_runs_30d > 0 then round((p_bad_30d::numeric / p_runs_30d) / 0.001, 2) end,
     'burn_rate_24h', case when p_runs_24h > 0 then round((p_bad_24h::numeric / p_runs_24h) / 0.001, 2) end,
     'budget_breach', (case when coalesce(p_runs_24h, 0) >= 5 then p_bad_24h::numeric / p_runs_24h / 0.001 >= 2 else false end)
-                     or (case when coalesce(p_runs_30d, 0) >= 5 then p_bad_30d::numeric / p_runs_30d > 0.001 else false end));
+                     -- 10 Nov 2026: the 30-day term counts only while the last 24 h is also burning above 1x. On its own it is a
+                     -- lifetime average and a recovered function could not clear for a month.
+                     or (case when coalesce(p_runs_30d, 0) >= 5 and coalesce(p_runs_24h, 0) > 0
+                              then p_bad_30d::numeric / p_runs_30d > 0.001 and p_bad_24h::numeric / p_runs_24h / 0.001 > 1
+                              else false end));
 $function$
 
 

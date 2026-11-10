@@ -21,6 +21,7 @@ every workflow. Do not dispatch a workflow either: a dispatched run bills minute
   --base=<sha before the merge>`, `--dry-run` first), regenerate the schema mirror
   (`node scripts/checks/export_from_either_source_is_identical.mjs --write`) and land it by PR.
 - In a cloud session: `NODE_USE_ENV_PROXY=1 SUPABASE_ACCESS_TOKEN=proxy-injected` (the proxy injects the real token).
+  The Supabase CLI (function deploys) refuses that placeholder: use `SUPABASE_ACCESS_TOKEN=sbp_` + 40 zeros instead.
 - Vercel still builds the website from GitHub by its own integration; that is not GitHub Actions and costs no minutes.
 - Scheduled work stays on pg_cron and the Claude cloud routines.
 

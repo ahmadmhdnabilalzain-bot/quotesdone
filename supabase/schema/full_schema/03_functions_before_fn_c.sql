@@ -5340,7 +5340,13 @@ begin
         transaction_id = coalesce(excluded.transaction_id, it.transaction_id),
         attempts = it.attempts + 1, last_seen_at = now(), last_run_id = excluded.last_run_id,
         resolved_at = case when excluded.outcome in ('recovered', 'refunded') then coalesce(it.resolved_at, now())
-                           when excluded.outcome = 'deferred' then null end;
+                           when excluded.outcome = 'deferred' then null end
+    -- 10 Nov 2026: after 10 attempts (ten hourly sweeps) an item still open as failed / test_mode_not_demo /
+    -- refunded_unrecorded is not rewritten again. Its finding stays open, built from the unresolved item. A result
+    -- that resolves it or changes what it is (recovered, refunded, second_payment) is still written.
+    where not (it.resolved_at is null and it.attempts >= 10
+               and it.outcome in ('failed', 'test_mode_not_demo', 'refunded_unrecorded')
+               and excluded.outcome in ('failed', 'test_mode_not_demo', 'refunded_unrecorded', 'deferred'));
     n_kept := n_kept + 1;
   end loop;
 
@@ -5354,7 +5360,8 @@ begin
 
   return jsonb_build_object('run', v_run, 'kept', n_kept, 'refused', n_refused, 'resolved_elsewhere', n_resolved,
     'findings', public.fn_accountant_reveal_reconcile_findings());
-end $function$
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_accountant_reveal_reconcile_tick()
