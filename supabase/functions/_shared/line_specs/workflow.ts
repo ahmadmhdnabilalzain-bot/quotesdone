@@ -265,26 +265,28 @@ export function answersOf(hold: Pick<HoldRow, 'supplier_values'> | null | undefi
 }
 
 /**
- * The held items that are still open and that deskAssess does not already ask: a line item whose attribute is not
- * one of the line's own (SPEC_ATTR on a line the desk read, a review's line detail) and is still blank on the line;
- * a release-review term the supplier has not answered. A desk term is decided by `a` alone (it is in a.missing or
- * it is answered), and a notice (review_unavailable) is never a field.
+ * The held items still open beyond what deskAssess asks. A STORED item (the hold's own list, written by an earlier
+ * check) is open while it is unanswered: a line item blank on its line, a release-review term with no answer; a desk
+ * term is decided by `a`. A LIVE item (what the release check reports now) is always open: the release is asked again
+ * on every view, so whatever it reports is, by construction, on the form (live re-run ea40c830). A notice
+ * (review_unavailable, line_items) is never a field. Deduplicated against `a.missing`.
  */
-export function openHeld(held: MissingItem[] | null | undefined, a: Assessment, lines: Line[], answers: DeskAnswers): MissingItem[] {
+export function openHeld(held: MissingItem[] | null | undefined, a: Assessment, lines: Line[], answers: DeskAnswers, live = false): MissingItem[] {
   const asked = new Set(a.missing.map(itemKey));
   const seen = new Set<string>();
   const out: MissingItem[] = [];
   for (const m of Array.isArray(held) ? held : []) {
+    if (!m) continue;
     const k = itemKey(m);
-    if (!m || asked.has(k) || seen.has(k) || NOT_A_FIELD.has(m.attr)) continue;
+    if (asked.has(k) || seen.has(k) || NOT_A_FIELD.has(m.attr)) continue;
     if (m.scope === 'line') {
-      const lr = a.lines.find((x) => x.line_no === m.line_no);
-      if (lr?.defs.some((d) => d.code === m.attr)) continue;              // the desk asks this attribute of the line itself
       const l = lines.find((x) => x.line_no === m.line_no);
       if (!l) continue;                                                    // the line is gone (a revised quotation)
-      if (String(l.spec?.[m.attr] ?? '').trim()) continue;                 // answered on the line
-      if (m.attr === SPEC_ATTR.code && String(l.specification ?? '').trim().length >= 2) continue;   // the line states it
-    } else {
+      if (!live) {
+        if (String(l.spec?.[m.attr] ?? '').trim()) continue;               // answered on the line
+        if (m.attr === SPEC_ATTR.code && String(l.specification ?? '').trim().length >= 2) continue;   // the line states it
+      }
+    } else if (!live) {
       if (isDeskTerm(m.attr)) continue;
       if (answers[m.attr]) continue;
     }
@@ -309,7 +311,7 @@ export function validateAnswer(m: MissingItem, raw: unknown): { ok: true; value:
 
 /** What the supplier's fill-in form shows: every missing detail, with the values already read beside it, and every
  * open item the hold carries (`extra`, from openHeld) — so the form is the set the release checks. */
-export function formSchema(a: Assessment, _lines: Line[], extra: MissingItem[] = []) {
+export function formSchema(a: Assessment, _lines: Line[], extra: MissingItem[] = [], notices: MissingItem[] = []) {
   const field = (x: Attr, l: { spec: Record<string, string>; missing: string[] }) => ({ attr: x.code, label_en: x.en, label_ar: x.ar, type: x.type, unit: x.unit ?? null, unit_ar: x.unit_ar ?? null, options: x.options ?? null, mandatory: x.mandatory, value: l.spec[x.code] ?? null, missing: l.missing.includes(x.code) });
   const lines = a.lines.filter((l) => l.material && l.defs.length).map((l) => ({
     line_no: l.line_no, description: l.description, trade: l.trade, trade_en: l.trade ? TRADES[l.trade].en : null, trade_ar: l.trade ? TRADES[l.trade].ar : null,
@@ -322,7 +324,10 @@ export function formSchema(a: Assessment, _lines: Line[], extra: MissingItem[] =
       entry = { line_no: Number(m.line_no), description: lr?.description ?? m.description ?? '', trade: lr?.trade ?? null, trade_en: null, trade_ar: null, fields: [] };
       lines.push(entry);
     }
-    if (!entry.fields.some((f) => f.attr === m.attr)) entry.fields.push({ ...field(heldAttr(m), { spec: {}, missing: [m.attr] }) });
+    const have = entry.fields.find((f) => f.attr === m.attr);
+    // An attribute the line already shows is MARKED missing, so the portal (which renders the missing fields) shows it.
+    if (have) have.missing = true;
+    else entry.fields.push({ ...field(heldAttr(m), { spec: {}, missing: [m.attr] }) });
   }
   lines.sort((x, y) => x.line_no - y.line_no);
   const terms = termsAsked(a.missing);
@@ -330,9 +335,38 @@ export function formSchema(a: Assessment, _lines: Line[], extra: MissingItem[] =
   return {
     lines,
     terms,
-    needs_itemised_lines: a.missing.some((m) => m.attr === 'line_items') || extra.some((m) => m.attr === 'line_items'),
+    needs_itemised_lines: [...a.missing, ...extra, ...notices].some((m) => m.attr === 'line_items'),
+    /** What the release needs that is not a field: it could not read the job just now (try again). */
+    notices: notices.filter((m) => m.attr !== 'line_items'),
     values: a.terms,
   };
+}
+
+/**
+ * THE HOLD DESK HAS ONE EVALUATOR (live re-run ea40c830, 10 Nov 2026). The form spec_hold shows, the verdict spec_fill
+ * gives and the verdict spec_approve gives are all THIS: deskAssess, plus the release check run now on the stored quote
+ * with the supplier's answers, plus whatever the hold still carries unanswered. So the release can never report an item
+ * the form did not offer: every item it reports is a field of the form, a term of the form, or a notice on it.
+ * (Before: spec_hold built the form from deskAssess alone and asked the release only at fill and approve.)
+ */
+export async function deskView(q: QuoteRow, lines: Line[], hold: Pick<HoldRow, 'missing' | 'supplier_values'> | null, ctx: Ctx, precheck?: Precheck) {
+  const a = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity, nowOf(ctx));
+  const answers = answersOf(hold);
+  const pre = precheck ? await precheck(q, answers) : null;
+  const live = pre?.missing ?? [];
+  const stored = openHeld(hold?.missing, a, lines, answers);
+  const extra = [...stored, ...openHeld(live, a, lines, answers, true).filter((m) => !stored.some((x) => itemKey(x) === itemKey(m)))];
+  const asked = new Set([...a.missing, ...extra].map(itemKey));
+  const notices = live.filter((m) => NOT_A_FIELD.has(m.attr) && !asked.has(itemKey(m)));
+  const missing = [...a.missing, ...extra, ...notices];
+  return { a, pre, extra, notices, missing, schema: formSchema(a, lines, extra, notices) };
+}
+/** Is a release item on the form? A line field marked missing, a term, the itemised-lines ask, or a notice. */
+export function onForm(schema: ReturnType<typeof formSchema>, m: MissingItem): boolean {
+  if (m.attr === 'line_items') return schema.needs_itemised_lines;
+  if (NOT_A_FIELD.has(m.attr)) return schema.notices.some((n) => n.attr === m.attr);
+  if (m.scope === 'line') return schema.lines.some((l) => l.line_no === m.line_no && l.fields.some((f) => f.attr === m.attr && f.missing));
+  return schema.terms.some((t) => t.attr === m.attr);
 }
 
 export type FillValues = { lines?: Record<string, Record<string, unknown>>; terms?: Record<string, unknown> };
@@ -424,11 +458,12 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const hold = await repo.liveHold(quoteId);
   if (!hold) return { ok: false as const, code: 'no_hold' as const };
   const lines = await repo.lines(quoteId);
-  const a0 = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity, nowOf(ctx));
+  // WHAT IS ACCEPTED IS WHAT THE FORM OFFERED: the same deskView spec_hold showed (desk, live release check, the hold's
+  // own open items). An item the release reports now is accepted although no earlier check stored it on the hold.
+  const view0 = await deskView(q, lines, hold, ctx, precheck);
+  const a0 = view0.a;
   const errors: FillError[] = [];
-  // What the hold carries is asked too (the release review's items): each is accepted exactly as the form offered it.
-  const held: MissingItem[] = Array.isArray(hold.missing) ? hold.missing : [];
-  const prior = answersOf(hold);
+  const held: MissingItem[] = [...(Array.isArray(hold.missing) ? hold.missing : []), ...view0.missing];
   const answers: DeskAnswers = {};
   const next = lines.map((l) => ({ ...l, spec: { ...(l.spec ?? {}) }, spec_source: { ...(l.spec_source ?? {}) } }));
   for (const [ln, vals] of Object.entries(values.lines ?? {})) {
@@ -480,26 +515,14 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   if (changed.length) await repo.saveLineSpecs(quoteId, changed);
   await repo.updateQuote(quoteId, patch);
   const history = [...(hold.supplier_values ?? []), { at: nowIso(ctx), by: 'supplier', values, ...(Object.keys(answers).length ? { answers } : {}) }];
-  const allAnswers = { ...prior, ...answers };
 
   const q1 = { ...q, ...patch } as QuoteRow;
-  const a1 = deskAssess({ category: ctx.category, lines: next, terms: q1, requirements: ctx.requirements, checklist: ctx.checklist }, q1.validity, nowOf(ctx));
-  const still = openHeld(held, a1, next, allAnswers);
-  if (a1.held || still.length) {
-    const missing = [...a1.missing, ...still];
-    await repo.updateHold(hold.id, { missing, state: 'open', supplier_values: history });
-    return { ok: true as const, complete: false as const, missing, schema: formSchema(a1, next, still) };
-  }
-  // COMPLETE IS THE RELEASE'S VERDICT: the release check runs here, on the row as now stored, before the desk says
-  // complete. What it asks goes on the hold and on the form, so approve() can never ask a thing the form did not offer.
-  if (precheck) {
-    const pre = await precheck(q1, allAnswers);
-    if (pre && pre.missing.length) {
-      const extra = openHeld(pre.missing, a1, next, allAnswers);
-      const missing = [...pre.missing];
-      await repo.updateHold(hold.id, { missing, state: 'open', supplier_values: history });
-      return { ok: true as const, complete: false as const, missing, schema: formSchema(a1, next, extra.length ? extra : pre.missing), review_issues: pre.issues ?? null };
-    }
+  // ONE EVALUATOR (deskView): the desk, the release check on the row as now stored, and what the hold still carries.
+  const view = await deskView(q1, next, { missing: held, supplier_values: history }, ctx, precheck);
+  const a1 = view.a;
+  if (view.missing.length) {
+    await repo.updateHold(hold.id, { missing: view.missing, state: 'open', supplier_values: history });
+    return { ok: true as const, complete: false as const, missing: view.missing, schema: view.schema, review_issues: view.pre?.issues ?? null };
   }
   // Complete: the sales engineer regenerates the standardised quotation and asks the supplier to approve it.
   const record = standardise(q1, next, a1, ctx);
@@ -555,14 +578,12 @@ export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplie
   if (arabicPending(hold)) return { ok: false as const, code: 'arabic_pending' as const };
   if (confirm !== true) return { ok: false as const, code: 'confirm_required' as const };
   const lines = await repo.lines(quoteId);
-  const a = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity, nowOf(ctx));
-  if (a.held) { await repo.updateHold(hold.id, { state: 'open', missing: a.missing }); return { ok: false as const, code: 'still_missing' as const, missing: a.missing }; }
-  if (precheck) {
-    const pre = await precheck(q, answersOf(hold));
-    if (pre) {
-      await repo.updateHold(hold.id, { state: 'open', missing: pre.missing });
-      return { ok: false as const, code: 'still_missing' as const, missing: pre.missing, review_issues: pre.issues ?? null };
-    }
+  // The SAME evaluator as the form and the fill (deskView), asked before the hold is marked released: a refusal puts the
+  // hold back to 'open' carrying every item, each of which the form then shows.
+  const view = await deskView(q, lines, hold, ctx, precheck);
+  if (view.missing.length) {
+    await repo.updateHold(hold.id, { state: 'open', missing: view.missing });
+    return { ok: false as const, code: 'still_missing' as const, missing: view.missing, review_issues: view.pre?.issues ?? null };
   }
   const at = nowIso(ctx);
   await repo.updateHold(hold.id, { state: 'released', approved_at: at, approved_by: actorEmail, released_at: at });

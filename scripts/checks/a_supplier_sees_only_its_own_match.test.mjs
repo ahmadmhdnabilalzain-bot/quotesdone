@@ -88,11 +88,14 @@ test('SP-F-02: a failing review HOLDS the quote — it does not refuse it', () =
 
 test('SP-F-02: spec_approve is gated too — it releases a held quote to the customer', () => {
   const a = action('spec_hold');   // the spec_hold / spec_fill / spec_approve branch
-  // 10 Nov 2026 (evidence run, finding a): the review is ONE release check, defined once in this branch and handed to
-  // both doors — spec_fill asks it before it says complete, spec_approve before it releases.
+  // 10 Nov 2026 (evidence run, finding a; live re-run ea40c830): the review is ONE release check, defined once in this
+  // branch; spec_hold builds the form from it, spec_fill asks it before it says complete, spec_approve before it releases.
   const check = a.indexOf('const releaseCheck: Precheck = async (row, answers) =>');
   assert.ok(check !== -1, 'the release must depend on a review of the STORED quote');
-  assert.match(a.slice(check), /const working = withDeskAnswers\(withResolved\(workingFromStoredQuote\(row,[\s\S]{0,300}const rvw = reviewQuotation\(inqSafe, await readWorking\([\s\S]{0,80}working,/, 'the release check reviews the stored quote');
+  assert.match(a.slice(check), /return releaseReview\(inqSafe, row, await repo\.lines\(String\(row\.id\)\), answers, \{ requirements: ctx\.requirements, checklist: ctx\.checklist \}, resolvedFrom\(rrow\?\.working\)\);/, 'the release check reviews the stored quote with the desk\'s own inputs');
+  const m = code(read('supabase', 'functions', 'supplier_api', 'submit_review.ts'));
+  assert.match(m, /export function releaseReview\([\s\S]{0,400}workingFromStoredQuote\(row, lines\)[\s\S]{0,200}reviewQuotation\(inq, w, now, desk\)/, 'the release review is not the review of the stored row');
+  assert.match(a, /\(await deskView\(q, lines, hold, ctx, releaseCheck\)\)\.schema/, 'spec_hold builds its form without the release check');
   assert.match(a, /await approve\(repo,[\s\S]{0,300}releaseCheck\);/, 'spec_approve releases without the review');
   assert.match(a, /await fillIn\(repo,[\s\S]{0,300}, ctx, render, releaseCheck\);/, 'spec_fill says complete without the review');
 });
@@ -104,12 +107,15 @@ test('SP-F-02: spec_approve\'s review is a PRECHECK — a refusal must not stran
   // named to fix. The precheck runs before the release and puts the hold back to 'open'.
   const wf = code(read('supabase', 'functions', '_shared', 'line_specs', 'workflow.ts'));
   const ap = wf.slice(wf.indexOf('export async function approve('));
-  const pre = ap.indexOf('precheck(q, answersOf(hold))');
+  // The precheck is asked through deskView, the one evaluator of the desk (live re-run ea40c830).
+  const pre = ap.indexOf('const view = await deskView(q, lines, hold, ctx, precheck);');
   const released = ap.indexOf("state: 'released'");
   assert.ok(pre !== -1 && pre < released, 'the precheck must be asked before the hold is released');
-  assert.match(ap, /if \(pre\) \{[\s\S]{0,300}state: 'open', missing: pre\.missing[\s\S]{0,200}'still_missing'/, 'a refusal reopens the desk carrying what to fix');
+  assert.match(ap, /if \(view\.missing\.length\) \{[\s\S]{0,300}state: 'open', missing: view\.missing[\s\S]{0,200}'still_missing'/, 'a refusal reopens the desk carrying what to fix');
+  assert.match(wf, /export async function deskView\([\s\S]{0,600}const pre = precheck \? await precheck\(q, answers\) : null;/, 'deskView no longer asks the release check');
   const a = action('spec_hold');
-  assert.match(a, /return \{ missing: rvw\.issues\.map\(issueAsMissing\), issues: rvw\.issues \};/, 'the issues are handed back, not discarded');
+  const m = code(read('supabase', 'functions', 'supplier_api', 'submit_review.ts'));
+  assert.match(m, /return rvw\.approved \? null : \{ missing: rvw\.issues\.map\(issueAsMissing\), issues: rvw\.issues \};/, 'the issues are handed back, not discarded');
   assert.match(a, /if \(!inqSafe\) return \{ missing: \[\{[\s\S]{0,400}review_unavailable/, 'a transient inbox failure must not strand the quote either');
 });
 

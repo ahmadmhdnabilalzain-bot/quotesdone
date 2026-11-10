@@ -1,4 +1,5 @@
-import { assessQuote, validityOf, requirementsOf, type Line, type MissingItem } from '../../_shared/line_specs/assess.ts';
+import { assessQuote, validityOf, requirementsOf, type Line, type MissingItem, type Requirements } from '../../_shared/line_specs/assess.ts';
+import type { Attr } from '../../_shared/line_specs/model.ts';
 import { normText } from '../../_shared/line_specs/model.ts';
 import { applyReading, readQuote } from '../../_shared/reasoned_matching.ts';
 import { type ThinkDeps } from '../../_shared/think.ts';
@@ -29,7 +30,11 @@ export async function readWorking(think: ThinkDeps, inq: SafeInquiry, w: Working
   return { ...w, terms_spec: ap.terms_spec, lines: w.lines.map((l, i) => ({ ...l, spec: ap.lines[i].spec ?? l.spec, spec_source: ap.lines[i].spec_source ?? l.spec_source })) };
 }
 
-export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Date()): Review {
+/** desk: what the hold desk judges the exact specs with — the customer's requirements as the inquiry stores them, and the
+ *  trade's knowledge-pack checklist. Given, rule 8 asks exactly what the desk asks (hold desk, finding a of 10 Nov 2026,
+ *  re-run ea40c830); omitted (the quotation chat), the requirements are the ones the supplier inbox serves. */
+export type DeskInputs = { requirements: Requirements; checklist?: Attr[] };
+export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Date(), desk?: DeskInputs): Review {
   const issues: Issue[] = [];
   const boq = inq.boq_withheld ? [] : (inq.boq_rows || []).filter((r) => normText(String(r.description ?? '')));
   const lines = w.lines;
@@ -118,7 +123,7 @@ export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Da
   }
 
   // 8. The exact-specs rules, exactly as the hold gate reads them.
-  const a = assessQuote({ category: inq.category, lines: assessLines(w), requirements: requirementsOf(inq.spec),
+  const a = assessQuote({ category: inq.category, lines: assessLines(w), requirements: desk ? desk.requirements : requirementsOf(inq.spec), checklist: desk?.checklist,
     terms: { lead_time: w.lead_time, warranty: w.warranty, scope: w.scope, exclusions: w.exclusions, conditions: w.conditions, notes: w.notes, terms_spec: w.terms_spec, price_ex_vat: exVat } });
   for (const m of a.missing) {
     if (m.attr === 'price_ex_vat' && vatIssue) continue;   // already asked, in the VAT basis's words

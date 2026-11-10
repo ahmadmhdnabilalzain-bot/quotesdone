@@ -14,7 +14,7 @@ import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
-import { answersOf, approve, deskAssess, fillIn, formSchema, gate, gateInputKey, openHeld, readAndAssess, supabaseRepo, type Ctx, type Precheck } from '../../_shared/line_specs/workflow.ts';
+import { approve, deskAssess, deskView, fillIn, formSchema, gate, gateInputKey, readAndAssess, supabaseRepo, type Ctx, type Precheck } from '../../_shared/line_specs/workflow.ts';
 import { readQuote } from '../../_shared/reasoned_matching.ts';
 import { requirementsOf } from '../../_shared/line_specs/assess.ts';
 import { optionAmount, splitOptions } from '../../_shared/line_specs/options.ts';
@@ -22,7 +22,7 @@ import { statedPrice, storedPrice } from '../../_shared/stated_price.ts';
 import { findTrn } from '../../_shared/identity_numbers.ts';
 import { deriveLineFields, deriveTermsFromScope } from '../../_shared/line_specs/derive.ts';
 import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from '../quote_review.ts';
-import { carryHeldAnswers, heldAnswersOf, issueAsMissing, optionOfEach, resolvedFrom, withDeskAnswers, withResolved, workingFromStoredQuote, workingFromSubmit, type HeldAnswers } from '../submit_review.ts';
+import { carryHeldAnswers, heldAnswersOf, issueAsMissing, optionOfEach, releaseReview, resolvedFrom, withResolved, workingFromSubmit, type HeldAnswers } from '../submit_review.ts';
 import { scrubDeep, scrubIdentity, scrubLine } from '../identity_scrub.ts';
 import { cleanTemplate } from '../quote_template.ts';
 import { newOptionRefusal } from '../new_option.ts';
@@ -133,12 +133,12 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(spec), ref: jobNo({ id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no }), multiOption: (optCount || 0) > 1,
                     ...(await specChecklist(inqRow?.category ?? null, String(q.id), 'stored')) };
       const signed = async (b?: string | null, p?: string | null) => { if (!b || !p) return null; try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
-      // THE RELEASE CHECK, ONE FUNCTION FOR BOTH DOORS (evidence run of 10 Nov 2026, finding a). spec_fill asks it before
-      // it says complete and spec_approve asks it before it releases, on the row as stored, with the supplier's desk
-      // answers applied; what it asks is put on the hold, and spec_hold shows every open item the hold carries.
-      // THE THIRD DOOR (review of #854, finding SP-F-02): the release depends on the review of the STORED quote — by
-      // then the row, not any request, is the quotation — read through the same scrubbed inbox and with the same
-      // engineer-recorded explanations.
+      // THE RELEASE CHECK, ONE FUNCTION FOR EVERY DOOR OF THE DESK (finding a of 10 Nov 2026; live re-run ea40c830).
+      // spec_hold builds the form from it, spec_fill asks it before it says complete and spec_approve before it releases,
+      // all through workflow.ts deskView. It reviews the STORED row with the supplier's desk answers (review of #854,
+      // finding SP-F-02: by then the row, not any request, is the quotation), and it judges the exact specs with the
+      // DESK's own inputs — the customer's requirements as the inquiry stores them and the trade's checklist — never the
+      // supplier inbox's view of them, which the inbox withholds or scrubs (submit_review.ts releaseReview says why).
       const releaseCheck: Precheck = async (row, answers) => {
         const inqSafe = await safeInquiryOf(req, jwt, String(row.inquiry_id));
         // A transient inbox failure is NOT an approval and NOT a silent stranding: the desk stays
@@ -147,21 +147,18 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           label_en: 'We could not read this job just now, so we have not sent your quotation. Please confirm your approval again in a moment.',
           label_ar: 'تعذّر علينا قراءة هذا الطلب الآن، ولذلك لم نرسل عرضكم. يُرجى تأكيد الموافقة مرة أخرى بعد قليل.' }] };
         const rrow = await supabaseReviewRepo(admin).review(String(row.inquiry_id), Number(sup.id)).catch(() => null);
-        // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
-        const working = withDeskAnswers(withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)), answers);
-        const rvw = reviewQuotation(inqSafe, await readWorking(defaultDeps(admin, 'supplier_api'), inqSafe, working, 'review:' + inqSafe.id + ':' + sup.id));
-        if (rvw.approved) return null;
-        return { missing: rvw.issues.map(issueAsMissing), issues: rvw.issues };
+        return releaseReview(inqSafe, row, await repo.lines(String(row.id)), answers, { requirements: ctx.requirements, checklist: ctx.checklist }, resolvedFrom(rrow?.working));
       };
       if (action === 'spec_hold') {
         const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,supplier_values,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
         const hold = hs?.[0] || null;
         const lines = await repo.lines(qid);
-        const a = deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity);
-        // The form is deskAssess's missing plus every open item the hold carries (the release review's included).
-        const extra = hold && hold.state === 'open' ? openHeld(hold.missing, a, lines, answersOf(hold)) : [];
+        // The form IS the release's question list: deskView asks the release check now, on the stored quote.
+        const schema = hold && hold.state === 'open'
+          ? (await deskView(q, lines, hold, ctx, releaseCheck)).schema
+          : formSchema(deskAssess({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist }, q.validity), lines);
         const { supplier_values: _sv, ...shown } = hold || {};
-        return J({ ok: true, quote_id: qid, option_no: q.option_no, hold: hold ? { ...shown, pdf_url: await signed(hold.pdf_bucket, hold.pdf_path) } : null, schema: formSchema(a, lines, extra) });
+        return J({ ok: true, quote_id: qid, option_no: q.option_no, hold: hold ? { ...shown, pdf_url: await signed(hold.pdf_bucket, hold.pdf_path) } : null, schema });
       }
       if (action === 'spec_fill') {
         // The regenerated quotation is the standard quotation (quoteDocument, via workflow.ts pdfBody) in
@@ -331,10 +328,12 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       const reviewRow = await supabaseReviewRepo(admin).review(inquiryId, Number(sup.id)).catch(() => null);
       const safeInq = await safeInquiryOf(req, jwt, inquiryId);
       if (!safeInq) return J({ error: 'not_found', code: 'not_found' }, 404);
-      // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
+      // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked. Its exact
+      // specs are judged with the requirements the gate judges them with (the inquiry's own, not the inbox's view of them):
+      // the review hold and the spec hold of one submission ask the same (live re-run ea40c830, 10 Nov 2026).
       const rv = reviewQuotation(safeInq, await readWorking(defaultDeps(admin, 'supplier_api'), safeInq, withResolved(
         workingFromSubmit(sent, { notes: String(sNotes ?? ''), scope: String(sScope ?? ''), conditions: String(sCond ?? ''), exclusions: String(sExcl ?? '') }, confirmedTerms || {}, allMasked, trn),
-        resolvedFrom(reviewRow?.working)), 'review:' + safeInq.id + ':' + sup.id));
+        resolvedFrom(reviewRow?.working)), 'review:' + safeInq.id + ':' + sup.id), new Date(), { requirements });
       const lang: 'en' | 'ar' = SUPPLIER_LOCALE;
       const reviewIssues = rv.approved ? null : rv.issues.map((i) => ({ code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, en: i.en, ar: i.ar }));
       const reviewMissing = rv.approved ? [] : rv.issues.map(issueAsMissing);
