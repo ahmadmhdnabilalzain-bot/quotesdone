@@ -218,7 +218,7 @@ export async function caseMemoryEmbedTick(): Promise<unknown> {
 
 // THE MULTILINGUAL SPACE'S TRICKLE (23 Sep 2026, it_engineer). knowledge_vector_ml rows that are new or whose
 // text changed are embedded by the embed_ml function (action 'tick'), not here: the model loads only in that
-// function's workers. Four rows a tick (ML_TICK_MAX, measured); the backlog is drained by
+// function's workers. Two rows a tick (ML_TICK_MAX, measured 9 Nov 2026: four died 546 in 22 of ~46 ticks); the backlog is drained by
 // .github/workflows/ml-embed-backfill.yml. The gate and the daily cap are fn_ml_embed_claim's.
 export async function mlEmbedTick(): Promise<unknown> {
   try {
@@ -226,7 +226,7 @@ export async function mlEmbedTick(): Promise<unknown> {
     if (!secret) return { ok: false, error: 'cred_fn_ai is not in app_secrets' };
     const r = await fetch(FN + '/embed_ml', {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
-      body: JSON.stringify({ __secret: secret, fn: 'resilience_ping', action: 'tick', limit: 4 }), signal: AbortSignal.timeout(50000),
+      body: JSON.stringify({ __secret: secret, fn: 'resilience_ping', action: 'tick', limit: 2 }), signal: AbortSignal.timeout(50000),
     });
     const j = await r.json().catch(() => null);
     return { ok: r.ok, status: r.status, result: j };
